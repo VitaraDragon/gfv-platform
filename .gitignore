@@ -1,0 +1,68 @@
+# Vecchia app (ha il suo repository Git separato)
+# NON tracciare questa cartella - ha il suo repository Git
+vecchia app/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# API Keys and Secrets
+# IMPORTANTE: Non committare mai file con chiavi reali!
+google-maps-config.js
+core/firebase-config.js
+**/firebase-config.js
+!**/*-config.example.js
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Node modules (se usi npm)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build files
+dist/
+build/
+*.min.js
+*.min.css
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Coverage (se usi test)
+coverage/
+.nyc_output/
+
+# Backup files
+*.bak
+*.backup
+*~
