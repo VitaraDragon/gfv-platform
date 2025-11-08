@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Utente Mancante - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2E8B57;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #2E8B57;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #228B22;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2E8B57;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Fix Utente Mancante</h1>
+        
+        <div class="info-box">
+            <strong>ℹ️ Utilizzo:</strong> Questa pagina crea il documento Firestore per un utente che esiste in Authentication ma non in Firestore. Inserisci l'UID dell'utente da Firebase Authentication.
+        </div>
+
+        <div id="alert-container"></div>
+
+        <form id="fix-form" onsubmit="handleFix(event)">
+            <div class="form-group">
+                <label for="uid">UID Utente (da Firebase Authentication) *</label>
+                <input type="text" id="uid" required placeholder="Es: XT4lKtLVQ9claBbSHsbOMmR...">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" required placeholder="info@sabbiegialle.it">
+            </div>
+
+            <div class="form-group">
+                <label for="nome">Nome *</label>
+                <input type="text" id="nome" required>
+            </div>
+
+            <div class="form-group">
+                <label for="cognome">Cognome *</label>
+                <input type="text" id="cognome" required>
+            </div>
+
+            <div class="form-group">
+                <label for="tenantId">Tenant ID (opzionale)</label>
+                <input type="text" id="tenantId" placeholder="Lascia vuoto se non hai un tenant">
+            </div>
+
+            <button type="submit">Crea Documento Utente</button>
+        </form>
+    </div>
+
+    <script type="module">
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
+            authDomain: "gfv-platform.firebaseapp.com",
+            projectId: "gfv-platform",
+            storageBucket: "gfv-platform.firebasestorage.app",
+            messagingSenderId: "495860225347",
+            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+        };
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+            }
+        });
+
+        async function handleFix(e) {
+            e.preventDefault();
+            
+            const container = document.getElementById('alert-container');
+            container.innerHTML = '';
+
+            const uid = document.getElementById('uid').value.trim();
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const nome = document.getElementById('nome').value.trim();
+            const cognome = document.getElementById('cognome').value.trim();
+            const tenantId = document.getElementById('tenantId').value.trim() || null;
+
+            try {
+                // Verifica se il documento esiste già
+                const existingDoc = await getDoc(doc(db, 'users', uid));
+                if (existingDoc.exists()) {
+                    container.innerHTML = '<div class="alert alert-error">⚠️ Documento già esistente per questo UID!</div>';
+                    return;
+                }
+
+                // Crea documento utente
+                const userData = {
+                    id: uid,
+                    email: email,
+                    nome: nome,
+                    cognome: cognome,
+                    ruoli: ['amministratore'], // Assegna amministratore di default
+                    tenantId: tenantId,
+                    stato: 'attivo',
+                    creatoIl: serverTimestamp(),
+                    ultimoAccesso: null
+                };
+
+                await setDoc(doc(db, 'users', uid), userData);
+                
+                container.innerHTML = '<div class="alert alert-success">✅ Documento utente creato con successo! Ora puoi fare login con questo account.</div>';
+                
+                // Reset form
+                document.getElementById('fix-form').reset();
+                
+            } catch (error) {
+                console.error('Errore:', error);
+                container.innerHTML = `<div class="alert alert-error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+
+        window.handleFix = handleFix;
+    </script>
+</body>
+</html>
+

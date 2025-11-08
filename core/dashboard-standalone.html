@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .user-info {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+
+        .user-roles {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .role-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .logout-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .logout-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-section h2 {
+            color: #2E8B57;
+            font-size: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            font-size: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2E8B57;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .action-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-card:hover {
+            background: #e9ecef;
+            border-color: #2E8B57;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .action-icon {
+            font-size: 32px;
+        }
+
+        .action-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .action-description {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .recent-items {
+            list-style: none;
+        }
+
+        .recent-item {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .recent-item:last-child {
+            border-bottom: none;
+        }
+
+        .recent-item-title {
+            font-weight: 500;
+        }
+
+        .recent-item-date {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <h1>🌾 GFV Platform</h1>
+                <div class="user-info" id="user-info">Caricamento...</div>
+                <div class="user-roles" id="user-roles"></div>
+            </div>
+            <button class="logout-button" id="logout-button">Logout</button>
+        </div>
+
+        <div id="dashboard-content" class="dashboard-content">
+            <div class="loading">Caricamento dashboard...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK da CDN -->
+    <script type="module">
+        // Configurazione Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
+            authDomain: "gfv-platform.firebaseapp.com",
+            projectId: "gfv-platform",
+            storageBucket: "gfv-platform.firebasestorage.app",
+            messagingSenderId: "495860225347",
+            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+        };
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, getDoc, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Ruoli disponibili con nomi display
+        const roleNames = {
+            'amministratore': '👑 Amministratore',
+            'manager': '📊 Manager',
+            'caposquadra': '👷 Caposquadra',
+            'operaio': '🔧 Operaio'
+        };
+
+        // Normalizza i ruoli (converte varianti in ruoli standard)
+        function normalizeRole(role) {
+            if (!role) return role;
+            const roleLower = role.toLowerCase().trim();
+            
+            // Mappa varianti comuni ai ruoli standard
+            const roleMap = {
+                'aggiungi amministratore': 'amministratore',
+                'admin': 'amministratore',
+                'administrator': 'amministratore',
+                'mgr': 'manager',
+                'capo squadra': 'caposquadra',
+                'capo-squadra': 'caposquadra',
+                'worker': 'operaio',
+                'operario': 'operaio'
+            };
+            
+            return roleMap[roleLower] || roleLower;
+        }
+
+        // Normalizza array di ruoli
+        function normalizeRoles(ruoli) {
+            if (!Array.isArray(ruoli)) return [];
+            return ruoli.map(r => normalizeRole(r));
+        }
+
+        // Funzione per verificare se utente ha un ruolo (con normalizzazione)
+        function hasRole(userData, role) {
+            if (!userData || !userData.ruoli) return false;
+            const normalizedRoles = normalizeRoles(userData.ruoli);
+            const normalizedRole = normalizeRole(role);
+            return normalizedRoles.includes(normalizedRole);
+        }
+
+        // Funzione per verificare se utente ha almeno uno dei ruoli (con normalizzazione)
+        function hasAnyRole(userData, roles) {
+            if (!userData || !userData.ruoli) return false;
+            const normalizedRoles = normalizeRoles(userData.ruoli);
+            const normalizedCheckRoles = roles.map(r => normalizeRole(r));
+            return normalizedCheckRoles.some(role => normalizedRoles.includes(role));
+        }
+
+        // Renderizza dashboard in base ai ruoli
+        function renderDashboard(userData) {
+            const container = document.getElementById('dashboard-content');
+            container.innerHTML = '';
+
+            const ruoli = userData.ruoli || [];
+
+            // Sezione Amministratore
+            if (hasRole(userData, 'amministratore')) {
+                container.appendChild(createAdminSection(userData));
+            }
+
+            // Sezione Manager
+            if (hasRole(userData, 'manager')) {
+                container.appendChild(createManagerSection(userData));
+            }
+
+            // Sezione Caposquadra
+            if (hasRole(userData, 'caposquadra')) {
+                container.appendChild(createCaposquadraSection(userData));
+            }
+
+            // Sezione Operaio
+            if (hasRole(userData, 'operaio')) {
+                container.appendChild(createOperaioSection(userData));
+            }
+
+            // Se non ha ruoli, mostra messaggio
+            if (ruoli.length === 0) {
+                container.innerHTML = `
+                    <div class="dashboard-section" style="grid-column: 1 / -1;">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <h2>Nessun ruolo assegnato</h2>
+                            <p>Contatta l'amministratore per ottenere i permessi necessari.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Sezione Amministratore
+        function createAdminSection(userData) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            section.innerHTML = `
+                <h2><span class="section-icon">👑</span> Amministrazione</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Utenti Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Moduli Attivi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Abbonamento</div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    <a href="admin/gestisci-utenti-standalone.html" class="action-card">
+                        <span class="action-icon">👥</span>
+                        <span class="action-title">Gestisci Utenti</span>
+                        <span class="action-description">Invita e gestisci utenti azienda</span>
+                    </a>
+                    <a href="admin/abbonamento-standalone.html" class="action-card">
+                        <span class="action-icon">💳</span>
+                        <span class="action-title">Abbonamento</span>
+                        <span class="action-description">Gestisci piano e pagamenti</span>
+                    </a>
+                    <a href="admin/impostazioni-standalone.html" class="action-card">
+                        <span class="action-icon">⚙️</span>
+                        <span class="action-title">Impostazioni</span>
+                        <span class="action-description">Configura azienda e account</span>
+                    </a>
+                    <a href="admin/report-standalone.html" class="action-card">
+                        <span class="action-icon">📊</span>
+                        <span class="action-title">Report Completi</span>
+                        <span class="action-description">Visualizza tutte le statistiche</span>
+                    </a>
+                </div>
+            `;
+            return section;
+        }
+
+        // Sezione Manager
+        function createManagerSection(userData) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            section.innerHTML = `
+                <h2><span class="section-icon">📊</span> Gestione Operativa</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Clienti</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Terreni</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Lavori Attivi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Ore Questo Mese</div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    <a href="#" class="action-card" onclick="alert('Modulo Clienti in sviluppo'); return false;">
+                        <span class="action-icon">👥</span>
+                        <span class="action-title">Clienti</span>
+                        <span class="action-description">Gestisci anagrafica clienti</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Terreni in sviluppo'); return false;">
+                        <span class="action-icon">🗺️</span>
+                        <span class="action-title">Terreni</span>
+                        <span class="action-description">Gestisci terreni e vigneti</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Vendemmia in sviluppo'); return false;">
+                        <span class="action-icon">🍇</span>
+                        <span class="action-title">Calcolatore Vendemmia</span>
+                        <span class="action-description">Crea calcoli e preventivi</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Lavori in sviluppo'); return false;">
+                        <span class="action-icon">📋</span>
+                        <span class="action-title">Lavori</span>
+                        <span class="action-description">Assegna e gestisci lavori</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Report in sviluppo'); return false;">
+                        <span class="action-icon">📈</span>
+                        <span class="action-title">Report</span>
+                        <span class="action-description">Visualizza statistiche e report</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Bilancio in sviluppo'); return false;">
+                        <span class="action-icon">💰</span>
+                        <span class="action-title">Bilancio</span>
+                        <span class="action-description">Gestisci entrate e uscite</span>
+                    </a>
+                </div>
+            `;
+            return section;
+        }
+
+        // Sezione Caposquadra
+        function createCaposquadraSection(userData) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            section.innerHTML = `
+                <h2><span class="section-icon">👷</span> Gestione Squadra</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Lavori Assegnati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Ore da Validare</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Squadra</div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    <a href="#" class="action-card" onclick="alert('Modulo Lavori in sviluppo'); return false;">
+                        <span class="action-icon">📋</span>
+                        <span class="action-title">I Miei Lavori</span>
+                        <span class="action-description">Visualizza lavori assegnati</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Validazione in sviluppo'); return false;">
+                        <span class="action-icon">✅</span>
+                        <span class="action-title">Valida Ore</span>
+                        <span class="action-description">Valida ore degli operai</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Squadra in sviluppo'); return false;">
+                        <span class="action-icon">👥</span>
+                        <span class="action-title">La Mia Squadra</span>
+                        <span class="action-description">Gestisci membri squadra</span>
+                    </a>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
+                <ul class="recent-items">
+                    <li class="recent-item">
+                        <div>
+                            <div class="recent-item-title">Nessun lavoro recente</div>
+                        </div>
+                    </li>
+                </ul>
+            `;
+            return section;
+        }
+
+        // Sezione Operaio
+        function createOperaioSection(userData) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            section.innerHTML = `
+                <h2><span class="section-icon">🔧</span> I Miei Lavori</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Lavori Oggi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Ore Segnate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Stato</div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    <a href="#" class="action-card" onclick="alert('Modulo Lavori in sviluppo'); return false;">
+                        <span class="action-icon">📋</span>
+                        <span class="action-title">Lavori di Oggi</span>
+                        <span class="action-description">Visualizza lavori assegnati oggi</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Ore in sviluppo'); return false;">
+                        <span class="action-icon">⏱️</span>
+                        <span class="action-title">Segna Ore</span>
+                        <span class="action-description">Registra inizio/fine lavoro</span>
+                    </a>
+                    <a href="#" class="action-card" onclick="alert('Modulo Storico in sviluppo'); return false;">
+                        <span class="action-icon">📊</span>
+                        <span class="action-title">Le Mie Ore</span>
+                        <span class="action-description">Visualizza storico ore</span>
+                    </a>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori di Oggi</h3>
+                <ul class="recent-items">
+                    <li class="recent-item">
+                        <div>
+                            <div class="recent-item-title">Nessun lavoro assegnato per oggi</div>
+                        </div>
+                    </li>
+                </ul>
+            `;
+            return section;
+        }
+
+        // Verifica autenticazione e carica dashboard
+        // Traccia l'utente previsto per questa scheda (per gestire cambio sessione)
+        let expectedUserId = sessionStorage.getItem('gfv_expected_user_id');
+        
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // Non autenticato, redirect a login
+                sessionStorage.removeItem('gfv_expected_user_id');
+                window.location.href = './auth/login-standalone.html';
+                return;
+            }
+            
+            // Se questa scheda aveva un utente previsto e ora è cambiato, gestisci il cambio
+            if (expectedUserId && expectedUserId !== user.uid) {
+                // L'utente è cambiato (probabilmente un'altra scheda ha fatto login)
+                // Se questa scheda non è appena stata usata per registrazione, fai logout
+                const justRegistered = sessionStorage.getItem('gfv_user_just_registered');
+                if (!justRegistered) {
+                    console.log('⚠️ Utente cambiato in questa scheda, redirect a login...');
+                    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                    await signOut(auth);
+                    sessionStorage.removeItem('gfv_expected_user_id');
+                    window.location.href = './auth/login-standalone.html';
+                    return;
+                } else {
+                    // Questa scheda è appena stata usata per registrazione, aggiorna l'utente previsto
+                    expectedUserId = user.uid;
+                    sessionStorage.setItem('gfv_expected_user_id', user.uid);
+                    sessionStorage.removeItem('gfv_user_just_registered');
+                }
+            } else if (!expectedUserId) {
+                // Prima volta che carichiamo questa scheda, salva l'utente previsto
+                expectedUserId = user.uid;
+                sessionStorage.setItem('gfv_expected_user_id', user.uid);
+            }
+
+            // Carica dati utente
+            try {
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (userDoc.exists()) {
+                    // Aggiorna ultimo accesso e imposta come online quando si carica la dashboard
+                    try {
+                        await updateDoc(userDocRef, {
+                            ultimoAccesso: serverTimestamp(),
+                            isOnline: true,
+                            lastSeen: serverTimestamp()
+                        });
+                    } catch (error) {
+                        console.warn('Errore aggiornamento ultimo accesso:', error);
+                    }
+                    
+                    // Aggiorna periodicamente lo stato online (ogni 30 secondi)
+                    const onlineInterval = setInterval(async () => {
+                        try {
+                            await updateDoc(userDocRef, {
+                                lastSeen: serverTimestamp()
+                            });
+                        } catch (error) {
+                            console.warn('Errore aggiornamento stato online:', error);
+                            clearInterval(onlineInterval);
+                        }
+                    }, 30000); // Ogni 30 secondi
+                    
+                    // Quando l'utente chiude la pagina o naviga via, imposta offline
+                    window.addEventListener('beforeunload', async () => {
+                        try {
+                            await updateDoc(userDocRef, {
+                                isOnline: false
+                            });
+                        } catch (error) {
+                            // Ignora errori durante il beforeunload
+                        }
+                    });
+                    
+                    // Salva l'interval per pulirlo al logout
+                    window.gfvOnlineInterval = onlineInterval;
+                    
+                    const userDocUpdated = await getDoc(userDocRef);
+                    const userData = userDocUpdated.data();
+                    const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
+                    const email = userData.email || user.email;
+                    const ruoli = userData.ruoli || [];
+                    
+                    // Debug: log per vedere cosa viene letto
+                    console.log('Dati utente letti:', userData);
+                    console.log('Ruoli letti:', ruoli);
+                    console.log('Tipo ruoli:', typeof ruoli, Array.isArray(ruoli));
+                    
+                    // Se i ruoli non sono un array, prova a convertirli
+                    let ruoliArray = ruoli;
+                    if (!Array.isArray(ruoli)) {
+                        if (typeof ruoli === 'string') {
+                            ruoliArray = [ruoli];
+                        } else if (ruoli && typeof ruoli === 'object') {
+                            ruoliArray = Object.values(ruoli);
+                        } else {
+                            ruoliArray = [];
+                        }
+                        console.log('Ruoli convertiti:', ruoliArray);
+                    }
+                    
+                    // Aggiorna header
+                    document.getElementById('user-info').textContent = 
+                        `Utente: ${nomeCompleto || 'N/A'} (${email})`;
+                    
+                    // Normalizza ruoli prima di mostrarli
+                    const normalizedRoles = normalizeRoles(ruoliArray);
+                    
+                    // Mostra ruoli
+                    const rolesContainer = document.getElementById('user-roles');
+                    if (normalizedRoles.length > 0) {
+                        rolesContainer.innerHTML = normalizedRoles.map(role => {
+                            const displayName = roleNames[role] || role.charAt(0).toUpperCase() + role.slice(1);
+                            return `<span class="role-badge">${displayName}</span>`;
+                        }).join('');
+                    } else {
+                        rolesContainer.innerHTML = '<span class="role-badge">Nessun ruolo</span>';
+                    }
+                    
+                    // Crea copia userData con ruoli normalizzati per il rendering
+                    const userDataNormalized = {
+                        ...userData,
+                        ruoli: normalizedRoles
+                    };
+                    
+                    console.log('Ruoli normalizzati:', normalizedRoles);
+                    console.log('UserData normalizzato:', userDataNormalized);
+                    
+                    // Fix automatico: se l'utente non ha ruoli ma ha un tenant, assegna amministratore
+                    if (normalizedRoles.length === 0 && userData.tenantId) {
+                        console.warn('⚠️ Utente senza ruoli ma con tenant, assegno amministratore automaticamente...');
+                        try {
+                            // Salva i ruoli
+                            await updateDoc(doc(db, 'users', user.uid), {
+                                ruoli: ['amministratore']
+                            });
+                            console.log('✅ Ruoli aggiornati in Firestore');
+                            
+                            // Attendi un momento per assicurarsi che Firestore abbia processato
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            
+                            // Ricarica i dati
+                            const updatedDoc = await getDoc(doc(db, 'users', user.uid));
+                            if (updatedDoc.exists()) {
+                                const updatedData = updatedDoc.data();
+                                const updatedRuoli = updatedData.ruoli || [];
+                                console.log('Ruoli letti dopo fix:', updatedRuoli);
+                                
+                                // Se ancora non ci sono ruoli, prova a convertirli
+                                let updatedRuoliArray = updatedRuoli;
+                                if (!Array.isArray(updatedRuoli)) {
+                                    if (typeof updatedRuoli === 'string') {
+                                        updatedRuoliArray = [updatedRuoli];
+                                    } else if (updatedRuoli && typeof updatedRuoli === 'object') {
+                                        updatedRuoliArray = Object.values(updatedRuoli);
+                                    } else {
+                                        updatedRuoliArray = ['amministratore']; // Fallback
+                                    }
+                                }
+                                
+                                const updatedNormalized = normalizeRoles(updatedRuoliArray);
+                                console.log('Ruoli normalizzati dopo fix:', updatedNormalized);
+                                
+                                // Aggiorna display
+                                if (updatedNormalized.length > 0) {
+                                    const rolesContainer = document.getElementById('user-roles');
+                                    rolesContainer.innerHTML = updatedNormalized.map(role => {
+                                        const displayName = roleNames[role] || role.charAt(0).toUpperCase() + role.slice(1);
+                                        return `<span class="role-badge">${displayName}</span>`;
+                                    }).join('');
+                                }
+                                
+                                // Renderizza con ruoli aggiornati
+                                renderDashboard({
+                                    ...updatedData,
+                                    ruoli: updatedNormalized
+                                });
+                                return; // Esci qui per non eseguire il renderDashboard sotto
+                            } else {
+                                console.error('❌ Documento non trovato dopo update');
+                            }
+                        } catch (error) {
+                            console.error('❌ Errore assegnazione ruolo automatica:', error);
+                            console.error('Dettagli errore:', error.message, error.stack);
+                        }
+                    }
+                    
+                    // Renderizza dashboard
+                    renderDashboard(userDataNormalized);
+                } else {
+                    document.getElementById('user-info').textContent = 
+                        `Utente: ${user.email}`;
+                    document.getElementById('user-roles').innerHTML = 
+                        '<span class="role-badge">Nessun ruolo</span>';
+                    
+                    // Renderizza dashboard vuota
+                    renderDashboard({ ruoli: [] });
+                }
+            } catch (error) {
+                console.error('Errore caricamento dati utente:', error);
+                document.getElementById('user-info').textContent = 
+                    `Utente: ${user.email}`;
+                document.getElementById('user-roles').innerHTML = 
+                    '<span class="role-badge">Errore caricamento</span>';
+                
+                // Renderizza dashboard vuota
+                renderDashboard({ ruoli: [] });
+            }
+        });
+
+        // Logout
+        document.getElementById('logout-button').addEventListener('click', async () => {
+            try {
+                // Ferma l'aggiornamento dello stato online
+                if (window.gfvOnlineInterval) {
+                    clearInterval(window.gfvOnlineInterval);
+                }
+                
+                // Imposta offline prima del logout
+                const user = auth.currentUser;
+                if (user) {
+                    try {
+                        const userDocRef = doc(db, 'users', user.uid);
+                        await updateDoc(userDocRef, {
+                            isOnline: false
+                        });
+                    } catch (error) {
+                        console.warn('Errore aggiornamento stato offline:', error);
+                    }
+                }
+                
+                // Rimuovi anche il flag di sessione
+                sessionStorage.removeItem('gfv_expected_user_id');
+                sessionStorage.removeItem('gfv_user_just_registered');
+                await signOut(auth);
+                window.location.href = './auth/login-standalone.html';
+            } catch (error) {
+                console.error('Errore logout:', error);
+                alert('Errore durante il logout');
+            }
+        });
+
+        console.log('✅ Dashboard caricata');
+    </script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Completi - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #2E8B57;
+            color: white;
+            padding: 8px 20px;
+        }
+
+        .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2E8B57;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .stat-change.positive {
+            color: #28a745;
+        }
+
+        .stat-change.negative {
+            color: #dc3545;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #2E8B57;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .chart-placeholder {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            border: 2px dashed #dee2e6;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 Report Completi</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Statistiche e analisi complete</p>
+            </div>
+            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+        </div>
+
+        <!-- Filtri -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>Periodo</label>
+                <select id="filter-period">
+                    <option value="month">Questo Mese</option>
+                    <option value="quarter">Questo Trimestre</option>
+                    <option value="year" selected>Questo Anno</option>
+                    <option value="custom">Personalizzato</option>
+                </select>
+            </div>
+            <div class="filter-group" id="date-from-group" style="display: none;">
+                <label>Da</label>
+                <input type="date" id="filter-date-from">
+            </div>
+            <div class="filter-group" id="date-to-group" style="display: none;">
+                <label>A</label>
+                <input type="date" id="filter-date-to">
+            </div>
+            <div class="filter-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary" onclick="loadReports()">Aggiorna</button>
+            </div>
+        </div>
+
+        <!-- Statistiche Principali -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-clienti">-</div>
+                <div class="stat-label">Clienti Totali</div>
+                <div class="stat-change positive">+5% vs mese scorso</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-ricavi">-</div>
+                <div class="stat-label">Ricavi Totali</div>
+                <div class="stat-change positive">+12% vs mese scorso</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-lavori">-</div>
+                <div class="stat-label">Lavori Completati</div>
+                <div class="stat-change positive">+8% vs mese scorso</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-ore">-</div>
+                <div class="stat-label">Ore Lavorate</div>
+                <div class="stat-change negative">-3% vs mese scorso</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-utenti">-</div>
+                <div class="stat-label">Utenti Attivi</div>
+                <div class="stat-change">Invariato</div>
+            </div>
+        </div>
+
+        <!-- Report Dettagliati -->
+        <div class="content">
+            <!-- Ricavi nel Tempo -->
+            <div class="card">
+                <h2>📈 Ricavi nel Tempo</h2>
+                <div class="chart-placeholder">
+                    Grafico in sviluppo
+                </div>
+            </div>
+
+            <!-- Top Clienti -->
+            <div class="card">
+                <h2>🏆 Top Clienti</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Ricavi</th>
+                                <th>Lavori</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-clienti-body">
+                            <tr>
+                                <td colspan="3" class="empty-state">
+                                    <div class="empty-state-icon">📊</div>
+                                    <p>Nessun dato disponibile</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Distribuzione Lavori -->
+            <div class="card">
+                <h2>📋 Distribuzione Lavori</h2>
+                <div class="chart-placeholder">
+                    Grafico in sviluppo
+                </div>
+            </div>
+
+            <!-- Attività Utenti -->
+            <div class="card">
+                <h2>👥 Attività Utenti</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Utente</th>
+                                <th>Ore</th>
+                                <th>Lavori</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attivita-utenti-body">
+                            <tr>
+                                <td colspan="3" class="empty-state">
+                                    <div class="empty-state-icon">👥</div>
+                                    <p>Nessun dato disponibile</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gestione filtro periodo
+        document.getElementById('filter-period').addEventListener('change', (e) => {
+            const isCustom = e.target.value === 'custom';
+            document.getElementById('date-from-group').style.display = isCustom ? 'block' : 'none';
+            document.getElementById('date-to-group').style.display = isCustom ? 'block' : 'none';
+        });
+
+        // Carica report
+        function loadReports() {
+            const period = document.getElementById('filter-period').value;
+            
+            // Placeholder: mostra dati di esempio
+            document.getElementById('stat-clienti').textContent = '25';
+            document.getElementById('stat-ricavi').textContent = '€45.230';
+            document.getElementById('stat-lavori').textContent = '142';
+            document.getElementById('stat-ore').textContent = '1.240h';
+            document.getElementById('stat-utenti').textContent = '8';
+
+            // Placeholder: mostra dati esempio nelle tabelle
+            document.getElementById('top-clienti-body').innerHTML = `
+                <tr>
+                    <td>Cliente A</td>
+                    <td>€12.500</td>
+                    <td>45</td>
+                </tr>
+                <tr>
+                    <td>Cliente B</td>
+                    <td>€8.300</td>
+                    <td>32</td>
+                </tr>
+                <tr>
+                    <td>Cliente C</td>
+                    <td>€6.200</td>
+                    <td>28</td>
+                </tr>
+            `;
+
+            document.getElementById('attivita-utenti-body').innerHTML = `
+                <tr>
+                    <td>Mario Rossi</td>
+                    <td>320h</td>
+                    <td>45</td>
+                </tr>
+                <tr>
+                    <td>Luigi Bianchi</td>
+                    <td>280h</td>
+                    <td>38</td>
+                </tr>
+                <tr>
+                    <td>Giovanni Verdi</td>
+                    <td>240h</td>
+                    <td>32</td>
+                </tr>
+            `;
+
+            alert('Funzionalità in sviluppo: I dati mostrati sono di esempio. I report reali saranno disponibili quando i moduli saranno completati.');
+        }
+
+        // Carica report al caricamento pagina
+        document.addEventListener('DOMContentLoaded', () => {
+            loadReports();
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrazione - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2E8B57 0%, #8B4513 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .register-header h1 {
+            color: #2E8B57;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .register-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .invite-info {
+            background: #e7f3ff;
+            border-left: 4px solid #2E8B57;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .invite-info strong {
+            color: #2E8B57;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+
+        .form-group input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .register-button {
+            width: 100%;
+            padding: 14px;
+            background: #2E8B57;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        .register-button:hover {
+            background: #228B22;
+        }
+
+        .register-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2E8B57;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .error-box {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <h1>🌾 GFV Platform</h1>
+            <p>Completa la tua registrazione</p>
+        </div>
+
+        <div id="error-container"></div>
+        <div id="success-message" class="success-message"></div>
+
+        <div id="invite-info" class="invite-info" style="display: none;">
+            <strong>Invito ricevuto per:</strong><br>
+            <span id="invite-email"></span><br>
+            <span id="invite-name"></span>
+        </div>
+
+        <form id="register-form" style="display: none;">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required 
+                    disabled
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="nome">Nome</label>
+                <input 
+                    type="text" 
+                    id="nome" 
+                    name="nome" 
+                    required 
+                    disabled
+                    autocomplete="given-name"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="cognome">Cognome</label>
+                <input 
+                    type="text" 
+                    id="cognome" 
+                    name="cognome" 
+                    required 
+                    disabled
+                    autocomplete="family-name"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Scegli una Password *</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required 
+                    autocomplete="new-password"
+                    placeholder="Minimo 6 caratteri"
+                    minlength="6"
+                >
+                <div class="error-message" id="password-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password-confirm">Conferma Password *</label>
+                <input 
+                    type="password" 
+                    id="password-confirm" 
+                    name="password-confirm" 
+                    required 
+                    autocomplete="new-password"
+                    placeholder="Ripeti la password"
+                    minlength="6"
+                >
+                <div class="error-message" id="password-confirm-error"></div>
+            </div>
+
+            <button type="submit" class="register-button" id="register-button">
+                Completa Registrazione
+            </button>
+        </form>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p id="loading-text">Caricamento...</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
+            authDomain: "gfv-platform.firebaseapp.com",
+            projectId: "gfv-platform",
+            storageBucket: "gfv-platform.firebasestorage.app",
+            messagingSenderId: "495860225347",
+            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+        };
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc, getDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Elementi DOM
+        const registerForm = document.getElementById('register-form');
+        const emailInput = document.getElementById('email');
+        const nomeInput = document.getElementById('nome');
+        const cognomeInput = document.getElementById('cognome');
+        const passwordInput = document.getElementById('password');
+        const passwordConfirmInput = document.getElementById('password-confirm');
+        const registerButton = document.getElementById('register-button');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const successMessage = document.getElementById('success-message');
+        const errorContainer = document.getElementById('error-container');
+        const inviteInfo = document.getElementById('invite-info');
+
+        let inviteData = null;
+
+        // Leggi token da URL PRIMA di tutto
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+
+        console.log('Token letto da URL:', token);
+        console.log('URL completo:', window.location.href);
+        console.log('Search params:', window.location.search);
+
+        // Verifica se già autenticato
+        // Se c'è un token nell'URL, facciamo logout SOLO se l'utente sta aprendo questa pagina
+        // Non fare logout se l'utente è già sulla pagina di registrazione
+        onAuthStateChanged(auth, async (user) => {
+            // Se loggato ma non c'è token, redirect a dashboard
+            if (user && !token) {
+                window.location.href = '../dashboard-standalone.html';
+                return;
+            }
+            
+            // Se c'è un token e l'utente è loggato, facciamo logout SOLO se necessario
+            // (per permettere la registrazione con il nuovo account)
+            if (user && token) {
+                // Verifica se l'utente loggato è lo stesso dell'invito
+                // Se sì, non serve logout (sta già registrando il suo account)
+                // Se no, facciamo logout per permettere la registrazione
+                try {
+                    // Carica l'invito per vedere l'email
+                    const invitiQuery = query(
+                        collection(db, 'inviti'),
+                        where('token', '==', token),
+                        where('stato', '==', 'invitato')
+                    );
+                    const snapshot = await getDocs(invitiQuery);
+                    
+                    if (!snapshot.empty) {
+                        const invitoData = snapshot.docs[0].data();
+                        // Se l'email dell'invito è diversa dall'utente loggato, fai logout
+                        if (invitoData.email.toLowerCase() !== user.email.toLowerCase()) {
+                            console.log('Utente loggato diverso dall\'invito, faccio logout...');
+                            const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                            await signOut(auth);
+                            // Ricarica la pagina per continuare con il token
+                            window.location.reload();
+                            return;
+                        } else {
+                            // Stesso utente, può continuare
+                            console.log('Utente loggato corrisponde all\'invito, procedo...');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Errore verifica invito:', error);
+                    // In caso di errore, fai logout per sicurezza
+                    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                    await signOut(auth);
+                    window.location.reload();
+                    return;
+                }
+            }
+            
+            // Se non loggato o logout completato, procedi con il caricamento invito
+            if (token) {
+                loadInvite(token);
+            } else if (!user) {
+                showError('Token invito mancante. Contatta l\'amministratore per ricevere un nuovo invito.');
+            }
+        });
+
+        // Carica dati invito
+        async function loadInvite(token) {
+            showLoading('Verifica invito in corso...');
+            
+            try {
+                // Cerca invito con token e stato "invitato"
+                const invitiQuery = query(
+                    collection(db, 'inviti'),
+                    where('token', '==', token),
+                    where('stato', '==', 'invitato')
+                );
+                
+                const snapshot = await getDocs(invitiQuery);
+                
+                if (snapshot.empty) {
+                    throw new Error('Token invalido o già utilizzato');
+                }
+                
+                const invitoDoc = snapshot.docs[0];
+                const invitoRawData = invitoDoc.data();
+                
+                console.log('Invito trovato (raw):', invitoRawData);
+                console.log('Ruoli nell\'invito (raw):', invitoRawData.ruoli);
+                console.log('Tipo ruoli:', typeof invitoRawData.ruoli, Array.isArray(invitoRawData.ruoli));
+                
+                // Assicuriamoci che i ruoli siano un array
+                let ruoliInvito = invitoRawData.ruoli;
+                if (!Array.isArray(ruoliInvito)) {
+                    if (typeof ruoliInvito === 'string') {
+                        ruoliInvito = [ruoliInvito];
+                    } else if (ruoliInvito && typeof ruoliInvito === 'object') {
+                        ruoliInvito = Object.values(ruoliInvito);
+                    } else {
+                        ruoliInvito = [];
+                    }
+                    console.log('Ruoli convertiti in array:', ruoliInvito);
+                }
+                
+                inviteData = {
+                    id: invitoDoc.id,
+                    ...invitoRawData,
+                    ruoli: ruoliInvito // Usa l'array normalizzato
+                };
+                
+                console.log('Invito processato:', inviteData);
+                console.log('Ruoli finali nell\'invito:', inviteData.ruoli);
+                
+                // Verifica scadenza
+                const scadeIl = inviteData.scadeIl?.toDate ? inviteData.scadeIl.toDate() : new Date(inviteData.scadeIl);
+                if (new Date() > scadeIl) {
+                    throw new Error('Token scaduto. Contatta l\'amministratore per un nuovo invito.');
+                }
+                
+                // Pre-compila form con dati invito
+                emailInput.value = inviteData.email;
+                nomeInput.value = inviteData.nome;
+                cognomeInput.value = inviteData.cognome;
+                
+                // Mostra info invito
+                document.getElementById('invite-email').textContent = inviteData.email;
+                document.getElementById('invite-name').textContent = `${inviteData.nome} ${inviteData.cognome}`;
+                inviteInfo.style.display = 'block';
+                
+                // Mostra form
+                registerForm.style.display = 'block';
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Errore caricamento invito:', error);
+                hideLoading();
+                showError(error.message || 'Errore durante il caricamento dell\'invito');
+            }
+        }
+
+        // Gestione submit form
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            if (!inviteData) {
+                showError('Dati invito non disponibili');
+                return;
+            }
+
+            showLoading('Creazione account in corso...');
+
+            try {
+                const password = passwordInput.value;
+
+                // Crea utente Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(
+                    auth,
+                    inviteData.email,
+                    password
+                );
+                const firebaseUser = userCredential.user;
+
+                // Crea documento utente in Firestore
+                // Assicuriamoci che i ruoli siano un array valido
+                const ruoli = Array.isArray(inviteData.ruoli) ? inviteData.ruoli : 
+                             (inviteData.ruoli ? [inviteData.ruoli] : []);
+                
+                console.log('Ruoli da salvare:', ruoli);
+                
+                const userData = {
+                    id: firebaseUser.uid,
+                    email: inviteData.email,
+                    nome: inviteData.nome,
+                    cognome: inviteData.cognome,
+                    ruoli: ruoli, // Array di ruoli
+                    tenantId: inviteData.tenantId,
+                    stato: 'attivo',
+                    creatoDa: inviteData.inviatoDa,
+                    creatoIl: serverTimestamp(),
+                    ultimoAccesso: null,
+                    invitoId: inviteData.id
+                };
+
+                console.log('Dati utente da salvare:', userData);
+                
+                await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+                console.log('✅ Documento utente creato in Firestore');
+
+                // Verifica che il documento sia stato salvato correttamente
+                await new Promise(resolve => setTimeout(resolve, 500)); // Attendi che Firestore processi
+                const userDocCheck = await getDoc(doc(db, 'users', firebaseUser.uid));
+                
+                if (!userDocCheck.exists()) {
+                    throw new Error('Errore: documento utente non creato correttamente in Firestore');
+                }
+                
+                const savedUserData = userDocCheck.data();
+                console.log('✅ Documento utente verificato:', savedUserData);
+                console.log('✅ Ruoli salvati:', savedUserData.ruoli);
+                
+                // Verifica che i ruoli siano stati salvati correttamente
+                if (!savedUserData.ruoli || !Array.isArray(savedUserData.ruoli) || savedUserData.ruoli.length === 0) {
+                    console.warn('⚠️ Ruoli non salvati correttamente, riprovo...');
+                    await updateDoc(doc(db, 'users', firebaseUser.uid), {
+                        ruoli: ruoli
+                    });
+                    
+                    // Verifica di nuovo
+                    const userDocCheck2 = await getDoc(doc(db, 'users', firebaseUser.uid));
+                    const savedUserData2 = userDocCheck2.data();
+                    console.log('✅ Ruoli dopo retry:', savedUserData2.ruoli);
+                }
+
+                // Aggiorna invito
+                await updateDoc(doc(db, 'inviti', inviteData.id), {
+                    stato: 'accettato',
+                    accettatoIl: serverTimestamp()
+                });
+
+                // Successo! L'utente è già loggato (createUserWithEmailAndPassword fa login automatico)
+                // Salviamo un flag in sessionStorage per indicare che questa scheda è per il nuovo utente
+                // Questo aiuterà a gestire il cambio di sessione nelle altre schede
+                sessionStorage.setItem('gfv_user_just_registered', 'true');
+                sessionStorage.setItem('gfv_registered_user_id', firebaseUser.uid);
+                
+                hideLoading();
+                successMessage.textContent = '✅ Registrazione completata con successo! Reindirizzamento alla dashboard...';
+                successMessage.classList.add('show');
+                
+                // Redirect a dashboard (l'utente è già loggato)
+                setTimeout(() => {
+                    window.location.href = '../dashboard-standalone.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Errore registrazione:', error);
+                hideLoading();
+                
+                let errorMessage = 'Errore durante la registrazione';
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'Questa email è già registrata. Contatta l\'amministratore.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Email non valida';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password troppo debole. Usa almeno 6 caratteri.';
+                } else {
+                    errorMessage = error.message || 'Errore sconosciuto';
+                }
+                
+                showError(errorMessage);
+            }
+        });
+
+        // Validazione form
+        function validateForm() {
+            hideErrors();
+            let isValid = true;
+
+            const password = passwordInput.value;
+            const passwordConfirm = passwordConfirmInput.value;
+
+            if (!password) {
+                showFieldError('password', 'Password obbligatoria');
+                isValid = false;
+            } else if (password.length < 6) {
+                showFieldError('password', 'Password deve essere almeno 6 caratteri');
+                isValid = false;
+            }
+
+            if (!passwordConfirm) {
+                showFieldError('password-confirm', 'Conferma password obbligatoria');
+                isValid = false;
+            } else if (password !== passwordConfirm) {
+                showFieldError('password-confirm', 'Le password non corrispondono');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Utility: mostra errore campo
+        function showFieldError(fieldId, message) {
+            const errorElement = document.getElementById(fieldId + '-error');
+            const inputElement = document.getElementById(fieldId);
+            
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+            }
+            
+            if (inputElement) {
+                inputElement.classList.add('error');
+            }
+        }
+
+        // Utility: nascondi errori
+        function hideErrors() {
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.classList.remove('show');
+                el.textContent = '';
+            });
+            
+            document.querySelectorAll('input').forEach(el => {
+                el.classList.remove('error');
+            });
+        }
+
+        // Utility: mostra errore generale
+        function showError(message) {
+            errorContainer.innerHTML = `<div class="error-box">❌ ${message}</div>`;
+        }
+
+        // Utility: mostra loading
+        function showLoading(text = 'Caricamento...') {
+            loadingText.textContent = text;
+            loadingOverlay.classList.add('active');
+        }
+
+        // Utility: nascondi loading
+        function hideLoading() {
+            loadingOverlay.classList.remove('active');
+        }
+
+        console.log('✅ Pagina registrazione invito caricata');
+    </script>
+</body>
+</html>
+

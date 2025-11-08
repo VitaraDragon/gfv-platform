@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impostazioni - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .content {
+            display: grid;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #2E8B57;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-primary {
+            background: #2E8B57;
+            color: white;
+            padding: 12px 24px;
+        }
+
+        .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>⚙️ Impostazioni</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Configura azienda e account</p>
+            </div>
+            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+
+            <!-- Impostazioni Azienda -->
+            <div class="card">
+                <h2>Informazioni Azienda</h2>
+                <form id="azienda-form" onsubmit="handleSaveAzienda(event)">
+                    <div class="form-group">
+                        <label for="azienda-nome">Nome Azienda *</label>
+                        <input type="text" id="azienda-nome" required placeholder="Es: Vigneto Rossi">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="azienda-piva">Partita IVA</label>
+                            <input type="text" id="azienda-piva" placeholder="IT12345678901">
+                        </div>
+                        <div class="form-group">
+                            <label for="azienda-cf">Codice Fiscale</label>
+                            <input type="text" id="azienda-cf" placeholder="RSSMRA80A01H501U">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="azienda-indirizzo">Indirizzo</label>
+                        <input type="text" id="azienda-indirizzo" placeholder="Via Roma 123">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="azienda-citta">Città</label>
+                            <input type="text" id="azienda-citta" placeholder="Milano">
+                        </div>
+                        <div class="form-group">
+                            <label for="azienda-cap">CAP</label>
+                            <input type="text" id="azienda-cap" placeholder="20100">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="azienda-provincia">Provincia</label>
+                        <input type="text" id="azienda-provincia" placeholder="MI">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="azienda-telefono">Telefono</label>
+                        <input type="tel" id="azienda-telefono" placeholder="+39 02 1234567">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="azienda-email">Email Aziendale</label>
+                        <input type="email" id="azienda-email" placeholder="info@azienda.it">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="azienda-note">Note</label>
+                        <textarea id="azienda-note" placeholder="Note aggiuntive sull'azienda"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Salva Impostazioni Azienda</button>
+                </form>
+            </div>
+
+            <!-- Impostazioni Account -->
+            <div class="card">
+                <h2>Impostazioni Account Personale</h2>
+                <form id="account-form" onsubmit="handleSaveAccount(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="account-nome">Nome *</label>
+                            <input type="text" id="account-nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="account-cognome">Cognome *</label>
+                            <input type="text" id="account-cognome" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="account-email">Email</label>
+                        <input type="email" id="account-email" readonly>
+                        <div class="info-text">L'email non può essere modificata</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="account-telefono">Telefono</label>
+                        <input type="tel" id="account-telefono" placeholder="+39 333 1234567">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Salva Impostazioni Account</button>
+                </form>
+            </div>
+
+            <!-- Cambio Password -->
+            <div class="card">
+                <h2>Cambio Password</h2>
+                <form id="password-form" onsubmit="handleChangePassword(event)">
+                    <div class="form-group">
+                        <label for="password-current">Password Attuale *</label>
+                        <input type="password" id="password-current" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password-new">Nuova Password *</label>
+                        <input type="password" id="password-new" required minlength="6">
+                        <div class="info-text">Minimo 6 caratteri</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password-confirm">Conferma Nuova Password *</label>
+                        <input type="password" id="password-confirm" required minlength="6">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Cambia Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
+            authDomain: "gfv-platform.firebaseapp.com",
+            projectId: "gfv-platform",
+            storageBucket: "gfv-platform.firebasestorage.app",
+            messagingSenderId: "495860225347",
+            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+        };
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserData = null;
+
+        // Carica dati utente
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    currentUserData = userDoc.data();
+                    
+                    // Pre-compila form account
+                    document.getElementById('account-nome').value = currentUserData.nome || '';
+                    document.getElementById('account-cognome').value = currentUserData.cognome || '';
+                    document.getElementById('account-email').value = currentUserData.email || user.email;
+                    document.getElementById('account-telefono').value = currentUserData.telefono || '';
+
+                    // Carica dati azienda (se disponibili)
+                    if (currentUserData.tenantId) {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', currentUserData.tenantId));
+                        if (tenantDoc.exists()) {
+                            const tenantData = tenantDoc.data();
+                            document.getElementById('azienda-nome').value = tenantData.nome || '';
+                            document.getElementById('azienda-piva').value = tenantData.piva || '';
+                            document.getElementById('azienda-cf').value = tenantData.cf || '';
+                            document.getElementById('azienda-indirizzo').value = tenantData.indirizzo || '';
+                            document.getElementById('azienda-citta').value = tenantData.citta || '';
+                            document.getElementById('azienda-cap').value = tenantData.cap || '';
+                            document.getElementById('azienda-provincia').value = tenantData.provincia || '';
+                            document.getElementById('azienda-telefono').value = tenantData.telefono || '';
+                            document.getElementById('azienda-email').value = tenantData.email || '';
+                            document.getElementById('azienda-note').value = tenantData.note || '';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Errore caricamento dati:', error);
+                showAlert('Errore caricamento dati', 'error');
+            }
+        });
+
+        // Salva impostazioni azienda
+        async function handleSaveAzienda(e) {
+            e.preventDefault();
+            
+            if (!currentUserData || !currentUserData.tenantId) {
+                showAlert('Tenant non trovato', 'error');
+                return;
+            }
+
+            try {
+                const tenantData = {
+                    nome: document.getElementById('azienda-nome').value,
+                    piva: document.getElementById('azienda-piva').value,
+                    cf: document.getElementById('azienda-cf').value,
+                    indirizzo: document.getElementById('azienda-indirizzo').value,
+                    citta: document.getElementById('azienda-citta').value,
+                    cap: document.getElementById('azienda-cap').value,
+                    provincia: document.getElementById('azienda-provincia').value,
+                    telefono: document.getElementById('azienda-telefono').value,
+                    email: document.getElementById('azienda-email').value,
+                    note: document.getElementById('azienda-note').value,
+                    aggiornatoIl: new Date()
+                };
+
+                await updateDoc(doc(db, 'tenants', currentUserData.tenantId), tenantData);
+                showAlert('Impostazioni azienda salvate con successo', 'success');
+            } catch (error) {
+                console.error('Errore salvataggio azienda:', error);
+                showAlert('Errore durante il salvataggio: ' + error.message, 'error');
+            }
+        }
+
+        // Salva impostazioni account
+        async function handleSaveAccount(e) {
+            e.preventDefault();
+            
+            const user = auth.currentUser;
+            if (!user) return;
+
+            try {
+                const accountData = {
+                    nome: document.getElementById('account-nome').value,
+                    cognome: document.getElementById('account-cognome').value,
+                    telefono: document.getElementById('account-telefono').value
+                };
+
+                await updateDoc(doc(db, 'users', user.uid), accountData);
+                showAlert('Impostazioni account salvate con successo', 'success');
+            } catch (error) {
+                console.error('Errore salvataggio account:', error);
+                showAlert('Errore durante il salvataggio: ' + error.message, 'error');
+            }
+        }
+
+        // Cambia password
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const currentPassword = document.getElementById('password-current').value;
+            const newPassword = document.getElementById('password-new').value;
+            const confirmPassword = document.getElementById('password-confirm').value;
+
+            if (newPassword !== confirmPassword) {
+                showAlert('Le password non corrispondono', 'error');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showAlert('La password deve essere almeno 6 caratteri', 'error');
+                return;
+            }
+
+            try {
+                // Ri-autentica utente
+                const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                await reauthenticateWithCredential(user, credential);
+
+                // Aggiorna password
+                await updatePassword(user, newPassword);
+                
+                showAlert('Password cambiata con successo', 'success');
+                document.getElementById('password-form').reset();
+            } catch (error) {
+                console.error('Errore cambio password:', error);
+                let errorMsg = 'Errore durante il cambio password';
+                if (error.code === 'auth/wrong-password') {
+                    errorMsg = 'Password attuale errata';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMsg = 'La nuova password è troppo debole';
+                }
+                showAlert(errorMsg, 'error');
+            }
+        }
+
+        // Utility: mostra alert
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-info';
+            container.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+            
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Esponi funzioni globalmente
+        window.handleSaveAzienda = handleSaveAzienda;
+        window.handleSaveAccount = handleSaveAccount;
+        window.handleChangePassword = handleChangePassword;
+    </script>
+</body>
+</html>
+

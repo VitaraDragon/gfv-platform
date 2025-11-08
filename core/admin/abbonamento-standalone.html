@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abbonamento - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #2E8B57;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .plan-card {
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+
+        .plan-card:hover {
+            border-color: #2E8B57;
+            transform: translateY(-2px);
+        }
+
+        .plan-card.active {
+            border-color: #2E8B57;
+            background: #f0f8f4;
+        }
+
+        .plan-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2E8B57;
+            margin-bottom: 10px;
+        }
+
+        .plan-price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .plan-price span {
+            font-size: 16px;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .plan-features li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+
+        .plan-features li:before {
+            content: "✓ ";
+            color: #2E8B57;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background: #2E8B57;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .current-plan {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+        }
+
+        .current-plan h2 {
+            color: white;
+        }
+
+        .current-plan .plan-name,
+        .current-plan .plan-price {
+            color: white;
+        }
+
+        .modules-section {
+            grid-column: 1 / -1;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .module-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+        }
+
+        .module-card.active {
+            border-color: #2E8B57;
+            background: #f0f8f4;
+        }
+
+        .module-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .module-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .module-price {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2E8B57;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💳 Abbonamento</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Gestisci il tuo piano e i moduli attivi</p>
+            </div>
+            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+        </div>
+
+        <div class="content">
+            <!-- Piano Corrente -->
+            <div class="card current-plan">
+                <h2>Piano Attuale</h2>
+                <div class="plan-name" id="current-plan-name">Professional</div>
+                <div class="plan-price" id="current-plan-price">€29<span>/mese</span></div>
+                <div style="margin-top: 20px;">
+                    <strong>Scadenza:</strong> <span id="current-plan-expiry">31/12/2025</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <strong>Stato:</strong> <span id="current-plan-status">Attivo</span>
+                </div>
+            </div>
+
+            <!-- Piani Disponibili -->
+            <div class="card plan-card" onclick="selectPlan('starter')">
+                <h2>Starter</h2>
+                <div class="plan-name">Starter</div>
+                <div class="plan-price">€9<span>/mese</span></div>
+                <ul class="plan-features">
+                    <li>Fino a 5 utenti</li>
+                    <li>1 modulo incluso</li>
+                    <li>Supporto email</li>
+                    <li>Storage base</li>
+                </ul>
+                <button class="btn btn-primary">Scegli Piano</button>
+            </div>
+
+            <div class="card plan-card active" onclick="selectPlan('professional')">
+                <h2>Professional</h2>
+                <div class="plan-name">Professional</div>
+                <div class="plan-price">€29<span>/mese</span></div>
+                <ul class="plan-features">
+                    <li>Fino a 20 utenti</li>
+                    <li>3 moduli inclusi</li>
+                    <li>Supporto prioritario</li>
+                    <li>Storage esteso</li>
+                    <li>Report avanzati</li>
+                </ul>
+                <button class="btn btn-primary">Piano Attuale</button>
+            </div>
+
+            <div class="card plan-card" onclick="selectPlan('enterprise')">
+                <h2>Enterprise</h2>
+                <div class="plan-name">Enterprise</div>
+                <div class="plan-price">€49<span>/mese</span></div>
+                <ul class="plan-features">
+                    <li>Utenti illimitati</li>
+                    <li>Tutti i moduli</li>
+                    <li>Supporto dedicato</li>
+                    <li>Storage illimitato</li>
+                    <li>API personalizzate</li>
+                    <li>Onboarding assistito</li>
+                </ul>
+                <button class="btn btn-primary">Scegli Piano</button>
+            </div>
+
+            <!-- Moduli Disponibili -->
+            <div class="card modules-section">
+                <h2>Moduli Disponibili</h2>
+                <p style="color: #666; margin-bottom: 20px;">Attiva o disattiva i moduli che vuoi utilizzare</p>
+                
+                <div class="modules-grid">
+                    <div class="module-card active" onclick="toggleModule('clienti')">
+                        <div class="module-icon">👥</div>
+                        <div class="module-name">Clienti</div>
+                        <div class="module-price">Incluso</div>
+                    </div>
+                    
+                    <div class="module-card active" onclick="toggleModule('vendemmia')">
+                        <div class="module-icon">🍇</div>
+                        <div class="module-name">Vendemmia</div>
+                        <div class="module-price">Incluso</div>
+                    </div>
+                    
+                    <div class="module-card active" onclick="toggleModule('bilancio')">
+                        <div class="module-icon">💰</div>
+                        <div class="module-name">Bilancio</div>
+                        <div class="module-price">Incluso</div>
+                    </div>
+                    
+                    <div class="module-card" onclick="toggleModule('terreni')">
+                        <div class="module-icon">🗺️</div>
+                        <div class="module-name">Terreni</div>
+                        <div class="module-price">€5/mese</div>
+                    </div>
+                    
+                    <div class="module-card" onclick="toggleModule('lavori')">
+                        <div class="module-icon">📋</div>
+                        <div class="module-name">Lavori</div>
+                        <div class="module-price">€5/mese</div>
+                    </div>
+                    
+                    <div class="module-card" onclick="toggleModule('report')">
+                        <div class="module-icon">📊</div>
+                        <div class="module-name">Report Avanzati</div>
+                        <div class="module-price">€3/mese</div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>ℹ️ Nota:</strong> I moduli inclusi nel tuo piano sono già attivi. Puoi aggiungere moduli extra con un costo aggiuntivo mensile.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectPlan(plan) {
+            alert(`Funzionalità in sviluppo: Cambio piano a ${plan}`);
+            // TODO: Implementare cambio piano
+        }
+
+        function toggleModule(module) {
+            const card = event.currentTarget;
+            const isActive = card.classList.contains('active');
+            
+            if (isActive) {
+                if (confirm(`Sei sicuro di voler disattivare il modulo ${module}?`)) {
+                    card.classList.remove('active');
+                    alert(`Modulo ${module} disattivato`);
+                }
+            } else {
+                card.classList.add('active');
+                alert(`Modulo ${module} attivato`);
+            }
+            // TODO: Implementare attivazione/disattivazione moduli
+        }
+
+        // Carica dati abbonamento (placeholder)
+        document.addEventListener('DOMContentLoaded', () => {
+            // TODO: Caricare dati reali da Firestore
+            console.log('Caricamento dati abbonamento...');
+        });
+    </script>
+</body>
+</html>
+

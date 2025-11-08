@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2E8B57 0%, #8B4513 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            color: #2E8B57;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: #2E8B57;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 8px;
+        }
+
+        .login-button:hover:not(:disabled) {
+            background: #228B22;
+        }
+
+        .login-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .forgot-password a {
+            color: #2E8B57;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2E8B57;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .login-header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🌾 GFV Platform</h1>
+            <p>Accedi al tuo account</p>
+        </div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required 
+                    autocomplete="email"
+                    placeholder="nome@esempio.com"
+                >
+                <div class="error-message" id="email-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required 
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                >
+                <div class="error-message" id="password-error"></div>
+            </div>
+
+            <button type="submit" class="login-button" id="login-button">
+                Accedi
+            </button>
+        </form>
+
+        <div class="forgot-password">
+            <a href="#" id="forgot-password-link">Password dimenticata?</a>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Accesso in corso...</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importa configurazione e servizi
+        import { firebaseConfig } from '../firebase-config.js';
+        import { initializeCore } from '../init.js';
+        import { signIn, isAuthenticated, getCurrentUserData } from '../services/auth-service.js';
+
+        // Inizializza app
+        let appInitialized = false;
+
+        async function initApp() {
+            if (appInitialized) return;
+            
+            try {
+                await initializeCore(firebaseConfig);
+                appInitialized = true;
+                console.log('✅ App inizializzata');
+                
+                // Verifica se già autenticato
+                checkAuthState();
+            } catch (error) {
+                console.error('❌ Errore inizializzazione:', error);
+                showError('Errore inizializzazione applicazione');
+            }
+        }
+
+        function checkAuthState() {
+            if (isAuthenticated()) {
+                // Già autenticato, redirect a dashboard
+                window.location.href = '../dashboard.html';
+            }
+        }
+
+        // Elementi DOM
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+
+        // Funzioni utility
+        function showLoading() {
+            loadingOverlay.classList.add('show');
+            loginButton.disabled = true;
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.remove('show');
+            loginButton.disabled = false;
+        }
+
+        function showError(message) {
+            if (typeof window.showError === 'function') {
+                window.showError(message);
+            } else {
+                alert('Errore: ' + message);
+            }
+        }
+
+        function showSuccess(message) {
+            if (typeof window.showSuccess === 'function') {
+                window.showSuccess(message);
+            }
+        }
+
+        function validateForm() {
+            let isValid = true;
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            // Reset errori
+            document.getElementById('email-error').classList.remove('show');
+            document.getElementById('password-error').classList.remove('show');
+            emailInput.classList.remove('error');
+            passwordInput.classList.remove('error');
+
+            // Valida email
+            if (!email) {
+                document.getElementById('email-error').textContent = 'Email obbligatoria';
+                document.getElementById('email-error').classList.add('show');
+                emailInput.classList.add('error');
+                isValid = false;
+            } else if (!email.includes('@')) {
+                document.getElementById('email-error').textContent = 'Email non valida';
+                document.getElementById('email-error').classList.add('show');
+                emailInput.classList.add('error');
+                isValid = false;
+            }
+
+            // Valida password
+            if (!password) {
+                document.getElementById('password-error').textContent = 'Password obbligatoria';
+                document.getElementById('password-error').classList.add('show');
+                passwordInput.classList.add('error');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Gestione submit form
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            if (!appInitialized) {
+                await initApp();
+            }
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            try {
+                showLoading();
+
+                // Effettua login
+                const userData = await signIn(email, password);
+
+                showSuccess('Accesso effettuato con successo!');
+                
+                // Redirect a dashboard dopo breve delay
+                setTimeout(() => {
+                    window.location.href = '../dashboard.html';
+                }, 500);
+
+            } catch (error) {
+                hideLoading();
+                console.error('Errore login:', error);
+                
+                // Messaggi di errore specifici
+                let errorMessage = 'Errore durante l\'accesso';
+                
+                if (error.message) {
+                    if (error.message.includes('user-not-found') || error.message.includes('wrong-password')) {
+                        errorMessage = 'Email o password errati';
+                    } else if (error.message.includes('invalid-email')) {
+                        errorMessage = 'Email non valida';
+                    } else if (error.message.includes('too-many-requests')) {
+                        errorMessage = 'Troppi tentativi. Riprova più tardi.';
+                    } else if (error.message.includes('user-disabled')) {
+                        errorMessage = 'Account disabilitato. Contatta l\'amministratore.';
+                    } else {
+                        errorMessage = error.message;
+                    }
+                }
+                
+                showError(errorMessage);
+            }
+        });
+
+        // Gestione password dimenticata
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                showError('Inserisci la tua email per reimpostare la password');
+                emailInput.focus();
+                return;
+            }
+
+            // TODO: Implementare reset password
+            showInfo('Funzionalità reset password in arrivo');
+        });
+
+        // Inizializza app al caricamento
+        initApp();
+    </script>
+
+    <!-- Utility scripts -->
+    <script src="../../shared/utils/error-handler.js"></script>
+    <script src="../../shared/utils/loading-handler.js"></script>
+</body>
+</html>
+

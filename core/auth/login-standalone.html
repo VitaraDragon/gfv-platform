@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2E8B57 0%, #8B4513 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header h1 {
+            color: #2E8B57;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: #2E8B57;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 8px;
+        }
+
+        .login-button:hover:not(:disabled) {
+            background: #228B22;
+        }
+
+        .login-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .forgot-password a {
+            color: #2E8B57;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2E8B57;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .global-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 400px;
+            min-width: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10001;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s ease-in-out;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .global-message.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .global-message-error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .global-message-success {
+            border-left: 4px solid #28a745;
+        }
+
+        .global-message-content {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            gap: 12px;
+        }
+
+        .global-message-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .global-message-text {
+            flex: 1;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .global-message-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .login-header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🌾 GFV Platform</h1>
+            <p>Accedi al tuo account</p>
+        </div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required 
+                    autocomplete="email"
+                    placeholder="nome@esempio.com"
+                >
+                <div class="error-message" id="email-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required 
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                >
+                <div class="error-message" id="password-error"></div>
+            </div>
+
+            <button type="submit" class="login-button" id="login-button">
+                Accedi
+            </button>
+        </form>
+
+        <div class="forgot-password">
+            <a href="#" id="forgot-password-link">Password dimenticata?</a>
+        </div>
+
+        <div class="register-link" style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Non hai un account?</p>
+            <a href="registrazione-standalone.html" style="color: #2E8B57; text-decoration: none; font-weight: 600; font-size: 14px;">
+                Crea un nuovo account →
+            </a>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Accesso in corso...</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK da CDN -->
+    <script type="module">
+        // Configurazione Firebase (inserisci i tuoi valori qui)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
+            authDomain: "gfv-platform.firebaseapp.com",
+            projectId: "gfv-platform",
+            storageBucket: "gfv-platform.firebasestorage.app",
+            messagingSenderId: "495860225347",
+            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+        };
+
+        // Importa Firebase da CDN
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, getDoc, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Elementi DOM
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+
+        // Funzioni utility
+        function showLoading() {
+            loadingOverlay.classList.add('show');
+            loginButton.disabled = true;
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.remove('show');
+            loginButton.disabled = false;
+        }
+
+        function showError(message) {
+            showMessage(message, 'error');
+        }
+
+        function showSuccess(message) {
+            showMessage(message, 'success');
+        }
+
+        function showMessage(message, type = 'error') {
+            // Rimuovi messaggi esistenti
+            const existing = document.getElementById('global-message-container');
+            if (existing) {
+                existing.remove();
+            }
+
+            // Crea messaggio
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `global-message global-message-${type}`;
+            messageDiv.id = 'global-message-container';
+            
+            const icons = {
+                error: '❌',
+                success: '✅',
+                info: 'ℹ️'
+            };
+
+            messageDiv.innerHTML = `
+                <div class="global-message-content">
+                    <span class="global-message-icon">${icons[type] || 'ℹ️'}</span>
+                    <span class="global-message-text">${escapeHtml(message)}</span>
+                    <button class="global-message-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.classList.add('show');
+            }, 10);
+
+            // Auto-chiusura dopo 5 secondi
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function validateForm() {
+            let isValid = true;
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            // Reset errori
+            document.getElementById('email-error').classList.remove('show');
+            document.getElementById('password-error').classList.remove('show');
+            emailInput.classList.remove('error');
+            passwordInput.classList.remove('error');
+
+            // Valida email
+            if (!email) {
+                document.getElementById('email-error').textContent = 'Email obbligatoria';
+                document.getElementById('email-error').classList.add('show');
+                emailInput.classList.add('error');
+                isValid = false;
+            } else if (!email.includes('@')) {
+                document.getElementById('email-error').textContent = 'Email non valida';
+                document.getElementById('email-error').classList.add('show');
+                emailInput.classList.add('error');
+                isValid = false;
+            }
+
+            // Valida password
+            if (!password) {
+                document.getElementById('password-error').textContent = 'Password obbligatoria';
+                document.getElementById('password-error').classList.add('show');
+                passwordInput.classList.add('error');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Verifica se c'è un parametro "registered" nell'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('registered') === 'true') {
+            showSuccess('✅ Registrazione completata! Ora puoi fare login con le tue credenziali.');
+        }
+
+        // Verifica se già autenticato
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Già autenticato, redirect a dashboard
+                window.location.href = '../dashboard-standalone.html';
+            }
+        });
+
+        // Gestione submit form
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            try {
+                showLoading();
+
+                // Effettua login Firebase
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Carica dati utente da Firestore
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (!userDoc.exists()) {
+                    throw new Error('Dati utente non trovati. Contatta l\'amministratore.');
+                }
+
+                const userData = userDoc.data();
+
+                // Verifica stato utente
+                if (userData.stato !== 'attivo') {
+                    await auth.signOut();
+                    throw new Error('Account non attivo. Contatta l\'amministratore.');
+                }
+
+                // Aggiorna ultimo accesso
+                try {
+                    await updateDoc(userDocRef, {
+                        ultimoAccesso: serverTimestamp()
+                    });
+                } catch (error) {
+                    console.warn('Errore aggiornamento ultimo accesso:', error);
+                }
+
+                showSuccess('Accesso effettuato con successo!');
+                
+                // Salva l'utente previsto per questa scheda
+                sessionStorage.setItem('gfv_expected_user_id', user.uid);
+                sessionStorage.removeItem('gfv_user_just_registered');
+                
+                // Redirect a dashboard dopo breve delay
+                setTimeout(() => {
+                    window.location.href = '../dashboard-standalone.html';
+                }, 500);
+
+            } catch (error) {
+                hideLoading();
+                console.error('Errore login:', error);
+                console.error('Codice errore:', error.code);
+                console.error('Messaggio errore:', error.message);
+                
+                // Messaggi di errore specifici
+                let errorMessage = 'Errore durante l\'accesso';
+                
+                if (error.code) {
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        errorMessage = 'Email o password errati';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Email non valida';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Troppi tentativi. Riprova più tardi.';
+                    } else if (error.code === 'auth/user-disabled') {
+                        errorMessage = 'Account disabilitato. Contatta l\'amministratore.';
+                    } else {
+                        errorMessage = error.message || 'Errore sconosciuto';
+                    }
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                showError(errorMessage);
+            }
+        });
+
+        // Gestione password dimenticata
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                showError('Inserisci la tua email per reimpostare la password');
+                emailInput.focus();
+                return;
+            }
+
+            showMessage('Funzionalità reset password in arrivo', 'info');
+        });
+
+        console.log('✅ Login page caricata');
+    </script>
+</body>
+</html>
+

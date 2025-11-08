@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestisci Utenti - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Stile per pulsanti nel modal (sfondo bianco) */
+        .modal .btn-primary {
+            background: #2E8B57;
+            color: white;
+            border: none;
+        }
+
+        .modal .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .users-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .users-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2E8B57;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .users-table {
+                font-size: 12px;
+            }
+
+            .users-table th,
+            .users-table td {
+                padding: 8px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>👥 Gestisci Utenti</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Gestisci utenti, ruoli e permessi</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openInvitaModal()">➕ Invita Utente</button>
+                <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <div class="section-header">
+                <h2>Utenti Azienda</h2>
+                <div id="users-count">0 utenti</div>
+            </div>
+
+            <div id="users-container">
+                <div class="loading">Caricamento utenti...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Invita Utente -->
+    <div id="invita-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Invita Nuovo Utente</h3>
+                <button class="close-btn" onclick="closeInvitaModal()">&times;</button>
+            </div>
+            <form id="invita-form" onsubmit="handleInvitaUtente(event)">
+                <div class="form-group">
+                    <label for="invita-email">Email *</label>
+                    <input type="email" id="invita-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="invita-nome">Nome *</label>
+                    <input type="text" id="invita-nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="invita-cognome">Cognome *</label>
+                    <input type="text" id="invita-cognome" required>
+                </div>
+                <div class="form-group">
+                    <label>Ruoli *</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="role-admin" value="amministratore">
+                            <label for="role-admin">👑 Amministratore</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="role-manager" value="manager">
+                            <label for="role-manager">📊 Manager</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="role-caposquadra" value="caposquadra">
+                            <label for="role-caposquadra">👷 Caposquadra</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="role-operaio" value="operaio">
+                            <label for="role-operaio">🔧 Operaio</label>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Invita</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeInvitaModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Link Invito -->
+    <div id="link-invito-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✅ Invito Creato</h3>
+                <button class="close-btn" onclick="closeInviteLinkModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <p><strong>Email:</strong> <span id="link-email"></span></p>
+                <p><strong>Nome:</strong> <span id="link-name"></span></p>
+                <p><strong>Ruoli:</strong> <span id="link-roles"></span></p>
+            </div>
+            <div class="form-group">
+                <label for="invite-link-input">Link di registrazione:</label>
+                <input 
+                    type="text" 
+                    id="invite-link-input" 
+                    readonly 
+                    style="background: #f8f9fa; cursor: text; font-size: 12px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px;"
+                    onclick="this.select(); this.setSelectionRange(0, 99999);"
+                    onfocus="this.select(); this.setSelectionRange(0, 99999);"
+                >
+                <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">Clicca sul campo per selezionare il link, poi usa Ctrl+C per copiare</small>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="copyInviteLink()" style="flex: 1;">📋 Copia Link</button>
+                <button class="btn btn-secondary" onclick="closeInviteLinkModal()">Chiudi</button>
+            </div>
+            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 12px; color: #856404;">
+                ⚠️ <strong>Importante:</strong> Invia questo link all'utente. Il link scade tra 7 giorni. L'utente potrà impostare la propria password al primo accesso.
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Modifica Ruoli -->
+    <div id="ruoli-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifica Ruoli</h3>
+                <button class="close-btn" onclick="closeRuoliModal()">&times;</button>
+            </div>
+            <form id="ruoli-form" onsubmit="handleModificaRuoli(event)">
+                <input type="hidden" id="ruoli-user-id">
+                <div class="form-group">
+                    <label>Ruoli</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="edit-role-admin" value="amministratore">
+                            <label for="edit-role-admin">👑 Amministratore</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="edit-role-manager" value="manager">
+                            <label for="edit-role-manager">📊 Manager</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="edit-role-caposquadra" value="caposquadra">
+                            <label for="edit-role-caposquadra">👷 Caposquadra</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="edit-role-operaio" value="operaio">
+                            <label for="edit-role-operaio">🔧 Operaio</label>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRuoliModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
+            authDomain: "gfv-platform.firebaseapp.com",
+            projectId: "gfv-platform",
+            storageBucket: "gfv-platform.firebasestorage.app",
+            messagingSenderId: "495860225347",
+            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+        };
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserData = null;
+        let currentTenantId = null;
+
+        const roleNames = {
+            'amministratore': '👑 Amministratore',
+            'manager': '📊 Manager',
+            'caposquadra': '👷 Caposquadra',
+            'operaio': '🔧 Operaio'
+        };
+
+        // Verifica autenticazione e carica utenti
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    currentUserData = userDoc.data();
+                    currentTenantId = currentUserData.tenantId;
+
+                    // Verifica permessi (solo amministratore)
+                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('amministratore')) {
+                        showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Carica utenti
+                    await loadUsers();
+                } else {
+                    window.location.href = '../auth/login-standalone.html';
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                showAlert('Errore caricamento dati', 'error');
+            }
+        });
+
+        // Carica lista utenti e inviti
+        async function loadUsers() {
+            const container = document.getElementById('users-container');
+            container.innerHTML = '<div class="loading">Caricamento utenti...</div>';
+
+            try {
+                let usersQuery;
+                
+                if (currentTenantId) {
+                    // Filtra per tenant (senza ordinamento per evitare indice)
+                    usersQuery = query(
+                        collection(db, 'users'),
+                        where('tenantId', '==', currentTenantId)
+                    );
+                } else {
+                    // Se non ha tenant, mostra tutti (per ora, senza ordinamento)
+                    usersQuery = collection(db, 'users');
+                }
+
+                const snapshot = await getDocs(usersQuery);
+                const users = [];
+                snapshot.forEach(doc => {
+                    const userData = { id: doc.id, ...doc.data() };
+                    // Marca come "disconnesso" se non ha email o se l'email non corrisponde a un utente valido
+                    // Nota: Non possiamo verificare direttamente se l'utente esiste in Authentication dal client
+                    // Quindi aggiungiamo un flag per indicare utenti potenzialmente orfani
+                    if (!userData.email) {
+                        userData.stato = 'disconnesso';
+                    }
+                    users.push(userData);
+                });
+
+                // Carica anche inviti pendenti
+                let invitesQuery;
+                if (currentTenantId) {
+                    invitesQuery = query(
+                        collection(db, 'inviti'),
+                        where('tenantId', '==', currentTenantId),
+                        where('stato', '==', 'invitato')
+                    );
+                } else {
+                    invitesQuery = query(
+                        collection(db, 'inviti'),
+                        where('stato', '==', 'invitato')
+                    );
+                }
+
+                const invitesSnapshot = await getDocs(invitesQuery);
+                const invites = [];
+                invitesSnapshot.forEach(doc => {
+                    const inviteData = doc.data();
+                    // Aggiungi inviti come "utenti" con stato "invitato"
+                    invites.push({
+                        id: 'invite-' + doc.id,
+                        email: inviteData.email,
+                        nome: inviteData.nome,
+                        cognome: inviteData.cognome,
+                        ruoli: inviteData.ruoli || [],
+                        stato: 'invitato',
+                        tenantId: inviteData.tenantId,
+                        invitoId: doc.id,
+                        inviatoIl: inviteData.inviatoIl,
+                        scadeIl: inviteData.scadeIl
+                    });
+                });
+
+                // Combina utenti e inviti
+                const allUsers = [...users, ...invites];
+
+                // Ordina in memoria (non richiede indice Firestore)
+                allUsers.sort((a, b) => {
+                    const cognomeA = (a.cognome || '').toLowerCase();
+                    const cognomeB = (b.cognome || '').toLowerCase();
+                    return cognomeA.localeCompare(cognomeB);
+                });
+
+                renderUsers(allUsers);
+            } catch (error) {
+                console.error('Errore caricamento utenti:', error);
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Errore caricamento utenti</p></div>';
+            }
+        }
+
+        // Renderizza lista utenti
+        function renderUsers(users) {
+            const container = document.getElementById('users-container');
+            document.getElementById('users-count').textContent = `${users.length} utenti`;
+
+            if (users.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👥</div>
+                        <h3>Nessun utente trovato</h3>
+                        <p>Inizia invitando il primo utente</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Ruoli</th>
+                            <th>Stato</th>
+                            <th>Ultimo Accesso</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => {
+                            const nomeCompleto = `${user.nome || ''} ${user.cognome || ''}`.trim() || 'N/A';
+                            const ruoli = user.ruoli || [];
+                            const stato = user.stato || 'attivo';
+                            // Gestisci stato online e ultimo accesso
+                            const isOnline = user.isOnline === true;
+                            const lastSeen = user.lastSeen ? (user.lastSeen.toDate ? user.lastSeen.toDate() : new Date(user.lastSeen)) : null;
+                            
+                            let ultimoAccesso = 'Mai';
+                            let onlineStatus = '';
+                            
+                            // Verifica se l'utente è online (isOnline = true e lastSeen < 2 minuti fa)
+                            if (isOnline && lastSeen) {
+                                const now = new Date();
+                                const diffMs = now - lastSeen;
+                                const diffMins = Math.floor(diffMs / 60000);
+                                
+                                if (diffMins < 2) {
+                                    onlineStatus = '<span style="color: #28a745; font-weight: bold;">🟢 Online</span>';
+                                    ultimoAccesso = 'Adesso';
+                                } else {
+                                    // Era online ma non aggiorna più (probabilmente chiuso senza logout)
+                                    onlineStatus = '';
+                                }
+                            }
+                            
+                            // Se non è online, mostra ultimo accesso
+                            if (!onlineStatus && user.ultimoAccesso) {
+                                try {
+                                    const accessoDate = user.ultimoAccesso.toDate ? user.ultimoAccesso.toDate() : new Date(user.ultimoAccesso);
+                                    const now = new Date();
+                                    const diffMs = now - accessoDate;
+                                    const diffMins = Math.floor(diffMs / 60000);
+                                    const diffHours = Math.floor(diffMs / 3600000);
+                                    const diffDays = Math.floor(diffMs / 86400000);
+                                    
+                                    if (diffMins < 1) {
+                                        ultimoAccesso = 'Adesso';
+                                    } else if (diffMins < 60) {
+                                        ultimoAccesso = `${diffMins} min fa`;
+                                    } else if (diffHours < 24) {
+                                        ultimoAccesso = `${diffHours} ore fa`;
+                                    } else if (diffDays < 7) {
+                                        ultimoAccesso = `${diffDays} giorni fa`;
+                                    } else {
+                                        ultimoAccesso = accessoDate.toLocaleDateString('it-IT', { 
+                                            day: '2-digit', 
+                                            month: '2-digit', 
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        });
+                                    }
+                                } catch (error) {
+                                    console.error('Errore formattazione data ultimo accesso:', error);
+                                    ultimoAccesso = 'N/A';
+                                }
+                            }
+                            
+                            // Combina stato online e ultimo accesso
+                            const displayAccesso = onlineStatus || ultimoAccesso;
+                            
+                            const statoBadge = stato === 'attivo' ? 'badge-success' : 
+                                               stato === 'invitato' ? 'badge-warning' : 
+                                               stato === 'disconnesso' ? 'badge-danger' :
+                                               'badge-danger';
+                            
+                            const isInvite = user.id.startsWith('invite-');
+                            const scadeIl = user.scadeIl ? (user.scadeIl.toDate ? user.scadeIl.toDate() : new Date(user.scadeIl)) : null;
+                            const scadeIlText = scadeIl ? scadeIl.toLocaleDateString('it-IT') : '';
+                            
+                            return `
+                                <tr>
+                                    <td><strong>${nomeCompleto}</strong> ${isInvite ? '<span style="font-size: 10px; color: #999;">(Invito pendente)</span>' : ''}</td>
+                                    <td>${user.email || 'N/A'}</td>
+                                    <td>
+                                        ${ruoli.map(r => `<span class="role-badge">${roleNames[r] || r}</span>`).join('')}
+                                        ${ruoli.length === 0 ? '<span class="badge badge-info">Nessun ruolo</span>' : ''}
+                                    </td>
+                                    <td>
+                                        <span class="badge ${statoBadge}">${stato}</span>
+                                        ${isInvite && scadeIlText ? `<br><small style="color: #666;">Scade: ${scadeIlText}</small>` : ''}
+                                    </td>
+                                    <td>${isInvite ? '-' : displayAccesso}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            ${!isInvite ? `
+                                                <button class="btn btn-info btn-sm" onclick="openRuoliModal('${user.id}', ${JSON.stringify(ruoli).replace(/"/g, '&quot;')})">
+                                                    ✏️ Ruoli
+                                                </button>
+                                                ${user.id !== currentUserData.id ? `
+                                                    <button class="btn btn-${stato === 'attivo' ? 'danger' : 'success'} btn-sm" 
+                                                            onclick="toggleUserStatus('${user.id}', '${stato}')">
+                                                        ${stato === 'attivo' ? '🚫 Disattiva' : '✅ Attiva'}
+                                                    </button>
+                                                ` : ''}
+                                            ` : `
+                                                <button class="btn btn-warning btn-sm" onclick="annullaInvito('${user.invitoId}')" style="margin-bottom: 5px;">
+                                                    ❌ Annulla Invito
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" onclick="rimuoviInvito('${user.invitoId}', '${user.email || 'N/A'}')">
+                                                    🗑️ Rimuovi Invito
+                                                </button>
+                                            `}
+                                            ${!isInvite && user.id !== currentUserData.id ? `
+                                                <button class="btn btn-danger btn-sm" onclick="rimuoviUtente('${user.id}', '${user.email || 'N/A'}')" style="margin-top: 5px;">
+                                                    🗑️ Rimuovi
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Modal Invita Utente
+        function openInvitaModal() {
+            document.getElementById('invita-modal').classList.add('active');
+            document.getElementById('invita-form').reset();
+        }
+
+        function closeInvitaModal() {
+            document.getElementById('invita-modal').classList.remove('active');
+        }
+
+        // Modal Link Invito
+        function showInviteLinkModal(link, email, nome, cognome, ruoli) {
+            const modal = document.getElementById('link-invito-modal');
+            document.getElementById('link-email').textContent = email;
+            document.getElementById('link-name').textContent = `${nome} ${cognome}`;
+            document.getElementById('link-roles').textContent = ruoli.map(r => roleNames[r] || r).join(', ');
+            const linkInput = document.getElementById('invite-link-input');
+            linkInput.value = link;
+            modal.classList.add('active');
+            
+            // Seleziona automaticamente il link quando il modal si apre
+            setTimeout(() => {
+                linkInput.focus();
+                linkInput.select();
+                linkInput.setSelectionRange(0, 99999);
+            }, 100);
+        }
+
+        function closeInviteLinkModal() {
+            document.getElementById('link-invito-modal').classList.remove('active');
+        }
+
+        async function copyInviteLink() {
+            const linkInput = document.getElementById('invite-link-input');
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999); // Per mobile
+            
+            try {
+                await navigator.clipboard.writeText(linkInput.value);
+                showAlert('✅ Link copiato negli appunti!', 'success');
+            } catch (err) {
+                // Fallback: usa execCommand
+                try {
+                    document.execCommand('copy');
+                    showAlert('✅ Link copiato!', 'success');
+                } catch (e) {
+                    // Se non funziona, seleziona il testo per copia manuale
+                    linkInput.focus();
+                    linkInput.select();
+                    showAlert('⚠️ Seleziona e copia manualmente il link (Ctrl+C)', 'error');
+                }
+            }
+        }
+
+        async function handleInvitaUtente(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('invita-email').value.trim();
+            const nome = document.getElementById('invita-nome').value.trim();
+            const cognome = document.getElementById('invita-cognome').value.trim();
+            
+            // Raccogli ruoli selezionati
+            const ruoli = [];
+            if (document.getElementById('role-admin').checked) ruoli.push('amministratore');
+            if (document.getElementById('role-manager').checked) ruoli.push('manager');
+            if (document.getElementById('role-caposquadra').checked) ruoli.push('caposquadra');
+            if (document.getElementById('role-operaio').checked) ruoli.push('operaio');
+
+            if (ruoli.length === 0) {
+                showAlert('Seleziona almeno un ruolo', 'error');
+                return;
+            }
+
+            try {
+                showAlert('Creazione invito in corso...', 'success');
+                
+                // Genera token unico
+                const generateToken = () => {
+                    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                        return crypto.randomUUID() + '-' + Date.now();
+                    }
+                    return 'inv-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9) + '-' + Math.random().toString(36).substr(2, 9);
+                };
+                
+                const token = generateToken();
+                
+                // Calcola data scadenza (7 giorni)
+                const scadeIl = new Date();
+                scadeIl.setDate(scadeIl.getDate() + 7);
+                
+                // Crea invito in Firestore (NON crea utente in Authentication)
+                const invitoData = {
+                    email: email.toLowerCase().trim(),
+                    nome: nome.trim(),
+                    cognome: cognome.trim(),
+                    ruoli: ruoli,
+                    tenantId: currentTenantId,
+                    token: token,
+                    stato: 'invitato',
+                    inviatoDa: currentUserData.id,
+                    inviatoIl: serverTimestamp(),
+                    scadeIl: scadeIl,
+                    accettatoIl: null
+                };
+                
+                // Salva invito in Firestore
+                const invitoRef = await addDoc(collection(db, 'inviti'), invitoData);
+                console.log('✅ Invito creato:', invitoRef.id);
+                
+                // Genera link di registrazione
+                // Costruisci URL assoluto per il link di registrazione
+                const currentPath = window.location.pathname;
+                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+                const registrationPath = basePath.replace('/admin', '/auth') + '/registrazione-invito-standalone.html';
+                const registrationUrl = window.location.origin + registrationPath + `?token=${token}`;
+                
+                // Mostra link in un modal dedicato per copiarlo facilmente
+                showInviteLinkModal(registrationUrl, email, nome, cognome, ruoli);
+                
+                showAlert('✅ Invito creato con successo!', 'success');
+                
+                closeInvitaModal();
+                await loadUsers();
+                
+            } catch (error) {
+                console.error('Errore creazione utente:', error);
+                let errorMessage = 'Errore durante la creazione: ' + error.message;
+                
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'Email già registrata in Authentication';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Email non valida';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password troppo debole';
+                }
+                
+                showAlert(errorMessage, 'error');
+            }
+        }
+
+        // Modal Modifica Ruoli
+        function openRuoliModal(userId, currentRoles) {
+            document.getElementById('ruoli-user-id').value = userId;
+            
+            // Reset checkboxes
+            document.getElementById('edit-role-admin').checked = false;
+            document.getElementById('edit-role-manager').checked = false;
+            document.getElementById('edit-role-caposquadra').checked = false;
+            document.getElementById('edit-role-operaio').checked = false;
+            
+            // Seleziona ruoli attuali
+            if (currentRoles.includes('amministratore')) document.getElementById('edit-role-admin').checked = true;
+            if (currentRoles.includes('manager')) document.getElementById('edit-role-manager').checked = true;
+            if (currentRoles.includes('caposquadra')) document.getElementById('edit-role-caposquadra').checked = true;
+            if (currentRoles.includes('operaio')) document.getElementById('edit-role-operaio').checked = true;
+            
+            document.getElementById('ruoli-modal').classList.add('active');
+        }
+
+        function closeRuoliModal() {
+            document.getElementById('ruoli-modal').classList.remove('active');
+        }
+
+        async function handleModificaRuoli(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('ruoli-user-id').value;
+            const ruoli = [];
+            
+            if (document.getElementById('edit-role-admin').checked) ruoli.push('amministratore');
+            if (document.getElementById('edit-role-manager').checked) ruoli.push('manager');
+            if (document.getElementById('edit-role-caposquadra').checked) ruoli.push('caposquadra');
+            if (document.getElementById('edit-role-operaio').checked) ruoli.push('operaio');
+
+            if (ruoli.length === 0) {
+                showAlert('Seleziona almeno un ruolo', 'error');
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, 'users', userId), {
+                    ruoli: ruoli
+                });
+                
+                showAlert('Ruoli aggiornati con successo', 'success');
+                closeRuoliModal();
+                await loadUsers();
+            } catch (error) {
+                console.error('Errore aggiornamento ruoli:', error);
+                showAlert('Errore durante l\'aggiornamento: ' + error.message, 'error');
+            }
+        }
+
+        // Toggle stato utente
+        async function toggleUserStatus(userId, currentStatus) {
+            if (!confirm(`Sei sicuro di voler ${currentStatus === 'attivo' ? 'disattivare' : 'attivare'} questo utente?`)) {
+                return;
+            }
+
+            try {
+                const newStatus = currentStatus === 'attivo' ? 'disattivato' : 'attivo';
+                await updateDoc(doc(db, 'users', userId), {
+                    stato: newStatus
+                });
+                
+                showAlert(`Utente ${newStatus === 'attivo' ? 'attivato' : 'disattivato'} con successo`, 'success');
+                await loadUsers();
+            } catch (error) {
+                console.error('Errore cambio stato:', error);
+                showAlert('Errore durante l\'operazione: ' + error.message, 'error');
+            }
+        }
+
+        // Utility: mostra alert
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            container.innerHTML = `<div class="alert ${alertClass}">${message}</div>`;
+            
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Annulla invito (cambia solo lo stato)
+        async function annullaInvito(invitoId) {
+            if (!confirm('Sei sicuro di voler annullare questo invito?')) {
+                return;
+            }
+
+            try {
+                await updateDoc(doc(db, 'inviti', invitoId), {
+                    stato: 'annullato'
+                });
+                
+                showAlert('Invito annullato con successo', 'success');
+                await loadUsers();
+            } catch (error) {
+                console.error('Errore annullamento invito:', error);
+                showAlert('Errore durante l\'annullamento: ' + error.message, 'error');
+            }
+        }
+
+        // Rimuovi invito (cancella completamente il documento)
+        async function rimuoviInvito(invitoId, userEmail) {
+            const message = `Sei sicuro di voler rimuovere completamente l'invito per "${userEmail}"?\n\n` +
+                          `⚠️ ATTENZIONE: Questa operazione cancella definitivamente l'invito da Firestore.\n\n` +
+                          `Vuoi continuare?`;
+            
+            if (!confirm(message)) {
+                return;
+            }
+
+            try {
+                // Cancella documento invito da Firestore
+                await deleteDoc(doc(db, 'inviti', invitoId));
+                
+                showAlert('Invito rimosso con successo', 'success');
+                await loadUsers();
+            } catch (error) {
+                console.error('Errore rimozione invito:', error);
+                showAlert('Errore durante la rimozione: ' + error.message, 'error');
+            }
+        }
+
+        // Rimuovi utente (cancella documento Firestore)
+        async function rimuoviUtente(userId, userEmail) {
+            const message = `Sei sicuro di voler rimuovere l'utente "${userEmail}"?\n\n` +
+                          `⚠️ ATTENZIONE: Questa operazione:\n` +
+                          `- Cancella il documento utente da Firestore\n` +
+                          `- NON cancella l'utente da Firebase Authentication\n` +
+                          `- Se l'utente esiste ancora in Authentication, dovrà essere cancellato manualmente dalla console Firebase\n\n` +
+                          `Vuoi continuare?`;
+            
+            if (!confirm(message)) {
+                return;
+            }
+
+            try {
+                // Cancella documento utente da Firestore
+                await deleteDoc(doc(db, 'users', userId));
+                
+                showAlert('Utente rimosso con successo da Firestore', 'success');
+                await loadUsers();
+            } catch (error) {
+                console.error('Errore rimozione utente:', error);
+                showAlert('Errore durante la rimozione: ' + error.message, 'error');
+            }
+        }
+
+        // Esponi funzioni globalmente
+        window.openInvitaModal = openInvitaModal;
+        window.closeInvitaModal = closeInvitaModal;
+        window.handleInvitaUtente = handleInvitaUtente;
+        window.showInviteLinkModal = showInviteLinkModal;
+        window.closeInviteLinkModal = closeInviteLinkModal;
+        window.copyInviteLink = copyInviteLink;
+        window.openRuoliModal = openRuoliModal;
+        window.closeRuoliModal = closeRuoliModal;
+        window.handleModificaRuoli = handleModificaRuoli;
+        window.toggleUserStatus = toggleUserStatus;
+        window.annullaInvito = annullaInvito;
+        window.rimuoviInvito = rimuoviInvito;
+        window.rimuoviUtente = rimuoviUtente;
+    </script>
+</body>
+</html>
+

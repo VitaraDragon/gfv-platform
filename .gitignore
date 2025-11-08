@@ -2,6 +2,9 @@
 # NON tracciare questa cartella - ha il suo repository Git
 vecchia app/
 
+# Mobile configuration files (contengono chiavi sensibili)
+mobile-config/
+
 # Firebase
 .firebase/
 firebase-debug.log
