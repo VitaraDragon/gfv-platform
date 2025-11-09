@@ -123,7 +123,43 @@
 - Impostazione password al primo accesso
 - **TESTATO E FUNZIONANTE** ✅
 
-### 9. Utility Condivisi ✅
+### 6. Email Service con EmailJS ✅
+
+**Configurazione**:
+- EmailJS account configurato
+- Service ID: `service_f4to9qr`
+- Template ID: `template_9917fde`
+- Public Key: `AnLLhJOew6d6sCIOG`
+
+**Funzionalità**:
+- Invio automatico email quando viene creato un invito
+- Template HTML personalizzato con logo GFV Platform
+- Logo hostato su Imgur: `https://i.imgur.com/JIp8sS9.png`
+- Variabili dinamiche (nome, cognome, ruoli, link registrazione, scadenza)
+- Gestione errori con fallback (mostra modal con link)
+- **TESTATO E FUNZIONANTE** ✅
+
+**⚠️ TODO IMPORTANTE**:
+- [ ] **Cambiare email mittente in EmailJS**: Attualmente usa email personale per test. Creare account Gmail dedicato per produzione (es. `noreply@gfv-platform.com` o simile) e aggiornare configurazione EmailJS.
+
+### 7. GitHub Pages Deployment ✅
+
+**Configurazione**:
+- Repository GitHub: `https://github.com/VitaraDragon/gfv-platform`
+- Repository pubblico (necessario per GitHub Pages gratuito)
+- GitHub Pages attivato (branch: main, folder: /root)
+- URL pubblico: `https://vitaradragon.github.io/gfv-platform/`
+
+**File creati**:
+- `index.html` - Entry point con redirect automatico al login
+
+**Funzionalità**:
+- App online e accessibile pubblicamente
+- Link di registrazione funzionanti nelle email
+- URL corretti generati automaticamente
+- **TESTATO E FUNZIONANTE** ✅
+
+### 8. Sistema Stato Online ✅
 
 **File creati**:
 - `shared/utils/error-handler.js` - Gestione errori centralizzata
