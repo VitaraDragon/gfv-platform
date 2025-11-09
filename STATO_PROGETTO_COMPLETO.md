@@ -161,6 +161,16 @@
 
 ### 8. Sistema Stato Online ✅
 
+**Funzionalità**:
+- Tracciamento stato online in tempo reale
+- Campo `isOnline` e `lastSeen` in Firestore
+- Aggiornamento heartbeat ogni 30 secondi
+- Visualizzazione "🟢 Online" nella lista utenti
+- Impostazione offline al logout/chiusura pagina
+- **TESTATO E FUNZIONANTE** ✅
+
+### 9. Utility Condivisi ✅
+
 **File creati**:
 - `shared/utils/error-handler.js` - Gestione errori centralizzata
 - `shared/utils/loading-handler.js` - Gestione loading states
