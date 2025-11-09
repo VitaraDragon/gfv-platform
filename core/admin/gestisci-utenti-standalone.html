@@ -924,9 +924,8 @@
                 // Genera link di registrazione
                 // Costruisci URL assoluto per il link di registrazione
                 const baseUrl = getBaseUrl();
-                const currentPath = window.location.pathname;
-                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-                const registrationPath = basePath.replace('/admin', '/auth') + '/registrazione-invito-standalone.html';
+                // Usa sempre il percorso relativo dalla root del repository
+                const registrationPath = '/core/auth/registrazione-invito-standalone.html';
                 const registrationUrl = baseUrl + registrationPath + `?token=${token}`;
                 
                 console.log('URL base:', baseUrl);
