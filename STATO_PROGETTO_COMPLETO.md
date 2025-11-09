@@ -1,7 +1,7 @@
 # 📋 Stato Progetto Completo - GFV Platform
 
-**Ultimo aggiornamento**: 2025-01-15  
-**Versione**: 1.1.0-alpha  
+**Ultimo aggiornamento**: 2025-11-09  
+**Versione**: 1.2.0-alpha  
 **Stato**: In sviluppo attivo
 
 ---
@@ -123,13 +123,13 @@
 - Impostazione password al primo accesso
 - **TESTATO E FUNZIONANTE** ✅
 
-### 6. Utility Condivisi ✅
+### 9. Utility Condivisi ✅
 
 **File creati**:
 - `shared/utils/error-handler.js` - Gestione errori centralizzata
 - `shared/utils/loading-handler.js` - Gestione loading states
 
-### 7. Sistema Inviti Utenti ✅
+### 10. Sistema Inviti Utenti (Dettagli) ✅
 
 **File creati**:
 - `core/services/invito-service-standalone.js` - Servizio gestione inviti
@@ -144,7 +144,7 @@
 - Assegnazione ruoli dall'invito
 - **TESTATO E FUNZIONANTE** ✅
 
-### 8. Sistema Stato Online ✅
+### 11. Sistema Stato Online ✅
 
 **Funzionalità**:
 - Tracciamento stato online in tempo reale
@@ -480,6 +480,19 @@ modules/vendemmia/
 
 ---
 
+## ⚠️ TODO e Note Importanti
+
+### TODO Immediati
+
+1. **Email Service - Cambio Email Mittente** 🔴 IMPORTANTE
+   - **Stato**: Attualmente usa email personale per test
+   - **Azione richiesta**: 
+     - Creare account Gmail dedicato per produzione (es. `gfvplatform@gmail.com` o simile)
+     - Aggiornare configurazione EmailJS con nuovo account
+     - Testare invio email con nuovo account
+   - **File da modificare**: Configurazione EmailJS (Dashboard → Email Services)
+   - **Quando**: Prima di andare in produzione
+
 ## ⚠️ Note Importanti
 
 ### Separazione Progetti
@@ -615,12 +628,14 @@ git ls-files | grep "vecchia"
 
 ---
 
-**Ultimo aggiornamento**: 2025-01-15  
+**Ultimo aggiornamento**: 2025-11-09  
 **Login**: ✅ Testato e funzionante  
 **Dashboard**: ✅ Completa e funzionante  
 **Gestione Utenti**: ✅ Completa e funzionante  
 **Sistema Inviti**: ✅ Completo e funzionante  
-**Prossimo passo**: Modulo Clienti o Email service per inviti
+**Email Service**: ✅ Configurato e funzionante (EmailJS)  
+**GitHub Pages**: ✅ Attivo e online  
+**Prossimo passo**: Modulo Clienti o cambio email EmailJS per produzione
 
 ---
 
