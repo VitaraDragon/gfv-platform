@@ -485,6 +485,14 @@
         </div>
     </div>
 
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function(){
+            emailjs.init("AnLLhJOew6d6sCIOG");
+        })();
+    </script>
+
     <!-- Firebase SDK -->
     <script type="module">
         const firebaseConfig = {
@@ -506,6 +514,30 @@
 
         let currentUserData = null;
         let currentTenantId = null;
+
+        // Configurazione URL base dell'applicazione
+        // IMPORTANTE: Imposta qui l'URL pubblico della tua app quando è online
+        // Se l'app è su GitHub Pages, usa: 'https://vitaradragon.github.io/gfv-platform'
+        // Se l'app è su Firebase Hosting, usa il tuo dominio Firebase
+        // Per sviluppo locale, lascia null per usare automaticamente l'URL corrente
+        const APP_BASE_URL = null; // Cambia questo con il tuo URL pubblico quando l'app è online
+        // Esempio: const APP_BASE_URL = 'https://vitaradragon.github.io/gfv-platform';
+        
+        const getBaseUrl = () => {
+            // Se è configurato un URL base esplicito, usalo
+            if (APP_BASE_URL) {
+                return APP_BASE_URL;
+            }
+            // Altrimenti rileva automaticamente
+            // Se siamo su GitHub Pages o dominio pubblico, usa quello
+            if (window.location.hostname.includes('github.io') || 
+                window.location.hostname.includes('firebaseapp.com') ||
+                window.location.hostname.includes('web.app')) {
+                return window.location.origin;
+            }
+            // Per sviluppo locale, usa l'URL corrente
+            return window.location.origin;
+        };
 
         const roleNames = {
             'amministratore': '👑 Amministratore',
@@ -892,15 +924,58 @@
                 
                 // Genera link di registrazione
                 // Costruisci URL assoluto per il link di registrazione
+                const baseUrl = getBaseUrl();
                 const currentPath = window.location.pathname;
                 const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
                 const registrationPath = basePath.replace('/admin', '/auth') + '/registrazione-invito-standalone.html';
-                const registrationUrl = window.location.origin + registrationPath + `?token=${token}`;
+                const registrationUrl = baseUrl + registrationPath + `?token=${token}`;
                 
-                // Mostra link in un modal dedicato per copiarlo facilmente
+                console.log('URL base:', baseUrl);
+                console.log('Link registrazione generato:', registrationUrl);
+                
+                // Formatta ruoli per l'email
+                const ruoliFormattati = ruoli.map(r => {
+                    const roleMap = {
+                        'amministratore': '👑 Amministratore',
+                        'manager': '📊 Manager',
+                        'caposquadra': '👷 Caposquadra',
+                        'operaio': '🔧 Operaio'
+                    };
+                    return roleMap[r] || r;
+                }).join(', ');
+                
+                // Formatta data scadenza
+                const scadeIlFormattata = scadeIl.toLocaleDateString('it-IT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+                
+                // Invia email tramite EmailJS
+                let emailInviata = false;
+                try {
+                    await emailjs.send(
+                        'service_f4to9qr',  // Service ID
+                        'template_9917fde',  // Template ID
+                        {
+                            nome: nome,
+                            cognome: cognome,
+                            email: email,
+                            ruoli: ruoliFormattati,
+                            linkRegistrazione: registrationUrl,
+                            scadeIl: scadeIlFormattata
+                        }
+                    );
+                    console.log('✅ Email inviata con successo');
+                    emailInviata = true;
+                    showAlert('✅ Invito creato e email inviata con successo!', 'success');
+                } catch (emailError) {
+                    console.error('Errore invio email:', emailError);
+                    showAlert('⚠️ Invito creato, ma errore nell\'invio email. Usa il link mostrato nel modal.', 'error');
+                }
+                
+                // Mostra sempre il modal con il link (come backup o per copia manuale)
                 showInviteLinkModal(registrationUrl, email, nome, cognome, ruoli);
-                
-                showAlert('✅ Invito creato con successo!', 'success');
                 
                 closeInvitaModal();
                 await loadUsers();
