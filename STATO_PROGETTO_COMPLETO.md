@@ -512,7 +512,10 @@ modules/vendemmia/
 5. **Sistema Inviti** ✅ COMPLETATO
    - ✅ InvitoService
    - ✅ Pagina registrazione con token
-   - ⏳ Email service (da implementare)
+   - ✅ Email service con EmailJS (automatico)
+   - ✅ Template email con logo
+   - ✅ Link di registrazione funzionanti
+   - ⚠️ TODO: Cambiare email mittente in EmailJS (da personale a Gmail dedicato)
 
 6. **Gestione Tenant** (4-5 ore)
    - Creazione tenant (parzialmente implementato)
