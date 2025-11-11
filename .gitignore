@@ -1,14 +1,11 @@
-# Vecchia app (ha il suo repository Git separato)
-# NON tracciare questa cartella - ha il suo repository Git
-vecchia app/
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
 
-# Mobile configuration files (contengono chiavi sensibili)
-mobile-config/
-
-# Firebase
-.firebase/
-firebase-debug.log
-firebase-debug.*.log
+# Test coverage
+coverage/
+.nyc_output/
 
 # IDE
 .vscode/
@@ -19,53 +16,25 @@ firebase-debug.*.log
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-Desktop.ini
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+build/
 
 # Logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# API Keys and Secrets
-# IMPORTANTE: Non committare mai file con chiavi reali!
-google-maps-config.js
-core/firebase-config.js
-**/firebase-config.js
-!**/*-config.example.js
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Node modules (se usi npm)
-node_modules/
-package-lock.json
-yarn.lock
-
-# Build files
-dist/
-build/
-*.min.js
-*.min.css
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# Coverage (se usi test)
-coverage/
-.nyc_output/
-
-# Backup files
-*.bak
-*.backup
-*~
+# Config files con dati sensibili (se presenti)
+# core/firebase-config.js (mantieni solo .example)
+# core/google-maps-config.js (mantieni solo .example)

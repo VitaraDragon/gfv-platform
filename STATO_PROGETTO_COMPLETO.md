@@ -1,8 +1,8 @@
 # 📋 Stato Progetto Completo - GFV Platform
 
-**Ultimo aggiornamento**: 2025-11-09  
-**Versione**: 1.2.0-alpha  
-**Stato**: In sviluppo attivo
+**Ultimo aggiornamento**: 2025-01-10  
+**Versione**: 1.5.0-alpha  
+**Stato**: In sviluppo attivo - Core Base completo + Test automatici configurati
 
 ---
 
@@ -200,6 +200,236 @@
 - Impostazione offline al logout/chiusura pagina
 - **TESTATO E FUNZIONANTE** ✅
 
+### 12. Core Base - Fase 1: Modelli e Servizi ✅
+
+**Data completamento**: 2025-01-09
+
+**Modelli creati**:
+- `core/models/Terreno.js` - Modello terreno con coordinate e poligono mappa
+- `core/models/Attivita.js` - Modello attività con calcolo ore automatico
+- `core/models/ListePersonalizzate.js` - Modello liste personalizzabili (tipi lavoro, colture)
+
+**Servizi creati**:
+- `core/services/terreni-service.js` - CRUD terreni con multi-tenant
+- `core/services/attivita-service.js` - CRUD attività con multi-tenant
+- `core/services/liste-service.js` - Gestione liste personalizzate
+- `core/services/statistiche-service.js` - Statistiche aggregate
+
+**Funzionalità**:
+- ✅ Modelli dati completi con validazione
+- ✅ Servizi multi-tenant
+- ✅ Operazioni CRUD complete
+- ✅ Supporto coordinate e poligoni mappa
+
+### 13. Core Base - Fase 2: Gestione Terreni ✅
+
+**Data completamento**: 2025-01-09
+
+**File creati**:
+- `core/terreni-standalone.html` - Pagina gestione terreni standalone (funziona senza server)
+
+**Funzionalità implementate**:
+- ✅ Lista terreni in tabella (stile identico vecchia app)
+- ✅ CRUD completo terreni (crea, modifica, elimina)
+- ✅ Integrazione Google Maps:
+  - ✅ Tracciamento confini terreno (poligono)
+  - ✅ Calcolo automatico superficie da mappa
+  - ✅ Ricerca indirizzo (Geocoding API)
+  - ✅ Vista satellitare
+  - ✅ Modifica poligono esistente
+  - ✅ Cancellazione poligono
+- ✅ Dropdown colture (caricato da liste personalizzate)
+- ✅ Salvataggio coltura nel terreno
+- ✅ Visualizzazione coltura in tabella
+- ✅ Calcolo superficie automatico quando si traccia mappa
+- ✅ Ricalcolo superficie per terreni esistenti con mappa
+- ✅ Salvataggio automatico superficie calcolata
+
+**Configurazione Google Maps**:
+- ✅ API Key configurata (`core/google-maps-config.js`)
+- ✅ Maps JavaScript API abilitata
+- ✅ Geocoding API abilitata
+- ✅ Restrizioni API key configurate (HTTP referrers)
+- ✅ Guide create per configurazione:
+  - `core/GUIDA_GOOGLE_MAPS.md`
+  - `core/ABILITA_MAPS_API.md`
+  - `core/ABILITA_GEOCODING_API.md`
+  - `core/CREA_CHIAVE_API.md`
+  - `core/CONFIGURA_RESTRIZIONI_API.md`
+  - `core/TROVA_PROGETTO_GOOGLE_CLOUD.md`
+
+**Caratteristiche**:
+- ✅ Pagina standalone (funziona direttamente nel browser, no server locale)
+- ✅ Stile identico alla vecchia app (tabella con colonne: Nome, Coltura, Ha, Mappa, Note, Azioni)
+- ✅ Calcolo superficie automatico quando si traccia mappa
+- ✅ Superficie aggiornata automaticamente nel form e nella lista
+- ✅ Dropdown colture popolato da liste personalizzate (predefinite se non configurate)
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 14. Core Base - Fase 3: Liste Personalizzate ✅
+
+**Data completamento**: 2025-01-09
+
+**File modificati**:
+- `core/admin/impostazioni-standalone.html` - Aggiunta sezione liste personalizzate
+
+**Funzionalità implementate**:
+- ✅ Gestione Tipi Lavoro:
+  - Lista con badge "Predefinito" (verde) o "Custom" (giallo)
+  - Form per aggiungere nuovo tipo lavoro custom
+  - Pulsante elimina solo per elementi custom
+  - Verifica se usato in attività prima di eliminare (con conferma)
+- ✅ Gestione Colture:
+  - Lista con badge "Predefinito" (verde) o "Custom" (giallo)
+  - Form per aggiungere nuova coltura custom
+  - Pulsante elimina solo per elementi custom
+  - Verifica se usata in attività prima di eliminare (con conferma)
+- ✅ Validazione duplicati (case-insensitive)
+- ✅ Ordinamento automatico: prima predefiniti, poi custom (alfabetico)
+- ✅ Salvataggio automatico in Firestore
+- ✅ Caricamento automatico all'apertura pagina
+- ✅ Messaggi di successo/errore
+
+**Protezioni**:
+- ✅ Impossibile eliminare elementi predefiniti
+- ✅ Avviso se elemento usato in attività prima di eliminare
+- ✅ Validazione input (non vuoto)
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 15. Core Base - Fase 4: Diario Attività ✅
+
+**Data completamento**: 2025-01-09
+
+**File creati**:
+- `core/attivita-standalone.html` - Pagina diario attività standalone (funziona senza server)
+
+**Funzionalità implementate**:
+- ✅ Lista attività in tabella (ordinata per data, più recenti prima)
+- ✅ Form completo attività:
+  - Data (max = oggi, no futuro)
+  - Terreno (dropdown da terreni esistenti)
+  - Tipo Lavoro (dropdown da liste personalizzate)
+  - Coltura (dropdown da liste personalizzate)
+  - Orario Inizio/Fine (time picker)
+  - Pause (minuti)
+  - Note (opzionale)
+- ✅ Calcolo automatico ore nette:
+  - Formula: `(orarioFine - orarioInizio) - pauseMinuti`
+  - Aggiornamento in tempo reale mentre compili il form
+  - Display in formato leggibile: "8h 40min" invece di "8.67 ore"
+- ✅ Validazioni complete:
+  - Data non futura
+  - Orario fine > orario inizio
+  - Pause < tempo di lavoro
+  - Campi obbligatori verificati
+  - Messaggi di errore chiari
+- ✅ Filtri avanzati:
+  - Per periodo (data da / data a) con etichette chiare
+  - Per terreno
+  - Per tipo lavoro
+  - Per coltura
+  - Ricerca testuale (nelle note)
+  - Pulsante "Pulisci Filtri"
+- ✅ Precompilazione intelligente:
+  - Quando selezioni un terreno, la coltura viene precompilata automaticamente se il terreno ha una coltura associata
+- ✅ CRUD completo:
+  - Aggiungi attività
+  - Modifica attività
+  - Elimina attività (con conferma)
+
+**Caratteristiche**:
+- ✅ Pagina standalone (funziona direttamente nel browser, no server locale)
+- ✅ Stile coerente con altre pagine
+- ✅ Integrazione completa con terreni e liste personalizzate
+- ✅ Layout filtri con etichette per chiarezza
+- ✅ Query ottimizzata (un solo orderBy per evitare bisogno di indice composito)
+- ✅ Fix validazione data: confronto con data locale invece di UTC per accettare correttamente la data odierna
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 16. Core Base - Fase 5: Statistiche e Dashboard ✅
+
+**Data completamento**: 2025-01-09
+
+**File creati**:
+- `core/statistiche-standalone.html` - Pagina statistiche standalone (funziona senza server)
+
+**File modificati**:
+- `core/dashboard-standalone.html` - Dashboard dinamica adattiva per moduli e ruoli
+- `core/attivita-standalone.html` - Aggiunto pulsante Dashboard
+- `core/auth/registrazione-standalone.html` - Tenant creato con moduli vuoti (solo core)
+
+**Funzionalità implementate**:
+- ✅ Pagina statistiche completa:
+  - Card metriche (totale terreni, ore lavorate, attività totali, media ore/mese)
+  - Grafici Chart.js:
+    - Ore per tipo lavoro (grafico a torta)
+    - Attività per terreno (grafico a barre)
+    - Ore per mese (grafico lineare)
+    - Top 5 tipi lavoro (grafico a barre orizzontale)
+  - Filtri avanzati (periodo, terreno, tipo lavoro)
+  - Formato ore leggibile ("8h 40min")
+  - Formato mesi leggibile ("Gen 2025")
+- ✅ Dashboard dinamica:
+  - Sezione Core Base sempre visibile (solo card essenziali)
+  - Sezione Amministrazione rimossa (funzionalità nelle pagine dedicate)
+  - Link Impostazioni nell'header
+  - Ruoli avanzati (Manager, Caposquadra, Operaio) solo con moduli avanzati
+  - Adattamento automatico in base ai moduli disponibili
+- ✅ Responsive design migliorato:
+  - Media query per tablet (≤768px)
+  - Media query per mobile (≤480px)
+  - Layout adattivo per tutte le dimensioni schermo
+
+**Correzioni**:
+- ✅ Recupero corretto tenant ID nella pagina statistiche
+- ✅ Registrazione crea tenant con moduli vuoti (solo core base)
+- ✅ Fix automatico assegnazione ruolo 'amministratore' se mancante
+- ✅ Pulsante Dashboard aggiunto in tutte le pagine core
+- ✅ Fix validazione data attività: ora accetta correttamente la data odierna (usando data locale invece di UTC)
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 17. Test Automatici e Audit Codice ✅
+
+**Data completamento**: 2025-01-10
+
+**Test Automatici Configurati**:
+- ✅ Sistema di test con Vitest configurato
+- ✅ 47 test automatici funzionanti:
+  - Test Modello Terreno (18 test)
+  - Test Modello Attività (18 test)
+  - Test Validazioni Utility (11 test)
+- ✅ Esecuzione test in < 1 secondo
+- ✅ Coverage modelli: ~90%
+
+**File creati**:
+- `package.json` - Configurazione progetto e script test
+- `vitest.config.js` - Configurazione Vitest
+- `tests/models/Terreno.test.js` - Test modello Terreno
+- `tests/models/Attivita.test.js` - Test modello Attività
+- `tests/utils/validations.test.js` - Test validazioni
+- `tests/setup.js` - Setup test con mock Firebase
+- `tests/README.md` - Documentazione test
+- `TEST_SETUP.md` - Guida rapida setup test
+
+**Audit Codice Completato**:
+- ✅ Analisi completa codice critico
+- ✅ Identificati 4 TODO aperti
+- ✅ Trovati 3 potenziali bug (non critici)
+- ✅ Identificato 1 problema sicurezza (Security Rules)
+- ✅ Report completo creato: `AUDIT_REPORT.md`
+
+**Comandi Test Disponibili**:
+- `npm test` - Esegui test in modalità watch
+- `npm run test:run` - Esegui test una volta
+- `npm run test:ui` - Esegui test con interfaccia grafica
+- `npm run test:coverage` - Esegui test con coverage
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
 ---
 
 ## 📁 Struttura Progetto Attuale
@@ -225,14 +455,26 @@ gfv-platform/
 │   ├── init.js                           ✅ (inizializzazione core)
 │   ├── models/
 │   │   ├── Base.js                       ✅
-│   │   └── User.js                       ✅
+│   │   ├── User.js                       ✅
+│   │   ├── Terreno.js                    ✅ (Core Base)
+│   │   ├── Attivita.js                   ✅ (Core Base)
+│   │   └── ListePersonalizzate.js       ✅ (Core Base)
+│   ├── terreni-standalone.html          ✅ (Core Base - TESTATO)
+│   ├── attivita-standalone.html         ✅ (Core Base - TESTATO)
+│   ├── statistiche-standalone.html      ✅ (Core Base - TESTATO)
+│   ├── google-maps-config.js            ✅ (Config Google Maps)
+│   ├── google-maps-config.example.js    ✅ (Template)
 │   └── services/
 │       ├── firebase-service.js           ✅
 │       ├── auth-service.js               ✅
 │       ├── tenant-service.js             ✅
 │       ├── permission-service.js         ✅
 │       ├── role-service.js               ✅
-│       └── invito-service-standalone.js ✅ (Gestione inviti)
+│       ├── invito-service-standalone.js ✅ (Gestione inviti)
+│       ├── terreni-service.js           ✅ (Core Base)
+│       ├── attivita-service.js          ✅ (Core Base)
+│       ├── liste-service.js              ✅ (Core Base)
+│       └── statistiche-service.js       ✅ (Core Base)
 │
 ├── mobile-config/                        ✅
 │   ├── google-services.json              ✅ (Android)
@@ -243,6 +485,20 @@ gfv-platform/
 │   └── utils/
 │       ├── error-handler.js               ✅
 │       └── loading-handler.js             ✅
+│
+├── tests/                                 ✅ (Nuovo - Test automatici)
+│   ├── models/
+│   │   ├── Terreno.test.js               ✅ (18 test)
+│   │   └── Attivita.test.js              ✅ (18 test)
+│   ├── utils/
+│   │   └── validations.test.js           ✅ (11 test)
+│   ├── setup.js                          ✅ (Mock Firebase)
+│   └── README.md                          ✅ (Documentazione)
+│
+├── package.json                           ✅ (Configurazione test)
+├── vitest.config.js                       ✅ (Config Vitest)
+├── TEST_SETUP.md                          ✅ (Guida setup test)
+├── AUDIT_REPORT.md                        ✅ (Report audit codice)
 │
 └── vecchia app/                          ❌ NON TRACCIATO (ha il suo .git/)
     └── [tutti i file originali]          ✅ INTATTI
@@ -408,6 +664,7 @@ modules/vendemmia/
 - `GUIDA_CONFIGURAZIONE_FIREBASE.md` - Configurazione Firebase dettagliata
 - `CHECKLIST_FIREBASE.md` - Checklist rapida Firebase
 - `TEST_SENZA_SERVER.md` - Test senza server
+- `TEST_SETUP.md` - Guida setup test automatici
 
 ### Guide Sviluppo
 - `STRATEGIA_SVILUPPO.md` - Strategia completa sviluppo
@@ -418,6 +675,11 @@ modules/vendemmia/
 ### Documentazione Core
 - `core/README.md` - Documentazione servizi core
 - `core/auth/COME_TESTARE_LOGIN.md` - Test login
+
+### Test e Qualità
+- `tests/README.md` - Documentazione test automatici
+- `AUDIT_REPORT.md` - Report audit codice completo
+- `TEST_SETUP.md` - Guida rapida setup test
 
 ### Stato
 - `STATO_PROGETTO.md` - Stato progetto
@@ -455,7 +717,9 @@ modules/vendemmia/
 
 ## 🧪 Test Completati
 
-### Login ✅
+### Test Manuali ✅
+
+#### Login ✅
 - **Data**: 2025-01-08
 - **Risultato**: ✅ **SUCCESSO**
 - **File testato**: `login-standalone.html`
@@ -467,7 +731,7 @@ modules/vendemmia/
   - ✅ Redirect a dashboard
   - ✅ Gestione errori
 
-### Dashboard ✅
+#### Dashboard ✅
 - **Data**: 2025-01-08
 - **Risultato**: ✅ **SUCCESSO**
 - **File testato**: `dashboard-standalone.html`
@@ -476,6 +740,34 @@ modules/vendemmia/
   - ✅ Mostra info utente
   - ✅ Logout funziona
   - ✅ Redirect a login se non autenticato
+
+### Test Automatici ✅
+
+#### Sistema Test Configurato ✅
+- **Data**: 2025-01-10
+- **Risultato**: ✅ **SUCCESSO**
+- **Framework**: Vitest
+- **Test totali**: 47 test passati
+- **Tempo esecuzione**: < 1 secondo
+
+**Test Disponibili**:
+- ✅ **Modello Terreno** (18 test)
+  - Costruttore, validazione, metodi helper, conversione Firestore
+- ✅ **Modello Attività** (18 test)
+  - Costruttore, calcolo ore nette, validazione, conversione Firestore
+- ✅ **Validazioni Utility** (11 test)
+  - Validazione email, data, orario, verifica data non futura
+
+**Comandi Test**:
+- `npm test` - Esegui test in modalità watch
+- `npm run test:run` - Esegui test una volta
+- `npm run test:ui` - Esegui test con interfaccia grafica
+- `npm run test:coverage` - Esegui test con coverage
+
+**Coverage Stimato**:
+- Modelli: ~90% (ottimo)
+- Servizi: ~0% (da aggiungere)
+- UI: ~0% (richiede E2E)
 
 ---
 
@@ -531,9 +823,35 @@ modules/vendemmia/
 
 ## ⚠️ TODO e Note Importanti
 
-### TODO Immediati
+### TODO Immediati (Priorità Alta)
 
-1. **Email Service - Cambio Email Mittente** 🔴 IMPORTANTE
+1. **Firestore Security Rules** 🔴 CRITICO
+   - **Stato**: Da verificare se deployate
+   - **Azione richiesta**: 
+     - Verificare che Security Rules siano deployate su Firebase
+     - Testare isolamento multi-tenant
+     - Validare permessi per ruolo
+   - **Quando**: Prima di andare in produzione
+   - **Riferimento**: Vedi `AUDIT_REPORT.md` per dettagli
+
+2. **Verifica Uso Terreno Prima di Eliminare** 🟡 IMPORTANTE
+   - **Stato**: TODO nel codice (`terreni-service.js:169`)
+   - **Azione richiesta**: 
+     - Implementare check se terreno è usato in attività
+     - Mostrare avviso se terreno usato
+     - Opzione eliminazione cascata (con conferma)
+   - **Quando**: Prima di andare in produzione
+   - **Riferimento**: Vedi `AUDIT_REPORT.md` per dettagli
+
+3. **Reset Password** 🟡 IMPORTANTE
+   - **Stato**: Funzionalità non implementata (TODO in `login.html`)
+   - **Azione richiesta**: 
+     - Implementare reset password usando Firebase `sendPasswordResetEmail`
+     - Aggiungere pagina reset password
+   - **Quando**: Prima di andare in produzione
+   - **Riferimento**: Vedi `AUDIT_REPORT.md` per dettagli
+
+4. **Email Service - Cambio Email Mittente** 🟡 IMPORTANTE
    - **Stato**: Attualmente usa email personale per test
    - **Azione richiesta**: 
      - Creare account Gmail dedicato per produzione (es. `gfvplatform@gmail.com` o simile)
@@ -646,16 +964,23 @@ git ls-files | grep "vecchia"
 - [x] Pagine admin (gestisci utenti, abbonamento, impostazioni, report)
 - [x] Normalizzazione ruoli
 - [x] Aggiornamento ultimo accesso automatico
+- [x] Test automatici configurati (47 test funzionanti)
+- [x] Audit codice completato
 
 ### In Corso 🚧
-- [ ] Nessuno al momento
+- [ ] Implementazione Security Rules Firestore
+- [ ] Verifica uso terreno prima di eliminare
+- [ ] Implementazione reset password
 
 ### Pianificato 📋
+- [ ] Moduli avanzati (Clienti, Vendemmia, Bilancio, Manodopera)
 - [ ] Modulo Clienti
 - [ ] Modulo Vendemmia
 - [ ] Modulo Bilancio
-- [ ] Email service per inviti
-- [ ] Gestione Tenant completa
+- [ ] Test servizi (con mock avanzati)
+- [ ] Test E2E per UI critiche
+- [ ] Standardizzazione error handling
+- [ ] Validazione input lato server
 
 ---
 
@@ -677,14 +1002,21 @@ git ls-files | grep "vecchia"
 
 ---
 
-**Ultimo aggiornamento**: 2025-11-09  
+**Ultimo aggiornamento**: 2025-01-10  
 **Login**: ✅ Testato e funzionante  
 **Dashboard**: ✅ Completa e funzionante  
 **Gestione Utenti**: ✅ Completa e funzionante  
 **Sistema Inviti**: ✅ Completo e funzionante  
 **Email Service**: ✅ Configurato e funzionante (EmailJS)  
 **GitHub Pages**: ✅ Attivo e online  
-**Prossimo passo**: Modulo Clienti o cambio email EmailJS per produzione
+**Core Base - Terreni**: ✅ Completo e funzionante (con Google Maps)  
+**Core Base - Liste Personalizzate**: ✅ Completo e funzionante  
+**Core Base - Diario Attività**: ✅ Completo e funzionante  
+**Core Base - Statistiche**: ✅ Completo e funzionante  
+**Core Base - Dashboard**: ✅ Completo e funzionante (dinamica, responsive)  
+**Test Automatici**: ✅ 47 test funzionanti (modelli e validazioni)  
+**Audit Codice**: ✅ Completato (report disponibile in AUDIT_REPORT.md)  
+**Prossimo passo**: Implementare Security Rules, verifica terreno, reset password
 
 ---
 

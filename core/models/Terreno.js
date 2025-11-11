@@ -1,0 +1,120 @@
+/**
+ * Terreno Model - Modello dati terreno
+ * Gestisce dati terreno con coordinate e poligono mappa opzionale
+ * 
+ * @module core/models/Terreno
+ */
+
+import { Base } from './Base.js';
+
+export class Terreno extends Base {
+  /**
+   * Costruttore Terreno
+   * @param {Object} data - Dati terreno
+   * @param {string} data.id - ID terreno
+   * @param {string} data.nome - Nome terreno (obbligatorio)
+   * @param {number} data.superficie - Superficie in ettari (opzionale)
+   * @param {Object} data.coordinate - Coordinate punto centrale {lat, lng} (opzionale)
+   * @param {Array} data.polygonCoords - Coordinate poligono mappa (opzionale)
+   * @param {string} data.note - Note opzionali
+   * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
+   * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
+   */
+  constructor(data = {}) {
+    super(data);
+    
+    this.nome = data.nome || '';
+    this.superficie = data.superficie !== undefined ? parseFloat(data.superficie) : null;
+    this.coordinate = data.coordinate || null;
+    this.polygonCoords = data.polygonCoords || null;
+    this.note = data.note || '';
+    
+    // Alias per compatibilità
+    this.creatoIl = this.createdAt;
+    this.aggiornatoIl = this.updatedAt;
+  }
+  
+  /**
+   * Valida dati terreno
+   * @returns {Object} { valid: boolean, errors: Array<string> }
+   */
+  validate() {
+    const errors = [];
+    
+    if (!this.nome || this.nome.trim().length === 0) {
+      errors.push('Nome terreno obbligatorio');
+    }
+    
+    if (this.superficie !== null && this.superficie < 0) {
+      errors.push('Superficie non può essere negativa');
+    }
+    
+    if (this.coordinate) {
+      if (typeof this.coordinate.lat !== 'number' || typeof this.coordinate.lng !== 'number') {
+        errors.push('Coordinate devono essere oggetti con lat e lng numerici');
+      }
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+  
+  /**
+   * Converte modello in formato Firestore
+   * @returns {Object} Oggetto pronto per Firestore
+   */
+  toFirestore() {
+    const data = super.toFirestore();
+    
+    // Rimuovi alias se presenti
+    delete data.creatoIl;
+    delete data.aggiornatoIl;
+    
+    return data;
+  }
+  
+  /**
+   * Aggiorna superficie da calcolo poligono
+   * @param {number} superficieEttari - Superficie calcolata in ettari
+   */
+  setSuperficieDaMappa(superficieEttari) {
+    if (superficieEttari > 0) {
+      this.superficie = superficieEttari;
+    }
+  }
+  
+  /**
+   * Imposta coordinate poligono
+   * @param {Array} coords - Array di coordinate [{lat, lng}, ...]
+   */
+  setPolygonCoords(coords) {
+    if (Array.isArray(coords) && coords.length > 0) {
+      this.polygonCoords = coords;
+    }
+  }
+  
+  /**
+   * Imposta coordinate punto centrale
+   * @param {number} lat - Latitudine
+   * @param {number} lng - Longitudine
+   */
+  setCoordinate(lat, lng) {
+    this.coordinate = { lat, lng };
+  }
+  
+  /**
+   * Verifica se terreno ha mappa tracciata
+   * @returns {boolean} true se ha poligono tracciato
+   */
+  hasMappa() {
+    if (!this.polygonCoords || !Array.isArray(this.polygonCoords)) {
+      return false;
+    }
+    return this.polygonCoords.length > 0;
+  }
+}
+
+export default Terreno;
+

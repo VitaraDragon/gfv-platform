@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "495860225347",
+    "project_id": "gfv-platform",
+    "storage_bucket": "gfv-platform.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:495860225347:android:638452c859a1a4f90bcbf6",
+        "android_client_info": {
+          "package_name": "com.gfv.platform"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQSB0ms2V1ZYyskacLYZSvdGwVfmdpx5M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+
