@@ -488,25 +488,82 @@
             try {
                 let q = query(getAttivitaCollection(currentTenantId));
 
-                if (filters.dataDa) {
-                    q = query(q, where('data', '>=', filters.dataDa));
-                }
-                if (filters.dataA) {
-                    q = query(q, where('data', '<=', filters.dataA));
-                }
-                if (filters.terrenoId) {
+                // Conta quanti filtri sono attivi
+                const hasTerrenoId = !!filters.terrenoId;
+                const hasTipoLavoro = !!filters.tipoLavoro;
+                const hasDataDa = !!filters.dataDa;
+                const hasDataA = !!filters.dataA;
+                const filterCount = [hasTerrenoId, hasTipoLavoro, hasDataDa, hasDataA].filter(Boolean).length;
+
+                // Applica filtri
+                if (hasTerrenoId) {
                     q = query(q, where('terrenoId', '==', filters.terrenoId));
                 }
-                if (filters.tipoLavoro) {
+                if (hasTipoLavoro) {
                     q = query(q, where('tipoLavoro', '==', filters.tipoLavoro));
                 }
+                if (hasDataDa) {
+                    q = query(q, where('data', '>=', filters.dataDa));
+                }
+                if (hasDataA) {
+                    q = query(q, where('data', '<=', filters.dataA));
+                }
 
+                // Ordina per data (richiede indice composito se ci sono 2+ filtri)
                 q = query(q, orderBy('data', 'desc'));
                 const snapshot = await getDocs(q);
-                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Se la query fallisce per mancanza di indice, prova senza orderBy e ordina in memoria
+                return results;
             } catch (error) {
-                console.error('Errore caricamento attività:', error);
-                return [];
+                // Se l'errore è relativo agli indici, prova senza orderBy
+                if (error.code === 'failed-precondition' && error.message.includes('index')) {
+                    console.warn('Indice Firestore mancante, carico senza orderBy e ordino in memoria...');
+                    try {
+                        // Ricarica senza orderBy
+                        let q = query(getAttivitaCollection(currentTenantId));
+                        if (filters.terrenoId) q = query(q, where('terrenoId', '==', filters.terrenoId));
+                        if (filters.tipoLavoro) q = query(q, where('tipoLavoro', '==', filters.tipoLavoro));
+                        if (filters.dataDa) q = query(q, where('data', '>=', filters.dataDa));
+                        if (filters.dataA) q = query(q, where('data', '<=', filters.dataA));
+                        
+                        const snapshot = await getDocs(q);
+                        let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        
+                        // Ordina in memoria per data
+                        results.sort((a, b) => {
+                            if (!a.data || !b.data) return 0;
+                            return b.data.localeCompare(a.data);
+                        });
+                        
+                        // Filtra per data se necessario (già fatto nella query, ma per sicurezza)
+                        if (filters.dataDa) {
+                            results = results.filter(att => att.data >= filters.dataDa);
+                        }
+                        if (filters.dataA) {
+                            results = results.filter(att => att.data <= filters.dataA);
+                        }
+                        
+                        // Mostra messaggio informativo
+                        const indexLink = error.message.match(/https:\/\/[^\s]+/);
+                        if (indexLink) {
+                            console.warn('Per migliorare le prestazioni, crea l\'indice Firestore:', indexLink[0]);
+                        }
+                        
+                        return results;
+                    } catch (retryError) {
+                        console.error('Errore anche senza orderBy:', retryError);
+                        const indexLink = error.message.match(/https:\/\/[^\s]+/);
+                        if (indexLink) {
+                            alert(`È necessario creare un indice Firestore per i filtri multipli.\n\nApri questo link per crearlo automaticamente:\n\n${indexLink[0]}\n\nDopo aver creato l'indice, attendi qualche minuto e riprova.`);
+                        }
+                        return [];
+                    }
+                } else {
+                    console.error('Errore caricamento attività:', error);
+                    return [];
+                }
             }
         }
 
