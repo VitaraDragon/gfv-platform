@@ -29,7 +29,15 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
   - Ordine moduli
   - Timeline
 
-### 3. Architettura
+### 3. Core Base (Nuovo)
+- **`PLAN_CORE_BASE.md`** ⭐ **PIANIFICAZIONE COMPLETA CORE BASE**
+  - Visione core base (diario attività)
+  - Specifiche complete (terreni, attività, liste, statistiche)
+  - Struttura dati
+  - Checklist implementazione
+  - **LEGGI QUESTO per sviluppare il core base!**
+
+### 4. Architettura
 - **`vecchia app/.cursorrules`**
   - Regole complete progetto
   - Architettura target
@@ -51,11 +59,17 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
 
 ---
 
-## 🚀 Prossimo Passo Pianificato
+## 🚀 Prossimi Passi Pianificati
 
-**Modulo Clienti** oppure **Email service per inviti**
+1. **Core Base** - Vedi `PLAN_CORE_BASE.md` per pianificazione completa
+   - Terreni (con mappe opzionali)
+   - Diario Attività (con calcolo ore automatico)
+   - Liste personalizzabili (tipi lavoro, colture)
+   - Statistiche base
 
-Vedi `STATO_PROGETTO_COMPLETO.md` per dettagli.
+2. **Modulo Clienti** oppure **Email service per inviti**
+
+Vedi `STATO_PROGETTO_COMPLETO.md` per dettagli generali.
 
 ---
 
