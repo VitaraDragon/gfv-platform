@@ -286,7 +286,17 @@
     </div>
 
     <!-- Load Firebase config from external file -->
-    <script src="../config/firebase-config.js"></script>
+    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
     
     <!-- Firebase SDK -->
     <script type="module">

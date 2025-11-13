@@ -547,8 +547,26 @@
     </div>
 
     <!-- Load Firebase and Google Maps config from external files -->
-    <script src="config/firebase-config.js"></script>
-    <script src="config/google-maps-config.js"></script>
+    <!-- Fallback: usa raw GitHub se i file locali non sono disponibili (per GitHub Pages) -->
+    <script>
+        const firebaseConfigScript = document.createElement('script');
+        firebaseConfigScript.src = 'config/firebase-config.js';
+        firebaseConfigScript.onerror = function() {
+            const fallback = document.createElement('script');
+            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallback);
+        };
+        document.head.appendChild(firebaseConfigScript);
+        
+        const mapsConfigScript = document.createElement('script');
+        mapsConfigScript.src = 'config/google-maps-config.js';
+        mapsConfigScript.onerror = function() {
+            const fallback = document.createElement('script');
+            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+            document.head.appendChild(fallback);
+        };
+        document.head.appendChild(mapsConfigScript);
+    </script>
     
     <!-- Firebase SDK e Google Maps -->
     <script type="module">
