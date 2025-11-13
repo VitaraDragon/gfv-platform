@@ -549,38 +549,96 @@
     <!-- Load Firebase and Google Maps config from external files -->
     <!-- Fallback: usa raw GitHub se i file locali non sono disponibili (per GitHub Pages) -->
     <script>
-        const firebaseConfigScript = document.createElement('script');
-        firebaseConfigScript.src = 'config/firebase-config.js';
-        firebaseConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(firebaseConfigScript);
-        
-        const mapsConfigScript = document.createElement('script');
-        mapsConfigScript.src = 'config/google-maps-config.js';
-        mapsConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(mapsConfigScript);
+        function loadConfigs() {
+            return Promise.all([
+                loadConfig('config/firebase-config.js', 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js', 'firebaseConfig'),
+                loadConfig('config/google-maps-config.js', 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js', 'GOOGLE_MAPS_API_KEY')
+            ]);
+        }
+
+        function loadConfig(localPath, fallbackPath, globalVar) {
+            return new Promise((resolve, reject) => {
+                if (typeof window[globalVar] !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = localPath;
+                
+                script.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window[globalVar] !== 'undefined') {
+                            resolve();
+                        } else {
+                            loadFallbackConfig(fallbackPath, globalVar).then(resolve).catch(reject);
+                        }
+                    }, 100);
+                };
+                
+                script.onerror = function() {
+                    loadFallbackConfig(fallbackPath, globalVar).then(resolve).catch(reject);
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        function loadFallbackConfig(fallbackPath, globalVar) {
+            return new Promise((resolve, reject) => {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = fallbackPath;
+                
+                fallbackScript.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window[globalVar] !== 'undefined') {
+                            resolve();
+                        } else {
+                            reject(new Error(`${globalVar} not found even after loading from GitHub`));
+                        }
+                    }, 100);
+                };
+                
+                fallbackScript.onerror = function() {
+                    reject(new Error(`Failed to load ${globalVar} from GitHub`));
+                };
+                
+                document.head.appendChild(fallbackScript);
+            });
+        }
+
+        loadConfigs().catch(error => {
+            console.error('Errore caricamento config:', error);
+        });
     </script>
     
     <!-- Firebase SDK e Google Maps -->
     <script type="module">
-        // Verifica che le configurazioni siano caricate
-        if (typeof window.firebaseConfig === 'undefined') {
-            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
-            throw new Error('Firebase config not loaded');
-        }
-        if (typeof window.GOOGLE_MAPS_API_KEY === 'undefined') {
-            console.warn('Google Maps API key not found. Maps will not be available.');
+        // Attendi che le configurazioni siano caricate
+        function waitForConfigs() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined' && typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve({
+                            firebaseConfig: window.firebaseConfig,
+                            GOOGLE_MAPS_API_KEY: window.GOOGLE_MAPS_API_KEY
+                        });
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Configs not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
         }
 
-        const firebaseConfig = window.firebaseConfig;
-        const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
+        const configs = await waitForConfigs();
+        const firebaseConfig = configs.firebaseConfig;
+        const GOOGLE_MAPS_API_KEY = configs.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
         
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
