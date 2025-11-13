@@ -1,0 +1,26 @@
+{
+  "name": "gfv-platform",
+  "version": "1.0.0",
+  "description": "GFV Platform - SaaS multi-tenant per gestione aziende agricole",
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "agriculture",
+    "saas",
+    "firebase",
+    "multi-tenant"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@vitest/ui": "^1.0.0"
+  }
+}
+
+
