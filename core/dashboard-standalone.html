@@ -320,31 +320,104 @@
     <!-- Load Firebase and Google Maps config from external files -->
     <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
     <script>
-        const configScript = document.createElement('script');
-        configScript.src = 'config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
+        function loadConfig() {
+            return new Promise((resolve, reject) => {
+                // Se già caricato, risolvi immediatamente
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                // Prova prima il percorso locale
+                const configScript = document.createElement('script');
+                configScript.src = 'config/firebase-config.js';
+                
+                configScript.onload = function() {
+                    // Aspetta un po' per assicurarsi che lo script sia eseguito
+                    setTimeout(() => {
+                        if (typeof window.firebaseConfig !== 'undefined') {
+                            resolve();
+                        } else {
+                            // Se non è stato definito, prova il fallback
+                            loadFallbackConfig().then(resolve).catch(reject);
+                        }
+                    }, 100);
+                };
+                
+                configScript.onerror = function() {
+                    // Se fallisce, prova il fallback
+                    loadFallbackConfig().then(resolve).catch(reject);
+                };
+                
+                document.head.appendChild(configScript);
+            });
+        }
+
+        function loadFallbackConfig() {
+            return new Promise((resolve, reject) => {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+                
+                fallbackScript.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window.firebaseConfig !== 'undefined') {
+                            resolve();
+                        } else {
+                            reject(new Error('Firebase config not found even after loading from GitHub'));
+                        }
+                    }, 100);
+                };
+                
+                fallbackScript.onerror = function() {
+                    reject(new Error('Failed to load Firebase config from GitHub'));
+                };
+                
+                document.head.appendChild(fallbackScript);
+            });
+        }
+
+        // Carica il config prima di continuare
+        loadConfig().catch(error => {
+            console.error('Errore caricamento config:', error);
+            document.getElementById('dashboard-content').innerHTML = `
+                <div style="padding: 20px; text-align: center;">
+                    <h3 style="color: #dc3545;">⚠️ Errore Configurazione</h3>
+                    <p>File di configurazione Firebase non trovato.</p>
+                    <p>Errore: ${error.message}</p>
+                </div>
+            `;
+        });
     </script>
     
     <!-- Firebase SDK da CDN -->
     <script type="module">
-        // Verifica che la configurazione Firebase sia caricata
-        if (typeof window.firebaseConfig === 'undefined') {
-            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
-            document.getElementById('dashboard-content').innerHTML = `
-                <div style="padding: 20px; text-align: center;">
-                    <h3 style="color: #dc3545;">⚠️ Errore Configurazione</h3>
-                    <p>File di configurazione Firebase non trovato. Assicurati che <code>core/config/firebase-config.js</code> esista.</p>
-                </div>
-            `;
-            throw new Error('Firebase config not loaded');
+        // Attendi che lo script config sia caricato
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                // Aspetta fino a 5 secondi che il config sia caricato
+                let attempts = 0;
+                const maxAttempts = 50; // 5 secondi (50 * 100ms)
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
         }
 
-        const firebaseConfig = window.firebaseConfig;
+        // Carica configurazione
+        const firebaseConfig = await waitForConfig();
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
