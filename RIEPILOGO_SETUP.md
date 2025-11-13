@@ -185,3 +185,4 @@ git push origin develop
 **Vecchia app**: ✅ Intatta e funzionante  
 **Nuovo progetto**: ✅ Pronto per sviluppo
 
+

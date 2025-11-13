@@ -237,3 +237,4 @@ git commit -m "Normalize line endings"
 - `vendemmia-meccanizzata` (vecchio progetto)
 - `gfv-platform` (nuovo progetto) ✅
 
+

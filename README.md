@@ -134,3 +134,4 @@ gfv-platform/
 **Versione:** 1.0.0-alpha  
 **Stato:** In sviluppo attivo
 
+
