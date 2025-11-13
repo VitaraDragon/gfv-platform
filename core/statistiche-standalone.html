@@ -847,14 +847,25 @@
         }
 
         function updateChartOreMese(data) {
-            const ctx = document.getElementById('chart-ore-mese').getContext('2d');
+            const chartContainer = document.getElementById('chart-ore-mese').parentElement;
+            let canvas = document.getElementById('chart-ore-mese');
+            
+            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            if (!canvas || canvas.tagName !== 'CANVAS') {
+                chartContainer.innerHTML = '<canvas id="chart-ore-mese"></canvas>';
+                canvas = document.getElementById('chart-ore-mese');
+            }
+            
             if (chartOreMese) {
                 chartOreMese.destroy();
             }
+            
             if (data.length === 0) {
-                document.getElementById('chart-ore-mese').parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+                chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
                 return;
             }
+            
+            const ctx = canvas.getContext('2d');
             chartOreMese = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -898,14 +909,25 @@
         }
 
         function updateChartTopLavori(data) {
-            const ctx = document.getElementById('chart-top-lavori').getContext('2d');
+            const chartContainer = document.getElementById('chart-top-lavori').parentElement;
+            let canvas = document.getElementById('chart-top-lavori');
+            
+            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            if (!canvas || canvas.tagName !== 'CANVAS') {
+                chartContainer.innerHTML = '<canvas id="chart-top-lavori"></canvas>';
+                canvas = document.getElementById('chart-top-lavori');
+            }
+            
             if (chartTopLavori) {
                 chartTopLavori.destroy();
             }
+            
             if (data.length === 0) {
-                document.getElementById('chart-top-lavori').parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+                chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
                 return;
             }
+            
+            const ctx = canvas.getContext('2d');
             chartTopLavori = new Chart(ctx, {
                 type: 'bar',
                 data: {
