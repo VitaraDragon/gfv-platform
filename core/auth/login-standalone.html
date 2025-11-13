@@ -297,7 +297,19 @@
     </div>
 
     <!-- Load Firebase config from external file -->
-    <script src="../config/firebase-config.js"></script>
+    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
+    <script>
+        // Prova prima il percorso locale, poi il raw GitHub
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            // Se fallisce, carica da raw GitHub
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
     
     <!-- Firebase SDK da CDN -->
     <script type="module">
@@ -311,7 +323,21 @@
                 
                 // Prova a caricare manualmente se non è stato caricato
                 const script = document.createElement('script');
+                // Prova prima locale, poi raw GitHub
                 script.src = '../config/firebase-config.js';
+                script.onerror = function() {
+                    const fallback = document.createElement('script');
+                    fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+                    fallback.onload = () => {
+                        if (typeof window.firebaseConfig !== 'undefined') {
+                            resolve(window.firebaseConfig);
+                        } else {
+                            reject(new Error('Firebase config not found after loading'));
+                        }
+                    };
+                    fallback.onerror = () => reject(new Error('Failed to load firebase-config.js'));
+                    document.head.appendChild(fallback);
+                };
                 script.onload = () => {
                     if (typeof window.firebaseConfig !== 'undefined') {
                         resolve(window.firebaseConfig);
