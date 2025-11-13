@@ -62,6 +62,12 @@
             font-weight: 500;
         }
 
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .logout-button {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -222,9 +228,24 @@
         }
 
         @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+            }
+
             .dashboard-header {
                 flex-direction: column;
                 align-items: flex-start;
+                padding: 20px;
+            }
+
+            .dashboard-header h1 {
+                font-size: 24px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 15px;
             }
 
             .dashboard-content {
@@ -233,6 +254,43 @@
 
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .action-card {
+                min-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-header {
+                padding: 15px;
+            }
+
+            .dashboard-header h1 {
+                font-size: 20px;
+            }
+
+            .user-info {
+                font-size: 12px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .header-actions .btn,
+            .logout-button {
+                width: 100%;
+                text-align: center;
             }
         }
     </style>
@@ -245,7 +303,13 @@
                 <div class="user-info" id="user-info">Caricamento...</div>
                 <div class="user-roles" id="user-roles"></div>
             </div>
-            <button class="logout-button" id="logout-button">Logout</button>
+            <div class="header-actions">
+                <a href="admin/impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
+                <button class="logout-button" id="logout-button">Logout</button>
+            </div>
         </div>
 
         <div id="dashboard-content" class="dashboard-content">
@@ -253,21 +317,28 @@
         </div>
     </div>
 
+    <!-- Load Firebase and Google Maps config from external files -->
+    <script src="config/firebase-config.js"></script>
+    
     <!-- Firebase SDK da CDN -->
     <script type="module">
-        // Configurazione Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
-            authDomain: "gfv-platform.firebaseapp.com",
-            projectId: "gfv-platform",
-            storageBucket: "gfv-platform.firebasestorage.app",
-            messagingSenderId: "495860225347",
-            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
-        };
+        // Verifica che la configurazione Firebase sia caricata
+        if (typeof window.firebaseConfig === 'undefined') {
+            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
+            document.getElementById('dashboard-content').innerHTML = `
+                <div style="padding: 20px; text-align: center;">
+                    <h3 style="color: #dc3545;">⚠️ Errore Configurazione</h3>
+                    <p>File di configurazione Firebase non trovato. Assicurati che <code>core/config/firebase-config.js</code> esista.</p>
+                </div>
+            `;
+            throw new Error('Firebase config not loaded');
+        }
+
+        const firebaseConfig = window.firebaseConfig;
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, getDoc, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, getDoc, doc, updateDoc, serverTimestamp, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
@@ -324,31 +395,42 @@
             return normalizedCheckRoles.some(role => normalizedRoles.includes(role));
         }
 
-        // Renderizza dashboard in base ai ruoli
-        function renderDashboard(userData) {
+        // Verifica se ha solo moduli core (nessun modulo avanzato)
+        function hasOnlyCoreModules(modules) {
+            if (!modules || modules.length === 0) return true;
+            // Filtra 'core' se presente (è sempre incluso)
+            const advancedModules = modules.filter(m => m !== 'core');
+            return advancedModules.length === 0;
+        }
+
+        // Renderizza dashboard in base ai ruoli e moduli
+        function renderDashboard(userData, availableModules = []) {
             const container = document.getElementById('dashboard-content');
             container.innerHTML = '';
 
             const ruoli = userData.ruoli || [];
+            const isCoreOnly = hasOnlyCoreModules(availableModules);
+            const hasAdvancedModules = !isCoreOnly;
 
-            // Sezione Amministratore
-            if (hasRole(userData, 'amministratore')) {
-                container.appendChild(createAdminSection(userData));
-            }
+            // CORE BASE: Sempre mostra funzionalità core essenziali (solo card di accesso)
+            container.appendChild(createCoreBaseSection(userData, isCoreOnly));
 
-            // Sezione Manager
-            if (hasRole(userData, 'manager')) {
-                container.appendChild(createManagerSection(userData));
-            }
+            // Ruoli avanzati: solo se ci sono moduli avanzati attivi
+            if (hasAdvancedModules) {
+                // Sezione Manager (solo con moduli avanzati)
+                if (hasRole(userData, 'manager')) {
+                    container.appendChild(createManagerSection(userData, isCoreOnly, availableModules));
+                }
 
-            // Sezione Caposquadra
-            if (hasRole(userData, 'caposquadra')) {
-                container.appendChild(createCaposquadraSection(userData));
-            }
+                // Sezione Caposquadra (solo con moduli avanzati)
+                if (hasRole(userData, 'caposquadra')) {
+                    container.appendChild(createCaposquadraSection(userData, isCoreOnly, availableModules));
+                }
 
-            // Sezione Operaio
-            if (hasRole(userData, 'operaio')) {
-                container.appendChild(createOperaioSection(userData));
+                // Sezione Operaio (solo con moduli avanzati)
+                if (hasRole(userData, 'operaio')) {
+                    container.appendChild(createOperaioSection(userData, isCoreOnly, availableModules));
+                }
             }
 
             // Se non ha ruoli, mostra messaggio
@@ -364,93 +446,256 @@
                 `;
             }
         }
-
-        // Sezione Amministratore
-        function createAdminSection(userData) {
+        
+        // Sezione Core Base (sempre visibile - essenziale)
+        function createCoreBaseSection(userData, isCoreOnly) {
             const section = document.createElement('div');
             section.className = 'dashboard-section';
+            
+            // Azioni rapide core (sempre disponibili)
+            let actionsHTML = `
+                <a href="terreni-standalone.html" class="action-card">
+                    <span class="action-icon">🗺️</span>
+                    <span class="action-title">Terreni</span>
+                    <span class="action-description">Gestisci terreni e vigneti</span>
+                </a>
+                <a href="attivita-standalone.html" class="action-card">
+                    <span class="action-icon">📝</span>
+                    <span class="action-title">Diario Attività</span>
+                    <span class="action-description">Registra attività lavorative</span>
+                </a>
+                <a href="statistiche-standalone.html" class="action-card">
+                    <span class="action-icon">📊</span>
+                    <span class="action-title">Statistiche</span>
+                    <span class="action-description">Visualizza statistiche e grafici</span>
+                </a>
+            `;
+            
+            // Aggiungi card Abbonamento (sempre visibile per gestire piano e moduli)
+            actionsHTML += `
+                <a href="admin/abbonamento-standalone.html" class="action-card">
+                    <span class="action-icon">💳</span>
+                    <span class="action-title">Abbonamento</span>
+                    <span class="action-description">Gestisci piano e moduli</span>
+                </a>
+            `;
+            
             section.innerHTML = `
-                <h2><span class="section-icon">👑</span> Amministrazione</h2>
-                
+                <h2><span class="section-icon">🌾</span> Core Base</h2>
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    ${actionsHTML}
+                </div>
+            `;
+            
+            return section;
+        }
+
+        // Sezione Amministratore (sempre disponibile nel core base)
+        function createAdminSection(userData, isCoreOnly, availableModules) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            
+            // Statistiche amministratore
+            let statsHTML = `
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-utenti-admin">-</div>
                         <div class="stat-label">Utenti Totali</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-moduli-admin">-</div>
                         <div class="stat-label">Moduli Attivi</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
-                        <div class="stat-label">Abbonamento</div>
+                        <div class="stat-value" id="stat-piano-admin">-</div>
+                        <div class="stat-label">Piano</div>
                     </div>
                 </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    <a href="admin/gestisci-utenti-standalone.html" class="action-card">
-                        <span class="action-icon">👥</span>
-                        <span class="action-title">Gestisci Utenti</span>
-                        <span class="action-description">Invita e gestisci utenti azienda</span>
-                    </a>
-                    <a href="admin/abbonamento-standalone.html" class="action-card">
-                        <span class="action-icon">💳</span>
-                        <span class="action-title">Abbonamento</span>
-                        <span class="action-description">Gestisci piano e pagamenti</span>
-                    </a>
-                    <a href="admin/impostazioni-standalone.html" class="action-card">
-                        <span class="action-icon">⚙️</span>
-                        <span class="action-title">Impostazioni</span>
-                        <span class="action-description">Configura azienda e account</span>
-                    </a>
+            `;
+            
+            // Azioni amministratore (sempre disponibili nel core base)
+            let actionsHTML = `
+                <a href="admin/gestisci-utenti-standalone.html" class="action-card">
+                    <span class="action-icon">👥</span>
+                    <span class="action-title">Gestisci Utenti</span>
+                    <span class="action-description">Invita e gestisci utenti azienda</span>
+                </a>
+                <a href="admin/abbonamento-standalone.html" class="action-card">
+                    <span class="action-icon">💳</span>
+                    <span class="action-title">Abbonamento</span>
+                    <span class="action-description">Gestisci piano e moduli</span>
+                </a>
+                <a href="admin/impostazioni-standalone.html" class="action-card">
+                    <span class="action-icon">⚙️</span>
+                    <span class="action-title">Impostazioni</span>
+                    <span class="action-description">Configura azienda e account</span>
+                </a>
+            `;
+            
+            // Report completi solo se ci sono moduli avanzati
+            if (!isCoreOnly) {
+                actionsHTML += `
                     <a href="admin/report-standalone.html" class="action-card">
                         <span class="action-icon">📊</span>
                         <span class="action-title">Report Completi</span>
                         <span class="action-description">Visualizza tutte le statistiche</span>
                     </a>
+                `;
+            }
+            
+            section.innerHTML = `
+                <h2><span class="section-icon">👑</span> Amministrazione</h2>
+                ${statsHTML}
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    ${actionsHTML}
                 </div>
             `;
+            
+            // Carica statistiche amministratore
+            loadAdminStats(availableModules);
+            
             return section;
+        }
+        
+        // Carica statistiche amministratore
+        async function loadAdminStats(availableModules) {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                // Carica utenti del tenant
+                const usersCollection = collection(db, 'users');
+                const usersQuery = query(usersCollection, where('tenantId', '==', tenantId));
+                const usersSnapshot = await getDocs(usersQuery);
+                const totaleUtenti = usersSnapshot.size;
+                const statUtentiEl = document.getElementById('stat-utenti-admin');
+                if (statUtentiEl) statUtentiEl.textContent = totaleUtenti;
+                
+                // Carica dati tenant per moduli e piano
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (tenantDoc.exists()) {
+                    const tenantData = tenantDoc.data();
+                    const moduli = tenantData.modules || [];
+                    const piano = tenantData.piano || 'starter';
+                    
+                    const statModuliEl = document.getElementById('stat-moduli-admin');
+                    if (statModuliEl) {
+                        const moduliCount = moduli.length;
+                        statModuliEl.textContent = moduliCount > 0 ? `${moduliCount} moduli` : 'Solo Core';
+                    }
+                    
+                    const statPianoEl = document.getElementById('stat-piano-admin');
+                    if (statPianoEl) {
+                        const pianoNames = {
+                            'starter': 'Starter',
+                            'professional': 'Professional',
+                            'enterprise': 'Enterprise'
+                        };
+                        statPianoEl.textContent = pianoNames[piano] || piano;
+                    }
+                }
+            } catch (error) {
+                console.error('Errore caricamento statistiche admin:', error);
+            }
         }
 
         // Sezione Manager
-        function createManagerSection(userData) {
+        function createManagerSection(userData, isCoreOnly, availableModules) {
             const section = document.createElement('div');
             section.className = 'dashboard-section';
-            section.innerHTML = `
-                <h2><span class="section-icon">📊</span> Gestione Operativa</h2>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value">-</div>
-                        <div class="stat-label">Clienti</div>
+            
+            // Statistiche: se core only, mostra solo metriche core
+            let statsHTML = '';
+            if (isCoreOnly) {
+                statsHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-terreni-manager">-</div>
+                            <div class="stat-label">Terreni</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-attivita-manager">-</div>
+                            <div class="stat-label">Attività</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-ore-manager">-</div>
+                            <div class="stat-label">Ore Questo Mese</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value">-</div>
-                        <div class="stat-label">Terreni</div>
+                `;
+            } else {
+                statsHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">-</div>
+                            <div class="stat-label">Clienti</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-terreni-manager">-</div>
+                            <div class="stat-label">Terreni</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">-</div>
+                            <div class="stat-label">Lavori Attivi</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-ore-manager">-</div>
+                            <div class="stat-label">Ore Questo Mese</div>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value">-</div>
-                        <div class="stat-label">Lavori Attivi</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">-</div>
-                        <div class="stat-label">Ore Questo Mese</div>
-                    </div>
-                </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
+                `;
+            }
+            
+            // Azioni rapide: se core only, mostra solo funzionalità core
+            let actionsHTML = '';
+            if (isCoreOnly) {
+                actionsHTML = `
+                    <a href="terreni-standalone.html" class="action-card">
+                        <span class="action-icon">🗺️</span>
+                        <span class="action-title">Terreni</span>
+                        <span class="action-description">Gestisci terreni e vigneti</span>
+                    </a>
+                    <a href="attivita-standalone.html" class="action-card">
+                        <span class="action-icon">📝</span>
+                        <span class="action-title">Diario Attività</span>
+                        <span class="action-description">Registra attività lavorative</span>
+                    </a>
+                    <a href="statistiche-standalone.html" class="action-card">
+                        <span class="action-icon">📊</span>
+                        <span class="action-title">Statistiche</span>
+                        <span class="action-description">Visualizza statistiche e grafici</span>
+                    </a>
+                `;
+            } else {
+                actionsHTML = `
                     <a href="#" class="action-card" onclick="alert('Modulo Clienti in sviluppo'); return false;">
                         <span class="action-icon">👥</span>
                         <span class="action-title">Clienti</span>
                         <span class="action-description">Gestisci anagrafica clienti</span>
                     </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Terreni in sviluppo'); return false;">
+                    <a href="terreni-standalone.html" class="action-card">
                         <span class="action-icon">🗺️</span>
                         <span class="action-title">Terreni</span>
                         <span class="action-description">Gestisci terreni e vigneti</span>
+                    </a>
+                    <a href="attivita-standalone.html" class="action-card">
+                        <span class="action-icon">📝</span>
+                        <span class="action-title">Diario Attività</span>
+                        <span class="action-description">Registra attività lavorative</span>
+                    </a>
+                    <a href="statistiche-standalone.html" class="action-card">
+                        <span class="action-icon">📊</span>
+                        <span class="action-title">Statistiche</span>
+                        <span class="action-description">Visualizza statistiche e grafici</span>
                     </a>
                     <a href="#" class="action-card" onclick="alert('Modulo Vendemmia in sviluppo'); return false;">
                         <span class="action-icon">🍇</span>
@@ -462,23 +707,85 @@
                         <span class="action-title">Lavori</span>
                         <span class="action-description">Assegna e gestisci lavori</span>
                     </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Report in sviluppo'); return false;">
-                        <span class="action-icon">📈</span>
-                        <span class="action-title">Report</span>
-                        <span class="action-description">Visualizza statistiche e report</span>
-                    </a>
                     <a href="#" class="action-card" onclick="alert('Modulo Bilancio in sviluppo'); return false;">
                         <span class="action-icon">💰</span>
                         <span class="action-title">Bilancio</span>
                         <span class="action-description">Gestisci entrate e uscite</span>
                     </a>
+                `;
+            }
+            
+            section.innerHTML = `
+                <h2><span class="section-icon">📊</span> Gestione Operativa</h2>
+                ${statsHTML}
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    ${actionsHTML}
                 </div>
             `;
+            
+            // Carica statistiche core se core only
+            if (isCoreOnly) {
+                loadCoreStatsForManager();
+            }
+            
             return section;
+        }
+        
+        // Carica statistiche core per manager
+        async function loadCoreStatsForManager() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                // Carica terreni
+                const terreniCollection = collection(db, `tenants/${tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniCollection);
+                const totaleTerreni = terreniSnapshot.size;
+                document.getElementById('stat-terreni-manager').textContent = totaleTerreni;
+                
+                // Carica attività del mese corrente
+                const oggi = new Date();
+                const primoGiornoMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                const dataInizioMese = primoGiornoMese.toISOString().split('T')[0];
+                const dataFineMese = oggi.toISOString().split('T')[0];
+                
+                const attivitaCollection = collection(db, `tenants/${tenantId}/attivita`);
+                const attivitaQuery = query(
+                    attivitaCollection,
+                    where('data', '>=', dataInizioMese),
+                    where('data', '<=', dataFineMese)
+                );
+                const attivitaSnapshot = await getDocs(attivitaQuery);
+                
+                let totaleOre = 0;
+                attivitaSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    totaleOre += data.oreNette || 0;
+                });
+                
+                const totaleAttivita = attivitaSnapshot.size;
+                document.getElementById('stat-attivita-manager').textContent = totaleAttivita;
+                
+                // Formatta ore
+                const oreInt = Math.floor(totaleOre);
+                const minuti = Math.round((totaleOre - oreInt) * 60);
+                const oreFormatted = minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
+                document.getElementById('stat-ore-manager').textContent = oreFormatted;
+            } catch (error) {
+                console.error('Errore caricamento statistiche core:', error);
+            }
         }
 
         // Sezione Caposquadra
-        function createCaposquadraSection(userData) {
+        function createCaposquadraSection(userData, isCoreOnly, availableModules) {
             const section = document.createElement('div');
             section.className = 'dashboard-section';
             section.innerHTML = `
@@ -531,7 +838,7 @@
         }
 
         // Sezione Operaio
-        function createOperaioSection(userData) {
+        function createOperaioSection(userData, isCoreOnly, availableModules) {
             const section = document.createElement('div');
             section.className = 'dashboard-section';
             section.innerHTML = `
@@ -717,14 +1024,14 @@
                     if (normalizedRoles.length === 0 && userData.tenantId) {
                         console.warn('⚠️ Utente senza ruoli ma con tenant, assegno amministratore automaticamente...');
                         try {
-                            // Salva i ruoli
+                            // Salva i ruoli come array
                             await updateDoc(doc(db, 'users', user.uid), {
                                 ruoli: ['amministratore']
                             });
                             console.log('✅ Ruoli aggiornati in Firestore');
                             
                             // Attendi un momento per assicurarsi che Firestore abbia processato
-                            await new Promise(resolve => setTimeout(resolve, 500));
+                            await new Promise(resolve => setTimeout(resolve, 1000));
                             
                             // Ricarica i dati
                             const updatedDoc = await getDoc(doc(db, 'users', user.uid));
@@ -757,11 +1064,25 @@
                                     }).join('');
                                 }
                                 
-                                // Renderizza con ruoli aggiornati
+                                // Carica moduli disponibili
+                                let availableModules = [];
+                                if (updatedData.tenantId) {
+                                    try {
+                                        const tenantDoc = await getDoc(doc(db, 'tenants', updatedData.tenantId));
+                                        if (tenantDoc.exists()) {
+                                            const tenantData = tenantDoc.data();
+                                            availableModules = tenantData.modules || [];
+                                        }
+                                    } catch (error) {
+                                        console.warn('Errore caricamento moduli tenant:', error);
+                                    }
+                                }
+                                
+                                // Renderizza con ruoli aggiornati e moduli
                                 renderDashboard({
                                     ...updatedData,
                                     ruoli: updatedNormalized
-                                });
+                                }, availableModules);
                                 return; // Esci qui per non eseguire il renderDashboard sotto
                             } else {
                                 console.error('❌ Documento non trovato dopo update');
@@ -769,11 +1090,49 @@
                         } catch (error) {
                             console.error('❌ Errore assegnazione ruolo automatica:', error);
                             console.error('Dettagli errore:', error.message, error.stack);
+                            // Anche in caso di errore, prova a mostrare la dashboard con ruolo amministratore
+                            const rolesContainer = document.getElementById('user-roles');
+                            rolesContainer.innerHTML = '<span class="role-badge">👑 Amministratore</span>';
+                            
+                            // Carica moduli disponibili
+                            let availableModules = [];
+                            if (userData.tenantId) {
+                                try {
+                                    const tenantDoc = await getDoc(doc(db, 'tenants', userData.tenantId));
+                                    if (tenantDoc.exists()) {
+                                        const tenantData = tenantDoc.data();
+                                        availableModules = tenantData.modules || [];
+                                    }
+                                } catch (e) {
+                                    console.warn('Errore caricamento moduli tenant:', e);
+                                }
+                            }
+                            
+                            // Renderizza con ruolo amministratore di default
+                            renderDashboard({
+                                ...userData,
+                                ruoli: ['amministratore']
+                            }, availableModules);
+                            return;
                         }
                     }
                     
-                    // Renderizza dashboard
-                    renderDashboard(userDataNormalized);
+                    // Carica moduli disponibili dal tenant
+                    let availableModules = [];
+                    if (userData.tenantId) {
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', userData.tenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                availableModules = tenantData.modules || [];
+                            }
+                        } catch (error) {
+                            console.warn('Errore caricamento moduli tenant:', error);
+                        }
+                    }
+                    
+                    // Renderizza dashboard con moduli
+                    renderDashboard(userDataNormalized, availableModules);
                 } else {
                     document.getElementById('user-info').textContent = 
                         `Utente: ${user.email}`;
@@ -781,7 +1140,7 @@
                         '<span class="role-badge">Nessun ruolo</span>';
                     
                     // Renderizza dashboard vuota
-                    renderDashboard({ ruoli: [] });
+                    renderDashboard({ ruoli: [] }, []);
                 }
             } catch (error) {
                 console.error('Errore caricamento dati utente:', error);
@@ -791,7 +1150,7 @@
                     '<span class="role-badge">Errore caricamento</span>';
                 
                 // Renderizza dashboard vuota
-                renderDashboard({ ruoli: [] });
+                renderDashboard({ ruoli: [] }, []);
             }
         });
 

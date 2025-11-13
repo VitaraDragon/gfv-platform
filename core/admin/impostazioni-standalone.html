@@ -153,6 +153,60 @@
             margin-top: 5px;
         }
 
+        .list-container {
+            display: grid;
+            gap: 10px;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .list-item-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-custom {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .badge-predefinito {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -286,29 +340,75 @@
                     <button type="submit" class="btn btn-primary">Cambia Password</button>
                 </form>
             </div>
+
+            <!-- Liste Personalizzate -->
+            <div class="card">
+                <h2>📋 Liste Personalizzate</h2>
+                <p class="info-text" style="margin-bottom: 20px;">Gestisci tipi lavoro e colture personalizzate. Gli elementi predefiniti non possono essere eliminati.</p>
+                
+                <!-- Tipi Lavoro -->
+                <div style="margin-bottom: 40px;">
+                    <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid #e9ecef; padding-bottom: 8px;">Tipi Lavoro</h3>
+                    
+                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input type="text" id="new-tipo-lavoro" placeholder="Aggiungi nuovo tipo lavoro..." style="flex: 1;">
+                        <button type="button" class="btn btn-primary" onclick="addTipoLavoro()">➕ Aggiungi</button>
+                    </div>
+
+                    <div id="tipi-lavoro-list" class="list-container">
+                        <!-- Lista verrà popolata dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- Colture -->
+                <div>
+                    <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid #e9ecef; padding-bottom: 8px;">Colture</h3>
+                    
+                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input type="text" id="new-coltura" placeholder="Aggiungi nuova coltura..." style="flex: 1;">
+                        <button type="button" class="btn btn-primary" onclick="addColtura()">➕ Aggiungi</button>
+                    </div>
+
+                    <div id="colture-list" class="list-container">
+                        <!-- Lista verrà popolata dinamicamente -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Load Firebase config from external file -->
+    <script src="../config/firebase-config.js"></script>
+    
     <!-- Firebase SDK -->
     <script type="module">
-        const firebaseConfig = {
-            apiKey: "AIzaSyAOVPCkRN7pCsU1zrrLqirregNIR-_GW3U",
-            authDomain: "gfv-platform.firebaseapp.com",
-            projectId: "gfv-platform",
-            storageBucket: "gfv-platform.firebasestorage.app",
-            messagingSenderId: "495860225347",
-            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
-        };
+        // Verifica che la configurazione Firebase sia caricata
+        if (typeof window.firebaseConfig === 'undefined') {
+            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
+            throw new Error('Firebase config not loaded');
+        }
+
+        const firebaseConfig = window.firebaseConfig;
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let currentUserData = null;
+        let currentTenantId = null;
+        
+        // Liste predefinite
+        const TIPI_LAVORO_PREDEFINITI = [
+            'Potatura', 'Raccolta', 'Trattamento', 'Semina', 'Aratura',
+            'Irrigazione', 'Concimazione', 'Diserbo', 'Raccolta frutta', 'Raccolta verdura'
+        ];
+        const COLTURE_PREDEFINITE = [
+            'Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco'
+        ];
 
         // Carica dati utente
         onAuthStateChanged(auth, async (user) => {
@@ -328,9 +428,12 @@
                     document.getElementById('account-email').value = currentUserData.email || user.email;
                     document.getElementById('account-telefono').value = currentUserData.telefono || '';
 
+                    // Salva tenant ID
+                    currentTenantId = currentUserData.tenantId;
+                    
                     // Carica dati azienda (se disponibili)
-                    if (currentUserData.tenantId) {
-                        const tenantDoc = await getDoc(doc(db, 'tenants', currentUserData.tenantId));
+                    if (currentTenantId) {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
                             document.getElementById('azienda-nome').value = tenantData.nome || '';
@@ -344,6 +447,9 @@
                             document.getElementById('azienda-email').value = tenantData.email || '';
                             document.getElementById('azienda-note').value = tenantData.note || '';
                         }
+                        
+                        // Carica liste personalizzate
+                        await loadListe();
                     }
                 }
             } catch (error) {
@@ -362,6 +468,9 @@
             }
 
             try {
+                const tenantRef = doc(db, 'tenants', currentUserData.tenantId);
+                const tenantSnap = await getDoc(tenantRef);
+                
                 const tenantData = {
                     nome: document.getElementById('azienda-nome').value,
                     piva: document.getElementById('azienda-piva').value,
@@ -373,10 +482,18 @@
                     telefono: document.getElementById('azienda-telefono').value,
                     email: document.getElementById('azienda-email').value,
                     note: document.getElementById('azienda-note').value,
-                    aggiornatoIl: new Date()
+                    aggiornatoIl: serverTimestamp()
                 };
 
-                await updateDoc(doc(db, 'tenants', currentUserData.tenantId), tenantData);
+                // Se il documento esiste, aggiorna; altrimenti crea
+                if (tenantSnap.exists()) {
+                    await updateDoc(tenantRef, tenantData);
+                } else {
+                    // Crea nuovo documento tenant
+                    tenantData.creatoIl = serverTimestamp();
+                    await setDoc(tenantRef, tenantData);
+                }
+                
                 showAlert('Impostazioni azienda salvate con successo', 'success');
             } catch (error) {
                 console.error('Errore salvataggio azienda:', error);
@@ -460,10 +577,340 @@
             }, 5000);
         }
 
+        // ========== Liste Personalizzate ==========
+        
+        // Carica liste personalizzate
+        async function loadListe() {
+            if (!currentTenantId) return;
+            
+            try {
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
+                let colture = [...COLTURE_PREDEFINITE];
+                
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    tipiLavoro = data.tipiLavoro || tipiLavoro;
+                    colture = data.colture || colture;
+                }
+                
+                renderTipiLavoro(tipiLavoro);
+                renderColture(colture);
+            } catch (error) {
+                console.error('Errore caricamento liste:', error);
+                showAlert('Errore caricamento liste personalizzate', 'error');
+            }
+        }
+        
+        // Render tipi lavoro
+        function renderTipiLavoro(tipiLavoro) {
+            const container = document.getElementById('tipi-lavoro-list');
+            container.innerHTML = tipiLavoro.map(tipo => {
+                const isPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === tipo.toLowerCase());
+                return `
+                    <div class="list-item">
+                        <div class="list-item-name">
+                            <span>${escapeHtml(tipo)}</span>
+                            <span class="badge ${isPredefinito ? 'badge-predefinito' : 'badge-custom'}">
+                                ${isPredefinito ? 'Predefinito' : 'Custom'}
+                            </span>
+                        </div>
+                        ${!isPredefinito ? `
+                            <button class="btn btn-danger btn-small" onclick="removeTipoLavoro('${escapeHtml(tipo)}')" title="Elimina">
+                                🗑️ Elimina
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Render colture
+        function renderColture(colture) {
+            const container = document.getElementById('colture-list');
+            container.innerHTML = colture.map(coltura => {
+                const isPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === coltura.toLowerCase());
+                return `
+                    <div class="list-item">
+                        <div class="list-item-name">
+                            <span>${escapeHtml(coltura)}</span>
+                            <span class="badge ${isPredefinita ? 'badge-predefinito' : 'badge-custom'}">
+                                ${isPredefinita ? 'Predefinito' : 'Custom'}
+                            </span>
+                        </div>
+                        ${!isPredefinita ? `
+                            <button class="btn btn-danger btn-small" onclick="removeColtura('${escapeHtml(coltura)}')" title="Elimina">
+                                🗑️ Elimina
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Aggiungi tipo lavoro
+        async function addTipoLavoro() {
+            const input = document.getElementById('new-tipo-lavoro');
+            const nome = input.value.trim();
+            
+            if (!nome) {
+                showAlert('Inserisci un nome per il tipo lavoro', 'error');
+                return;
+            }
+            
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            try {
+                // Carica liste esistenti
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    tipiLavoro = data.tipiLavoro || tipiLavoro;
+                }
+                
+                // Verifica duplicati (case-insensitive)
+                if (tipiLavoro.some(t => t.toLowerCase() === nome.toLowerCase())) {
+                    showAlert('Questo tipo lavoro è già presente', 'error');
+                    return;
+                }
+                
+                // Aggiungi nuovo tipo lavoro
+                tipiLavoro.push(nome);
+                
+                // Ordina: prima predefiniti, poi custom
+                tipiLavoro.sort((a, b) => {
+                    const aIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === a.toLowerCase());
+                    const bIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === b.toLowerCase());
+                    if (aIsPredefinito && !bIsPredefinito) return -1;
+                    if (!aIsPredefinito && bIsPredefinito) return 1;
+                    return a.localeCompare(b);
+                });
+                
+                // Salva
+                const listeData = {
+                    tipiLavoro: tipiLavoro,
+                    colture: listeSnap.exists() ? (listeSnap.data().colture || COLTURE_PREDEFINITE) : COLTURE_PREDEFINITE,
+                    updatedAt: serverTimestamp()
+                };
+                
+                if (!listeSnap.exists()) {
+                    listeData.createdAt = serverTimestamp();
+                }
+                
+                await setDoc(listeRef, listeData);
+                
+                input.value = '';
+                showAlert('Tipo lavoro aggiunto con successo', 'success');
+                await loadListe();
+            } catch (error) {
+                console.error('Errore aggiunta tipo lavoro:', error);
+                showAlert('Errore durante l\'aggiunta: ' + error.message, 'error');
+            }
+        }
+        
+        // Rimuovi tipo lavoro
+        async function removeTipoLavoro(tipoLavoro) {
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            // Verifica se è predefinito
+            if (TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === tipoLavoro.toLowerCase())) {
+                showAlert('Non è possibile eliminare un tipo lavoro predefinito', 'error');
+                return;
+            }
+            
+            // Verifica se usato in attività
+            try {
+                const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
+                const q = query(attivitaCollection, where('tipoLavoro', '==', tipoLavoro));
+                const querySnapshot = await getDocs(q);
+                const numAttivita = querySnapshot.size;
+                
+                if (numAttivita > 0) {
+                    if (!confirm(`Questo tipo lavoro è usato in ${numAttivita} attività. Eliminare comunque?`)) {
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Errore verifica attività:', e);
+            }
+            
+            try {
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (!listeSnap.exists()) {
+                    showAlert('Liste non trovate', 'error');
+                    return;
+                }
+                
+                const data = listeSnap.data();
+                const tipiLavoro = (data.tipiLavoro || []).filter(t => t !== tipoLavoro);
+                
+                await updateDoc(listeRef, {
+                    tipiLavoro: tipiLavoro,
+                    updatedAt: serverTimestamp()
+                });
+                
+                showAlert('Tipo lavoro eliminato con successo', 'success');
+                await loadListe();
+            } catch (error) {
+                console.error('Errore rimozione tipo lavoro:', error);
+                showAlert('Errore durante l\'eliminazione: ' + error.message, 'error');
+            }
+        }
+        
+        // Aggiungi coltura
+        async function addColtura() {
+            const input = document.getElementById('new-coltura');
+            const nome = input.value.trim();
+            
+            if (!nome) {
+                showAlert('Inserisci un nome per la coltura', 'error');
+                return;
+            }
+            
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            try {
+                // Carica liste esistenti
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                let colture = [...COLTURE_PREDEFINITE];
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    colture = data.colture || colture;
+                }
+                
+                // Verifica duplicati (case-insensitive)
+                if (colture.some(c => c.toLowerCase() === nome.toLowerCase())) {
+                    showAlert('Questa coltura è già presente', 'error');
+                    return;
+                }
+                
+                // Aggiungi nuova coltura
+                colture.push(nome);
+                
+                // Ordina: prima predefinite, poi custom
+                colture.sort((a, b) => {
+                    const aIsPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === a.toLowerCase());
+                    const bIsPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === b.toLowerCase());
+                    if (aIsPredefinita && !bIsPredefinita) return -1;
+                    if (!aIsPredefinita && bIsPredefinita) return 1;
+                    return a.localeCompare(b);
+                });
+                
+                // Salva
+                const listeData = {
+                    tipiLavoro: listeSnap.exists() ? (listeSnap.data().tipiLavoro || TIPI_LAVORO_PREDEFINITI) : TIPI_LAVORO_PREDEFINITI,
+                    colture: colture,
+                    updatedAt: serverTimestamp()
+                };
+                
+                if (!listeSnap.exists()) {
+                    listeData.createdAt = serverTimestamp();
+                }
+                
+                await setDoc(listeRef, listeData);
+                
+                input.value = '';
+                showAlert('Coltura aggiunta con successo', 'success');
+                await loadListe();
+            } catch (error) {
+                console.error('Errore aggiunta coltura:', error);
+                showAlert('Errore durante l\'aggiunta: ' + error.message, 'error');
+            }
+        }
+        
+        // Rimuovi coltura
+        async function removeColtura(coltura) {
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            // Verifica se è predefinita
+            if (COLTURE_PREDEFINITE.some(p => p.toLowerCase() === coltura.toLowerCase())) {
+                showAlert('Non è possibile eliminare una coltura predefinita', 'error');
+                return;
+            }
+            
+            // Verifica se usata in attività
+            try {
+                const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
+                const q = query(attivitaCollection, where('coltura', '==', coltura));
+                const querySnapshot = await getDocs(q);
+                const numAttivita = querySnapshot.size;
+                
+                if (numAttivita > 0) {
+                    if (!confirm(`Questa coltura è usata in ${numAttivita} attività. Eliminare comunque?`)) {
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Errore verifica attività:', e);
+            }
+            
+            try {
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (!listeSnap.exists()) {
+                    showAlert('Liste non trovate', 'error');
+                    return;
+                }
+                
+                const data = listeSnap.data();
+                const colture = (data.colture || []).filter(c => c !== coltura);
+                
+                await updateDoc(listeRef, {
+                    colture: colture,
+                    updatedAt: serverTimestamp()
+                });
+                
+                showAlert('Coltura eliminata con successo', 'success');
+                await loadListe();
+            } catch (error) {
+                console.error('Errore rimozione coltura:', error);
+                showAlert('Errore durante l\'eliminazione: ' + error.message, 'error');
+            }
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+        
         // Esponi funzioni globalmente
         window.handleSaveAzienda = handleSaveAzienda;
         window.handleSaveAccount = handleSaveAccount;
         window.handleChangePassword = handleChangePassword;
+        window.addTipoLavoro = addTipoLavoro;
+        window.removeTipoLavoro = removeTipoLavoro;
+        window.addColtura = addColtura;
+        window.removeColtura = removeColtura;
     </script>
 </body>
 </html>

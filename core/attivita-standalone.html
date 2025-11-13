@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diario Attività - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #B0E0E6 0%, #228B22 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(180deg, #2E8B57 0%, #256E4A 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-actions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .user-info span {
+            font-size: 0.9em;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            margin: 0;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .filters input[type="date"] {
+            min-width: 150px;
+        }
+
+        .filters select {
+            min-width: 150px;
+        }
+
+        .filters input[type="text"] {
+            min-width: 200px;
+        }
+
+        .filter-range {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .filter-range-text {
+            padding-bottom: 8px;
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .section-header {
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        /* Attività Table Layout */
+        .attivita-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .attivita-header {
+            background: #f8f9fa;
+            color: #000;
+            display: grid;
+            grid-template-columns: 1.2fr 1.5fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.5fr;
+            gap: 15px;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-align: center;
+            border-bottom: 2px solid #2E8B57;
+        }
+
+        .attivita-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1.5fr 1.5fr 1.2fr 1fr 1fr 1fr 1fr 1.5fr;
+            gap: 15px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+
+        .attivita-row:hover {
+            background-color: #f8f9fa;
+        }
+
+        .attivita-row:last-child {
+            border-bottom: none;
+        }
+
+        .col-data {
+            font-weight: 600;
+            color: #007bff;
+        }
+
+        .col-terreno {
+            text-align: left;
+            font-weight: 500;
+            color: #28a745;
+        }
+
+        .col-tipo-lavoro,
+        .col-coltura {
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .col-orari {
+            font-family: 'Courier New', monospace;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .col-ore {
+            font-weight: bold;
+            color: #dc3545;
+            font-size: 1em;
+        }
+
+        .col-note {
+            color: #666;
+            font-size: 0.85em;
+            text-align: left;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .col-azioni {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-edit-small, .btn-delete-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-edit-small {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-edit-small:hover {
+            background: #e0a800;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete-small {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete-small:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .ore-nette-display {
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .ore-nette-display strong {
+            font-size: 24px;
+            color: #007bff;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 1200px) {
+            .attivita-header, .attivita-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .attivita-header > div, .attivita-row > div {
+                text-align: left !important;
+                padding: 5px 0;
+            }
+
+            .attivita-header > div:before,
+            .attivita-row > div:before {
+                content: attr(data-label) ": ";
+                font-weight: 600;
+                color: #666;
+            }
+
+            .col-azioni {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .user-info {
+                position: static;
+                margin-top: 15px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Diario Attività</h1>
+            <p>Registra e gestisci le attività lavorative</p>
+            <div class="header-actions">
+                <a href="dashboard-standalone.html" class="btn btn-secondary" style="text-decoration: none;">← Dashboard</a>
+            </div>
+            <div class="user-info">
+                <span id="user-info">Caricamento...</span>
+                <button id="logout-button" class="btn btn-primary">Logout</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+
+            <div class="actions-bar">
+                <button class="btn btn-success" onclick="openAttivitaModal()">➕ Aggiungi Attività</button>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>Periodo</label>
+                        <div class="filter-range">
+                            <input type="date" id="filter-data-da" placeholder="Da data">
+                            <span class="filter-range-text">a</span>
+                            <input type="date" id="filter-data-a" placeholder="A data">
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Terreno</label>
+                        <select id="filter-terreno">
+                            <option value="">Tutti i terreni</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Tipo Lavoro</label>
+                        <select id="filter-tipo-lavoro">
+                            <option value="">Tutti i tipi lavoro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Coltura</label>
+                        <select id="filter-coltura">
+                            <option value="">Tutte le colture</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Cerca Note</label>
+                        <input type="text" id="filter-ricerca" placeholder="Cerca nelle note...">
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-secondary" onclick="clearFilters()">Pulisci Filtri</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2>Le Tue Attività</h2>
+            </div>
+
+            <div id="attivita-container">
+                <div class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <h3>Caricamento attività...</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Attività -->
+    <div id="attivita-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Aggiungi Attività</h2>
+                <button class="close-modal" onclick="closeAttivitaModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="attivita-form" onsubmit="handleSaveAttivita(event)">
+                    <div class="form-group">
+                        <label for="attivita-data">Data *</label>
+                        <input type="date" id="attivita-data" required max="">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="attivita-terreno">Terreno *</label>
+                        <select id="attivita-terreno" required>
+                            <option value="">-- Seleziona terreno --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="attivita-tipo-lavoro">Tipo Lavoro *</label>
+                            <select id="attivita-tipo-lavoro" required>
+                                <option value="">-- Seleziona tipo lavoro --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="attivita-coltura">Coltura *</label>
+                            <select id="attivita-coltura" required>
+                                <option value="">-- Seleziona coltura --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="attivita-orario-inizio">Orario Inizio *</label>
+                            <input type="time" id="attivita-orario-inizio" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="attivita-orario-fine">Orario Fine *</label>
+                            <input type="time" id="attivita-orario-fine" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="attivita-pause">Pause (minuti) *</label>
+                        <input type="number" id="attivita-pause" min="0" value="0" required>
+                    </div>
+
+                    <div class="ore-nette-display">
+                        <div>Ore Nette Lavorate</div>
+                        <strong id="ore-nette-display">0.00</strong> ore
+                    </div>
+
+                    <div class="form-group">
+                        <label for="attivita-note">Note</label>
+                        <textarea id="attivita-note" placeholder="Note aggiuntive sull'attività..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAttivitaModal()">Annulla</button>
+                        <button type="submit" class="btn btn-success">Salva Attività</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Firebase config from external file -->
+    <script src="config/firebase-config.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Verifica che la configurazione Firebase sia caricata
+        if (typeof window.firebaseConfig === 'undefined') {
+            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
+            throw new Error('Firebase config not loaded');
+        }
+
+        const firebaseConfig = window.firebaseConfig;
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            getDoc, 
+            getDocs, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            query, 
+            orderBy, 
+            where, 
+            serverTimestamp 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Variabili globali
+        let attivita = [];
+        let terreni = [];
+        let tipiLavoro = [];
+        let colture = [];
+        let currentAttivitaId = null;
+        let currentTenantId = null;
+        let filteredAttivita = [];
+
+        // Funzione helper: ottieni tenant ID
+        async function getTenantId(userId) {
+            if (currentTenantId) return currentTenantId;
+            
+            try {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    currentTenantId = userData.tenantId;
+                    return currentTenantId;
+                }
+            } catch (error) {
+                console.error('Errore recupero tenant:', error);
+            }
+            return null;
+        }
+
+        // Funzione helper: ottieni collection
+        function getAttivitaCollection(tenantId) {
+            if (!tenantId) throw new Error('Tenant ID non disponibile');
+            return collection(db, `tenants/${tenantId}/attivita`);
+        }
+
+        function getTerreniCollection(tenantId) {
+            if (!tenantId) throw new Error('Tenant ID non disponibile');
+            return collection(db, `tenants/${tenantId}/terreni`);
+        }
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = './auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente e tenant
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
+                    const email = userData.email || user.email;
+                    document.getElementById('user-info').textContent = 
+                        `Utente: ${nomeCompleto || 'N/A'} (${email})`;
+                    
+                    currentTenantId = userData.tenantId;
+                }
+            } catch (error) {
+                console.error('Errore caricamento utente:', error);
+            }
+
+            // Imposta max date a oggi
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('attivita-data').max = today;
+
+            // Carica dati
+            await loadTerreni();
+            await loadListe();
+            await loadAttivita();
+        });
+
+        // Logout
+        document.getElementById('logout-button').addEventListener('click', async () => {
+            await signOut(auth);
+            window.location.href = './auth/login-standalone.html';
+        });
+
+        // Carica terreni
+        async function loadTerreni() {
+            try {
+                if (!currentTenantId) return;
+
+                const terreniCollection = getTerreniCollection(currentTenantId);
+                const q = query(terreniCollection, orderBy('nome', 'asc'));
+                const querySnapshot = await getDocs(q);
+                
+                terreni = [];
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    terreni.push({
+                        id: docSnap.id,
+                        nome: data.nome || '',
+                        coltura: data.coltura || null
+                    });
+                });
+
+                // Popola dropdown terreni
+                const terrenoSelect = document.getElementById('attivita-terreno');
+                const filterTerrenoSelect = document.getElementById('filter-terreno');
+                
+                terrenoSelect.innerHTML = '<option value="">-- Seleziona terreno --</option>';
+                filterTerrenoSelect.innerHTML = '<option value="">Tutti i terreni</option>';
+                
+                terreni.forEach(terreno => {
+                    const option1 = document.createElement('option');
+                    option1.value = terreno.id;
+                    option1.textContent = terreno.nome;
+                    terrenoSelect.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = terreno.id;
+                    option2.textContent = terreno.nome;
+                    filterTerrenoSelect.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Errore caricamento terreni:', error);
+            }
+        }
+
+        // Carica liste personalizzate
+        async function loadListe() {
+            try {
+                if (!currentTenantId) return;
+                
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    tipiLavoro = data.tipiLavoro || [];
+                    colture = data.colture || [];
+                } else {
+                    // Predefiniti
+                    tipiLavoro = ['Potatura', 'Raccolta', 'Trattamento', 'Semina', 'Aratura', 'Irrigazione', 'Concimazione', 'Diserbo', 'Raccolta frutta', 'Raccolta verdura'];
+                    colture = ['Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco'];
+                }
+                
+                // Popola dropdown
+                const tipoLavoroSelect = document.getElementById('attivita-tipo-lavoro');
+                const colturaSelect = document.getElementById('attivita-coltura');
+                const filterTipoLavoroSelect = document.getElementById('filter-tipo-lavoro');
+                const filterColturaSelect = document.getElementById('filter-coltura');
+                
+                tipoLavoroSelect.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option>';
+                colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
+                filterTipoLavoroSelect.innerHTML = '<option value="">Tutti i tipi lavoro</option>';
+                filterColturaSelect.innerHTML = '<option value="">Tutte le colture</option>';
+                
+                tipiLavoro.forEach(item => {
+                    const option1 = document.createElement('option');
+                    option1.value = item;
+                    option1.textContent = item;
+                    tipoLavoroSelect.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = item;
+                    option2.textContent = item;
+                    filterTipoLavoroSelect.appendChild(option2);
+                });
+                
+                colture.forEach(item => {
+                    const option1 = document.createElement('option');
+                    option1.value = item;
+                    option1.textContent = item;
+                    colturaSelect.appendChild(option1);
+
+                    const option2 = document.createElement('option');
+                    option2.value = item;
+                    option2.textContent = item;
+                    filterColturaSelect.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Errore caricamento liste:', error);
+            }
+        }
+
+        // Carica attività
+        async function loadAttivita() {
+            try {
+                if (!currentTenantId) {
+                    const user = auth.currentUser;
+                    if (user) {
+                        currentTenantId = await getTenantId(user.uid);
+                    }
+                }
+                
+                if (!currentTenantId) {
+                    throw new Error('Tenant ID non disponibile');
+                }
+
+                const attivitaCollection = getAttivitaCollection(currentTenantId);
+                // Usa solo orderBy su data per evitare bisogno di indice composito
+                const q = query(attivitaCollection, orderBy('data', 'desc'));
+                const querySnapshot = await getDocs(q);
+                
+                attivita = [];
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    attivita.push({
+                        id: docSnap.id,
+                        data: data.data || '',
+                        terrenoId: data.terrenoId || '',
+                        terrenoNome: data.terrenoNome || '',
+                        tipoLavoro: data.tipoLavoro || '',
+                        coltura: data.coltura || '',
+                        orarioInizio: data.orarioInizio || '',
+                        orarioFine: data.orarioFine || '',
+                        pauseMinuti: data.pauseMinuti || 0,
+                        oreNette: data.oreNette || 0,
+                        note: data.note || ''
+                    });
+                });
+                
+                // Ordina per data (discendente) e poi per orario inizio (discendente)
+                attivita.sort((a, b) => {
+                    if (a.data !== b.data) {
+                        return b.data.localeCompare(a.data); // Data discendente
+                    }
+                    // Se stessa data, ordina per orario inizio discendente
+                    return (b.orarioInizio || '').localeCompare(a.orarioInizio || '');
+                });
+                
+                filteredAttivita = [...attivita];
+                renderAttivita();
+            } catch (error) {
+                console.error('Errore caricamento attività:', error);
+                showAlert('Errore nel caricamento delle attività: ' + error.message, 'error');
+                document.getElementById('attivita-container').innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>Errore:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Render attività
+        function renderAttivita() {
+            const container = document.getElementById('attivita-container');
+            
+            if (filteredAttivita.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <h3>Nessuna attività trovata</h3>
+                        <p>Aggiungi la prima attività utilizzando il pulsante "Aggiungi Attività".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="attivita-table">
+                    <div class="attivita-header">
+                        <div class="col-data">Data</div>
+                        <div class="col-terreno">Terreno</div>
+                        <div class="col-tipo-lavoro">Tipo Lavoro</div>
+                        <div class="col-coltura">Coltura</div>
+                        <div class="col-orari">Inizio</div>
+                        <div class="col-orari">Fine</div>
+                        <div class="col-orari">Pause</div>
+                        <div class="col-ore">Ore Nette</div>
+                        <div class="col-azioni">Azioni</div>
+                    </div>
+                    ${filteredAttivita.map(att => {
+                        const dataFormatted = att.data ? new Date(att.data + 'T00:00:00').toLocaleDateString('it-IT') : '';
+                        const pauseFormatted = `${att.pauseMinuti} min`;
+                        const oreFormatted = formatOreNette(att.oreNette || 0);
+                        
+                        return `
+                        <div class="attivita-row">
+                            <div class="col-data" data-label="Data">
+                                ${escapeHtml(dataFormatted)}
+                            </div>
+                            <div class="col-terreno" data-label="Terreno">
+                                ${escapeHtml(att.terrenoNome || '-')}
+                            </div>
+                            <div class="col-tipo-lavoro" data-label="Tipo Lavoro">
+                                ${escapeHtml(att.tipoLavoro || '-')}
+                            </div>
+                            <div class="col-coltura" data-label="Coltura">
+                                ${escapeHtml(att.coltura || '-')}
+                            </div>
+                            <div class="col-orari" data-label="Inizio">
+                                ${escapeHtml(att.orarioInizio || '-')}
+                            </div>
+                            <div class="col-orari" data-label="Fine">
+                                ${escapeHtml(att.orarioFine || '-')}
+                            </div>
+                            <div class="col-orari" data-label="Pause">
+                                ${pauseFormatted}
+                            </div>
+                            <div class="col-ore" data-label="Ore Nette">
+                                ${oreFormatted}
+                            </div>
+                            <div class="col-azioni" data-label="Azioni">
+                                <button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
+                                <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // Apri modal attività
+        window.openAttivitaModal = function(attivitaId = null) {
+            currentAttivitaId = attivitaId;
+            const modal = document.getElementById('attivita-modal');
+            const form = document.getElementById('attivita-form');
+            const title = document.getElementById('modal-title');
+            
+            if (attivitaId) {
+                title.textContent = 'Modifica Attività';
+                // Carica dati attività
+                const attivita = filteredAttivita.find(a => a.id === attivitaId);
+                if (attivita) {
+                    document.getElementById('attivita-data').value = attivita.data || '';
+                    document.getElementById('attivita-terreno').value = attivita.terrenoId || '';
+                    document.getElementById('attivita-tipo-lavoro').value = attivita.tipoLavoro || '';
+                    document.getElementById('attivita-coltura').value = attivita.coltura || '';
+                    document.getElementById('attivita-orario-inizio').value = attivita.orarioInizio || '';
+                    document.getElementById('attivita-orario-fine').value = attivita.orarioFine || '';
+                    document.getElementById('attivita-pause').value = attivita.pauseMinuti || 0;
+                    document.getElementById('attivita-note').value = attivita.note || '';
+                    updateOreNette();
+                }
+            } else {
+                title.textContent = 'Aggiungi Attività';
+                form.reset();
+                // Imposta data di default a oggi
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('attivita-data').value = today;
+                document.getElementById('attivita-pause').value = 0;
+                updateOreNette();
+            }
+            
+            modal.classList.add('active');
+        };
+
+        // Chiudi modal attività
+        window.closeAttivitaModal = function() {
+            const modal = document.getElementById('attivita-modal');
+            modal.classList.remove('active');
+            currentAttivitaId = null;
+        };
+
+        // Calcola ore nette (ritorna oggetto con ore e minuti)
+        function calculateOreNette() {
+            const inizio = document.getElementById('attivita-orario-inizio').value;
+            const fine = document.getElementById('attivita-orario-fine').value;
+            const pause = parseInt(document.getElementById('attivita-pause').value) || 0;
+            
+            if (!inizio || !fine) return { ore: 0, minuti: 0, decimali: 0 };
+            
+            try {
+                const [inizioOre, inizioMinuti] = inizio.split(':').map(Number);
+                const [fineOre, fineMinuti] = fine.split(':').map(Number);
+                
+                const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+                const fineMinutiTotali = fineOre * 60 + fineMinuti;
+                
+                let minutiTotali = fineMinutiTotali - inizioMinutiTotali;
+                if (minutiTotali < 0) return { ore: 0, minuti: 0, decimali: 0 };
+                
+                minutiTotali -= pause;
+                if (minutiTotali < 0) return { ore: 0, minuti: 0, decimali: 0 };
+                
+                const ore = Math.floor(minutiTotali / 60);
+                const minuti = minutiTotali % 60;
+                const decimali = parseFloat((minutiTotali / 60).toFixed(2));
+                
+                return { ore, minuti, decimali };
+            } catch (e) {
+                return { ore: 0, minuti: 0, decimali: 0 };
+            }
+        }
+
+        // Formatta ore in formato leggibile
+        function formatOreNette(oreNette) {
+            if (typeof oreNette === 'number') {
+                const ore = Math.floor(oreNette);
+                const minuti = Math.round((oreNette - ore) * 60);
+                
+                if (minuti === 0) {
+                    return `${ore}h`;
+                } else if (ore === 0) {
+                    return `${minuti}min`;
+                } else {
+                    return `${ore}h ${minuti}min`;
+                }
+            }
+            return '0h';
+        }
+
+        // Aggiorna display ore nette
+        function updateOreNette() {
+            const result = calculateOreNette();
+            let displayText = '';
+            
+            if (result.ore === 0 && result.minuti === 0) {
+                displayText = '0h';
+            } else if (result.minuti === 0) {
+                displayText = `${result.ore}h`;
+            } else if (result.ore === 0) {
+                displayText = `${result.minuti}min`;
+            } else {
+                displayText = `${result.ore}h ${result.minuti}min`;
+            }
+            
+            document.getElementById('ore-nette-display').textContent = displayText;
+        }
+
+        // Listener per calcolo automatico
+        document.getElementById('attivita-orario-inizio').addEventListener('input', updateOreNette);
+        document.getElementById('attivita-orario-fine').addEventListener('input', updateOreNette);
+        document.getElementById('attivita-pause').addEventListener('input', updateOreNette);
+
+        // Listener per precompilare coltura quando si seleziona un terreno
+        document.getElementById('attivita-terreno').addEventListener('change', function() {
+            const terrenoId = this.value;
+            if (terrenoId) {
+                const terreno = terreni.find(t => t.id === terrenoId);
+                if (terreno && terreno.coltura) {
+                    // Precompila la coltura del terreno
+                    const colturaSelect = document.getElementById('attivita-coltura');
+                    if (colturaSelect) {
+                        colturaSelect.value = terreno.coltura;
+                    }
+                }
+            }
+        });
+
+        // Salva attività
+        window.handleSaveAttivita = async function(e) {
+            e.preventDefault();
+            
+            if (!currentTenantId) {
+                showAlert('Errore: Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            const data = document.getElementById('attivita-data').value;
+            const terrenoId = document.getElementById('attivita-terreno').value;
+            const tipoLavoro = document.getElementById('attivita-tipo-lavoro').value;
+            const coltura = document.getElementById('attivita-coltura').value;
+            const orarioInizio = document.getElementById('attivita-orario-inizio').value;
+            const orarioFine = document.getElementById('attivita-orario-fine').value;
+            const pauseMinuti = parseInt(document.getElementById('attivita-pause').value) || 0;
+            const note = document.getElementById('attivita-note').value.trim();
+            
+            // Validazioni
+            if (!data) {
+                showAlert('La data è obbligatoria', 'error');
+                return;
+            }
+            
+            // Verifica data non futura (accetta oggi e passato)
+            // Usa la data locale invece di UTC per evitare problemi di fuso orario
+            const oggi = new Date();
+            const oggiString = oggi.getFullYear() + '-' + 
+                              String(oggi.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(oggi.getDate()).padStart(2, '0');
+            // Permette oggi (data <= oggiString) e rifiuta solo date future (data > oggiString)
+            if (data > oggiString) {
+                showAlert('La data non può essere futura', 'error');
+                return;
+            }
+            
+            if (!terrenoId) {
+                showAlert('Il terreno è obbligatorio', 'error');
+                return;
+            }
+            
+            if (!tipoLavoro) {
+                showAlert('Il tipo lavoro è obbligatorio', 'error');
+                return;
+            }
+            
+            if (!coltura) {
+                showAlert('La coltura è obbligatoria', 'error');
+                return;
+            }
+            
+            if (!orarioInizio || !orarioFine) {
+                showAlert('Gli orari sono obbligatori', 'error');
+                return;
+            }
+            
+            // Verifica orario fine > inizio
+            const [inizioOre, inizioMinuti] = orarioInizio.split(':').map(Number);
+            const [fineOre, fineMinuti] = orarioFine.split(':').map(Number);
+            const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+            const fineMinutiTotali = fineOre * 60 + fineMinuti;
+            
+            if (fineMinutiTotali <= inizioMinutiTotali) {
+                showAlert('L\'orario fine deve essere maggiore dell\'orario inizio', 'error');
+                return;
+            }
+            
+            const minutiLavoro = fineMinutiTotali - inizioMinutiTotali;
+            if (pauseMinuti < 0) {
+                showAlert('Le pause non possono essere negative', 'error');
+                return;
+            }
+            if (pauseMinuti >= minutiLavoro) {
+                showAlert('Le pause non possono essere maggiori o uguali al tempo di lavoro', 'error');
+                return;
+            }
+            
+            // Trova nome terreno
+            const terreno = terreni.find(t => t.id === terrenoId);
+            if (!terreno) {
+                showAlert('Terreno non trovato', 'error');
+                return;
+            }
+            
+            // Calcola ore nette (in formato decimale per salvataggio)
+            const oreNetteResult = calculateOreNette();
+            const oreNette = oreNetteResult.decimali;
+            
+            // Prepara dati
+            const attivitaData = {
+                data: data,
+                terrenoId: terrenoId,
+                terrenoNome: terreno.nome,
+                tipoLavoro: tipoLavoro,
+                coltura: coltura,
+                orarioInizio: orarioInizio,
+                orarioFine: orarioFine,
+                pauseMinuti: pauseMinuti,
+                oreNette: oreNette,
+                note: note || null,
+                updatedAt: serverTimestamp()
+            };
+            
+            try {
+                const attivitaCollection = getAttivitaCollection(currentTenantId);
+                
+                if (currentAttivitaId) {
+                    // Aggiorna
+                    const attivitaRef = doc(attivitaCollection, currentAttivitaId);
+                    await updateDoc(attivitaRef, attivitaData);
+                    showAlert('Attività aggiornata con successo!', 'success');
+                } else {
+                    // Crea
+                    attivitaData.createdAt = serverTimestamp();
+                    await addDoc(attivitaCollection, attivitaData);
+                    showAlert('Attività creata con successo!', 'success');
+                }
+                
+                closeAttivitaModal();
+                await loadAttivita();
+            } catch (error) {
+                console.error('Errore salvataggio attività:', error);
+                showAlert('Errore nel salvataggio: ' + error.message, 'error');
+            }
+        };
+
+        // Modifica attività
+        window.editAttivita = function(attivitaId) {
+            openAttivitaModal(attivitaId);
+        };
+
+        // Conferma eliminazione attività
+        window.confirmDeleteAttivita = async function(attivitaId) {
+            if (!confirm('Sei sicuro di voler eliminare questa attività?')) {
+                return;
+            }
+            
+            if (!currentTenantId) {
+                showAlert('Errore: Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            try {
+                const attivitaCollection = getAttivitaCollection(currentTenantId);
+                const attivitaRef = doc(attivitaCollection, attivitaId);
+                await deleteDoc(attivitaRef);
+                showAlert('Attività eliminata con successo!', 'success');
+                await loadAttivita();
+            } catch (error) {
+                console.error('Errore eliminazione attività:', error);
+                showAlert('Errore nell\'eliminazione: ' + error.message, 'error');
+            }
+        };
+
+        // Filtri
+        document.getElementById('filter-data-da').addEventListener('change', applyFilters);
+        document.getElementById('filter-data-a').addEventListener('change', applyFilters);
+        document.getElementById('filter-terreno').addEventListener('change', applyFilters);
+        document.getElementById('filter-tipo-lavoro').addEventListener('change', applyFilters);
+        document.getElementById('filter-coltura').addEventListener('change', applyFilters);
+        document.getElementById('filter-ricerca').addEventListener('input', applyFilters);
+
+        function applyFilters() {
+            const dataDa = document.getElementById('filter-data-da').value;
+            const dataA = document.getElementById('filter-data-a').value;
+            const terrenoId = document.getElementById('filter-terreno').value;
+            const tipoLavoro = document.getElementById('filter-tipo-lavoro').value;
+            const coltura = document.getElementById('filter-coltura').value;
+            const ricerca = document.getElementById('filter-ricerca').value.toLowerCase();
+            
+            filteredAttivita = attivita.filter(att => {
+                if (dataDa && att.data < dataDa) return false;
+                if (dataA && att.data > dataA) return false;
+                if (terrenoId && att.terrenoId !== terrenoId) return false;
+                if (tipoLavoro && att.tipoLavoro !== tipoLavoro) return false;
+                if (coltura && att.coltura !== coltura) return false;
+                if (ricerca && !att.note.toLowerCase().includes(ricerca)) return false;
+                return true;
+            });
+            
+            renderAttivita();
+        }
+
+        // Pulisci filtri
+        window.clearFilters = function() {
+            document.getElementById('filter-data-da').value = '';
+            document.getElementById('filter-data-a').value = '';
+            document.getElementById('filter-terreno').value = '';
+            document.getElementById('filter-tipo-lavoro').value = '';
+            document.getElementById('filter-coltura').value = '';
+            document.getElementById('filter-ricerca').value = '';
+            filteredAttivita = [...attivita];
+            renderAttivita();
+        };
+
+        // Mostra alert
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Terreni - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        /* Terreni Table Layout (come vecchia app) */
+        .terreni-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .terreni-header {
+            background: #f8f9fa;
+            color: #000;
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
+            gap: 15px;
+            padding: 15px 20px;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-align: center;
+            border-bottom: 2px solid #2E8B57;
+        }
+
+        .terreno-row {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
+            gap: 15px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+
+        .terreno-row:hover {
+            background-color: #f8f9fa;
+        }
+
+        .terreno-row:last-child {
+            border-bottom: none;
+        }
+
+        .col-nome {
+            text-align: left;
+        }
+
+        .terreno-name {
+            font-weight: bold;
+            color: #28a745;
+            font-size: 1em;
+        }
+
+        .col-coltura {
+            color: #333;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .terreno-coltura {
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .col-ettari {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 1em;
+            text-align: center;
+        }
+
+        .col-mappa {
+            text-align: center;
+        }
+
+        .map-indicator {
+            font-size: 1.2em;
+        }
+
+        .map-indicator.no-map {
+            opacity: 0.3;
+        }
+
+        .col-note {
+            color: #666;
+            font-size: 0.9em;
+            text-align: left;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .col-azioni {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-edit-small, .btn-delete-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-edit-small {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-edit-small:hover {
+            background: #e0a800;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete-small {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete-small:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .terreni-header, .terreno-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .terreni-header > div, .terreno-row > div {
+                text-align: left !important;
+                padding: 5px 0;
+            }
+
+            .terreni-header > div:before,
+            .terreno-row > div:before {
+                content: attr(data-label) ": ";
+                font-weight: 600;
+                color: #666;
+            }
+
+            .col-azioni {
+                justify-content: flex-start;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        /* Map Styles */
+        .map-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 400px;
+        }
+
+        .map-controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .map-controls input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .map-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            display: none;
+        }
+
+        .map-info.active {
+            display: block;
+        }
+
+        .map-info p {
+            margin: 5px 0;
+            color: #333;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🌾 Gestione Terreni</h1>
+                <div style="font-size: 14px; opacity: 0.95;" id="user-info">Caricamento...</div>
+            </div>
+            <div class="header-actions">
+                <a href="dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <button class="btn btn-primary" onclick="openTerrenoModal()">+ Aggiungi Terreno</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            <div id="terreni-container" class="loading">Caricamento terreni...</div>
+        </div>
+    </div>
+
+    <!-- Modal Terreno -->
+    <div id="terreno-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Aggiungi Terreno</h2>
+                <button class="close-modal" onclick="closeTerrenoModal()">&times;</button>
+            </div>
+            <form id="terreno-form" onsubmit="handleSaveTerreno(event)">
+                <div class="form-group">
+                    <label for="terreno-nome">Nome Terreno *</label>
+                    <input type="text" id="terreno-nome" required>
+                    <small>Nome identificativo del terreno</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="terreno-superficie">Superficie (ettari)</label>
+                    <input type="number" id="terreno-superficie" step="0.01" min="0">
+                    <small>Inserisci manualmente o traccia i confini sulla mappa per calcolo automatico</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="terreno-coltura">Coltura</label>
+                    <select id="terreno-coltura">
+                        <option value="">-- Seleziona coltura --</option>
+                    </select>
+                    <small>Seleziona la coltura principale del terreno</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Mappa (opzionale)</label>
+                    <div class="map-container">
+                        <div class="map-controls">
+                            <input type="text" id="map-search" placeholder="Cerca indirizzo...">
+                            <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
+                            <button type="button" class="btn btn-success" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Confini</button>
+                            <button type="button" class="btn btn-danger" onclick="clearPolygon()">🗑️ Cancella</button>
+                        </div>
+                        <div id="map"></div>
+                        <div class="map-info" id="map-info">
+                            <p><strong>Superficie calcolata:</strong> <span id="calculated-area">0.00</span> ettari</p>
+                            <p><strong>Superficie manuale:</strong> <span id="manual-area">0.00</span> ettari</p>
+                        </div>
+                    </div>
+                    <small>Traccia i confini del terreno sulla mappa per calcolare automaticamente la superficie</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="terreno-note">Note</label>
+                    <textarea id="terreno-note" placeholder="Note aggiuntive sul terreno..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTerrenoModal()">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva Terreno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase and Google Maps config from external files -->
+    <script src="config/firebase-config.js"></script>
+    <script src="config/google-maps-config.js"></script>
+    
+    <!-- Firebase SDK e Google Maps -->
+    <script type="module">
+        // Verifica che le configurazioni siano caricate
+        if (typeof window.firebaseConfig === 'undefined') {
+            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
+            throw new Error('Firebase config not loaded');
+        }
+        if (typeof window.GOOGLE_MAPS_API_KEY === 'undefined') {
+            console.warn('Google Maps API key not found. Maps will not be available.');
+        }
+
+        const firebaseConfig = window.firebaseConfig;
+        const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
+        
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { 
+            getFirestore, 
+            getDoc, 
+            doc, 
+            collection, 
+            addDoc, 
+            updateDoc, 
+            deleteDoc, 
+            getDocs, 
+            query, 
+            orderBy, 
+            where,
+            serverTimestamp,
+            Timestamp
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Variabili globali
+        let terreni = [];
+        let currentTerrenoId = null;
+        let map = null;
+        let polygon = null;
+        let isDrawing = false;
+        let currentPolygonCoords = [];
+        let currentTenantId = null;
+        let colture = []; // Lista colture disponibili
+
+        // Carica Google Maps API (con async per migliori performance)
+        if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+            // Carica lo script in modo asincrono
+            const script = document.createElement('script');
+            script.async = true;
+            script.defer = true;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry&loading=async&callback=initGoogleMaps`;
+            document.head.appendChild(script);
+            
+            window.initGoogleMaps = function() {
+                console.log('✅ Google Maps initialized');
+                window.googleMapsReady = true;
+                
+                // Ricalcola superficie per terreni con mappa ma senza superficie salvata
+                if (terreni && terreni.length > 0) {
+                    terreni.forEach(async (terreno) => {
+                        if ((!terreno.superficie || terreno.superficie === 0) && 
+                            terreno.polygonCoords && 
+                            Array.isArray(terreno.polygonCoords) && 
+                            terreno.polygonCoords.length >= 3) {
+                            
+                            try {
+                                const coords = terreno.polygonCoords.map(c => {
+                                    if (c.lat && c.lng) {
+                                        return new google.maps.LatLng(c.lat, c.lng);
+                                    }
+                                    return c;
+                                });
+                                
+                                const area = google.maps.geometry.spherical.computeArea(coords);
+                                const superficie = area / 10000;
+                                
+                                if (superficie > 0 && superficie < 10000) {
+                                    // Aggiorna terreno in memoria
+                                    terreno.superficie = superficie;
+                                    
+                                    // Salva nel database
+                                    try {
+                                        const terrenoRef = doc(getTerreniCollection(currentTenantId), terreno.id);
+                                        await updateDoc(terrenoRef, { 
+                                            superficie: parseFloat(superficie.toFixed(2)),
+                                            updatedAt: serverTimestamp()
+                                        });
+                                        
+                                        // Aggiorna visualizzazione
+                                        renderTerreni();
+                                    } catch (e) {
+                                        console.warn('Errore salvataggio superficie:', e);
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Errore calcolo superficie:', e);
+                            }
+                        }
+                    });
+                }
+            };
+        } else {
+            console.warn('⚠️ Google Maps API key non configurata. Le mappe non saranno disponibili.');
+        }
+
+        // Funzione helper: ottieni tenant ID dall'utente
+        async function getTenantId(userId) {
+            if (currentTenantId) return currentTenantId;
+            
+            try {
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    currentTenantId = userData.tenantId;
+                    return currentTenantId;
+                }
+            } catch (error) {
+                console.error('Errore recupero tenant:', error);
+            }
+            return null;
+        }
+
+        // Funzione helper: ottieni collection terreni per tenant
+        function getTerreniCollection(tenantId) {
+            if (!tenantId) throw new Error('Tenant ID non disponibile');
+            return collection(db, `tenants/${tenantId}/terreni`);
+        }
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = './auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente e tenant
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
+                    const email = userData.email || user.email;
+                    document.getElementById('user-info').textContent = 
+                        `Utente: ${nomeCompleto || 'N/A'} (${email})`;
+                    
+                    // Salva tenant ID
+                    currentTenantId = userData.tenantId;
+                }
+            } catch (error) {
+                console.error('Errore caricamento utente:', error);
+            }
+
+            // Carica colture e terreni
+            await loadColture();
+            await loadTerreni();
+        });
+
+        // Logout
+        document.getElementById('user-info').parentElement.addEventListener('click', async (e) => {
+            if (e.target.id === 'logout-button') {
+                await signOut(auth);
+                window.location.href = './auth/login-standalone.html';
+            }
+        });
+
+        // Carica colture disponibili
+        async function loadColture() {
+            try {
+                if (!currentTenantId) {
+                    const user = auth.currentUser;
+                    if (user) {
+                        currentTenantId = await getTenantId(user.uid);
+                    }
+                }
+                
+                if (!currentTenantId) return;
+                
+                // Carica liste personalizzate
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    colture = data.colture || [];
+                } else {
+                    // Se non esistono, usa predefinite
+                    colture = ['Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco'];
+                }
+                
+                // Popola dropdown colture
+                const colturaSelect = document.getElementById('terreno-coltura');
+                if (colturaSelect) {
+                    // Mantieni opzione vuota
+                    colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
+                    
+                    // Aggiungi colture
+                    colture.forEach(coltura => {
+                        const option = document.createElement('option');
+                        option.value = coltura;
+                        option.textContent = coltura;
+                        colturaSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Errore caricamento colture:', error);
+                // Fallback a predefinite
+                colture = ['Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco'];
+            }
+        }
+
+        // Carica terreni
+        async function loadTerreni() {
+            try {
+                if (!currentTenantId) {
+                    const user = auth.currentUser;
+                    if (user) {
+                        currentTenantId = await getTenantId(user.uid);
+                    }
+                }
+                
+                if (!currentTenantId) {
+                    throw new Error('Tenant ID non disponibile. Assicurati di essere autenticato.');
+                }
+
+                const terreniCollection = getTerreniCollection(currentTenantId);
+                const q = query(terreniCollection, orderBy('nome', 'asc'));
+                const querySnapshot = await getDocs(q);
+                
+                terreni = [];
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    
+                    // Calcola superficie dalla mappa se presente e superficie non salvata o zero
+                    let superficie = data.superficie || null;
+                    if ((!superficie || superficie === 0) && data.polygonCoords && Array.isArray(data.polygonCoords) && data.polygonCoords.length >= 3) {
+                        // Ricalcola superficie dalla mappa usando Google Maps Geometry se disponibile
+                        try {
+                            if (window.googleMapsReady && google && google.maps && google.maps.geometry) {
+                                // Usa Google Maps Geometry per calcolo preciso
+                                const coords = data.polygonCoords.map(c => {
+                                    if (c.lat && c.lng) {
+                                        return new google.maps.LatLng(c.lat, c.lng);
+                                    }
+                                    return c;
+                                });
+                                
+                                const area = google.maps.geometry.spherical.computeArea(coords);
+                                superficie = area / 10000; // Converti da m² a ettari
+                                
+                                // Salva automaticamente la superficie calcolata (in background)
+                                if (superficie > 0 && superficie < 10000) {
+                                    setTimeout(async () => {
+                                        try {
+                                            const terrenoRef = doc(getTerreniCollection(currentTenantId), docSnap.id);
+                                            await updateDoc(terrenoRef, { 
+                                                superficie: parseFloat(superficie.toFixed(2)),
+                                                updatedAt: serverTimestamp()
+                                            });
+                                        } catch (e) {
+                                            console.warn('Errore salvataggio superficie calcolata:', e);
+                                        }
+                                    }, 1000);
+                                }
+                            } else {
+                                // Fallback: calcolo approssimato usando formula Shoelace
+                                const coords = data.polygonCoords.map(c => {
+                                    if (c.lat && c.lng) {
+                                        return { lat: c.lat, lng: c.lng };
+                                    }
+                                    return c;
+                                });
+                                
+                                if (coords.length >= 3) {
+                                    // Formula Shoelace per calcolo area poligono
+                                    let area = 0;
+                                    for (let i = 0; i < coords.length; i++) {
+                                        const j = (i + 1) % coords.length;
+                                        area += coords[i].lng * coords[j].lat;
+                                        area -= coords[j].lng * coords[i].lat;
+                                    }
+                                    area = Math.abs(area) / 2;
+                                    
+                                    // Conversione approssimata: 1 grado ≈ 111 km
+                                    // Per latitudine media italiana (circa 44°), 1 grado lat ≈ 111 km, 1 grado lng ≈ 78 km
+                                    const latMedia = coords.reduce((sum, c) => sum + c.lat, 0) / coords.length;
+                                    const latRad = latMedia * Math.PI / 180;
+                                    const lngToM = 111320 * Math.cos(latRad); // Metri per grado longitudine
+                                    const latToM = 110540; // Metri per grado latitudine (approssimato)
+                                    
+                                    const areaM2 = area * lngToM * latToM;
+                                    superficie = areaM2 / 10000; // Converti in ettari
+                                    
+                                    // Se la superficie calcolata è ragionevole, usala
+                                    if (superficie > 0 && superficie < 10000) {
+                                        // Salva automaticamente la superficie calcolata (in background)
+                                        setTimeout(async () => {
+                                            try {
+                                                const terrenoRef = doc(getTerreniCollection(currentTenantId), docSnap.id);
+                                                await updateDoc(terrenoRef, { 
+                                                    superficie: parseFloat(superficie.toFixed(2)),
+                                                    updatedAt: serverTimestamp()
+                                                });
+                                            } catch (e) {
+                                                console.warn('Errore salvataggio superficie calcolata:', e);
+                                            }
+                                        }, 1000);
+                                    } else {
+                                        superficie = data.superficie || null;
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Errore calcolo superficie da mappa:', e);
+                            superficie = data.superficie || null;
+                        }
+                    }
+                    
+                    terreni.push({
+                        id: docSnap.id,
+                        nome: data.nome || '',
+                        superficie: superficie,
+                        coltura: data.coltura || null,
+                        coordinate: data.coordinate || null,
+                        polygonCoords: data.polygonCoords || null,
+                        note: data.note || '',
+                        hasMappa: function() {
+                            return this.polygonCoords && Array.isArray(this.polygonCoords) && this.polygonCoords.length > 0;
+                        }
+                    });
+                });
+                
+                renderTerreni();
+            } catch (error) {
+                console.error('Errore caricamento terreni:', error);
+                showAlert('Errore nel caricamento dei terreni: ' + error.message, 'error');
+                document.getElementById('terreni-container').innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>Errore:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Render terreni (tabella come vecchia app)
+        function renderTerreni() {
+            const container = document.getElementById('terreni-container');
+            
+            if (terreni.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🌾</div>
+                        <h3>Nessun terreno registrato</h3>
+                        <p>Aggiungi il tuo primo terreno utilizzando il pulsante "Aggiungi Terreno".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="section-header">
+                    <h2>I Tuoi Terreni (${terreni.length})</h2>
+                </div>
+                <div class="terreni-table">
+                    <div class="terreni-header">
+                        <div class="col-nome">Nome Campo</div>
+                        <div class="col-coltura">Coltura</div>
+                        <div class="col-ettari">Ha</div>
+                        <div class="col-mappa">Mappa</div>
+                        <div class="col-note">Note</div>
+                        <div class="col-azioni">Azioni</div>
+                    </div>
+                    ${terreni.map(terreno => {
+                        const escapedNome = escapeHtml(terreno.nome || 'Senza nome');
+                        const escapedColtura = escapeHtml(terreno.coltura || '');
+                        const ettariValue = terreno.superficie ? terreno.superficie.toFixed(2) : '0.00';
+                        const hasMappa = terreno.polygonCoords && Array.isArray(terreno.polygonCoords) && terreno.polygonCoords.length > 0;
+                        const escapedNote = escapeHtml(terreno.note || '');
+                        
+                        return `
+                        <div class="terreno-row">
+                            <div class="col-nome" data-label="Nome Campo">
+                                <span class="terreno-name">${escapedNome}</span>
+                            </div>
+                            <div class="col-coltura" data-label="Coltura">
+                                <span class="terreno-coltura">${escapedColtura || '-'}</span>
+                            </div>
+                            <div class="col-ettari" data-label="Ettari">
+                                <span class="terreno-ettari">${ettariValue}</span>
+                            </div>
+                            <div class="col-mappa" data-label="Mappa">
+                                ${hasMappa ? 
+                                    '<span class="map-indicator" title="Confini tracciati">📍</span>' : 
+                                    '<span class="map-indicator no-map" title="Nessun confine tracciato">❌</span>'
+                                }
+                            </div>
+                            <div class="col-note" data-label="Note">
+                                ${escapedNote || '-'}
+                            </div>
+                            <div class="col-azioni" data-label="Azioni">
+                                <button onclick="editTerreno('${terreno.id}')" class="btn-edit-small" title="Modifica">✏️</button>
+                                <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="Elimina">🗑️</button>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // Apri modal terreno
+        window.openTerrenoModal = function(terrenoId = null) {
+            currentTerrenoId = terrenoId;
+            const modal = document.getElementById('terreno-modal');
+            const form = document.getElementById('terreno-form');
+            const title = document.getElementById('modal-title');
+            
+            if (terrenoId) {
+                title.textContent = 'Modifica Terreno';
+                // Carica dati terreno
+                const terreno = terreni.find(t => t.id === terrenoId);
+                if (terreno) {
+                    document.getElementById('terreno-nome').value = terreno.nome || '';
+                    document.getElementById('terreno-superficie').value = terreno.superficie || '';
+                    document.getElementById('terreno-coltura').value = terreno.coltura || '';
+                    document.getElementById('terreno-note').value = terreno.note || '';
+                    
+                    // Inizializza mappa se disponibile
+                    if (window.googleMapsReady) {
+                        setTimeout(() => {
+                            initMap();
+                            if (terreno.polygonCoords && terreno.polygonCoords.length > 0) {
+                                loadExistingPolygon(terreno.polygonCoords);
+                                // Calcola superficie dalla mappa esistente e aggiorna il campo
+                                setTimeout(() => {
+                                    if (polygon && currentPolygonCoords.length >= 3) {
+                                        const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
+                                        const areaHectares = area / 10000;
+                                        document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
+                                    }
+                                }, 500);
+                            } else if (terreno.coordinate) {
+                                map.setCenter(terreno.coordinate);
+                                map.setZoom(15);
+                            }
+                        }, 300);
+                    }
+                }
+            } else {
+                title.textContent = 'Aggiungi Terreno';
+                form.reset();
+                document.getElementById('terreno-coltura').value = '';
+                currentPolygonCoords = [];
+                polygon = null;
+                if (window.googleMapsReady) {
+                    setTimeout(() => {
+                        initMap();
+                    }, 300);
+                }
+            }
+            
+            // Assicura che le colture siano caricate nel dropdown
+            if (colture.length > 0) {
+                const colturaSelect = document.getElementById('terreno-coltura');
+                if (colturaSelect && colturaSelect.options.length <= 1) {
+                    // Ricarica colture se dropdown vuoto
+                    colture.forEach(coltura => {
+                        if (!Array.from(colturaSelect.options).some(opt => opt.value === coltura)) {
+                            const option = document.createElement('option');
+                            option.value = coltura;
+                            option.textContent = coltura;
+                            colturaSelect.appendChild(option);
+                        }
+                    });
+                }
+            }
+            
+            modal.classList.add('active');
+        };
+
+        // Chiudi modal terreno
+        window.closeTerrenoModal = function() {
+            const modal = document.getElementById('terreno-modal');
+            modal.classList.remove('active');
+            currentTerrenoId = null;
+            
+            // Pulisci mappa
+            if (polygon) {
+                polygon.setMap(null);
+                polygon = null;
+            }
+            currentPolygonCoords = [];
+            isDrawing = false;
+            if (map) {
+                map = null;
+            }
+        };
+
+        // Salva terreno
+        window.handleSaveTerreno = async function(e) {
+            e.preventDefault();
+            
+            if (!currentTenantId) {
+                showAlert('Errore: Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            const nome = document.getElementById('terreno-nome').value.trim();
+            if (!nome) {
+                showAlert('Il nome terreno è obbligatorio', 'error');
+                return;
+            }
+            
+            const coltura = document.getElementById('terreno-coltura').value.trim() || null;
+            const note = document.getElementById('terreno-note').value.trim();
+            
+            // Prepara dati terreno
+            const terrenoData = {
+                nome,
+                superficie: null,
+                coltura: coltura,
+                note: note || null,
+                updatedAt: serverTimestamp()
+            };
+            
+            // Aggiungi coordinate se disponibili
+            if (currentPolygonCoords && currentPolygonCoords.length > 0) {
+                // Calcola punto centrale dal poligono
+                let sumLat = 0, sumLng = 0;
+                currentPolygonCoords.forEach(coord => {
+                    sumLat += coord.lat();
+                    sumLng += coord.lng();
+                });
+                terrenoData.coordinate = {
+                    lat: sumLat / currentPolygonCoords.length,
+                    lng: sumLng / currentPolygonCoords.length
+                };
+                
+                // Converti coordinate poligono in formato serializzabile
+                terrenoData.polygonCoords = currentPolygonCoords.map(coord => ({
+                    lat: coord.lat(),
+                    lng: coord.lng()
+                }));
+                
+                // Calcola superficie dalla mappa (sempre, se mappa tracciata)
+                if (window.googleMapsReady && polygon) {
+                    const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
+                    terrenoData.superficie = area / 10000; // Converti da m² a ettari
+                }
+            } else {
+                // Se non c'è mappa, usa superficie manuale se inserita
+                const superficie = parseFloat(document.getElementById('terreno-superficie').value) || null;
+                terrenoData.superficie = superficie;
+            }
+            
+            try {
+                const terreniCollection = getTerreniCollection(currentTenantId);
+                
+                if (currentTerrenoId) {
+                    // Aggiorna
+                    const terrenoRef = doc(terreniCollection, currentTerrenoId);
+                    await updateDoc(terrenoRef, terrenoData);
+                    showAlert('Terreno aggiornato con successo!', 'success');
+                } else {
+                    // Crea
+                    terrenoData.createdAt = serverTimestamp();
+                    await addDoc(terreniCollection, terrenoData);
+                    showAlert('Terreno creato con successo!', 'success');
+                }
+                
+                closeTerrenoModal();
+                await loadTerreni();
+            } catch (error) {
+                console.error('Errore salvataggio terreno:', error);
+                showAlert('Errore nel salvataggio: ' + error.message, 'error');
+            }
+        };
+
+        // Modifica terreno
+        window.editTerreno = function(terrenoId) {
+            openTerrenoModal(terrenoId);
+        };
+
+        // Conferma eliminazione terreno
+        window.confirmDeleteTerreno = async function(terrenoId) {
+            const terreno = terreni.find(t => t.id === terrenoId);
+            if (!terreno) return;
+            
+            if (!currentTenantId) {
+                showAlert('Errore: Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            // Verifica se terreno è usato in attività
+            try {
+                let numAttivita = 0;
+                try {
+                    const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
+                    const q = query(attivitaCollection, where('terrenoId', '==', terrenoId));
+                    const querySnapshot = await getDocs(q);
+                    numAttivita = querySnapshot.size;
+                } catch (e) {
+                    console.warn('Errore verifica attività:', e);
+                }
+                
+                let message = `Sei sicuro di voler eliminare il terreno "${terreno.nome}"?`;
+                if (numAttivita > 0) {
+                    message += `\n\n⚠️ Questo terreno è usato in ${numAttivita} attività.`;
+                }
+                
+                if (confirm(message)) {
+                    const terreniCollection = getTerreniCollection(currentTenantId);
+                    const terrenoRef = doc(terreniCollection, terrenoId);
+                    await deleteDoc(terrenoRef);
+                    showAlert('Terreno eliminato con successo!', 'success');
+                    await loadTerreni();
+                }
+            } catch (error) {
+                console.error('Errore eliminazione terreno:', error);
+                showAlert('Errore nell\'eliminazione: ' + error.message, 'error');
+            }
+        };
+
+        // Mostra alert
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // ========== Google Maps Functions ==========
+        
+        // Inizializza mappa
+        window.initMap = function() {
+            if (!window.googleMapsReady || !google || !google.maps) {
+                document.getElementById('map').innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; border-radius: 8px; flex-direction: column; padding: 20px;">
+                        <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Google Maps non disponibile</h3>
+                        <p style="color: #666; text-align: center;">
+                            Per utilizzare la mappa e il calcolo automatico della superficie,<br>
+                            è necessario configurare una chiave API di Google Maps valida.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (map) return; // Già inizializzata
+            
+            try {
+                const defaultCenter = { lat: 44.4949, lng: 11.3426 }; // Bologna area
+                
+                map = new google.maps.Map(document.getElementById('map'), {
+                    zoom: 15,
+                    center: defaultCenter,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE
+                });
+
+                // Click listener per tracciamento poligono
+                map.addListener('click', function(event) {
+                    if (isDrawing) {
+                        if (!polygon) {
+                            polygon = new google.maps.Polygon({
+                                paths: [event.latLng],
+                                fillColor: '#28a745',
+                                fillOpacity: 0.3,
+                                strokeColor: '#28a745',
+                                strokeWeight: 2,
+                                clickable: false,
+                                editable: true,
+                                draggable: true
+                            });
+                            polygon.setMap(map);
+                            currentPolygonCoords = [event.latLng];
+                        } else {
+                            const path = polygon.getPath();
+                            path.push(event.latLng);
+                            currentPolygonCoords = path.getArray();
+                        }
+                        
+                        if (currentPolygonCoords.length >= 3) {
+                            document.getElementById('map-info').classList.add('active');
+                            updateAreaInfo();
+                        }
+                    }
+                });
+
+                // Listener per modifiche poligono
+                map.addListener('polygon_changed', function() {
+                    if (polygon) {
+                        currentPolygonCoords = polygon.getPath().getArray();
+                        if (currentPolygonCoords.length >= 3) {
+                            updateAreaInfo();
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Errore inizializzazione mappa:', error);
+            }
+        };
+
+        // Cerca indirizzo
+        window.searchLocation = function() {
+            if (!map || !google || !google.maps) return;
+            
+            const geocoder = new google.maps.Geocoder();
+            const address = document.getElementById('map-search').value;
+
+            if (!address) {
+                showAlert('Inserisci un indirizzo da cercare', 'warning');
+                return;
+            }
+
+            geocoder.geocode({ address: address }, function(results, status) {
+                if (status === 'OK') {
+                    map.setCenter(results[0].geometry.location);
+                    map.setZoom(18);
+                    
+                    new google.maps.Marker({
+                        map: map,
+                        position: results[0].geometry.location,
+                        title: address
+                    });
+                } else {
+                    showAlert('Indirizzo non trovato: ' + status, 'error');
+                }
+            });
+        };
+
+        // Toggle tracciamento
+        window.toggleDrawing = function() {
+            if (!map) return;
+            
+            isDrawing = !isDrawing;
+            const btn = document.getElementById('btn-draw');
+            
+            if (isDrawing) {
+                btn.textContent = '⏹️ Stop Tracciamento';
+                btn.className = 'btn btn-danger';
+                document.getElementById('map').style.cursor = 'crosshair';
+                if (polygon) {
+                    polygon.setMap(null);
+                    polygon = null;
+                    currentPolygonCoords = [];
+                    document.getElementById('map-info').classList.remove('active');
+                }
+            } else {
+                btn.textContent = '✏️ Traccia Confini';
+                btn.className = 'btn btn-success';
+                document.getElementById('map').style.cursor = 'default';
+            }
+        };
+
+        // Cancella poligono
+        window.clearPolygon = function() {
+            if (polygon) {
+                polygon.setMap(null);
+                polygon = null;
+                currentPolygonCoords = [];
+                document.getElementById('map-info').classList.remove('active');
+                document.getElementById('terreno-superficie').value = '';
+            }
+        };
+
+        // Aggiorna info area
+        function updateAreaInfo() {
+            if (!polygon || !google || !google.maps) return;
+            
+            const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
+            const areaHectares = area / 10000;
+            
+            document.getElementById('calculated-area').textContent = areaHectares.toFixed(2);
+            
+            // Aggiorna SEMPRE il campo superficie con il valore calcolato dalla mappa
+            if (areaHectares > 0) {
+                document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
+                document.getElementById('manual-area').textContent = areaHectares.toFixed(2);
+            }
+        }
+
+        // Carica poligono esistente
+        window.loadExistingPolygon = function(polygonCoords) {
+            if (!map || !google || !google.maps) return;
+            
+            if (!polygonCoords || polygonCoords.length === 0) return;
+            
+            clearPolygon();
+            
+            // Converti coordinate in LatLng se necessario
+            const coords = polygonCoords.map(coord => {
+                if (coord.lat && coord.lng) {
+                    return new google.maps.LatLng(coord.lat, coord.lng);
+                }
+                return coord;
+            });
+            
+            polygon = new google.maps.Polygon({
+                paths: coords,
+                fillColor: '#28a745',
+                fillOpacity: 0.3,
+                strokeColor: '#28a745',
+                strokeWeight: 2,
+                editable: true,
+                draggable: true
+            });
+            
+            polygon.setMap(map);
+            currentPolygonCoords = polygon.getPath().getArray();
+            
+            // Listener per modifiche
+            google.maps.event.addListener(polygon.getPath(), 'set_at', function() {
+                currentPolygonCoords = polygon.getPath().getArray();
+                if (currentPolygonCoords.length >= 3) {
+                    updateAreaInfo();
+                }
+            });
+
+            google.maps.event.addListener(polygon.getPath(), 'insert_at', function() {
+                currentPolygonCoords = polygon.getPath().getArray();
+                if (currentPolygonCoords.length >= 3) {
+                    updateAreaInfo();
+                }
+            });
+
+            google.maps.event.addListener(polygon.getPath(), 'remove_at', function() {
+                currentPolygonCoords = polygon.getPath().getArray();
+                if (currentPolygonCoords.length >= 3) {
+                    updateAreaInfo();
+                }
+            });
+            
+            // Fit bounds
+            const bounds = new google.maps.LatLngBounds();
+            coords.forEach(coord => bounds.extend(coord));
+            map.fitBounds(bounds);
+            
+            document.getElementById('map-info').classList.add('active');
+            updateAreaInfo();
+            
+            // Calcola e aggiorna superficie quando si carica un poligono esistente
+            if (currentPolygonCoords.length >= 3) {
+                const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
+                const areaHectares = area / 10000;
+                document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
+            }
+        };
+    </script>
+</body>
+</html>
+
