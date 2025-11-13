@@ -746,10 +746,37 @@
         }
 
         function updateChartOreTipo(data) {
-            const chartContainer = document.getElementById('chart-ore-tipo').parentElement;
             let canvas = document.getElementById('chart-ore-tipo');
+            let chartContainer = null;
             
-            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            // Se il canvas non esiste, trova il container dal DOM
+            if (!canvas) {
+                // Cerca il container che dovrebbe contenere il canvas
+                const containers = document.querySelectorAll('.chart-card');
+                for (let container of containers) {
+                    if (container.querySelector('canvas#chart-ore-tipo') || container.textContent.includes('Ore per Tipo Lavoro')) {
+                        chartContainer = container;
+                        break;
+                    }
+                }
+                // Se non trovato, cerca per ID del canvas (potrebbe essere nel parent)
+                if (!chartContainer) {
+                    const allElements = document.querySelectorAll('[id*="chart-ore-tipo"]');
+                    if (allElements.length > 0) {
+                        chartContainer = allElements[0].parentElement;
+                    }
+                }
+            } else {
+                chartContainer = canvas.parentElement;
+            }
+            
+            // Se ancora non trovato, crea il container
+            if (!chartContainer) {
+                console.error('Container per chart-ore-tipo non trovato');
+                return;
+            }
+            
+            // Se il canvas non esiste o è stato sostituito, ricrearlo
             if (!canvas || canvas.tagName !== 'CANVAS') {
                 chartContainer.innerHTML = '<canvas id="chart-ore-tipo"></canvas>';
                 canvas = document.getElementById('chart-ore-tipo');
@@ -797,10 +824,26 @@
         }
 
         function updateChartAttivitaTerreno(data) {
-            const chartContainer = document.getElementById('chart-attivita-terreno').parentElement;
             let canvas = document.getElementById('chart-attivita-terreno');
+            let chartContainer = canvas ? canvas.parentElement : null;
             
-            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            // Se il canvas non esiste, trova il container
+            if (!chartContainer) {
+                const containers = document.querySelectorAll('.chart-card');
+                for (let container of containers) {
+                    if (container.querySelector('canvas#chart-attivita-terreno') || container.textContent.includes('Attività per Terreno')) {
+                        chartContainer = container;
+                        break;
+                    }
+                }
+            }
+            
+            if (!chartContainer) {
+                console.error('Container per chart-attivita-terreno non trovato');
+                return;
+            }
+            
+            // Se il canvas non esiste o è stato sostituito, ricrearlo
             if (!canvas || canvas.tagName !== 'CANVAS') {
                 chartContainer.innerHTML = '<canvas id="chart-attivita-terreno"></canvas>';
                 canvas = document.getElementById('chart-attivita-terreno');
@@ -847,10 +890,26 @@
         }
 
         function updateChartOreMese(data) {
-            const chartContainer = document.getElementById('chart-ore-mese').parentElement;
             let canvas = document.getElementById('chart-ore-mese');
+            let chartContainer = canvas ? canvas.parentElement : null;
             
-            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            // Se il canvas non esiste, trova il container
+            if (!chartContainer) {
+                const containers = document.querySelectorAll('.chart-card');
+                for (let container of containers) {
+                    if (container.querySelector('canvas#chart-ore-mese') || container.textContent.includes('Ore per Mese')) {
+                        chartContainer = container;
+                        break;
+                    }
+                }
+            }
+            
+            if (!chartContainer) {
+                console.error('Container per chart-ore-mese non trovato');
+                return;
+            }
+            
+            // Se il canvas non esiste o è stato sostituito, ricrearlo
             if (!canvas || canvas.tagName !== 'CANVAS') {
                 chartContainer.innerHTML = '<canvas id="chart-ore-mese"></canvas>';
                 canvas = document.getElementById('chart-ore-mese');
@@ -909,10 +968,26 @@
         }
 
         function updateChartTopLavori(data) {
-            const chartContainer = document.getElementById('chart-top-lavori').parentElement;
             let canvas = document.getElementById('chart-top-lavori');
+            let chartContainer = canvas ? canvas.parentElement : null;
             
-            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            // Se il canvas non esiste, trova il container
+            if (!chartContainer) {
+                const containers = document.querySelectorAll('.chart-card');
+                for (let container of containers) {
+                    if (container.querySelector('canvas#chart-top-lavori') || container.textContent.includes('Top 5 Tipi Lavoro')) {
+                        chartContainer = container;
+                        break;
+                    }
+                }
+            }
+            
+            if (!chartContainer) {
+                console.error('Container per chart-top-lavori non trovato');
+                return;
+            }
+            
+            // Se il canvas non esiste o è stato sostituito, ricrearlo
             if (!canvas || canvas.tagName !== 'CANVAS') {
                 chartContainer.innerHTML = '<canvas id="chart-top-lavori"></canvas>';
                 canvas = document.getElementById('chart-top-lavori');
