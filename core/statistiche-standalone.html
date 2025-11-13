@@ -746,14 +746,25 @@
         }
 
         function updateChartOreTipo(data) {
-            const ctx = document.getElementById('chart-ore-tipo').getContext('2d');
+            const chartContainer = document.getElementById('chart-ore-tipo').parentElement;
+            let canvas = document.getElementById('chart-ore-tipo');
+            
+            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            if (!canvas || canvas.tagName !== 'CANVAS') {
+                chartContainer.innerHTML = '<canvas id="chart-ore-tipo"></canvas>';
+                canvas = document.getElementById('chart-ore-tipo');
+            }
+            
             if (chartOreTipo) {
                 chartOreTipo.destroy();
             }
+            
             if (data.length === 0) {
-                document.getElementById('chart-ore-tipo').parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+                chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
                 return;
             }
+            
+            const ctx = canvas.getContext('2d');
             chartOreTipo = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -786,14 +797,25 @@
         }
 
         function updateChartAttivitaTerreno(data) {
-            const ctx = document.getElementById('chart-attivita-terreno').getContext('2d');
+            const chartContainer = document.getElementById('chart-attivita-terreno').parentElement;
+            let canvas = document.getElementById('chart-attivita-terreno');
+            
+            // Se il canvas non esiste (sostituito con empty-state), ricrearlo
+            if (!canvas || canvas.tagName !== 'CANVAS') {
+                chartContainer.innerHTML = '<canvas id="chart-attivita-terreno"></canvas>';
+                canvas = document.getElementById('chart-attivita-terreno');
+            }
+            
             if (chartAttivitaTerreno) {
                 chartAttivitaTerreno.destroy();
             }
+            
             if (data.length === 0) {
-                document.getElementById('chart-attivita-terreno').parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+                chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
                 return;
             }
+            
+            const ctx = canvas.getContext('2d');
             chartAttivitaTerreno = new Chart(ctx, {
                 type: 'bar',
                 data: {
