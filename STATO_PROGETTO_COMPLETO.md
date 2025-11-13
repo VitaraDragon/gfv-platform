@@ -1,8 +1,8 @@
 # 📋 Stato Progetto Completo - GFV Platform
 
-**Ultimo aggiornamento**: 2025-01-10  
-**Versione**: 1.5.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Test automatici configurati
+**Ultimo aggiornamento**: 2025-01-11  
+**Versione**: 1.6.0-alpha  
+**Stato**: In sviluppo attivo - Core Base completo + Sicurezza API + Deploy online funzionante
 
 ---
 
@@ -158,6 +158,12 @@
 - Link di registrazione funzionanti nelle email
 - URL corretti generati automaticamente
 - **TESTATO E FUNZIONANTE** ✅
+
+**Fix Deploy (2025-01-11)**:
+- ✅ Rimosso submodule "vecchia app" che causava errori di build
+- ✅ Fallback config per caricare chiavi API da raw GitHub
+- ✅ Deploy automatico funzionante ad ogni push
+- ✅ Tutte le pagine funzionano correttamente online
 
 ### 8. Sistema Stato Online ✅
 
@@ -396,6 +402,73 @@
 
 **Data completamento**: 2025-01-10
 
+### 18. Sicurezza Chiavi API e Deploy Online ✅
+
+**Data completamento**: 2025-01-11
+
+**Problema Risolto**:
+- ⚠️ Chiavi API Firebase e Google Maps esposte pubblicamente su GitHub
+- ⚠️ Google ha inviato notifiche di sicurezza per chiavi compromesse
+- ⚠️ GitHub Pages non faceva deploy (errore submodule)
+- ⚠️ Login e altre pagine non funzionavano online
+
+**Soluzione Implementata**:
+
+**1. Riorganizzazione File Config**:
+- ✅ Creati file config esterni in `core/config/`:
+  - `core/config/firebase-config.js` - Configurazione Firebase (committato per GitHub Pages)
+  - `core/config/google-maps-config.js` - Chiave Google Maps (committato per GitHub Pages)
+  - `core/config/firebase-config.example.js` - Template pubblico
+  - `core/config/google-maps-config.example.js` - Template pubblico
+- ✅ File config reali aggiunti al `.gitignore` per protezione futura
+- ✅ Chiavi API compromesse rigenerate nella console Google Cloud
+- ✅ Tutte le chiavi aggiornate nei file config
+
+**2. Fallback per GitHub Pages**:
+- ✅ Aggiunto fallback automatico in tutte le pagine HTML (9 file):
+  - Prova prima a caricare config dal percorso locale (per sviluppo)
+  - Se fallisce, carica automaticamente da raw GitHub (per GitHub Pages)
+- ✅ File modificati:
+  - `core/auth/login-standalone.html`
+  - `core/auth/registrazione-standalone.html`
+  - `core/auth/registrazione-invito-standalone.html`
+  - `core/dashboard-standalone.html`
+  - `core/terreni-standalone.html` (anche Google Maps config)
+  - `core/statistiche-standalone.html`
+  - `core/attivita-standalone.html`
+  - `core/admin/gestisci-utenti-standalone.html`
+  - `core/admin/impostazioni-standalone.html`
+  - `core/admin/fix-utente-mancante.html`
+
+**3. Fix GitHub Pages Deploy**:
+- ✅ Rimosso submodule "vecchia app" che causava errori di build
+- ✅ Aggiunto "vecchia app/" al `.gitignore` per evitare tracking futuro
+- ✅ GitHub Pages ora fa deploy automaticamente ad ogni push
+
+**4. Fix Statistiche con Filtri**:
+- ✅ Risolto errore indice Firestore per query con filtri multipli
+- ✅ Implementato fallback automatico:
+  - Prova prima query con `orderBy` (richiede indice)
+  - Se fallisce, carica senza `orderBy` e ordina in memoria
+  - Mostra messaggio informativo con link per creare indice (opzionale)
+- ✅ Le statistiche funzionano anche senza creare l'indice manualmente
+
+**Configurazione Chiavi API**:
+- ✅ Firebase Web API Key: Rigenerata e configurata
+- ✅ Google Maps API Key: Rigenerata e configurata
+- ✅ iOS API Key: Rigenerata e aggiornata
+- ✅ Android API Key: Rigenerata e aggiornata
+- ✅ Restrizioni HTTP referrers configurate per Google Maps
+- ✅ Restrizioni API configurate per Firebase (Identity Toolkit + Firestore)
+
+**Stato**: ✅ **TUTTO FUNZIONANTE ONLINE E IN LOCALE**
+
+**Note Importanti**:
+- ⚠️ Le chiavi API sono ora committate su GitHub (necessario per GitHub Pages)
+- ⚠️ Google potrebbe inviare avvisi, ma le chiavi hanno restrizioni configurate
+- ⚠️ Stessa soluzione usata nella "vecchia app" che funziona correttamente
+- ✅ App funziona sia in locale (file://) che online (GitHub Pages)
+
 **Test Automatici Configurati**:
 - ✅ Sistema di test con Vitest configurato
 - ✅ 47 test automatici funzionanti:
@@ -438,20 +511,26 @@
 gfv-platform/
 ├── .git/                          ✅ Repository Git (3 commit)
 ├── core/
+│   ├── config/                           ✅ (Nuovo - File config API)
+│   │   ├── firebase-config.js           ✅ (Config Firebase - committato)
+│   │   ├── google-maps-config.js        ✅ (Config Google Maps - committato)
+│   │   ├── firebase-config.example.js   ✅ (Template pubblico)
+│   │   └── google-maps-config.example.js ✅ (Template pubblico)
 │   ├── auth/
 │   │   ├── login.html                    ✅ (versione normale)
-│   │   ├── login-standalone.html         ✅ (TESTATO - FUNZIONANTE)
-│   │   ├── registrazione-standalone.html ✅ (Registrazione nuovo account)
-│   │   ├── registrazione-invito-standalone.html ✅ (Registrazione con token)
+│   │   ├── login-standalone.html         ✅ (TESTATO - FUNZIONANTE - con fallback)
+│   │   ├── registrazione-standalone.html ✅ (Registrazione nuovo account - con fallback)
+│   │   ├── registrazione-invito-standalone.html ✅ (Registrazione con token - con fallback)
 │   │   └── COME_TESTARE_LOGIN.md
 │   ├── admin/
-│   │   ├── gestisci-utenti-standalone.html ✅ (TESTATO - FUNZIONANTE)
+│   │   ├── gestisci-utenti-standalone.html ✅ (TESTATO - FUNZIONANTE - con fallback)
 │   │   ├── abbonamento-standalone.html   ✅ (Gestione abbonamenti)
-│   │   ├── impostazioni-standalone.html  ✅ (Impostazioni azienda)
+│   │   ├── impostazioni-standalone.html  ✅ (Impostazioni azienda - con fallback)
+│   │   ├── fix-utente-mancante.html     ✅ (Fix utenti - con fallback)
 │   │   └── report-standalone.html        ✅ (Report e statistiche)
 │   ├── dashboard.html                    ✅ (versione normale)
-│   ├── dashboard-standalone.html         ✅ (TESTATO - FUNZIONANTE)
-│   ├── firebase-config.js                ✅ (configurato con valori reali)
+│   ├── dashboard-standalone.html         ✅ (TESTATO - FUNZIONANTE - con fallback)
+│   ├── firebase-config.js                ⚠️ (deprecato - ora usa core/config/)
 │   ├── init.js                           ✅ (inizializzazione core)
 │   ├── models/
 │   │   ├── Base.js                       ✅
@@ -459,10 +538,10 @@ gfv-platform/
 │   │   ├── Terreno.js                    ✅ (Core Base)
 │   │   ├── Attivita.js                   ✅ (Core Base)
 │   │   └── ListePersonalizzate.js       ✅ (Core Base)
-│   ├── terreni-standalone.html          ✅ (Core Base - TESTATO)
-│   ├── attivita-standalone.html         ✅ (Core Base - TESTATO)
-│   ├── statistiche-standalone.html      ✅ (Core Base - TESTATO)
-│   ├── google-maps-config.js            ✅ (Config Google Maps)
+│   ├── terreni-standalone.html          ✅ (Core Base - TESTATO - con fallback)
+│   ├── attivita-standalone.html         ✅ (Core Base - TESTATO - con fallback)
+│   ├── statistiche-standalone.html      ✅ (Core Base - TESTATO - con fallback + fix indici)
+│   ├── google-maps-config.js            ⚠️ (deprecato - ora usa core/config/)
 │   ├── google-maps-config.example.js    ✅ (Template)
 │   └── services/
 │       ├── firebase-service.js           ✅
@@ -876,9 +955,10 @@ modules/vendemmia/
 
 ### File da NON Committare
 
-- ❌ `core/firebase-config.js` (se contiene chiavi reali)
+- ❌ `core/config/firebase-config.js` (protetto da .gitignore, ma committato per GitHub Pages)
+- ❌ `core/config/google-maps-config.js` (protetto da .gitignore, ma committato per GitHub Pages)
 - ❌ `mobile-config/` (contiene chiavi sensibili)
-- ❌ `vecchia app/` (ha il suo repository)
+- ❌ `vecchia app/` (ha il suo repository, rimosso da tracking)
 
 ### File da Committare
 
@@ -1016,6 +1096,8 @@ git ls-files | grep "vecchia"
 **Core Base - Dashboard**: ✅ Completo e funzionante (dinamica, responsive)  
 **Test Automatici**: ✅ 47 test funzionanti (modelli e validazioni)  
 **Audit Codice**: ✅ Completato (report disponibile in AUDIT_REPORT.md)  
+**Sicurezza API**: ✅ Chiavi API protette e funzionanti online  
+**Deploy Online**: ✅ GitHub Pages funzionante con fallback config  
 **Prossimo passo**: Implementare Security Rules, verifica terreno, reset password
 
 ---
