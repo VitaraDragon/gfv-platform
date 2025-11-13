@@ -194,3 +194,4 @@ git remote -v                 # Dovrebbe mostrare remote originale
 **Conclusione**: La vecchia app è completamente intatta e separata. Il nuovo progetto GFV Platform è pronto per essere inizializzato come repository Git separato.
 
 
+

@@ -104,3 +104,4 @@ A: Sì, assolutamente! È perfetto per questo scopo.
 **Prossimo passo**: Continua con la configurazione usando il progetto che hai selezionato! 🚀
 
 
+

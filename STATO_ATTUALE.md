@@ -128,3 +128,4 @@ gfv-platform/
 **Stato**: ✅ Login funzionante! Pronto per continuare sviluppo! 🚀
 
 
+

@@ -258,3 +258,4 @@ export { TIPI_LAVORO_PREDEFINITI, COLTURE_PREDEFINITE };
 export default ListePersonalizzate;
 
 
+

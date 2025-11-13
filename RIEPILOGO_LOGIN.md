@@ -100,3 +100,4 @@ Apri nel browser: `http://localhost:8000/core/auth/login.html`
 **Stato**: ✅ Login funzionante e pronto per test! 🚀
 
 
+

@@ -519,3 +519,4 @@ Un'applicazione core base funzionante che permette a un'azienda agricola di:
 **Prossimo passo**: Iniziare Fase 1 (Modelli e Servizi Base)
 
 
+

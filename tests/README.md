@@ -174,3 +174,4 @@ npm test
 **Nota**: Questi test sono per il codice JavaScript. Non testano l'interfaccia utente (HTML/CSS) o le integrazioni con Firebase reali. Per testare l'UI, servono test end-to-end (E2E) con strumenti come Playwright o Cypress.
 
 
+

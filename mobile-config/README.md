@@ -42,3 +42,4 @@ cp mobile-config/GoogleService-Info.plist ios/Runner/
 
 **Nota**: Questi file sono già configurati per il progetto Firebase `gfv-platform`.
 
+
