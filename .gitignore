@@ -42,3 +42,6 @@ core/google-maps-config.js
 core/config/firebase-config.js
 core/config/google-maps-config.js
 mobile-config/
+
+# Vecchia app - repository separato, non tracciare come submodule
+vecchia app/
