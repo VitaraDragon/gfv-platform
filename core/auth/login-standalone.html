@@ -355,8 +355,8 @@
 
         // Importa Firebase da CDN
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, getDoc, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, getDoc, doc, updateDoc, serverTimestamp, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
@@ -469,10 +469,13 @@
             return isValid;
         }
 
-        // Verifica se c'è un parametro "registered" nell'URL
+        // Verifica se c'è un parametro nell'URL
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('registered') === 'true') {
             showSuccess('✅ Registrazione completata! Ora puoi fare login con le tue credenziali.');
+        }
+        if (urlParams.get('passwordReset') === 'true') {
+            showSuccess('✅ Password reimpostata con successo! Ora puoi fare login con la nuova password.');
         }
 
         // Verifica se già autenticato
@@ -567,20 +570,143 @@
         });
 
         // Gestione password dimenticata
-        forgotPasswordLink.addEventListener('click', (e) => {
+        forgotPasswordLink.addEventListener('click', async (e) => {
             e.preventDefault();
             const email = emailInput.value.trim();
             
             if (!email) {
-                showError('Inserisci la tua email per reimpostare la password');
-                emailInput.focus();
-                return;
+                // Se non c'è email nel campo, chiedi di inserirla
+                const emailPrompt = prompt('Inserisci la tua email per reimpostare la password:');
+                if (!emailPrompt || !emailPrompt.trim()) {
+                    return;
+                }
+                const emailToUse = emailPrompt.trim();
+                
+                if (!emailToUse.includes('@')) {
+                    showError('Email non valida');
+                    return;
+                }
+                
+                await sendResetPasswordEmail(emailToUse);
+            } else {
+                // Usa l'email già inserita nel form
+                await sendResetPasswordEmail(email);
             }
-
-            showMessage('Funzionalità reset password in arrivo', 'info');
         });
 
+        // Funzione helper per ottenere URL base
+        function getBaseUrl() {
+            const isLocal = window.location.protocol === 'file:';
+            if (isLocal) {
+                return window.location.origin;
+            } else {
+                // Per GitHub Pages
+                const pathIndex = window.location.pathname.indexOf('/core/');
+                if (pathIndex !== -1) {
+                    return window.location.origin + window.location.pathname.substring(0, pathIndex);
+                }
+                return window.location.origin;
+            }
+        }
+
+        // Funzione per inviare email reset password usando soluzione ibrida
+        // EmailJS per inviare email + Firebase Auth per generare link sicuro
+        async function sendResetPasswordEmail(email) {
+            try {
+                showLoading();
+                
+                // Verifica che l'utente esista in Firestore
+                const usersQuery = query(
+                    collection(db, 'users'),
+                    where('email', '==', email.toLowerCase().trim())
+                );
+                const usersSnapshot = await getDocs(usersQuery);
+                
+                if (usersSnapshot.empty) {
+                    hideLoading();
+                    showError('Nessun account trovato con questa email');
+                    return;
+                }
+                
+                const userDoc = usersSnapshot.docs[0];
+                const userData = userDoc.data();
+                
+                // Determina URL di reset (per GitHub Pages o locale)
+                const baseUrl = getBaseUrl();
+                const resetPath = '/core/auth/reset-password-standalone.html';
+                const continueUrl = baseUrl + resetPath;
+                
+                // Configurazione per Firebase Auth
+                const actionCodeSettings = {
+                    url: continueUrl,
+                    handleCodeInApp: false // Apri nel browser, non nell'app
+                };
+                
+                // Genera link di reset password usando Firebase Auth
+                // Questo genera un link sicuro con codice oobCode
+                await sendPasswordResetEmail(auth, email, actionCodeSettings);
+                
+                // NOTA: Firebase invia automaticamente l'email, ma noi vogliamo usare EmailJS
+                // Quindi dobbiamo intercettare il link generato da Firebase
+                // Purtroppo sendPasswordResetEmail non ritorna il link, lo invia direttamente
+                // 
+                // Soluzione alternativa: usiamo Firebase per generare il link programmaticamente
+                // ma questo richiede Firebase Admin SDK...
+                //
+                // Per ora, usiamo un approccio diverso:
+                // 1. Firebase genera e invia email automaticamente (fallback)
+                // 2. Oppure generiamo link manualmente usando la stessa logica di Firebase
+                
+                // Per la soluzione ibrida completa, dobbiamo:
+                // - Usare Firebase per validare l'email e generare il codice
+                // - Intercettare il link generato
+                // - Inviarlo con EmailJS
+                
+                // Soluzione temporanea: Firebase invia email automaticamente
+                // In futuro possiamo migliorare usando Admin SDK per generare link programmaticamente
+                
+                hideLoading();
+                showSuccess(`Email di reset password inviata a ${email} da Firebase. Controlla la tua casella di posta e segui le istruzioni.`);
+                
+                // TODO: Per usare EmailJS invece di Firebase email, serve:
+                // 1. Endpoint server con Admin SDK che genera link
+                // 2. Oppure configurare Firebase per non inviare email e generare link manualmente
+                
+            } catch (error) {
+                hideLoading();
+                console.error('Errore invio email reset:', error);
+                
+                let errorMessage = 'Errore durante l\'invio dell\'email di reset';
+                
+                if (error.code) {
+                    if (error.code === 'auth/user-not-found') {
+                        errorMessage = 'Nessun account trovato con questa email';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Email non valida';
+                    } else if (error.code === 'auth/invalid-continue-uri') {
+                        errorMessage = 'URL non autorizzato. Configura gli URL autorizzati in Firebase Console (Authentication > Settings > Authorized domains)';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Troppi tentativi. Riprova più tardi.';
+                    } else {
+                        errorMessage = error.message || errorMessage;
+                    }
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                showError(errorMessage);
+            }
+        }
+
         console.log('✅ Login page caricata');
+    </script>
+    
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function(){
+            emailjs.init("AnLLhJOew6d6sCIOG");
+        })();
     </script>
 </body>
 </html>

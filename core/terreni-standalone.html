@@ -570,14 +570,36 @@
     
     <!-- Firebase SDK e Google Maps -->
     <script type="module">
-        // Verifica che le configurazioni siano caricate
-        if (typeof window.firebaseConfig === 'undefined') {
-            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
-            throw new Error('Firebase config not loaded');
+        // Attendi che le configurazioni siano caricate
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined' && typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50; // 5 secondi
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined' && typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        if (typeof window.firebaseConfig === 'undefined') {
+                            reject(new Error('Firebase config not loaded after 5 seconds'));
+                        } else {
+                            console.warn('Google Maps API key not found. Maps will not be available.');
+                            resolve(); // Continua comunque senza Maps
+                        }
+                    }
+                }, 100);
+            });
         }
-        if (typeof window.GOOGLE_MAPS_API_KEY === 'undefined') {
-            console.warn('Google Maps API key not found. Maps will not be available.');
-        }
+
+        await waitForConfig();
 
         const firebaseConfig = window.firebaseConfig;
         const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
@@ -1163,8 +1185,8 @@
                 return;
             }
             
-            // Verifica se terreno è usato in attività
             try {
+                // Verifica se terreno è usato in attività usando Firebase direttamente
                 let numAttivita = 0;
                 try {
                     const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
@@ -1173,20 +1195,46 @@
                     numAttivita = querySnapshot.size;
                 } catch (e) {
                     console.warn('Errore verifica attività:', e);
+                    // Continua comunque, ma senza verifica
                 }
                 
                 let message = `Sei sicuro di voler eliminare il terreno "${terreno.nome}"?`;
+                let forceDelete = false;
+                
                 if (numAttivita > 0) {
-                    message += `\n\n⚠️ Questo terreno è usato in ${numAttivita} attività.`;
+                    message += `\n\n⚠️ ATTENZIONE: Questo terreno è utilizzato in ${numAttivita} attività.`;
+                    message += `\n\nSe elimini il terreno, le attività rimarranno con un riferimento a un terreno inesistente.`;
+                    message += `\n\nVuoi eliminare comunque?`;
+                    
+                    // Prima conferma: avviso
+                    if (!confirm(message)) {
+                        return; // Utente ha annullato
+                    }
+                    
+                    // Seconda conferma: conferma forzata
+                    forceDelete = confirm(
+                        `⚠️ CONFERMA FINALE\n\nStai per eliminare un terreno utilizzato in ${numAttivita} attività.\n\n` +
+                        `Questa operazione non può essere annullata.\n\n` +
+                        `Sei sicuro di voler procedere?`
+                    );
+                    
+                    if (!forceDelete) {
+                        return; // Utente ha annullato
+                    }
+                } else {
+                    // Nessuna attività associata, conferma normale
+                    if (!confirm(message)) {
+                        return; // Utente ha annullato
+                    }
                 }
                 
-                if (confirm(message)) {
-                    const terreniCollection = getTerreniCollection(currentTenantId);
-                    const terrenoRef = doc(terreniCollection, terrenoId);
-                    await deleteDoc(terrenoRef);
-                    showAlert('Terreno eliminato con successo!', 'success');
-                    await loadTerreni();
-                }
+                // Elimina usando Firebase direttamente
+                const terreniCollection = getTerreniCollection(currentTenantId);
+                const terrenoRef = doc(terreniCollection, terrenoId);
+                await deleteDoc(terrenoRef);
+                showAlert('Terreno eliminato con successo!', 'success');
+                await loadTerreni();
+                
             } catch (error) {
                 console.error('Errore eliminazione terreno:', error);
                 showAlert('Errore nell\'eliminazione: ' + error.message, 'error');

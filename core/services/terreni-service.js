@@ -153,9 +153,12 @@ export async function updateTerreno(terrenoId, updates) {
 /**
  * Elimina un terreno
  * @param {string} terrenoId - ID terreno
+ * @param {Object} options - Opzioni eliminazione
+ * @param {boolean} options.force - Se true, elimina anche se usato in attività (default: false)
  * @returns {Promise<void>}
+ * @throws {Error} Se terreno è usato in attività e force=false
  */
-export async function deleteTerreno(terrenoId) {
+export async function deleteTerreno(terrenoId, options = {}) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) {
@@ -166,13 +169,20 @@ export async function deleteTerreno(terrenoId) {
       throw new Error('ID terreno obbligatorio');
     }
     
-    // TODO: Verificare se terreno è usato in attività prima di eliminare
-    // Per ora eliminiamo direttamente
+    // Verifica se terreno è usato in attività
+    const numAttivita = await getNumeroAttivitaTerreno(terrenoId);
+    
+    if (numAttivita > 0 && !options.force) {
+      throw new Error(
+        `Impossibile eliminare: il terreno è utilizzato in ${numAttivita} attività. ` +
+        `Elimina prima le attività o usa l'opzione force=true per eliminare comunque.`
+      );
+    }
     
     await deleteDocument(COLLECTION_NAME, terrenoId, tenantId);
   } catch (error) {
     console.error('Errore eliminazione terreno:', error);
-    throw new Error(`Errore eliminazione terreno: ${error.message}`);
+    throw error; // Rilancia l'errore così la UI può gestirlo
   }
 }
 
@@ -212,6 +222,7 @@ export default {
   deleteTerreno,
   getNumeroAttivitaTerreno
 };
+
 
 
 

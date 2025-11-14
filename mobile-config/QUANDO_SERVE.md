@@ -69,3 +69,4 @@ Quando inizierai lo sviluppo mobile:
 **Conclusione**: I file sono pronti. Li userai quando svilupperai l'app mobile. Per ora, concentrati sulla web app! 🚀
 
 
+
