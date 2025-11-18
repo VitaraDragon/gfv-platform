@@ -245,6 +245,21 @@
             </div>
 
             <div class="form-group">
+                <label for="cellulare">Cellulare *</label>
+                <input 
+                    type="tel" 
+                    id="cellulare" 
+                    name="cellulare" 
+                    required 
+                    autocomplete="tel"
+                    placeholder="+39 123 456 7890"
+                    pattern="[+]?[0-9\s\-]+"
+                >
+                <div class="error-message" id="cellulare-error"></div>
+                <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">Richiesto per comunicazioni importanti e gestione squadre</small>
+            </div>
+
+            <div class="form-group">
                 <label for="password">Scegli una Password *</label>
                 <input 
                     type="password" 
@@ -342,8 +357,23 @@
         const emailInput = document.getElementById('email');
         const nomeInput = document.getElementById('nome');
         const cognomeInput = document.getElementById('cognome');
+        const cellulareInput = document.getElementById('cellulare');
         const passwordInput = document.getElementById('password');
         const passwordConfirmInput = document.getElementById('password-confirm');
+        
+        // Verifica immediata che il campo cellulare esista nel DOM
+        console.log('🔍 Verifica iniziale campo cellulare:', {
+            trovato: !!cellulareInput,
+            elemento: cellulareInput,
+            parent: cellulareInput ? cellulareInput.parentElement : null
+        });
+        
+        if (!cellulareInput) {
+            console.error('❌ ERRORE: Campo cellulare NON trovato nel DOM al caricamento della pagina!');
+            console.error('Verifica HTML - cerca elemento con id="cellulare"');
+        } else {
+            console.log('✅ Campo cellulare presente nel DOM');
+        }
         const registerButton = document.getElementById('register-button');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingText = document.getElementById('loading-text');
@@ -476,6 +506,56 @@
                 emailInput.value = inviteData.email;
                 nomeInput.value = inviteData.nome;
                 cognomeInput.value = inviteData.cognome;
+                // Pre-compila cellulare se presente nell'invito, altrimenti lascia vuoto (sarà obbligatorio)
+                if (inviteData.cellulare) {
+                    cellulareInput.value = inviteData.cellulare;
+                } else {
+                    // Assicurati che il campo sia vuoto se non presente nell'invito
+                    cellulareInput.value = '';
+                }
+                
+                // Verifica che il campo cellulare esista e sia visibile
+                if (!cellulareInput) {
+                    console.error('❌ ERRORE CRITICO: Campo cellulare non trovato nel DOM!');
+                    console.error('Elementi form trovati:', {
+                        email: !!emailInput,
+                        nome: !!nomeInput,
+                        cognome: !!cognomeInput,
+                        password: !!passwordInput
+                    });
+                } else {
+                    console.log('✅ Campo cellulare trovato nel DOM');
+                    console.log('Campo cellulare:', cellulareInput);
+                    // Assicurati che il campo sia visibile
+                    cellulareInput.style.display = '';
+                    cellulareInput.style.visibility = 'visible';
+                    cellulareInput.style.opacity = '1';
+                    
+                    const cellulareGroup = cellulareInput.closest('.form-group');
+                    if (cellulareGroup) {
+                        console.log('✅ Form-group cellulare trovato');
+                        cellulareGroup.style.display = '';
+                        cellulareGroup.style.visibility = 'visible';
+                        cellulareGroup.style.opacity = '1';
+                    } else {
+                        console.error('❌ ERRORE: Form-group cellulare non trovato!');
+                    }
+                    
+                    // Verifica visibilità dopo un breve delay
+                    setTimeout(() => {
+                        const isVisible = cellulareInput.offsetParent !== null;
+                        console.log('Visibilità campo cellulare:', isVisible ? 'VISIBILE' : 'NASCOSTO');
+                        if (!isVisible) {
+                            console.error('❌ Campo cellulare risulta nascosto!');
+                            console.error('Stili applicati:', {
+                                display: window.getComputedStyle(cellulareInput).display,
+                                visibility: window.getComputedStyle(cellulareInput).visibility,
+                                opacity: window.getComputedStyle(cellulareInput).opacity,
+                                height: window.getComputedStyle(cellulareInput).height
+                            });
+                        }
+                    }, 100);
+                }
                 
                 // Mostra info invito
                 document.getElementById('invite-email').textContent = inviteData.email;
@@ -484,6 +564,16 @@
                 
                 // Mostra form
                 registerForm.style.display = 'block';
+                
+                // Verifica che tutti i campi siano visibili
+                console.log('Form mostrato. Campi presenti:', {
+                    email: !!emailInput,
+                    nome: !!nomeInput,
+                    cognome: !!cognomeInput,
+                    cellulare: !!cellulareInput,
+                    password: !!passwordInput
+                });
+                
                 hideLoading();
                 
             } catch (error) {
@@ -510,6 +600,7 @@
 
             try {
                 const password = passwordInput.value;
+                const cellulare = cellulareInput.value.trim();
 
                 // Crea utente Firebase Auth
                 const userCredential = await createUserWithEmailAndPassword(
@@ -531,6 +622,7 @@
                     email: inviteData.email,
                     nome: inviteData.nome,
                     cognome: inviteData.cognome,
+                    cellulare: cellulare, // Obbligatorio durante registrazione
                     ruoli: ruoli, // Array di ruoli
                     tenantId: inviteData.tenantId,
                     stato: 'attivo',
@@ -617,8 +709,22 @@
             hideErrors();
             let isValid = true;
 
+            const cellulare = cellulareInput.value.trim();
             const password = passwordInput.value;
             const passwordConfirm = passwordConfirmInput.value;
+
+            // Validazione cellulare (obbligatorio)
+            if (!cellulare) {
+                showFieldError('cellulare', 'Cellulare obbligatorio');
+                isValid = false;
+            } else {
+                // Valida formato cellulare (almeno 10 cifre, può contenere +, spazi, trattini)
+                const cellularePulito = cellulare.replace(/[\s\-]/g, '');
+                if (cellularePulito.length < 10 || !/^\+?[0-9]+$/.test(cellularePulito)) {
+                    showFieldError('cellulare', 'Formato cellulare non valido (es. +39 123 456 7890)');
+                    isValid = false;
+                }
+            }
 
             if (!password) {
                 showFieldError('password', 'Password obbligatoria');

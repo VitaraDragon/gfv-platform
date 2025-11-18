@@ -313,6 +313,23 @@
             color: #856404;
         }
 
+        .ora-checkbox {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        #select-all-checkbox {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        #valida-selezionate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 768px) {
             .ore-table {
                 font-size: 12px;
@@ -361,6 +378,11 @@
 
             <div class="section-header">
                 <h2>Ore da Validare</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="valida-selezionate-btn" class="btn btn-success" onclick="validaSelezionate()" style="display: none;">
+                        ✅ Valida Selezionate (<span id="count-selezionate">0</span>)
+                    </button>
+                </div>
             </div>
 
             <div id="ore-container">
@@ -576,6 +598,12 @@
 
                 updateStats();
                 renderOre();
+                // Reset checkbox seleziona tutto e nascondi pulsante
+                const selectAllCheckbox = document.getElementById('select-all-checkbox');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                updateValidaSelezionateBtn();
             } catch (error) {
                 console.error('Errore caricamento ore:', error);
                 container.innerHTML = '<div class="empty-state">Errore caricamento ore</div>';
@@ -646,6 +674,9 @@
                 <table class="ore-table">
                     <thead>
                         <tr>
+                            <th style="width: 50px;">
+                                <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this.checked)">
+                            </th>
                             <th>Data</th>
                             <th>Operaio</th>
                             <th>Lavoro</th>
@@ -672,6 +703,9 @@
 
                 html += `
                     <tr>
+                        <td>
+                            <input type="checkbox" class="ora-checkbox" data-lavoro-id="${ora.lavoroId}" data-ora-id="${ora.id}" onchange="updateValidaSelezionateBtn()">
+                        </td>
                         <td>${data}</td>
                         <td>${escapeHtml(operaioNome)}</td>
                         <td>${escapeHtml(ora.lavoroNome)}</td>
@@ -872,6 +906,131 @@
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Toggle seleziona tutto
+        window.toggleSelectAll = function(checked) {
+            const checkboxes = document.querySelectorAll('.ora-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checked;
+            });
+            updateValidaSelezionateBtn();
+        };
+
+        // Aggiorna pulsante valida selezionate
+        window.updateValidaSelezionateBtn = function() {
+            const checkboxes = document.querySelectorAll('.ora-checkbox:checked');
+            const count = checkboxes.length;
+            const btn = document.getElementById('valida-selezionate-btn');
+            const countSpan = document.getElementById('count-selezionate');
+            
+            if (count > 0) {
+                btn.style.display = 'inline-block';
+                countSpan.textContent = count;
+            } else {
+                btn.style.display = 'none';
+            }
+            
+            // Aggiorna anche checkbox "seleziona tutto"
+            const selectAllCheckbox = document.getElementById('select-all-checkbox');
+            const totalCheckboxes = document.querySelectorAll('.ora-checkbox').length;
+            if (totalCheckboxes > 0) {
+                selectAllCheckbox.checked = count === totalCheckboxes;
+            }
+        };
+
+        // Valida tutte le ore selezionate
+        window.validaSelezionate = async function() {
+            const checkboxes = document.querySelectorAll('.ora-checkbox:checked');
+            const selectedOre = Array.from(checkboxes).map(cb => ({
+                lavoroId: cb.dataset.lavoroId,
+                oraId: cb.dataset.oraId
+            }));
+            
+            if (selectedOre.length === 0) {
+                showAlert('Seleziona almeno un\'ora da validare', 'error');
+                return;
+            }
+            
+            const confirmMessage = `Sei sicuro di voler validare ${selectedOre.length} ${selectedOre.length === 1 ? 'ora' : 'ore'}?`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            const btn = document.getElementById('valida-selezionate-btn');
+            btn.disabled = true;
+            btn.textContent = `⏳ Validazione in corso...`;
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            
+            try {
+                // Valida tutte le ore in parallelo
+                const promises = selectedOre.map(async ({ lavoroId, oraId }) => {
+                    try {
+                        // Verifica che il lavoro esista e sia assegnato al caposquadra
+                        const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+                        if (!lavoroDoc.exists()) {
+                            throw new Error('Lavoro non trovato');
+                        }
+                        
+                        const lavoroData = lavoroDoc.data();
+                        if (lavoroData.caposquadraId !== currentUserData.id) {
+                            throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                        }
+                        
+                        // Verifica che l'ora esista e sia in stato "da_validare"
+                        const oraDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai', oraId));
+                        if (!oraDoc.exists()) {
+                            throw new Error('Ora non trovata');
+                        }
+                        
+                        const oraData = oraDoc.data();
+                        if (oraData.stato !== 'da_validare') {
+                            throw new Error('Questa ora è già stata validata o rifiutata');
+                        }
+                        
+                        // Aggiorna stato
+                        await updateDoc(oraDoc.ref, {
+                            stato: 'validate',
+                            validatoDa: currentUserData.id,
+                            validatoIl: serverTimestamp(),
+                            rifiutatoDa: null,
+                            motivoRifiuto: null
+                        });
+                        
+                        successCount++;
+                        return { success: true };
+                    } catch (error) {
+                        errorCount++;
+                        errors.push(`Ora ${oraId}: ${error.message}`);
+                        return { success: false, error: error.message };
+                    }
+                });
+                
+                await Promise.all(promises);
+                
+                // Mostra risultato
+                if (successCount > 0) {
+                    showAlert(`✅ ${successCount} ${successCount === 1 ? 'ora validata' : 'ore validate'} con successo!`, 'success');
+                }
+                
+                if (errorCount > 0) {
+                    console.error('Errori durante la validazione:', errors);
+                    showAlert(`⚠️ ${errorCount} ${errorCount === 1 ? 'ora non validata' : 'ore non validate'}. Controlla la console per i dettagli.`, 'error');
+                }
+                
+                // Ricarica lista ore
+                await loadOreDaValidare();
+                
+            } catch (error) {
+                console.error('Errore validazione multipla:', error);
+                showAlert(`Errore durante la validazione: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `✅ Valida Selezionate (<span id="count-selezionate">0</span>)`;
+            }
+        };
     </script>
 </body>
 </html>

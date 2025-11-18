@@ -649,6 +649,77 @@
                 })
             );
 
+            // Se è caposquadra (solo lettura), mostra vista dettagliata con contatti
+            if (isReadOnly) {
+                // Vista dettagliata per caposquadra: mostra lista operai con contatti
+                let html = '<div style="margin-top: 20px;">';
+                
+                // Trova la squadra del caposquadra corrente
+                const miaSquadra = squadreConDettagli.find(s => 
+                    s.caposquadra && s.caposquadra.id === currentUserData.id
+                );
+                
+                if (!miaSquadra || !miaSquadra.operai || miaSquadra.operai.length === 0) {
+                    html += `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">👷</div>
+                            <p>Nessuna squadra assegnata</p>
+                            <p style="font-size: 14px; margin-top: 10px;">Contatta il manager per essere assegnato a una squadra</p>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                            <h3 style="color: #2E8B57; margin-bottom: 10px;">${escapeHtml(miaSquadra.nome || 'Squadra')}</h3>
+                            ${miaSquadra.note ? `<p style="color: #666; margin-bottom: 15px;">${escapeHtml(miaSquadra.note)}</p>` : ''}
+                        </div>
+                        <h3 style="color: #2E8B57; margin-bottom: 15px;">Membri della Squadra (${miaSquadra.operai.length})</h3>
+                        <table class="squadre-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Cellulare</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    miaSquadra.operai.forEach(operaio => {
+                        const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A';
+                        const cellulare = operaio.cellulare || 'Non disponibile';
+                        const email = operaio.email || 'N/A';
+                        
+                        html += `
+                            <tr>
+                                <td><strong>${escapeHtml(nomeCompleto)}</strong></td>
+                                <td>
+                                    ${email !== 'N/A' ? `<a href="mailto:${escapeHtml(email)}" style="color: #2E8B57; text-decoration: none;">${escapeHtml(email)}</a>` : 'N/A'}
+                                </td>
+                                <td>
+                                    ${cellulare !== 'Non disponibile' ? `
+                                        <a href="tel:${cellulare.replace(/[\s\-]/g, '')}" style="color: #2E8B57; text-decoration: none; font-weight: 500;">
+                                            📱 ${escapeHtml(cellulare)}
+                                        </a>
+                                    ` : '<span style="color: #999;">Non disponibile</span>'}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                }
+                
+                html += '</div>';
+                container.innerHTML = html;
+                countEl.textContent = miaSquadra ? '1 squadra' : '0 squadre';
+                return;
+            }
+            
+            // Vista normale per Manager: tabella con tutte le squadre
             let html = `
                 <table class="squadre-table">
                     <thead>
@@ -683,12 +754,10 @@
                         </td>
                         <td>${escapeHtml(squadra.note || '-')}</td>
                         <td>
-                            ${isReadOnly ? '<span style="color: #666; font-size: 12px;">Solo visualizzazione</span>' : `
                             <div class="action-buttons">
                                 <button class="btn btn-info btn-sm" onclick="openModificaModal('${squadra.id}')">✏️ Modifica</button>
                                 <button class="btn btn-danger btn-sm" onclick="openEliminaModal('${squadra.id}')">🗑️ Elimina</button>
                             </div>
-                            `}
                         </td>
                     </tr>
                 `;
