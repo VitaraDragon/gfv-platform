@@ -300,13 +300,34 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        // Verifica che la configurazione Firebase sia caricata
-        if (typeof window.firebaseConfig === 'undefined') {
-            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
-            throw new Error('Firebase config not loaded');
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                // Se la configurazione è già disponibile, risolvi immediatamente
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                // Altrimenti, controlla periodicamente fino a quando non è disponibile
+                let attempts = 0;
+                const maxAttempts = 50; // 50 tentativi x 100ms = 5 secondi massimo
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100); // Controlla ogni 100ms
+            });
         }
 
-        const firebaseConfig = window.firebaseConfig;
+        // Attendi che la configurazione Firebase sia caricata
+        const firebaseConfig = await waitForConfig();
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -521,8 +542,9 @@
 
                 console.log('Dati utente da salvare:', userData);
                 
-                await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-                console.log('✅ Documento utente creato in Firestore');
+                // Usa merge: true per evitare sovrascritture accidentali se il documento esiste già
+                await setDoc(doc(db, 'users', firebaseUser.uid), userData, { merge: true });
+                console.log('✅ Documento utente creato/aggiornato in Firestore');
 
                 // Verifica che il documento sia stato salvato correttamente
                 await new Promise(resolve => setTimeout(resolve, 500)); // Attendi che Firestore processi

@@ -162,8 +162,8 @@ export async function acceptInvito(auth, db, createUserWithEmailAndPassword, doc
             invitoId: invito.id
         };
         
-        // Salva utente
-        await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+        // Salva utente (usa merge: true per evitare sovrascritture accidentali)
+        await setDoc(doc(db, 'users', firebaseUser.uid), userData, { merge: true });
         
         // Aggiorna invito
         await updateDoc(doc(db, 'inviti', invito.id), {
@@ -184,6 +184,7 @@ export default {
     verifyInviteToken,
     acceptInvito
 };
+
 
 
 

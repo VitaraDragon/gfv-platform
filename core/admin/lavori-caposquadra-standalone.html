@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I Miei Lavori - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #2E8B57;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .lavoro-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .lavoro-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .lavoro-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .lavoro-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2E8B57;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-assegnato {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-in_corso {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-completato {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .badge-completato_da_approvare {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-progresso-in_ritardo {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-progresso-in_tempo {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-progresso-in_anticipo {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .lavoro-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .progress-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2E8B57 0%, #228B22 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2E8B57;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .map-container {
+            margin-top: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .map-controls {
+            background: #f8f9fa;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .map-controls input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #map {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Cursore crosshair durante il tracciamento per maggiore precisione */
+        .map-container.drawing-mode #map {
+            cursor: crosshair !important;
+        }
+
+        .map-container.drawing-mode #map * {
+            cursor: crosshair !important;
+        }
+
+        .map-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            display: none;
+        }
+
+        .map-info.active {
+            display: block;
+        }
+
+        .map-info p {
+            margin: 5px 0;
+            color: #333;
+        }
+
+        .zone-list {
+            margin-top: 20px;
+        }
+
+        .zone-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .zone-info {
+            flex: 1;
+        }
+
+        .zone-date {
+            font-weight: 500;
+            color: #2E8B57;
+        }
+
+        .zone-area {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @media (max-width: 768px) {
+            .lavoro-info {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👷 I Miei Lavori</h1>
+            <p style="opacity: 0.9; margin-top: 5px;">Visualizza e gestisci i lavori assegnati</p>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            <div id="lavori-container">
+                <div class="loading">Caricamento lavori...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Traccia Zona Lavorata -->
+    <div id="zona-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Traccia Zona Lavorata</h3>
+                <button class="close-btn" onclick="closeZonaModal()">&times;</button>
+            </div>
+            <form id="zona-form" onsubmit="handleSalvaZona(event)">
+                <input type="hidden" id="zona-lavoro-id">
+                
+                <div class="form-group">
+                    <label for="zona-data">Data Lavorazione *</label>
+                    <input type="date" id="zona-data" required>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Seleziona la data in cui è stato svolto il lavoro (può essere anche una data passata)
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="zona-larghezza">Larghezza di Lavoro (metri) <span style="color: #666; font-weight: normal;">(opzionale)</span></label>
+                    <input type="number" id="zona-larghezza" step="0.1" min="0.1" value="" placeholder="Lascia vuoto per operazioni manuali">
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        <strong>Per operazioni meccanizzate:</strong> Inserisci la larghezza della macchina/attrezzo (es. 3m per trattore, 1.5m per decespugliatore).<br>
+                        <strong>Per operazioni manuali:</strong> Lascia vuoto - la superficie verrà calcolata dall'area del poligono tracciato.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Traccia Segmento sulla Mappa *</label>
+                    <div class="map-container">
+                        <div class="map-controls">
+                            <input type="text" id="map-search" placeholder="Cerca indirizzo...">
+                            <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
+                            <button type="button" class="btn btn-info" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Segmento</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearSegment()">🗑️ Cancella</button>
+                        </div>
+                        <div id="map"></div>
+                        <div class="map-info" id="map-info">
+                            <p><strong>Lunghezza segmento:</strong> <span id="calculated-length">0.00</span> metri</p>
+                            <p><strong>Superficie lavorata:</strong> <span id="calculated-area">0.00</span> ettari</p>
+                        </div>
+                    </div>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        💡 <strong>Suggerimento:</strong> Clicca sulla mappa per tracciare il percorso. Il sistema aggancia automaticamente i punti ai vertici e al confine del terreno quando sei vicino (entro 5-8 metri). <strong>Tieni premuto Shift mentre clicchi per disabilitare temporaneamente lo snap</strong> e posizionare i punti manualmente con precisione. Se tracci vicino al confine, la superficie viene calcolata estendendo fino al confine per una maggiore precisione.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="zona-note">Note</label>
+                    <textarea id="zona-note" placeholder="Note aggiuntive sulla zona lavorata (opzionale)"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salva Zona</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeZonaModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase and Google Maps config -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+
+    <script>
+        // Load Google Maps config
+        const mapsConfigScript = document.createElement('script');
+        mapsConfigScript.src = '../config/google-maps-config.js';
+        mapsConfigScript.onerror = function() {
+            const fallbackMapsScript = document.createElement('script');
+            fallbackMapsScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+            document.head.appendChild(fallbackMapsScript);
+        };
+        document.head.appendChild(mapsConfigScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserData = null;
+        let currentTenantId = null;
+        let lavoriList = [];
+        let terreniMap = new Map();
+        let currentLavoroId = null;
+        let currentTerreno = null;
+
+        // Variabili Google Maps
+        let map = null;
+        let polyline = null; // Cambiato da polygon a polyline per segmenti
+        let currentSegmentCoords = []; // Coordinate del segmento
+        let firstPoint = null; // Primo punto tracciato (per chiudere il segmento)
+        let isDrawing = false;
+        let terrenoPolygon = null; // Poligono del terreno (per riferimento e validazione)
+        let savedSegments = []; // Array per memorizzare i segmenti salvati visualizzati sulla mappa
+        let terrenoBoundaryCoords = []; // Coordinate del confine del terreno (per snap)
+        let uncoveredAreaPolygon = null; // Poligono per visualizzare aree non coperte
+        
+        // Costanti per snap e tolleranza
+        const SNAP_DISTANCE_METERS = 5; // Distanza massima per snap al confine (5 metri) - ridotto per maggiore precisione
+        const VERTEX_SNAP_DISTANCE_METERS = 8; // Distanza massima per snap ai vertici (8 metri) - ridotto per maggiore precisione
+        const PROXIMITY_TOLERANCE_METERS = 5; // Tolleranza per estendere fino al confine nel calcolo (5 metri)
+
+        // Verifica autenticazione e permessi
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    currentUserData = userDoc.data();
+                    currentTenantId = currentUserData.tenantId;
+
+                    // Verifica permessi (solo caposquadra)
+                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('caposquadra')) {
+                        showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Verifica se modulo Manodopera è attivo
+                    let hasManodoperaModule = false;
+                    if (currentTenantId) {
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                            }
+                        } catch (error) {
+                            console.warn('Errore verifica modulo Manodopera:', error);
+                        }
+                    }
+
+                    if (!hasManodoperaModule) {
+                        showAlert('Questa pagina è disponibile solo con il modulo Manodopera attivo.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 3000);
+                        return;
+                    }
+
+                    // Carica dati iniziali
+                    await loadTerreni();
+                    await loadLavori();
+                } else {
+                    window.location.href = '../auth/login-standalone.html';
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                showAlert('Errore caricamento dati', 'error');
+            }
+        });
+
+        // Carica terreni per riferimento
+        async function loadTerreni() {
+            try {
+                const terreniRef = collection(db, 'tenants', currentTenantId, 'terreni');
+                const snapshot = await getDocs(terreniRef);
+                
+                snapshot.forEach(doc => {
+                    terreniMap.set(doc.id, { id: doc.id, ...doc.data() });
+                });
+            } catch (error) {
+                console.error('Errore caricamento terreni:', error);
+            }
+        }
+
+        // Carica lavori assegnati al caposquadra
+        async function loadLavori() {
+            const container = document.getElementById('lavori-container');
+            container.innerHTML = '<div class="loading">Caricamento lavori...</div>';
+
+            try {
+                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                // Carica tutti i lavori e filtra lato client per evitare bisogno di indice composto
+                const q = query(
+                    lavoriRef,
+                    where('caposquadraId', '==', currentUserData.id)
+                );
+                const snapshot = await getDocs(q);
+                
+                lavoriList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const dataInizio = data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null);
+                    lavoriList.push({ 
+                        id: doc.id, 
+                        ...data,
+                        dataInizio: dataInizio
+                    });
+                });
+
+                // Ordina lato client per dataInizio (più recente prima)
+                lavoriList.sort((a, b) => {
+                    if (!a.dataInizio && !b.dataInizio) return 0;
+                    if (!a.dataInizio) return 1;
+                    if (!b.dataInizio) return -1;
+                    return b.dataInizio.getTime() - a.dataInizio.getTime();
+                });
+
+                renderLavori();
+            } catch (error) {
+                console.error('Errore caricamento lavori:', error);
+                container.innerHTML = '<div class="empty-state">Errore caricamento lavori</div>';
+                showAlert('Errore caricamento lavori', 'error');
+            }
+        }
+
+        // Renderizza lista lavori
+        async function renderLavori() {
+            const container = document.getElementById('lavori-container');
+
+            if (lavoriList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Nessun lavoro assegnato</p>
+                        <p style="font-size: 14px; margin-top: 10px;">I lavori assegnati dal manager appariranno qui</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Carica zone lavorate per ogni lavoro
+            const lavoriConZone = await Promise.all(
+                lavoriList.map(async (lavoro) => {
+                    const terreno = terreniMap.get(lavoro.terrenoId);
+                    const zone = await loadZoneLavorate(lavoro.id);
+                    
+                    // Calcola progressi usando unione geometrica invece di somma semplice
+                    const superficieTotale = terreno?.superficie || 0;
+                    const superficieLavorata = await calculateUnifiedWorkedArea(zone);
+                    const percentuale = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100).toFixed(1) : 0;
+                    
+                    // Calcola stato progresso se non presente o se necessario ricalcolarlo
+                    let statoProgresso = lavoro.statoProgresso;
+                    let giorniEffettivi = lavoro.giorniEffettivi || 0;
+                    let giorniRimanenti = null;
+                    
+                    if (lavoro.dataInizio && lavoro.durataPrevista) {
+                        const dataInizio = lavoro.dataInizio instanceof Date 
+                            ? lavoro.dataInizio 
+                            : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio));
+                        const oggi = new Date();
+                        oggi.setHours(0, 0, 0, 0);
+                        dataInizio.setHours(0, 0, 0, 0);
+                        
+                        giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1); // +1 per includere oggi
+                        giorniRimanenti = Math.max(0, lavoro.durataPrevista - giorniEffettivi);
+                        
+                        // Calcola stato progresso se non presente o se giorni sono cambiati
+                        if (!statoProgresso || giorniEffettivi !== (lavoro.giorniEffettivi || 0)) {
+                            const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+                            const percentualeCompletamentoNum = parseFloat(percentuale);
+                            const tolleranza = 10; // Tolleranza del 10%
+                            
+                            if (percentualeCompletamentoNum > percentualeTempo + tolleranza) {
+                                statoProgresso = 'in_anticipo';
+                            } else if (percentualeCompletamentoNum < percentualeTempo - tolleranza) {
+                                statoProgresso = 'in_ritardo';
+                            } else {
+                                statoProgresso = 'in_tempo';
+                            }
+                        }
+                    }
+                    
+                    return { 
+                        ...lavoro, 
+                        terreno,
+                        zone,
+                        superficieTotale,
+                        superficieLavorata,
+                        percentuale,
+                        statoProgresso,
+                        giorniEffettivi,
+                        giorniRimanenti
+                    };
+                })
+            );
+
+            let html = '';
+            lavoriConZone.forEach(lavoro => {
+                const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
+                const dataInizioFormatted = lavoro.dataInizio 
+                    ? new Date(lavoro.dataInizio).toLocaleDateString('it-IT')
+                    : 'N/A';
+                const durata = lavoro.durataPrevista ? `${lavoro.durataPrevista} giorni` : 'N/A';
+                const statoBadge = `<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>`;
+                
+                // Calcola percentuale completamento
+                const superficieLavorata = lavoro.superficieLavorata || lavoro.superficieTotaleLavorata || 0;
+                const superficieTotale = lavoro.superficieTotale || 0;
+                const percentuale = superficieTotale > 0 ? Math.min((superficieLavorata / superficieTotale * 100), 100).toFixed(1) : 0;
+
+                html += `
+                    <div class="lavoro-card">
+                        <div class="lavoro-header">
+                            <div class="lavoro-title">${escapeHtml(lavoro.nome || 'N/A')}</div>
+                            ${statoBadge}
+                        </div>
+                        
+                        <div class="lavoro-info">
+                            <div class="info-item">
+                                <span class="info-label">Terreno</span>
+                                <span class="info-value">${escapeHtml(terrenoNome)}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Data Inizio</span>
+                                <span class="info-value">${dataInizioFormatted}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Durata Prevista</span>
+                                <span class="info-value">${durata}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Segmenti Lavorati</span>
+                                <span class="info-value">${lavoro.zone.length} segmenti</span>
+                            </div>
+                        </div>
+
+                        ${superficieTotale > 0 ? `
+                        <div class="progress-section">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${percentuale}%">
+                                    ${percentuale}%
+                                </div>
+                            </div>
+                            <div class="progress-info">
+                                <span>Lavorato: ${parseFloat(superficieLavorata).toFixed(2)} ha</span>
+                                <span>Totale: ${parseFloat(superficieTotale).toFixed(2)} ha</span>
+                            </div>
+                            ${lavoro.durataPrevista && lavoro.dataInizio ? `
+                                <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                    <div style="flex: 1; min-width: 200px;">
+                                        <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Tabella di marcia</div>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            ${lavoro.statoProgresso ? `
+                                                <span class="badge badge-progresso-${lavoro.statoProgresso}">
+                                                    ${getStatoProgressoFormattato(lavoro.statoProgresso)}
+                                                </span>
+                                            ` : ''}
+                                            <span style="font-size: 12px; color: #666;">
+                                                ${lavoro.giorniEffettivi || 0} / ${lavoro.durataPrevista} giorni
+                                                ${lavoro.giorniRimanenti !== null && lavoro.giorniRimanenti >= 0 ? `(${lavoro.giorniRimanenti} rimanenti)` : ''}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        ` : ''}
+
+                        <div class="action-buttons">
+                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' ? `
+                                <button class="btn btn-primary" onclick="openTracciaZonaModal('${lavoro.id}')">
+                                    📍 Traccia Segmento Lavorato
+                                </button>
+                            ` : ''}
+                            
+                            ${lavoro.stato === 'completato_da_approvare' ? `
+                                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #ffc107;">
+                                    <strong>⏳ In attesa di approvazione del Manager</strong><br>
+                                    <small>Il lavoro è stato segnato come completato e attende l'approvazione del manager.</small>
+                                </div>
+                            ` : ''}
+                            
+                            ${parseFloat(percentuale) >= 90 && lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' ? `
+                                <button class="btn btn-info" onclick="segnaCompletato('${lavoro.id}', ${parseFloat(percentuale).toFixed(1)})" style="background: #ffc107; color: #000;">
+                                    ✅ Segna come Completato
+                                </button>
+                            ` : ''}
+                            
+                            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Carica zone lavorate per un lavoro
+        async function loadZoneLavorate(lavoroId) {
+            try {
+                const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const snapshot = await getDocs(zoneRef);
+                
+                const zone = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    zone.push({
+                        id: doc.id,
+                        ...data,
+                        data: data.data?.toDate ? data.data.toDate() : (data.data ? new Date(data.data) : null)
+                    });
+                });
+                
+                return zone.sort((a, b) => {
+                    const dateA = a.data || new Date(0);
+                    const dateB = b.data || new Date(0);
+                    return dateB - dateA; // Più recenti prima
+                });
+            } catch (error) {
+                console.error('Errore caricamento zone lavorate:', error);
+                return [];
+            }
+        }
+
+        // Ottieni stato formattato
+        function getStatoFormattato(stato) {
+            const stati = {
+                'assegnato': '📋 Assegnato',
+                'in_corso': '🔄 In corso',
+                'completato': '✅ Completato',
+                'completato_da_approvare': '⏳ In attesa approvazione',
+                'annullato': '❌ Annullato'
+            };
+            return stati[stato] || stato;
+        }
+
+        // Ottieni stato progresso formattato
+        function getStatoProgressoFormattato(statoProgresso) {
+            const stati = {
+                'in_ritardo': '🔴 In ritardo',
+                'in_tempo': '🟢 In tempo',
+                'in_anticipo': '🚀 In anticipo'
+            };
+            return stati[statoProgresso] || statoProgresso || '';
+        }
+
+        // Apri modal traccia zona
+        window.openTracciaZonaModal = async function(lavoroId) {
+            currentLavoroId = lavoroId;
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+
+            // Carica terreno per mostrare confini sulla mappa
+            currentTerreno = terreniMap.get(lavoro.terrenoId);
+            
+            document.getElementById('modal-title').textContent = `Traccia Segmento Lavorato - ${escapeHtml(lavoro.nome)}`;
+            document.getElementById('zona-lavoro-id').value = lavoroId;
+            document.getElementById('zona-form').reset();
+            
+            // Imposta data di oggi come default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('zona-data').value = today;
+            document.getElementById('zona-data').setAttribute('max', today);
+            
+            // Reset mappa
+            currentSegmentCoords = [];
+            firstPoint = null;
+            if (polyline) {
+                polyline.setMap(null);
+                polyline = null;
+            }
+            isDrawing = false;
+            terrenoBoundaryCoords = [];
+            if (uncoveredAreaPolygon) {
+                uncoveredAreaPolygon.setMap(null);
+                uncoveredAreaPolygon = null;
+            }
+            // Rimuovi classe drawing-mode se presente
+            const mapContainer = document.querySelector('.map-container');
+            if (mapContainer) {
+                mapContainer.classList.remove('drawing-mode');
+            }
+            // Reset pulsante tracciamento
+            const btn = document.getElementById('btn-draw');
+            if (btn) {
+                btn.textContent = '✏️ Traccia Segmento';
+                btn.style.background = '#17a2b8';
+            }
+            
+            // Aggiungi listener per aggiornare superficie quando cambia larghezza
+            const larghezzaInput = document.getElementById('zona-larghezza');
+            if (larghezzaInput) {
+                // Rimuovi listener precedenti se esistono
+                const newLarghezzaInput = larghezzaInput.cloneNode(true);
+                larghezzaInput.parentNode.replaceChild(newLarghezzaInput, larghezzaInput);
+                
+                // Aggiungi nuovo listener
+                newLarghezzaInput.addEventListener('input', function() {
+                    if (polyline && currentSegmentCoords.length >= 2) {
+                        updateSegmentInfo();
+                    }
+                });
+            }
+            
+            // Inizializza mappa se non già fatto
+            await initMap();
+            
+            // Carica e visualizza segmenti già salvati
+            await loadAndDisplaySavedSegments(lavoroId);
+            
+            document.getElementById('zona-modal').classList.add('active');
+        };
+
+        // Chiudi modal
+        window.closeZonaModal = function() {
+            document.getElementById('zona-modal').classList.remove('active');
+            currentLavoroId = null;
+            currentTerreno = null;
+            
+            // Reset mappa
+            if (polyline) {
+                polyline.setMap(null);
+                polyline = null;
+            }
+            currentSegmentCoords = [];
+            firstPoint = null;
+            isDrawing = false;
+            document.getElementById('btn-draw').textContent = '✏️ Traccia Segmento';
+            document.getElementById('map-info').classList.remove('active');
+            
+            // Rimuovi segmenti salvati visualizzati
+            savedSegments.forEach(segment => {
+                if (segment.polyline) {
+                    segment.polyline.setMap(null);
+                }
+            });
+            savedSegments = [];
+            
+            // Rimuovi visualizzazione aree non coperte
+            if (uncoveredAreaPolygon) {
+                uncoveredAreaPolygon.setMap(null);
+                uncoveredAreaPolygon = null;
+            }
+        };
+
+        // Inizializza Google Maps
+        async function initMap() {
+            // Attendi caricamento configurazione Google Maps
+            if (typeof window.GOOGLE_MAPS_API_KEY === 'undefined') {
+                await new Promise((resolve) => {
+                    const checkConfig = setInterval(() => {
+                        if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                            clearInterval(checkConfig);
+                            resolve();
+                        }
+                    }, 100);
+                });
+            }
+
+            // Attendi caricamento script Google Maps
+            if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+                await loadGoogleMaps();
+            }
+
+            if (map) {
+                map.setCenter(getMapCenter());
+                return; // Già inizializzata
+            }
+
+            try {
+                const center = getMapCenter();
+                
+                map = new google.maps.Map(document.getElementById('map'), {
+                    zoom: 15,
+                    center: center,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE
+                });
+
+                // Disegna confini terreno se disponibili
+                if (currentTerreno && currentTerreno.polygonCoords && currentTerreno.polygonCoords.length > 0) {
+                    const terrenoCoords = currentTerreno.polygonCoords.map(c => 
+                        new google.maps.LatLng(c.lat, c.lng)
+                    );
+                    
+                    // Salva coordinate confine per snap
+                    terrenoBoundaryCoords = terrenoCoords;
+                    
+                    terrenoPolygon = new google.maps.Polygon({
+                        paths: terrenoCoords,
+                        fillColor: '#e3f2fd',
+                        fillOpacity: 0.2,
+                        strokeColor: '#1976d2',
+                        strokeWeight: 2,
+                        clickable: false
+                    });
+                    terrenoPolygon.setMap(map);
+                    
+                    // Fit bounds al terreno
+                    const bounds = new google.maps.LatLngBounds();
+                    terrenoCoords.forEach(coord => bounds.extend(coord));
+                    map.fitBounds(bounds);
+                    
+                    // Aggiorna visualizzazione aree non coperte
+                    updateUncoveredArea();
+                }
+
+                // Click listener per tracciamento segmento (polyline)
+                let clickTimeout = null;
+                map.addListener('click', function(event) {
+                    if (isDrawing) {
+                        // Gestisci doppio clic per terminare tracciamento
+                        if (clickTimeout) {
+                            clearTimeout(clickTimeout);
+                            clickTimeout = null;
+                            // Doppio clic: termina tracciamento
+                            if (polyline && currentSegmentCoords.length >= 2) {
+                                isDrawing = false;
+                                const btn = document.getElementById('btn-draw');
+                                const mapContainer = document.querySelector('.map-container');
+                                btn.textContent = '✏️ Traccia Segmento';
+                                btn.style.background = '#17a2b8';
+                                // Rimuovi classe per tornare al cursore normale
+                                if (mapContainer) {
+                                    mapContainer.classList.remove('drawing-mode');
+                                }
+                                showAlert('Tracciamento completato. Puoi modificare il segmento trascinando i punti.', 'success');
+                                return;
+                            }
+                            return;
+                        }
+                        
+                        // Singolo clic: aggiungi punto
+                        clickTimeout = setTimeout(() => {
+                            clickTimeout = null;
+                            
+                            // Applica snap: prima ai vertici, poi al confine
+                            // Lo snap è meno aggressivo per permettere posizionamento preciso
+                            // Tieni premuto Shift per disabilitare lo snap temporaneamente
+                            const disableSnap = event.domEvent && event.domEvent.shiftKey;
+                            let snappedPoint = event.latLng;
+                            let snapApplied = false;
+                            
+                            if (!disableSnap && terrenoBoundaryCoords.length > 0) {
+                                // 1. Snap ai vertici del terreno (solo se molto vicino)
+                                const vertexSnap = findNearestVertex(event.latLng, terrenoBoundaryCoords, VERTEX_SNAP_DISTANCE_METERS);
+                                if (vertexSnap) {
+                                    // Verifica che lo snap non sposti troppo il punto (max 5 metri)
+                                    const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(event.latLng, vertexSnap);
+                                    if (snapDistance <= VERTEX_SNAP_DISTANCE_METERS) {
+                                        snappedPoint = vertexSnap;
+                                        snapApplied = true;
+                                    }
+                                }
+                                
+                                // 2. Snap al confine del terreno (solo se non già agganciato a un vertice)
+                                if (!snapApplied) {
+                                    const boundarySnap = findNearestPointOnBoundary(event.latLng, terrenoBoundaryCoords, SNAP_DISTANCE_METERS);
+                                    if (boundarySnap) {
+                                        // Verifica che lo snap non sposti troppo il punto
+                                        const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(event.latLng, boundarySnap);
+                                        if (snapDistance <= SNAP_DISTANCE_METERS) {
+                                            snappedPoint = boundarySnap;
+                                            snapApplied = true;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Se lo snap è stato applicato, mostra un feedback visivo breve
+                            if (snapApplied) {
+                                // Crea un marker temporaneo per mostrare il punto agganciato
+                                const snapMarker = new google.maps.Marker({
+                                    position: snappedPoint,
+                                    map: map,
+                                    icon: {
+                                        path: google.maps.SymbolPath.CIRCLE,
+                                        scale: 8,
+                                        fillColor: '#00ff00',
+                                        fillOpacity: 0.8,
+                                        strokeColor: '#ffffff',
+                                        strokeWeight: 2
+                                    },
+                                    zIndex: 2000
+                                });
+                                // Rimuovi il marker dopo 1 secondo
+                                setTimeout(() => {
+                                    if (snapMarker) snapMarker.setMap(null);
+                                }, 1000);
+                            }
+                            
+                            // Valida che il punto sia dentro i confini del terreno (con tolleranza)
+                            if (terrenoPolygon) {
+                                const isInside = google.maps.geometry.poly.containsLocation(snappedPoint, terrenoPolygon);
+                                const distanceToBoundary = getDistanceToBoundary(snappedPoint, terrenoBoundaryCoords);
+                                
+                                // Permetti punto se è dentro O se è molto vicino al confine (entro 3 metri)
+                                if (!isInside && distanceToBoundary > 3) {
+                                    showAlert('Il segmento deve essere completamente dentro i confini del terreno!', 'error');
+                                    return;
+                                }
+                                
+                                // Se il punto è stato agganciato al confine ma è leggermente fuori, spostalo leggermente dentro
+                                if (!isInside && distanceToBoundary <= 3) {
+                                    // Sposta il punto leggermente dentro il confine
+                                    snappedPoint = movePointInsideBoundary(snappedPoint, terrenoBoundaryCoords);
+                                }
+                            }
+                            
+                            if (!polyline) {
+                                // Inizia nuovo segmento
+                                polyline = new google.maps.Polyline({
+                                    path: [snappedPoint],
+                                    strokeColor: '#ff6b35', // Colore diverso per nuovo segmento (arancione)
+                                    strokeWeight: 5,
+                                    strokeOpacity: 0.9,
+                                    clickable: false,
+                                    editable: true,
+                                    zIndex: 1000 // Sopra ai segmenti salvati
+                                });
+                                polyline.setMap(map);
+                                currentSegmentCoords = [snappedPoint];
+                                firstPoint = snappedPoint; // Salva il primo punto
+                                
+                                // Aggiungi listener per modifiche polyline
+                                polyline.getPath().addListener('set_at', function() {
+                                    currentSegmentCoords = polyline.getPath().getArray();
+                                    updateSegmentInfo();
+                                    updateUncoveredArea();
+                                });
+                                polyline.getPath().addListener('insert_at', function() {
+                                    currentSegmentCoords = polyline.getPath().getArray();
+                                    updateSegmentInfo();
+                                    updateUncoveredArea();
+                                });
+                                polyline.getPath().addListener('remove_at', function() {
+                                    currentSegmentCoords = polyline.getPath().getArray();
+                                    updateSegmentInfo();
+                                    updateUncoveredArea();
+                                });
+                            } else {
+                                // Verifica se il click è vicino al primo punto (per chiudere il segmento)
+                                if (firstPoint && currentSegmentCoords.length >= 3) {
+                                    const distanzaDalPrimo = google.maps.geometry.spherical.computeDistanceBetween(
+                                        snappedPoint,
+                                        firstPoint
+                                    );
+                                    // Se il click è entro 20 metri dal primo punto, chiudi il segmento
+                                    if (distanzaDalPrimo < 20) {
+                                        const path = polyline.getPath();
+                                        // Aggiungi il primo punto alla fine per chiudere il segmento
+                                        path.push(firstPoint);
+                                        currentSegmentCoords = path.getArray();
+                                        
+                                        // Termina tracciamento
+                                        isDrawing = false;
+                                        document.getElementById('btn-draw').textContent = '✏️ Traccia Segmento';
+                                        document.getElementById('btn-draw').style.background = '#17a2b8';
+                                        showAlert('Segmento chiuso! Puoi modificarlo trascinando i punti.', 'success');
+                                        
+                                        updateSegmentInfo();
+                                        updateUncoveredArea();
+                                        return;
+                                    }
+                                }
+                                
+                                // Aggiungi punto al segmento esistente
+                                const path = polyline.getPath();
+                                path.push(snappedPoint);
+                                currentSegmentCoords = path.getArray();
+                                
+                                // Valida che tutti i punti siano dentro i confini
+                                if (terrenoPolygon) {
+                                    const allInside = currentSegmentCoords.every(coord => 
+                                        google.maps.geometry.poly.containsLocation(coord, terrenoPolygon)
+                                    );
+                                    if (!allInside) {
+                                        showAlert('Tutti i punti del segmento devono essere dentro i confini del terreno!', 'error');
+                                        path.pop(); // Rimuovi ultimo punto
+                                        currentSegmentCoords = path.getArray();
+                                        return;
+                                    }
+                                }
+                            }
+                            
+                            if (currentSegmentCoords.length >= 2) {
+                                document.getElementById('map-info').classList.add('active');
+                                updateSegmentInfo();
+                                updateUncoveredArea();
+                            }
+                        }, 300); // Timeout per distinguere singolo da doppio clic
+                    }
+                });
+
+            } catch (error) {
+                console.error('Errore inizializzazione mappa:', error);
+                showAlert('Errore caricamento mappa', 'error');
+            }
+        }
+
+        // ========== FUNZIONI HELPER PER SNAP E TOLLERANZA ==========
+        
+        // Trova il vertice più vicino del terreno entro la distanza massima
+        function findNearestVertex(point, boundaryCoords, maxDistance) {
+            let nearestVertex = null;
+            let minDistance = maxDistance;
+            
+            boundaryCoords.forEach(vertex => {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, vertex);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestVertex = vertex;
+                }
+            });
+            
+            return nearestVertex;
+        }
+        
+        // Trova il punto più vicino sul confine del terreno (su un segmento di linea)
+        function findNearestPointOnBoundary(point, boundaryCoords, maxDistance) {
+            let nearestPoint = null;
+            let minDistance = maxDistance;
+            
+            // Itera su tutti i segmenti del confine
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length]; // Ultimo punto si collega al primo
+                
+                // Calcola punto più vicino su questo segmento
+                const closestPoint = getClosestPointOnSegment(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestPoint = closestPoint;
+                }
+            }
+            
+            return nearestPoint;
+        }
+        
+        // Calcola il punto più vicino su un segmento di linea
+        function getClosestPointOnSegment(point, segmentStart, segmentEnd) {
+            const A = point.lat();
+            const B = point.lng();
+            const C = segmentStart.lat();
+            const D = segmentStart.lng();
+            const E = segmentEnd.lat();
+            const F = segmentEnd.lng();
+            
+            // Calcola vettore del segmento
+            const dx = E - C;
+            const dy = F - D;
+            const lengthSquared = dx * dx + dy * dy;
+            
+            if (lengthSquared === 0) {
+                // Segmento degenere (punto)
+                return segmentStart;
+            }
+            
+            // Calcola parametro t (0 = start, 1 = end)
+            const t = Math.max(0, Math.min(1, ((A - C) * dx + (B - D) * dy) / lengthSquared));
+            
+            // Calcola punto più vicino
+            const closestLat = C + t * dx;
+            const closestLng = D + t * dy;
+            
+            return new google.maps.LatLng(closestLat, closestLng);
+        }
+        
+        // Calcola distanza minima da un punto al confine del terreno
+        function getDistanceToBoundary(point, boundaryCoords) {
+            let minDistance = Infinity;
+            
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length];
+                const closestPoint = getClosestPointOnSegment(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                minDistance = Math.min(minDistance, distance);
+            }
+            
+            return minDistance;
+        }
+        
+        // Sposta un punto leggermente dentro il confine del terreno
+        function movePointInsideBoundary(point, boundaryCoords) {
+            // Trova il punto più vicino sul confine
+            const nearestBoundaryPoint = findNearestPointOnBoundary(point, boundaryCoords, 100);
+            if (!nearestBoundaryPoint) return point;
+            
+            // Calcola vettore dal confine verso il centro del terreno
+            const center = getPolygonCenter(boundaryCoords);
+            const dx = center.lat() - nearestBoundaryPoint.lat();
+            const dy = center.lng() - nearestBoundaryPoint.lng();
+            const length = Math.sqrt(dx * dx + dy * dy);
+            
+            if (length === 0) return point;
+            
+            // Normalizza e sposta di 1 metro verso l'interno
+            const moveDistance = 1 / 111000; // Circa 1 metro in gradi (approssimazione)
+            const normalizedDx = dx / length;
+            const normalizedDy = dy / length;
+            
+            return new google.maps.LatLng(
+                nearestBoundaryPoint.lat() + normalizedDx * moveDistance,
+                nearestBoundaryPoint.lng() + normalizedDy * moveDistance
+            );
+        }
+        
+        // Calcola centro di un poligono
+        function getPolygonCenter(coords) {
+            let sumLat = 0, sumLng = 0;
+            coords.forEach(coord => {
+                sumLat += coord.lat();
+                sumLng += coord.lng();
+            });
+            return new google.maps.LatLng(sumLat / coords.length, sumLng / coords.length);
+        }
+        
+        // Estende coordinate di un segmento fino al confine se molto vicino
+        function extendToBoundaryIfNear(coords, boundaryCoords, tolerance) {
+            if (!coords || coords.length < 2 || !boundaryCoords || boundaryCoords.length === 0) {
+                return coords;
+            }
+            
+            const extendedCoords = [...coords];
+            
+            // Estendi primo punto se vicino al confine
+            const firstPoint = coords[0];
+            const distanceToBoundaryFirst = getDistanceToBoundary(firstPoint, boundaryCoords);
+            if (distanceToBoundaryFirst <= tolerance) {
+                const boundaryPoint = findNearestPointOnBoundary(firstPoint, boundaryCoords, tolerance);
+                if (boundaryPoint) {
+                    extendedCoords[0] = boundaryPoint;
+                }
+            }
+            
+            // Estendi ultimo punto se vicino al confine
+            const lastPoint = coords[coords.length - 1];
+            const distanceToBoundaryLast = getDistanceToBoundary(lastPoint, boundaryCoords);
+            if (distanceToBoundaryLast <= tolerance) {
+                const boundaryPoint = findNearestPointOnBoundary(lastPoint, boundaryCoords, tolerance);
+                if (boundaryPoint) {
+                    extendedCoords[extendedCoords.length - 1] = boundaryPoint;
+                }
+            }
+            
+            return extendedCoords;
+        }
+        
+        // Aggiorna visualizzazione aree non coperte
+        async function updateUncoveredArea() {
+            if (!map || !terrenoPolygon || !currentLavoroId) return;
+            
+            try {
+                // Rimuovi poligono precedente
+                if (uncoveredAreaPolygon) {
+                    uncoveredAreaPolygon.setMap(null);
+                    uncoveredAreaPolygon = null;
+                }
+                
+                // Carica tutti i segmenti lavorati per questo lavoro
+                const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', currentLavoroId, 'zoneLavorate');
+                const zoneSnapshot = await getDocs(zoneRef);
+                
+                // Crea array di poligoni lavorati
+                const lavoratiPolygons = [];
+                zoneSnapshot.forEach(doc => {
+                    const zona = doc.data();
+                    if (zona.coordinate && zona.coordinate.length >= 3) {
+                        // Crea poligono per zona lavorata (se chiusa)
+                        const coords = zona.coordinate.map(c => new google.maps.LatLng(c.lat, c.lng));
+                        const primoPunto = coords[0];
+                        const ultimoPunto = coords[coords.length - 1];
+                        const distanza = google.maps.geometry.spherical.computeDistanceBetween(primoPunto, ultimoPunto);
+                        
+                        // Se è chiusa (o quasi chiusa), aggiungi come poligono
+                        if (distanza < 10 || zona.isChiuso) {
+                            lavoratiPolygons.push(coords);
+                        }
+                    }
+                });
+                
+                // Aggiungi anche il segmento corrente se è chiuso
+                if (polyline && currentSegmentCoords.length >= 3) {
+                    const primoPunto = currentSegmentCoords[0];
+                    const ultimoPunto = currentSegmentCoords[currentSegmentCoords.length - 1];
+                    const distanza = google.maps.geometry.spherical.computeDistanceBetween(primoPunto, ultimoPunto);
+                    if (distanza < 10) {
+                        lavoratiPolygons.push([...currentSegmentCoords]);
+                    }
+                }
+                
+                // Calcola area non coperta (differenza tra terreno e zone lavorate)
+                // Per semplicità, mostriamo solo un'indicazione visiva
+                // Il calcolo preciso richiederebbe una libreria di geometria più avanzata
+                
+                // Visualizza area non coperta come overlay semi-trasparente
+                if (terrenoBoundaryCoords.length > 0 && lavoratiPolygons.length > 0) {
+                    // Per ora, mostriamo solo un'indicazione: coloriamo il terreno con opacità diversa
+                    // dove ci sono zone lavorate
+                    // Nota: Un calcolo preciso richiederebbe una libreria come Turf.js o JSTS
+                }
+                
+            } catch (error) {
+                console.error('Errore aggiornamento aree non coperte:', error);
+            }
+        }
+        
+        // Ottieni centro mappa
+        function getMapCenter() {
+            if (currentTerreno && currentTerreno.coordinate) {
+                return { lat: currentTerreno.coordinate.lat, lng: currentTerreno.coordinate.lng };
+            }
+            return { lat: 44.4949, lng: 11.3426 }; // Default: Bologna
+        }
+
+        // Carica Google Maps API
+        function loadGoogleMaps() {
+            return new Promise((resolve, reject) => {
+                if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                const apiKey = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
+                if (apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                    reject(new Error('Google Maps API key not configured'));
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry,places`;
+                script.async = true;
+                script.defer = true;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Toggle drawing mode
+        window.toggleDrawing = function() {
+            isDrawing = !isDrawing;
+            const btn = document.getElementById('btn-draw');
+            const mapContainer = document.querySelector('.map-container');
+            
+            if (isDrawing) {
+                btn.textContent = '⏸️ Pausa Tracciamento';
+                btn.style.background = '#dc3545';
+                // Aggiungi classe per cursore crosshair
+                if (mapContainer) {
+                    mapContainer.classList.add('drawing-mode');
+                }
+                showAlert('Clicca sulla mappa per tracciare. Clicca sul primo punto o fai doppio clic per terminare.', 'info');
+            } else {
+                btn.textContent = '✏️ Traccia Segmento';
+                btn.style.background = '#17a2b8';
+                // Rimuovi classe per tornare al cursore normale
+                if (mapContainer) {
+                    mapContainer.classList.remove('drawing-mode');
+                }
+            }
+        };
+        
+        // Carica e visualizza segmenti già salvati sulla mappa
+        async function loadAndDisplaySavedSegments(lavoroId) {
+            try {
+                // Carica segmenti salvati
+                const segmenti = await loadZoneLavorate(lavoroId);
+                
+                // Rimuovi segmenti precedenti
+                savedSegments.forEach(segment => {
+                    if (segment.polyline) {
+                        segment.polyline.setMap(null);
+                    }
+                });
+                savedSegments = [];
+                
+                // Visualizza ogni segmento sulla mappa
+                segmenti.forEach((segmento, index) => {
+                    if (!segmento.coordinate || segmento.coordinate.length < 2) return;
+                    
+                    // Colori diversi per data (più recenti più scuri)
+                    const colors = ['#28a745', '#20c997', '#17a2b8', '#6c757d'];
+                    const colorIndex = Math.min(index, colors.length - 1);
+                    const color = colors[colorIndex];
+                    
+                    // Crea polyline per il segmento salvato
+                    const coords = segmento.coordinate.map(c => 
+                        new google.maps.LatLng(c.lat, c.lng)
+                    );
+                    
+                    const savedPolyline = new google.maps.Polyline({
+                        path: coords,
+                        strokeColor: color,
+                        strokeWeight: 3,
+                        strokeOpacity: 0.7,
+                        clickable: false,
+                        editable: false,
+                        zIndex: 100 // Sotto al nuovo segmento in tracciamento
+                    });
+                    
+                    savedPolyline.setMap(map);
+                    
+                    savedSegments.push({
+                        id: segmento.id,
+                        polyline: savedPolyline,
+                        data: segmento
+                    });
+                });
+            } catch (error) {
+                console.error('Errore caricamento segmenti salvati:', error);
+            }
+        }
+
+        // Cancella segmento
+        window.clearSegment = function() {
+            if (polyline) {
+                polyline.setMap(null);
+                polyline = null;
+            }
+            currentSegmentCoords = [];
+            firstPoint = null;
+            document.getElementById('map-info').classList.remove('active');
+            // Rimuovi classe drawing-mode se presente
+            const mapContainer = document.querySelector('.map-container');
+            if (mapContainer) {
+                mapContainer.classList.remove('drawing-mode');
+            }
+            isDrawing = false;
+            const btn = document.getElementById('btn-draw');
+            if (btn) {
+                btn.textContent = '✏️ Traccia Segmento';
+                btn.style.background = '#17a2b8';
+            }
+            updateUncoveredArea();
+        };
+
+        // Cerca indirizzo
+        window.searchLocation = function() {
+            if (!map || !window.google || !window.google.maps) {
+                showAlert('Mappa non ancora caricata', 'error');
+                return;
+            }
+
+            const searchInput = document.getElementById('map-search');
+            const geocoder = new google.maps.Geocoder();
+            
+            geocoder.geocode({ address: searchInput.value }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    map.setCenter(results[0].geometry.location);
+                    map.setZoom(17);
+                } else {
+                    showAlert('Indirizzo non trovato', 'error');
+                }
+            });
+        };
+
+        // Aggiorna info segmento (lunghezza e superficie)
+        function updateSegmentInfo() {
+            if (!polyline || currentSegmentCoords.length < 2) {
+                document.getElementById('map-info').classList.remove('active');
+                return;
+            }
+            
+            try {
+                // Applica tolleranza di prossimità: estendi coordinate fino al confine se molto vicino
+                let coordsForCalculation = currentSegmentCoords;
+                if (terrenoBoundaryCoords.length > 0) {
+                    coordsForCalculation = extendToBoundaryIfNear(currentSegmentCoords, terrenoBoundaryCoords, PROXIMITY_TOLERANCE_METERS);
+                }
+                
+                // Verifica se il segmento è chiuso (primo punto = ultimo punto)
+                const primoPunto = coordsForCalculation[0];
+                const ultimoPunto = coordsForCalculation[coordsForCalculation.length - 1];
+                const distanzaPrimoUltimo = google.maps.geometry.spherical.computeDistanceBetween(
+                    primoPunto,
+                    ultimoPunto
+                );
+                const isChiuso = distanzaPrimoUltimo < 5; // Se primo e ultimo punto sono entro 5 metri, è chiuso
+                
+                let superficie = 0;
+                let lunghezzaTotale = 0;
+                
+                if (isChiuso && coordsForCalculation.length >= 3) {
+                    // Segmento chiuso: calcola area del poligono
+                    const area = google.maps.geometry.spherical.computeArea(coordsForCalculation);
+                    superficie = area / 10000; // Converti da m² a ettari
+                    
+                    // Calcola anche la lunghezza per riferimento
+                    for (let i = 0; i < coordsForCalculation.length - 1; i++) {
+                        const distanza = google.maps.geometry.spherical.computeDistanceBetween(
+                            coordsForCalculation[i],
+                            coordsForCalculation[i + 1]
+                        );
+                        lunghezzaTotale += distanza;
+                    }
+                } else {
+                    // Segmento aperto
+                    for (let i = 0; i < coordsForCalculation.length - 1; i++) {
+                        const distanza = google.maps.geometry.spherical.computeDistanceBetween(
+                            coordsForCalculation[i],
+                            coordsForCalculation[i + 1]
+                        );
+                        lunghezzaTotale += distanza;
+                    }
+                    
+                    // Ottieni larghezza dal form (opzionale)
+                    const larghezzaInput = document.getElementById('zona-larghezza');
+                    const larghezza = larghezzaInput ? parseFloat(larghezzaInput.value) : null;
+                    
+                    if (larghezza && larghezza > 0) {
+                        // Se c'è larghezza, calcola: lunghezza × larghezza (operazioni meccanizzate)
+                        superficie = (lunghezzaTotale * larghezza) / 10000; // Converti da m² a ettari
+                    } else {
+                        // Se non c'è larghezza, calcola area del poligono formato dal segmento (operazioni manuali)
+                        // Crea un poligono approssimato dal segmento usando una larghezza virtuale basata sulla distanza media tra i punti
+                        if (coordsForCalculation.length >= 2) {
+                            // Calcola larghezza virtuale basata sulla distanza tra i punti del segmento
+                            let distanzaMedia = 0;
+                            if (coordsForCalculation.length > 2) {
+                                let distanze = [];
+                                for (let i = 1; i < coordsForCalculation.length - 1; i++) {
+                                    const dist1 = google.maps.geometry.spherical.computeDistanceBetween(
+                                        coordsForCalculation[i - 1],
+                                        coordsForCalculation[i]
+                                    );
+                                    const dist2 = google.maps.geometry.spherical.computeDistanceBetween(
+                                        coordsForCalculation[i],
+                                        coordsForCalculation[i + 1]
+                                    );
+                                    distanze.push((dist1 + dist2) / 2);
+                                }
+                                distanzaMedia = distanze.reduce((a, b) => a + b, 0) / distanze.length;
+                            } else {
+                                distanzaMedia = lunghezzaTotale;
+                            }
+                            
+                            // Usa una larghezza virtuale basata sulla distanza tra i punti (approssimazione per operazioni manuali)
+                            const larghezzaVirtuale = Math.max(1.0, Math.min(5.0, distanzaMedia * 0.1)); // Tra 1 e 5 metri
+                            superficie = (lunghezzaTotale * larghezzaVirtuale) / 10000;
+                        } else {
+                            superficie = 0;
+                        }
+                    }
+                }
+                
+                // Aggiorna UI
+                const lengthEl = document.getElementById('calculated-length');
+                const areaEl = document.getElementById('calculated-area');
+                if (lengthEl) lengthEl.textContent = lunghezzaTotale.toFixed(2);
+                if (areaEl) {
+                    areaEl.textContent = superficie.toFixed(4);
+                    // Mostra indicazione se è stata applicata tolleranza
+                    if (coordsForCalculation !== currentSegmentCoords) {
+                        areaEl.title = 'Superficie calcolata estendendo fino al confine (tolleranza applicata)';
+                    }
+                }
+            } catch (error) {
+                console.error('Errore calcolo segmento:', error);
+            }
+        }
+        
+        // Listener per aggiornare superficie quando cambia larghezza
+        document.addEventListener('DOMContentLoaded', function() {
+            const larghezzaInput = document.getElementById('zona-larghezza');
+            if (larghezzaInput) {
+                larghezzaInput.addEventListener('input', function() {
+                    if (polyline && currentSegmentCoords.length >= 2) {
+                        updateSegmentInfo();
+                    }
+                });
+            }
+        });
+
+        // Gestisci salvataggio segmento
+        window.handleSalvaZona = async function(event) {
+            event.preventDefault();
+            
+            const data = document.getElementById('zona-data').value;
+            const larghezza = parseFloat(document.getElementById('zona-larghezza').value);
+            const note = document.getElementById('zona-note').value.trim();
+            
+            if (!data) {
+                showAlert('Seleziona una data', 'error');
+                return;
+            }
+            
+            if (!polyline || currentSegmentCoords.length < 2) {
+                showAlert('Traccia almeno 2 punti sulla mappa per definire il segmento', 'error');
+                return;
+            }
+            
+            // Valida che tutti i punti siano dentro i confini del terreno
+            if (terrenoPolygon) {
+                const allInside = currentSegmentCoords.every(coord => 
+                    google.maps.geometry.poly.containsLocation(coord, terrenoPolygon)
+                );
+                if (!allInside) {
+                    showAlert('Tutti i punti del segmento devono essere dentro i confini del terreno!', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                // Applica tolleranza di prossimità: estendi coordinate fino al confine se molto vicino
+                let coordsForCalculation = currentSegmentCoords;
+                if (terrenoBoundaryCoords.length > 0) {
+                    coordsForCalculation = extendToBoundaryIfNear(currentSegmentCoords, terrenoBoundaryCoords, PROXIMITY_TOLERANCE_METERS);
+                }
+                
+                // Verifica se il segmento è chiuso (primo punto = ultimo punto)
+                const primoPunto = coordsForCalculation[0];
+                const ultimoPunto = coordsForCalculation[coordsForCalculation.length - 1];
+                const distanzaPrimoUltimo = google.maps.geometry.spherical.computeDistanceBetween(
+                    primoPunto,
+                    ultimoPunto
+                );
+                const isChiuso = distanzaPrimoUltimo < 5; // Se primo e ultimo punto sono entro 5 metri, è chiuso
+                
+                // Per segmenti aperti senza larghezza, calcoliamo l'area del poligono approssimato
+                // Non blocchiamo più se non c'è larghezza - è opzionale
+                
+                let superficieHa = 0;
+                let lunghezzaTotale = 0;
+                
+                if (isChiuso && coordsForCalculation.length >= 3) {
+                    // Segmento chiuso: calcola area del poligono
+                    const area = google.maps.geometry.spherical.computeArea(coordsForCalculation);
+                    superficieHa = area / 10000; // Converti da m² a ettari
+                    
+                    // Calcola anche la lunghezza per riferimento
+                    for (let i = 0; i < coordsForCalculation.length - 1; i++) {
+                        const distanza = google.maps.geometry.spherical.computeDistanceBetween(
+                            coordsForCalculation[i],
+                            coordsForCalculation[i + 1]
+                        );
+                        lunghezzaTotale += distanza;
+                    }
+                } else {
+                    // Segmento aperto
+                    for (let i = 0; i < coordsForCalculation.length - 1; i++) {
+                        const distanza = google.maps.geometry.spherical.computeDistanceBetween(
+                            coordsForCalculation[i],
+                            coordsForCalculation[i + 1]
+                        );
+                        lunghezzaTotale += distanza;
+                    }
+                    
+                    // Ottieni larghezza dal form (opzionale)
+                    const larghezzaInput = document.getElementById('zona-larghezza');
+                    const larghezza = larghezzaInput ? parseFloat(larghezzaInput.value) : null;
+                    
+                    if (larghezza && larghezza > 0) {
+                        // Se c'è larghezza, calcola: lunghezza × larghezza (operazioni meccanizzate)
+                        superficieHa = (lunghezzaTotale * larghezza) / 10000; // Converti da m² a ettari
+                    } else {
+                        // Se non c'è larghezza, calcola area del poligono approssimato (operazioni manuali)
+                        // Crea un poligono approssimato dal segmento
+                        if (coordsForCalculation.length >= 2) {
+                            // Calcola larghezza virtuale basata sulla distanza tra i punti
+                            let distanzaMedia = 0;
+                            if (coordsForCalculation.length > 2) {
+                                let distanze = [];
+                                for (let i = 1; i < coordsForCalculation.length - 1; i++) {
+                                    const dist1 = google.maps.geometry.spherical.computeDistanceBetween(
+                                        coordsForCalculation[i - 1],
+                                        coordsForCalculation[i]
+                                    );
+                                    const dist2 = google.maps.geometry.spherical.computeDistanceBetween(
+                                        coordsForCalculation[i],
+                                        coordsForCalculation[i + 1]
+                                    );
+                                    distanze.push((dist1 + dist2) / 2);
+                                }
+                                distanzaMedia = distanze.reduce((a, b) => a + b, 0) / distanze.length;
+                            } else {
+                                distanzaMedia = lunghezzaTotale;
+                            }
+                            
+                            // Usa una larghezza virtuale basata sulla distanza tra i punti
+                            const larghezzaVirtuale = Math.max(1.0, Math.min(5.0, distanzaMedia * 0.1)); // Tra 1 e 5 metri
+                            superficieHa = (lunghezzaTotale * larghezzaVirtuale) / 10000;
+                        } else {
+                            superficieHa = 0;
+                        }
+                    }
+                }
+                
+                // Converti coordinate in formato serializzabile (usa coordinate originali, non quelle estese)
+                const coordinate = currentSegmentCoords.map(coord => ({
+                    lat: coord.lat(),
+                    lng: coord.lng()
+                }));
+                
+                // Ottieni larghezza dal form (può essere null se non inserita)
+                const larghezzaInput = document.getElementById('zona-larghezza');
+                const larghezzaValue = larghezzaInput ? parseFloat(larghezzaInput.value) : null;
+                
+                const segmentoData = {
+                    tipo: isChiuso ? 'poligono' : 'segmento', // Identifica se è chiuso (poligono) o aperto (segmento)
+                    data: Timestamp.fromDate(new Date(data)),
+                    caposquadraId: currentUserData.id,
+                    coordinate: coordinate, // Coordinate del segmento (polyline) o poligono
+                    lunghezzaMetri: lunghezzaTotale,
+                    larghezzaMetri: (isChiuso || !larghezzaValue || larghezzaValue <= 0) ? null : larghezzaValue, // Larghezza solo per segmenti aperti con valore valido
+                    superficieHa: superficieHa,
+                    isChiuso: isChiuso, // Flag per indicare se è chiuso
+                    note: note || '',
+                    creatoIl: serverTimestamp()
+                };
+                
+                // Salva nella sub-collection zoneLavorate
+                await addDoc(
+                    collection(db, 'tenants', currentTenantId, 'lavori', currentLavoroId, 'zoneLavorate'),
+                    segmentoData
+                );
+                
+                // Aggiorna progressi lavoro
+                await aggiornaProgressiLavoro(currentLavoroId);
+                
+                showAlert('Segmento lavorato salvato con successo!', 'success');
+                closeZonaModal();
+                await loadLavori(); // Ricarica lavori per aggiornare progressi
+            } catch (error) {
+                console.error('Errore salvataggio segmento:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+
+        // Mostra alert
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alertClass = `alert-${type}`;
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Calcola superficie lavorata unificata (unione geometrica invece di somma semplice)
+        async function calculateUnifiedWorkedArea(zone) {
+            if (!zone || zone.length === 0) return 0;
+            
+            // Verifica che Google Maps sia caricato
+            if (typeof google === 'undefined' || typeof google.maps === 'undefined' || !google.maps.geometry) {
+                console.warn('Google Maps non ancora caricato, uso somma semplice');
+                // Fallback: somma semplice
+                return zone.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+            }
+            
+            try {
+                // Converti tutte le zone in poligoni Google Maps
+                const polygons = [];
+                zone.forEach(zona => {
+                    if (zona.coordinate && zona.coordinate.length >= 2) {
+                        const coords = zona.coordinate.map(c => new google.maps.LatLng(c.lat, c.lng));
+                        
+                        // Se è chiusa, usa direttamente come poligono
+                        if (zona.isChiuso || coords.length >= 3) {
+                            const primoPunto = coords[0];
+                            const ultimoPunto = coords[coords.length - 1];
+                            const distanza = google.maps.geometry.spherical.computeDistanceBetween(primoPunto, ultimoPunto);
+                            
+                            if (distanza < 10 || zona.isChiuso) {
+                                // Poligono chiuso: calcola area diretta
+                                polygons.push({
+                                    coords: coords,
+                                    area: google.maps.geometry.spherical.computeArea(coords) / 10000, // In ettari
+                                    isClosed: true
+                                });
+                            } else {
+                                // Segmento aperto: crea poligono approssimato
+                                polygons.push({
+                                    coords: coords,
+                                    area: zona.superficieHa || 0,
+                                    isClosed: false,
+                                    lunghezza: zona.lunghezzaMetri || 0,
+                                    larghezza: zona.larghezzaMetri || null
+                                });
+                            }
+                        }
+                    }
+                });
+                
+                if (polygons.length === 0) return 0;
+                
+                // Se c'è solo un poligono, ritorna la sua area
+                if (polygons.length === 1) {
+                    return polygons[0].area;
+                }
+                
+                // Calcola unione approssimata dei poligoni
+                // Strategia: per poligoni chiusi, calcola l'unione geometrica
+                // Per segmenti aperti vicini, considera l'area unificata
+                const closedPolygons = polygons.filter(p => p.isClosed);
+                const openSegments = polygons.filter(p => !p.isClosed);
+                
+                let totalArea = 0;
+                
+                // Calcola area dei poligoni chiusi con unione geometrica approssimata
+                if (closedPolygons.length > 0) {
+                    // Per semplicità, calcoliamo l'unione approssimata
+                    // Un algoritmo preciso richiederebbe Turf.js o JSTS
+                    // Per ora, usiamo un approccio che considera le sovrapposizioni
+                    totalArea = calculateUnionAreaApproximate(closedPolygons);
+                }
+                
+                // Aggiungi area dei segmenti aperti (considerando sovrapposizioni)
+                if (openSegments.length > 0) {
+                    const openArea = calculateOpenSegmentsArea(openSegments);
+                    // Se ci sono sia poligoni chiusi che segmenti aperti, aggiungi l'area dei segmenti
+                    // considerando che potrebbero sovrapporsi ai poligoni chiusi
+                    totalArea += openArea;
+                }
+                
+                return totalArea;
+            } catch (error) {
+                console.error('Errore calcolo area unificata:', error);
+                // Fallback: somma semplice
+                return zone.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+            }
+        }
+        
+        // Calcola area unione approssimata di poligoni chiusi
+        function calculateUnionAreaApproximate(polygons) {
+            if (polygons.length === 0) return 0;
+            if (polygons.length === 1) return polygons[0].area;
+            
+            // Strategia approssimata: calcola area totale e sottrai sovrapposizioni stimate
+            let totalArea = 0;
+            const processedAreas = [];
+            
+            polygons.forEach((polygon, index) => {
+                let areaToAdd = polygon.area;
+                
+                // Verifica sovrapposizioni con poligoni già processati
+                for (let i = 0; i < processedAreas.length; i++) {
+                    const processed = processedAreas[i];
+                    const overlap = estimateOverlap(polygon.coords, processed.coords);
+                    if (overlap > 0) {
+                        // Sottrai sovrapposizione stimata
+                        areaToAdd -= overlap;
+                    }
+                }
+                
+                if (areaToAdd > 0) {
+                    totalArea += areaToAdd;
+                    processedAreas.push(polygon);
+                }
+            });
+            
+            return Math.max(0, totalArea);
+        }
+        
+        // Stima sovrapposizione tra due poligoni (approssimata)
+        function estimateOverlap(coords1, coords2) {
+            try {
+                // Crea poligoni temporanei per verificare sovrapposizione
+                const poly1 = new google.maps.Polygon({ paths: coords1 });
+                const poly2 = new google.maps.Polygon({ paths: coords2 });
+                
+                // Verifica se i poligoni si sovrappongono
+                // Controlla se alcuni punti di poly1 sono dentro poly2 o viceversa
+                let pointsInside = 0;
+                const samplePoints = coords1.slice(0, Math.min(5, coords1.length)); // Campiona alcuni punti
+                
+                samplePoints.forEach(point => {
+                    if (google.maps.geometry.poly.containsLocation(point, poly2)) {
+                        pointsInside++;
+                    }
+                });
+                
+                // Se molti punti sono dentro, c'è sovrapposizione significativa
+                if (pointsInside > samplePoints.length * 0.5) {
+                    // Stima sovrapposizione come percentuale dell'area minore
+                    const area1 = google.maps.geometry.spherical.computeArea(coords1) / 10000;
+                    const area2 = google.maps.geometry.spherical.computeArea(coords2) / 10000;
+                    return Math.min(area1, area2) * 0.7; // Stima conservativa
+                }
+                
+                return 0;
+            } catch (error) {
+                return 0;
+            }
+        }
+        
+        // Calcola area totale dei segmenti aperti considerando sovrapposizioni
+        function calculateOpenSegmentsArea(segments) {
+            if (segments.length === 0) return 0;
+            
+            let totalArea = 0;
+            const processedSegments = [];
+            
+            segments.forEach(segment => {
+                let areaToAdd = segment.area;
+                
+                // Verifica se questo segmento è vicino a segmenti già processati
+                for (let i = 0; i < processedSegments.length; i++) {
+                    const processed = processedSegments[i];
+                    const distance = getMinDistanceBetweenSegments(segment.coords, processed.coords);
+                    
+                    // Se i segmenti sono molto vicini (entro 5 metri), considera sovrapposizione
+                    if (distance < 5) {
+                        // Sottrai parte della sovrapposizione stimata
+                        const overlapEstimate = Math.min(segment.area, processed.area) * 0.3;
+                        areaToAdd -= overlapEstimate;
+                    }
+                }
+                
+                if (areaToAdd > 0) {
+                    totalArea += areaToAdd;
+                    processedSegments.push(segment);
+                }
+            });
+            
+            return Math.max(0, totalArea);
+        }
+        
+        // Calcola distanza minima tra due segmenti
+        function getMinDistanceBetweenSegments(coords1, coords2) {
+            let minDistance = Infinity;
+            
+            coords1.forEach(point1 => {
+                coords2.forEach(point2 => {
+                    const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
+                    minDistance = Math.min(minDistance, distance);
+                });
+            });
+            
+            return minDistance;
+        }
+        
+        // Aggiorna progressi lavoro (calcolo automatico)
+        async function aggiornaProgressiLavoro(lavoroId) {
+            try {
+                // Carica tutte le zone lavorate
+                const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const zoneSnapshot = await getDocs(zoneRef);
+                
+                const zone = [];
+                zoneSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    zone.push({
+                        id: doc.id,
+                        ...data,
+                        data: data.data?.toDate ? data.data.toDate() : (data.data ? new Date(data.data) : null)
+                    });
+                });
+                
+                // Calcola superficie totale usando unione geometrica invece di somma semplice
+                const superficieTotaleLavorata = await calculateUnifiedWorkedArea(zone);
+                
+                // Carica lavoro per ottenere terreno
+                const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+                if (!lavoroDoc.exists()) return;
+                
+                const lavoro = lavoroDoc.data();
+                const terrenoId = lavoro.terrenoId;
+                
+                // Carica terreno per ottenere superficie totale
+                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId));
+                if (!terrenoDoc.exists()) return;
+                
+                const terreno = terrenoDoc.data();
+                const superficieTotaleTerreno = terreno.superficie || 0;
+                
+                // Calcola progressi
+                const superficieRimanente = Math.max(0, superficieTotaleTerreno - superficieTotaleLavorata);
+                const percentualeCompletamento = superficieTotaleTerreno > 0 
+                    ? (superficieTotaleLavorata / superficieTotaleTerreno * 100) 
+                    : 0;
+                
+                // Calcola giorni effettivi
+                const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
+                const oggi = new Date();
+                const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)));
+                
+                // Calcola stato progresso
+                let statoProgresso = null;
+                if (lavoro.durataPrevista && giorniEffettivi > 0) {
+                    const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+                    if (percentualeCompletamento > percentualeTempo + 10) {
+                        statoProgresso = 'in_anticipo';
+                    } else if (percentualeCompletamento < percentualeTempo - 10) {
+                        statoProgresso = 'in_ritardo';
+                    } else {
+                        statoProgresso = 'in_tempo';
+                    }
+                }
+                
+                // Aggiorna stato lavoro se completato
+                let nuovoStato = lavoro.stato;
+                if (percentualeCompletamento >= 100 && lavoro.stato !== 'completato') {
+                    nuovoStato = 'completato';
+                } else if (percentualeCompletamento > 0 && lavoro.stato === 'assegnato') {
+                    nuovoStato = 'in_corso';
+                }
+                
+                // Aggiorna documento lavoro con progressi
+                await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
+                    superficieTotaleLavorata: superficieTotaleLavorata,
+                    superficieRimanente: superficieRimanente,
+                    percentualeCompletamento: Math.round(percentualeCompletamento * 10) / 10,
+                    giorniEffettivi: giorniEffettivi,
+                    statoProgresso: statoProgresso,
+                    stato: nuovoStato,
+                    aggiornatoIl: serverTimestamp()
+                });
+            } catch (error) {
+                console.error('Errore aggiornamento progressi:', error);
+                // Non blocchiamo il salvataggio della zona se c'è un errore nel calcolo progressi
+            }
+        }
+
+        // Segna lavoro come completato (in attesa approvazione)
+        window.segnaCompletato = async function(lavoroId, percentuale) {
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+            
+            // Conferma
+            const conferma = confirm(
+                `Sei sicuro di voler segnare questo lavoro come completato?\n\n` +
+                `Superficie tracciata: ${percentuale}%\n\n` +
+                `Il lavoro sarà inviato al Manager per l'approvazione finale.`
+            );
+            
+            if (!conferma) return;
+            
+            try {
+                const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
+                
+                // Aggiorna stato a "completato_da_approvare"
+                await updateDoc(lavoroRef, {
+                    stato: 'completato_da_approvare',
+                    percentualeCompletamentoTracciata: parseFloat(percentuale), // Salva percentuale reale tracciata
+                    completatoDa: currentUserData.id,
+                    completatoIl: serverTimestamp(),
+                    aggiornatoIl: serverTimestamp()
+                });
+                
+                showAlert('Lavoro segnato come completato! In attesa di approvazione del Manager.', 'success');
+                await loadLavori(); // Ricarica lavori
+            } catch (error) {
+                console.error('Errore segnatura completato:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+

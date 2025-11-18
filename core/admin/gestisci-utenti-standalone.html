@@ -386,7 +386,7 @@
                 </div>
                 <div class="form-group">
                     <label>Ruoli *</label>
-                    <div class="checkbox-group">
+                    <div class="checkbox-group" id="ruoli-checkbox-group">
                         <div class="checkbox-item">
                             <input type="checkbox" id="role-admin" value="amministratore">
                             <label for="role-admin">👑 Amministratore</label>
@@ -395,15 +395,18 @@
                             <input type="checkbox" id="role-manager" value="manager">
                             <label for="role-manager">📊 Manager</label>
                         </div>
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="role-caposquadra-item" style="display: none;">
                             <input type="checkbox" id="role-caposquadra" value="caposquadra">
                             <label for="role-caposquadra">👷 Caposquadra</label>
                         </div>
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="role-operaio-item" style="display: none;">
                             <input type="checkbox" id="role-operaio" value="operaio">
                             <label for="role-operaio">🔧 Operaio</label>
                         </div>
                     </div>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;" id="ruoli-info">
+                        Ruoli operai e caposquadra disponibili solo con modulo Manodopera attivo.
+                    </small>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-primary" style="flex: 1;">Invita</button>
@@ -458,7 +461,7 @@
                 <input type="hidden" id="ruoli-user-id">
                 <div class="form-group">
                     <label>Ruoli</label>
-                    <div class="checkbox-group">
+                    <div class="checkbox-group" id="edit-ruoli-checkbox-group">
                         <div class="checkbox-item">
                             <input type="checkbox" id="edit-role-admin" value="amministratore">
                             <label for="edit-role-admin">👑 Amministratore</label>
@@ -467,11 +470,11 @@
                             <input type="checkbox" id="edit-role-manager" value="manager">
                             <label for="edit-role-manager">📊 Manager</label>
                         </div>
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="edit-role-caposquadra-item" style="display: none;">
                             <input type="checkbox" id="edit-role-caposquadra" value="caposquadra">
                             <label for="edit-role-caposquadra">👷 Caposquadra</label>
                         </div>
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="edit-role-operaio-item" style="display: none;">
                             <input type="checkbox" id="edit-role-operaio" value="operaio">
                             <label for="edit-role-operaio">🔧 Operaio</label>
                         </div>
@@ -508,13 +511,31 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        // Verifica che la configurazione Firebase sia caricata
-        if (typeof window.firebaseConfig === 'undefined') {
-            console.error('Firebase config not found. Make sure firebase-config.js is loaded.');
-            throw new Error('Firebase config not loaded');
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
         }
 
-        const firebaseConfig = window.firebaseConfig;
+        const firebaseConfig = await waitForConfig();
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
@@ -526,6 +547,7 @@
 
         let currentUserData = null;
         let currentTenantId = null;
+        let hasManodoperaModule = false;
 
         // Configurazione URL base dell'applicazione
         // IMPORTANTE: Imposta qui l'URL pubblico della tua app quando è online
@@ -580,6 +602,31 @@
                         return;
                     }
 
+                    // Verifica se modulo Manodopera è attivo
+                    if (currentTenantId) {
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                            }
+                        } catch (error) {
+                            console.warn('Errore verifica modulo Manodopera:', error);
+                        }
+                    }
+
+                    // Se modulo Manodopera non è attivo, mostra avviso e redirect
+                    if (!hasManodoperaModule) {
+                        showAlert('Questa pagina è disponibile solo con il modulo Manodopera attivo. Attiva il modulo dall\'abbonamento.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 3000);
+                        return;
+                    }
+
+                    // Mostra/nascondi ruoli operai/caposquadra in base al modulo
+                    updateRuoliVisibility();
+
                     // Carica utenti
                     await loadUsers();
                 } else {
@@ -590,6 +637,29 @@
                 showAlert('Errore caricamento dati', 'error');
             }
         });
+
+        // Aggiorna visibilità ruoli operai/caposquadra
+        function updateRuoliVisibility() {
+            const caposquadraItem = document.getElementById('role-caposquadra-item');
+            const operaioItem = document.getElementById('role-operaio-item');
+            const editCaposquadraItem = document.getElementById('edit-role-caposquadra-item');
+            const editOperaioItem = document.getElementById('edit-role-operaio-item');
+            const ruoliInfo = document.getElementById('ruoli-info');
+
+            if (hasManodoperaModule) {
+                if (caposquadraItem) caposquadraItem.style.display = 'flex';
+                if (operaioItem) operaioItem.style.display = 'flex';
+                if (editCaposquadraItem) editCaposquadraItem.style.display = 'flex';
+                if (editOperaioItem) editOperaioItem.style.display = 'flex';
+                if (ruoliInfo) ruoliInfo.style.display = 'none';
+            } else {
+                if (caposquadraItem) caposquadraItem.style.display = 'none';
+                if (operaioItem) operaioItem.style.display = 'none';
+                if (editCaposquadraItem) editCaposquadraItem.style.display = 'none';
+                if (editOperaioItem) editOperaioItem.style.display = 'none';
+                if (ruoliInfo) ruoliInfo.style.display = 'block';
+            }
+        }
 
         // Carica lista utenti e inviti
         async function loadUsers() {
@@ -612,6 +682,8 @@
 
                 const snapshot = await getDocs(usersQuery);
                 const users = [];
+                const emailMap = new Map(); // Mappa per tracciare email già viste
+                
                 snapshot.forEach(doc => {
                     const userData = { id: doc.id, ...doc.data() };
                     // Marca come "disconnesso" se non ha email o se l'email non corrisponde a un utente valido
@@ -619,8 +691,35 @@
                     // Quindi aggiungiamo un flag per indicare utenti potenzialmente orfani
                     if (!userData.email) {
                         userData.stato = 'disconnesso';
+                        users.push(userData);
+                        return;
                     }
-                    users.push(userData);
+                    
+                    // Controlla se esiste già un utente con questa email
+                    const emailLower = userData.email.toLowerCase().trim();
+                    if (emailMap.has(emailLower)) {
+                        // Duplicato trovato - mantieni solo quello con UID che corrisponde all'email (più recente o con più dati)
+                        const existingUser = emailMap.get(emailLower);
+                        console.warn('⚠️ Duplicato trovato per email:', emailLower, 'UID esistenti:', existingUser.id, 'e', userData.id);
+                        
+                        // Preferisci quello con più dati completi o quello più recente
+                        const existingDataComplete = (existingUser.nome && existingUser.cognome && existingUser.ruoli?.length > 0);
+                        const newDataComplete = (userData.nome && userData.cognome && userData.ruoli?.length > 0);
+                        
+                        if (newDataComplete && !existingDataComplete) {
+                            // Il nuovo ha più dati, sostituisci quello esistente
+                            const index = users.findIndex(u => u.id === existingUser.id);
+                            if (index !== -1) {
+                                users[index] = userData;
+                                emailMap.set(emailLower, userData);
+                            }
+                        }
+                        // Altrimenti ignora il duplicato (mantieni quello esistente)
+                    } else {
+                        // Prima occorrenza di questa email, aggiungila
+                        emailMap.set(emailLower, userData);
+                        users.push(userData);
+                    }
                 });
 
                 // Carica anche inviti pendenti
@@ -828,6 +927,7 @@
         function openInvitaModal() {
             document.getElementById('invita-modal').classList.add('active');
             document.getElementById('invita-form').reset();
+            updateRuoliVisibility();
         }
 
         function closeInvitaModal() {
@@ -889,8 +989,10 @@
             const ruoli = [];
             if (document.getElementById('role-admin').checked) ruoli.push('amministratore');
             if (document.getElementById('role-manager').checked) ruoli.push('manager');
-            if (document.getElementById('role-caposquadra').checked) ruoli.push('caposquadra');
-            if (document.getElementById('role-operaio').checked) ruoli.push('operaio');
+            if (hasManodoperaModule) {
+                if (document.getElementById('role-caposquadra').checked) ruoli.push('caposquadra');
+                if (document.getElementById('role-operaio').checked) ruoli.push('operaio');
+            }
 
             if (ruoli.length === 0) {
                 showAlert('Seleziona almeno un ruolo', 'error');
@@ -1019,9 +1121,12 @@
             // Seleziona ruoli attuali
             if (currentRoles.includes('amministratore')) document.getElementById('edit-role-admin').checked = true;
             if (currentRoles.includes('manager')) document.getElementById('edit-role-manager').checked = true;
-            if (currentRoles.includes('caposquadra')) document.getElementById('edit-role-caposquadra').checked = true;
-            if (currentRoles.includes('operaio')) document.getElementById('edit-role-operaio').checked = true;
+            if (hasManodoperaModule) {
+                if (currentRoles.includes('caposquadra')) document.getElementById('edit-role-caposquadra').checked = true;
+                if (currentRoles.includes('operaio')) document.getElementById('edit-role-operaio').checked = true;
+            }
             
+            updateRuoliVisibility();
             document.getElementById('ruoli-modal').classList.add('active');
         }
 
@@ -1037,8 +1142,10 @@
             
             if (document.getElementById('edit-role-admin').checked) ruoli.push('amministratore');
             if (document.getElementById('edit-role-manager').checked) ruoli.push('manager');
-            if (document.getElementById('edit-role-caposquadra').checked) ruoli.push('caposquadra');
-            if (document.getElementById('edit-role-operaio').checked) ruoli.push('operaio');
+            if (hasManodoperaModule) {
+                if (document.getElementById('edit-role-caposquadra').checked) ruoli.push('caposquadra');
+                if (document.getElementById('edit-role-operaio').checked) ruoli.push('operaio');
+            }
 
             if (ruoli.length === 0) {
                 showAlert('Seleziona almeno un ruolo', 'error');
@@ -1046,9 +1153,33 @@
             }
 
             try {
-                await updateDoc(doc(db, 'users', userId), {
-                    ruoli: ruoli
-                });
+                // Carica dati utente esistenti (se il documento esiste)
+                let existingData = {};
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', userId));
+                    if (userDoc.exists()) {
+                        existingData = userDoc.data();
+                    }
+                } catch (error) {
+                    console.warn('Documento utente non trovato, verrà creato:', error);
+                }
+                
+                // Prepara dati da salvare
+                const userDataToSave = {
+                    ...existingData,
+                    ruoli: ruoli,
+                    tenantId: existingData.tenantId || currentTenantId,
+                    stato: existingData.stato || 'attivo',
+                    aggiornatoIl: serverTimestamp()
+                };
+                
+                // Se il documento non esiste, aggiungi anche createdAt
+                if (!existingData.createdAt) {
+                    userDataToSave.createdAt = serverTimestamp();
+                }
+                
+                // Usa setDoc con merge: true per creare o aggiornare il documento
+                await setDoc(doc(db, 'users', userId), userDataToSave, { merge: true });
                 
                 showAlert('Ruoli aggiornati con successo', 'success');
                 closeRuoliModal();

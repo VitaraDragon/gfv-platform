@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validazione Ore - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 32px;
+            color: #2E8B57;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .ore-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .ore-table th,
+        .ore-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .ore-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .ore-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2E8B57;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .ora-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .ora-details p {
+            margin-bottom: 8px;
+        }
+
+        .ora-details strong {
+            color: #2E8B57;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-da_validare {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        @media (max-width: 768px) {
+            .ore-table {
+                font-size: 12px;
+            }
+
+            .ore-table th,
+            .ore-table td {
+                padding: 8px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>✅ Validazione Ore</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Valida o rifiuta le ore segnate dagli operai</p>
+            </div>
+            <div class="header-actions">
+                <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="stat-da-validare">0</h3>
+                    <p>Ore da validare</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-validate">0</h3>
+                    <p>Ore validate</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-rifiutate">0</h3>
+                    <p>Ore rifiutate</p>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2>Ore da Validare</h2>
+            </div>
+
+            <div id="ore-container">
+                <div class="loading">Caricamento ore...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rifiuta Ora -->
+    <div id="rifiuta-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Rifiuta Ora</h3>
+                <button class="close-btn" onclick="closeRifiutaModal()">&times;</button>
+            </div>
+            <form id="rifiuta-form" onsubmit="handleRifiutaOra(event)">
+                <input type="hidden" id="rifiuta-lavoro-id">
+                <input type="hidden" id="rifiuta-ora-id">
+                
+                <div class="ora-details" id="rifiuta-ora-details"></div>
+                
+                <div class="form-group">
+                    <label for="rifiuta-motivo">Motivo Rifiuto *</label>
+                    <textarea id="rifiuta-motivo" required placeholder="Spiega il motivo del rifiuto..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-danger" style="flex: 1;">Rifiuta Ora</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRifiutaModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase config -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, query, where, orderBy, onSnapshot, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserData = null;
+        let currentTenantId = null;
+        let oreDaValidare = [];
+        let operaiMap = new Map();
+
+        // Verifica autenticazione e permessi
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    currentUserData = userDoc.data();
+                    currentTenantId = currentUserData.tenantId;
+
+                    // Verifica permessi (solo caposquadra)
+                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('caposquadra')) {
+                        showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Verifica se modulo Manodopera è attivo
+                    let hasManodoperaModule = false;
+                    if (currentTenantId) {
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                            }
+                        } catch (error) {
+                            console.warn('Errore verifica modulo Manodopera:', error);
+                        }
+                    }
+
+                    if (!hasManodoperaModule) {
+                        showAlert('Questa pagina è disponibile solo con il modulo Manodopera attivo.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 3000);
+                        return;
+                    }
+
+                    // Carica dati iniziali
+                    await loadOperai();
+                    await loadOreDaValidare();
+                    
+                    // Setup listener in tempo reale
+                    setupRealtimeListener();
+                } else {
+                    window.location.href = '../auth/login-standalone.html';
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                showAlert('Errore caricamento dati', 'error');
+            }
+        });
+
+        // Carica operai per riferimento
+        async function loadOperai() {
+            try {
+                const usersRef = collection(db, 'users');
+                const q = query(
+                    usersRef,
+                    where('tenantId', '==', currentTenantId),
+                    where('ruoli', 'array-contains', 'operaio')
+                );
+                const snapshot = await getDocs(q);
+                
+                snapshot.forEach(doc => {
+                    operaiMap.set(doc.id, { id: doc.id, ...doc.data() });
+                });
+            } catch (error) {
+                console.error('Errore caricamento operai:', error);
+            }
+        }
+
+        // Carica ore da validare
+        async function loadOreDaValidare() {
+            const container = document.getElementById('ore-container');
+            container.innerHTML = '<div class="loading">Caricamento ore...</div>';
+
+            try {
+                // Ottieni tutti i lavori del caposquadra
+                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', currentUserData.id));
+                const lavoriSnapshot = await getDocs(lavoriQuery);
+                
+                oreDaValidare = [];
+                
+                // Per ogni lavoro, ottieni le ore da validare
+                for (const lavoroDoc of lavoriSnapshot.docs) {
+                    const lavoroId = lavoroDoc.id;
+                    const lavoroData = lavoroDoc.data();
+                    const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                    // Rimuovo orderBy per evitare bisogno di indice composito, ordino in memoria dopo
+                    const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
+                    const oreSnapshot = await getDocs(oreQuery);
+                    
+                    oreSnapshot.forEach(oraDoc => {
+                        const data = oraDoc.data();
+                        // Converti Timestamp in Date
+                        if (data.data && data.data.toDate) {
+                            data.data = data.data.toDate();
+                        }
+                        if (data.creatoIl && data.creatoIl.toDate) {
+                            data.creatoIl = data.creatoIl.toDate();
+                        }
+                        oreDaValidare.push({
+                            id: oraDoc.id,
+                            lavoroId: lavoroId,
+                            lavoroNome: lavoroData.nome || 'N/A',
+                            ...data
+                        });
+                    });
+                }
+                
+                // Ordina per data creazione (più vecchie prima)
+                oreDaValidare.sort((a, b) => {
+                    const dateA = a.creatoIl instanceof Date ? a.creatoIl : new Date(a.creatoIl);
+                    const dateB = b.creatoIl instanceof Date ? b.creatoIl : new Date(b.creatoIl);
+                    return dateA - dateB;
+                });
+
+                updateStats();
+                renderOre();
+            } catch (error) {
+                console.error('Errore caricamento ore:', error);
+                container.innerHTML = '<div class="empty-state">Errore caricamento ore</div>';
+                showAlert('Errore caricamento ore', 'error');
+            }
+        }
+
+        // Setup listener in tempo reale
+        function setupRealtimeListener() {
+            // Ascolta cambiamenti nelle ore da validare
+            const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+            const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', currentUserData.id));
+            
+            onSnapshot(lavoriQuery, async (lavoriSnapshot) => {
+                // Ricarica ore quando cambiano i lavori
+                await loadOreDaValidare();
+            });
+        }
+
+        // Aggiorna statistiche
+        async function updateStats() {
+            // Conta ore da validare
+            document.getElementById('stat-da-validare').textContent = oreDaValidare.length;
+            
+            // Conta ore validate e rifiutate
+            let validateCount = 0;
+            let rifiutateCount = 0;
+            
+            const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+            const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', currentUserData.id));
+            const lavoriSnapshot = await getDocs(lavoriQuery);
+            
+            for (const lavoroDoc of lavoriSnapshot.docs) {
+                const lavoroId = lavoroDoc.id;
+                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                const oreSnapshot = await getDocs(oreRef);
+                
+                oreSnapshot.forEach(oraDoc => {
+                    const stato = oraDoc.data().stato;
+                    if (stato === 'validate') {
+                        validateCount++;
+                    } else if (stato === 'rifiutate') {
+                        rifiutateCount++;
+                    }
+                });
+            }
+            
+            document.getElementById('stat-validate').textContent = validateCount;
+            document.getElementById('stat-rifiutate').textContent = rifiutateCount;
+        }
+
+        // Renderizza lista ore
+        function renderOre() {
+            const container = document.getElementById('ore-container');
+
+            if (oreDaValidare.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p>Nessuna ora da validare</p>
+                        <p style="font-size: 14px; margin-top: 10px;">Tutte le ore sono state validate o rifiutate</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="ore-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Operaio</th>
+                            <th>Lavoro</th>
+                            <th>Orario</th>
+                            <th>Ore Nette</th>
+                            <th>Note</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            oreDaValidare.forEach(ora => {
+                const data = ora.data instanceof Date 
+                    ? ora.data.toLocaleDateString('it-IT')
+                    : new Date(ora.data).toLocaleDateString('it-IT');
+                
+                const operaio = operaiMap.get(ora.operaioId);
+                const operaioNome = operaio 
+                    ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A'
+                    : 'N/A';
+                
+                const oreFormattate = formattaOre(ora.oreNette || 0);
+
+                html += `
+                    <tr>
+                        <td>${data}</td>
+                        <td>${escapeHtml(operaioNome)}</td>
+                        <td>${escapeHtml(ora.lavoroNome)}</td>
+                        <td>${ora.orarioInizio || ''} - ${ora.orarioFine || ''}</td>
+                        <td><strong>${oreFormattate}</strong></td>
+                        <td>${escapeHtml(ora.note || '-')}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-success btn-sm" onclick="validaOra('${ora.lavoroId}', '${ora.id}')">✅ Valida</button>
+                                <button class="btn btn-danger btn-sm" onclick="openRifiutaModal('${ora.lavoroId}', '${ora.id}')">❌ Rifiuta</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Formatta ore
+        function formattaOre(oreDecimali) {
+            if (!oreDecimali || oreDecimali <= 0) {
+                return '0h';
+            }
+            
+            const ore = Math.floor(oreDecimali);
+            const minuti = Math.round((oreDecimali - ore) * 60);
+            
+            if (minuti === 0) {
+                return `${ore}h`;
+            }
+            
+            return `${ore}h ${minuti}min`;
+        }
+
+        // Valida ora
+        window.validaOra = async function(lavoroId, oraId) {
+            if (!confirm('Sei sicuro di voler validare questa ora?')) {
+                return;
+            }
+            
+            try {
+                // Verifica che il lavoro esista e sia assegnato al caposquadra
+                const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+                if (!lavoroDoc.exists()) {
+                    throw new Error('Lavoro non trovato');
+                }
+                
+                const lavoroData = lavoroDoc.data();
+                if (lavoroData.caposquadraId !== currentUserData.id) {
+                    throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                }
+                
+                // Verifica che l'ora esista e sia in stato "da_validare"
+                const oraDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai', oraId));
+                if (!oraDoc.exists()) {
+                    throw new Error('Ora non trovata');
+                }
+                
+                const oraData = oraDoc.data();
+                if (oraData.stato !== 'da_validare') {
+                    throw new Error('Questa ora è già stata validata o rifiutata');
+                }
+                
+                // Aggiorna stato
+                await updateDoc(oraDoc.ref, {
+                    stato: 'validate',
+                    validatoDa: currentUserData.id,
+                    validatoIl: serverTimestamp(),
+                    rifiutatoDa: null,
+                    motivoRifiuto: null
+                });
+                
+                showAlert('Ora validata con successo!', 'success');
+                await loadOreDaValidare();
+            } catch (error) {
+                console.error('Errore validazione ora:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+
+        // Apri modal rifiuta
+        window.openRifiutaModal = function(lavoroId, oraId) {
+            const ora = oreDaValidare.find(o => o.id === oraId && o.lavoroId === lavoroId);
+            if (!ora) {
+                showAlert('Ora non trovata', 'error');
+                return;
+            }
+            
+            const operaio = operaiMap.get(ora.operaioId);
+            const operaioNome = operaio 
+                ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A'
+                : 'N/A';
+            
+            const data = ora.data instanceof Date 
+                ? ora.data.toLocaleDateString('it-IT')
+                : new Date(ora.data).toLocaleDateString('it-IT');
+            
+            const oreFormattate = formattaOre(ora.oreNette || 0);
+            
+            document.getElementById('rifiuta-lavoro-id').value = lavoroId;
+            document.getElementById('rifiuta-ora-id').value = oraId;
+            document.getElementById('rifiuta-motivo').value = '';
+            
+            document.getElementById('rifiuta-ora-details').innerHTML = `
+                <p><strong>Operaio:</strong> ${escapeHtml(operaioNome)}</p>
+                <p><strong>Lavoro:</strong> ${escapeHtml(ora.lavoroNome)}</p>
+                <p><strong>Data:</strong> ${data}</p>
+                <p><strong>Orario:</strong> ${ora.orarioInizio || ''} - ${ora.orarioFine || ''}</p>
+                <p><strong>Ore Nette:</strong> ${oreFormattate}</p>
+                ${ora.note ? `<p><strong>Note:</strong> ${escapeHtml(ora.note)}</p>` : ''}
+            `;
+            
+            document.getElementById('rifiuta-modal').classList.add('active');
+        };
+
+        // Chiudi modal rifiuta
+        window.closeRifiutaModal = function() {
+            document.getElementById('rifiuta-modal').classList.remove('active');
+        };
+
+        // Gestisci rifiuto ora
+        window.handleRifiutaOra = async function(event) {
+            event.preventDefault();
+            
+            const lavoroId = document.getElementById('rifiuta-lavoro-id').value;
+            const oraId = document.getElementById('rifiuta-ora-id').value;
+            const motivo = document.getElementById('rifiuta-motivo').value.trim();
+            
+            if (!motivo) {
+                showAlert('Inserisci il motivo del rifiuto', 'error');
+                return;
+            }
+            
+            try {
+                // Verifica che il lavoro esista e sia assegnato al caposquadra
+                const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+                if (!lavoroDoc.exists()) {
+                    throw new Error('Lavoro non trovato');
+                }
+                
+                const lavoroData = lavoroDoc.data();
+                if (lavoroData.caposquadraId !== currentUserData.id) {
+                    throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                }
+                
+                // Verifica che l'ora esista e sia in stato "da_validare"
+                const oraDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai', oraId));
+                if (!oraDoc.exists()) {
+                    throw new Error('Ora non trovata');
+                }
+                
+                const oraData = oraDoc.data();
+                if (oraData.stato !== 'da_validare') {
+                    throw new Error('Questa ora è già stata validata o rifiutata');
+                }
+                
+                // Aggiorna stato
+                await updateDoc(oraDoc.ref, {
+                    stato: 'rifiutate',
+                    rifiutatoDa: currentUserData.id,
+                    motivoRifiuto: motivo,
+                    validatoDa: null,
+                    validatoIl: null
+                });
+                
+                showAlert('Ora rifiutata con successo', 'success');
+                closeRifiutaModal();
+                await loadOreDaValidare();
+            } catch (error) {
+                console.error('Errore rifiuto ora:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+
+        // Mostra alert
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+

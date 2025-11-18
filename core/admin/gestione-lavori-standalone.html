@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Lavori - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal .btn-primary {
+            background: #2E8B57;
+            color: white;
+            border: none;
+        }
+
+        .modal .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .section-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .lavori-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .lavori-table th,
+        .lavori-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .lavori-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .lavori-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge-assegnato {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-in_corso {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-completato {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .badge-annullato {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .badge-completato_da_approvare {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-progresso-in_ritardo {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-progresso-in_tempo {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-progresso-in_anticipo {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2E8B57;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-card.secondary {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        }
+
+        .stat-card.warning {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        }
+
+        .stat-card.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .progress-cell {
+            min-width: 150px;
+        }
+
+        .progress-bar-inline {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .progress-fill-inline {
+            height: 100%;
+            background: linear-gradient(90deg, #2E8B57 0%, #228B22 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .modal-large {
+            max-width: 1200px;
+        }
+
+        .modal-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .modal-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .modal-tab.active {
+            color: #2E8B57;
+            border-bottom-color: #2E8B57;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .ore-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .ore-stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .ore-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2E8B57;
+        }
+
+        .ore-stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .zone-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .zone-item {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .zone-item:last-child {
+            border-bottom: none;
+        }
+
+        .zone-info {
+            flex: 1;
+        }
+
+        .zone-date {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .zone-surface {
+            font-size: 12px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .lavori-table {
+                font-size: 12px;
+            }
+
+            .lavori-table th,
+            .lavori-table td {
+                padding: 8px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📋 Gestione Lavori</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Pianifica e assegna lavori alle squadre</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openCreaModal()">➕ Crea Nuovo Lavoro</button>
+                <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <!-- Card Statistiche -->
+            <div class="stats-grid" id="stats-container">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-totale-lavori">0</div>
+                    <div class="stat-label">Lavori Totali</div>
+                </div>
+                <div class="stat-card secondary">
+                    <div class="stat-value" id="stat-lavori-corso">0</div>
+                    <div class="stat-label">In Corso</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value" id="stat-ore-validate">0h</div>
+                    <div class="stat-label">Ore Validate</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-value" id="stat-superficie-lavorata">0 ha</div>
+                    <div class="stat-label">Superficie Lavorata</div>
+                </div>
+                <div class="stat-card" style="background: #f8d7da; color: #721c24;">
+                    <div class="stat-value" id="stat-lavori-ritardo">0</div>
+                    <div class="stat-label">🔴 In Ritardo</div>
+                </div>
+                <div class="stat-card" style="background: #d4edda; color: #155724;">
+                    <div class="stat-value" id="stat-lavori-tempo">0</div>
+                    <div class="stat-label">🟢 In Tempo</div>
+                </div>
+                <div class="stat-card" style="background: #d1ecf1; color: #0c5460;">
+                    <div class="stat-value" id="stat-lavori-anticipo">0</div>
+                    <div class="stat-label">🚀 In Anticipo</div>
+                </div>
+            </div>
+            
+            <div class="section-header">
+                <h2>Lavori</h2>
+                <div id="lavori-count">0 lavori</div>
+            </div>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Filtra per Stato</label>
+                    <select id="filter-stato" onchange="applyFilters()">
+                        <option value="">Tutti gli stati</option>
+                        <option value="assegnato">Assegnato</option>
+                        <option value="in_corso">In corso</option>
+                        <option value="completato_da_approvare">In attesa approvazione</option>
+                        <option value="completato">Completato</option>
+                        <option value="annullato">Annullato</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Stato Progresso</label>
+                    <select id="filter-progresso" onchange="applyFilters()">
+                        <option value="">Tutti</option>
+                        <option value="in_ritardo">🔴 In ritardo</option>
+                        <option value="in_tempo">🟢 In tempo</option>
+                        <option value="in_anticipo">🚀 In anticipo</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Caposquadra</label>
+                    <select id="filter-caposquadra" onchange="applyFilters()">
+                        <option value="">Tutti i caposquadra</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Terreno</label>
+                    <select id="filter-terreno" onchange="applyFilters()">
+                        <option value="">Tutti i terreni</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="align-self: flex-end;">
+                    <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Pulisci Filtri</button>
+                </div>
+            </div>
+
+            <div id="lavori-container">
+                <div class="loading">Caricamento lavori...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Dettaglio Lavoro -->
+    <div id="dettaglio-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="dettaglio-title">Dettaglio Lavoro</h3>
+                <button class="close-btn" onclick="closeDettaglioModal()">&times;</button>
+            </div>
+            
+            <div class="modal-tabs">
+                <button class="modal-tab active" onclick="switchTab('overview')">📊 Panoramica</button>
+                <button class="modal-tab" onclick="switchTab('map')">🗺️ Mappa</button>
+                <button class="modal-tab" onclick="switchTab('ore')">⏰ Ore</button>
+            </div>
+            
+            <!-- Tab Panoramica -->
+            <div id="tab-overview" class="tab-content active">
+                <div id="dettaglio-overview-content">
+                    <div class="loading">Caricamento dettagli...</div>
+                </div>
+            </div>
+            
+            <!-- Tab Mappa -->
+            <div id="tab-map" class="tab-content">
+                <div id="dettaglio-map-content">
+                    <div class="map-container" id="dettaglio-map"></div>
+                    <div id="zone-list-container">
+                        <h4 style="margin-bottom: 10px;">Zone Lavorate</h4>
+                        <div class="zone-list" id="zone-list"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Ore -->
+            <div id="tab-ore" class="tab-content">
+                <div id="dettaglio-ore-content">
+                    <div class="loading">Caricamento statistiche ore...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Crea/Modifica Lavoro -->
+    <div id="lavoro-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Crea Nuovo Lavoro</h3>
+                <button class="close-btn" onclick="closeLavoroModal()">&times;</button>
+            </div>
+            <form id="lavoro-form" onsubmit="handleSalvaLavoro(event)">
+                <input type="hidden" id="lavoro-id">
+                
+                <div class="form-group">
+                    <label for="lavoro-nome">Nome Lavoro *</label>
+                    <input type="text" id="lavoro-nome" required minlength="3" maxlength="100" 
+                           placeholder="Es: Potatura Campo Nord, Vendemmia Vigneto Sud">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="lavoro-terreno">Terreno *</label>
+                        <select id="lavoro-terreno" required>
+                            <option value="">Seleziona terreno...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lavoro-caposquadra">Caposquadra *</label>
+                        <select id="lavoro-caposquadra" required>
+                            <option value="">Seleziona caposquadra...</option>
+                        </select>
+                        <small id="squadra-info" style="color: #666; font-size: 12px; margin-top: 5px; display: block;"></small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="lavoro-data-inizio">Data Inizio *</label>
+                        <input type="date" id="lavoro-data-inizio" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lavoro-durata">Durata Prevista (giorni) *</label>
+                        <input type="number" id="lavoro-durata" required min="1" max="365" 
+                               placeholder="Es: 3">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="lavoro-stato">Stato</label>
+                    <select id="lavoro-stato">
+                        <option value="assegnato">Assegnato</option>
+                        <option value="in_corso">In corso</option>
+                        <option value="completato">Completato</option>
+                        <option value="annullato">Annullato</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="lavoro-note">Note</label>
+                    <textarea id="lavoro-note" placeholder="Note aggiuntive sul lavoro (opzionale)"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeLavoroModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase config from external file -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Load Google Maps config -->
+    <script>
+        const mapsConfigScript = document.createElement('script');
+        mapsConfigScript.src = '../config/google-maps-config.js';
+        mapsConfigScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(mapsConfigScript);
+    </script>
+    
+    <!-- Google Maps API -->
+    <script>
+        // Carica Google Maps API dopo che la config è pronta
+        function loadGoogleMapsAPI() {
+            const apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&callback=initGoogleMaps`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+        
+        window.initGoogleMaps = function() {
+            console.log('Google Maps API caricata');
+        };
+        
+        // Prova a caricare dopo un breve delay per assicurarsi che la config sia caricata
+        setTimeout(loadGoogleMapsAPI, 500);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Verifica che Google Maps API sia caricata
+        if (typeof window.GOOGLE_MAPS_API_KEY === 'undefined') {
+            console.warn('Google Maps API Key non trovata. La visualizzazione mappa potrebbe non funzionare.');
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserData = null;
+        let currentTenantId = null;
+        let currentLavoroId = null;
+        let terreniList = [];
+        let caposquadraList = [];
+        let squadreList = [];
+        let lavoriList = [];
+        let filteredLavoriList = [];
+        let dettaglioMap = null;
+        let dettaglioMapMarkers = [];
+        let dettaglioMapPolygons = [];
+
+        // Verifica autenticazione e permessi
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    currentUserData = userDoc.data();
+                    currentTenantId = currentUserData.tenantId;
+
+                    // Verifica permessi (solo manager e amministratore)
+                    if (!currentUserData.ruoli || 
+                        (!currentUserData.ruoli.includes('manager') && 
+                         !currentUserData.ruoli.includes('amministratore'))) {
+                        showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Verifica se modulo Manodopera è attivo
+                    let hasManodoperaModule = false;
+                    if (currentTenantId) {
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                            }
+                        } catch (error) {
+                            console.warn('Errore verifica modulo Manodopera:', error);
+                        }
+                    }
+
+                    // Se modulo Manodopera non è attivo, mostra avviso e redirect
+                    if (!hasManodoperaModule) {
+                        showAlert('Questa pagina è disponibile solo con il modulo Manodopera attivo. Attiva il modulo dall\'abbonamento.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 3000);
+                        return;
+                    }
+
+                    // Carica dati iniziali
+                    await Promise.all([
+                        loadTerreni(),
+                        loadCaposquadra(),
+                        loadSquadre(),
+                        loadLavori()
+                    ]);
+                    
+                    // Carica statistiche
+                    await loadStatistics();
+                } else {
+                    window.location.href = '../auth/login-standalone.html';
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                showAlert('Errore caricamento dati', 'error');
+            }
+        });
+
+        // Carica lista terreni
+        async function loadTerreni() {
+            try {
+                const terreniRef = collection(db, 'tenants', currentTenantId, 'terreni');
+                const q = query(terreniRef, orderBy('nome', 'asc'));
+                const snapshot = await getDocs(q);
+                
+                terreniList = [];
+                snapshot.forEach(doc => {
+                    terreniList.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Popola dropdown filtri
+                populateTerrenoFilter();
+                populateTerrenoDropdown();
+            } catch (error) {
+                console.error('Errore caricamento terreni:', error);
+                terreniList = [];
+            }
+        }
+
+        // Carica lista caposquadra disponibili
+        async function loadCaposquadra() {
+            try {
+                const usersRef = collection(db, 'users');
+                const q = query(
+                    usersRef,
+                    where('tenantId', '==', currentTenantId),
+                    where('ruoli', 'array-contains', 'caposquadra'),
+                    where('stato', '==', 'attivo')
+                );
+                const snapshot = await getDocs(q);
+                
+                caposquadraList = [];
+                snapshot.forEach(doc => {
+                    caposquadraList.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Popola dropdown filtri
+                populateCaposquadraFilter();
+                populateCaposquadraDropdown();
+            } catch (error) {
+                console.error('Errore caricamento caposquadra:', error);
+                caposquadraList = [];
+            }
+        }
+
+        // Carica lista squadre
+        async function loadSquadre() {
+            try {
+                const squadreRef = collection(db, 'tenants', currentTenantId, 'squadre');
+                const q = query(squadreRef, orderBy('nome', 'asc'));
+                const snapshot = await getDocs(q);
+                
+                squadreList = [];
+                snapshot.forEach(doc => {
+                    squadreList.push({ id: doc.id, ...doc.data() });
+                });
+            } catch (error) {
+                console.error('Errore caricamento squadre:', error);
+                squadreList = [];
+            }
+        }
+
+        // Carica lista lavori
+        async function loadLavori() {
+            const container = document.getElementById('lavori-container');
+            container.innerHTML = '<div class="loading">Caricamento lavori...</div>';
+
+            try {
+                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                const q = query(lavoriRef, orderBy('dataInizio', 'desc'));
+                const snapshot = await getDocs(q);
+                
+                lavoriList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    lavoriList.push({ 
+                        id: doc.id, 
+                        ...data,
+                        dataInizio: data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null)
+                    });
+                });
+
+                applyFilters();
+            } catch (error) {
+                console.error('Errore caricamento lavori:', error);
+                container.innerHTML = '<div class="empty-state">Errore caricamento lavori</div>';
+                showAlert('Errore caricamento lavori', 'error');
+            }
+        }
+
+        // Popola dropdown filtri terreni
+        function populateTerrenoFilter() {
+            const select = document.getElementById('filter-terreno');
+            select.innerHTML = '<option value="">Tutti i terreni</option>';
+            terreniList.forEach(terreno => {
+                const option = document.createElement('option');
+                option.value = terreno.id;
+                option.textContent = terreno.nome || 'N/A';
+                select.appendChild(option);
+            });
+        }
+
+        // Popola dropdown filtri caposquadra
+        function populateCaposquadraFilter() {
+            const select = document.getElementById('filter-caposquadra');
+            select.innerHTML = '<option value="">Tutti i caposquadra</option>';
+            caposquadraList.forEach(capo => {
+                const option = document.createElement('option');
+                option.value = capo.id;
+                const nomeCompleto = `${capo.nome || ''} ${capo.cognome || ''}`.trim() || capo.email || 'N/A';
+                option.textContent = nomeCompleto;
+                select.appendChild(option);
+            });
+        }
+
+        // Popola dropdown terreni nel form
+        function populateTerrenoDropdown(selectedId = null) {
+            const select = document.getElementById('lavoro-terreno');
+            select.innerHTML = '<option value="">Seleziona terreno...</option>';
+            
+            if (terreniList.length === 0) {
+                select.innerHTML = '<option value="">Nessun terreno disponibile</option>';
+                select.disabled = true;
+                return;
+            }
+            
+            select.disabled = false;
+            terreniList.forEach(terreno => {
+                const option = document.createElement('option');
+                option.value = terreno.id;
+                option.textContent = `${terreno.nome || 'N/A'}${terreno.superficie ? ` (${terreno.superficie} ha)` : ''}`;
+                if (selectedId === terreno.id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        // Popola dropdown caposquadra nel form
+        function populateCaposquadraDropdown(selectedId = null) {
+            const select = document.getElementById('lavoro-caposquadra');
+            const squadraInfo = document.getElementById('squadra-info');
+            select.innerHTML = '<option value="">Seleziona caposquadra...</option>';
+            
+            if (caposquadraList.length === 0) {
+                select.innerHTML = '<option value="">Nessun caposquadra disponibile</option>';
+                select.disabled = true;
+                squadraInfo.textContent = 'Crea prima una squadra con un caposquadra.';
+                return;
+            }
+            
+            select.disabled = false;
+            squadraInfo.textContent = '';
+            
+            // Listener per mostrare info squadra quando si seleziona caposquadra
+            select.onchange = function() {
+                if (this.value) {
+                    const squadra = squadreList.find(s => s.caposquadraId === this.value);
+                    if (squadra) {
+                        const operaiCount = squadra.operai ? squadra.operai.length : 0;
+                        squadraInfo.textContent = `Squadra: ${squadra.nome} (${operaiCount} operai)`;
+                        squadraInfo.style.color = '#2E8B57';
+                    } else {
+                        squadraInfo.textContent = '⚠️ Nessuna squadra assegnata a questo caposquadra';
+                        squadraInfo.style.color = '#856404';
+                    }
+                } else {
+                    squadraInfo.textContent = '';
+                }
+            };
+            
+            caposquadraList.forEach(capo => {
+                const nomeCompleto = `${capo.nome || ''} ${capo.cognome || ''}`.trim() || capo.email || 'N/A';
+                const option = document.createElement('option');
+                option.value = capo.id;
+                option.textContent = nomeCompleto;
+                if (selectedId === capo.id) {
+                    option.selected = true;
+                    select.onchange(); // Trigger per mostrare info squadra
+                }
+                select.appendChild(option);
+            });
+        }
+
+        // Applica filtri
+        window.applyFilters = function() {
+            const statoFilter = document.getElementById('filter-stato').value;
+            const caposquadraFilter = document.getElementById('filter-caposquadra').value;
+            const terrenoFilter = document.getElementById('filter-terreno').value;
+
+            filteredLavoriList = lavoriList.filter(lavoro => {
+                if (statoFilter && lavoro.stato !== statoFilter) return false;
+                if (caposquadraFilter && lavoro.caposquadraId !== caposquadraFilter) return false;
+                if (terrenoFilter && lavoro.terrenoId !== terrenoFilter) return false;
+                return true;
+            });
+
+            // Il filtro stato progresso viene applicato in renderLavori dopo il calcolo
+            renderLavori();
+        };
+
+        // Pulisci filtri
+        window.clearFilters = function() {
+            document.getElementById('filter-stato').value = '';
+            document.getElementById('filter-progresso').value = '';
+            document.getElementById('filter-caposquadra').value = '';
+            document.getElementById('filter-terreno').value = '';
+            applyFilters();
+        };
+
+        // Renderizza lista lavori
+        async function renderLavori() {
+            const container = document.getElementById('lavori-container');
+            const countEl = document.getElementById('lavori-count');
+
+            if (filteredLavoriList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Nessun lavoro trovato</p>
+                        <p style="font-size: 14px; margin-top: 10px;">Clicca su "Crea Nuovo Lavoro" per iniziare</p>
+                    </div>
+                `;
+                countEl.textContent = '0 lavori';
+                return;
+            }
+
+            // Carica dati terreno e caposquadra per ogni lavoro
+            const lavoriConDettagli = await Promise.all(
+                filteredLavoriList.map(async (lavoro) => {
+                    const terreno = terreniList.find(t => t.id === lavoro.terrenoId);
+                    const caposquadra = caposquadraList.find(c => c.id === lavoro.caposquadraId);
+                    const squadra = squadreList.find(s => s.caposquadraId === lavoro.caposquadraId);
+                    
+                    return { 
+                        ...lavoro, 
+                        terreno, 
+                        caposquadra,
+                        squadra
+                    };
+                })
+            );
+
+            // Carica progressi per ogni lavoro
+            const lavoriConProgressi = await Promise.all(
+                lavoriConDettagli.map(async (lavoro) => {
+                    const progressi = await loadProgressiLavoro(lavoro.id);
+                    const lavoroConProgressi = { ...lavoro, ...progressi };
+                    
+                    // Calcola stato progresso se non presente o se necessario ricalcolarlo
+                    if (lavoroConProgressi.dataInizio && lavoroConProgressi.durataPrevista) {
+                        const dataInizio = lavoroConProgressi.dataInizio instanceof Date 
+                            ? lavoroConProgressi.dataInizio 
+                            : (lavoroConProgressi.dataInizio?.toDate ? lavoroConProgressi.dataInizio.toDate() : new Date(lavoroConProgressi.dataInizio));
+                        const oggi = new Date();
+                        oggi.setHours(0, 0, 0, 0);
+                        dataInizio.setHours(0, 0, 0, 0);
+                        
+                        const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1);
+                        const giorniRimanenti = Math.max(0, lavoroConProgressi.durataPrevista - giorniEffettivi);
+                        
+                        // Calcola stato progresso se non presente
+                        if (!lavoroConProgressi.statoProgresso && giorniEffettivi > 0) {
+                            const superficieTotale = lavoroConProgressi.terreno?.superficie || 0;
+                            const superficieLavorata = lavoroConProgressi.superficieLavorata || 0;
+                            const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100) : 0;
+                            const percentualeTempo = (giorniEffettivi / lavoroConProgressi.durataPrevista) * 100;
+                            const tolleranza = 10; // Tolleranza del 10%
+                            
+                            if (percentualeCompletamento > percentualeTempo + tolleranza) {
+                                lavoroConProgressi.statoProgresso = 'in_anticipo';
+                            } else if (percentualeCompletamento < percentualeTempo - tolleranza) {
+                                lavoroConProgressi.statoProgresso = 'in_ritardo';
+                            } else {
+                                lavoroConProgressi.statoProgresso = 'in_tempo';
+                            }
+                        }
+                        
+                        lavoroConProgressi.giorniEffettivi = giorniEffettivi;
+                        lavoroConProgressi.giorniRimanenti = giorniRimanenti;
+                    }
+                    
+                    return lavoroConProgressi;
+                })
+            );
+
+            // Applica filtro stato progresso se presente (dopo il calcolo)
+            const progressoFilter = document.getElementById('filter-progresso')?.value || '';
+            let lavoriFiltratiPerProgresso = lavoriConProgressi;
+            if (progressoFilter) {
+                lavoriFiltratiPerProgresso = lavoriConProgressi.filter(l => l.statoProgresso === progressoFilter);
+            }
+            
+            // Separa lavori in attesa di approvazione dagli altri
+            const lavoriInAttesa = lavoriFiltratiPerProgresso.filter(l => l.stato === 'completato_da_approvare');
+            const altriLavori = lavoriFiltratiPerProgresso.filter(l => l.stato !== 'completato_da_approvare');
+
+            let html = '';
+
+            // Sezione lavori in attesa di approvazione
+            if (lavoriInAttesa.length > 0) {
+                html += `
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 12px; margin-bottom: 30px; border-left: 5px solid #ffc107;">
+                        <h2 style="color: #856404; margin-bottom: 15px; font-size: 20px;">
+                            ⏳ Lavori in attesa di approvazione (${lavoriInAttesa.length})
+                        </h2>
+                        <table class="lavori-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Terreno</th>
+                                    <th>Caposquadra</th>
+                                    <th>Progressi Tracciati</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                lavoriInAttesa.forEach(lavoro => {
+                    const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
+                    const caposquadraNome = lavoro.caposquadra 
+                        ? `${lavoro.caposquadra.nome || ''} ${lavoro.caposquadra.cognome || ''}`.trim() || 'N/A'
+                        : 'N/A';
+                    
+                    const superficieTotale = lavoro.terreno?.superficie || 0;
+                    const superficieLavorata = lavoro.superficieLavorata || 0;
+                    const percentualeTracciata = lavoro.percentualeCompletamentoTracciata || 
+                        (superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0);
+                    
+                    html += `
+                        <tr style="background: #fffbf0;">
+                            <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong></td>
+                            <td>${escapeHtml(terrenoNome)}</td>
+                            <td>${escapeHtml(caposquadraNome)}</td>
+                            <td>
+                                <div class="progress-bar-inline">
+                                    <div class="progress-fill-inline" style="width: ${Math.min(percentualeTracciata, 100)}%; background: #ffc107;">
+                                        ${percentualeTracciata}%
+                                    </div>
+                                </div>
+                                <div class="progress-text">Superficie tracciata: ${percentualeTracciata}%</div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm" onclick="approvaLavoro('${lavoro.id}')">
+                                        ✅ Approva
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="rifiutaLavoro('${lavoro.id}')">
+                                        ❌ Rifiuta
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">
+                                        👁️ Dettagli
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            // Tabella lavori normali
+            html += `
+                <table class="lavori-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Terreno</th>
+                            <th>Caposquadra</th>
+                            <th>Data Inizio</th>
+                            <th>Durata</th>
+                            <th>Progressi</th>
+                            <th>Stato Progresso</th>
+                            <th>Stato</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            altriLavori.forEach(lavoro => {
+                const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
+                const caposquadraNome = lavoro.caposquadra 
+                    ? `${lavoro.caposquadra.nome || ''} ${lavoro.caposquadra.cognome || ''}`.trim() || 'N/A'
+                    : 'N/A';
+                const dataInizioFormatted = lavoro.dataInizio 
+                    ? new Date(lavoro.dataInizio).toLocaleDateString('it-IT')
+                    : 'N/A';
+                const durata = lavoro.durataPrevista ? `${lavoro.durataPrevista} giorni` : 'N/A';
+                const statoBadge = `<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>`;
+                
+                // Calcola progressi
+                const superficieTotale = lavoro.terreno?.superficie || 0;
+                const superficieLavorata = lavoro.superficieLavorata || 0;
+                const percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
+                const progressBar = superficieTotale > 0 ? `
+                    <div class="progress-bar-inline">
+                        <div class="progress-fill-inline" style="width: ${Math.min(percentuale, 100)}%">${percentuale}%</div>
+                    </div>
+                    <div class="progress-text">${superficieLavorata.toFixed(2)} / ${superficieTotale.toFixed(2)} ha</div>
+                ` : '<div class="progress-text" style="color: #999;">Nessun progresso</div>';
+
+                // Badge stato progresso
+                let statoProgressoBadge = '';
+                if (lavoro.statoProgresso && lavoro.durataPrevista && lavoro.dataInizio) {
+                    statoProgressoBadge = `
+                        <span class="badge badge-progresso-${lavoro.statoProgresso}" style="display: inline-block; margin-bottom: 5px;">
+                            ${getStatoProgressoFormattato(lavoro.statoProgresso)}
+                        </span>
+                        <div style="font-size: 11px; color: #666; margin-top: 3px;">
+                            ${lavoro.giorniEffettivi || 0}/${lavoro.durataPrevista} giorni
+                            ${lavoro.giorniRimanenti !== null && lavoro.giorniRimanenti >= 0 ? `(${lavoro.giorniRimanenti} rim.)` : ''}
+                        </div>
+                    `;
+                } else {
+                    statoProgressoBadge = '<span style="color: #999; font-size: 12px;">N/A</span>';
+                }
+
+                html += `
+                    <tr>
+                        <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong></td>
+                        <td>${escapeHtml(terrenoNome)}</td>
+                        <td>${escapeHtml(caposquadraNome)}</td>
+                        <td>${dataInizioFormatted}</td>
+                        <td>${durata}</td>
+                        <td class="progress-cell">${progressBar}</td>
+                        <td style="min-width: 120px;">${statoProgressoBadge}</td>
+                        <td>${statoBadge}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">👁️ Dettagli</button>
+                                <button class="btn btn-info btn-sm" onclick="openModificaModal('${lavoro.id}')">✏️ Modifica</button>
+                                <button class="btn btn-danger btn-sm" onclick="openEliminaModal('${lavoro.id}')">🗑️ Elimina</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+            countEl.textContent = `${filteredLavoriList.length} lavoro${filteredLavoriList.length !== 1 ? 'i' : ''}`;
+        }
+
+        // Ottieni stato formattato
+        function getStatoFormattato(stato) {
+            const stati = {
+                'assegnato': '📋 Assegnato',
+                'in_corso': '🔄 In corso',
+                'completato': '✅ Completato',
+                'completato_da_approvare': '⏳ In attesa approvazione',
+                'annullato': '❌ Annullato'
+            };
+            return stati[stato] || stato;
+        }
+
+        // Ottieni stato progresso formattato
+        function getStatoProgressoFormattato(statoProgresso) {
+            const stati = {
+                'in_ritardo': '🔴 In ritardo',
+                'in_tempo': '🟢 In tempo',
+                'in_anticipo': '🚀 In anticipo'
+            };
+            return stati[statoProgresso] || statoProgresso || '';
+        }
+
+        // Apri modal crea lavoro
+        window.openCreaModal = function() {
+            currentLavoroId = null;
+            document.getElementById('modal-title').textContent = 'Crea Nuovo Lavoro';
+            document.getElementById('lavoro-form').reset();
+            document.getElementById('lavoro-id').value = '';
+            document.getElementById('lavoro-stato').value = 'assegnato';
+            
+            // Imposta data minima a oggi
+            const today = new Date().toISOString().split('T')[0];
+            // Permetti date passate (il manager può assegnare lavori anche per giorni precedenti)
+            // document.getElementById('lavoro-data-inizio').setAttribute('min', today);
+            
+            populateTerrenoDropdown();
+            populateCaposquadraDropdown();
+            
+            document.getElementById('lavoro-modal').classList.add('active');
+        };
+
+        // Apri modal modifica lavoro
+        window.openModificaModal = async function(lavoroId) {
+            currentLavoroId = lavoroId;
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+
+            document.getElementById('modal-title').textContent = 'Modifica Lavoro';
+            document.getElementById('lavoro-id').value = lavoroId;
+            document.getElementById('lavoro-nome').value = lavoro.nome || '';
+            document.getElementById('lavoro-note').value = lavoro.note || '';
+            document.getElementById('lavoro-stato').value = lavoro.stato || 'assegnato';
+            document.getElementById('lavoro-durata').value = lavoro.durataPrevista || '';
+            
+            // Formatta data per input date
+            if (lavoro.dataInizio) {
+                const dataInizio = lavoro.dataInizio instanceof Date 
+                    ? lavoro.dataInizio 
+                    : new Date(lavoro.dataInizio);
+                document.getElementById('lavoro-data-inizio').value = dataInizio.toISOString().split('T')[0];
+            }
+            
+            populateTerrenoDropdown(lavoro.terrenoId);
+            populateCaposquadraDropdown(lavoro.caposquadraId);
+            
+            document.getElementById('lavoro-modal').classList.add('active');
+        };
+
+        // Chiudi modal
+        window.closeLavoroModal = function() {
+            document.getElementById('lavoro-modal').classList.remove('active');
+            currentLavoroId = null;
+        };
+
+        // Gestisci salvataggio lavoro
+        window.handleSalvaLavoro = async function(event) {
+            event.preventDefault();
+            
+            const nome = document.getElementById('lavoro-nome').value.trim();
+            const terrenoId = document.getElementById('lavoro-terreno').value;
+            const caposquadraId = document.getElementById('lavoro-caposquadra').value;
+            const dataInizio = document.getElementById('lavoro-data-inizio').value;
+            const durataPrevista = parseInt(document.getElementById('lavoro-durata').value);
+            const stato = document.getElementById('lavoro-stato').value;
+            const note = document.getElementById('lavoro-note').value.trim();
+            
+            if (!nome || nome.length < 3) {
+                showAlert('Il nome lavoro deve essere di almeno 3 caratteri', 'error');
+                return;
+            }
+            
+            if (!terrenoId) {
+                showAlert('Seleziona un terreno', 'error');
+                return;
+            }
+            
+            if (!caposquadraId) {
+                showAlert('Seleziona un caposquadra', 'error');
+                return;
+            }
+            
+            if (!dataInizio) {
+                showAlert('Seleziona una data di inizio', 'error');
+                return;
+            }
+            
+            if (!durataPrevista || durataPrevista < 1) {
+                showAlert('La durata deve essere di almeno 1 giorno', 'error');
+                return;
+            }
+            
+            try {
+                const lavoroData = {
+                    nome,
+                    terrenoId,
+                    caposquadraId,
+                    dataInizio: Timestamp.fromDate(new Date(dataInizio)),
+                    durataPrevista,
+                    stato,
+                    note: note || '',
+                    creatoDa: currentUserData.id,
+                    creatoIl: serverTimestamp(),
+                    aggiornatoIl: serverTimestamp()
+                };
+                
+                if (currentLavoroId) {
+                    // Modifica lavoro esistente
+                    delete lavoroData.creatoDa;
+                    delete lavoroData.creatoIl;
+                    lavoroData.aggiornatoIl = serverTimestamp();
+                    
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', currentLavoroId), lavoroData);
+                    showAlert('Lavoro modificato con successo!', 'success');
+                } else {
+                    // Crea nuovo lavoro
+                    await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
+                    showAlert('Lavoro creato con successo!', 'success');
+                }
+                
+                closeLavoroModal();
+                await loadLavori();
+                await loadStatistics();
+            } catch (error) {
+                console.error('Errore salvataggio lavoro:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+
+        // Apri modal elimina lavoro
+        window.openEliminaModal = async function(lavoroId) {
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+            
+            // Verifica se ci sono zone lavorate o ore (quando avremo i moduli)
+            // Per ora, chiediamo solo conferma
+            
+            if (confirm(`Sei sicuro di voler eliminare il lavoro "${lavoro.nome}"?\n\nQuesta azione non può essere annullata.`)) {
+                try {
+                    await deleteDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+                    showAlert('Lavoro eliminato con successo!', 'success');
+                    await loadLavori();
+                } catch (error) {
+                    console.error('Errore eliminazione lavoro:', error);
+                    showAlert(`Errore: ${error.message}`, 'error');
+                }
+            }
+        };
+
+        // Mostra alert
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alertClass = `alert-${type}`;
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Approva lavoro completato dal caposquadra
+        window.approvaLavoro = async function(lavoroId) {
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+            
+            const conferma = confirm(
+                `Sei sicuro di voler approvare questo lavoro?\n\n` +
+                `Lavoro: ${lavoro.nome}\n` +
+                `Il lavoro sarà marcato come completato al 100%.`
+            );
+            
+            if (!conferma) return;
+            
+            try {
+                const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
+                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
+                const terreno = terrenoDoc.exists() ? terrenoDoc.data() : null;
+                const superficieTotale = terreno?.superficie || 0;
+                
+                // Aggiorna stato a "completato" e forza percentuale a 100%
+                await updateDoc(lavoroRef, {
+                    stato: 'completato',
+                    superficieTotaleLavorata: superficieTotale, // Forza a superficie totale
+                    superficieRimanente: 0,
+                    percentualeCompletamento: 100,
+                    approvatoDa: currentUserData.id,
+                    approvatoIl: serverTimestamp(),
+                    aggiornatoIl: serverTimestamp()
+                });
+                
+                showAlert('Lavoro approvato con successo!', 'success');
+                await loadLavori(); // Ricarica lavori
+            } catch (error) {
+                console.error('Errore approvazione lavoro:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+        
+        // Rifiuta lavoro completato dal caposquadra
+        window.rifiutaLavoro = async function(lavoroId) {
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+            
+            const motivo = prompt(
+                `Inserisci il motivo del rifiuto (opzionale):\n\n` +
+                `Lavoro: ${lavoro.nome}`
+            );
+            
+            if (motivo === null) return; // Utente ha annullato
+            
+            try {
+                const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
+                
+                // Riporta stato a "in_corso" per permettere al caposquadra di continuare
+                await updateDoc(lavoroRef, {
+                    stato: 'in_corso',
+                    rifiutatoDa: currentUserData.id,
+                    rifiutatoIl: serverTimestamp(),
+                    motivoRifiuto: motivo || '',
+                    aggiornatoIl: serverTimestamp()
+                });
+                
+                showAlert('Lavoro rifiutato. Il caposquadra può continuare a tracciare zone.', 'success');
+                await loadLavori(); // Ricarica lavori
+            } catch (error) {
+                console.error('Errore rifiuto lavoro:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Carica statistiche generali
+        async function loadStatistics() {
+            try {
+                let totaleLavori = lavoriList.length;
+                let lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso').length;
+                let totaleOreValidate = 0;
+                let totaleSuperficieLavorata = 0;
+                let lavoriInRitardo = 0;
+                let lavoriInTempo = 0;
+                let lavoriInAnticipo = 0;
+
+                // Carica ore validate e calcola stato progresso per tutti i lavori
+                for (const lavoro of lavoriList) {
+                    const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'oreOperai');
+                    const oreSnapshot = await getDocs(oreRef);
+                    
+                    oreSnapshot.forEach(oraDoc => {
+                        const oraData = oraDoc.data();
+                        if (oraData.stato === 'validate') {
+                            totaleOreValidate += oraData.oreNette || 0;
+                        }
+                    });
+
+                    // Carica superficie lavorata
+                    const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'zoneLavorate');
+                    const zoneSnapshot = await getDocs(zoneRef);
+                    
+                    let superficieLavorataLavoro = 0;
+                    zoneSnapshot.forEach(zonaDoc => {
+                        const zonaData = zonaDoc.data();
+                        superficieLavorataLavoro += zonaData.superficieHa || 0;
+                    });
+                    totaleSuperficieLavorata += superficieLavorataLavoro;
+
+                    // Calcola stato progresso se il lavoro ha durata prevista e data inizio
+                    if (lavoro.dataInizio && lavoro.durataPrevista && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato') {
+                        const dataInizio = lavoro.dataInizio instanceof Date 
+                            ? lavoro.dataInizio 
+                            : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio));
+                        const oggi = new Date();
+                        oggi.setHours(0, 0, 0, 0);
+                        dataInizio.setHours(0, 0, 0, 0);
+                        
+                        const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1);
+                        
+                        if (giorniEffettivi > 0) {
+                            // Carica terreno per ottenere superficie totale
+                            const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
+                            const terreno = terrenoDoc.exists() ? terrenoDoc.data() : null;
+                            const superficieTotale = terreno?.superficie || 0;
+                            
+                            const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorataLavoro / superficieTotale * 100) : 0;
+                            const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+                            const tolleranza = 10; // Tolleranza del 10%
+                            
+                            if (percentualeCompletamento > percentualeTempo + tolleranza) {
+                                lavoriInAnticipo++;
+                            } else if (percentualeCompletamento < percentualeTempo - tolleranza) {
+                                lavoriInRitardo++;
+                            } else {
+                                lavoriInTempo++;
+                            }
+                        }
+                    }
+                }
+
+                // Aggiorna UI
+                document.getElementById('stat-totale-lavori').textContent = totaleLavori;
+                document.getElementById('stat-lavori-corso').textContent = lavoriInCorso;
+                
+                // Formatta ore
+                const oreFormatted = totaleOreValidate >= 1 
+                    ? `${Math.round(totaleOreValidate)}h`
+                    : `${Math.round(totaleOreValidate * 60)}min`;
+                document.getElementById('stat-ore-validate').textContent = oreFormatted;
+                
+                document.getElementById('stat-superficie-lavorata').textContent = `${totaleSuperficieLavorata.toFixed(2)} ha`;
+                
+                // Aggiorna statistiche stato progresso
+                document.getElementById('stat-lavori-ritardo').textContent = lavoriInRitardo;
+                document.getElementById('stat-lavori-tempo').textContent = lavoriInTempo;
+                document.getElementById('stat-lavori-anticipo').textContent = lavoriInAnticipo;
+            } catch (error) {
+                console.error('Errore caricamento statistiche:', error);
+            }
+        }
+
+        // Carica progressi per un singolo lavoro
+        async function loadProgressiLavoro(lavoroId) {
+            try {
+                const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const zoneSnapshot = await getDocs(zoneRef);
+                
+                let superficieLavorata = 0;
+                zoneSnapshot.forEach(zonaDoc => {
+                    const zonaData = zonaDoc.data();
+                    superficieLavorata += zonaData.superficieHa || 0;
+                });
+
+                return { superficieLavorata };
+            } catch (error) {
+                console.error('Errore caricamento progressi:', error);
+                return { superficieLavorata: 0 };
+            }
+        }
+
+        // Apri modal dettaglio lavoro
+        window.openDettaglioModal = async function(lavoroId) {
+            currentLavoroId = lavoroId;
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+
+            document.getElementById('dettaglio-title').textContent = `Dettaglio: ${lavoro.nome}`;
+            document.getElementById('dettaglio-modal').classList.add('active');
+            
+            // Reset tabs
+            switchTab('overview');
+            
+            // Carica contenuto iniziale
+            await loadDettaglioOverview(lavoroId);
+        };
+
+        // Chiudi modal dettaglio
+        window.closeDettaglioModal = function() {
+            document.getElementById('dettaglio-modal').classList.remove('active');
+            currentLavoroId = null;
+            
+            // Pulisci mappa
+            if (dettaglioMap) {
+                dettaglioMapMarkers.forEach(m => m.setMap(null));
+                dettaglioMapPolygons.forEach(p => p.setMap(null));
+                dettaglioMapMarkers = [];
+                dettaglioMapPolygons = [];
+            }
+        };
+
+        // Cambia tab nel modal
+        window.switchTab = async function(tabName) {
+            // Aggiorna tab attivi
+            document.querySelectorAll('.modal-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Carica contenuto del tab se necessario
+            if (tabName === 'map' && currentLavoroId) {
+                await loadDettaglioMap(currentLavoroId);
+            } else if (tabName === 'ore' && currentLavoroId) {
+                await loadDettaglioOre(currentLavoroId);
+            }
+        };
+
+        // Carica contenuto tab Panoramica
+        async function loadDettaglioOverview(lavoroId) {
+            const container = document.getElementById('dettaglio-overview-content');
+            container.innerHTML = '<div class="loading">Caricamento dettagli...</div>';
+
+            try {
+                const lavoro = lavoriList.find(l => l.id === lavoroId);
+                if (!lavoro) {
+                    container.innerHTML = '<div class="empty-state">Lavoro non trovato</div>';
+                    return;
+                }
+
+                const terreno = terreniList.find(t => t.id === lavoro.terrenoId);
+                const caposquadra = caposquadraList.find(c => c.id === lavoro.caposquadraId);
+                const progressi = await loadProgressiLavoro(lavoroId);
+                
+                // Carica ore validate
+                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                const oreSnapshot = await getDocs(oreRef);
+                let totaleOreValidate = 0;
+                let totaleOreDaValidare = 0;
+                oreSnapshot.forEach(oraDoc => {
+                    const oraData = oraDoc.data();
+                    if (oraData.stato === 'validate') {
+                        totaleOreValidate += oraData.oreNette || 0;
+                    } else if (oraData.stato === 'da_validare') {
+                        totaleOreDaValidare += oraData.oreNette || 0;
+                    }
+                });
+
+                const superficieTotale = terreno?.superficie || 0;
+                const superficieLavorata = progressi.superficieLavorata || 0;
+                const percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
+
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                        <div class="ore-stat-card">
+                            <div class="ore-stat-value">${superficieLavorata.toFixed(2)} / ${superficieTotale.toFixed(2)} ha</div>
+                            <div class="ore-stat-label">Superficie Lavorata</div>
+                        </div>
+                        <div class="ore-stat-card">
+                            <div class="ore-stat-value">${percentuale}%</div>
+                            <div class="ore-stat-label">Percentuale Completamento</div>
+                        </div>
+                        <div class="ore-stat-card">
+                            <div class="ore-stat-value">${Math.round(totaleOreValidate)}h</div>
+                            <div class="ore-stat-label">Ore Validate</div>
+                        </div>
+                        <div class="ore-stat-card">
+                            <div class="ore-stat-value">${Math.round(totaleOreDaValidare)}h</div>
+                            <div class="ore-stat-label">Ore da Validare</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px;">Progressi</h4>
+                        <div class="progress-bar-inline" style="height: 30px;">
+                            <div class="progress-fill-inline" style="width: ${Math.min(percentuale, 100)}%; height: 30px; font-size: 14px;">${percentuale}%</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <strong>Terreno:</strong> ${terreno ? terreno.nome : 'N/A'}
+                        </div>
+                        <div>
+                            <strong>Caposquadra:</strong> ${caposquadra ? `${caposquadra.nome || ''} ${caposquadra.cognome || ''}`.trim() : 'N/A'}
+                        </div>
+                        <div>
+                            <strong>Data Inizio:</strong> ${lavoro.dataInizio ? new Date(lavoro.dataInizio).toLocaleDateString('it-IT') : 'N/A'}
+                        </div>
+                        <div>
+                            <strong>Durata Prevista:</strong> ${lavoro.durataPrevista || 0} giorni
+                        </div>
+                        <div>
+                            <strong>Stato:</strong> <span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>
+                        </div>
+                    </div>
+                    
+                    ${lavoro.note ? `<div style="margin-top: 20px;"><strong>Note:</strong><br>${escapeHtml(lavoro.note)}</div>` : ''}
+                `;
+            } catch (error) {
+                console.error('Errore caricamento dettaglio:', error);
+                container.innerHTML = '<div class="empty-state">Errore caricamento dettagli</div>';
+            }
+        }
+
+        // Carica contenuto tab Mappa
+        async function loadDettaglioMap(lavoroId) {
+            const container = document.getElementById('dettaglio-map-content');
+            const mapContainer = document.getElementById('dettaglio-map');
+            const zoneListContainer = document.getElementById('zone-list');
+            
+            try {
+                const lavoro = lavoriList.find(l => l.id === lavoroId);
+                if (!lavoro) {
+                    container.innerHTML = '<div class="empty-state">Lavoro non trovato</div>';
+                    return;
+                }
+
+                const terreno = terreniList.find(t => t.id === lavoro.terrenoId);
+                if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) {
+                    mapContainer.innerHTML = '<div class="empty-state">Terreno senza confini mappa</div>';
+                    zoneListContainer.innerHTML = '<div class="empty-state">Nessuna zona lavorata</div>';
+                    return;
+                }
+
+                // Inizializza mappa (sempre re-inizializza per ogni lavoro)
+                const center = terreno.coordinate || { lat: 45.0, lng: 9.0 };
+                if (typeof google !== 'undefined' && google.maps) {
+                    dettaglioMap = new google.maps.Map(mapContainer, {
+                        zoom: 15,
+                        center: center,
+                        mapTypeId: 'satellite'
+                    });
+                } else {
+                    mapContainer.innerHTML = '<div class="empty-state">Google Maps non disponibile. Attendi il caricamento...</div>';
+                    setTimeout(() => loadDettaglioMap(lavoroId), 1000);
+                    return;
+                }
+
+                // Pulisci markers e poligoni precedenti
+                dettaglioMapMarkers.forEach(m => m.setMap(null));
+                dettaglioMapPolygons.forEach(p => p.setMap(null));
+                dettaglioMapMarkers = [];
+                dettaglioMapPolygons = [];
+
+                // Disegna confini terreno
+                const terrenoCoords = terreno.polygonCoords.map(c => {
+                    if (typeof c === 'object' && c !== null) {
+                        return {
+                            lat: c.lat !== undefined ? c.lat : (Array.isArray(c) ? c[0] : 45.0),
+                            lng: c.lng !== undefined ? c.lng : (Array.isArray(c) ? c[1] : 9.0)
+                        };
+                    } else if (Array.isArray(c)) {
+                        return { lat: c[0] || 45.0, lng: c[1] || 9.0 };
+                    }
+                    return { lat: 45.0, lng: 9.0 };
+                });
+                
+                const terrenoPolygon = new google.maps.Polygon({
+                    paths: terrenoCoords,
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 3,
+                    fillColor: '#FF0000',
+                    fillOpacity: 0.1
+                });
+                terrenoPolygon.setMap(dettaglioMap);
+                dettaglioMapPolygons.push(terrenoPolygon);
+
+                // Aggiusta zoom per includere tutto il terreno
+                const bounds = new google.maps.LatLngBounds();
+                terrenoCoords.forEach(coord => bounds.extend(coord));
+                dettaglioMap.fitBounds(bounds);
+
+                // Carica zone lavorate
+                const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const zoneSnapshot = await getDocs(zoneRef);
+                
+                let zoneList = [];
+                zoneSnapshot.forEach(zonaDoc => {
+                    const zonaData = zonaDoc.data();
+                    zoneList.push({ id: zonaDoc.id, ...zonaData });
+                    
+                    // Disegna zona lavorata sulla mappa
+                    if (zonaData.coordinate && zonaData.coordinate.length > 0) {
+                        const zonaCoords = zonaData.coordinate.map(c => ({
+                            lat: c.lat,
+                            lng: c.lng
+                        }));
+                        
+                        const zonaPolygon = new google.maps.Polygon({
+                            paths: zonaCoords,
+                            strokeColor: '#00FF00',
+                            strokeOpacity: 0.8,
+                            strokeWeight: 2,
+                            fillColor: '#00FF00',
+                            fillOpacity: 0.3
+                        });
+                        zonaPolygon.setMap(dettaglioMap);
+                        dettaglioMapPolygons.push(zonaPolygon);
+                    }
+                });
+
+                // Ordina zone per data (più recenti prima)
+                zoneList.sort((a, b) => {
+                    const dateA = a.data?.toDate ? a.data.toDate() : new Date(a.data);
+                    const dateB = b.data?.toDate ? b.data.toDate() : new Date(b.data);
+                    return dateB - dateA;
+                });
+
+                // Renderizza lista zone
+                if (zoneList.length === 0) {
+                    zoneListContainer.innerHTML = '<div class="empty-state">Nessuna zona lavorata tracciata</div>';
+                } else {
+                    zoneListContainer.innerHTML = zoneList.map(zona => {
+                        const dataFormatted = zona.data?.toDate 
+                            ? zona.data.toDate().toLocaleDateString('it-IT')
+                            : new Date(zona.data).toLocaleDateString('it-IT');
+                        return `
+                            <div class="zone-item">
+                                <div class="zone-info">
+                                    <div class="zone-date">${dataFormatted}</div>
+                                    <div class="zone-surface">${(zona.superficieHa || 0).toFixed(2)} ha</div>
+                                </div>
+                                <div>${zona.tipo === 'poligono' ? '🔷 Poligono' : '📏 Segmento'}</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Errore caricamento mappa:', error);
+                mapContainer.innerHTML = '<div class="empty-state">Errore caricamento mappa</div>';
+            }
+        }
+
+        // Carica contenuto tab Ore
+        async function loadDettaglioOre(lavoroId) {
+            const container = document.getElementById('dettaglio-ore-content');
+            container.innerHTML = '<div class="loading">Caricamento statistiche ore...</div>';
+
+            try {
+                const lavoro = lavoriList.find(l => l.id === lavoroId);
+                if (!lavoro) {
+                    container.innerHTML = '<div class="empty-state">Lavoro non trovato</div>';
+                    return;
+                }
+
+                // Carica ore
+                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                const oreSnapshot = await getDocs(oreRef);
+                
+                let oreList = [];
+                let totaleValidate = 0;
+                let totaleDaValidare = 0;
+                let totaleRifiutate = 0;
+                let orePerOperaio = {};
+
+                oreSnapshot.forEach(oraDoc => {
+                    const oraData = oraDoc.data();
+                    oreList.push({ id: oraDoc.id, ...oraData });
+                    
+                    const oreNette = oraData.oreNette || 0;
+                    const operaioId = oraData.operaioId;
+                    
+                    if (oraData.stato === 'validate') {
+                        totaleValidate += oreNette;
+                    } else if (oraData.stato === 'da_validare') {
+                        totaleDaValidare += oreNette;
+                    } else if (oraData.stato === 'rifiutate') {
+                        totaleRifiutate += oreNette;
+                    }
+                    
+                    if (!orePerOperaio[operaioId]) {
+                        orePerOperaio[operaioId] = { validate: 0, daValidare: 0, rifiutate: 0 };
+                    }
+                    
+                    if (oraData.stato === 'validate') {
+                        orePerOperaio[operaioId].validate += oreNette;
+                    } else if (oraData.stato === 'da_validare') {
+                        orePerOperaio[operaioId].daValidare += oreNette;
+                    } else if (oraData.stato === 'rifiutate') {
+                        orePerOperaio[operaioId].rifiutate += oreNette;
+                    }
+                });
+
+                // Carica nomi operai
+                const operaiMap = {};
+                for (const operaioId of Object.keys(orePerOperaio)) {
+                    try {
+                        const operaioDoc = await getDoc(doc(db, 'users', operaioId));
+                        if (operaioDoc.exists()) {
+                            const operaioData = operaioDoc.data();
+                            operaiMap[operaioId] = `${operaioData.nome || ''} ${operaioData.cognome || ''}`.trim() || operaioData.email || 'N/A';
+                        }
+                    } catch (error) {
+                        console.error('Errore caricamento operaio:', error);
+                        operaiMap[operaioId] = 'N/A';
+                    }
+                }
+
+                container.innerHTML = `
+                    <div class="ore-stats-grid">
+                        <div class="ore-stat-card">
+                            <div class="ore-stat-value">${Math.round(totaleValidate)}h</div>
+                            <div class="ore-stat-label">Ore Validate</div>
+                        </div>
+                        <div class="ore-stat-card">
+                            <div class="ore-stat-value">${Math.round(totaleDaValidare)}h</div>
+                            <div class="ore-stat-label">Ore da Validare</div>
+                        </div>
+                        <div class="ore-stat-card">
+                            <div class="ore-stat-value">${Math.round(totaleRifiutate)}h</div>
+                            <div class="ore-stat-label">Ore Rifiutate</div>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin-bottom: 15px;">Ore per Operaio</h4>
+                    <div style="display: grid; gap: 10px;">
+                        ${Object.keys(orePerOperaio).map(operaioId => {
+                            const ore = orePerOperaio[operaioId];
+                            const nomeOperaio = operaiMap[operaioId] || 'N/A';
+                            return `
+                                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                    <strong>${escapeHtml(nomeOperaio)}</strong>
+                                    <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                        <div><span style="color: #2E8B57;">✅ ${Math.round(ore.validate)}h</span> validate</div>
+                                        <div><span style="color: #ffc107;">⏳ ${Math.round(ore.daValidare)}h</span> da validare</div>
+                                        <div><span style="color: #dc3545;">❌ ${Math.round(ore.rifiutate)}h</span> rifiutate</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Errore caricamento statistiche ore:', error);
+                container.innerHTML = '<div class="empty-state">Errore caricamento statistiche ore</div>';
+            }
+        }
+    </script>
+</body>
+</html>
+

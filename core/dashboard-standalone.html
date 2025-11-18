@@ -308,6 +308,10 @@
                     <span>⚙️</span>
                     <span>Impostazioni</span>
                 </a>
+                <a href="admin/gestisci-utenti-standalone.html" id="invita-collaboratore-link" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px; font-size: 13px; padding: 8px 16px;">
+                    <span>➕</span>
+                    <span>Invita Collaboratore</span>
+                </a>
                 <button class="logout-button" id="logout-button">Logout</button>
             </div>
         </div>
@@ -421,7 +425,7 @@
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, getDoc, doc, updateDoc, serverTimestamp, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, getDoc, doc, updateDoc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
@@ -462,6 +466,14 @@
             return ruoli.map(r => normalizeRole(r));
         }
 
+        // Funzione per escape HTML (prevenzione XSS)
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Funzione per verificare se utente ha un ruolo (con normalizzazione)
         function hasRole(userData, role) {
             if (!userData || !userData.ruoli) return false;
@@ -486,14 +498,28 @@
             return advancedModules.length === 0;
         }
 
+        // Conta utenti del tenant
+        let tenantUserCount = 1; // Default a 1 (solo utente corrente)
+
+        // Verifica se modulo Manodopera è attivo
+        function hasManodoperaModule(availableModules) {
+            return availableModules && availableModules.includes('manodopera');
+        }
+
         // Renderizza dashboard in base ai ruoli e moduli
-        function renderDashboard(userData, availableModules = []) {
+        async function renderDashboard(userData, availableModules = []) {
             const container = document.getElementById('dashboard-content');
             container.innerHTML = '';
 
             const ruoli = userData.ruoli || [];
             const isCoreOnly = hasOnlyCoreModules(availableModules);
             const hasAdvancedModules = !isCoreOnly;
+            const hasManodopera = hasManodoperaModule(availableModules);
+
+            // Sezione Amministratore: mostra solo se modulo Manodopera è attivo
+            if (hasRole(userData, 'amministratore') && hasManodopera) {
+                container.appendChild(createAdminSection(userData, isCoreOnly, availableModules));
+            }
 
             // CORE BASE: Sempre mostra funzionalità core essenziali (solo card di accesso)
             container.appendChild(createCoreBaseSection(userData, isCoreOnly));
@@ -503,6 +529,11 @@
                 // Sezione Manager (solo con moduli avanzati)
                 if (hasRole(userData, 'manager')) {
                     container.appendChild(createManagerSection(userData, isCoreOnly, availableModules));
+                }
+                
+                // Sezione Gestione Lavori (per Manager e Amministratore, solo se modulo Manodopera attivo)
+                if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
+                    container.appendChild(createManagerLavoriSection(userData, availableModules));
                 }
 
                 // Sezione Caposquadra (solo con moduli avanzati)
@@ -597,22 +628,18 @@
                 </div>
             `;
             
-            // Azioni amministratore (sempre disponibili nel core base)
+            // Azioni amministratore (solo con modulo Manodopera)
+            // Nota: Abbonamento e Impostazioni sono sempre disponibili nell'header o Core Base
             let actionsHTML = `
                 <a href="admin/gestisci-utenti-standalone.html" class="action-card">
                     <span class="action-icon">👥</span>
                     <span class="action-title">Gestisci Utenti</span>
                     <span class="action-description">Invita e gestisci utenti azienda</span>
                 </a>
-                <a href="admin/abbonamento-standalone.html" class="action-card">
-                    <span class="action-icon">💳</span>
-                    <span class="action-title">Abbonamento</span>
-                    <span class="action-description">Gestisci piano e moduli</span>
-                </a>
-                <a href="admin/impostazioni-standalone.html" class="action-card">
-                    <span class="action-icon">⚙️</span>
-                    <span class="action-title">Impostazioni</span>
-                    <span class="action-description">Configura azienda e account</span>
+                <a href="admin/gestione-squadre-standalone.html" class="action-card">
+                    <span class="action-icon">👷</span>
+                    <span class="action-title">Gestione Squadre</span>
+                    <span class="action-description">Crea e gestisci squadre di lavoro</span>
                 </a>
             `;
             
@@ -740,6 +767,8 @@
             
             // Azioni rapide: se core only, mostra solo funzionalità core
             let actionsHTML = '';
+            const hasManodopera = hasManodoperaModule(availableModules);
+            
             if (isCoreOnly) {
                 actionsHTML = `
                     <a href="terreni-standalone.html" class="action-card">
@@ -784,11 +813,6 @@
                         <span class="action-icon">🍇</span>
                         <span class="action-title">Calcolatore Vendemmia</span>
                         <span class="action-description">Crea calcoli e preventivi</span>
-                    </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Lavori in sviluppo'); return false;">
-                        <span class="action-icon">📋</span>
-                        <span class="action-title">Lavori</span>
-                        <span class="action-description">Assegna e gestisci lavori</span>
                     </a>
                     <a href="#" class="action-card" onclick="alert('Modulo Bilancio in sviluppo'); return false;">
                         <span class="action-icon">💰</span>
@@ -876,48 +900,441 @@
                 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-lavori-assegnati-capo">-</div>
                         <div class="stat-label">Lavori Assegnati</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-ore-da-validare-capo">-</div>
                         <div class="stat-label">Ore da Validare</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-squadra-capo">-</div>
                         <div class="stat-label">Squadra</div>
                     </div>
                 </div>
 
                 <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
                 <div class="quick-actions">
-                    <a href="#" class="action-card" onclick="alert('Modulo Lavori in sviluppo'); return false;">
+                    <a href="admin/lavori-caposquadra-standalone.html" class="action-card">
                         <span class="action-icon">📋</span>
                         <span class="action-title">I Miei Lavori</span>
-                        <span class="action-description">Visualizza lavori assegnati</span>
+                        <span class="action-description">Visualizza lavori assegnati e traccia zone</span>
                     </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Validazione in sviluppo'); return false;">
+                    <a href="segnatura-ore-standalone.html" class="action-card">
+                        <span class="action-icon">⏱️</span>
+                        <span class="action-title">Segna Ore</span>
+                        <span class="action-description">Registra le tue ore lavorate</span>
+                    </a>
+                    <a href="admin/validazione-ore-standalone.html" class="action-card">
                         <span class="action-icon">✅</span>
                         <span class="action-title">Valida Ore</span>
                         <span class="action-description">Valida ore degli operai</span>
                     </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Squadra in sviluppo'); return false;">
+                    <a href="admin/gestione-squadre-standalone.html" class="action-card">
                         <span class="action-icon">👥</span>
                         <span class="action-title">La Mia Squadra</span>
-                        <span class="action-description">Gestisci membri squadra</span>
+                        <span class="action-description">Visualizza membri squadra</span>
                     </a>
                 </div>
 
                 <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
-                <ul class="recent-items">
+                <ul class="recent-items" id="recent-lavori-capo">
                     <li class="recent-item">
                         <div>
-                            <div class="recent-item-title">Nessun lavoro recente</div>
+                            <div class="recent-item-title">Caricamento...</div>
                         </div>
                     </li>
                 </ul>
             `;
+            
+            // Carica statistiche caposquadra
+            loadCaposquadraStats(userData);
+            loadRecentLavoriCaposquadra(userData);
+            
             return section;
+        }
+
+        // Sezione Manager - Gestione Lavori (solo con modulo Manodopera)
+        function createManagerLavoriSection(userData, availableModules) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            section.innerHTML = `
+                <h2><span class="section-icon">📋</span> Gestione Lavori</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-totali">-</div>
+                        <div class="stat-label">Lavori Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-attivi">-</div>
+                        <div class="stat-label">Lavori Attivi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-completati">-</div>
+                        <div class="stat-label">Lavori Completati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-pianificati">-</div>
+                        <div class="stat-label">Lavori Pianificati</div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    <a href="admin/gestione-lavori-standalone.html" class="action-card">
+                        <span class="action-icon">📋</span>
+                        <span class="action-title">Gestione Lavori</span>
+                        <span class="action-description">Crea, modifica e assegna lavori</span>
+                    </a>
+                    <a href="admin/gestione-squadre-standalone.html" class="action-card">
+                        <span class="action-icon">👥</span>
+                        <span class="action-title">Gestione Squadre</span>
+                        <span class="action-description">Gestisci squadre e assegnazioni</span>
+                    </a>
+                </div>
+
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
+                <ul class="recent-items" id="recent-lavori-manager">
+                    <li class="recent-item">
+                        <div>
+                            <div class="recent-item-title">Caricamento...</div>
+                        </div>
+                    </li>
+                </ul>
+            `;
+            
+            // Carica statistiche lavori
+            loadManagerLavoriStats();
+            loadRecentLavori();
+            
+            return section;
+        }
+        
+        // Carica statistiche lavori per Manager
+        async function loadManagerLavoriStats() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                // Carica tutti i lavori del tenant
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriCollection);
+                
+                let totali = 0;
+                let attivi = 0;
+                let completati = 0;
+                let pianificati = 0;
+                
+                lavoriSnapshot.forEach(doc => {
+                    totali++;
+                    const lavoro = doc.data();
+                    const stato = lavoro.stato || 'pianificato';
+                    
+                    if (stato === 'attivo') attivi++;
+                    else if (stato === 'completato') completati++;
+                    else if (stato === 'pianificato') pianificati++;
+                });
+                
+                const statTotali = document.getElementById('stat-lavori-totali');
+                const statAttivi = document.getElementById('stat-lavori-attivi');
+                const statCompletati = document.getElementById('stat-lavori-completati');
+                const statPianificati = document.getElementById('stat-lavori-pianificati');
+                
+                if (statTotali) statTotali.textContent = totali;
+                if (statAttivi) statAttivi.textContent = attivi;
+                if (statCompletati) statCompletati.textContent = completati;
+                if (statPianificati) statPianificati.textContent = pianificati;
+            } catch (error) {
+                console.error('Errore caricamento statistiche lavori:', error);
+            }
+        }
+        
+        // Carica lavori recenti per Manager
+        async function loadRecentLavori() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                // Carica lavori recenti (ultimi 5)
+                // Nota: se createdAt non esiste, carichiamo tutti e ordiniamo manualmente
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                let lavoriSnapshot;
+                
+                try {
+                    // Prova a ordinare per createdAt
+                    const lavoriQuery = query(lavoriCollection, orderBy('createdAt', 'desc'), limit(5));
+                    lavoriSnapshot = await getDocs(lavoriQuery);
+                } catch (error) {
+                    // Se createdAt non esiste, carica tutti e ordina manualmente
+                    console.warn('Campo createdAt non trovato, carico tutti i lavori:', error);
+                    const allLavoriSnapshot = await getDocs(lavoriCollection);
+                    const lavoriArray = [];
+                    allLavoriSnapshot.forEach(doc => {
+                        lavoriArray.push({ id: doc.id, ...doc.data() });
+                    });
+                    // Ordina per data creazione (se disponibile) o per ID
+                    lavoriArray.sort((a, b) => {
+                        if (a.createdAt && b.createdAt) {
+                            return b.createdAt.toMillis() - a.createdAt.toMillis();
+                        }
+                        return b.id.localeCompare(a.id);
+                    });
+                    // Prendi i primi 5
+                    lavoriSnapshot = {
+                        empty: lavoriArray.length === 0,
+                        forEach: (callback) => {
+                            lavoriArray.slice(0, 5).forEach(item => {
+                                callback({ id: item.id, data: () => item });
+                            });
+                        }
+                    };
+                }
+                
+                const recentLavoriEl = document.getElementById('recent-lavori-manager');
+                if (!recentLavoriEl) return;
+                
+                if (lavoriSnapshot.empty) {
+                    recentLavoriEl.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Nessun lavoro trovato</div>
+                            </div>
+                        </li>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                lavoriSnapshot.forEach(doc => {
+                    const lavoro = doc.data();
+                    const nome = lavoro.nome || 'Senza nome';
+                    const stato = lavoro.stato || 'pianificato';
+                    const statoLabels = {
+                        'pianificato': '📅 Pianificato',
+                        'attivo': '🟢 Attivo',
+                        'completato': '✅ Completato',
+                        'sospeso': '⏸️ Sospeso'
+                    };
+                    const statoLabel = statoLabels[stato] || stato;
+                    
+                    html += `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">${escapeHtml(nome)}</div>
+                                <div class="recent-item-meta">${statoLabel}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                recentLavoriEl.innerHTML = html;
+            } catch (error) {
+                console.error('Errore caricamento lavori recenti:', error);
+                const recentLavoriEl = document.getElementById('recent-lavori-manager');
+                if (recentLavoriEl) {
+                    recentLavoriEl.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Errore caricamento lavori</div>
+                            </div>
+                        </li>
+                    `;
+                }
+            }
+        }
+
+        // Carica statistiche caposquadra
+        async function loadCaposquadraStats(userData) {
+            try {
+                const user = auth.currentUser;
+                if (!user || !userData) return;
+                
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                const caposquadraId = userData.id || user.uid;
+                
+                // 1. Conta lavori assegnati (stato in_corso o assegnato)
+                const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', caposquadraId));
+                const lavoriSnapshot = await getDocs(lavoriQuery);
+                
+                let lavoriAssegnati = 0;
+                const lavoriIds = [];
+                
+                lavoriSnapshot.forEach(doc => {
+                    const lavoro = doc.data();
+                    const stato = lavoro.stato || 'assegnato';
+                    // Conta solo lavori attivi (non completati e non annullati)
+                    if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
+                        lavoriAssegnati++;
+                    }
+                    lavoriIds.push(doc.id);
+                });
+                
+                // 2. Conta ore da validare (nei lavori del caposquadra)
+                let oreDaValidare = 0;
+                for (const lavoroId of lavoriIds) {
+                    try {
+                        const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                        const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
+                        const oreSnapshot = await getDocs(oreQuery);
+                        oreDaValidare += oreSnapshot.size;
+                    } catch (error) {
+                        // Se la sottocollezione non esiste, continua
+                        console.warn(`Errore caricamento ore per lavoro ${lavoroId}:`, error);
+                    }
+                }
+                
+                // 3. Conta operai nella squadra del caposquadra
+                let dimensioneSquadra = 0;
+                try {
+                    const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
+                    const squadreQuery = query(squadreRef, where('caposquadraId', '==', caposquadraId));
+                    const squadreSnapshot = await getDocs(squadreQuery);
+                    
+                    if (!squadreSnapshot.empty) {
+                        // Prendi la prima squadra trovata (dovrebbe essercene solo una)
+                        const squadraDoc = squadreSnapshot.docs[0];
+                        const squadraData = squadraDoc.data();
+                        dimensioneSquadra = squadraData.operai ? squadraData.operai.length : 0;
+                    }
+                } catch (error) {
+                    console.warn('Errore caricamento squadra:', error);
+                }
+                
+                // Aggiorna UI
+                const statLavori = document.getElementById('stat-lavori-assegnati-capo');
+                const statOre = document.getElementById('stat-ore-da-validare-capo');
+                const statSquadra = document.getElementById('stat-squadra-capo');
+                
+                if (statLavori) statLavori.textContent = lavoriAssegnati;
+                if (statOre) statOre.textContent = oreDaValidare;
+                if (statSquadra) statSquadra.textContent = dimensioneSquadra;
+            } catch (error) {
+                console.error('Errore caricamento statistiche caposquadra:', error);
+            }
+        }
+        
+        // Carica lavori recenti per caposquadra
+        async function loadRecentLavoriCaposquadra(userData) {
+            try {
+                const user = auth.currentUser;
+                if (!user || !userData) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                const caposquadraId = userData.id || user.uid;
+                
+                // Carica lavori assegnati al caposquadra (ultimi 5)
+                const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', caposquadraId));
+                const lavoriSnapshot = await getDocs(lavoriQuery);
+                
+                const recentLavoriEl = document.getElementById('recent-lavori-capo');
+                if (!recentLavoriEl) return;
+                
+                if (lavoriSnapshot.empty) {
+                    recentLavoriEl.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Nessun lavoro assegnato</div>
+                            </div>
+                        </li>
+                    `;
+                    return;
+                }
+                
+                // Converti in array e ordina per data creazione
+                const lavoriArray = [];
+                lavoriSnapshot.forEach(doc => {
+                    const lavoro = doc.data();
+                    lavoriArray.push({
+                        id: doc.id,
+                        nome: lavoro.nome || 'Senza nome',
+                        stato: lavoro.stato || 'assegnato',
+                        createdAt: lavoro.createdAt || lavoro.creatoIl
+                    });
+                });
+                
+                // Ordina per data creazione (più recenti prima)
+                lavoriArray.sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                        const dateA = a.createdAt.toMillis ? a.createdAt.toMillis() : (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+                        const dateB = b.createdAt.toMillis ? b.createdAt.toMillis() : (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+                        return dateB - dateA;
+                    }
+                    return 0;
+                });
+                
+                // Prendi i primi 5
+                const lavoriRecenti = lavoriArray.slice(0, 5);
+                
+                if (lavoriRecenti.length === 0) {
+                    recentLavoriEl.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Nessun lavoro recente</div>
+                            </div>
+                        </li>
+                    `;
+                    return;
+                }
+                
+                const statoLabels = {
+                    'assegnato': '📋 Assegnato',
+                    'in_corso': '🔄 In corso',
+                    'completato': '✅ Completato',
+                    'completato_da_approvare': '⏳ In attesa approvazione',
+                    'annullato': '❌ Annullato'
+                };
+                
+                let html = '';
+                lavoriRecenti.forEach(lavoro => {
+                    const statoLabel = statoLabels[lavoro.stato] || lavoro.stato;
+                    html += `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">${escapeHtml(lavoro.nome)}</div>
+                                <div class="recent-item-meta">${statoLabel}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                recentLavoriEl.innerHTML = html;
+            } catch (error) {
+                console.error('Errore caricamento lavori recenti caposquadra:', error);
+                const recentLavoriEl = document.getElementById('recent-lavori-capo');
+                if (recentLavoriEl) {
+                    recentLavoriEl.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Errore caricamento lavori</div>
+                            </div>
+                        </li>
+                    `;
+                }
+            }
         }
 
         // Sezione Operaio
@@ -949,12 +1366,12 @@
                         <span class="action-title">Lavori di Oggi</span>
                         <span class="action-description">Visualizza lavori assegnati oggi</span>
                     </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Ore in sviluppo'); return false;">
+                    <a href="segnatura-ore-standalone.html" class="action-card">
                         <span class="action-icon">⏱️</span>
                         <span class="action-title">Segna Ore</span>
-                        <span class="action-description">Registra inizio/fine lavoro</span>
+                        <span class="action-description">Registra ore lavorate</span>
                     </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Storico in sviluppo'); return false;">
+                    <a href="segnatura-ore-standalone.html" class="action-card">
                         <span class="action-icon">📊</span>
                         <span class="action-title">Le Mie Ore</span>
                         <span class="action-description">Visualizza storico ore</span>
@@ -1010,9 +1427,224 @@
             }
 
             // Carica dati utente
+            console.log('🚀 INIZIO CARICAMENTO DATI UTENTE');
+            console.log('🚀 User ID:', user.uid);
+            console.log('🚀 User Email:', user.email);
             try {
                 const userDocRef = doc(db, 'users', user.uid);
+                console.log('🚀 Sto leggendo documento da Firestore...');
                 const userDoc = await getDoc(userDocRef);
+                console.log('🚀 Documento letto, esiste?', userDoc.exists());
+
+                if (!userDoc.exists()) {
+                    // Il documento utente non esiste, verifica prima se esiste già un documento con la stessa email
+                    console.warn('⚠️ Documento utente non trovato per UID, verifico se esiste già un documento con la stessa email...');
+                    try {
+                        // PRIMA VERIFICA: Cerca se esiste già un documento con la stessa email (per evitare duplicati)
+                        const existingUsersQuery = query(
+                            collection(db, 'users'),
+                            where('email', '==', user.email)
+                        );
+                        const existingUsersSnapshot = await getDocs(existingUsersQuery);
+                        
+                        if (!existingUsersSnapshot.empty) {
+                            // Trovato un documento esistente con la stessa email ma UID diverso
+                            // Questo è un documento orfano o duplicato - aggiornalo con il nuovo UID
+                            const existingDoc = existingUsersSnapshot.docs[0];
+                            const existingData = existingDoc.data();
+                            console.warn('⚠️ Trovato documento esistente con stessa email ma UID diverso:', existingDoc.id);
+                            console.warn('⚠️ Aggiorno il documento esistente con il nuovo UID:', user.uid);
+                            
+                            // Aggiorna il documento esistente con il nuovo UID
+                            await setDoc(userDocRef, {
+                                ...existingData,
+                                id: user.uid,
+                                email: user.email,
+                                ultimoAccesso: serverTimestamp(),
+                                isOnline: true,
+                                lastSeen: serverTimestamp()
+                            });
+                            
+                            // Elimina il vecchio documento orfano
+                            await deleteDoc(doc(db, 'users', existingDoc.id));
+                            console.log('✅ Documento duplicato eliminato, nuovo documento creato con UID corretto');
+                            
+                            // Ricarica il documento appena creato per continuare con il flusso normale
+                            const updatedUserDoc = await getDoc(userDocRef);
+                            if (!updatedUserDoc.exists()) {
+                                throw new Error('Errore: documento non creato correttamente dopo merge');
+                            }
+                        } else {
+                            // Nessun documento esistente con questa email, procedi con la creazione normale
+                            console.log('✅ Nessun documento esistente trovato, creazione nuovo documento...');
+                            
+                            // Attendi un breve momento per evitare race condition con registrazione appena completata
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            
+                            // Ricontrolla se nel frattempo è stato creato il documento
+                            const recheckDoc = await getDoc(userDocRef);
+                            if (recheckDoc.exists()) {
+                                console.log('✅ Documento trovato dopo attesa, uso quello esistente');
+                                // Il documento esiste ora, continua con il flusso normale dopo il blocco try
+                            } else {
+                                // Cerca se esiste un invito per questa email
+                                const invitiQuery = query(
+                                    collection(db, 'inviti'),
+                                    where('email', '==', user.email),
+                                    where('stato', '==', 'accettato')
+                                );
+                                const invitiSnapshot = await getDocs(invitiQuery);
+                                
+                                let tenantId = null;
+                                let ruoli = [];
+                                
+                                let nome = '';
+                                let cognome = '';
+                                
+                                if (!invitiSnapshot.empty) {
+                                    // Trovato un invito accettato, usa i dati dall'invito
+                                    const invitoDoc = invitiSnapshot.docs[0];
+                                    const invitoData = invitoDoc.data();
+                                    tenantId = invitoData.tenantId;
+                                    ruoli = invitoData.ruoli || [];
+                                    // Recupera nome e cognome dall'invito
+                                    nome = invitoData.nome || '';
+                                    cognome = invitoData.cognome || '';
+                                    console.log('✅ Trovato invito accettato, tenantId:', tenantId, 'ruoli:', ruoli);
+                                    console.log('✅ Nome e cognome dall\'invito:', nome, cognome);
+                                }
+                                
+                                // Se nome/cognome non sono nell'invito, prova a recuperarli da displayName di Firebase Auth
+                                if (!nome && !cognome && user.displayName) {
+                                    const nameParts = user.displayName.split(' ');
+                                    nome = nameParts[0] || '';
+                                    cognome = nameParts.slice(1).join(' ') || '';
+                                }
+                                
+                                // Crea il documento utente con merge per evitare sovrascritture
+                                const newUserData = {
+                                    id: user.uid,
+                                    email: user.email,
+                                    nome: nome,
+                                    cognome: cognome,
+                                    tenantId: tenantId,
+                                    ruoli: ruoli,
+                                    stato: 'attivo',
+                                    createdAt: serverTimestamp(),
+                                    createdBy: user.uid,
+                                    ultimoAccesso: serverTimestamp(),
+                                    isOnline: true,
+                                    lastSeen: serverTimestamp()
+                                };
+                                
+                                await setDoc(userDocRef, newUserData, { merge: true });
+                                console.log('✅ Documento utente creato automaticamente');
+                            }
+                        }
+                        
+                        // Ricarica il documento
+                        const newUserDoc = await getDoc(userDocRef);
+                        if (newUserDoc.exists()) {
+                            // Continua con il flusso normale usando i dati appena creati
+                            const userData = newUserDoc.data();
+                            console.log('✅ Dati utente creati:', userData);
+                            // Continua con il codice esistente usando userData invece di userDoc.data()
+                            // Ma per ora, ricarichiamo tutto il blocco
+                            const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
+                            const email = userData.email || user.email;
+                            const ruoliFromDoc = userData.ruoli || [];
+                            
+                            console.log('✅ Dati utente letti dopo creazione:', userData);
+                            console.log('✅ Ruoli letti:', ruoliFromDoc);
+                            console.log('✅ Tipo ruoli:', typeof ruoliFromDoc, Array.isArray(ruoliFromDoc));
+                            
+                            // Aggiorna ultimo accesso periodicamente
+                            const onlineInterval = setInterval(async () => {
+                                try {
+                                    await updateDoc(userDocRef, {
+                                        lastSeen: serverTimestamp()
+                                    });
+                                } catch (error) {
+                                    console.warn('Errore aggiornamento stato online:', error);
+                                    clearInterval(onlineInterval);
+                                }
+                            }, 30000);
+                            
+                            window.gfvOnlineInterval = onlineInterval;
+                            
+                            window.addEventListener('beforeunload', async () => {
+                                try {
+                                    await updateDoc(userDocRef, {
+                                        isOnline: false
+                                    });
+                                } catch (error) {
+                                    // Ignora errori durante il beforeunload
+                                }
+                            });
+                            
+                            // Se i ruoli non sono un array, prova a convertirli
+                            let ruoliArray = ruoliFromDoc;
+                            if (!Array.isArray(ruoliArray)) {
+                                if (typeof ruoliArray === 'string') {
+                                    ruoliArray = [ruoliArray];
+                                } else if (ruoliArray && typeof ruoliArray === 'object') {
+                                    ruoliArray = Object.values(ruoliArray);
+                                } else {
+                                    ruoliArray = [];
+                                }
+                                console.log('Ruoli convertiti:', ruoliArray);
+                            }
+                            
+                            // Aggiorna header
+                            document.getElementById('user-info').textContent = 
+                                `Utente: ${nomeCompleto || 'N/A'} (${email})`;
+                            
+                            // Normalizza ruoli prima di mostrarli
+                            const normalizedRoles = normalizeRoles(ruoliArray);
+                            
+                            // Mostra ruoli
+                            const rolesContainer = document.getElementById('user-roles');
+                            if (normalizedRoles.length > 0) {
+                                rolesContainer.innerHTML = normalizedRoles.map(role => {
+                                    const displayName = roleNames[role] || role.charAt(0).toUpperCase() + role.slice(1);
+                                    return `<span class="role-badge">${displayName}</span>`;
+                                }).join('');
+                            } else {
+                                rolesContainer.innerHTML = '<span class="role-badge">Nessun ruolo</span>';
+                            }
+                            
+                            // Crea copia userData con ruoli normalizzati per il rendering
+                            const userDataNormalized = {
+                                ...userData,
+                                ruoli: normalizedRoles
+                            };
+                            
+                            console.log('Ruoli normalizzati:', normalizedRoles);
+                            console.log('UserData normalizzato:', userDataNormalized);
+                            
+                            // Carica moduli disponibili dal tenant
+                            let availableModules = [];
+                            if (userData.tenantId) {
+                                try {
+                                    const tenantDoc = await getDoc(doc(db, 'tenants', userData.tenantId));
+                                    if (tenantDoc.exists()) {
+                                        const tenantData = tenantDoc.data();
+                                        availableModules = tenantData.modules || [];
+                                    }
+                                } catch (e) {
+                                    console.warn('Errore caricamento moduli tenant:', e);
+                                }
+                            }
+                            
+                            // Renderizza dashboard
+                            await renderDashboard(userDataNormalized, availableModules);
+                            return; // Esci qui per non eseguire il codice sotto
+                        }
+                    } catch (error) {
+                        console.error('❌ Errore creazione documento utente:', error);
+                        // Continua con il flusso di errore
+                    }
+                }
 
                 if (userDoc.exists()) {
                     // Aggiorna ultimo accesso e imposta come online quando si carica la dashboard
@@ -1052,16 +1684,28 @@
                     // Salva l'interval per pulirlo al logout
                     window.gfvOnlineInterval = onlineInterval;
                     
+                    console.log('🔍 DEBUG: Sto leggendo il documento utente...');
                     const userDocUpdated = await getDoc(userDocRef);
+                    console.log('🔍 DEBUG: Documento letto, esiste?', userDocUpdated.exists());
+                    
+                    if (!userDocUpdated.exists()) {
+                        console.error('❌ ERRORE: Il documento utente non esiste in Firestore!');
+                        console.error('❌ User ID:', user.uid);
+                        throw new Error('Documento utente non trovato');
+                    }
+                    
                     const userData = userDocUpdated.data();
+                    console.log('🔍 DEBUG: Dati utente letti:', userData);
+                    console.log('🔍 DEBUG: userData.ruoli =', userData.ruoli);
+                    
                     const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
                     const email = userData.email || user.email;
                     const ruoli = userData.ruoli || [];
                     
                     // Debug: log per vedere cosa viene letto
-                    console.log('Dati utente letti:', userData);
-                    console.log('Ruoli letti:', ruoli);
-                    console.log('Tipo ruoli:', typeof ruoli, Array.isArray(ruoli));
+                    console.log('✅ Dati utente letti:', userData);
+                    console.log('✅ Ruoli letti:', ruoli);
+                    console.log('✅ Tipo ruoli:', typeof ruoli, Array.isArray(ruoli));
                     
                     // Se i ruoli non sono un array, prova a convertirli
                     let ruoliArray = ruoli;
@@ -1102,9 +1746,15 @@
                     
                     console.log('Ruoli normalizzati:', normalizedRoles);
                     console.log('UserData normalizzato:', userDataNormalized);
+                    console.log('🔍 DEBUG: normalizedRoles.length =', normalizedRoles.length);
+                    console.log('🔍 DEBUG: userData.tenantId =', userData.tenantId);
                     
                     // Fix automatico: se l'utente non ha ruoli ma ha un tenant, assegna amministratore
                     if (normalizedRoles.length === 0 && userData.tenantId) {
+                        console.warn('⚠️ ATTENZIONE: normalizedRoles è vuoto ma tenantId esiste!');
+                        console.warn('⚠️ Ruoli originali:', ruoli);
+                        console.warn('⚠️ Ruoli array:', ruoliArray);
+                        console.warn('⚠️ Ruoli normalizzati:', normalizedRoles);
                         console.warn('⚠️ Utente senza ruoli ma con tenant, assegno amministratore automaticamente...');
                         try {
                             // Salva i ruoli come array
@@ -1161,8 +1811,14 @@
                                     }
                                 }
                                 
-                                // Renderizza con ruoli aggiornati e moduli
-                                renderDashboard({
+                                // Nascondi link "Invita Collaboratore" (non più necessario)
+                            const invitaLink = document.getElementById('invita-collaboratore-link');
+                            if (invitaLink) {
+                                invitaLink.style.display = 'none';
+                            }
+                            
+                            // Renderizza con ruoli aggiornati e moduli
+                                await renderDashboard({
                                     ...updatedData,
                                     ruoli: updatedNormalized
                                 }, availableModules);
@@ -1191,8 +1847,14 @@
                                 }
                             }
                             
+                            // Nascondi link "Invita Collaboratore" (non più necessario)
+                            const invitaLink = document.getElementById('invita-collaboratore-link');
+                            if (invitaLink) {
+                                invitaLink.style.display = 'none';
+                            }
+                            
                             // Renderizza con ruolo amministratore di default
-                            renderDashboard({
+                            await renderDashboard({
                                 ...userData,
                                 ruoli: ['amministratore']
                             }, availableModules);
@@ -1214,8 +1876,15 @@
                         }
                     }
                     
+                    // Nascondi link "Invita Collaboratore" nell'header (non più necessario)
+                    // La gestione utenti è ora parte del modulo Manodopera
+                    const invitaLink = document.getElementById('invita-collaboratore-link');
+                    if (invitaLink) {
+                        invitaLink.style.display = 'none';
+                    }
+                    
                     // Renderizza dashboard con moduli
-                    renderDashboard(userDataNormalized, availableModules);
+                    await renderDashboard(userDataNormalized, availableModules);
                 } else {
                     document.getElementById('user-info').textContent = 
                         `Utente: ${user.email}`;

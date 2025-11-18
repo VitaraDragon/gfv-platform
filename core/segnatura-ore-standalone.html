@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segna Ore - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        .lavori-list {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .lavoro-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .lavoro-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-color: #2E8B57;
+        }
+
+        .lavoro-card.selected {
+            border-color: #2E8B57;
+            background: #f0f9f4;
+        }
+
+        .lavoro-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .lavoro-nome {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2E8B57;
+        }
+
+        .lavoro-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-assegnato {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-in_corso {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .badge-completato {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2E8B57;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .ore-calcolate {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .ore-calcolate strong {
+            font-size: 24px;
+            color: #2E8B57;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .ore-list {
+            margin-top: 30px;
+        }
+
+        .ore-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .ore-table th,
+        .ore-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .ore-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .ore-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .stato-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stato-da_validare {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .stato-validate {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .stato-rifiutate {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .lavoro-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>⏰ Segna Ore Lavorate</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Segna le ore lavorate sui lavori assegnati</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openSegnaOraModal()">➕ Segna Nuova Ora</button>
+                <a href="dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <div class="section-header">
+                <h2>Lavori Disponibili</h2>
+            </div>
+
+            <div id="lavori-container">
+                <div class="loading">Caricamento lavori...</div>
+            </div>
+
+            <div class="ore-list">
+                <div class="section-header">
+                    <h2>Le Mie Ore</h2>
+                </div>
+                <div id="ore-container">
+                    <div class="loading">Caricamento ore...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Segna Ora -->
+    <div id="ora-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Segna Nuova Ora</h3>
+                <button class="close-btn" onclick="closeOraModal()">&times;</button>
+            </div>
+            <form id="ora-form" onsubmit="handleSalvaOra(event)">
+                <div class="form-group">
+                    <label for="ora-lavoro">Lavoro *</label>
+                    <select id="ora-lavoro" required>
+                        <option value="">Seleziona lavoro...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="ora-data">Data Lavoro *</label>
+                    <input type="date" id="ora-data" required max="">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ora-inizio">Orario Inizio *</label>
+                        <input type="time" id="ora-inizio" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ora-fine">Orario Fine *</label>
+                        <input type="time" id="ora-fine" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ora-pause">Pause (minuti)</label>
+                    <input type="number" id="ora-pause" min="0" value="0" step="1">
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Inserisci i minuti totali di pausa (es. 60 per 1 ora)
+                    </small>
+                </div>
+
+                <div class="ore-calcolate" id="ore-calcolate" style="display: none;">
+                    <strong id="ore-calcolate-value">0h</strong>
+                    <p style="margin-top: 5px; font-size: 14px; color: #666;">Ore nette lavorate</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="ora-note">Note</label>
+                    <textarea id="ora-note" placeholder="Note aggiuntive (opzionale)"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">Salva Ora</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeOraModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase config -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = 'config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, query, where, addDoc, Timestamp, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserData = null;
+        let currentTenantId = null;
+        let lavoriList = [];
+        let oreList = [];
+
+        // Verifica autenticazione e permessi
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                    currentUserData = userDoc.data();
+                    currentTenantId = currentUserData.tenantId;
+
+                    // Verifica permessi (operaio o caposquadra)
+                    const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
+                    const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                    
+                    if (!currentUserData.ruoli || (!isOperaio && !isCaposquadra)) {
+                        showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'dashboard-standalone.html';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Verifica se modulo Manodopera è attivo
+                    let hasManodoperaModule = false;
+                    if (currentTenantId) {
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                            }
+                        } catch (error) {
+                            console.warn('Errore verifica modulo Manodopera:', error);
+                        }
+                    }
+
+                    if (!hasManodoperaModule) {
+                        showAlert('Questa pagina è disponibile solo con il modulo Manodopera attivo.', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'dashboard-standalone.html';
+                        }, 3000);
+                        return;
+                    }
+
+                    // Imposta data massima = oggi
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('ora-data').setAttribute('max', today);
+
+                    // Carica dati iniziali
+                    await Promise.all([
+                        loadLavori(),
+                        loadOre()
+                    ]);
+                } else {
+                    window.location.href = 'auth/login-standalone.html';
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                showAlert('Errore caricamento dati', 'error');
+            }
+        });
+
+        // Carica lista lavori attivi
+        async function loadLavori() {
+            const container = document.getElementById('lavori-container');
+            container.innerHTML = '<div class="loading">Caricamento lavori...</div>';
+
+            try {
+                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                
+                // Carica tutti i lavori e filtra/ordina in memoria per evitare bisogno di indice composito
+                const snapshot = await getDocs(lavoriRef);
+                
+                const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
+                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                const userId = currentUserData.id || currentUserData.uid;
+                
+                lavoriList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Filtra solo lavori attivi (assegnato o in_corso)
+                    if (data.stato === 'assegnato' || data.stato === 'in_corso') {
+                        // Se è operaio, mostra solo lavori assegnati a lui
+                        // Se è caposquadra, mostra solo lavori assegnati a lui come caposquadra
+                        if (isOperaio) {
+                            // Per gli operai, controlla se sono assegnati al lavoro (potrebbe essere tramite squadra)
+                            // Per ora mostriamo tutti i lavori attivi, ma in futuro si può filtrare per operaioId
+                            // Nota: gli operai potrebbero essere assegnati tramite la squadra
+                        } else if (isCaposquadra) {
+                            // Per i caposquadra, mostra solo lavori dove caposquadraId == userId
+                            if (data.caposquadraId !== userId) {
+                                return; // Salta questo lavoro
+                            }
+                        }
+                        
+                        // Converti Timestamp in Date
+                        if (data.dataInizio && data.dataInizio.toDate) {
+                            data.dataInizio = data.dataInizio.toDate();
+                        }
+                        lavoriList.push({ id: doc.id, ...data });
+                    }
+                });
+                
+                // Ordina per dataInizio (più recenti prima)
+                lavoriList.sort((a, b) => {
+                    const dateA = a.dataInizio instanceof Date ? a.dataInizio : new Date(a.dataInizio);
+                    const dateB = b.dataInizio instanceof Date ? b.dataInizio : new Date(b.dataInizio);
+                    return dateB - dateA; // Più recenti prima
+                });
+
+                renderLavori();
+            } catch (error) {
+                console.error('Errore caricamento lavori:', error);
+                container.innerHTML = '<div class="empty-state">Errore caricamento lavori</div>';
+                showAlert('Errore caricamento lavori', 'error');
+            }
+        }
+
+        // Renderizza lista lavori
+        function renderLavori() {
+            const container = document.getElementById('lavori-container');
+
+            if (lavoriList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Nessun lavoro disponibile</p>
+                        <p style="font-size: 14px; margin-top: 10px;">Non ci sono lavori attivi al momento</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="lavori-list">';
+            lavoriList.forEach(lavoro => {
+                const dataInizio = lavoro.dataInizio instanceof Date 
+                    ? lavoro.dataInizio.toLocaleDateString('it-IT')
+                    : new Date(lavoro.dataInizio).toLocaleDateString('it-IT');
+                
+                const statoBadge = lavoro.stato === 'assegnato' ? 'badge-assegnato' :
+                                  lavoro.stato === 'in_corso' ? 'badge-in_corso' :
+                                  'badge-completato';
+                
+                const statoLabel = lavoro.stato === 'assegnato' ? 'Assegnato' :
+                                  lavoro.stato === 'in_corso' ? 'In corso' :
+                                  'Completato';
+
+                html += `
+                    <div class="lavoro-card" onclick="selectLavoro('${lavoro.id}')">
+                        <div class="lavoro-header">
+                            <div class="lavoro-nome">${escapeHtml(lavoro.nome || 'N/A')}</div>
+                            <span class="badge ${statoBadge}">${statoLabel}</span>
+                        </div>
+                        <div class="lavoro-info">
+                            <div><strong>Data inizio:</strong> ${dataInizio}</div>
+                            <div><strong>Durata prevista:</strong> ${lavoro.durataPrevista || 'N/A'} giorni</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            container.innerHTML = html;
+        }
+
+        // Seleziona lavoro
+        window.selectLavoro = function(lavoroId) {
+            // Rimuovi selezione precedente
+            document.querySelectorAll('.lavoro-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Aggiungi selezione
+            const card = document.querySelector(`[onclick="selectLavoro('${lavoroId}')"]`);
+            if (card) {
+                card.classList.add('selected');
+            }
+            
+            // Apri modal con lavoro selezionato
+            openSegnaOraModal(lavoroId);
+        };
+
+        // Carica ore dell'operaio
+        async function loadOre() {
+            const container = document.getElementById('ore-container');
+            container.innerHTML = '<div class="loading">Caricamento ore...</div>';
+
+            try {
+                // Carica tutte le ore dell'utente (operaio o caposquadra) da tutti i lavori
+                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                const lavoriSnapshot = await getDocs(lavoriRef);
+                
+                oreList = [];
+                const userId = currentUserData.id || currentUserData.uid;
+                
+                for (const lavoroDoc of lavoriSnapshot.docs) {
+                    const lavoroId = lavoroDoc.id;
+                    const lavoroData = lavoroDoc.data();
+                    const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                    // Carica ore dell'utente corrente (operaio o caposquadra)
+                    const oreQuery = query(oreRef, where('operaioId', '==', userId));
+                    const oreSnapshot = await getDocs(oreQuery);
+                    
+                    oreSnapshot.forEach(oraDoc => {
+                        const data = oraDoc.data();
+                        // Converti Timestamp in Date
+                        if (data.data && data.data.toDate) {
+                            data.data = data.data.toDate();
+                        }
+                        if (data.creatoIl && data.creatoIl.toDate) {
+                            data.creatoIl = data.creatoIl.toDate();
+                        }
+                        if (data.validatoIl && data.validatoIl.toDate) {
+                            data.validatoIl = data.validatoIl.toDate();
+                        }
+                        oreList.push({
+                            id: oraDoc.id,
+                            lavoroId: lavoroId,
+                            lavoroNome: lavoroData.nome || 'N/A',
+                            ...data
+                        });
+                    });
+                }
+                
+                // Ordina per data (più recenti prima)
+                oreList.sort((a, b) => {
+                    const dateA = a.data instanceof Date ? a.data : new Date(a.data);
+                    const dateB = b.data instanceof Date ? b.data : new Date(b.data);
+                    return dateB - dateA;
+                });
+
+                renderOre();
+            } catch (error) {
+                console.error('Errore caricamento ore:', error);
+                container.innerHTML = '<div class="empty-state">Errore caricamento ore</div>';
+                showAlert('Errore caricamento ore', 'error');
+            }
+        }
+
+        // Renderizza lista ore
+        function renderOre() {
+            const container = document.getElementById('ore-container');
+
+            if (oreList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⏰</div>
+                        <p>Nessuna ora segnata</p>
+                        <p style="font-size: 14px; margin-top: 10px;">Clicca su "Segna Nuova Ora" per iniziare</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="ore-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Lavoro</th>
+                            <th>Orario</th>
+                            <th>Ore Nette</th>
+                            <th>Stato</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            oreList.forEach(ora => {
+                const data = ora.data instanceof Date 
+                    ? ora.data.toLocaleDateString('it-IT')
+                    : new Date(ora.data).toLocaleDateString('it-IT');
+                
+                const oreFormattate = formattaOre(ora.oreNette || 0);
+                
+                const statoBadge = ora.stato === 'da_validare' ? 'stato-da_validare' :
+                                  ora.stato === 'validate' ? 'stato-validate' :
+                                  'stato-rifiutate';
+                
+                const statoLabel = ora.stato === 'da_validare' ? '⏳ Da validare' :
+                                  ora.stato === 'validate' ? '✅ Validata' :
+                                  '❌ Rifiutata';
+
+                html += `
+                    <tr>
+                        <td>${data}</td>
+                        <td>${escapeHtml(ora.lavoroNome)}</td>
+                        <td>${ora.orarioInizio || ''} - ${ora.orarioFine || ''}</td>
+                        <td><strong>${oreFormattate}</strong></td>
+                        <td><span class="stato-badge ${statoBadge}">${statoLabel}</span></td>
+                        <td>${escapeHtml(ora.note || '-')}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Formatta ore
+        function formattaOre(oreDecimali) {
+            if (!oreDecimali || oreDecimali <= 0) {
+                return '0h';
+            }
+            
+            const ore = Math.floor(oreDecimali);
+            const minuti = Math.round((oreDecimali - ore) * 60);
+            
+            if (minuti === 0) {
+                return `${ore}h`;
+            }
+            
+            return `${ore}h ${minuti}min`;
+        }
+
+        // Calcola ore nette
+        function calcolaOreNette() {
+            const inizio = document.getElementById('ora-inizio').value;
+            const fine = document.getElementById('ora-fine').value;
+            const pause = parseInt(document.getElementById('ora-pause').value) || 0;
+            
+            if (!inizio || !fine) {
+                document.getElementById('ore-calcolate').style.display = 'none';
+                return;
+            }
+            
+            const [inizioOre, inizioMinuti] = inizio.split(':').map(Number);
+            const [fineOre, fineMinuti] = fine.split(':').map(Number);
+            
+            const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+            const fineMinutiTotali = fineOre * 60 + fineMinuti;
+            
+            const minutiLavoro = fineMinutiTotali - inizioMinutiTotali;
+            const minutiNetti = minutiLavoro - pause;
+            
+            if (minutiNetti < 0) {
+                document.getElementById('ore-calcolate').style.display = 'none';
+                return;
+            }
+            
+            const oreDecimali = minutiNetti / 60;
+            const oreFormattate = formattaOre(oreDecimali);
+            
+            document.getElementById('ore-calcolate-value').textContent = oreFormattate;
+            document.getElementById('ore-calcolate').style.display = 'block';
+        }
+
+        // Apri modal segna ora
+        window.openSegnaOraModal = function(lavoroId = null) {
+            // Popola dropdown lavori
+            const select = document.getElementById('ora-lavoro');
+            select.innerHTML = '<option value="">Seleziona lavoro...</option>';
+            
+            lavoriList.forEach(lavoro => {
+                const option = document.createElement('option');
+                option.value = lavoro.id;
+                option.textContent = lavoro.nome || 'N/A';
+                if (lavoroId === lavoro.id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            
+            // Reset form
+            document.getElementById('ora-form').reset();
+            document.getElementById('ora-pause').value = '0';
+            document.getElementById('ore-calcolate').style.display = 'none';
+            
+            // Imposta data di default = oggi
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('ora-data').value = today;
+            
+            // Listener per calcolo ore
+            document.getElementById('ora-inizio').addEventListener('input', calcolaOreNette);
+            document.getElementById('ora-fine').addEventListener('input', calcolaOreNette);
+            document.getElementById('ora-pause').addEventListener('input', calcolaOreNette);
+            
+            document.getElementById('ora-modal').classList.add('active');
+        };
+
+        // Chiudi modal
+        window.closeOraModal = function() {
+            document.getElementById('ora-modal').classList.remove('active');
+        };
+
+        // Gestisci salvataggio ora
+        window.handleSalvaOra = async function(event) {
+            event.preventDefault();
+            
+            const lavoroId = document.getElementById('ora-lavoro').value;
+            const data = document.getElementById('ora-data').value;
+            const orarioInizio = document.getElementById('ora-inizio').value;
+            const orarioFine = document.getElementById('ora-fine').value;
+            const pauseMinuti = parseInt(document.getElementById('ora-pause').value) || 0;
+            const note = document.getElementById('ora-note').value.trim();
+            
+            if (!lavoroId) {
+                showAlert('Seleziona un lavoro', 'error');
+                return;
+            }
+            
+            if (!data) {
+                showAlert('Inserisci la data', 'error');
+                return;
+            }
+            
+            if (!orarioInizio || !orarioFine) {
+                showAlert('Inserisci orario inizio e fine', 'error');
+                return;
+            }
+            
+            // Valida orari
+            const [inizioOre, inizioMinuti] = orarioInizio.split(':').map(Number);
+            const [fineOre, fineMinuti] = orarioFine.split(':').map(Number);
+            
+            const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+            const fineMinutiTotali = fineOre * 60 + fineMinuti;
+            
+            if (fineMinutiTotali <= inizioMinutiTotali) {
+                showAlert('Orario fine deve essere maggiore di orario inizio', 'error');
+                return;
+            }
+            
+            const minutiLavoro = fineMinutiTotali - inizioMinutiTotali;
+            if (pauseMinuti < 0) {
+                showAlert('Pause non possono essere negative', 'error');
+                return;
+            }
+            if (pauseMinuti >= minutiLavoro) {
+                showAlert('Pause non possono essere maggiori o uguali al tempo di lavoro', 'error');
+                return;
+            }
+            
+            try {
+                // Calcola ore nette
+                const [inizioOre, inizioMinuti] = orarioInizio.split(':').map(Number);
+                const [fineOre, fineMinuti] = orarioFine.split(':').map(Number);
+                const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+                const fineMinutiTotali = fineOre * 60 + fineMinuti;
+                const minutiLavoro = fineMinutiTotali - inizioMinutiTotali;
+                const minutiNetti = minutiLavoro - pauseMinuti;
+                const oreNette = minutiNetti / 60;
+                
+                // Verifica che il lavoro esista
+                const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+                if (!lavoroDoc.exists()) {
+                    throw new Error('Lavoro non trovato');
+                }
+                
+                const lavoroData = lavoroDoc.data();
+                
+                // Crea documento ora
+                const userId = currentUserData.id || currentUserData.uid;
+                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                
+                const oraData = {
+                    operaioId: userId, // Per i caposquadra, usiamo lo stesso campo operaioId
+                    lavoroId: lavoroId,
+                    terrenoId: lavoroData.terrenoId || null,
+                    data: Timestamp.fromDate(new Date(data)),
+                    orarioInizio,
+                    orarioFine,
+                    pauseMinuti,
+                    oreNette,
+                    note: note || '',
+                    stato: 'da_validare',
+                    creatoIl: serverTimestamp()
+                };
+                
+                const oraRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                await addDoc(oraRef, oraData);
+                
+                // Messaggio diverso per caposquadra e operaio
+                const messaggio = isCaposquadra 
+                    ? 'Ora segnata con successo! In attesa di validazione dal manager.' 
+                    : 'Ora segnata con successo! In attesa di validazione dal caposquadra.';
+                showAlert(messaggio, 'success');
+                closeOraModal();
+                await loadOre();
+            } catch (error) {
+                console.error('Errore salvataggio ora:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+
+        // Mostra alert
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+
