@@ -171,6 +171,16 @@ export function canViewTodayLavori(user) {
 }
 
 /**
+ * Verifica se utente può gestire squadre
+ * Manager e Amministratore possono gestire squadre
+ * @param {Object} user - Dati utente (se null usa utente corrente)
+ * @returns {boolean} true se può gestire squadre
+ */
+export function canManageSquadre(user) {
+  return hasAnyRole(user, ['amministratore', 'manager']);
+}
+
+/**
  * Ottieni tutti i permessi disponibili per un utente
  * @param {Object} user - Dati utente (se null usa utente corrente)
  * @returns {Object} Oggetto con tutti i permessi
@@ -188,7 +198,8 @@ export function getAllPermissions(user) {
     canViewReports: canViewReports(user),
     canSignOre: canSignOre(user),
     canViewAssignedLavori: canViewAssignedLavori(user),
-    canViewTodayLavori: canViewTodayLavori(user)
+    canViewTodayLavori: canViewTodayLavori(user),
+    canManageSquadre: canManageSquadre(user)
   };
 }
 
@@ -209,6 +220,7 @@ export default {
   canSignOre,
   canViewAssignedLavori,
   canViewTodayLavori,
+  canManageSquadre,
   getAllPermissions
 };
 

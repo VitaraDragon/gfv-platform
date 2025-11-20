@@ -163,6 +163,50 @@ gfv-platform/
 
 **Il core che abbiamo fatto è la FONDAMENTA. Ora possiamo costruire l'applicazione sopra!** 🏗️
 
+---
+
+## 📝 Aggiornamenti Recenti (2025-01-20)
+
+### Sistema Comunicazioni Squadra e Separazione Impostazioni ✅
+- Separazione impostazioni per ruolo:
+  - Manager/Amministratore: tutte le sezioni (Azienda, Poderi, Liste, Account, Password)
+  - Caposquadra: solo Comunicazioni Squadra + Account + Password
+  - Operaio: solo Account + Password
+- Sistema comunicazioni di ritrovo per caposquadra:
+  - Pre-compilazione automatica podere/terreno dal lavoro assegnato
+  - Dropdown selezione lavoro per pre-compilare automaticamente
+  - Invio comunicazione alla squadra con notifica nella dashboard operai
+  - Lista comunicazioni inviate con statistiche conferme
+- Visualizzazione comunicazioni nella dashboard operaio:
+  - Card comunicazioni attive con dettagli (podere, campo, data, orario)
+  - Conferma ricezione obbligatoria
+  - Link Google Maps per indicazioni al podere geolocalizzato
+  - Stato visivo (giallo se non confermata, verde se confermata)
+
+### Campo Cellulare per Utenti ✅
+- Aggiunto campo cellulare opzionale nel form invito utente (Manager)
+- Campo cellulare obbligatorio nella registrazione via invito
+- Visualizzazione contatti squadra per caposquadra con link cliccabili (`mailto:` e `tel:`)
+- Validazione formato cellulare
+
+### Gestione Poderi ✅
+- Aggiunta sezione "Gestione Poderi" in Impostazioni
+- Integrazione Google Maps con visualizzazione satellitare
+- Marker draggable per posizionamento preciso poderi
+- Ricerca indirizzo con geocoding e reverse geocoding
+- Campo podere nei terreni con dropdown
+- Salvataggio coordinate poderi per indicazioni stradali
+
+**File modificati**:
+- `core/admin/gestisci-utenti-standalone.html`
+- `core/auth/registrazione-invito-standalone.html`
+- `core/admin/gestione-squadre-standalone.html`
+- `core/admin/impostazioni-standalone.html`
+- `core/terreni-standalone.html`
+- `core/models/Terreno.js`
+- `core/dashboard-standalone.html`
+
+
 
 
 

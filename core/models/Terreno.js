@@ -17,6 +17,7 @@ export class Terreno extends Base {
    * @param {Object} data.coordinate - Coordinate punto centrale {lat, lng} (opzionale)
    * @param {Array} data.polygonCoords - Coordinate poligono mappa (opzionale)
    * @param {string} data.note - Note opzionali
+   * @param {string} data.podere - Nome del podere (opzionale)
    * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
    * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
    */
@@ -28,6 +29,7 @@ export class Terreno extends Base {
     this.coordinate = data.coordinate || null;
     this.polygonCoords = data.polygonCoords || null;
     this.note = data.note || '';
+    this.podere = data.podere || null;
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;

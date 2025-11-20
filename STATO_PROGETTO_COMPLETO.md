@@ -1,8 +1,8 @@
 # 📋 Stato Progetto Completo - GFV Platform
 
-**Ultimo aggiornamento**: 2025-01-11  
-**Versione**: 1.6.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Sicurezza API + Deploy online funzionante
+**Ultimo aggiornamento**: 2025-01-20  
+**Versione**: 2.0.0-alpha  
+**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente
 
 ---
 
@@ -72,9 +72,10 @@
 ### 5. Pagine UI ✅
 
 **File creati**:
-- `core/auth/login-standalone.html` - **TESTATO E FUNZIONANTE** ✅
+- `core/auth/login-standalone.html` - **TESTATO E FUNZIONANTE** ✅ (con reset password)
 - `core/auth/registrazione-standalone.html` - Registrazione nuovo account ✅
 - `core/auth/registrazione-invito-standalone.html` - Registrazione con token invito ✅
+- `core/auth/reset-password-standalone.html` - Reset password ✅ **TESTATO E FUNZIONANTE**
 - `core/dashboard-standalone.html` - **TESTATO E FUNZIONANTE** ✅
 - `core/admin/gestisci-utenti-standalone.html` - Gestione utenti completa ✅
 - `core/admin/abbonamento-standalone.html` - Gestione abbonamenti ✅
@@ -406,6 +407,420 @@
 
 **Data completamento**: 2025-01-11
 
+### 19. Reset Password Completo ✅
+
+**Data completamento**: 2025-01-13
+
+**File creati**:
+- `core/auth/reset-password-standalone.html` - Pagina reset password standalone
+
+**File modificati**:
+- `core/auth/login-standalone.html` - Aggiunta funzionalità reset password con Firebase Auth
+
+**Funzionalità implementate**:
+- ✅ Invio email reset password usando Firebase Auth `sendPasswordResetEmail`
+- ✅ Verifica codice di reset (`oobCode`) generato da Firebase
+- ✅ Form per inserire nuova password con validazione
+- ✅ Conferma reset password usando `confirmPasswordReset`
+- ✅ Gestione errori completa (link scaduto, codice non valido, password debole)
+- ✅ Redirect automatico a login dopo successo
+- ✅ Messaggio di successo quando si torna al login dopo reset
+- ✅ Verifica che l'utente esista prima di inviare email
+- ✅ Configurazione URL autorizzati per Firebase Auth
+
+**Configurazione necessaria**:
+- ✅ Identity Toolkit API abilitata in Google Cloud Console
+- ✅ Cloud Firestore API abilitata
+- ✅ URL autorizzati configurati in Firebase Console (Authentication > Settings > Authorized domains)
+- ✅ Chiave API Firebase configurata correttamente senza restrizioni che bloccano Identity Toolkit
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 20. Verifica Uso Terreno Prima di Eliminare ✅
+
+**Data completamento**: 2025-01-13
+
+**File modificati**:
+- `core/services/terreni-service.js` - Aggiunta verifica uso terreno in `deleteTerreno()`
+- `core/terreni-standalone.html` - Migliorata UX eliminazione terreno
+
+**Funzionalità implementate**:
+- ✅ Verifica se terreno è usato in attività prima di eliminare
+- ✅ Conteggio attività associate usando `getNumeroAttivitaTerreno()`
+- ✅ Doppia conferma se terreno è usato:
+  - Prima conferma: avviso con numero attività
+  - Seconda conferma: conferma finale con avviso
+- ✅ Messaggi chiari per l'utente
+- ✅ Opzione eliminazione forzata se necessario
+- ✅ Gestione errori migliorata
+
+**Protezioni**:
+- ✅ Impossibile eliminare terreno usato senza doppia conferma
+- ✅ Avvisi chiari su conseguenze eliminazione
+- ✅ Messaggi informativi con suggerimenti
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 21. Modulo Manodopera - Gestione Squadre ✅
+
+**File creati**:
+- `core/admin/gestione-squadre-standalone.html` - Pagina per gestire squadre (creazione, modifica, eliminazione)
+- `core/services/squadre-service.js` - Servizio CRUD per squadre
+- `core/models/Squadra.js` - Modello dati squadra
+
+**Funzionalità**:
+- ✅ Creazione squadre con assegnazione caposquadra e operai
+- ✅ Modifica squadre (aggiunta/rimozione operai, cambio caposquadra)
+- ✅ Eliminazione squadre con verifica operai condivisi
+- ✅ Avviso informativo quando un operaio è condiviso tra più squadre
+- ✅ Verifica modulo Manodopera attivo prima di permettere accesso
+
+### 22. Modulo Manodopera - Pianificazione Lavori ✅
+
+**File creati**:
+- `core/admin/gestione-lavori-standalone.html` - Pagina Manager per creare, modificare e gestire lavori
+- `core/services/lavori-service.js` - Servizio CRUD per lavori con validazioni
+- `core/models/Lavoro.js` - Modello dati lavoro con calcoli automatici
+
+**Funzionalità**:
+- ✅ Creazione lavori con assegnazione a caposquadra e terreno
+- ✅ Modifica lavori (nome, terreno, caposquadra, date, durata, note)
+- ✅ Eliminazione lavori
+- ✅ Filtri per stato, caposquadra, terreno
+- ✅ Visualizzazione lista lavori con dettagli completi
+- ✅ Verifica esistenza terreno e caposquadra prima di creare lavoro
+- ✅ Calcolo automatico superficie totale lavorata, superficie rimanente, percentuale completamento
+
+### 23. Modulo Manodopera - Tracciamento Zone Lavorate ✅
+
+**File creati/modificati**:
+- `core/admin/lavori-caposquadra-standalone.html` - Pagina Caposquadra per visualizzare lavori assegnati e tracciare segmenti lavorati
+- `core/services/zone-lavorate-service.js` - Servizio per gestire zone lavorate (sub-collection)
+- `core/dashboard-standalone.html` - Aggiunta sezione "Gestione Lavori" per Manager e Amministratore
+
+**Funzionalità**:
+- ✅ Visualizzazione lavori assegnati al caposquadra loggato
+- ✅ Tracciamento segmenti lavorati sulla mappa Google Maps (Polyline/Polygon)
+- ✅ Sistema ibrido: segmenti aperti (lunghezza × larghezza) e poligoni chiusi (area)
+- ✅ Validazione che i segmenti siano completamente dentro i confini del terreno
+- ✅ Campo larghezza di lavoro (obbligatorio per segmenti aperti, opzionale per poligoni)
+- ✅ Chiusura segmento cliccando sul primo punto o doppio clic
+- ✅ Calcolo automatico superficie: area poligono per segmenti chiusi, lunghezza × larghezza per aperti
+- ✅ Salvataggio segmenti in sub-collection `zoneLavorate` con flag `isChiuso` e `tipo`
+- ✅ Visualizzazione segmenti salvati sulla mappa con colori diversi per data
+- ✅ Aggiornamento automatico progressi lavoro (superficie totale, percentuale, stato)
+- ✅ Visualizzazione confini terreno sulla mappa per riferimento
+- ✅ Data lavorazione modificabile (può essere anche una data passata)
+- ✅ Sezione dashboard "Gestione Lavori" per Manager/Amministratore con statistiche e lavori recenti
+- ✅ Verifica ruolo caposquadra/manager/amministratore e modulo Manodopera attivo
+
+### 24. Modulo Manodopera - Segnatura Ore (Operaio) ✅
+
+**Data completamento**: 2025-01-16
+
+**File creati**:
+- `core/segnatura-ore-standalone.html` - Pagina Operaio per segnare ore lavorate
+- `core/services/ore-service.js` - Servizio CRUD per ore lavorate
+
+**Funzionalità**:
+- ✅ Lista lavori attivi disponibili per segnare ore
+- ✅ Form completo per segnare ore (data, orario inizio/fine, pause, note)
+- ✅ Calcolo automatico ore nette in tempo reale
+- ✅ Visualizzazione storico ore segnate con stati (da validare/validate/rifiutate)
+- ✅ Verifica permessi e modulo Manodopera attivo
+- ✅ Salvataggio ore come sub-collection `oreOperai` sotto ogni lavoro
+- ✅ Stato iniziale: `da_validare` (in attesa validazione caposquadra)
+- ✅ Fix problemi CORS (uso diretto Firebase invece di import moduli)
+- ✅ Fix problemi indici Firestore (filtri/ordinamento in memoria)
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 25. Modulo Manodopera - Validazione Ore (Caposquadra) ✅
+
+**Data completamento**: 2025-01-16
+
+**File creati**:
+- `core/admin/validazione-ore-standalone.html` - Pagina Caposquadra per validare/rifiutare ore
+
+**Funzionalità**:
+- ✅ Lista ore da validare (solo lavori assegnati al caposquadra)
+- ✅ Statistiche in tempo reale (ore da validare, validate, rifiutate)
+- ✅ Validazione ore con un click
+- ✅ Rifiuto ore con motivo obbligatorio
+- ✅ Aggiornamento automatico lista dopo validazione/rifiuto
+- ✅ Visualizzazione dettagli completi (operaio, lavoro, data, orario, ore nette, note)
+- ✅ Verifica permessi (solo caposquadra assegnato al lavoro)
+- ✅ Verifica stato ore prima di validare/rifiutare
+- ✅ Aggiornamento stato: `validate` o `rifiutate` con tracciamento validatore e timestamp
+- ✅ Fix problemi CORS e indici Firestore
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 26. Miglioramento Pagina Manager ✅
+
+**Data completamento**: 2025-01-16
+
+**File modificati**:
+- `core/admin/gestione-lavori-standalone.html` - Pagina Manager migliorata con visualizzazione progressi, mappa e statistiche
+
+**Funzionalità implementate**:
+- ✅ Card statistiche nella parte superiore:
+  - Lavori totali
+  - Lavori in corso
+  - Ore validate (totale)
+  - Superficie lavorata (totale)
+- ✅ Colonna "Progressi" nella tabella lavori:
+  - Progress bar con percentuale completamento
+  - Superficie lavorata / Superficie totale (ha)
+  - Calcolo automatico dalle zone lavorate tracciate dal caposquadra
+- ✅ Modal dettaglio lavoro con 3 tab:
+  - **Tab Panoramica**: Statistiche complete (superficie lavorata, percentuale, ore validate/da validare), progress bar, informazioni lavoro
+  - **Tab Mappa**: Google Maps con vista satellitare, confini terreno (rosso), zone lavorate tracciate (verde), lista zone con data e superficie
+  - **Tab Ore**: Statistiche ore (validate/da validare/rifiutate), ore per operaio con breakdown per stato
+- ✅ Integrazione Google Maps:
+  - Visualizzazione confini terreno
+  - Visualizzazione zone lavorate tracciate dal caposquadra
+  - Colori distinti per terreno (rosso) e zone lavorate (verde)
+  - Lista zone lavorate con dettagli
+- ✅ Caricamento dati:
+  - Progressi calcolati in tempo reale dalle zone lavorate (sub-collection `zoneLavorate`)
+  - Ore caricate dalle sub-collection `oreOperai`
+  - Statistiche aggregate per tutti i lavori
+- ✅ Aggiornamenti automatici:
+  - Statistiche aggiornate quando si crea/modifica un lavoro
+  - Progressi calcolati automaticamente
+
+**Caratteristiche**:
+- ✅ Google Maps API caricata dinamicamente con fallback
+- ✅ Gestione coordinate terreno (supporta diversi formati)
+- ✅ Mappa re-inizializzata per ogni lavoro
+- ✅ Caricamento lazy dei tab (mappa e ore caricati solo quando aperti)
+- ✅ UI responsive e moderna
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 27. Fix Documento Utente Mancante ✅
+
+**Problema identificato**: Alcuni utenti non avevano il documento corrispondente nella collection `users` di Firestore, causando dashboard vuota e messaggio "Nessun ruolo assegnato".
+
+**Soluzione implementata**:
+- ✅ Creazione automatica documento utente quando manca al login
+- ✅ Recupero automatico di nome, cognome, ruoli e tenantId dall'invito accettato
+- ✅ Fallback su `displayName` di Firebase Auth se dati non presenti nell'invito
+- ✅ Log dettagliati per debugging
+
+**File modificati**:
+- `core/dashboard-standalone.html` - Aggiunta logica creazione automatica documento utente
+
+### 28. Fix Assegnazione Ruoli ✅
+
+**Problema identificato**: La funzione `handleModificaRuoli` in `gestisci-utenti-standalone.html` usava `updateDoc` che fallisce se il documento non esiste.
+
+**Soluzione implementata**:
+- ✅ Cambiato `updateDoc` in `setDoc` con `merge: true` per garantire creazione documento se mancante
+- ✅ Preservazione dati esistenti (tenantId, stato, createdAt) durante l'aggiornamento
+
+**File modificati**:
+- `core/admin/gestisci-utenti-standalone.html` - Fix funzione `handleModificaRuoli`
+
+### 29. Fix Problemi CORS e Google Maps ✅
+
+**Data completamento**: 2025-01-13
+
+**Problemi risolti**:
+- ⚠️ Errori CORS quando si apriva pagina terreni in locale (file://)
+- ⚠️ Google Maps non si caricava correttamente online
+
+**Soluzioni implementate**:
+- ✅ Rimossi import ES6 dei servizi locali dalla pagina terreni (causavano CORS)
+- ✅ Ripristinato uso diretto Firebase invece di servizi importati
+- ✅ Mantenuta logica di verifica migliorata per eliminazione terreni
+- ✅ Aggiunto attesa caricamento configurazione Google Maps (come altre pagine)
+- ✅ Fix timing caricamento config per evitare race conditions
+
+**File modificati**:
+- `core/terreni-standalone.html` - Fix CORS e timing Google Maps
+
+**Stato**: ✅ **FUNZIONA SIA IN LOCALE CHE ONLINE**
+
+### 30. Campo Cellulare per Utenti ✅
+**Data completamento**: 2025-01-20
+
+**File modificati**:
+- `core/admin/gestisci-utenti-standalone.html` - Aggiunto campo cellulare opzionale nel form invito
+- `core/auth/registrazione-invito-standalone.html` - Aggiunto campo cellulare obbligatorio nella registrazione
+- `core/admin/gestione-squadre-standalone.html` - Visualizzazione contatti squadra per caposquadra
+
+**Funzionalità implementate**:
+- ✅ Campo cellulare opzionale nel form invito utente (Manager)
+- ✅ Campo cellulare obbligatorio nella registrazione via invito
+- ✅ Salvataggio cellulare nel documento utente Firestore
+- ✅ Visualizzazione squadra per caposquadra con contatti:
+  - Tabella "La Mia Squadra" con colonne: Nome, Email, Cellulare
+  - Link cliccabili per email (`mailto:`) e telefono (`tel:`)
+  - Visualizzazione solo lettura (read-only)
+- ✅ Validazione formato cellulare (almeno 10 cifre, supporto +, spazi, trattini)
+- ✅ Reset form invito dopo chiusura modal
+
+**Caso d'uso**:
+- Manager può inserire il cellulare quando invita un nuovo utente (opzionale)
+- Utente deve inserire il cellulare durante la registrazione (obbligatorio)
+- Caposquadra può visualizzare e contattare i membri della sua squadra direttamente dalla pagina "La Mia Squadra"
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 31. Gestione Poderi ✅
+**Data completamento**: 2025-01-20
+
+**File modificati**:
+- `core/admin/impostazioni-standalone.html` - Aggiunta sezione "Gestione Poderi" con mappa satellitare
+- `core/terreni-standalone.html` - Aggiunto campo podere con dropdown
+- `core/models/Terreno.js` - Aggiunto campo podere al modello
+
+**Funzionalità implementate**:
+- ✅ Sezione "Gestione Poderi" in Impostazioni:
+  - Lista poderi con nome, indirizzo e note
+  - Form per aggiungere/modificare podere
+  - Eliminazione podere (con verifica uso in terreni)
+  - Integrazione Google Maps con visualizzazione satellitare:
+    - Mappa satellitare predefinita
+    - Controlli per cambiare tipo mappa (Satellitare/Ibrida/Stradale)
+    - Ricerca indirizzo con geocoding
+    - Marker draggable per posizionamento preciso
+    - Reverse geocoding quando si sposta il marker
+    - Pulsante "Indicazioni" per aprire Google Maps con direzioni
+    - Salvataggio coordinate (lat/lng) nel documento podere
+- ✅ Campo podere nei terreni:
+  - Dropdown per selezionare podere esistente
+  - Link a "Gestisci poderi nelle impostazioni"
+  - Visualizzazione podere nella lista terreni
+  - Salvataggio podere nel documento terreno
+- ✅ Fix salvataggio podere:
+  - Uso di `setDoc` con `merge: true` per garantire salvataggio corretto
+  - Popolamento dropdown prima di impostare valori nel form
+  - Caricamento podere da Firestore nella lista terreni
+
+**Struttura dati Firestore**:
+```
+tenants/{tenantId}/poderi/{podereId}
+  - nome: string
+  - indirizzo: string (opzionale)
+  - note: string (opzionale)
+  - coordinate: { lat: number, lng: number } (opzionale)
+  - createdAt: Timestamp
+  - updatedAt: Timestamp
+
+tenants/{tenantId}/terreni/{terrenoId}
+  - podere: string (nome del podere, opzionale)
+  - ... altri campi terreno
+```
+
+**Caso d'uso**:
+- Manager può creare e gestire i poderi dell'azienda
+- Manager può posizionare i poderi sulla mappa satellitare per ottenere indicazioni
+- Quando si aggiunge/modifica un terreno, si può selezionare il podere da un dropdown
+- I terreni possono essere filtrati/raggruppati per podere (funzionalità futura)
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 32. Sistema Comunicazioni Squadra e Separazione Impostazioni per Ruolo ✅
+**Data completamento**: 2025-01-20
+
+**File modificati**:
+- `core/admin/impostazioni-standalone.html` - Separazione sezioni per ruolo + sistema comunicazioni
+- `core/dashboard-standalone.html` - Visualizzazione comunicazioni per operaio
+
+**Funzionalità implementate**:
+
+**1. Separazione Impostazioni per Ruolo**:
+- ✅ **Manager/Amministratore**: Vede tutte le sezioni (Impostazioni Azienda, Gestione Poderi, Liste Personalizzate, Account, Password)
+- ✅ **Caposquadra**: Vede solo Comunicazioni Squadra + Account + Password (NON vede dati aziendali)
+- ✅ **Operaio**: Vede solo Account + Password
+
+**2. Sistema Comunicazioni Squadra (Caposquadra)**:
+- ✅ Sezione dedicata "Comunicazioni Squadra" nelle impostazioni
+- ✅ Form per inviare comunicazioni di ritrovo:
+  - Dropdown selezione lavoro (pre-compila automaticamente podere e terreno)
+  - Dropdown Podere (popolato dai poderi azienda)
+  - Dropdown Campo/Terreno (popolato dai terreni)
+  - Data ritrovo (default: domani, non permette date passate)
+  - Orario ritrovo (default: 07:00, modificabile)
+  - Note aggiuntive (opzionale)
+- ✅ Pre-compilazione automatica:
+  - All'apertura della sezione, viene selezionato automaticamente il primo lavoro attivo
+  - Podere e terreno vengono pre-compilati dal lavoro selezionato
+  - Possibilità di modificare o selezionare un altro lavoro
+- ✅ Invio comunicazione alla squadra:
+  - Crea documento in `tenants/{tenantId}/comunicazioni`
+  - Identifica automaticamente membri squadra del caposquadra
+  - Salva coordinate podere per indicazioni Google Maps
+- ✅ Lista comunicazioni inviate:
+  - Visualizzazione storico comunicazioni
+  - Statistiche conferme (X/Y operai hanno confermato)
+  - Link Google Maps per indicazioni al podere
+  - Stato comunicazione (attiva/completata)
+
+**3. Visualizzazione Dashboard Operaio**:
+- ✅ Sezione "Comunicazioni dal Caposquadra" in evidenza nella dashboard
+- ✅ Card comunicazioni attive con:
+  - Podere e Campo
+  - Data e orario formattati in italiano
+  - Nome caposquadra
+  - Note (se presenti)
+  - Pulsante "Conferma Ricezione" (obbligatorio)
+  - Link "Indicazioni" per Google Maps con coordinate podere
+- ✅ Stato visivo:
+  - Bordo giallo se non confermata
+  - Bordo verde se confermata
+  - Pulsante disabilitato dopo conferma
+- ✅ Conferma obbligatoria:
+  - Ogni operaio deve confermare la ricezione
+  - Timestamp conferma salvato in array `conferme`
+  - Notifica attiva fino alla data indicata
+
+**Struttura dati Firestore**:
+```
+tenants/{tenantId}/comunicazioni/{comunicazioneId}
+  - caposquadraId: string
+  - caposquadraNome: string
+  - podere: string
+  - terreno: string
+  - data: Timestamp
+  - orario: string (es. "07:00")
+  - note: string (opzionale)
+  - coordinatePodere: { lat: number, lng: number } (opzionale)
+  - destinatari: array di userId (membri squadra)
+  - conferme: array di { userId: string, timestamp: Timestamp }
+  - stato: "attiva" | "completata"
+  - createdAt: Timestamp
+```
+
+**Fix tecnici implementati**:
+- ✅ Rimozione `orderBy` da query comunicazioni (ordinamento in memoria per evitare indice composito)
+- ✅ Correzione campo `membri` → `operai` nella funzione `getSquadraCaposquadra()`
+- ✅ Uso `Timestamp.now()` invece di `serverTimestamp()` per timestamp in array conferme
+- ✅ Log di debug per troubleshooting
+
+**Caso d'uso**:
+1. Caposquadra apre Impostazioni → Comunicazioni Squadra
+2. Form si pre-compila automaticamente con primo lavoro attivo (podere + terreno)
+3. Caposquadra può modificare podere/terreno o selezionare altro lavoro
+4. Compila data (default domani), orario (default 7:00), note
+5. Clicca "Invia alla Squadra"
+6. Tutti gli operai della squadra ricevono notifica nella dashboard
+7. Ogni operaio deve confermare la ricezione (obbligatorio)
+8. Caposquadra vede statistiche conferme nella lista comunicazioni inviate
+
+**Vantaggi**:
+- ✅ Comunicazione centralizzata e immediata
+- ✅ Chiarezza: operai vedono dove e quando presentarsi
+- ✅ Tracciabilità: storico comunicazioni e conferme
+- ✅ Integrazione: usa poderi e terreni già presenti nel sistema
+- ✅ Flessibilità: orario modificabile quando necessario
+- ✅ Pre-compilazione automatica risparmia tempo
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
 **Problema Risolto**:
 - ⚠️ Chiavi API Firebase e Google Maps esposte pubblicamente su GitHub
 - ⚠️ Google ha inviato notifiche di sicurezza per chiavi compromesse
@@ -518,16 +933,21 @@ gfv-platform/
 │   │   └── google-maps-config.example.js ✅ (Template pubblico)
 │   ├── auth/
 │   │   ├── login.html                    ✅ (versione normale)
-│   │   ├── login-standalone.html         ✅ (TESTATO - FUNZIONANTE - con fallback)
+│   │   ├── login-standalone.html         ✅ (TESTATO - FUNZIONANTE - con fallback + reset password)
 │   │   ├── registrazione-standalone.html ✅ (Registrazione nuovo account - con fallback)
 │   │   ├── registrazione-invito-standalone.html ✅ (Registrazione con token - con fallback)
+│   │   ├── reset-password-standalone.html ✅ (Reset password - TESTATO - FUNZIONANTE)
 │   │   └── COME_TESTARE_LOGIN.md
 │   ├── admin/
 │   │   ├── gestisci-utenti-standalone.html ✅ (TESTATO - FUNZIONANTE - con fallback)
 │   │   ├── abbonamento-standalone.html   ✅ (Gestione abbonamenti)
 │   │   ├── impostazioni-standalone.html  ✅ (Impostazioni azienda - con fallback)
 │   │   ├── fix-utente-mancante.html     ✅ (Fix utenti - con fallback)
-│   │   └── report-standalone.html        ✅ (Report e statistiche)
+│   │   ├── report-standalone.html        ✅ (Report e statistiche)
+│   │   ├── gestione-squadre-standalone.html ✅ (Modulo Manodopera - TESTATO)
+│   │   ├── gestione-lavori-standalone.html ✅ (Modulo Manodopera - TESTATO)
+│   │   ├── lavori-caposquadra-standalone.html ✅ (Modulo Manodopera - TESTATO)
+│   │   └── validazione-ore-standalone.html ✅ (Modulo Manodopera - TESTATO - validazione ore)
 │   ├── dashboard.html                    ✅ (versione normale)
 │   ├── dashboard-standalone.html         ✅ (TESTATO - FUNZIONANTE - con fallback)
 │   ├── firebase-config.js                ⚠️ (deprecato - ora usa core/config/)
@@ -537,10 +957,13 @@ gfv-platform/
 │   │   ├── User.js                       ✅
 │   │   ├── Terreno.js                    ✅ (Core Base)
 │   │   ├── Attivita.js                   ✅ (Core Base)
-│   │   └── ListePersonalizzate.js       ✅ (Core Base)
+│   │   ├── ListePersonalizzate.js       ✅ (Core Base)
+│   │   ├── Squadra.js                    ✅ (Modulo Manodopera)
+│   │   └── Lavoro.js                     ✅ (Modulo Manodopera)
 │   ├── terreni-standalone.html          ✅ (Core Base - TESTATO - con fallback)
 │   ├── attivita-standalone.html         ✅ (Core Base - TESTATO - con fallback)
 │   ├── statistiche-standalone.html      ✅ (Core Base - TESTATO - con fallback + fix indici)
+│   ├── segnatura-ore-standalone.html    ✅ (Modulo Manodopera - TESTATO - segnatura ore Operaio)
 │   ├── google-maps-config.js            ⚠️ (deprecato - ora usa core/config/)
 │   ├── google-maps-config.example.js    ✅ (Template)
 │   └── services/
@@ -553,7 +976,10 @@ gfv-platform/
 │       ├── terreni-service.js           ✅ (Core Base)
 │       ├── attivita-service.js          ✅ (Core Base)
 │       ├── liste-service.js              ✅ (Core Base)
-│       └── statistiche-service.js       ✅ (Core Base)
+│       ├── statistiche-service.js       ✅ (Core Base)
+│       ├── squadre-service.js           ✅ (Modulo Manodopera)
+│       ├── lavori-service.js            ✅ (Modulo Manodopera)
+│       └── ore-service.js               ✅ (Modulo Manodopera - TESTATO)
 │
 ├── mobile-config/                        ✅
 │   ├── google-services.json              ✅ (Android)
@@ -900,6 +1326,68 @@ modules/vendemmia/
 
 ---
 
+## 📝 Modifiche Recenti (2025-01-20)
+
+### Sistema Comunicazioni Squadra
+- Separazione impostazioni per ruolo (Manager vede tutto, Caposquadra solo comunicazioni, Operaio solo account)
+- Sistema comunicazioni di ritrovo per caposquadra con pre-compilazione automatica da lavoro assegnato
+- Visualizzazione comunicazioni nella dashboard operaio con conferma obbligatoria
+- Link Google Maps per indicazioni al podere geolocalizzato
+- Statistiche conferme per caposquadra
+
+### Campo Cellulare Utenti
+- Aggiunto campo cellulare opzionale nel form invito utente
+- Campo cellulare obbligatorio nella registrazione via invito
+- Visualizzazione contatti squadra per caposquadra con link cliccabili
+
+### Gestione Poderi
+- Aggiunta sezione "Gestione Poderi" in Impostazioni
+- Integrazione Google Maps con visualizzazione satellitare
+- Campo podere nei terreni con dropdown
+- Fix salvataggio e visualizzazione podere
+
+## 📝 Modifiche Recenti (2025-01-16)
+
+### Indicatore Stato Progresso Lavori
+- **Implementato**: Sistema automatico per calcolare se un lavoro è in ritardo, in tempo o in anticipo
+- **Logica**: Confronta percentuale completamento con percentuale tempo trascorso (tolleranza 10%)
+- **Visualizzazione**: Badge colorati nella pagina Caposquadra e Manager
+- **Filtri**: Possibilità di filtrare lavori per stato progresso nella pagina Manager
+- **Statistiche**: Card statistiche nella dashboard Manager per lavori in ritardo/in tempo/in anticipo
+- **File modificati**: `lavori-caposquadra-standalone.html`, `gestione-lavori-standalone.html`
+
+### Miglioramenti Tracciamento Zone Lavorate
+- **Cursore crosshair**: Durante il tracciamento il cursore diventa crosshair per maggiore precisione
+- **Snap meno aggressivo**: Distanze ridotte da 10-15 metri a 5-8 metri
+- **Disabilitazione snap**: Tieni premuto Shift mentre clicchi per posizionare punti manualmente senza snap
+- **Feedback visivo**: Marker verde temporaneo quando lo snap è applicato
+- **File modificati**: `lavori-caposquadra-standalone.html`
+
+### Dashboard Caposquadra Completa
+- **Statistiche popolate**: Lavori assegnati, ore da validare, dimensione squadra vengono caricati correttamente
+- **Lavori recenti**: Visualizzazione degli ultimi 5 lavori assegnati al caposquadra
+- **Accesso "La Mia Squadra"**: Caposquadra può vedere la sua squadra (solo visualizzazione, filtro automatico)
+- **File modificati**: `dashboard-standalone.html`, `gestione-squadre-standalone.html`
+
+### Segnatura Ore Caposquadra
+- **Accesso permesso**: Caposquadra può accedere alla pagina segnatura ore
+- **Filtro lavori**: Vede solo lavori assegnati a lui come caposquadra
+- **Salvataggio**: Le ore vengono salvate con stato `da_validare` per approvazione manager
+- **File modificati**: `segnatura-ore-standalone.html`, `dashboard-standalone.html`
+
+### Sistema Approvazione Lavori Completati
+- **Workflow**: Caposquadra flagga lavoro come completato (se percentuale >= 90%), Manager approva/rifiuta
+- **Stato intermedio**: Nuovo stato `completato_da_approvare` per lavori in attesa di approvazione
+- **Sezione dedicata**: Manager vede sezione separata "Lavori in attesa di approvazione"
+- **File modificati**: `lavori-caposquadra-standalone.html`, `gestione-lavori-standalone.html`, `core/models/Lavoro.js`
+
+### Fix Tecnici
+- **Errore google is not defined**: Aggiunto controllo in `calculateUnifiedWorkedArea` per verificare che Google Maps sia caricato
+- **Indice Firestore**: Risolto problema indice composito per query squadre caposquadra (ordinamento in memoria)
+- **File modificati**: `lavori-caposquadra-standalone.html`, `gestione-squadre-standalone.html`
+
+---
+
 ## ⚠️ TODO e Note Importanti
 
 ### TODO Immediati (Priorità Alta)
@@ -913,22 +1401,15 @@ modules/vendemmia/
    - **Quando**: Prima di andare in produzione
    - **Riferimento**: Vedi `AUDIT_REPORT.md` per dettagli
 
-2. **Verifica Uso Terreno Prima di Eliminare** 🟡 IMPORTANTE
-   - **Stato**: TODO nel codice (`terreni-service.js:169`)
-   - **Azione richiesta**: 
-     - Implementare check se terreno è usato in attività
-     - Mostrare avviso se terreno usato
-     - Opzione eliminazione cascata (con conferma)
-   - **Quando**: Prima di andare in produzione
-   - **Riferimento**: Vedi `AUDIT_REPORT.md` per dettagli
+2. **Verifica Uso Terreno Prima di Eliminare** ✅ COMPLETATO
+   - **Stato**: ✅ Implementato e funzionante
+   - **Data completamento**: 2025-01-13
+   - **Riferimento**: Vedi sezione "20. Verifica Uso Terreno Prima di Eliminare" sopra
 
-3. **Reset Password** 🟡 IMPORTANTE
-   - **Stato**: Funzionalità non implementata (TODO in `login.html`)
-   - **Azione richiesta**: 
-     - Implementare reset password usando Firebase `sendPasswordResetEmail`
-     - Aggiungere pagina reset password
-   - **Quando**: Prima di andare in produzione
-   - **Riferimento**: Vedi `AUDIT_REPORT.md` per dettagli
+3. **Reset Password** ✅ COMPLETATO
+   - **Stato**: ✅ Implementato e funzionante
+   - **Data completamento**: 2025-01-13
+   - **Riferimento**: Vedi sezione "19. Reset Password Completo" sopra
 
 4. **Email Service - Cambio Email Mittente** 🟡 IMPORTANTE
    - **Stato**: Attualmente usa email personale per test
@@ -977,6 +1458,28 @@ modules/vendemmia/
 - Più semplice da mantenere
 - Codice più pulito
 - Facile da estendere
+
+### 1.1. Separazione Core Base / Moduli Avanzati
+**Decisione**: La gestione utenti, squadre e ruoli operai/caposquadra è legata al modulo Manodopera. Senza modulo attivo, la dashboard mostra solo Core Base (terreni, attività, statistiche, abbonamento, impostazioni).
+
+**Motivazione**: 
+- Aziende piccole dove solo il proprietario lavora non hanno bisogno di gestire squadre/operai/ruoli
+- La gestione utenti avanzata ha senso solo quando c'è bisogno di gestire dipendenti (modulo Manodopera)
+- Nel Core Base, l'amministratore gestisce solo funzionalità operative essenziali
+- Dashboard pulita e focalizzata: senza moduli avanzati, nessuna sezione non necessaria
+
+**Implementazione**:
+- Verifica modulo attivo: `tenants/{tenantId}.modules` contiene `'manodopera'`
+- Se modulo Manodopera attivo: mostra sezione Amministrazione completa con "Gestisci Utenti" e "Gestione Squadre"
+- Se modulo Manodopera NON attivo: mostra solo Core Base (senza sezione Amministrazione)
+- Pagina Abbonamento permette attivazione/disattivazione moduli (Manodopera, Clienti, Vendemmia, Bilancio)
+- Pagine "Gestisci Utenti" e "Gestione Squadre" verificano modulo Manodopera attivo prima di permettere accesso
+
+**Vantaggi**:
+- Logico: gestione squadre/operai solo quando serve
+- Pulito: dashboard senza funzionalità non necessarie
+- Scalabile: quando attivi Manodopera, compaiono automaticamente le funzionalità
+- Flessibile: operai possono essere in più squadre (per periodi diversi, es. Vendemmia e Potatura)
 
 ### 2. Moduli Pay-Per-Use
 **Decisione**: Moduli indipendenti che possono essere attivati/disattivati per tenant.
@@ -1046,14 +1549,41 @@ git ls-files | grep "vecchia"
 - [x] Aggiornamento ultimo accesso automatico
 - [x] Test automatici configurati (47 test funzionanti)
 - [x] Audit codice completato
+- [x] Reset password completo e funzionante
+- [x] Verifica uso terreno prima di eliminare
+- [x] Fix problemi CORS e Google Maps
+- [x] Separazione Core Base / Modulo Manodopera (dashboard condizionale)
+- [x] Pagina Abbonamento con gestione moduli funzionante (attiva/disattiva moduli)
+- [x] Gestione Squadre completa (creazione, modifica, eliminazione)
+- [x] Sistema moduli: verifica modulo attivo per accesso pagine
+- [x] Avviso informativo per operai condivisi tra squadre
+- [x] Pianificazione e assegnazione lavori (Manager crea lavori e li assegna a caposquadra)
+- [x] Tracciamento zone lavorate (Caposquadra traccia segmenti/poligoni sulla mappa con calcolo automatico superficie e progressi)
+- [x] Sistema tracciamento segmenti con validazione confini terreno
+- [x] Calcolo superficie intelligente (area poligono per chiusi, lunghezza × larghezza per aperti)
+- [x] Visualizzazione segmenti salvati sulla mappa
+- [x] Sezione dashboard "Gestione Lavori" per Manager/Amministratore
+- [x] Segnatura ore lavorate (Operaio può segnare ore su lavori assegnati)
+- [x] Validazione ore (Caposquadra può validare/rifiutare ore degli operai)
+- [x] Sistema completo flusso ore: Operaio segna → Caposquadra valida → Manager vede solo validate
+- [x] Servizio ore-service.js per gestione CRUD ore (sub-collection oreOperai)
+- [x] Fix creazione automatica documento utente quando manca (con recupero dati da invito)
+- [x] Fix assegnazione ruoli (setDoc con merge per garantire creazione documento)
+- [x] Fix problemi CORS nelle pagine standalone (uso diretto Firebase)
+- [x] Fix problemi indici Firestore (filtri/ordinamento in memoria)
+- [x] Miglioramento pagina Manager (visualizzazione progressi lavori con mappa, statistiche ore) ✅ COMPLETATO
+- [x] Indicatore stato progresso lavori (in ritardo/in tempo/in anticipo) ✅ COMPLETATO
+- [x] Miglioramenti tracciamento zone lavorate (cursore crosshair, snap meno aggressivo, shift per disabilitare snap) ✅ COMPLETATO
+- [x] Dashboard caposquadra completa (statistiche popolate, lavori recenti, accesso "La Mia Squadra") ✅ COMPLETATO
+- [x] Caposquadra può segnare le proprie ore lavorate ✅ COMPLETATO
+- [x] Fix errore google is not defined in calculateUnifiedWorkedArea ✅ COMPLETATO
+- [x] Sistema approvazione lavori completati (Caposquadra flagga, Manager approva/rifiuta) ✅ COMPLETATO
 
 ### In Corso 🚧
 - [ ] Implementazione Security Rules Firestore
-- [ ] Verifica uso terreno prima di eliminare
-- [ ] Implementazione reset password
 
 ### Pianificato 📋
-- [ ] Moduli avanzati (Clienti, Vendemmia, Bilancio, Manodopera)
+- [ ] Moduli avanzati (Clienti, Vendemmia, Bilancio)
 - [ ] Modulo Clienti
 - [ ] Modulo Vendemmia
 - [ ] Modulo Bilancio
@@ -1078,27 +1608,50 @@ git ls-files | grep "vecchia"
 - **Nome**: GFV Platform (Global Farm View)
 - **Tipo**: SaaS Multi-tenant
 - **Stato**: In sviluppo attivo
-- **Versione**: 1.0.0-alpha
+- **Versione**: 2.0.0-alpha
 
 ---
 
-**Ultimo aggiornamento**: 2025-01-10  
+**Ultimo aggiornamento**: 2025-01-20  
 **Login**: ✅ Testato e funzionante  
-**Dashboard**: ✅ Completa e funzionante  
-**Gestione Utenti**: ✅ Completa e funzionante  
+**Reset Password**: ✅ Completo e funzionante (Firebase Auth)  
+**Dashboard**: ✅ Completa e funzionante (condizionale basata su moduli)  
+**Gestione Utenti**: ✅ Completa e funzionante (ruoli operai/caposquadra solo con modulo Manodopera)  
 **Sistema Inviti**: ✅ Completo e funzionante  
 **Email Service**: ✅ Configurato e funzionante (EmailJS)  
 **GitHub Pages**: ✅ Attivo e online  
-**Core Base - Terreni**: ✅ Completo e funzionante (con Google Maps)  
+**Core Base - Terreni**: ✅ Completo e funzionante (con Google Maps + verifica uso)  
 **Core Base - Liste Personalizzate**: ✅ Completo e funzionante  
 **Core Base - Diario Attività**: ✅ Completo e funzionante  
 **Core Base - Statistiche**: ✅ Completo e funzionante  
-**Core Base - Dashboard**: ✅ Completo e funzionante (dinamica, responsive)  
+**Core Base - Dashboard**: ✅ Completo e funzionante (dinamica, responsive, adattiva ai moduli)  
+**Modulo Manodopera - Gestione Squadre**: ✅ Completo e funzionante (creazione, modifica, eliminazione, avvisi operai condivisi)  
+**Modulo Manodopera - Pianificazione Lavori**: ✅ Completo e funzionante (Manager può creare, modificare, eliminare lavori e assegnarli a caposquadra)  
+**Modulo Manodopera - Tracciamento Zone Lavorate**: ✅ Completo e funzionante (Caposquadra può visualizzare lavori assegnati e tracciare segmenti/poligoni lavorati sulla mappa con calcolo automatico superficie e progressi)
+**Modulo Manodopera - Dashboard Gestione Lavori**: ✅ Completo e funzionante (Sezione dedicata per Manager/Amministratore con statistiche lavori e link rapidi)  
+**Modulo Manodopera - Segnatura Ore**: ✅ Completo e funzionante (Operaio può segnare ore lavorate su lavori assegnati, con calcolo automatico ore nette e visualizzazione storico)
+**Modulo Manodopera - Validazione Ore**: ✅ Completo e funzionante (Caposquadra può validare/rifiutare ore degli operai con motivo, statistiche in tempo reale)
+**Modulo Manodopera - Pagina Manager Migliorata**: ✅ Completo e funzionante (Card statistiche, colonna progressi nella tabella, modal dettaglio con 3 tab: Panoramica/Mappa/Ore, visualizzazione zone lavorate su Google Maps, statistiche ore per operaio)
+**Modulo Manodopera - Indicatore Stato Progresso Lavori**: ✅ Completo e funzionante (Calcolo automatico stato progresso confrontando percentuale completamento con percentuale tempo trascorso, badge colorati: In ritardo/In tempo/In anticipo, filtro per stato progresso, statistiche dashboard)
+**Modulo Manodopera - Miglioramenti Tracciamento Zone**: ✅ Completo e funzionante (Cursore crosshair durante tracciamento per maggiore precisione, snap meno aggressivo 5-8 metri invece di 10-15, Shift+clic per disabilitare snap temporaneamente, feedback visivo quando snap è applicato)
+**Modulo Manodopera - Dashboard Caposquadra**: ✅ Completo e funzionante (Statistiche popolate: lavori assegnati, ore da validare, dimensione squadra, lavori recenti visualizzati, accesso "La Mia Squadra" con visualizzazione solo lettura)
+**Modulo Manodopera - Segnatura Ore Caposquadra**: ✅ Completo e funzionante (Caposquadra può segnare le proprie ore lavorate, vede solo lavori assegnati a lui, ore salvate con stato da_validare per approvazione manager)
+**Modulo Manodopera - Sistema Approvazione Lavori**: ✅ Completo e funzionante (Caposquadra può flaggare lavoro come completato se percentuale >= 90%, Manager può approvare/rifiutare con workflow completo, stato completato_da_approvare)
+**Campo Cellulare Utenti**: ✅ Completo e funzionante (Campo opzionale nell'invito, obbligatorio nella registrazione, visualizzazione contatti squadra per caposquadra)
+**Gestione Poderi**: ✅ Completo e funzionante (Creazione/modifica/eliminazione poderi con mappa satellitare, campo podere nei terreni con dropdown, salvataggio coordinate)
+**Sistema Comunicazioni Squadra**: ✅ Completo e funzionante (Separazione impostazioni per ruolo, comunicazioni di ritrovo con pre-compilazione automatica, conferma obbligatoria operai, link Google Maps)
+**Sistema Moduli**: ✅ Gestione moduli funzionante (attiva/disattiva dalla pagina Abbonamento)  
+**Separazione Core/Moduli**: ✅ Implementata (Core Base minimale, moduli avanzati condizionali)  
+**Fix Documento Utente Mancante**: ✅ Risolto (creazione automatica documento utente quando manca, con recupero dati da invito)  
+**Fix Assegnazione Ruoli**: ✅ Risolto (setDoc con merge per garantire creazione documento utente quando si assegnano ruoli)  
+**Fix CORS Standalone**: ✅ Risolto (tutte le pagine standalone usano direttamente Firebase senza import moduli locali)
+**Fix Indici Firestore**: ✅ Risolto (filtri e ordinamento in memoria per evitare bisogno di indici compositi)
 **Test Automatici**: ✅ 47 test funzionanti (modelli e validazioni)  
 **Audit Codice**: ✅ Completato (report disponibile in AUDIT_REPORT.md)  
 **Sicurezza API**: ✅ Chiavi API protette e funzionanti online  
 **Deploy Online**: ✅ GitHub Pages funzionante con fallback config  
-**Prossimo passo**: Implementare Security Rules, verifica terreno, reset password
+**Fix CORS/Google Maps**: ✅ Funziona sia in locale che online  
+**Prossimo passo**: Implementare Security Rules Firestore (critico per produzione)
 
 ---
 

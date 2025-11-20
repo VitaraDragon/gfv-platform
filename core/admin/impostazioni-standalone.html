@@ -207,6 +207,92 @@
             background: #c82333;
         }
 
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 15px;
+        }
+
+        .modal-header h3 {
+            color: #2E8B57;
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        #podere-map-container {
+            position: relative;
+        }
+
+        .map-marker-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 12px;
+            z-index: 1000;
+        }
+
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -227,8 +313,8 @@
         <div class="content">
             <div id="alert-container"></div>
 
-            <!-- Impostazioni Azienda -->
-            <div class="card">
+            <!-- Impostazioni Azienda (solo Manager/Amministratore) -->
+            <div class="card" id="azienda-section" style="display: none;">
                 <h2>Informazioni Azienda</h2>
                 <form id="azienda-form" onsubmit="handleSaveAzienda(event)">
                     <div class="form-group">
@@ -287,8 +373,64 @@
                 </form>
             </div>
 
-            <!-- Impostazioni Account -->
-            <div class="card">
+            <!-- Comunicazioni Squadra (solo Caposquadra) -->
+            <div class="card" id="comunicazioni-section" style="display: none;">
+                <h2>📢 Comunicazioni Squadra</h2>
+                <p class="info-text" style="margin-bottom: 20px;">Invia comunicazioni di ritrovo alla tua squadra. Gli operai riceveranno la notifica nella loro dashboard.</p>
+                
+                <form id="comunicazione-form" onsubmit="handleSendComunicazione(event)">
+                    <div class="form-group">
+                        <label for="comunicazione-lavoro">Seleziona Lavoro (opzionale)</label>
+                        <select id="comunicazione-lavoro" onchange="handleLavoroChange()">
+                            <option value="">-- Seleziona lavoro per pre-compilare --</option>
+                        </select>
+                        <div class="info-text" style="margin-top: 5px;">Seleziona un lavoro per pre-compilare automaticamente podere e terreno</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comunicazione-podere">Podere *</label>
+                        <select id="comunicazione-podere" required>
+                            <option value="">-- Seleziona podere --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comunicazione-terreno">Campo/Terreno *</label>
+                        <select id="comunicazione-terreno" required>
+                            <option value="">-- Seleziona terreno --</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="comunicazione-data">Data Ritrovo *</label>
+                            <input type="date" id="comunicazione-data" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="comunicazione-orario">Orario Ritrovo *</label>
+                            <input type="time" id="comunicazione-orario" required value="07:00">
+                            <div class="info-text">Orario di default: 7:00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comunicazione-note">Note Aggiuntive</label>
+                        <textarea id="comunicazione-note" placeholder="Eventuali note o istruzioni particolari per la squadra..." rows="3"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">📤 Invia alla Squadra</button>
+                </form>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                    <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px;">Comunicazioni Inviate</h3>
+                    <div id="comunicazioni-list" class="list-container">
+                        <!-- Lista verrà popolata dinamicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Impostazioni Account (tutti i ruoli) -->
+            <div class="card" id="account-section">
                 <h2>Impostazioni Account Personale</h2>
                 <form id="account-form" onsubmit="handleSaveAccount(event)">
                     <div class="form-row">
@@ -317,8 +459,8 @@
                 </form>
             </div>
 
-            <!-- Cambio Password -->
-            <div class="card">
+            <!-- Cambio Password (tutti i ruoli) -->
+            <div class="card" id="password-section">
                 <h2>Cambio Password</h2>
                 <form id="password-form" onsubmit="handleChangePassword(event)">
                     <div class="form-group">
@@ -341,8 +483,22 @@
                 </form>
             </div>
 
-            <!-- Liste Personalizzate -->
-            <div class="card">
+            <!-- Gestione Poderi (solo Manager/Amministratore) -->
+            <div class="card" id="poderi-section" style="display: none;">
+                <h2>🏡 Gestione Poderi</h2>
+                <p class="info-text" style="margin-bottom: 20px;">Gestisci i poderi dell'azienda. I poderi possono essere assegnati ai terreni e utilizzati per filtri e report.</p>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <button type="button" class="btn btn-primary" onclick="openPodereModal()">➕ Aggiungi Podere</button>
+                </div>
+
+                <div id="poderi-list" class="list-container">
+                    <!-- Lista verrà popolata dinamicamente -->
+                </div>
+            </div>
+
+            <!-- Liste Personalizzate (solo Manager/Amministratore) -->
+            <div class="card" id="liste-section" style="display: none;">
                 <h2>📋 Liste Personalizzate</h2>
                 <p class="info-text" style="margin-bottom: 20px;">Gestisci tipi lavoro e colture personalizzate. Gli elementi predefiniti non possono essere eliminati.</p>
                 
@@ -377,6 +533,44 @@
         </div>
     </div>
 
+    <!-- Modal Podere -->
+    <div id="podere-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="podere-modal-title">Aggiungi Podere</h3>
+                <button class="close-modal" onclick="closePodereModal()">&times;</button>
+            </div>
+            <form id="podere-form" onsubmit="handleSavePodere(event)">
+                <div class="form-group">
+                    <label for="podere-nome">Nome Podere *</label>
+                    <input type="text" id="podere-nome" required placeholder="Es. Podere San Giovanni">
+                </div>
+                <div class="form-group">
+                    <label for="podere-indirizzo">Indirizzo</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="podere-indirizzo" placeholder="Via Roma 123, Città" style="flex: 1;">
+                        <button type="button" class="btn btn-primary" onclick="searchPodereAddress()" style="white-space: nowrap;">🔍 Cerca</button>
+                    </div>
+                    <div id="podere-map-container" style="height: 300px; width: 100%; border: 1px solid #ced4da; border-radius: 6px; margin-top: 10px; display: none; position: relative;">
+                        <div id="podere-map" style="height: 100%; width: 100%;"></div>
+                        <div id="podere-map-actions" style="position: absolute; top: 10px; right: 10px; display: none;">
+                            <button type="button" class="btn btn-primary" onclick="openDirections()" style="font-size: 12px; padding: 6px 12px; white-space: nowrap;">🗺️ Indicazioni</button>
+                        </div>
+                    </div>
+                    <small style="display: block; margin-top: 5px;">Cerca l'indirizzo per posizionare il marker sulla mappa. Puoi anche cliccare sulla mappa per posizionare il marker manualmente.</small>
+                </div>
+                <div class="form-group">
+                    <label for="podere-note">Note</label>
+                    <textarea id="podere-note" placeholder="Note aggiuntive sul podere..."></textarea>
+                </div>
+                <div class="form-group" style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closePodereModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Load Firebase config from external file -->
     <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
     <script>
@@ -388,6 +582,18 @@
             document.head.appendChild(fallbackScript);
         };
         document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Load Google Maps config -->
+    <script>
+        const mapsConfigScript = document.createElement('script');
+        mapsConfigScript.src = '../config/google-maps-config.js';
+        mapsConfigScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(mapsConfigScript);
     </script>
     
     <!-- Firebase SDK -->
@@ -417,10 +623,58 @@
         }
 
         const firebaseConfig = await waitForConfig();
+        
+        // Attendi Google Maps config e carica API
+        function waitForMapsConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                    resolve(window.GOOGLE_MAPS_API_KEY);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.GOOGLE_MAPS_API_KEY);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        resolve(null); // Non fallire, solo non caricare Maps
+                    }
+                }, 100);
+            });
+        }
+        
+        // Carica Google Maps API se disponibile
+        try {
+            GOOGLE_MAPS_API_KEY = await waitForMapsConfig();
+            
+            if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                const script = document.createElement('script');
+                script.async = true;
+                script.defer = true;
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry&loading=async&callback=initGoogleMapsPodere`;
+                document.head.appendChild(script);
+                
+                window.initGoogleMapsPodere = function() {
+                    console.log('✅ Google Maps initialized for poderi');
+                    window.googleMapsReadyPodere = true;
+                };
+            } else {
+                console.warn('Google Maps API key non disponibile');
+                window.googleMapsReadyPodere = false;
+            }
+        } catch (e) {
+            console.warn('Google Maps config non disponibile:', e);
+            window.googleMapsReadyPodere = false;
+        }
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, query, collection, where, getDocs, addDoc, deleteDoc, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -428,6 +682,10 @@
 
         let currentUserData = null;
         let currentTenantId = null;
+        let currentPodereId = null;
+        let poderiList = [];
+        let podereMap = null;
+        let podereMarker = null;
         
         // Liste predefinite
         const TIPI_LAVORO_PREDEFINITI = [
@@ -459,26 +717,67 @@
                     // Salva tenant ID
                     currentTenantId = currentUserData.tenantId;
                     
-                    // Carica dati azienda (se disponibili)
-                    if (currentTenantId) {
-                        const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                        if (tenantDoc.exists()) {
-                            const tenantData = tenantDoc.data();
-                            document.getElementById('azienda-nome').value = tenantData.nome || '';
-                            document.getElementById('azienda-piva').value = tenantData.piva || '';
-                            document.getElementById('azienda-cf').value = tenantData.cf || '';
-                            document.getElementById('azienda-indirizzo').value = tenantData.indirizzo || '';
-                            document.getElementById('azienda-citta').value = tenantData.citta || '';
-                            document.getElementById('azienda-cap').value = tenantData.cap || '';
-                            document.getElementById('azienda-provincia').value = tenantData.provincia || '';
-                            document.getElementById('azienda-telefono').value = tenantData.telefono || '';
-                            document.getElementById('azienda-email').value = tenantData.email || '';
-                            document.getElementById('azienda-note').value = tenantData.note || '';
-                        }
+                    // Controlla ruoli e mostra/nascondi sezioni
+                    const ruoli = currentUserData.ruoli || [];
+                    const isManager = ruoli.includes('manager') || ruoli.includes('amministratore');
+                    const isCaposquadra = ruoli.includes('caposquadra');
+                    
+                    // Mostra/nascondi sezioni in base al ruolo
+                    if (isManager) {
+                        // Manager/Amministratore: mostra tutto
+                        document.getElementById('azienda-section').style.display = 'block';
+                        document.getElementById('poderi-section').style.display = 'block';
+                        document.getElementById('liste-section').style.display = 'block';
                         
-                        // Carica liste personalizzate
-                        await loadListe();
+                        // Carica dati azienda
+                        if (currentTenantId) {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                document.getElementById('azienda-nome').value = tenantData.nome || '';
+                                document.getElementById('azienda-piva').value = tenantData.piva || '';
+                                document.getElementById('azienda-cf').value = tenantData.cf || '';
+                                document.getElementById('azienda-indirizzo').value = tenantData.indirizzo || '';
+                                document.getElementById('azienda-citta').value = tenantData.citta || '';
+                                document.getElementById('azienda-cap').value = tenantData.cap || '';
+                                document.getElementById('azienda-provincia').value = tenantData.provincia || '';
+                                document.getElementById('azienda-telefono').value = tenantData.telefono || '';
+                                document.getElementById('azienda-email').value = tenantData.email || '';
+                                document.getElementById('azienda-note').value = tenantData.note || '';
+                            }
+                            
+                            // Carica liste personalizzate e poderi
+                            await loadListe();
+                            await loadPoderi();
+                        }
+                    } else {
+                        // Nascondi sezioni azienda per non-manager
+                        document.getElementById('azienda-section').style.display = 'none';
+                        document.getElementById('poderi-section').style.display = 'none';
+                        document.getElementById('liste-section').style.display = 'none';
                     }
+                    
+                    if (isCaposquadra) {
+                        // Caposquadra: mostra sezione comunicazioni
+                        document.getElementById('comunicazioni-section').style.display = 'block';
+                        
+                        // Carica poderi, terreni e lavori per dropdown comunicazioni
+                        if (currentTenantId) {
+                            await loadPoderiForComunicazioni();
+                            await loadTerreniForComunicazioni();
+                            await loadLavoriAttiviForComunicazioni();
+                            await loadComunicazioniInviate();
+                            
+                            // Pre-compila con il primo lavoro attivo se disponibile
+                            await precompilaDaPrimoLavoro();
+                        }
+                    } else {
+                        document.getElementById('comunicazioni-section').style.display = 'none';
+                    }
+                    
+                    // Account e Password sempre visibili per tutti
+                    document.getElementById('account-section').style.display = 'block';
+                    document.getElementById('password-section').style.display = 'block';
                 }
             } catch (error) {
                 console.error('Errore caricamento dati:', error);
@@ -931,6 +1230,404 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
         
+        // ========== Gestione Poderi ==========
+        
+        // Carica poderi
+        async function loadPoderi() {
+            if (!currentTenantId) return;
+            
+            try {
+                const poderiCollection = collection(db, `tenants/${currentTenantId}/poderi`);
+                const q = query(poderiCollection, orderBy('nome', 'asc'));
+                const querySnapshot = await getDocs(q);
+                
+                poderiList = [];
+                querySnapshot.forEach((docSnap) => {
+                    poderiList.push({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    });
+                });
+                
+                renderPoderi();
+            } catch (error) {
+                console.error('Errore caricamento poderi:', error);
+                showAlert('Errore caricamento poderi', 'error');
+            }
+        }
+        
+        // Render poderi
+        function renderPoderi() {
+            const container = document.getElementById('poderi-list');
+            
+            if (poderiList.length === 0) {
+                container.innerHTML = '<p class="info-text">Nessun podere aggiunto. Clicca su "Aggiungi Podere" per iniziare.</p>';
+                return;
+            }
+            
+            container.innerHTML = poderiList.map(podere => {
+                const escapedNome = escapeHtml(podere.nome || 'Senza nome');
+                const escapedIndirizzo = escapeHtml(podere.indirizzo || '');
+                const escapedNote = escapeHtml(podere.note || '');
+                
+                return `
+                    <div class="list-item">
+                        <div class="list-item-name" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                            <div style="font-weight: 600; color: #2E8B57;">${escapedNome}</div>
+                            ${escapedIndirizzo ? `<div style="font-size: 12px; color: #666;">📍 ${escapedIndirizzo}</div>` : ''}
+                            ${escapedNote ? `<div style="font-size: 12px; color: #999;">${escapedNote}</div>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-info btn-small" onclick="editPodere('${podere.id}')" title="Modifica">✏️ Modifica</button>
+                            <button class="btn btn-danger btn-small" onclick="confirmDeletePodere('${podere.id}')" title="Elimina">🗑️ Elimina</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Apri modal podere
+        function openPodereModal(podereId = null) {
+            currentPodereId = podereId;
+            const modal = document.getElementById('podere-modal');
+            const form = document.getElementById('podere-form');
+            const title = document.getElementById('podere-modal-title');
+            
+            if (podereId) {
+                title.textContent = 'Modifica Podere';
+                const podere = poderiList.find(p => p.id === podereId);
+                if (podere) {
+                    document.getElementById('podere-nome').value = podere.nome || '';
+                    document.getElementById('podere-indirizzo').value = podere.indirizzo || '';
+                    document.getElementById('podere-note').value = podere.note || '';
+                    
+                    // Inizializza mappa se ci sono coordinate o indirizzo
+                    if (window.googleMapsReadyPodere) {
+                        setTimeout(() => {
+                            if (podere.coordinate) {
+                                // Se ci sono coordinate salvate, usa quelle
+                                initPodereMap(podere.coordinate);
+                            } else if (podere.indirizzo) {
+                                // Se c'è indirizzo ma non coordinate, inizializza mappa e cerca indirizzo
+                                initPodereMap();
+                                setTimeout(() => {
+                                    searchPodereAddress(true);
+                                }, 500);
+                            } else {
+                                // Nessuna coordinata né indirizzo, inizializza mappa vuota
+                                initPodereMap();
+                            }
+                        }, 300);
+                    }
+                }
+            } else {
+                title.textContent = 'Aggiungi Podere';
+                form.reset();
+                // Mostra sempre la mappa quando si apre il modal
+                setTimeout(() => {
+                    initPodereMap();
+                }, 300);
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        // Chiudi modal podere
+        function closePodereModal() {
+            const modal = document.getElementById('podere-modal');
+            modal.classList.remove('active');
+            document.getElementById('podere-form').reset();
+            currentPodereId = null;
+            
+            // Pulisci mappa
+            if (podereMarker) {
+                podereMarker.setMap(null);
+                podereMarker = null;
+            }
+            if (podereMap) {
+                podereMap = null;
+            }
+            document.getElementById('podere-map-container').style.display = 'none';
+            const mapActions = document.getElementById('podere-map-actions');
+            if (mapActions) {
+                mapActions.style.display = 'none';
+            }
+        }
+        
+        // Inizializza mappa podere
+        function initPodereMap(center = null) {
+            const mapContainer = document.getElementById('podere-map-container');
+            const mapDiv = document.getElementById('podere-map');
+            
+            if (!mapDiv) return;
+            
+            // Mostra sempre il container della mappa
+            mapContainer.style.display = 'block';
+            
+            // Se Google Maps non è ancora caricato, mostra messaggio e riprova dopo
+            if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
+                mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px;">Caricamento mappa...</div>';
+                
+                // Riprova dopo un po'
+                setTimeout(() => {
+                    if (window.google && window.google.maps && window.googleMapsReadyPodere) {
+                        initPodereMap(center);
+                    } else {
+                        mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 14px; flex-direction: column; gap: 10px;"><div>⚠️ Google Maps non disponibile</div><div style="font-size: 12px;">La mappa verrà caricata quando disponibile</div></div>';
+                    }
+                }, 1000);
+                return;
+            }
+            
+            // Se la mappa è già inizializzata, aggiorna solo il centro
+            if (podereMap) {
+                if (center) {
+                    podereMap.setCenter(center);
+                    podereMap.setZoom(17);
+                    if (!podereMarker) {
+                        setPodereMarker(center);
+                    }
+                }
+                return;
+            }
+            
+            try {
+                const defaultCenter = center || { lat: 44.4949, lng: 11.3426 }; // Bologna area
+                
+                podereMap = new google.maps.Map(mapDiv, {
+                    zoom: center ? 17 : 10,
+                    center: defaultCenter,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE
+                });
+                
+                // Aggiungi controlli per cambiare tipo mappa
+                podereMap.setOptions({
+                    mapTypeControl: true,
+                    mapTypeControlOptions: {
+                        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                        position: google.maps.ControlPosition.TOP_RIGHT,
+                        mapTypeIds: [
+                            google.maps.MapTypeId.SATELLITE,
+                            google.maps.MapTypeId.HYBRID,
+                            google.maps.MapTypeId.ROADMAP
+                        ]
+                    }
+                });
+                
+                // Click sulla mappa per posizionare marker
+                podereMap.addListener('click', function(event) {
+                    setPodereMarker(event.latLng);
+                });
+                
+                // Se c'è un centro, posiziona marker
+                if (center) {
+                    setPodereMarker(center);
+                }
+            } catch (error) {
+                console.error('Errore inizializzazione mappa podere:', error);
+                mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #dc3545; font-size: 14px;">Errore caricamento mappa</div>';
+            }
+        }
+        
+        // Posiziona marker sulla mappa
+        function setPodereMarker(position) {
+            if (!podereMap || !window.google || !window.google.maps) return;
+            
+            // Rimuovi marker esistente
+            if (podereMarker) {
+                podereMarker.setMap(null);
+            }
+            
+            // Crea nuovo marker
+            podereMarker = new google.maps.Marker({
+                map: podereMap,
+                position: position,
+                draggable: true,
+                title: 'Posizione podere'
+            });
+            
+            // Centra mappa sul marker
+            podereMap.setCenter(position);
+            podereMap.setZoom(17);
+            
+            // Mostra pulsante indicazioni
+            const mapActions = document.getElementById('podere-map-actions');
+            if (mapActions) {
+                mapActions.style.display = 'block';
+            }
+            
+            // Listener per drag marker
+            podereMarker.addListener('dragend', function(event) {
+                // Aggiorna indirizzo quando si sposta il marker
+                reverseGeocodePodere(event.latLng);
+            });
+        }
+        
+        // Apri indicazioni stradali
+        function openDirections() {
+            if (!podereMarker) {
+                showAlert('Posiziona prima un marker sulla mappa', 'error');
+                return;
+            }
+            
+            const position = podereMarker.getPosition();
+            const lat = position.lat();
+            const lng = position.lng();
+            
+            // Apri Google Maps con indicazioni verso questa posizione
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+            window.open(url, '_blank');
+        }
+        
+        // Cerca indirizzo podere
+        async function searchPodereAddress(useExistingValue = false) {
+            if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
+                showAlert('Mappa non ancora caricata. Attendi qualche secondo.', 'error');
+                return;
+            }
+            
+            const indirizzoInput = document.getElementById('podere-indirizzo');
+            const address = useExistingValue ? indirizzoInput.value.trim() : indirizzoInput.value.trim();
+            
+            if (!address) {
+                showAlert('Inserisci un indirizzo da cercare', 'error');
+                return;
+            }
+            
+            // Inizializza mappa se non già fatto
+            if (!podereMap) {
+                initPodereMap();
+            }
+            
+            const geocoder = new google.maps.Geocoder();
+            
+            geocoder.geocode({ address: address }, function(results, status) {
+                if (status === 'OK' && results[0]) {
+                    const location = results[0].geometry.location;
+                    setPodereMarker(location);
+                    
+                    // Aggiorna indirizzo con quello completo trovato
+                    indirizzoInput.value = results[0].formatted_address;
+                    
+                    showAlert('Indirizzo trovato! Marker posizionato sulla mappa.', 'success');
+                } else {
+                    showAlert('Indirizzo non trovato. Verifica di aver inserito un indirizzo valido.', 'error');
+                }
+            });
+        }
+        
+        // Reverse geocoding (da coordinate a indirizzo)
+        function reverseGeocodePodere(latLng) {
+            if (!window.google || !window.google.maps) return;
+            
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: latLng }, function(results, status) {
+                if (status === 'OK' && results[0]) {
+                    const indirizzoInput = document.getElementById('podere-indirizzo');
+                    indirizzoInput.value = results[0].formatted_address;
+                }
+            });
+        }
+        
+        // Salva podere
+        async function handleSavePodere(e) {
+            e.preventDefault();
+            
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            const nome = document.getElementById('podere-nome').value.trim();
+            if (!nome) {
+                showAlert('Il nome podere è obbligatorio', 'error');
+                return;
+            }
+            
+            const indirizzo = document.getElementById('podere-indirizzo').value.trim() || null;
+            const note = document.getElementById('podere-note').value.trim() || null;
+            
+            // Ottieni coordinate dal marker se presente
+            let coordinate = null;
+            if (podereMarker) {
+                const position = podereMarker.getPosition();
+                coordinate = {
+                    lat: position.lat(),
+                    lng: position.lng()
+                };
+            }
+            
+            try {
+                const poderiCollection = collection(db, `tenants/${currentTenantId}/poderi`);
+                const podereData = {
+                    nome,
+                    indirizzo,
+                    note,
+                    coordinate: coordinate,
+                    aggiornatoIl: serverTimestamp()
+                };
+                
+                if (currentPodereId) {
+                    // Modifica
+                    const podereRef = doc(poderiCollection, currentPodereId);
+                    await updateDoc(podereRef, podereData);
+                    showAlert('Podere modificato con successo', 'success');
+                } else {
+                    // Crea
+                    podereData.creatoIl = serverTimestamp();
+                    await addDoc(poderiCollection, podereData);
+                    showAlert('Podere aggiunto con successo', 'success');
+                }
+                
+                closePodereModal();
+                await loadPoderi();
+            } catch (error) {
+                console.error('Errore salvataggio podere:', error);
+                showAlert('Errore durante il salvataggio: ' + error.message, 'error');
+            }
+        }
+        
+        // Modifica podere
+        function editPodere(podereId) {
+            openPodereModal(podereId);
+        }
+        
+        // Conferma eliminazione podere
+        async function confirmDeletePodere(podereId) {
+            const podere = poderiList.find(p => p.id === podereId);
+            if (!podere) return;
+            
+            // Verifica se il podere è usato in terreni
+            try {
+                const terreniCollection = collection(db, `tenants/${currentTenantId}/terreni`);
+                const q = query(terreniCollection, where('podere', '==', podere.nome));
+                const querySnapshot = await getDocs(q);
+                const numTerreni = querySnapshot.size;
+                
+                if (numTerreni > 0) {
+                    if (!confirm(`Questo podere è assegnato a ${numTerreni} terreno/i. Eliminare comunque?\n\nNota: I terreni perderanno l'assegnazione al podere.`)) {
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Errore verifica terreni:', e);
+            }
+            
+            if (!confirm(`Sei sicuro di voler eliminare il podere "${podere.nome}"?`)) {
+                return;
+            }
+            
+            try {
+                const podereRef = doc(db, `tenants/${currentTenantId}/poderi`, podereId);
+                await deleteDoc(podereRef);
+                showAlert('Podere eliminato con successo', 'success');
+                await loadPoderi();
+            } catch (error) {
+                console.error('Errore eliminazione podere:', error);
+                showAlert('Errore durante l\'eliminazione: ' + error.message, 'error');
+            }
+        }
+        
         // Esponi funzioni globalmente
         window.handleSaveAzienda = handleSaveAzienda;
         window.handleSaveAccount = handleSaveAccount;
@@ -939,6 +1636,389 @@
         window.removeTipoLavoro = removeTipoLavoro;
         window.addColtura = addColtura;
         window.removeColtura = removeColtura;
+        window.openPodereModal = openPodereModal;
+        window.closePodereModal = closePodereModal;
+        window.handleSavePodere = handleSavePodere;
+        window.editPodere = editPodere;
+        window.confirmDeletePodere = confirmDeletePodere;
+        window.searchPodereAddress = searchPodereAddress;
+        window.openDirections = openDirections;
+        
+        // ========== Gestione Comunicazioni Squadra (Caposquadra) ==========
+        
+        let terreniList = [];
+        let lavoriAttiviList = [];
+        
+        // Carica poderi per dropdown comunicazioni
+        async function loadPoderiForComunicazioni() {
+            if (!currentTenantId) return;
+            
+            try {
+                const poderiCollection = collection(db, `tenants/${currentTenantId}/poderi`);
+                const q = query(poderiCollection, orderBy('nome', 'asc'));
+                const querySnapshot = await getDocs(q);
+                
+                const podereSelect = document.getElementById('comunicazione-podere');
+                podereSelect.innerHTML = '<option value="">-- Seleziona podere --</option>';
+                
+                querySnapshot.forEach((docSnap) => {
+                    const podere = docSnap.data();
+                    const option = document.createElement('option');
+                    option.value = podere.nome;
+                    option.textContent = podere.nome;
+                    option.dataset.podereId = docSnap.id;
+                    option.dataset.coordinate = podere.coordinate ? JSON.stringify(podere.coordinate) : '';
+                    podereSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Errore caricamento poderi per comunicazioni:', error);
+            }
+        }
+        
+        // Carica terreni per dropdown comunicazioni
+        async function loadTerreniForComunicazioni() {
+            if (!currentTenantId) return;
+            
+            try {
+                const terreniCollection = collection(db, `tenants/${currentTenantId}/terreni`);
+                const q = query(terreniCollection, orderBy('nome', 'asc'));
+                const querySnapshot = await getDocs(q);
+                
+                terreniList = [];
+                const terrenoSelect = document.getElementById('comunicazione-terreno');
+                terrenoSelect.innerHTML = '<option value="">-- Seleziona terreno --</option>';
+                
+                querySnapshot.forEach((docSnap) => {
+                    const terreno = docSnap.data();
+                    terreniList.push({
+                        id: docSnap.id,
+                        ...terreno
+                    });
+                    
+                    const option = document.createElement('option');
+                    option.value = terreno.nome || '';
+                    option.textContent = terreno.nome || 'Senza nome';
+                    option.dataset.terrenoId = docSnap.id;
+                    option.dataset.podere = terreno.podere || '';
+                    terrenoSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Errore caricamento terreni per comunicazioni:', error);
+            }
+        }
+        
+        // Carica lavori attivi del caposquadra
+        async function loadLavoriAttiviForComunicazioni() {
+            if (!currentTenantId || !currentUserData) return;
+            
+            try {
+                const lavoriCollection = collection(db, `tenants/${currentTenantId}/lavori`);
+                const caposquadraId = currentUserData.id || auth.currentUser.uid;
+                const q = query(
+                    lavoriCollection,
+                    where('caposquadraId', '==', caposquadraId)
+                );
+                const querySnapshot = await getDocs(q);
+                
+                lavoriAttiviList = [];
+                const lavoroSelect = document.getElementById('comunicazione-lavoro');
+                lavoroSelect.innerHTML = '<option value="">-- Seleziona lavoro per pre-compilare --</option>';
+                
+                querySnapshot.forEach((docSnap) => {
+                    const lavoro = docSnap.data();
+                    const stato = lavoro.stato || 'assegnato';
+                    
+                    // Solo lavori attivi (non completati e non annullati)
+                    if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
+                        lavoriAttiviList.push({
+                            id: docSnap.id,
+                            ...lavoro
+                        });
+                        
+                        const option = document.createElement('option');
+                        option.value = docSnap.id;
+                        option.textContent = lavoro.nome || 'Lavoro senza nome';
+                        option.dataset.terrenoId = lavoro.terrenoId || '';
+                        lavoroSelect.appendChild(option);
+                    }
+                });
+            } catch (error) {
+                console.error('Errore caricamento lavori per comunicazioni:', error);
+            }
+        }
+        
+        // Gestisce cambio selezione lavoro
+        async function handleLavoroChange() {
+            const lavoroSelect = document.getElementById('comunicazione-lavoro');
+            const lavoroId = lavoroSelect.value;
+            
+            if (!lavoroId) return;
+            
+            const lavoro = lavoriAttiviList.find(l => l.id === lavoroId);
+            if (!lavoro || !lavoro.terrenoId) return;
+            
+            try {
+                // Carica terreno per ottenere podere
+                const terrenoRef = doc(db, `tenants/${currentTenantId}/terreni`, lavoro.terrenoId);
+                const terrenoDoc = await getDoc(terrenoRef);
+                
+                if (terrenoDoc.exists()) {
+                    const terreno = terrenoDoc.data();
+                    const podereNome = terreno.podere || '';
+                    const terrenoNome = terreno.nome || '';
+                    
+                    // Pre-compila podere
+                    const podereSelect = document.getElementById('comunicazione-podere');
+                    if (podereNome) {
+                        // Cerca l'opzione corrispondente
+                        for (let i = 0; i < podereSelect.options.length; i++) {
+                            if (podereSelect.options[i].value === podereNome) {
+                                podereSelect.value = podereNome;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Pre-compila terreno
+                    const terrenoSelect = document.getElementById('comunicazione-terreno');
+                    if (terrenoNome) {
+                        terrenoSelect.value = terrenoNome;
+                    }
+                }
+            } catch (error) {
+                console.error('Errore caricamento terreno:', error);
+            }
+        }
+        
+        // Pre-compila form con il primo lavoro attivo
+        async function precompilaDaPrimoLavoro() {
+            if (lavoriAttiviList.length === 0) return;
+            
+            // Seleziona automaticamente il primo lavoro
+            const lavoroSelect = document.getElementById('comunicazione-lavoro');
+            if (lavoroSelect.options.length > 1) {
+                lavoroSelect.value = lavoriAttiviList[0].id;
+                await handleLavoroChange();
+            }
+        }
+        
+        window.handleLavoroChange = handleLavoroChange;
+        
+        // Ottieni squadra del caposquadra
+        async function getSquadraCaposquadra() {
+            if (!currentTenantId || !currentUserData) {
+                console.warn('getSquadraCaposquadra: tenantId o userData mancanti');
+                return [];
+            }
+            
+            try {
+                const caposquadraId = currentUserData.id || auth.currentUser.uid;
+                console.log('Cercando squadra per caposquadraId:', caposquadraId);
+                
+                const squadreCollection = collection(db, `tenants/${currentTenantId}/squadre`);
+                const q = query(squadreCollection, where('caposquadraId', '==', caposquadraId));
+                const querySnapshot = await getDocs(q);
+                
+                console.log('Query squadre risultato:', querySnapshot.size, 'squadre trovate');
+                
+                if (querySnapshot.empty) {
+                    console.warn('Nessuna squadra trovata per caposquadraId:', caposquadraId);
+                    return [];
+                }
+                
+                // Prendi la prima squadra trovata
+                const squadraDoc = querySnapshot.docs[0];
+                const squadraData = squadraDoc.data();
+                
+                console.log('Dati squadra trovata:', {
+                    id: squadraDoc.id,
+                    nome: squadraData.nome,
+                    caposquadraId: squadraData.caposquadraId,
+                    operai: squadraData.operai,
+                    operaiCount: squadraData.operai?.length || 0
+                });
+                
+                // Il campo corretto è "operai", non "membri"
+                return squadraData.operai || [];
+            } catch (error) {
+                console.error('Errore recupero squadra:', error);
+                return [];
+            }
+        }
+        
+        // Invia comunicazione alla squadra
+        async function handleSendComunicazione(e) {
+            e.preventDefault();
+            
+            if (!currentUserData || !currentTenantId) {
+                showAlert('Errore: dati utente non disponibili', 'error');
+                return;
+            }
+            
+            const podereSelect = document.getElementById('comunicazione-podere');
+            const terrenoSelect = document.getElementById('comunicazione-terreno');
+            const dataInput = document.getElementById('comunicazione-data');
+            const orarioInput = document.getElementById('comunicazione-orario');
+            const noteInput = document.getElementById('comunicazione-note');
+            
+            const podere = podereSelect.value.trim();
+            const terreno = terrenoSelect.value.trim();
+            const data = dataInput.value;
+            const orario = orarioInput.value;
+            const note = noteInput.value.trim();
+            
+            if (!podere || !terreno || !data || !orario) {
+                showAlert('Compila tutti i campi obbligatori', 'error');
+                return;
+            }
+            
+            // Ottieni coordinate podere
+            const podereOption = podereSelect.options[podereSelect.selectedIndex];
+            const coordinatePodere = podereOption.dataset.coordinate ? JSON.parse(podereOption.dataset.coordinate) : null;
+            
+            try {
+                // Ottieni membri squadra
+                const membriSquadra = await getSquadraCaposquadra();
+                
+                if (membriSquadra.length === 0) {
+                    showAlert('Nessun membro nella tua squadra', 'error');
+                    return;
+                }
+                
+                // Crea comunicazione
+                const comunicazioneData = {
+                    caposquadraId: currentUserData.id || auth.currentUser.uid,
+                    caposquadraNome: `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim(),
+                    podere: podere,
+                    terreno: terreno,
+                    data: new Date(data + 'T' + orario),
+                    orario: orario,
+                    note: note || null,
+                    coordinatePodere: coordinatePodere,
+                    destinatari: membriSquadra,
+                    conferme: [],
+                    stato: 'attiva',
+                    createdAt: serverTimestamp()
+                };
+                
+                const comunicazioniCollection = collection(db, `tenants/${currentTenantId}/comunicazioni`);
+                await addDoc(comunicazioniCollection, comunicazioneData);
+                
+                showAlert('Comunicazione inviata alla squadra con successo!', 'success');
+                
+                // Reset form
+                document.getElementById('comunicazione-form').reset();
+                document.getElementById('comunicazione-orario').value = '07:00';
+                
+                // Ricarica lista comunicazioni
+                await loadComunicazioniInviate();
+            } catch (error) {
+                console.error('Errore invio comunicazione:', error);
+                showAlert('Errore durante l\'invio: ' + error.message, 'error');
+            }
+        }
+        
+        // Carica comunicazioni inviate
+        async function loadComunicazioniInviate() {
+            if (!currentTenantId || !currentUserData) return;
+            
+            try {
+                const comunicazioniCollection = collection(db, `tenants/${currentTenantId}/comunicazioni`);
+                // Usa solo where senza orderBy per evitare bisogno di indice composito
+                // Ordineremo in memoria
+                const q = query(
+                    comunicazioniCollection,
+                    where('caposquadraId', '==', currentUserData.id || auth.currentUser.uid)
+                );
+                const querySnapshot = await getDocs(q);
+                
+                // Converti in array e ordina per createdAt in memoria
+                const comunicazioniArray = [];
+                querySnapshot.forEach((docSnap) => {
+                    const comm = docSnap.data();
+                    comunicazioniArray.push({
+                        id: docSnap.id,
+                        ...comm,
+                        createdAtValue: comm.createdAt?.toDate ? comm.createdAt.toDate() : new Date(comm.createdAt || 0)
+                    });
+                });
+                
+                // Ordina per data creazione (più recenti prima)
+                comunicazioniArray.sort((a, b) => {
+                    const dateA = a.createdAtValue || new Date(0);
+                    const dateB = b.createdAtValue || new Date(0);
+                    return dateB - dateA; // Ordine decrescente
+                });
+                
+                const container = document.getElementById('comunicazioni-list');
+                
+                if (comunicazioniArray.length === 0) {
+                    container.innerHTML = '<p class="info-text">Nessuna comunicazione inviata.</p>';
+                    return;
+                }
+                
+                container.innerHTML = comunicazioniArray.map(comm => {
+                    const dataCom = comm.data?.toDate ? comm.data.toDate() : new Date(comm.data);
+                    const dataFormatted = dataCom.toLocaleDateString('it-IT', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                    const oraFormatted = comm.orario || '07:00';
+                    
+                    const numDestinatari = comm.destinatari?.length || 0;
+                    const numConferme = comm.conferme?.length || 0;
+                    const percentualeConferme = numDestinatari > 0 ? Math.round((numConferme / numDestinatari) * 100) : 0;
+                    
+                    const statoBadge = comm.stato === 'attiva' ? 
+                        '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">Attiva</span>' :
+                        '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">Completata</span>';
+                    
+                    return `
+                        <div class="list-item" style="margin-bottom: 15px; padding: 15px; border: 1px solid #e9ecef; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div>
+                                    <div style="font-weight: 600; color: #2E8B57; margin-bottom: 5px;">${escapeHtml(comm.podere)} - ${escapeHtml(comm.terreno)}</div>
+                                    <div style="font-size: 14px; color: #666;">📅 ${dataFormatted} alle ${oraFormatted}</div>
+                                    ${comm.note ? `<div style="font-size: 13px; color: #999; margin-top: 5px;">${escapeHtml(comm.note)}</div>` : ''}
+                                </div>
+                                ${statoBadge}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">
+                                <div style="font-size: 12px; color: #666;">
+                                    Conferme: ${numConferme}/${numDestinatari} (${percentualeConferme}%)
+                                </div>
+                                ${comm.coordinatePodere ? `<a href="https://www.google.com/maps/dir/?api=1&destination=${comm.coordinatePodere.lat},${comm.coordinatePodere.lng}" target="_blank" style="color: #2E8B57; text-decoration: none; font-size: 14px;">📍 Indicazioni</a>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Errore caricamento comunicazioni:', error);
+                const container = document.getElementById('comunicazioni-list');
+                container.innerHTML = '<p class="info-text">Errore caricamento comunicazioni.</p>';
+            }
+        }
+        
+        // Imposta data di default a domani
+        function setDefaultDate() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dateString = tomorrow.toISOString().split('T')[0];
+            const dataInput = document.getElementById('comunicazione-data');
+            if (dataInput) {
+                dataInput.value = dateString;
+                dataInput.min = dateString; // Non permettere date passate
+            }
+        }
+        
+        // Chiama setDefaultDate quando la pagina è caricata
+        if (document.getElementById('comunicazione-data')) {
+            setDefaultDate();
+        }
+        
+        window.handleSendComunicazione = handleSendComunicazione;
     </script>
 </body>
 </html>

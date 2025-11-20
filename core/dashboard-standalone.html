@@ -425,7 +425,7 @@
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, getDoc, doc, updateDoc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, getDoc, doc, updateDoc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy, limit, addDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
@@ -1344,6 +1344,16 @@
             section.innerHTML = `
                 <h2><span class="section-icon">🔧</span> I Miei Lavori</h2>
                 
+                <!-- Comunicazioni Squadra -->
+                <div id="comunicazioni-operaio-section" style="margin-bottom: 30px;">
+                    <h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #2E8B57; border-bottom: 2px solid #2E8B57; padding-bottom: 8px;">📢 Comunicazioni dal Caposquadra</h3>
+                    <div id="comunicazioni-operaio-list">
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            Caricamento comunicazioni...
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-value">-</div>
@@ -1387,8 +1397,172 @@
                     </li>
                 </ul>
             `;
+            
+            // Carica comunicazioni per operaio
+            if (userData && userData.tenantId) {
+                loadComunicazioniOperaio(userData);
+            }
+            
             return section;
         }
+        
+        // Carica comunicazioni per operaio
+        async function loadComunicazioniOperaio(userData) {
+            try {
+                const user = auth.currentUser;
+                if (!user || !userData || !userData.tenantId) return;
+                
+                const comunicazioniCollection = collection(db, `tenants/${userData.tenantId}/comunicazioni`);
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+                
+                // Carica comunicazioni attive dove l'operaio è destinatario
+                const q = query(
+                    comunicazioniCollection,
+                    where('stato', '==', 'attiva')
+                );
+                const querySnapshot = await getDocs(q);
+                
+                const container = document.getElementById('comunicazioni-operaio-list');
+                if (!container) return;
+                
+                const comunicazioniAttive = [];
+                querySnapshot.forEach(docSnap => {
+                    const comm = docSnap.data();
+                    const dataCom = comm.data?.toDate ? comm.data.toDate() : new Date(comm.data);
+                    
+                    // Verifica se l'operaio è destinatario
+                    const destinatari = comm.destinatari || [];
+                    if (destinatari.includes(user.uid)) {
+                        // Verifica se la comunicazione è ancora valida (data >= oggi)
+                        if (dataCom >= oggi) {
+                            const haConfermato = comm.conferme?.some(c => c.userId === user.uid) || false;
+                            comunicazioniAttive.push({
+                                id: docSnap.id,
+                                ...comm,
+                                dataCom: dataCom,
+                                haConfermato: haConfermato
+                            });
+                        }
+                    }
+                });
+                
+                // Ordina per data (più recenti prima)
+                comunicazioniAttive.sort((a, b) => a.dataCom - b.dataCom);
+                
+                if (comunicazioniAttive.length === 0) {
+                    container.innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #666; background: #f8f9fa; border-radius: 8px;">
+                            Nessuna comunicazione attiva
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = comunicazioniAttive.map(comm => {
+                    const dataFormatted = comm.dataCom.toLocaleDateString('it-IT', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                    const oraFormatted = comm.orario || '07:00';
+                    
+                    const confermaButton = comm.haConfermato ? 
+                        '<button class="btn btn-success" disabled style="background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: not-allowed;">✅ Confermato</button>' :
+                        `<button class="btn btn-primary" onclick="confermaComunicazione('${comm.id}')" style="background: #2E8B57; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">✓ Conferma Ricezione</button>`;
+                    
+                    const linkMaps = comm.coordinatePodere ? 
+                        `<a href="https://www.google.com/maps/dir/?api=1&destination=${comm.coordinatePodere.lat},${comm.coordinatePodere.lng}" target="_blank" style="color: #2E8B57; text-decoration: none; font-size: 14px; margin-left: 10px;">📍 Indicazioni</a>` : '';
+                    
+                    return `
+                        <div style="background: white; border: 2px solid ${comm.haConfermato ? '#28a745' : '#ffc107'}; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 18px; font-weight: 600; color: #2E8B57; margin-bottom: 8px;">
+                                        📍 ${escapeHtml(comm.podere)} - ${escapeHtml(comm.terreno)}
+                                    </div>
+                                    <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
+                                        📅 <strong>${dataFormatted}</strong> alle <strong>${oraFormatted}</strong>
+                                    </div>
+                                    <div style="font-size: 13px; color: #999; margin-top: 5px;">
+                                        Da: ${escapeHtml(comm.caposquadraNome || 'Caposquadra')}
+                                    </div>
+                                    ${comm.note ? `<div style="font-size: 13px; color: #666; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">${escapeHtml(comm.note)}</div>` : ''}
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid #e9ecef;">
+                                ${confermaButton}
+                                ${linkMaps}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Errore caricamento comunicazioni operaio:', error);
+                const container = document.getElementById('comunicazioni-operaio-list');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #dc3545; background: #f8d7da; border-radius: 8px;">
+                            Errore caricamento comunicazioni
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Conferma ricezione comunicazione
+        async function confermaComunicazione(comunicazioneId) {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                if (!userData.tenantId) return;
+                
+                const comunicazioneRef = doc(db, `tenants/${userData.tenantId}/comunicazioni`, comunicazioneId);
+                const comunicazioneDoc = await getDoc(comunicazioneRef);
+                
+                if (!comunicazioneDoc.exists()) {
+                    alert('Comunicazione non trovata');
+                    return;
+                }
+                
+                const comm = comunicazioneDoc.data();
+                const conferme = comm.conferme || [];
+                
+                // Verifica se già confermato
+                if (conferme.some(c => c.userId === user.uid)) {
+                    alert('Hai già confermato questa comunicazione');
+                    return;
+                }
+                
+                // Aggiungi conferma (usa Timestamp.now() invece di serverTimestamp() perché non può essere usato dentro array)
+                conferme.push({
+                    userId: user.uid,
+                    timestamp: Timestamp.now()
+                });
+                
+                await updateDoc(comunicazioneRef, {
+                    conferme: conferme
+                });
+                
+                // Ricarica comunicazioni
+                if (userData) {
+                    await loadComunicazioniOperaio(userData);
+                }
+                
+                alert('✅ Conferma ricevuta!');
+            } catch (error) {
+                console.error('Errore conferma comunicazione:', error);
+                alert('Errore durante la conferma: ' + error.message);
+            }
+        }
+        
+        window.confermaComunicazione = confermaComunicazione;
 
         // Verifica autenticazione e carica dashboard
         // Traccia l'utente previsto per questa scheda (per gestire cambio sessione)

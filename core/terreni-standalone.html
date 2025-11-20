@@ -127,7 +127,7 @@
             background: #f8f9fa;
             color: #000;
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
+            grid-template-columns: 2fr 1.5fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
             gap: 15px;
             padding: 15px 20px;
             font-weight: 600;
@@ -138,7 +138,7 @@
 
         .terreno-row {
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
+            grid-template-columns: 2fr 1.5fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
             gap: 15px;
             padding: 15px 20px;
             border-bottom: 1px solid #eee;
@@ -173,6 +173,18 @@
 
         .terreno-coltura {
             color: #333;
+            font-size: 0.9em;
+        }
+
+        .col-podere {
+            color: #666;
+            font-size: 0.9em;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .terreno-podere {
+            color: #666;
             font-size: 0.9em;
         }
 
@@ -516,6 +528,14 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="terreno-podere">Podere</label>
+                    <select id="terreno-podere">
+                        <option value="">-- Nessun podere --</option>
+                    </select>
+                    <small>Seleziona il podere a cui appartiene il terreno. <a href="admin/impostazioni-standalone.html" target="_blank" style="color: #2E8B57; text-decoration: underline;">Gestisci poderi nelle impostazioni</a></small>
+                </div>
+
+                <div class="form-group">
                     <label>Mappa (opzionale)</label>
                     <div class="map-container">
                         <div class="map-controls">
@@ -612,7 +632,8 @@
             doc, 
             collection, 
             addDoc, 
-            updateDoc, 
+            updateDoc,
+            setDoc, 
             deleteDoc, 
             getDocs, 
             query, 
@@ -636,6 +657,7 @@
         let currentPolygonCoords = [];
         let currentTenantId = null;
         let colture = []; // Lista colture disponibili
+        let poderi = []; // Lista poderi disponibili
 
         // Carica Google Maps API (con async per migliori performance)
         if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
@@ -745,8 +767,9 @@
                 console.error('Errore caricamento utente:', error);
             }
 
-            // Carica colture e terreni
+            // Carica colture, poderi e terreni
             await loadColture();
+            await loadPoderi();
             await loadTerreni();
         });
 
@@ -758,6 +781,49 @@
             }
         });
 
+        // Carica poderi disponibili
+        async function loadPoderi() {
+            try {
+                if (!currentTenantId) return;
+                
+                const poderiCollection = collection(db, `tenants/${currentTenantId}/poderi`);
+                const q = query(poderiCollection, orderBy('nome', 'asc'));
+                const querySnapshot = await getDocs(q);
+                
+                poderi = [];
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    poderi.push({
+                        id: docSnap.id,
+                        nome: data.nome || ''
+                    });
+                });
+                
+                // Popola dropdown poderi
+                populatePoderiDropdown();
+            } catch (error) {
+                console.error('Errore caricamento poderi:', error);
+                poderi = [];
+            }
+        }
+        
+        // Popola dropdown poderi
+        function populatePoderiDropdown() {
+            const podereSelect = document.getElementById('terreno-podere');
+            if (!podereSelect) return;
+            
+            // Mantieni opzione vuota
+            podereSelect.innerHTML = '<option value="">-- Nessun podere --</option>';
+            
+            // Aggiungi poderi
+            poderi.forEach(podere => {
+                const option = document.createElement('option');
+                option.value = podere.nome;
+                option.textContent = podere.nome;
+                podereSelect.appendChild(option);
+            });
+        }
+        
         // Carica colture disponibili
         async function loadColture() {
             try {
@@ -915,6 +981,7 @@
                         nome: data.nome || '',
                         superficie: superficie,
                         coltura: data.coltura || null,
+                        podere: data.podere || null,
                         coordinate: data.coordinate || null,
                         polygonCoords: data.polygonCoords || null,
                         note: data.note || '',
@@ -959,6 +1026,7 @@
                     <div class="terreni-header">
                         <div class="col-nome">Nome Campo</div>
                         <div class="col-coltura">Coltura</div>
+                        <div class="col-podere">Podere</div>
                         <div class="col-ettari">Ha</div>
                         <div class="col-mappa">Mappa</div>
                         <div class="col-note">Note</div>
@@ -967,6 +1035,7 @@
                     ${terreni.map(terreno => {
                         const escapedNome = escapeHtml(terreno.nome || 'Senza nome');
                         const escapedColtura = escapeHtml(terreno.coltura || '');
+                        const escapedPodere = escapeHtml(terreno.podere || '');
                         const ettariValue = terreno.superficie ? terreno.superficie.toFixed(2) : '0.00';
                         const hasMappa = terreno.polygonCoords && Array.isArray(terreno.polygonCoords) && terreno.polygonCoords.length > 0;
                         const escapedNote = escapeHtml(terreno.note || '');
@@ -978,6 +1047,9 @@
                             </div>
                             <div class="col-coltura" data-label="Coltura">
                                 <span class="terreno-coltura">${escapedColtura || '-'}</span>
+                            </div>
+                            <div class="col-podere" data-label="Podere">
+                                <span class="terreno-podere">${escapedPodere || '-'}</span>
                             </div>
                             <div class="col-ettari" data-label="Ettari">
                                 <span class="terreno-ettari">${ettariValue}</span>
@@ -1009,6 +1081,9 @@
             const form = document.getElementById('terreno-form');
             const title = document.getElementById('modal-title');
             
+            // IMPORTANTE: Popola il dropdown PRIMA di impostare i valori
+            populatePoderiDropdown();
+            
             if (terrenoId) {
                 title.textContent = 'Modifica Terreno';
                 // Carica dati terreno
@@ -1017,6 +1092,9 @@
                     document.getElementById('terreno-nome').value = terreno.nome || '';
                     document.getElementById('terreno-superficie').value = terreno.superficie || '';
                     document.getElementById('terreno-coltura').value = terreno.coltura || '';
+                    const podereValue = terreno.podere || '';
+                    // Imposta il valore DOPO che il dropdown è stato popolato
+                    document.getElementById('terreno-podere').value = podereValue;
                     document.getElementById('terreno-note').value = terreno.note || '';
                     
                     // Inizializza mappa se disponibile
@@ -1044,6 +1122,7 @@
                 title.textContent = 'Aggiungi Terreno';
                 form.reset();
                 document.getElementById('terreno-coltura').value = '';
+                document.getElementById('terreno-podere').value = '';
                 currentPolygonCoords = [];
                 polygon = null;
                 if (window.googleMapsReady) {
@@ -1106,13 +1185,15 @@
             }
             
             const coltura = document.getElementById('terreno-coltura').value.trim() || null;
+            const podere = document.getElementById('terreno-podere').value.trim() || null;
             const note = document.getElementById('terreno-note').value.trim();
             
             // Prepara dati terreno
             const terrenoData = {
                 nome,
                 superficie: null,
-                coltura: coltura,
+                coltura: coltura || null,
+                podere: podere || null,
                 note: note || null,
                 updatedAt: serverTimestamp()
             };
@@ -1150,15 +1231,21 @@
             try {
                 const terreniCollection = getTerreniCollection(currentTenantId);
                 
+                // Rimuovi createdAt se presente (per update)
+                const dataToSave = { ...terrenoData };
                 if (currentTerrenoId) {
-                    // Aggiorna
+                    delete dataToSave.createdAt;
+                }
+                
+                if (currentTerrenoId) {
+                    // Aggiorna usando setDoc con merge per garantire che tutti i campi vengano salvati
                     const terrenoRef = doc(terreniCollection, currentTerrenoId);
-                    await updateDoc(terrenoRef, terrenoData);
+                    await setDoc(terrenoRef, dataToSave, { merge: true });
                     showAlert('Terreno aggiornato con successo!', 'success');
                 } else {
                     // Crea
-                    terrenoData.createdAt = serverTimestamp();
-                    await addDoc(terreniCollection, terrenoData);
+                    dataToSave.createdAt = serverTimestamp();
+                    await addDoc(terreniCollection, dataToSave);
                     showAlert('Terreno creato con successo!', 'success');
                 }
                 
