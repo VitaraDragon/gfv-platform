@@ -16,6 +16,7 @@ export class Lavoro extends Base {
    * @param {string} data.nome - Nome lavoro (obbligatorio)
    * @param {string} data.terrenoId - ID terreno (obbligatorio)
    * @param {string} data.caposquadraId - ID caposquadra (obbligatorio)
+   * @param {string} data.tipoLavoro - Tipo lavoro (es. "Potatura", "Vendemmia", "Trattamento") - obbligatorio
    * @param {Date|string} data.dataInizio - Data inizio lavoro (obbligatorio)
    * @param {number} data.durataPrevista - Durata prevista in giorni (obbligatorio)
    * @param {string} data.stato - Stato lavoro: "assegnato" | "in_corso" | "completato" | "annullato" (default: "assegnato")
@@ -37,6 +38,7 @@ export class Lavoro extends Base {
     this.nome = data.nome || '';
     this.terrenoId = data.terrenoId || null;
     this.caposquadraId = data.caposquadraId || null;
+    this.tipoLavoro = data.tipoLavoro || '';
     
     // Gestione dataInizio
     if (data.dataInizio) {
@@ -102,6 +104,10 @@ export class Lavoro extends Base {
     
     if (!this.caposquadraId) {
       errors.push('Caposquadra obbligatorio');
+    }
+    
+    if (!this.tipoLavoro || this.tipoLavoro.trim().length === 0) {
+      errors.push('Tipo lavoro obbligatorio');
     }
     
     if (!this.dataInizio) {

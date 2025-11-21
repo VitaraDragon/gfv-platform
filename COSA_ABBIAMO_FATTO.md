@@ -167,16 +167,56 @@ gfv-platform/
 
 ## 📝 Aggiornamenti Recenti (2025-01-20)
 
+### Dashboard Ruoli Ottimizzate ✅
+- **Dashboard Operaio**: Rimossa visualizzazione Core Base (terreni, diario attività, statistiche, abbonamento)
+  - Visualizza solo: Comunicazioni dal Caposquadra, Lavori di Oggi, Segna Ore, Le Mie Ore
+  - Statistiche personali: Lavori Oggi, Ore Segnate, Stato
+  - Sezione "Le Mie Ore" con riepilogo (Validate/Da validare/Rifiutate) e ultime 5 ore segnate
+- **Dashboard Caposquadra**: Rimossa visualizzazione Core Base
+  - Visualizza solo: Statistiche squadra, Comunicazione Rapida, Azioni Rapide, Lavori Recenti
+- **Logica**: Core Base nascosto solo se utente è SOLO Operaio o SOLO Caposquadra
+- **File modificati**: `core/dashboard-standalone.html`
+
+### Diario da Lavori Automatico ✅
+- **Campo Tipo Lavoro**: Aggiunto campo obbligatorio `tipoLavoro` al modello Lavoro
+  - Validazione: campo obbligatorio
+  - Dropdown popolato dalle liste personalizzate (predefiniti + custom)
+- **Form Lavori**: Aggiunto dropdown Tipo Lavoro nel form creazione/modifica lavoro
+  - Caricamento automatico tipi lavoro dalle liste personalizzate
+  - Salvataggio tipo lavoro nel documento lavoro
+- **Generazione Automatica Attività**: Funzione per generare attività dalle ore validate
+  - Raggruppa ore validate per data e lavoro
+  - Calcola orario inizio (prima ora) e fine (ultima ora) del giorno
+  - Somma pause e ore nette totali
+  - Conta numero operai che hanno lavorato
+  - Recupera dati terreno (nome, coltura) e lavoro (tipo lavoro)
+- **Vista Dashboard Manager**: Nuova sezione "Diario da Lavori"
+  - Tabella con colonne: Data, Terreno, Tipo Lavoro, Coltura, Orario, Ore, Operai, Lavoro
+  - Mostra ultime 20 attività generate
+  - Ordinamento per data (più recenti prima)
+  - Messaggio quando non ci sono attività
+- **File modificati**: 
+  - `core/models/Lavoro.js`
+  - `core/admin/gestione-lavori-standalone.html`
+  - `core/dashboard-standalone.html`
+
 ### Sistema Comunicazioni Squadra e Separazione Impostazioni ✅
 - Separazione impostazioni per ruolo:
   - Manager/Amministratore: tutte le sezioni (Azienda, Poderi, Liste, Account, Password)
   - Caposquadra: solo Comunicazioni Squadra + Account + Password
   - Operaio: solo Account + Password
+- Scheda veloce comunicazioni nella dashboard caposquadra:
+  - Card "Invia Comunicazione Rapida" direttamente nella dashboard
+  - Pre-compilazione automatica podere, campo e lavoro dal primo lavoro attivo
+  - Dropdown per selezionare lavoro se ce ne sono più di uno
+  - Solo orario (default 7:00) e note da compilare
+  - Invio rapido in un click
 - Sistema comunicazioni di ritrovo per caposquadra:
   - Pre-compilazione automatica podere/terreno dal lavoro assegnato
   - Dropdown selezione lavoro per pre-compilare automaticamente
   - Invio comunicazione alla squadra con notifica nella dashboard operai
   - Lista comunicazioni inviate con statistiche conferme
+  - Versione completa nelle Impostazioni per casi particolari
 - Visualizzazione comunicazioni nella dashboard operaio:
   - Card comunicazioni attive con dettagli (podere, campo, data, orario)
   - Conferma ricezione obbligatoria
@@ -205,6 +245,101 @@ gfv-platform/
 - `core/terreni-standalone.html`
 - `core/models/Terreno.js`
 - `core/dashboard-standalone.html`
+
+## 📝 Aggiornamenti Recenti (2025-01-20)
+
+### Riorganizzazione Dashboard Manager con Manodopera Attivo ✅
+- **Problema**: Dashboard confusa con duplicazione tra diario manuale Core Base e diario automatico
+- **Soluzione**: 
+  - Core Base nascosto quando Manodopera è attivo (Manager e Amministratore)
+  - Card Amministrazione che porta a pagina dedicata
+  - Card Statistiche che porta a pagina dedicata
+  - Sezione Gestione Manodopera completa mantenuta
+  - Diario da Lavori come sezione principale
+- **Risultato**: Dashboard più pulita, organizzata e intuitiva
+- **File modificati**: `core/dashboard-standalone.html`
+
+### Pagina Amministrazione Dedicata ✅
+- **File creato**: `core/admin/amministrazione-standalone.html`
+- **Funzionalità**:
+  - Statistiche: Piano Attuale, Moduli Attivi, Utenti Totali
+  - Card cliccabili: Gestisci Utenti, Gestione Squadre, Abbonamento
+  - Design coerente con altre pagine admin
+  - Verifica permessi automatica
+
+### Pagina Statistiche Manodopera Dedicata ✅
+- **File creato**: `core/admin/statistiche-manodopera-standalone.html`
+- **Statistiche implementate**:
+  - Lavori: Totali, Attivi, Completati, Pianificati
+  - Ore: Validate (Mese/Totale), Da Validare, Media Ore/Giorno
+  - Squadre: Totali, Attive, Operai Totali, Operai Online
+  - Superficie: Lavorata, Totale Terreni, % Lavorata
+- **Struttura modulare**: Facile aggiungere nuove statistiche in futuro
+- **File modificati**: `core/dashboard-standalone.html` (aggiunta card Statistiche)
+
+### Mappa Aziendale Dashboard Manager ✅
+- **Layout superiore dashboard Manager**:
+  - Riga superiore con layout a 2 colonne:
+    - Sinistra: 3 card verticali (Amministrazione, Statistiche, Terreni)
+    - Destra: Mappa Aziendale grande che occupa tutto lo spazio disponibile
+  - Layout responsive: su schermi <1024px le card si impilano sopra la mappa
+- **Mappa satellitare completa**:
+  - Visualizzazione tutti i terreni con confini geolocalizzati (poligoni)
+  - Mappa satellitare Google Maps con zoom automatico su tutti i terreni
+  - Colori distinti per coltura (palette predefinita: Vite, Frutteto, Seminativo, ecc.)
+  - Legenda colture dinamica (si aggiorna in base ai terreni presenti)
+  - Click su terreno per vedere info dettagliate (nome, podere, coltura, superficie, note)
+  - Info window con link diretto a dettagli terreno
+  - Visualizzazione solo terreni con mappa tracciata
+- **Responsive design**:
+  - Desktop (>1200px): colonna sinistra 280px, mappa occupa il resto
+  - Tablet (1024-1200px): colonna sinistra 260px, mappa più larga
+  - Tablet piccolo (<1024px): layout verticale (card sopra, mappa sotto)
+  - Mobile (<768px): mappa compatta con altezza ridotta
+  - Ridimensionamento automatico mappa al cambio dimensione finestra
+- **Integrazione dashboard**:
+  - Mappa visibile per Manager e Amministratore
+  - Posizionata in alto dopo le card Amministrazione/Statistiche
+  - Sotto la mappa: Gestione Manodopera e Diario da Lavori
+  - Allineamento perfetto con margine destro sezione "Gestione Manodopera"
+- **File modificati**: `core/dashboard-standalone.html`
+
+### Miglioramenti Pianificati Mappa Aziendale (Fase 2) 📋
+**Priorità implementazione**:
+1. **Overlay Lavori Attivi** (Alta priorità) - Visualizzazione zone lavorate sulla mappa
+2. **Filtri (Podere, Coltura)** (Media priorità) - Filtrare terreni per podere/coltura
+3. **Indicatori Stato Lavori** (Media priorità) - Marker colorati per lavori attivi
+4. **Zoom Automatico Migliorato** (Bassa priorità) - Miglioramenti zoom esistente
+
+## 📝 Aggiornamenti Recenti (2025-01-20) - Mappa Aziendale
+
+### Mappa Aziendale Dashboard Manager ✅
+- **Layout superiore dashboard Manager**:
+  - Riga superiore con layout a 2 colonne:
+    - Sinistra: 3 card verticali (Amministrazione, Statistiche, Terreni)
+    - Destra: Mappa Aziendale grande che occupa tutto lo spazio disponibile
+  - Layout responsive: su schermi <1024px le card si impilano sopra la mappa
+- **Mappa satellitare completa**:
+  - Visualizzazione tutti i terreni con confini geolocalizzati (poligoni)
+  - Mappa satellitare Google Maps con zoom automatico su tutti i terreni
+  - Colori distinti per coltura (palette predefinita)
+  - Legenda colture dinamica
+  - Click su terreno per vedere info dettagliate
+  - Responsive design per tutti i dispositivi
+- **Integrazione dashboard**:
+  - Mappa visibile per Manager e Amministratore
+  - Posizionata in alto dopo le card Amministrazione/Statistiche
+  - Sotto la mappa: Gestione Manodopera e Diario da Lavori
+  - Allineamento perfetto con margine destro sezione "Gestione Manodopera"
+
+**File modificati**: `core/dashboard-standalone.html`
+
+### Miglioramenti Pianificati Mappa Aziendale (Fase 2)
+**Priorità implementazione**:
+1. **Overlay Lavori Attivi** (Alta priorità) - Visualizzazione zone lavorate sulla mappa
+2. **Filtri (Podere, Coltura)** (Media priorità) - Filtrare terreni per podere/coltura
+3. **Indicatori Stato Lavori** (Media priorità) - Marker colorati per lavori attivi
+4. **Zoom Automatico Migliorato** (Bassa priorità) - Miglioramenti zoom esistente
 
 
 

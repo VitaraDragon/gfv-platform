@@ -84,10 +84,84 @@
         }
 
         .dashboard-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 20px;
             margin-bottom: 30px;
+            width: 100%;
+        }
+
+        /* Layout superiore: 3 card a sinistra, mappa a destra */
+        .dashboard-top-row {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .dashboard-top-left {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 0;
+        }
+
+        .dashboard-top-right {
+            min-height: 600px;
+            width: 100%;
+            min-width: 0;
+        }
+        
+        .dashboard-top-right .dashboard-section {
+            width: 100%;
+            margin: 0;
+            padding: 25px;
+            box-sizing: border-box;
+        }
+
+        /* Responsive: tablet e schermi medi */
+        @media (max-width: 1200px) {
+            .dashboard-top-row {
+                grid-template-columns: 260px 1fr;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-top-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-top-left {
+                margin-bottom: 20px;
+            }
+            
+            .dashboard-top-right {
+                min-height: 500px;
+            }
+        }
+
+        /* Responsive: mobile */
+        @media (max-width: 768px) {
+            .dashboard-top-right {
+                min-height: 400px;
+            }
+            
+            .mappa-container {
+                height: 400px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-top-right {
+                min-height: 300px;
+            }
+            
+            .mappa-container {
+                height: 300px !important;
+            }
         }
 
         .dashboard-section {
@@ -104,6 +178,110 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        /* Stili per mappa aziendale */
+        .mappa-container {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .mappa-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+            z-index: 1;
+        }
+
+        .mappa-legenda {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 200px;
+            font-size: 12px;
+        }
+
+        .mappa-legenda h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #2E8B57;
+        }
+
+        .mappa-legenda-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .mappa-legenda-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+
+        .mappa-info-window {
+            max-width: 250px;
+        }
+
+        .mappa-info-window h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            color: #2E8B57;
+        }
+
+        .mappa-info-window p {
+            margin: 4px 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .mappa-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .mappa-controls button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .mappa-controls button:hover {
+            background: #f8f9fa;
+            border-color: #2E8B57;
+        }
+
+        .mappa-controls button.active {
+            background: #2E8B57;
+            color: white;
+            border-color: #2E8B57;
         }
 
         .section-icon {
@@ -381,7 +559,10 @@
         }
 
         // Carica il config prima di continuare
-        loadConfig().catch(error => {
+        loadConfig().then(() => {
+            // Carica anche Google Maps config
+            loadGoogleMapsConfig();
+        }).catch(error => {
             console.error('Errore caricamento config:', error);
             document.getElementById('dashboard-content').innerHTML = `
                 <div style="padding: 20px; text-align: center;">
@@ -391,6 +572,60 @@
                 </div>
             `;
         });
+
+        // Carica Google Maps config
+        function loadGoogleMapsConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                const mapsConfigScript = document.createElement('script');
+                mapsConfigScript.src = 'config/google-maps-config.js';
+                
+                mapsConfigScript.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                            resolve();
+                        } else {
+                            loadGoogleMapsConfigFallback().then(resolve).catch(reject);
+                        }
+                    }, 100);
+                };
+                
+                mapsConfigScript.onerror = function() {
+                    loadGoogleMapsConfigFallback().then(resolve).catch(reject);
+                };
+                
+                document.head.appendChild(mapsConfigScript);
+            });
+        }
+
+        function loadGoogleMapsConfigFallback() {
+            return new Promise((resolve, reject) => {
+                const fallback = document.createElement('script');
+                fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+                
+                fallback.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                            resolve();
+                        } else {
+                            console.warn('Google Maps API key not found');
+                            resolve(); // Non bloccare il caricamento
+                        }
+                    }, 100);
+                };
+                
+                fallback.onerror = function() {
+                    console.warn('Failed to load Google Maps config');
+                    resolve(); // Non bloccare il caricamento
+                };
+                
+                document.head.appendChild(fallback);
+            });
+        }
     </script>
     
     <!-- Firebase SDK da CDN -->
@@ -431,6 +666,62 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // Carica Google Maps API se disponibile
+        let googleMapsReady = false;
+        function loadGoogleMapsAPI() {
+            return new Promise((resolve) => {
+                if (typeof google !== 'undefined' && google.maps) {
+                    googleMapsReady = true;
+                    resolve();
+                    return;
+                }
+
+                const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY;
+                if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                    console.warn('Google Maps API key not configured');
+                    resolve(); // Non bloccare il caricamento
+                    return;
+                }
+
+                // Verifica se lo script è già stato aggiunto
+                if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+                    // Aspetta che Google Maps sia caricato
+                    const checkInterval = setInterval(() => {
+                        if (typeof google !== 'undefined' && google.maps) {
+                            googleMapsReady = true;
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }, 5000);
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry&loading=async`;
+                script.async = true;
+                script.defer = true;
+                
+                script.onload = function() {
+                    googleMapsReady = true;
+                    resolve();
+                };
+                
+                script.onerror = function() {
+                    console.warn('Failed to load Google Maps API');
+                    resolve(); // Non bloccare il caricamento
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        // Carica Google Maps API all'avvio
+        loadGoogleMapsAPI();
 
         // Ruoli disponibili con nomi display
         const roleNames = {
@@ -516,24 +807,93 @@
             const hasAdvancedModules = !isCoreOnly;
             const hasManodopera = hasManodoperaModule(availableModules);
 
-            // Sezione Amministratore: mostra solo se modulo Manodopera è attivo
-            if (hasRole(userData, 'amministratore') && hasManodopera) {
+            // Sezione Amministratore: mostra solo se modulo Manodopera NON è attivo
+            // Se Manodopera è attivo, la sezione Amministrazione unificata viene mostrata dopo
+            if (hasRole(userData, 'amministratore') && !hasManodopera) {
                 container.appendChild(createAdminSection(userData, isCoreOnly, availableModules));
             }
 
-            // CORE BASE: Sempre mostra funzionalità core essenziali (solo card di accesso)
-            container.appendChild(createCoreBaseSection(userData, isCoreOnly));
+            // CORE BASE: Mostra solo se l'utente NON è solo Operaio o solo Caposquadra
+            // ECCEZIONE: Se Manager o Amministratore ha modulo Manodopera attivo, nascondi Core Base (diario manuale e statistiche)
+            const isOnlyOperaio = ruoli.length === 1 && hasRole(userData, 'operaio');
+            const isOnlyCaposquadra = ruoli.length === 1 && hasRole(userData, 'caposquadra');
+            const isManagerOrAdminWithManodopera = hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'));
+            const shouldShowCoreBase = !isOnlyOperaio && !isOnlyCaposquadra && !isManagerOrAdminWithManodopera;
+            
+            if (shouldShowCoreBase) {
+                container.appendChild(createCoreBaseSection(userData, isCoreOnly));
+                
+                // Mappa Aziendale per Manager anche senza moduli avanzati
+                if (hasRole(userData, 'manager') || hasRole(userData, 'amministratore')) {
+                    container.appendChild(createMappaAziendaleSection(userData));
+                }
+            }
+
+            // Card Amministrazione (per Manager e Amministratore con Manodopera attivo)
+            // Mostra sempre quando Manodopera è attivo, indipendentemente da hasAdvancedModules
+            if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
+                // Layout superiore: 3 card a sinistra, mappa a destra
+                const topRow = document.createElement('div');
+                topRow.className = 'dashboard-top-row';
+                
+                const topLeft = document.createElement('div');
+                topLeft.className = 'dashboard-top-left';
+                
+                // Card Amministrazione
+                topLeft.appendChild(createAmministrazioneCard());
+                
+                // Card Statistiche
+                topLeft.appendChild(createStatisticheCard());
+                
+                // Card Terreni
+                const terreniCard = createTerreniCard();
+                topLeft.appendChild(terreniCard);
+                
+                // Mappa a destra
+                const topRight = document.createElement('div');
+                topRight.className = 'dashboard-top-right';
+                const mappaSection = createMappaAziendaleSection(userData);
+                topRight.appendChild(mappaSection);
+                
+                topRow.appendChild(topLeft);
+                topRow.appendChild(topRight);
+                container.appendChild(topRow);
+            }
 
             // Ruoli avanzati: solo se ci sono moduli avanzati attivi
             if (hasAdvancedModules) {
-                // Sezione Manager (solo con moduli avanzati)
+                // Sezione Manager: layout diverso se ha Manodopera attivo
                 if (hasRole(userData, 'manager')) {
-                    container.appendChild(createManagerSection(userData, isCoreOnly, availableModules));
+                    if (hasManodopera) {
+                        // Gestione Manodopera (dopo la riga superiore)
+                        container.appendChild(createManagerManodoperaSection(userData, availableModules));
+                        
+                        // Diario da Lavori (sezione principale per Manager con Manodopera)
+                        const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
+                        container.appendChild(diarioSection);
+                        setTimeout(() => {
+                            loadDiarioDaLavori(userData);
+                        }, 50);
+                    } else {
+                        // Layout normale per Manager senza Manodopera
+                        container.appendChild(createManagerSection(userData, isCoreOnly, availableModules));
+                        
+                        // Mappa Aziendale (anche senza Manodopera)
+                        container.appendChild(createMappaAziendaleSection(userData));
+                    }
                 }
                 
-                // Sezione Gestione Lavori (per Manager e Amministratore, solo se modulo Manodopera attivo)
-                if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
-                    container.appendChild(createManagerLavoriSection(userData, availableModules));
+                // Sezione per Amministratore che non è Manager (solo se modulo Manodopera attivo)
+                if (hasManodopera && hasRole(userData, 'amministratore') && !hasRole(userData, 'manager')) {
+                    // Gestione Manodopera (dopo la riga superiore)
+                    container.appendChild(createManagerManodoperaSection(userData, availableModules));
+                    
+                    // Sezione Diario da Lavori per Amministratore (non Manager)
+                    const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
+                    container.appendChild(diarioSection);
+                    setTimeout(() => {
+                        loadDiarioDaLavori(userData);
+                    }, 50);
                 }
 
                 // Sezione Caposquadra (solo con moduli avanzati)
@@ -669,7 +1029,62 @@
             return section;
         }
         
-        // Carica statistiche amministratore
+        // Carica statistiche amministrazione (per Manager e Amministratore con Manodopera)
+        async function loadAmministrazioneStats(availableModules) {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                // Carica utenti del tenant
+                const usersCollection = collection(db, 'users');
+                const usersQuery = query(usersCollection, where('tenantId', '==', tenantId));
+                const usersSnapshot = await getDocs(usersQuery);
+                const totaleUtenti = usersSnapshot.size;
+                const statUtentiEl = document.getElementById('stat-utenti-amministrazione');
+                if (statUtentiEl) statUtentiEl.textContent = totaleUtenti;
+                
+                // Carica dati tenant per moduli e piano
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (tenantDoc.exists()) {
+                    const tenantData = tenantDoc.data();
+                    const moduli = tenantData.modules || [];
+                    const piano = tenantData.piano || 'starter';
+                    
+                    const statModuliEl = document.getElementById('stat-moduli-amministrazione');
+                    if (statModuliEl) {
+                        // Filtra 'core' se presente (è sempre incluso)
+                        const moduliAvanzati = moduli.filter(m => m !== 'core');
+                        const moduliCount = moduliAvanzati.length;
+                        if (moduliCount > 0) {
+                            statModuliEl.textContent = `${moduliCount} moduli`;
+                        } else {
+                            statModuliEl.textContent = 'Solo Core';
+                        }
+                    }
+                    
+                    const statPianoEl = document.getElementById('stat-piano-amministrazione');
+                    if (statPianoEl) {
+                        const pianoNames = {
+                            'starter': 'Starter',
+                            'professional': 'Professional',
+                            'enterprise': 'Enterprise'
+                        };
+                        statPianoEl.textContent = pianoNames[piano] || piano;
+                    }
+                }
+            } catch (error) {
+                console.error('Errore caricamento statistiche amministrazione:', error);
+            }
+        }
+        
+        // Carica statistiche amministratore (legacy, mantenuta per compatibilità)
         async function loadAdminStats(availableModules) {
             try {
                 const user = auth.currentUser;
@@ -718,7 +1133,7 @@
             }
         }
 
-        // Sezione Manager
+        // Sezione Manager (senza Manodopera o con altri moduli)
         function createManagerSection(userData, isCoreOnly, availableModules) {
             const section = document.createElement('div');
             section.className = 'dashboard-section';
@@ -839,6 +1254,411 @@
             return section;
         }
         
+        // Card Amministrazione (porta a pagina dedicata)
+        function createAmministrazioneCard() {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            
+            section.innerHTML = `
+                <h2><span class="section-icon">👑</span> Amministrazione</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    Gestisci utenti, squadre e abbonamento dell'azienda
+                </p>
+                <div class="quick-actions">
+                    <a href="admin/amministrazione-standalone.html" class="action-card" style="text-decoration: none;">
+                        <span class="action-icon" style="font-size: 48px;">👑</span>
+                        <span class="action-title" style="font-size: 18px;">Apri Amministrazione</span>
+                        <span class="action-description">
+                            Accedi a tutte le funzionalità amministrative: gestisci utenti, squadre e abbonamento
+                        </span>
+                    </a>
+                </div>
+            `;
+            
+            return section;
+        }
+        
+        // Card Statistiche (porta a pagina dedicata)
+        function createStatisticheCard() {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            
+            section.innerHTML = `
+                <h2><span class="section-icon">📊</span> Statistiche</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    Visualizza statistiche e analisi dettagliate su lavori, ore, squadre e superficie
+                </p>
+                <div class="quick-actions">
+                    <a href="admin/statistiche-manodopera-standalone.html" class="action-card" style="text-decoration: none;">
+                        <span class="action-icon" style="font-size: 48px;">📊</span>
+                        <span class="action-title" style="font-size: 18px;">Apri Statistiche</span>
+                        <span class="action-description">
+                            Accedi alle statistiche complete: lavori, ore, squadre, superficie e molto altro
+                        </span>
+                    </a>
+                </div>
+            `;
+            
+            return section;
+        }
+
+        // Card Terreni (porta a pagina terreni)
+        function createTerreniCard() {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            
+            section.innerHTML = `
+                <h2><span class="section-icon">🗺️</span> Terreni</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    Gestisci terreni, traccia confini sulla mappa e visualizza informazioni dettagliate
+                </p>
+                <div class="quick-actions">
+                    <a href="terreni-standalone.html" class="action-card" style="text-decoration: none;">
+                        <span class="action-icon" style="font-size: 48px;">🗺️</span>
+                        <span class="action-title" style="font-size: 18px;">Apri Terreni</span>
+                        <span class="action-description">
+                            Accedi alla gestione completa dei terreni: crea, modifica, traccia confini e visualizza dettagli
+                        </span>
+                    </a>
+                </div>
+            `;
+            
+            return section;
+        }
+        
+        // Sezione Manager con Modulo Manodopera attivo (layout completo)
+        function createManagerManodoperaSection(userData, availableModules) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            section.style.width = '100%'; // Occupa tutta la larghezza
+            
+            section.innerHTML = `
+                <h2><span class="section-icon">👷</span> Gestione Manodopera</h2>
+                
+                <!-- Statistiche principali lavori -->
+                <div class="stats-grid" style="margin-bottom: 30px;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-totali-manodopera">-</div>
+                        <div class="stat-label">Lavori Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-attivi-manodopera">-</div>
+                        <div class="stat-label">Lavori Attivi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-ore-validate-manodopera">-</div>
+                        <div class="stat-label">Ore Validate (Mese)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-superficie-lavorata-manodopera">-</div>
+                        <div class="stat-label">Superficie Lavorata (ha)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-squadre-attive-manodopera">-</div>
+                        <div class="stat-label">Squadre Attive</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-operai-online-manodopera">-</div>
+                        <div class="stat-label">Operai Online</div>
+                    </div>
+                </div>
+                
+                <!-- Azioni rapide -->
+                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
+                <div class="quick-actions">
+                    <a href="admin/gestione-lavori-standalone.html" class="action-card">
+                        <span class="action-icon">📋</span>
+                        <span class="action-title">Gestione Lavori</span>
+                        <span class="action-description">Crea, modifica e assegna lavori</span>
+                    </a>
+                    <a href="admin/statistiche-manodopera-standalone.html" class="action-card">
+                        <span class="action-icon">📊</span>
+                        <span class="action-title">Statistiche</span>
+                        <span class="action-description">Visualizza statistiche dettagliate</span>
+                    </a>
+                    <a href="terreni-standalone.html" class="action-card">
+                        <span class="action-icon">🗺️</span>
+                        <span class="action-title">Terreni</span>
+                        <span class="action-description">Gestisci terreni e vigneti</span>
+                    </a>
+                </div>
+                
+                <!-- Lavori recenti -->
+                <h3 style="margin: 30px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
+                <ul class="recent-items" id="recent-lavori-manager-manodopera">
+                    <li class="recent-item">
+                        <div>
+                            <div class="recent-item-title">Caricamento...</div>
+                        </div>
+                    </li>
+                </ul>
+            `;
+            
+            // Carica statistiche Manodopera
+            loadManagerManodoperaStats();
+            loadRecentLavoriManagerManodopera();
+            
+            return section;
+        }
+
+        // Sezione Mappa Aziendale (Manager)
+        function createMappaAziendaleSection(userData) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            // Non occupa tutta la larghezza quando è nella riga superiore
+            section.style.height = '100%';
+            section.style.display = 'flex';
+            section.style.flexDirection = 'column';
+            
+            section.innerHTML = `
+                <h2><span class="section-icon">🗺️</span> Vista Mappa Aziendale</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    Visualizza tutti i terreni dell'azienda con i loro confini geolocalizzati sulla mappa satellitare
+                </p>
+                <div id="mappa-aziendale-container" class="mappa-container" style="flex: 1; min-height: 500px; width: 100%;">
+                    <div class="mappa-loading">
+                        <div>Caricamento mappa...</div>
+                    </div>
+                </div>
+            `;
+            
+            // Carica e visualizza terreni sulla mappa
+            setTimeout(() => {
+                loadMappaAziendale(userData);
+            }, 500); // Aspetta che Google Maps sia caricato
+            
+            return section;
+        }
+
+        // Carica e visualizza terreni sulla mappa
+        async function loadMappaAziendale(userData) {
+            const container = document.getElementById('mappa-aziendale-container');
+            if (!container) return;
+
+            try {
+                // Verifica che Google Maps sia caricato
+                if (!googleMapsReady) {
+                    await loadGoogleMapsAPI();
+                }
+
+                if (typeof google === 'undefined' || !google.maps) {
+                    container.innerHTML = `
+                        <div class="mappa-loading">
+                            <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Google Maps non disponibile</h3>
+                            <p>Per visualizzare la mappa è necessario configurare una chiave API di Google Maps valida.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const user = auth.currentUser;
+                if (!user || !userData || !userData.tenantId) {
+                    container.innerHTML = `
+                        <div class="mappa-loading">
+                            <p>Errore: dati utente non disponibili</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Carica terreni
+                const terreniCollection = collection(db, `tenants/${userData.tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniCollection);
+                
+                const terreni = [];
+                terreniSnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if (data.polygonCoords && Array.isArray(data.polygonCoords) && data.polygonCoords.length >= 3) {
+                        terreni.push({
+                            id: docSnap.id,
+                            nome: data.nome || 'Terreno senza nome',
+                            superficie: data.superficie || null,
+                            coltura: data.coltura || null,
+                            podere: data.podere || null,
+                            polygonCoords: data.polygonCoords,
+                            coordinate: data.coordinate || null,
+                            note: data.note || ''
+                        });
+                    }
+                });
+
+                if (terreni.length === 0) {
+                    container.innerHTML = `
+                        <div class="mappa-loading">
+                            <h3 style="color: #666; margin-bottom: 15px;">📋 Nessun terreno con mappa</h3>
+                            <p>Non ci sono terreni con confini tracciati sulla mappa.</p>
+                            <p style="margin-top: 10px;">
+                                <a href="terreni-standalone.html" style="color: #2E8B57; text-decoration: underline;">
+                                    Vai alla gestione terreni per tracciare i confini
+                                </a>
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Inizializza mappa
+                const mapDiv = document.createElement('div');
+                mapDiv.style.width = '100%';
+                mapDiv.style.height = '100%';
+                container.innerHTML = '';
+                container.appendChild(mapDiv);
+
+                // Calcola bounds per zoom automatico
+                const bounds = new google.maps.LatLngBounds();
+                terreni.forEach(terreno => {
+                    terreno.polygonCoords.forEach(coord => {
+                        const latLng = new google.maps.LatLng(coord.lat, coord.lng);
+                        bounds.extend(latLng);
+                    });
+                });
+
+                // Crea mappa
+                const map = new google.maps.Map(mapDiv, {
+                    center: bounds.getCenter(),
+                    zoom: 12,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE,
+                    mapTypeControl: true,
+                    mapTypeControlOptions: {
+                        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                        position: google.maps.ControlPosition.TOP_RIGHT
+                    },
+                    zoomControl: true,
+                    streetViewControl: false,
+                    fullscreenControl: true
+                });
+
+                // Fit bounds
+                map.fitBounds(bounds);
+                
+                // Gestisci ridimensionamento finestra per mantenere mappa responsive
+                let resizeTimeout;
+                window.addEventListener('resize', function() {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(function() {
+                        if (map && bounds) {
+                            google.maps.event.trigger(map, 'resize');
+                            map.fitBounds(bounds);
+                        }
+                    }, 250);
+                });
+
+                // Colori per colture (palette colori)
+                const colturaColors = {
+                    'Vite': '#8B4513', // Marrone
+                    'Frutteto': '#FFD700', // Oro
+                    'Seminativo': '#90EE90', // Verde chiaro
+                    'Orto': '#32CD32', // Verde lime
+                    'Prato': '#228B22', // Verde foresta
+                    'Olivo': '#556B2F', // Oliva scuro
+                    'Agrumeto': '#FFA500', // Arancione
+                    'Bosco': '#2F4F2F', // Verde scuro
+                    'Default': '#2E8B57' // Verde GFV
+                };
+
+                // Crea poligoni per ogni terreno
+                const polygons = [];
+                const infoWindows = [];
+
+                terreni.forEach((terreno, index) => {
+                    const coords = terreno.polygonCoords.map(c => 
+                        new google.maps.LatLng(c.lat, c.lng)
+                    );
+
+                    const coltura = terreno.coltura || 'Default';
+                    const color = colturaColors[coltura] || colturaColors['Default'];
+                    const fillColor = color + '80'; // Aggiungi trasparenza
+                    const strokeColor = color;
+
+                    // Crea poligono
+                    const polygon = new google.maps.Polygon({
+                        paths: coords,
+                        strokeColor: strokeColor,
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        fillColor: fillColor,
+                        fillOpacity: 0.35,
+                        map: map,
+                        terrain: {
+                            id: terreno.id,
+                            nome: terreno.nome,
+                            superficie: terreno.superficie,
+                            coltura: terreno.coltura,
+                            podere: terreno.podere,
+                            note: terreno.note
+                        }
+                    });
+
+                    polygons.push(polygon);
+
+                    // Crea info window
+                    const infoContent = `
+                        <div class="mappa-info-window">
+                            <h3>${escapeHtml(terreno.nome)}</h3>
+                            ${terreno.podere ? `<p><strong>Podere:</strong> ${escapeHtml(terreno.podere)}</p>` : ''}
+                            ${terreno.coltura ? `<p><strong>Coltura:</strong> ${escapeHtml(terreno.coltura)}</p>` : ''}
+                            ${terreno.superficie ? `<p><strong>Superficie:</strong> ${terreno.superficie.toFixed(2)} ha</p>` : ''}
+                            ${terreno.note ? `<p><strong>Note:</strong> ${escapeHtml(terreno.note)}</p>` : ''}
+                            <p style="margin-top: 10px;">
+                                <a href="terreni-standalone.html" style="color: #2E8B57; text-decoration: underline; font-size: 12px;">
+                                    Vedi dettagli →
+                                </a>
+                            </p>
+                        </div>
+                    `;
+
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: infoContent
+                    });
+
+                    infoWindows.push(infoWindow);
+
+                    // Click sul poligono per aprire info window
+                    polygon.addListener('click', function(event) {
+                        // Chiudi tutte le altre info windows
+                        infoWindows.forEach(iw => iw.close());
+                        infoWindow.setPosition(event.latLng);
+                        infoWindow.open(map);
+                    });
+                });
+
+                // Crea legenda
+                const coltureUniche = [...new Set(terreni.map(t => t.coltura).filter(c => c))];
+                if (coltureUniche.length > 0) {
+                    const legendaDiv = document.createElement('div');
+                    legendaDiv.className = 'mappa-legenda';
+                    legendaDiv.innerHTML = `
+                        <h4>Legenda Colture</h4>
+                        ${coltureUniche.map(coltura => {
+                            const color = colturaColors[coltura] || colturaColors['Default'];
+                            return `
+                                <div class="mappa-legenda-item">
+                                    <div class="mappa-legenda-color" style="background-color: ${color};"></div>
+                                    <span>${escapeHtml(coltura)}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                        ${terreni.some(t => !t.coltura) ? `
+                            <div class="mappa-legenda-item">
+                                <div class="mappa-legenda-color" style="background-color: ${colturaColors['Default']};"></div>
+                                <span>Non specificato</span>
+                            </div>
+                        ` : ''}
+                    `;
+                    container.appendChild(legendaDiv);
+                }
+
+            } catch (error) {
+                console.error('Errore caricamento mappa aziendale:', error);
+                container.innerHTML = `
+                    <div class="mappa-loading">
+                        <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Errore</h3>
+                        <p>Errore durante il caricamento della mappa: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
         // Carica statistiche core per manager
         async function loadCoreStatsForManager() {
             try {
@@ -913,6 +1733,18 @@
                     </div>
                 </div>
 
+                <!-- Comunicazione Rapida -->
+                <div id="comunicazione-rapida-section" style="background: white; border: 2px solid #2E8B57; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                        <span>📢</span> Invia Comunicazione Rapida alla Squadra
+                    </h3>
+                    <div id="comunicazione-rapida-content">
+                        <div style="text-align: center; padding: 20px; color: #666;">
+                            Caricamento lavori...
+                        </div>
+                    </div>
+                </div>
+
                 <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
                 <div class="quick-actions">
                     <a href="admin/lavori-caposquadra-standalone.html" class="action-card">
@@ -950,6 +1782,9 @@
             // Carica statistiche caposquadra
             loadCaposquadraStats(userData);
             loadRecentLavoriCaposquadra(userData);
+            
+            // Carica comunicazione rapida
+            loadComunicazioneRapida(userData);
             
             return section;
         }
@@ -1009,6 +1844,220 @@
             loadRecentLavori();
             
             return section;
+        }
+        
+        // Carica statistiche Manodopera complete per Manager
+        async function loadManagerManodoperaStats() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                // 1. Carica lavori
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriCollection);
+                
+                let totali = 0;
+                let attivi = 0;
+                let superficieLavorata = 0;
+                
+                const lavoriIds = [];
+                lavoriSnapshot.forEach(doc => {
+                    totali++;
+                    const lavoro = doc.data();
+                    const stato = lavoro.stato || 'pianificato';
+                    if (stato === 'attivo') attivi++;
+                    lavoriIds.push(doc.id);
+                    
+                    // Calcola superficie lavorata (dalle zone lavorate)
+                    if (lavoro.superficieLavorata) {
+                        superficieLavorata += lavoro.superficieLavorata;
+                    }
+                });
+                
+                // 2. Carica ore validate del mese corrente
+                const oggi = new Date();
+                const primoGiornoMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                let oreValidateTotali = 0;
+                
+                for (const lavoroId of lavoriIds) {
+                    try {
+                        const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                        const oreSnapshot = await getDocs(oreRef);
+                        
+                        oreSnapshot.forEach(oraDoc => {
+                            const ora = oraDoc.data();
+                            if (ora.stato === 'validate' && ora.data) {
+                                try {
+                                    const dataOra = ora.data.toDate ? ora.data.toDate() : new Date(ora.data);
+                                    if (dataOra >= primoGiornoMese) {
+                                        oreValidateTotali += ora.oreNette || 0;
+                                    }
+                                } catch (e) {
+                                    // Ignora errori di conversione data
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        // Se la sub-collection non esiste, continua
+                    }
+                }
+                
+                // 3. Carica squadre attive
+                const squadreCollection = collection(db, `tenants/${tenantId}/squadre`);
+                const squadreSnapshot = await getDocs(squadreCollection);
+                let squadreAttive = 0;
+                const operaiIds = new Set();
+                
+                squadreSnapshot.forEach(doc => {
+                    const squadra = doc.data();
+                    if (squadra.operai && squadra.operai.length > 0) {
+                        squadreAttive++;
+                        squadra.operai.forEach(operaioId => operaiIds.add(operaioId));
+                    }
+                });
+                
+                // 4. Conta operai online
+                let operaiOnline = 0;
+                for (const operaioId of operaiIds) {
+                    try {
+                        const operaioDoc = await getDoc(doc(db, 'users', operaioId));
+                        if (operaioDoc.exists()) {
+                            const operaioData = operaioDoc.data();
+                            if (operaioData.isOnline) {
+                                operaiOnline++;
+                            }
+                        }
+                    } catch (e) {
+                        // Ignora errori
+                    }
+                }
+                
+                // Aggiorna UI
+                const statTotali = document.getElementById('stat-lavori-totali-manodopera');
+                const statAttivi = document.getElementById('stat-lavori-attivi-manodopera');
+                const statOre = document.getElementById('stat-ore-validate-manodopera');
+                const statSuperficie = document.getElementById('stat-superficie-lavorata-manodopera');
+                const statSquadre = document.getElementById('stat-squadre-attive-manodopera');
+                const statOperai = document.getElementById('stat-operai-online-manodopera');
+                
+                if (statTotali) statTotali.textContent = totali;
+                if (statAttivi) statAttivi.textContent = attivi;
+                
+                // Formatta ore
+                const oreInt = Math.floor(oreValidateTotali);
+                const minuti = Math.round((oreValidateTotali - oreInt) * 60);
+                const oreFormatted = minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
+                if (statOre) statOre.textContent = oreFormatted;
+                
+                // Formatta superficie (in ettari, 2 decimali)
+                if (statSuperficie) statSuperficie.textContent = superficieLavorata.toFixed(2);
+                if (statSquadre) statSquadre.textContent = squadreAttive;
+                if (statOperai) statOperai.textContent = operaiOnline;
+            } catch (error) {
+                console.error('Errore caricamento statistiche Manodopera:', error);
+            }
+        }
+        
+        // Carica lavori recenti per Manager con Manodopera
+        async function loadRecentLavoriManagerManodopera() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                let lavoriSnapshot;
+                
+                try {
+                    const lavoriQuery = query(lavoriCollection, orderBy('createdAt', 'desc'), limit(5));
+                    lavoriSnapshot = await getDocs(lavoriQuery);
+                } catch (error) {
+                    // Se createdAt non esiste, carica tutti e ordina manualmente
+                    const allLavoriSnapshot = await getDocs(lavoriCollection);
+                    const lavoriArray = [];
+                    allLavoriSnapshot.forEach(doc => {
+                        lavoriArray.push({ id: doc.id, ...doc.data() });
+                    });
+                    lavoriArray.sort((a, b) => {
+                        if (a.createdAt && b.createdAt) {
+                            return b.createdAt.toMillis() - a.createdAt.toMillis();
+                        }
+                        return b.id.localeCompare(a.id);
+                    });
+                    lavoriSnapshot = {
+                        empty: lavoriArray.length === 0,
+                        forEach: (callback) => {
+                            lavoriArray.slice(0, 5).forEach(item => {
+                                callback({ id: item.id, data: () => item });
+                            });
+                        }
+                    };
+                }
+                
+                const recentLavoriEl = document.getElementById('recent-lavori-manager-manodopera');
+                if (!recentLavoriEl) return;
+                
+                if (lavoriSnapshot.empty) {
+                    recentLavoriEl.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Nessun lavoro trovato</div>
+                            </div>
+                        </li>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                lavoriSnapshot.forEach(doc => {
+                    const lavoro = doc.data();
+                    const nome = lavoro.nome || 'Senza nome';
+                    const stato = lavoro.stato || 'pianificato';
+                    const statoLabels = {
+                        'pianificato': '📅 Pianificato',
+                        'attivo': '🟢 Attivo',
+                        'completato': '✅ Completato',
+                        'sospeso': '⏸️ Sospeso'
+                    };
+                    const statoLabel = statoLabels[stato] || stato;
+                    
+                    html += `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">${escapeHtml(nome)}</div>
+                                <div class="recent-item-meta">${statoLabel}</div>
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                recentLavoriEl.innerHTML = html;
+            } catch (error) {
+                console.error('Errore caricamento lavori recenti Manager Manodopera:', error);
+                const recentLavoriEl = document.getElementById('recent-lavori-manager-manodopera');
+                if (recentLavoriEl) {
+                    recentLavoriEl.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Errore caricamento lavori</div>
+                            </div>
+                        </li>
+                    `;
+                }
+            }
         }
         
         // Carica statistiche lavori per Manager
@@ -1153,6 +2202,282 @@
                                 <div class="recent-item-title">Errore caricamento lavori</div>
                             </div>
                         </li>
+                    `;
+                }
+            }
+        }
+
+        // Sezione Manager - Diario da Lavori (attività generate automaticamente dalle ore validate)
+        function createDiarioDaLavoriSection(userData, availableModules) {
+            const section = document.createElement('div');
+            section.className = 'dashboard-section';
+            section.style.width = '100%'; // Occupa tutta la larghezza per renderlo prominente
+            section.innerHTML = `
+                <h2><span class="section-icon">📝</span> Diario da Lavori</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                    Attività generate automaticamente dalle ore validate dei lavori assegnati. Queste attività vengono create aggregando le ore segnate dagli operai e validate dai caposquadra.
+                </p>
+                
+                <div id="diario-lavori-container" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        Caricamento attività...
+                    </div>
+                </div>
+            `;
+            
+            // La funzione loadDiarioDaLavori verrà chiamata dopo che la sezione è stata aggiunta al DOM
+            
+            return section;
+        }
+
+        // Carica attività generate automaticamente dalle ore validate
+        async function loadDiarioDaLavori(userData) {
+            const container = document.getElementById('diario-lavori-container');
+            if (!container) {
+                console.error('Container diario-lavori-container non trovato');
+                return;
+            }
+            
+            try {
+                const user = auth.currentUser;
+                if (!user || !userData || !userData.tenantId) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #dc3545;">
+                            <div style="font-size: 18px; margin-bottom: 10px;">Errore: dati utente non disponibili</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const tenantId = userData.tenantId;
+                console.log('Caricamento diario da lavori per tenant:', tenantId);
+                
+                // Carica tutti i lavori del tenant
+                const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriRef);
+                console.log('Lavori trovati:', lavoriSnapshot.size);
+                
+                // Mappa per raggruppare attività per data e lavoro
+                const attivitaMap = new Map(); // key: "data-lavoroId", value: { data, lavoro, ore, operai }
+                
+                // Carica terreni per ottenere coltura
+                const terreniRef = collection(db, `tenants/${tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniRef);
+                const terreniMap = new Map();
+                terreniSnapshot.forEach(doc => {
+                    terreniMap.set(doc.id, doc.data());
+                });
+                
+                // Per ogni lavoro, carica le ore validate
+                for (const lavoroDoc of lavoriSnapshot.docs) {
+                    const lavoro = lavoroDoc.data();
+                    const lavoroId = lavoroDoc.id;
+                    
+                    try {
+                        const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                        // Carica tutte le ore e filtra in memoria per evitare problemi con indice
+                        const oreSnapshot = await getDocs(oreRef);
+                        console.log(`Ore trovate per lavoro ${lavoroId}:`, oreSnapshot.size);
+                        
+                        // Raggruppa ore per data
+                        const orePerData = new Map();
+                        
+                        oreSnapshot.forEach(oraDoc => {
+                            const ora = oraDoc.data();
+                            
+                            // Filtra solo ore validate
+                            if (ora.stato !== 'validate') {
+                                return;
+                            }
+                            
+                            if (!ora.data) {
+                                console.warn('Ora senza data:', oraDoc.id);
+                                return;
+                            }
+                            
+                            try {
+                                const dataOra = ora.data.toDate ? ora.data.toDate() : new Date(ora.data);
+                                if (isNaN(dataOra.getTime())) {
+                                    console.warn('Data non valida per ora:', oraDoc.id, ora.data);
+                                    return;
+                                }
+                                
+                                const dataKey = dataOra.toISOString().split('T')[0]; // YYYY-MM-DD
+                                
+                                if (!orePerData.has(dataKey)) {
+                                    orePerData.set(dataKey, []);
+                                }
+                                orePerData.get(dataKey).push(ora);
+                            } catch (error) {
+                                console.warn('Errore processamento ora:', oraDoc.id, error);
+                            }
+                        });
+                        
+                        // Crea attività aggregate per ogni data
+                        orePerData.forEach((oreGiorno, dataKey) => {
+                            // Calcola orario inizio (prima ora) e fine (ultima ora)
+                            let orarioInizio = null;
+                            let orarioFine = null;
+                            let pauseTotali = 0;
+                            let oreNetteTotali = 0;
+                            const operaiSet = new Set();
+                            
+                            oreGiorno.forEach(ora => {
+                                // Confronta orari come stringhe HH:MM
+                                if (ora.orarioInizio) {
+                                    if (!orarioInizio || ora.orarioInizio < orarioInizio) {
+                                        orarioInizio = ora.orarioInizio;
+                                    }
+                                }
+                                if (ora.orarioFine) {
+                                    if (!orarioFine || ora.orarioFine > orarioFine) {
+                                        orarioFine = ora.orarioFine;
+                                    }
+                                }
+                                pauseTotali += ora.pauseMinuti || 0;
+                                oreNetteTotali += ora.oreNette || 0;
+                                if (ora.operaioId) {
+                                    operaiSet.add(ora.operaioId);
+                                }
+                            });
+                            
+                            // Se non ci sono orari validi, salta questa attività
+                            if (!orarioInizio || !orarioFine) {
+                                console.warn('Attività senza orari validi per data:', dataKey);
+                                return;
+                            }
+                            
+                            // Recupera dati terreno
+                            const terreno = terreniMap.get(lavoro.terrenoId);
+                            const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
+                            const coltura = terreno ? terreno.coltura : '';
+                            
+                            // Crea chiave univoca per data e lavoro
+                            const attivitaKey = `${dataKey}-${lavoroId}`;
+                            
+                            attivitaMap.set(attivitaKey, {
+                                data: new Date(dataKey),
+                                dataKey: dataKey,
+                                lavoroId: lavoroId,
+                                lavoroNome: lavoro.nome || 'Lavoro senza nome',
+                                terrenoId: lavoro.terrenoId,
+                                terrenoNome: terrenoNome,
+                                tipoLavoro: lavoro.tipoLavoro || 'Non specificato',
+                                coltura: coltura,
+                                orarioInizio: orarioInizio,
+                                orarioFine: orarioFine,
+                                pauseMinuti: pauseTotali,
+                                oreNette: oreNetteTotali,
+                                numOperai: operaiSet.size,
+                                note: `Lavoro: ${lavoro.nome || 'Senza nome'} - ${operaiSet.size} operaio${operaiSet.size !== 1 ? 'i' : ''}`
+                            });
+                        });
+                    } catch (error) {
+                        // Se la sub-collection non esiste, continua
+                        console.warn(`Errore caricamento ore per lavoro ${lavoroId}:`, error);
+                    }
+                }
+                
+                // Converti mappa in array e ordina per data (più recenti prima)
+                const attivitaArray = Array.from(attivitaMap.values());
+                attivitaArray.sort((a, b) => {
+                    if (!a.data || !b.data) return 0;
+                    return b.data.getTime() - a.data.getTime();
+                });
+                
+                console.log('Attività generate:', attivitaArray.length);
+                
+                // Renderizza tabella
+                if (attivitaArray.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
+                            <div style="font-size: 18px; margin-bottom: 10px;">Nessuna attività generata</div>
+                            <div style="font-size: 14px; color: #999;">
+                                Le attività verranno generate automaticamente quando ci saranno ore validate dai caposquadra.
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Limita a ultime 20 attività
+                const attivitaMostrate = attivitaArray.slice(0, 20);
+                
+                let html = `
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Data</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Terreno</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Tipo Lavoro</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Coltura</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Orario</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Ore</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Operai</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Lavoro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                attivitaMostrate.forEach(att => {
+                    const dataFormatted = att.data.toLocaleDateString('it-IT', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric' 
+                    });
+                    
+                    const orarioFormatted = att.orarioInizio && att.orarioFine 
+                        ? `${att.orarioInizio.substring(0, 5)} - ${att.orarioFine.substring(0, 5)}`
+                        : '-';
+                    
+                    const oreFormatted = Math.floor(att.oreNette) + 'h ' + Math.round((att.oreNette % 1) * 60) + 'min';
+                    
+                    html += `
+                        <tr style="border-bottom: 1px solid #e9ecef;">
+                            <td style="padding: 12px;">${dataFormatted}</td>
+                            <td style="padding: 12px;">${escapeHtml(att.terrenoNome)}</td>
+                            <td style="padding: 12px;">${escapeHtml(att.tipoLavoro)}</td>
+                            <td style="padding: 12px;">${escapeHtml(att.coltura || '-')}</td>
+                            <td style="padding: 12px;">${orarioFormatted}</td>
+                            <td style="padding: 12px; font-weight: 600; color: #2E8B57;">${oreFormatted}</td>
+                            <td style="padding: 12px;">${att.numOperai}</td>
+                            <td style="padding: 12px;">
+                                <span style="font-size: 12px; color: #666;">${escapeHtml(att.lavoroNome)}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    ${attivitaArray.length > 20 ? `
+                        <div style="margin-top: 15px; text-align: center; color: #666; font-size: 14px;">
+                            Mostrate ${attivitaMostrate.length} di ${attivitaArray.length} attività totali
+                        </div>
+                    ` : ''}
+                `;
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Errore caricamento diario da lavori:', error);
+                console.error('Stack:', error.stack);
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #dc3545;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+                            <div style="font-size: 18px; margin-bottom: 10px;">Errore caricamento attività</div>
+                            <div style="font-size: 14px; color: #999; margin-top: 10px;">
+                                ${escapeHtml(error.message || 'Errore sconosciuto')}
+                            </div>
+                            <div style="font-size: 12px; color: #999; margin-top: 10px; font-family: monospace;">
+                                Controlla la console per maggiori dettagli
+                            </div>
+                        </div>
                     `;
                 }
             }
@@ -1356,26 +2681,21 @@
                 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-lavori-oggi-operaio">-</div>
                         <div class="stat-label">Lavori Oggi</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-ore-segnate-operaio">-</div>
                         <div class="stat-label">Ore Segnate</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="stat-stato-operaio">-</div>
                         <div class="stat-label">Stato</div>
                     </div>
                 </div>
 
                 <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
                 <div class="quick-actions">
-                    <a href="#" class="action-card" onclick="alert('Modulo Lavori in sviluppo'); return false;">
-                        <span class="action-icon">📋</span>
-                        <span class="action-title">Lavori di Oggi</span>
-                        <span class="action-description">Visualizza lavori assegnati oggi</span>
-                    </a>
                     <a href="segnatura-ore-standalone.html" class="action-card">
                         <span class="action-icon">⏱️</span>
                         <span class="action-title">Segna Ore</span>
@@ -1389,18 +2709,27 @@
                 </div>
 
                 <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori di Oggi</h3>
-                <ul class="recent-items">
+                <ul class="recent-items" id="lavori-oggi-operaio">
                     <li class="recent-item">
                         <div>
-                            <div class="recent-item-title">Nessun lavoro assegnato per oggi</div>
+                            <div class="recent-item-title">Caricamento lavori...</div>
                         </div>
                     </li>
                 </ul>
+
+                <h3 style="margin: 30px 0 15px 0; font-size: 16px; color: #666;">Le Mie Ore</h3>
+                <div id="mie-ore-operaio-section">
+                    <div style="padding: 20px; text-align: center; color: #666;">
+                        Caricamento statistiche ore...
+                    </div>
+                </div>
             `;
             
-            // Carica comunicazioni per operaio
+            // Carica dati per operaio
             if (userData && userData.tenantId) {
                 loadComunicazioniOperaio(userData);
+                loadLavoriOggiOperaio(userData);
+                loadStatisticheOreOperaio(userData);
             }
             
             return section;
@@ -1563,6 +2892,606 @@
         }
         
         window.confermaComunicazione = confermaComunicazione;
+        
+        // Carica lavori di oggi per operaio
+        async function loadLavoriOggiOperaio(userData) {
+            try {
+                const user = auth.currentUser;
+                if (!user || !userData || !userData.tenantId) return;
+                
+                const operaioId = userData.id || user.uid;
+                const tenantId = userData.tenantId;
+                
+                // Trova la squadra dell'operaio
+                const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
+                const squadreSnapshot = await getDocs(squadreRef);
+                
+                let caposquadraId = null;
+                squadreSnapshot.forEach(doc => {
+                    const squadra = doc.data();
+                    if (squadra.operai && squadra.operai.includes(operaioId)) {
+                        caposquadraId = squadra.caposquadraId;
+                    }
+                });
+                
+                if (!caposquadraId) {
+                    const container = document.getElementById('lavori-oggi-operaio');
+                    if (container) {
+                        container.innerHTML = `
+                            <li class="recent-item">
+                                <div>
+                                    <div class="recent-item-title">Nessuna squadra assegnata</div>
+                                    <div class="recent-item-description">Contatta il manager per essere assegnato a una squadra</div>
+                                </div>
+                            </li>
+                        `;
+                    }
+                    document.getElementById('stat-lavori-oggi-operaio').textContent = '0';
+                    return;
+                }
+                
+                // Carica lavori assegnati al caposquadra
+                const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriRef);
+                
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+                
+                const lavoriOggi = [];
+                lavoriSnapshot.forEach(doc => {
+                    const lavoro = doc.data();
+                    
+                    // Verifica che il lavoro sia assegnato al caposquadra della squadra dell'operaio
+                    if (lavoro.caposquadraId === caposquadraId) {
+                        const stato = lavoro.stato || 'assegnato';
+                        // Solo lavori attivi
+                        if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
+                            const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
+                            const dataInizioSenzaOra = new Date(dataInizio);
+                            dataInizioSenzaOra.setHours(0, 0, 0, 0);
+                            
+                            // Se la data inizio è oggi o passata, mostra il lavoro
+                            if (dataInizioSenzaOra <= oggi) {
+                                lavoriOggi.push({
+                                    id: doc.id,
+                                    ...lavoro,
+                                    dataInizio: dataInizio
+                                });
+                            }
+                        }
+                    }
+                });
+                
+                // Ordina per data (più recenti prima)
+                lavoriOggi.sort((a, b) => {
+                    const dateA = a.dataInizio instanceof Date ? a.dataInizio : new Date(a.dataInizio);
+                    const dateB = b.dataInizio instanceof Date ? b.dataInizio : new Date(b.dataInizio);
+                    return dateB - dateA;
+                });
+                
+                // Aggiorna statistiche
+                document.getElementById('stat-lavori-oggi-operaio').textContent = lavoriOggi.length;
+                
+                // Renderizza lista lavori
+                const container = document.getElementById('lavori-oggi-operaio');
+                if (!container) return;
+                
+                if (lavoriOggi.length === 0) {
+                    container.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Nessun lavoro assegnato per oggi</div>
+                            </div>
+                        </li>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = lavoriOggi.slice(0, 5).map(lavoro => {
+                    const dataFormatted = lavoro.dataInizio.toLocaleDateString('it-IT', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric' 
+                    });
+                    const statoLabel = {
+                        'assegnato': 'Assegnato',
+                        'in_corso': 'In Corso',
+                        'completato': 'Completato'
+                    }[lavoro.stato] || lavoro.stato;
+                    
+                    return `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">${escapeHtml(lavoro.nome || 'Lavoro senza nome')}</div>
+                                <div class="recent-item-description">
+                                    ${escapeHtml(lavoro.terreno || 'Terreno non specificato')} • ${dataFormatted} • ${statoLabel}
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Errore caricamento lavori oggi operaio:', error);
+                const container = document.getElementById('lavori-oggi-operaio');
+                if (container) {
+                    container.innerHTML = `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">Errore caricamento lavori</div>
+                            </div>
+                        </li>
+                    `;
+                }
+            }
+        }
+        
+        // Carica statistiche ore per operaio
+        async function loadStatisticheOreOperaio(userData) {
+            try {
+                const user = auth.currentUser;
+                if (!user || !userData || !userData.tenantId) return;
+                
+                const operaioId = userData.id || user.uid;
+                const tenantId = userData.tenantId;
+                
+                // Carica tutti i lavori per trovare le ore dell'operaio
+                const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriRef);
+                
+                let totaleOreMinuti = 0;
+                let oreValidate = 0;
+                let oreDaValidare = 0;
+                let oreRifiutate = 0;
+                const oreRecenti = [];
+                
+                for (const lavoroDoc of lavoriSnapshot.docs) {
+                    const lavoroId = lavoroDoc.id;
+                    
+                    try {
+                        const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                        const oreQuery = query(oreRef, where('operaioId', '==', operaioId));
+                        const oreSnapshot = await getDocs(oreQuery);
+                        
+                        oreSnapshot.forEach(oraDoc => {
+                            const ora = oraDoc.data();
+                            const oreNette = ora.oreNette || 0;
+                            const stato = ora.stato || 'da_validare';
+                            
+                            // Converti ore in minuti per somma
+                            const oreMinuti = Math.round(oreNette * 60);
+                            totaleOreMinuti += oreMinuti;
+                            
+                            if (stato === 'validate') {
+                                oreValidate += oreMinuti;
+                            } else if (stato === 'da_validare') {
+                                oreDaValidare += oreMinuti;
+                            } else if (stato === 'rifiutate') {
+                                oreRifiutate += oreMinuti;
+                            }
+                            
+                            // Aggiungi alle ore recenti (ultime 5)
+                            const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
+                            oreRecenti.push({
+                                id: oraDoc.id,
+                                lavoroId: lavoroId,
+                                lavoroNome: lavoroDoc.data().nome || 'Lavoro',
+                                data: dataOra,
+                                oreNette: oreNette,
+                                stato: stato,
+                                note: ora.note || ''
+                            });
+                        });
+                    } catch (error) {
+                        // Se la sub-collection non esiste, continua
+                        console.warn(`Errore caricamento ore per lavoro ${lavoroId}:`, error);
+                    }
+                }
+                
+                // Converti minuti in ore e minuti
+                const oreTotali = Math.floor(totaleOreMinuti / 60);
+                const minutiTotali = totaleOreMinuti % 60;
+                const oreFormatted = minutiTotali === 0 ? `${oreTotali}h` : `${oreTotali}h ${minutiTotali}min`;
+                
+                // Aggiorna statistiche
+                document.getElementById('stat-ore-segnate-operaio').textContent = oreFormatted;
+                
+                // Determina stato principale
+                let statoLabel = 'In attesa';
+                if (oreDaValidare > 0) {
+                    statoLabel = 'Da validare';
+                } else if (oreValidate > 0) {
+                    statoLabel = 'Validate';
+                }
+                document.getElementById('stat-stato-operaio').textContent = statoLabel;
+                
+                // Ordina ore recenti per data (più recenti prima)
+                oreRecenti.sort((a, b) => b.data - a.data);
+                
+                // Renderizza sezione "Le mie ore"
+                const container = document.getElementById('mie-ore-operaio-section');
+                if (!container) return;
+                
+                if (oreRecenti.length === 0) {
+                    container.innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #666; background: #f8f9fa; border-radius: 8px;">
+                            Nessuna ora segnata ancora
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Statistiche riepilogative
+                const oreValidateFormatted = Math.floor(oreValidate / 60) + 'h ' + (oreValidate % 60) + 'min';
+                const oreDaValidareFormatted = Math.floor(oreDaValidare / 60) + 'h ' + (oreDaValidare % 60) + 'min';
+                const oreRifiutateFormatted = Math.floor(oreRifiutate / 60) + 'h ' + (oreRifiutate % 60) + 'min';
+                
+                let html = `
+                    <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h4 style="margin: 0 0 15px 0; font-size: 16px; color: #333;">Riepilogo Ore</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div style="text-align: center; padding: 15px; background: #e8f5e9; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: 600; color: #2e7d32;">${oreValidateFormatted}</div>
+                                <div style="font-size: 12px; color: #666; margin-top: 5px;">Validate</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #fff3e0; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: 600; color: #f57c00;">${oreDaValidareFormatted}</div>
+                                <div style="font-size: 12px; color: #666; margin-top: 5px;">Da Validare</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #ffebee; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: 600; color: #c62828;">${oreRifiutateFormatted}</div>
+                                <div style="font-size: 12px; color: #666; margin-top: 5px;">Rifiutate</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Ultime Ore Segnate</h4>
+                    <ul class="recent-items">
+                `;
+                
+                oreRecenti.slice(0, 5).forEach(ora => {
+                    const dataFormatted = ora.data.toLocaleDateString('it-IT', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric' 
+                    });
+                    const oreFormatted = Math.floor(ora.oreNette) + 'h ' + Math.round((ora.oreNette % 1) * 60) + 'min';
+                    const statoBadge = {
+                        'validate': '<span style="background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">✅ Validate</span>',
+                        'da_validare': '<span style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">⏳ Da validare</span>',
+                        'rifiutate': '<span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">❌ Rifiutate</span>'
+                    }[ora.stato] || '';
+                    
+                    html += `
+                        <li class="recent-item">
+                            <div>
+                                <div class="recent-item-title">${escapeHtml(ora.lavoroNome)} ${statoBadge}</div>
+                                <div class="recent-item-description">
+                                    ${dataFormatted} • ${oreFormatted}${ora.note ? ' • ' + escapeHtml(ora.note) : ''}
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                });
+                
+                html += '</ul>';
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Errore caricamento statistiche ore operaio:', error);
+                const container = document.getElementById('mie-ore-operaio-section');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #dc3545; background: #f8d7da; border-radius: 8px;">
+                            Errore caricamento statistiche ore
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // ========== Comunicazione Rapida Caposquadra ==========
+        
+        let lavoriAttiviCaposquadra = [];
+        
+        // Carica comunicazione rapida
+        async function loadComunicazioneRapida(userData) {
+            try {
+                const user = auth.currentUser;
+                if (!user || !userData || !userData.tenantId) return;
+                
+                const caposquadraId = userData.id || user.uid;
+                
+                // Carica lavori attivi del caposquadra
+                const lavoriCollection = collection(db, `tenants/${userData.tenantId}/lavori`);
+                const q = query(
+                    lavoriCollection,
+                    where('caposquadraId', '==', caposquadraId)
+                );
+                const querySnapshot = await getDocs(q);
+                
+                lavoriAttiviCaposquadra = [];
+                querySnapshot.forEach((docSnap) => {
+                    const lavoro = docSnap.data();
+                    const stato = lavoro.stato || 'assegnato';
+                    
+                    // Solo lavori attivi
+                    if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
+                        lavoriAttiviCaposquadra.push({
+                            id: docSnap.id,
+                            ...lavoro
+                        });
+                    }
+                });
+                
+                const container = document.getElementById('comunicazione-rapida-content');
+                if (!container) return;
+                
+                if (lavoriAttiviCaposquadra.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #666;">
+                            <p style="margin-bottom: 10px;">Nessun lavoro attivo disponibile.</p>
+                            <p style="font-size: 14px; color: #999;">Usa la <a href="admin/impostazioni-standalone.html" style="color: #2E8B57;">versione completa nelle Impostazioni</a> per inviare comunicazioni personalizzate.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Carica dettagli terreni per i lavori
+                await loadDettagliTerreniPerLavori(userData.tenantId);
+                
+                // Renderizza form
+                renderComunicazioneRapidaForm();
+            } catch (error) {
+                console.error('Errore caricamento comunicazione rapida:', error);
+                const container = document.getElementById('comunicazione-rapida-content');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #dc3545;">
+                            Errore caricamento lavori
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Carica dettagli terreni per i lavori
+        async function loadDettagliTerreniPerLavori(tenantId) {
+            try {
+                const terreniCollection = collection(db, `tenants/${tenantId}/terreni`);
+                const querySnapshot = await getDocs(terreniCollection);
+                
+                const terreniMap = {};
+                querySnapshot.forEach((docSnap) => {
+                    terreniMap[docSnap.id] = docSnap.data();
+                });
+                
+                // Aggiungi dettagli terreno a ogni lavoro
+                lavoriAttiviCaposquadra.forEach(lavoro => {
+                    if (lavoro.terrenoId && terreniMap[lavoro.terrenoId]) {
+                        lavoro.terreno = terreniMap[lavoro.terrenoId];
+                    }
+                });
+            } catch (error) {
+                console.error('Errore caricamento terreni:', error);
+            }
+        }
+        
+        // Renderizza form comunicazione rapida
+        function renderComunicazioneRapidaForm() {
+            const container = document.getElementById('comunicazione-rapida-content');
+            if (!container || lavoriAttiviCaposquadra.length === 0) return;
+            
+            const primoLavoro = lavoriAttiviCaposquadra[0];
+            const podere = primoLavoro.terreno?.podere || 'Non specificato';
+            const terrenoNome = primoLavoro.terreno?.nome || primoLavoro.nome || 'Non specificato';
+            const lavoroNome = primoLavoro.nome || 'Lavoro senza nome';
+            
+            // Imposta data di default a domani
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dateString = tomorrow.toISOString().split('T')[0];
+            
+            let lavoroSelectHTML = '';
+            if (lavoriAttiviCaposquadra.length > 1) {
+                lavoroSelectHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">Seleziona Lavoro</label>
+                        <select id="rapida-lavoro-select" onchange="handleRapidaLavoroChange()" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                            ${lavoriAttiviCaposquadra.map((l, idx) => `
+                                <option value="${l.id}" ${idx === 0 ? 'selected' : ''}>${escapeHtml(l.nome || 'Lavoro senza nome')}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = `
+                ${lavoroSelectHTML}
+                <form id="comunicazione-rapida-form" onsubmit="handleSendComunicazioneRapida(event)" style="display: grid; gap: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">Lavoro</label>
+                            <div style="padding: 8px; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; color: #666;" id="rapida-lavoro-nome">${escapeHtml(lavoroNome)}</div>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">Podere</label>
+                            <div style="padding: 8px; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; color: #666;" id="rapida-podere">${escapeHtml(podere)}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">Campo/Terreno</label>
+                        <div style="padding: 8px; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; color: #666;" id="rapida-terreno">${escapeHtml(terrenoNome)}</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">Orario Ritrovo *</label>
+                            <input type="time" id="rapida-orario" required value="07:00" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">Note (opzionale)</label>
+                            <input type="text" id="rapida-note" placeholder="Eventuali note o istruzioni..." style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <div style="font-size: 12px; color: #666;">
+                            Data: <strong>${tomorrow.toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+                        </div>
+                        <button type="submit" style="background: #2E8B57; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <span>📤</span> Invia alla Squadra
+                        </button>
+                    </div>
+                </form>
+                <div id="rapida-message" style="margin-top: 15px;"></div>
+            `;
+        }
+        
+        // Gestisce cambio lavoro nel form rapido
+        function handleRapidaLavoroChange() {
+            const select = document.getElementById('rapida-lavoro-select');
+            if (!select) return;
+            
+            const lavoroId = select.value;
+            const lavoro = lavoriAttiviCaposquadra.find(l => l.id === lavoroId);
+            
+            if (!lavoro) return;
+            
+            const podere = lavoro.terreno?.podere || 'Non specificato';
+            const terrenoNome = lavoro.terreno?.nome || lavoro.nome || 'Non specificato';
+            const lavoroNome = lavoro.nome || 'Lavoro senza nome';
+            
+            document.getElementById('rapida-lavoro-nome').textContent = lavoroNome;
+            document.getElementById('rapida-podere').textContent = podere;
+            document.getElementById('rapida-terreno').textContent = terrenoNome;
+        }
+        
+        window.handleRapidaLavoroChange = handleRapidaLavoroChange;
+        
+        // Invia comunicazione rapida
+        async function handleSendComunicazioneRapida(e) {
+            e.preventDefault();
+            
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                if (!userData.tenantId) return;
+                
+                // Ottieni lavoro selezionato
+                const lavoroSelect = document.getElementById('rapida-lavoro-select');
+                const lavoroId = lavoroSelect ? lavoroSelect.value : lavoriAttiviCaposquadra[0].id;
+                const lavoro = lavoriAttiviCaposquadra.find(l => l.id === lavoroId);
+                
+                if (!lavoro || !lavoro.terreno) {
+                    showRapidaMessage('Errore: lavoro o terreno non trovato', 'error');
+                    return;
+                }
+                
+                const podere = lavoro.terreno.podere || 'Non specificato';
+                const terrenoNome = lavoro.terreno.nome || lavoro.nome || 'Non specificato';
+                const orario = document.getElementById('rapida-orario').value;
+                const note = document.getElementById('rapida-note').value.trim();
+                
+                if (!orario) {
+                    showRapidaMessage('Inserisci un orario', 'error');
+                    return;
+                }
+                
+                // Ottieni coordinate podere se disponibili
+                let coordinatePodere = null;
+                if (podere && podere !== 'Non specificato') {
+                    try {
+                        const poderiCollection = collection(db, `tenants/${userData.tenantId}/poderi`);
+                        const q = query(poderiCollection, where('nome', '==', podere));
+                        const poderiSnapshot = await getDocs(q);
+                        if (!poderiSnapshot.empty) {
+                            const podereData = poderiSnapshot.docs[0].data();
+                            coordinatePodere = podereData.coordinate || null;
+                        }
+                    } catch (error) {
+                        console.warn('Errore recupero coordinate podere:', error);
+                    }
+                }
+                
+                // Ottieni membri squadra
+                const squadreCollection = collection(db, `tenants/${userData.tenantId}/squadre`);
+                const q = query(squadreCollection, where('caposquadraId', '==', userData.id || user.uid));
+                const squadreSnapshot = await getDocs(q);
+                
+                if (squadreSnapshot.empty) {
+                    showRapidaMessage('Nessun membro nella tua squadra', 'error');
+                    return;
+                }
+                
+                const squadraDoc = squadreSnapshot.docs[0];
+                const squadraData = squadraDoc.data();
+                const membriSquadra = squadraData.operai || [];
+                
+                if (membriSquadra.length === 0) {
+                    showRapidaMessage('Nessun membro nella tua squadra', 'error');
+                    return;
+                }
+                
+                // Crea comunicazione
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(parseInt(orario.split(':')[0]), parseInt(orario.split(':')[1]), 0, 0);
+                
+                const comunicazioneData = {
+                    caposquadraId: userData.id || user.uid,
+                    caposquadraNome: `${userData.nome || ''} ${userData.cognome || ''}`.trim(),
+                    podere: podere,
+                    terreno: terrenoNome,
+                    data: tomorrow,
+                    orario: orario,
+                    note: note || null,
+                    coordinatePodere: coordinatePodere,
+                    destinatari: membriSquadra,
+                    conferme: [],
+                    stato: 'attiva',
+                    createdAt: serverTimestamp()
+                };
+                
+                const comunicazioniCollection = collection(db, `tenants/${userData.tenantId}/comunicazioni`);
+                await addDoc(comunicazioniCollection, comunicazioneData);
+                
+                showRapidaMessage('✅ Comunicazione inviata alla squadra con successo!', 'success');
+                
+                // Reset form
+                document.getElementById('rapida-orario').value = '07:00';
+                document.getElementById('rapida-note').value = '';
+            } catch (error) {
+                console.error('Errore invio comunicazione rapida:', error);
+                showRapidaMessage('Errore durante l\'invio: ' + error.message, 'error');
+            }
+        }
+        
+        window.handleSendComunicazioneRapida = handleSendComunicazioneRapida;
+        
+        // Mostra messaggio nel form rapido
+        function showRapidaMessage(message, type) {
+            const messageDiv = document.getElementById('rapida-message');
+            if (!messageDiv) return;
+            
+            const color = type === 'success' ? '#28a745' : '#dc3545';
+            const bgColor = type === 'success' ? '#d4edda' : '#f8d7da';
+            
+            messageDiv.innerHTML = `
+                <div style="padding: 12px; background: ${bgColor}; color: ${color}; border-radius: 6px; font-size: 14px;">
+                    ${message}
+                </div>
+            `;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 3000);
+            }
+        }
 
         // Verifica autenticazione e carica dashboard
         // Traccia l'utente previsto per questa scheda (per gestire cambio sessione)

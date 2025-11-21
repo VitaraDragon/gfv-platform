@@ -717,6 +717,13 @@
                            placeholder="Es: Potatura Campo Nord, Vendemmia Vigneto Sud">
                 </div>
 
+                <div class="form-group">
+                    <label for="lavoro-tipo-lavoro">Tipo Lavoro *</label>
+                    <select id="lavoro-tipo-lavoro" required>
+                        <option value="">Seleziona tipo lavoro...</option>
+                    </select>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="lavoro-terreno">Terreno *</label>
@@ -920,6 +927,7 @@
                         loadTerreni(),
                         loadCaposquadra(),
                         loadSquadre(),
+                        loadTipiLavoro(),
                         loadLavori()
                     ]);
                     
@@ -996,6 +1004,81 @@
                 console.error('Errore caricamento squadre:', error);
                 squadreList = [];
             }
+        }
+
+        // Liste predefinite tipi lavoro
+        const TIPI_LAVORO_PREDEFINITI = [
+            'Potatura', 'Raccolta', 'Trattamento', 'Semina', 'Aratura',
+            'Irrigazione', 'Concimazione', 'Diserbo', 'Raccolta frutta', 'Raccolta verdura'
+        ];
+
+        // Carica lista tipi lavoro dalle liste personalizzate
+        async function loadTipiLavoro() {
+            try {
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    tipiLavoro = data.tipiLavoro || tipiLavoro;
+                }
+                
+                populateTipoLavoroDropdown();
+            } catch (error) {
+                console.error('Errore caricamento tipi lavoro:', error);
+                // Usa lista predefinita in caso di errore
+                populateTipoLavoroDropdown();
+            }
+        }
+
+        // Popola dropdown tipo lavoro nel form
+        function populateTipoLavoroDropdown(selectedValue = null) {
+            const select = document.getElementById('lavoro-tipo-lavoro');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Seleziona tipo lavoro...</option>';
+            
+            // Carica tipi lavoro da Firestore o usa predefiniti
+            const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+            getDoc(listeRef).then(listeSnap => {
+                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    tipiLavoro = data.tipiLavoro || tipiLavoro;
+                }
+                
+                // Ordina: prima predefiniti, poi custom
+                tipiLavoro.sort((a, b) => {
+                    const aIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === a.toLowerCase());
+                    const bIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === b.toLowerCase());
+                    if (aIsPredefinito && !bIsPredefinito) return -1;
+                    if (!aIsPredefinito && bIsPredefinito) return 1;
+                    return a.localeCompare(b);
+                });
+                
+                tipiLavoro.forEach(tipo => {
+                    const option = document.createElement('option');
+                    option.value = tipo;
+                    option.textContent = tipo;
+                    if (selectedValue === tipo) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            }).catch(error => {
+                console.error('Errore caricamento tipi lavoro:', error);
+                // Usa lista predefinita
+                TIPI_LAVORO_PREDEFINITI.forEach(tipo => {
+                    const option = document.createElement('option');
+                    option.value = tipo;
+                    option.textContent = tipo;
+                    if (selectedValue === tipo) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            });
         }
 
         // Carica lista lavori
@@ -1427,6 +1510,7 @@
             
             populateTerrenoDropdown();
             populateCaposquadraDropdown();
+            populateTipoLavoroDropdown();
             
             document.getElementById('lavoro-modal').classList.add('active');
         };
@@ -1458,6 +1542,7 @@
             
             populateTerrenoDropdown(lavoro.terrenoId);
             populateCaposquadraDropdown(lavoro.caposquadraId);
+            populateTipoLavoroDropdown(lavoro.tipoLavoro || null);
             
             document.getElementById('lavoro-modal').classList.add('active');
         };
@@ -1475,6 +1560,7 @@
             const nome = document.getElementById('lavoro-nome').value.trim();
             const terrenoId = document.getElementById('lavoro-terreno').value;
             const caposquadraId = document.getElementById('lavoro-caposquadra').value;
+            const tipoLavoro = document.getElementById('lavoro-tipo-lavoro').value.trim();
             const dataInizio = document.getElementById('lavoro-data-inizio').value;
             const durataPrevista = parseInt(document.getElementById('lavoro-durata').value);
             const stato = document.getElementById('lavoro-stato').value;
@@ -1482,6 +1568,11 @@
             
             if (!nome || nome.length < 3) {
                 showAlert('Il nome lavoro deve essere di almeno 3 caratteri', 'error');
+                return;
+            }
+            
+            if (!tipoLavoro) {
+                showAlert('Seleziona un tipo lavoro', 'error');
                 return;
             }
             
@@ -1510,6 +1601,7 @@
                     nome,
                     terrenoId,
                     caposquadraId,
+                    tipoLavoro,
                     dataInizio: Timestamp.fromDate(new Date(dataInizio)),
                     durataPrevista,
                     stato,

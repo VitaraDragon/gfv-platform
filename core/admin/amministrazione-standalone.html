@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amministrazione - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Statistiche in alto */
+        .stats-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .stats-section h2 {
+            color: #2E8B57;
+            font-size: 20px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2E8B57;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Card funzionalità */
+        .features-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .features-section h2 {
+            color: #2E8B57;
+            font-size: 20px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            text-align: center;
+        }
+
+        .feature-card:hover {
+            background: #e9ecef;
+            border-color: #2E8B57;
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            font-size: 18px;
+            color: #2E8B57;
+        }
+
+        .feature-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>👑 Amministrazione</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Gestisci utenti, squadre e abbonamento</p>
+            </div>
+            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+        </div>
+
+        <!-- Statistiche -->
+        <div class="stats-section">
+            <h2>📊 Panoramica</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-piano">-</div>
+                    <div class="stat-label">Piano Attuale</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-moduli">-</div>
+                    <div class="stat-label">Moduli Attivi</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-utenti">-</div>
+                    <div class="stat-label">Utenti Totali</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funzionalità -->
+        <div class="features-section">
+            <h2>⚙️ Funzionalità</h2>
+            <div class="features-grid">
+                <a href="gestisci-utenti-standalone.html" class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <div class="feature-title">Gestisci Utenti</div>
+                    <div class="feature-description">
+                        Invita nuovi utenti, modifica ruoli e gestisci gli accessi all'azienda
+                    </div>
+                </a>
+                <a href="gestione-squadre-standalone.html" class="feature-card">
+                    <div class="feature-icon">👷</div>
+                    <div class="feature-title">Gestione Squadre</div>
+                    <div class="feature-description">
+                        Crea e gestisci squadre di lavoro, assegna caposquadra e operai
+                    </div>
+                </a>
+                <a href="abbonamento-standalone.html" class="feature-card">
+                    <div class="feature-icon">💳</div>
+                    <div class="feature-title">Abbonamento</div>
+                    <div class="feature-description">
+                        Gestisci piano di abbonamento e attiva/disattiva moduli disponibili
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Firebase config from external file -->
+    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, getDoc, doc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Verifica autenticazione e carica statistiche
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    console.error('Documento utente non trovato');
+                    return;
+                }
+
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) {
+                    console.error('Tenant ID non trovato');
+                    return;
+                }
+
+                // Verifica permessi (solo Manager o Amministratore)
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => r.toLowerCase().includes('manager') || r.toLowerCase().includes('amministratore'));
+                if (!isManager) {
+                    alert('Non hai i permessi per accedere a questa pagina');
+                    window.location.href = '../dashboard-standalone.html';
+                    return;
+                }
+
+                // Carica statistiche
+                await loadStats(tenantId);
+
+            } catch (error) {
+                console.error('Errore caricamento dati:', error);
+            }
+        });
+
+        // Carica statistiche
+        async function loadStats(tenantId) {
+            try {
+                // 1. Carica dati tenant per piano e moduli
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (tenantDoc.exists()) {
+                    const tenantData = tenantDoc.data();
+                    const moduli = tenantData.modules || [];
+                    const piano = tenantData.piano || 'starter';
+
+                    // Piano attuale
+                    const pianoNames = {
+                        'starter': 'Starter',
+                        'professional': 'Professional',
+                        'enterprise': 'Enterprise'
+                    };
+                    const pianoEl = document.getElementById('stat-piano');
+                    if (pianoEl) {
+                        pianoEl.textContent = pianoNames[piano] || piano;
+                    }
+
+                    // Moduli attivi
+                    const moduliAvanzati = moduli.filter(m => m !== 'core');
+                    const moduliEl = document.getElementById('stat-moduli');
+                    if (moduliEl) {
+                        if (moduliAvanzati.length > 0) {
+                            moduliEl.textContent = `${moduliAvanzati.length} moduli`;
+                        } else {
+                            moduliEl.textContent = 'Solo Core';
+                        }
+                    }
+                }
+
+                // 2. Carica utenti totali
+                const usersCollection = collection(db, 'users');
+                const usersQuery = query(usersCollection, where('tenantId', '==', tenantId));
+                const usersSnapshot = await getDocs(usersQuery);
+                const totaleUtenti = usersSnapshot.size;
+                
+                const utentiEl = document.getElementById('stat-utenti');
+                if (utentiEl) {
+                    utentiEl.textContent = totaleUtenti;
+                }
+
+            } catch (error) {
+                console.error('Errore caricamento statistiche:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+

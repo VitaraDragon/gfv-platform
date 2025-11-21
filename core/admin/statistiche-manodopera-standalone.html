@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiche Manodopera - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .content {
+            display: grid;
+            gap: 20px;
+        }
+
+        .stats-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stats-section h2 {
+            color: #2E8B57;
+            font-size: 20px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2E8B57;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📊 Statistiche Manodopera</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Visualizza statistiche e analisi dettagliate</p>
+            </div>
+            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+        </div>
+
+        <div class="content">
+            <!-- Statistiche Lavori -->
+            <div class="stats-section">
+                <h2>📋 Statistiche Lavori</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-totali">-</div>
+                        <div class="stat-label">Lavori Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-attivi">-</div>
+                        <div class="stat-label">Lavori Attivi</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-completati">-</div>
+                        <div class="stat-label">Lavori Completati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-lavori-pianificati">-</div>
+                        <div class="stat-label">Lavori Pianificati</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche Ore -->
+            <div class="stats-section">
+                <h2>⏱️ Statistiche Ore</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-ore-validate-mese">-</div>
+                        <div class="stat-label">Ore Validate (Mese)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-ore-validate-totale">-</div>
+                        <div class="stat-label">Ore Validate (Totale)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-ore-da-validare">-</div>
+                        <div class="stat-label">Ore da Validare</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-media-ore-giorno">-</div>
+                        <div class="stat-label">Media Ore/Giorno</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche Squadre -->
+            <div class="stats-section">
+                <h2>👥 Statistiche Squadre</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-squadre-totali">-</div>
+                        <div class="stat-label">Squadre Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-squadre-attive">-</div>
+                        <div class="stat-label">Squadre Attive</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-operai-totali">-</div>
+                        <div class="stat-label">Operai Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-operai-online">-</div>
+                        <div class="stat-label">Operai Online</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiche Superficie -->
+            <div class="stats-section">
+                <h2>🗺️ Statistiche Superficie</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-superficie-lavorata">-</div>
+                        <div class="stat-label">Superficie Lavorata (ha)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-superficie-totale">-</div>
+                        <div class="stat-label">Superficie Totale Terreni (ha)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-percentuale-lavorata">-</div>
+                        <div class="stat-label">% Superficie Lavorata</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sezione per statistiche future (facilmente espandibile) -->
+            <!-- 
+            <div class="stats-section">
+                <h2>📈 Altre Statistiche</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-custom-1">-</div>
+                        <div class="stat-label">Statistica Personalizzata 1</div>
+                    </div>
+                </div>
+            </div>
+            -->
+        </div>
+    </div>
+
+    <!-- Load Firebase config from external file -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, getDoc, doc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Verifica autenticazione e carica statistiche
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    console.error('Documento utente non trovato');
+                    return;
+                }
+
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) {
+                    console.error('Tenant ID non trovato');
+                    return;
+                }
+
+                // Verifica permessi (solo Manager o Amministratore)
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => {
+                    const roleLower = r.toLowerCase();
+                    return roleLower.includes('manager') || roleLower.includes('amministratore');
+                });
+                if (!isManager) {
+                    alert('Non hai i permessi per accedere a questa pagina');
+                    window.location.href = '../dashboard-standalone.html';
+                    return;
+                }
+
+                // Carica tutte le statistiche
+                await loadAllStats(tenantId);
+
+            } catch (error) {
+                console.error('Errore caricamento dati:', error);
+            }
+        });
+
+        // Carica tutte le statistiche
+        async function loadAllStats(tenantId) {
+            try {
+                // 1. Statistiche Lavori
+                await loadLavoriStats(tenantId);
+                
+                // 2. Statistiche Ore
+                await loadOreStats(tenantId);
+                
+                // 3. Statistiche Squadre
+                await loadSquadreStats(tenantId);
+                
+                // 4. Statistiche Superficie
+                await loadSuperficieStats(tenantId);
+
+            } catch (error) {
+                console.error('Errore caricamento statistiche:', error);
+            }
+        }
+
+        // Carica statistiche lavori
+        async function loadLavoriStats(tenantId) {
+            try {
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriCollection);
+                
+                let totali = 0;
+                let attivi = 0;
+                let completati = 0;
+                let pianificati = 0;
+                
+                lavoriSnapshot.forEach(doc => {
+                    totali++;
+                    const lavoro = doc.data();
+                    const stato = lavoro.stato || 'pianificato';
+                    
+                    if (stato === 'attivo') attivi++;
+                    else if (stato === 'completato') completati++;
+                    else if (stato === 'pianificato') pianificati++;
+                });
+                
+                document.getElementById('stat-lavori-totali').textContent = totali;
+                document.getElementById('stat-lavori-attivi').textContent = attivi;
+                document.getElementById('stat-lavori-completati').textContent = completati;
+                document.getElementById('stat-lavori-pianificati').textContent = pianificati;
+            } catch (error) {
+                console.error('Errore caricamento statistiche lavori:', error);
+            }
+        }
+
+        // Carica statistiche ore
+        async function loadOreStats(tenantId) {
+            try {
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriCollection);
+                
+                const oggi = new Date();
+                const primoGiornoMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                
+                let oreValidateMese = 0;
+                let oreValidateTotale = 0;
+                let oreDaValidare = 0;
+                let giorniConOre = new Set();
+                
+                for (const lavoroDoc of lavoriSnapshot.docs) {
+                    try {
+                        const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroDoc.id}/oreOperai`);
+                        const oreSnapshot = await getDocs(oreRef);
+                        
+                        oreSnapshot.forEach(oraDoc => {
+                            const ora = oraDoc.data();
+                            const oreNette = ora.oreNette || 0;
+                            
+                            if (ora.stato === 'validate') {
+                                oreValidateTotale += oreNette;
+                                
+                                if (ora.data) {
+                                    try {
+                                        const dataOra = ora.data.toDate ? ora.data.toDate() : new Date(ora.data);
+                                        if (dataOra >= primoGiornoMese) {
+                                            oreValidateMese += oreNette;
+                                            giorniConOre.add(dataOra.toISOString().split('T')[0]);
+                                        }
+                                    } catch (e) {
+                                        // Ignora errori di conversione data
+                                    }
+                                }
+                            } else if (ora.stato === 'da_validare') {
+                                oreDaValidare += oreNette;
+                            }
+                        });
+                    } catch (error) {
+                        // Se la sub-collection non esiste, continua
+                    }
+                }
+                
+                // Formatta ore
+                const formatOre = (ore) => {
+                    const oreInt = Math.floor(ore);
+                    const minuti = Math.round((ore - oreInt) * 60);
+                    return minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
+                };
+                
+                document.getElementById('stat-ore-validate-mese').textContent = formatOre(oreValidateMese);
+                document.getElementById('stat-ore-validate-totale').textContent = formatOre(oreValidateTotale);
+                document.getElementById('stat-ore-da-validare').textContent = formatOre(oreDaValidare);
+                
+                // Media ore/giorno (solo giorni con ore nel mese corrente)
+                const giorniConOreCount = giorniConOre.size;
+                const mediaOreGiorno = giorniConOreCount > 0 ? oreValidateMese / giorniConOreCount : 0;
+                document.getElementById('stat-media-ore-giorno').textContent = formatOre(mediaOreGiorno);
+            } catch (error) {
+                console.error('Errore caricamento statistiche ore:', error);
+            }
+        }
+
+        // Carica statistiche squadre
+        async function loadSquadreStats(tenantId) {
+            try {
+                const squadreCollection = collection(db, `tenants/${tenantId}/squadre`);
+                const squadreSnapshot = await getDocs(squadreCollection);
+                
+                let squadreTotali = 0;
+                let squadreAttive = 0;
+                const operaiSet = new Set();
+                
+                squadreSnapshot.forEach(doc => {
+                    squadreTotali++;
+                    const squadra = doc.data();
+                    if (squadra.operai && squadra.operai.length > 0) {
+                        squadreAttive++;
+                        squadra.operai.forEach(operaioId => operaiSet.add(operaioId));
+                    }
+                });
+                
+                // Conta operai online
+                let operaiOnline = 0;
+                for (const operaioId of operaiSet) {
+                    try {
+                        const operaioDoc = await getDoc(doc(db, 'users', operaioId));
+                        if (operaioDoc.exists()) {
+                            const operaioData = operaioDoc.data();
+                            if (operaioData.isOnline) {
+                                operaiOnline++;
+                            }
+                        }
+                    } catch (e) {
+                        // Ignora errori
+                    }
+                }
+                
+                document.getElementById('stat-squadre-totali').textContent = squadreTotali;
+                document.getElementById('stat-squadre-attive').textContent = squadreAttive;
+                document.getElementById('stat-operai-totali').textContent = operaiSet.size;
+                document.getElementById('stat-operai-online').textContent = operaiOnline;
+            } catch (error) {
+                console.error('Errore caricamento statistiche squadre:', error);
+            }
+        }
+
+        // Carica statistiche superficie
+        async function loadSuperficieStats(tenantId) {
+            try {
+                // Carica terreni
+                const terreniCollection = collection(db, `tenants/${tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniCollection);
+                
+                let superficieTotale = 0;
+                terreniSnapshot.forEach(doc => {
+                    const terreno = doc.data();
+                    superficieTotale += terreno.superficie || 0;
+                });
+                
+                // Carica lavori per superficie lavorata
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriCollection);
+                
+                let superficieLavorata = 0;
+                lavoriSnapshot.forEach(doc => {
+                    const lavoro = doc.data();
+                    if (lavoro.superficieLavorata) {
+                        superficieLavorata += lavoro.superficieLavorata;
+                    }
+                });
+                
+                const percentualeLavorata = superficieTotale > 0 
+                    ? ((superficieLavorata / superficieTotale) * 100).toFixed(1)
+                    : 0;
+                
+                document.getElementById('stat-superficie-lavorata').textContent = superficieLavorata.toFixed(2);
+                document.getElementById('stat-superficie-totale').textContent = superficieTotale.toFixed(2);
+                document.getElementById('stat-percentuale-lavorata').textContent = `${percentualeLavorata}%`;
+            } catch (error) {
+                console.error('Errore caricamento statistiche superficie:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+
