@@ -250,10 +250,57 @@
             color: #666;
         }
 
+        .mappa-control-btn {
+            background: white;
+            border: 2px solid #2E8B57;
+            color: #2E8B57;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .mappa-control-btn:hover {
+            background: #2E8B57;
+            color: white;
+        }
+
+        .mappa-control-btn.active {
+            background: #2E8B57;
+            color: white;
+        }
+
+        .mappa-filtro-select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 150px;
+        }
+
+        .mappa-filtro-select:hover {
+            border-color: #2E8B57;
+        }
+
+        .mappa-filtro-select:focus {
+            outline: none;
+            border-color: #2E8B57;
+            box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.1);
+        }
+
         .mappa-controls {
             position: absolute;
-            bottom: 10px;
-            left: 10px;
+            top: 10px;
+            right: 10px;
             background: white;
             padding: 10px;
             border-radius: 8px;
@@ -1411,10 +1458,34 @@
             section.style.flexDirection = 'column';
             
             section.innerHTML = `
-                <h2><span class="section-icon">🗺️</span> Vista Mappa Aziendale</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                    Visualizza tutti i terreni dell'azienda con i loro confini geolocalizzati sulla mappa satellitare
-                </p>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h2 style="margin: 0;"><span class="section-icon">🗺️</span> Vista Mappa Aziendale</h2>
+                        <p style="color: #666; margin-top: 5px; margin-bottom: 0; font-size: 14px;">
+                            Visualizza tutti i terreni dell'azienda con i loro confini geolocalizzati sulla mappa satellitare
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="filtro-podere" style="font-size: 12px; color: #666; font-weight: 500;">Podere</label>
+                            <select id="filtro-podere" class="mappa-filtro-select" title="Filtra per podere">
+                                <option value="">Tutti i poderi</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label for="filtro-coltura" style="font-size: 12px; color: #666; font-weight: 500;">Coltura</label>
+                            <select id="filtro-coltura" class="mappa-filtro-select" title="Filtra per coltura">
+                                <option value="">Tutte le colture</option>
+                            </select>
+                        </div>
+                        <button id="toggle-overlay-lavori" class="mappa-control-btn" title="Mostra/Nascondi zone lavorate" style="margin-top: 20px;">
+                            <span>👷</span> Zone Lavorate
+                        </button>
+                        <button id="toggle-indicatori-lavori" class="mappa-control-btn" title="Mostra/Nascondi indicatori stato lavori" style="margin-top: 20px;">
+                            <span>📍</span> Indicatori Lavori
+                        </button>
+                    </div>
+                </div>
                 <div id="mappa-aziendale-container" class="mappa-container" style="flex: 1; min-height: 500px; width: 100%;">
                     <div class="mappa-loading">
                         <div>Caricamento mappa...</div>
@@ -1528,8 +1599,83 @@
                     fullscreenControl: true
                 });
 
-                // Fit bounds
-                map.fitBounds(bounds);
+                // Funzione per zoom intelligente con padding
+                function fitBoundsWithPadding(boundsToFit, paddingPixels = 50) {
+                    if (!boundsToFit) {
+                        return;
+                    }
+                    
+                    // Verifica che bounds sia valido
+                    try {
+                        const ne = boundsToFit.getNorthEast();
+                        const sw = boundsToFit.getSouthWest();
+                        
+                        if (!ne || !sw) {
+                            return;
+                        }
+                        
+                        const latDiff = ne.lat() - sw.lat();
+                        const lngDiff = ne.lng() - sw.lng();
+                        
+                        // Verifica che bounds non sia vuoto
+                        if (latDiff === 0 && lngDiff === 0) {
+                            // Bounds vuoto, usa centro con zoom di default
+                            const center = boundsToFit.getCenter();
+                            if (center) {
+                                map.setCenter(center);
+                                map.setZoom(15);
+                            }
+                            return;
+                        }
+                        
+                        // Espandi bounds per aggiungere padding
+                        const latPadding = latDiff * (paddingPixels / 1000); // Converti pixel in gradi approssimativi
+                        const lngPadding = lngDiff * (paddingPixels / 1000);
+                        
+                        const expandedBounds = new google.maps.LatLngBounds(
+                            new google.maps.LatLng(sw.lat() - latPadding, sw.lng() - lngPadding),
+                            new google.maps.LatLng(ne.lat() + latPadding, ne.lng() + lngPadding)
+                        );
+                        
+                        // Se bounds è troppo piccolo (terreno singolo o molto piccolo), usa zoom più ravvicinato
+                        if (latDiff < 0.0005 || lngDiff < 0.0005) {
+                            // Terreno molto piccolo: zoom più ravvicinato
+                            const center = expandedBounds.getCenter();
+                            map.setCenter(center);
+                            map.setZoom(18);
+                            return;
+                        }
+                        
+                        // Se bounds è molto grande (molti terreni sparsi), usa zoom più lontano
+                        if (latDiff > 0.1 || lngDiff > 0.1) {
+                            // Area molto grande: usa padding maggiore
+                            const largeLatPadding = latDiff * 0.1;
+                            const largeLngPadding = lngDiff * 0.1;
+                            expandedBounds.extend(new google.maps.LatLng(sw.lat() - largeLatPadding, sw.lng() - largeLngPadding));
+                            expandedBounds.extend(new google.maps.LatLng(ne.lat() + largeLatPadding, ne.lng() + largeLngPadding));
+                        }
+                        
+                        // Applica fitBounds con bounds espansi
+                        map.fitBounds(expandedBounds);
+                    } catch (error) {
+                        console.warn('Errore fitBounds:', error);
+                        // Fallback: usa centro e zoom di default
+                        try {
+                            const center = boundsToFit.getCenter();
+                            if (center) {
+                                map.setCenter(center);
+                                map.setZoom(15);
+                            }
+                        } catch (e) {
+                            console.error('Errore fallback zoom:', e);
+                        }
+                    }
+                }
+
+                // Fit bounds iniziale con padding - aspetta che la mappa sia pronta
+                google.maps.event.addListenerOnce(map, 'idle', function() {
+                    fitBoundsWithPadding(bounds, 50);
+                });
                 
                 // Gestisci ridimensionamento finestra per mantenere mappa responsive
                 let resizeTimeout;
@@ -1538,7 +1684,10 @@
                     resizeTimeout = setTimeout(function() {
                         if (map && bounds) {
                             google.maps.event.trigger(map, 'resize');
-                            map.fitBounds(bounds);
+                            // Aspetta che il resize sia completato prima di applicare fitBounds
+                            setTimeout(() => {
+                                fitBoundsWithPadding(bounds, 50);
+                            }, 100);
                         }
                     }, 250);
                 });
@@ -1556,9 +1705,36 @@
                     'Default': '#2E8B57' // Verde GFV
                 };
 
+                // Estrai poderi e colture uniche per i filtri
+                const poderiUnici = [...new Set(terreni.map(t => t.podere).filter(p => p))].sort();
+                const coltureUniche = [...new Set(terreni.map(t => t.coltura).filter(c => c))].sort();
+
+                // Popola dropdown filtri
+                const filtroPodereSelect = document.getElementById('filtro-podere');
+                const filtroColturaSelect = document.getElementById('filtro-coltura');
+                
+                if (filtroPodereSelect) {
+                    poderiUnici.forEach(podere => {
+                        const option = document.createElement('option');
+                        option.value = podere;
+                        option.textContent = podere;
+                        filtroPodereSelect.appendChild(option);
+                    });
+                }
+
+                if (filtroColturaSelect) {
+                    coltureUniche.forEach(coltura => {
+                        const option = document.createElement('option');
+                        option.value = coltura;
+                        option.textContent = coltura;
+                        filtroColturaSelect.appendChild(option);
+                    });
+                }
+
                 // Crea poligoni per ogni terreno
                 const polygons = [];
                 const infoWindows = [];
+                let terrenoPolygonsMap = new Map(); // Mappa terreno.id -> polygon per filtraggio
 
                 terreni.forEach((terreno, index) => {
                     const coords = terreno.polygonCoords.map(c => 
@@ -1590,6 +1766,7 @@
                     });
 
                     polygons.push(polygon);
+                    terrenoPolygonsMap.set(terreno.id, polygon);
 
                     // Crea info window
                     const infoContent = `
@@ -1622,31 +1799,486 @@
                     });
                 });
 
-                // Crea legenda
-                const coltureUniche = [...new Set(terreni.map(t => t.coltura).filter(c => c))];
-                if (coltureUniche.length > 0) {
-                    const legendaDiv = document.createElement('div');
-                    legendaDiv.className = 'mappa-legenda';
-                    legendaDiv.innerHTML = `
-                        <h4>Legenda Colture</h4>
-                        ${coltureUniche.map(coltura => {
-                            const color = colturaColors[coltura] || colturaColors['Default'];
-                            return `
-                                <div class="mappa-legenda-item">
-                                    <div class="mappa-legenda-color" style="background-color: ${color};"></div>
-                                    <span>${escapeHtml(coltura)}</span>
-                                </div>
-                            `;
-                        }).join('')}
-                        ${terreni.some(t => !t.coltura) ? `
-                            <div class="mappa-legenda-item">
-                                <div class="mappa-legenda-color" style="background-color: ${colturaColors['Default']};"></div>
-                                <span>Non specificato</span>
-                            </div>
-                        ` : ''}
-                    `;
-                    container.appendChild(legendaDiv);
+                // Carica e disegna zone lavorate (overlay lavori attivi)
+                let overlayLavoriVisible = false;
+                const zoneLavoratePolygons = [];
+                const zoneLavorateInfoWindows = [];
+                
+                // Indicatori stato lavori
+                let indicatoriLavoriVisible = false;
+                const lavoroMarkers = [];
+                const lavoroMarkersInfoWindows = [];
+                
+                async function loadAndDrawZoneLavorate() {
+                    try {
+                        // Carica lavori attivi
+                        const lavoriCollection = collection(db, `tenants/${userData.tenantId}/lavori`);
+                        const lavoriSnapshot = await getDocs(lavoriCollection);
+                        
+                        const lavoriAttivi = [];
+                        lavoriSnapshot.forEach(doc => {
+                            const data = doc.data();
+                            const stato = data.stato || 'assegnato';
+                            // Lavori attivi: non completati e non annullati
+                            if (stato !== 'completato' && stato !== 'annullato') {
+                                lavoriAttivi.push({
+                                    id: doc.id,
+                                    nome: data.nome || 'Lavoro senza nome',
+                                    terrenoId: data.terrenoId,
+                                    tipoLavoro: data.tipoLavoro || '',
+                                    caposquadraId: data.caposquadraId,
+                                    dataInizio: data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null),
+                                    stato: stato,
+                                    percentualeCompletamento: data.percentualeCompletamento || 0
+                                });
+                            }
+                        });
+
+                        // Per ogni lavoro attivo, carica le zone lavorate
+                        for (const lavoro of lavoriAttivi) {
+                            try {
+                                const zoneRef = collection(db, `tenants/${userData.tenantId}/lavori/${lavoro.id}/zoneLavorate`);
+                                const zoneSnapshot = await getDocs(zoneRef);
+                                
+                                zoneSnapshot.forEach(zonaDoc => {
+                                    const zonaData = zonaDoc.data();
+                                    if (zonaData.coordinate && Array.isArray(zonaData.coordinate) && zonaData.coordinate.length >= 3) {
+                                        // Converti coordinate in LatLng
+                                        const coords = zonaData.coordinate.map(c => 
+                                            new google.maps.LatLng(c.lat, c.lng)
+                                        );
+
+                                        // Crea poligono verde semi-trasparente per zona lavorata
+                                        const zonaPolygon = new google.maps.Polygon({
+                                            paths: coords,
+                                            strokeColor: '#00FF00', // Verde brillante
+                                            strokeOpacity: 0.9,
+                                            strokeWeight: 3,
+                                            fillColor: '#00FF00',
+                                            fillOpacity: 0.4,
+                                            map: overlayLavoriVisible ? map : null, // Visibile solo se toggle attivo
+                                            zIndex: 100, // Sopra i terreni
+                                            zona: {
+                                                id: zonaDoc.id,
+                                                lavoroId: lavoro.id,
+                                                lavoroNome: lavoro.nome,
+                                                tipoLavoro: lavoro.tipoLavoro,
+                                                data: zonaData.data?.toDate ? zonaData.data.toDate() : (zonaData.data ? new Date(zonaData.data) : null),
+                                                superficieHa: zonaData.superficieHa || 0,
+                                                note: zonaData.note || ''
+                                            }
+                                        });
+
+                                        zoneLavoratePolygons.push(zonaPolygon);
+
+                                        // Crea info window per zona lavorata
+                                        const zonaInfoContent = `
+                                            <div class="mappa-info-window">
+                                                <h3>${escapeHtml(lavoro.nome)}</h3>
+                                                ${lavoro.tipoLavoro ? `<p><strong>Tipo Lavoro:</strong> ${escapeHtml(lavoro.tipoLavoro)}</p>` : ''}
+                                                ${zonaData.data ? `<p><strong>Data:</strong> ${zonaData.data.toDate ? zonaData.data.toDate().toLocaleDateString('it-IT') : new Date(zonaData.data).toLocaleDateString('it-IT')}</p>` : ''}
+                                                ${zonaData.superficieHa ? `<p><strong>Superficie:</strong> ${zonaData.superficieHa.toFixed(2)} ha</p>` : ''}
+                                                ${lavoro.percentualeCompletamento ? `<p><strong>Completamento:</strong> ${lavoro.percentualeCompletamento.toFixed(1)}%</p>` : ''}
+                                                ${zonaData.note ? `<p><strong>Note:</strong> ${escapeHtml(zonaData.note)}</p>` : ''}
+                                                <p style="margin-top: 10px;">
+                                                    <a href="admin/gestione-lavori-standalone.html" style="color: #2E8B57; text-decoration: underline; font-size: 12px;">
+                                                        Vedi dettagli lavoro →
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        `;
+
+                                        const zonaInfoWindow = new google.maps.InfoWindow({
+                                            content: zonaInfoContent
+                                        });
+
+                                        zoneLavorateInfoWindows.push(zonaInfoWindow);
+
+                                        // Click sul poligono zona lavorata
+                                        zonaPolygon.addListener('click', function(event) {
+                                            // Chiudi tutte le altre info windows
+                                            infoWindows.forEach(iw => iw.close());
+                                            zoneLavorateInfoWindows.forEach(iw => iw.close());
+                                            zonaInfoWindow.setPosition(event.latLng);
+                                            zonaInfoWindow.open(map);
+                                        });
+                                    }
+                                });
+                            } catch (error) {
+                                console.warn(`Errore caricamento zone lavorate per lavoro ${lavoro.id}:`, error);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Errore caricamento lavori attivi:', error);
+                    }
                 }
+
+                // Carica zone lavorate
+                await loadAndDrawZoneLavorate();
+
+                // Funzione per calcolare centroide di un poligono
+                function getPolygonCenter(coords) {
+                    let latSum = 0;
+                    let lngSum = 0;
+                    coords.forEach(coord => {
+                        latSum += coord.lat;
+                        lngSum += coord.lng;
+                    });
+                    return {
+                        lat: latSum / coords.length,
+                        lng: lngSum / coords.length
+                    };
+                }
+
+                // Funzione per caricare e disegnare indicatori stato lavori
+                async function loadAndDrawIndicatoriLavori() {
+                    try {
+                        // Carica lavori attivi
+                        const lavoriCollection = collection(db, `tenants/${userData.tenantId}/lavori`);
+                        const lavoriSnapshot = await getDocs(lavoriCollection);
+                        
+                        const lavoriConProgressi = [];
+                        lavoriSnapshot.forEach(doc => {
+                            const data = doc.data();
+                            const stato = data.stato || 'assegnato';
+                            // Solo lavori attivi (non completati e non annullati)
+                            if (stato !== 'completato' && stato !== 'annullato') {
+                                lavoriConProgressi.push({
+                                    id: doc.id,
+                                    nome: data.nome || 'Lavoro senza nome',
+                                    terrenoId: data.terrenoId,
+                                    tipoLavoro: data.tipoLavoro || '',
+                                    caposquadraId: data.caposquadraId,
+                                    dataInizio: data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null),
+                                    durataPrevista: data.durataPrevista || 0,
+                                    stato: stato,
+                                    percentualeCompletamento: data.percentualeCompletamento || 0,
+                                    statoProgresso: data.statoProgresso || null, // "in_anticipo" | "in_tempo" | "in_ritardo"
+                                    superficieTotaleLavorata: data.superficieTotaleLavorata || 0,
+                                    giorniEffettivi: data.giorniEffettivi || 0
+                                });
+                            }
+                        });
+
+                        // Per ogni lavoro, trova il terreno e crea marker
+                        for (const lavoro of lavoriConProgressi) {
+                            try {
+                                // Trova terreno associato
+                                const terreno = terreni.find(t => t.id === lavoro.terrenoId);
+                                if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length < 3) {
+                                    continue; // Salta se terreno non trovato o senza coordinate
+                                }
+
+                                // Calcola centro del terreno
+                                const centro = getPolygonCenter(terreno.polygonCoords);
+                                const position = new google.maps.LatLng(centro.lat, centro.lng);
+
+                                // Determina colore marker in base allo stato progresso
+                                let markerColor = '#2E8B57'; // Default verde GFV
+                                let markerIcon = '🟢';
+                                let markerLabel = '';
+
+                                if (lavoro.statoProgresso === 'in_ritardo') {
+                                    markerColor = '#DC3545'; // Rosso
+                                    markerIcon = '🔴';
+                                    markerLabel = 'R';
+                                } else if (lavoro.statoProgresso === 'in_anticipo') {
+                                    markerColor = '#28A745'; // Verde brillante
+                                    markerIcon = '🟢';
+                                    markerLabel = 'A';
+                                } else if (lavoro.statoProgresso === 'in_tempo') {
+                                    markerColor = '#FFC107'; // Giallo/Ambra
+                                    markerIcon = '🟡';
+                                    markerLabel = 'T';
+                                } else {
+                                    // Se non c'è stato progresso, usa colore in base allo stato lavoro
+                                    if (lavoro.stato === 'in_corso') {
+                                        markerColor = '#17A2B8'; // Blu
+                                        markerIcon = '🔵';
+                                        markerLabel = 'C';
+                                    } else {
+                                        markerColor = '#6C757D'; // Grigio
+                                        markerIcon = '⚪';
+                                        markerLabel = 'A';
+                                    }
+                                }
+
+                                // Crea marker personalizzato con icona SVG
+                                const markerIconUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                                        <circle cx="16" cy="16" r="14" fill="${markerColor}" stroke="white" stroke-width="2"/>
+                                        <text x="16" y="22" font-size="16" font-weight="bold" fill="white" text-anchor="middle">${markerLabel}</text>
+                                    </svg>
+                                `)}`;
+
+                                const marker = new google.maps.Marker({
+                                    position: position,
+                                    map: indicatoriLavoriVisible ? map : null,
+                                    icon: {
+                                        url: markerIconUrl,
+                                        scaledSize: new google.maps.Size(32, 32),
+                                        anchor: new google.maps.Point(16, 16)
+                                    },
+                                    title: `${lavoro.nome} - ${lavoro.statoProgresso || lavoro.stato}`,
+                                    zIndex: 200, // Sopra zone lavorate e terreni
+                                    lavoro: {
+                                        id: lavoro.id,
+                                        nome: lavoro.nome,
+                                        tipoLavoro: lavoro.tipoLavoro,
+                                        terrenoNome: terreno.nome,
+                                        stato: lavoro.stato,
+                                        statoProgresso: lavoro.statoProgresso,
+                                        percentualeCompletamento: lavoro.percentualeCompletamento,
+                                        superficieTotaleLavorata: lavoro.superficieTotaleLavorata,
+                                        giorniEffettivi: lavoro.giorniEffettivi,
+                                        durataPrevista: lavoro.durataPrevista,
+                                        dataInizio: lavoro.dataInizio
+                                    }
+                                });
+
+                                lavoroMarkers.push(marker);
+
+                                // Crea info window per marker lavoro
+                                const statoProgressoFormattato = lavoro.statoProgresso 
+                                    ? (lavoro.statoProgresso === 'in_anticipo' ? '🟢 In anticipo' : 
+                                       lavoro.statoProgresso === 'in_tempo' ? '🟡 In tempo' : 
+                                       '🔴 In ritardo')
+                                    : '⏳ Non disponibile';
+
+                                const statoLavoroFormattato = lavoro.stato === 'in_corso' ? '🔄 In corso' :
+                                                              lavoro.stato === 'assegnato' ? '📋 Assegnato' :
+                                                              lavoro.stato;
+
+                                const lavoroInfoContent = `
+                                    <div class="mappa-info-window">
+                                        <h3>${escapeHtml(lavoro.nome)}</h3>
+                                        <p><strong>Terreno:</strong> ${escapeHtml(terreno.nome)}</p>
+                                        ${lavoro.tipoLavoro ? `<p><strong>Tipo Lavoro:</strong> ${escapeHtml(lavoro.tipoLavoro)}</p>` : ''}
+                                        <p><strong>Stato:</strong> ${statoLavoroFormattato}</p>
+                                        <p><strong>Progresso:</strong> ${statoProgressoFormattato}</p>
+                                        ${lavoro.percentualeCompletamento ? `<p><strong>Completamento:</strong> ${lavoro.percentualeCompletamento.toFixed(1)}%</p>` : ''}
+                                        ${lavoro.superficieTotaleLavorata ? `<p><strong>Superficie Lavorata:</strong> ${lavoro.superficieTotaleLavorata.toFixed(2)} ha</p>` : ''}
+                                        ${lavoro.dataInizio ? `<p><strong>Data Inizio:</strong> ${lavoro.dataInizio.toLocaleDateString('it-IT')}</p>` : ''}
+                                        ${lavoro.durataPrevista ? `<p><strong>Durata Prevista:</strong> ${lavoro.durataPrevista} giorni</p>` : ''}
+                                        ${lavoro.giorniEffettivi ? `<p><strong>Giorni Trascorsi:</strong> ${lavoro.giorniEffettivi}</p>` : ''}
+                                        <p style="margin-top: 10px;">
+                                            <a href="admin/gestione-lavori-standalone.html" style="color: #2E8B57; text-decoration: underline; font-size: 12px;">
+                                                Vedi dettagli lavoro →
+                                            </a>
+                                        </p>
+                                    </div>
+                                `;
+
+                                const lavoroInfoWindow = new google.maps.InfoWindow({
+                                    content: lavoroInfoContent
+                                });
+
+                                lavoroMarkersInfoWindows.push(lavoroInfoWindow);
+
+                                // Click sul marker per aprire info window
+                                marker.addListener('click', function() {
+                                    // Chiudi tutte le altre info windows
+                                    infoWindows.forEach(iw => iw.close());
+                                    zoneLavorateInfoWindows.forEach(iw => iw.close());
+                                    lavoroMarkersInfoWindows.forEach(iw => iw.close());
+                                    lavoroInfoWindow.open(map, marker);
+                                });
+                            } catch (error) {
+                                console.warn(`Errore creazione marker per lavoro ${lavoro.id}:`, error);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Errore caricamento indicatori lavori:', error);
+                    }
+                }
+
+                // Carica indicatori lavori
+                await loadAndDrawIndicatoriLavori();
+
+                // Funzione per filtrare terreni visualizzati
+                function applyFilters() {
+                    const podereFiltro = filtroPodereSelect ? filtroPodereSelect.value : '';
+                    const colturaFiltro = filtroColturaSelect ? filtroColturaSelect.value : '';
+                    
+                    let terreniVisibili = 0;
+                    const boundsFiltro = new google.maps.LatLngBounds();
+                    
+                    terreni.forEach(terreno => {
+                        const polygon = terrenoPolygonsMap.get(terreno.id);
+                        if (!polygon) return;
+                        
+                        // Applica filtri
+                        const matchPodere = !podereFiltro || terreno.podere === podereFiltro;
+                        const matchColtura = !colturaFiltro || terreno.coltura === colturaFiltro;
+                        
+                        if (matchPodere && matchColtura) {
+                            polygon.setMap(map);
+                            terreniVisibili++;
+                            // Estendi bounds per zoom automatico sui terreni visibili
+                            terreno.polygonCoords.forEach(coord => {
+                                boundsFiltro.extend(new google.maps.LatLng(coord.lat, coord.lng));
+                            });
+                        } else {
+                            polygon.setMap(null);
+                        }
+                    });
+                    
+                    // Aggiorna zoom se ci sono terreni visibili
+                    if (terreniVisibili > 0 && boundsFiltro.getNorthEast()) {
+                        fitBoundsWithPadding(boundsFiltro, 50);
+                    }
+                    
+                    // Aggiorna legenda
+                    updateLegenda(podereFiltro, colturaFiltro);
+                }
+
+                // Funzione per aggiornare legenda in base ai filtri
+                function updateLegenda(podereFiltro, colturaFiltro) {
+                    // Trova colture visibili dopo filtri
+                    const coltureVisibili = [...new Set(
+                        terreni
+                            .filter(t => {
+                                const matchPodere = !podereFiltro || t.podere === podereFiltro;
+                                const matchColtura = !colturaFiltro || t.coltura === colturaFiltro;
+                                return matchPodere && matchColtura;
+                            })
+                            .map(t => t.coltura)
+                            .filter(c => c)
+                    )];
+                    
+                    // Rimuovi legenda esistente
+                    const legendaEsistente = container.querySelector('.mappa-legenda');
+                    if (legendaEsistente) {
+                        legendaEsistente.remove();
+                    }
+                    
+                    // Crea nuova legenda se ci sono colture visibili o zone lavorate
+                    if (coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) {
+                        const legendaDiv = document.createElement('div');
+                        legendaDiv.className = 'mappa-legenda';
+                        legendaDiv.innerHTML = `
+                            <h4>Legenda</h4>
+                            ${coltureVisibili.length > 0 ? `
+                                <div style="margin-bottom: 15px;">
+                                    <strong style="font-size: 11px; color: #666;">Colture:</strong>
+                                    ${coltureVisibili.map(coltura => {
+                                        const color = colturaColors[coltura] || colturaColors['Default'];
+                                        return `
+                                            <div class="mappa-legenda-item">
+                                                <div class="mappa-legenda-color" style="background-color: ${color};"></div>
+                                                <span>${escapeHtml(coltura)}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                    ${terreni.some(t => {
+                                        const matchPodere = !podereFiltro || t.podere === podereFiltro;
+                                        const matchColtura = !colturaFiltro || t.coltura === colturaFiltro;
+                                        return matchPodere && matchColtura && !t.coltura;
+                                    }) ? `
+                                        <div class="mappa-legenda-item">
+                                            <div class="mappa-legenda-color" style="background-color: ${colturaColors['Default']};"></div>
+                                            <span>Non specificato</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+                            ${zoneLavoratePolygons.length > 0 ? `
+                                <div style="margin-top: ${coltureVisibili.length > 0 ? '15px' : '0'}; padding-top: ${coltureVisibili.length > 0 ? '15px' : '0'}; ${coltureVisibili.length > 0 ? 'border-top: 1px solid #ddd;' : ''}">
+                                    <strong style="font-size: 11px; color: #666;">Zone Lavorate:</strong>
+                                    <div class="mappa-legenda-item">
+                                        <div class="mappa-legenda-color" style="background-color: #00FF00; border: 2px solid #00FF00;"></div>
+                                        <span>Zone lavorate attive</span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${lavoroMarkers.length > 0 ? `
+                                <div style="margin-top: ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? '15px' : '0'}; padding-top: ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? '15px' : '0'}; ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? 'border-top: 1px solid #ddd;' : ''}">
+                                    <strong style="font-size: 11px; color: #666;">Indicatori Lavori:</strong>
+                                    <div class="mappa-legenda-item">
+                                        <span style="font-size: 16px; margin-right: 5px;">🔴</span>
+                                        <span>In ritardo</span>
+                                    </div>
+                                    <div class="mappa-legenda-item">
+                                        <span style="font-size: 16px; margin-right: 5px;">🟡</span>
+                                        <span>In tempo</span>
+                                    </div>
+                                    <div class="mappa-legenda-item">
+                                        <span style="font-size: 16px; margin-right: 5px;">🟢</span>
+                                        <span>In anticipo</span>
+                                    </div>
+                                    <div class="mappa-legenda-item">
+                                        <span style="font-size: 16px; margin-right: 5px;">🔵</span>
+                                        <span>In corso</span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        `;
+                        container.appendChild(legendaDiv);
+                    }
+                }
+
+                // Event listener per filtri
+                if (filtroPodereSelect) {
+                    filtroPodereSelect.addEventListener('change', applyFilters);
+                }
+                if (filtroColturaSelect) {
+                    filtroColturaSelect.addEventListener('change', applyFilters);
+                }
+
+                // Toggle overlay lavori attivi (pulsante già presente nell'header)
+                const toggleOverlayBtn = document.getElementById('toggle-overlay-lavori');
+                if (toggleOverlayBtn) {
+                    toggleOverlayBtn.addEventListener('click', function() {
+                        overlayLavoriVisible = !overlayLavoriVisible;
+                        
+                        // Mostra/nascondi poligoni zone lavorate
+                        zoneLavoratePolygons.forEach(polygon => {
+                            if (overlayLavoriVisible) {
+                                polygon.setMap(map);
+                            } else {
+                                polygon.setMap(null);
+                            }
+                        });
+
+                        // Aggiorna stato pulsante
+                        if (overlayLavoriVisible) {
+                            toggleOverlayBtn.classList.add('active');
+                            toggleOverlayBtn.innerHTML = '<span>👷</span> Zone Lavorate <span style="color: #00FF00;">●</span>';
+                        } else {
+                            toggleOverlayBtn.classList.remove('active');
+                            toggleOverlayBtn.innerHTML = '<span>👷</span> Zone Lavorate';
+                        }
+                    });
+                }
+
+                // Toggle indicatori lavori attivi
+                const toggleIndicatoriBtn = document.getElementById('toggle-indicatori-lavori');
+                if (toggleIndicatoriBtn) {
+                    toggleIndicatoriBtn.addEventListener('click', function() {
+                        indicatoriLavoriVisible = !indicatoriLavoriVisible;
+                        
+                        // Mostra/nascondi marker lavori
+                        lavoroMarkers.forEach(marker => {
+                            if (indicatoriLavoriVisible) {
+                                marker.setMap(map);
+                            } else {
+                                marker.setMap(null);
+                            }
+                        });
+
+                        // Aggiorna stato pulsante
+                        if (indicatoriLavoriVisible) {
+                            toggleIndicatoriBtn.classList.add('active');
+                            toggleIndicatoriBtn.innerHTML = '<span>📍</span> Indicatori Lavori <span style="color: #2E8B57;">●</span>';
+                        } else {
+                            toggleIndicatoriBtn.classList.remove('active');
+                            toggleIndicatoriBtn.innerHTML = '<span>📍</span> Indicatori Lavori';
+                        }
+                    });
+                }
+
+                // Crea legenda iniziale (dopo aver caricato le zone lavorate)
+                updateLegenda('', '');
 
             } catch (error) {
                 console.error('Errore caricamento mappa aziendale:', error);

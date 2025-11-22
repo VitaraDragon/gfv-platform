@@ -304,12 +304,40 @@ gfv-platform/
   - Allineamento perfetto con margine destro sezione "Gestione Manodopera"
 - **File modificati**: `core/dashboard-standalone.html`
 
-### Miglioramenti Pianificati Mappa Aziendale (Fase 2) 📋
-**Priorità implementazione**:
-1. **Overlay Lavori Attivi** (Alta priorità) - Visualizzazione zone lavorate sulla mappa
-2. **Filtri (Podere, Coltura)** (Media priorità) - Filtrare terreni per podere/coltura
-3. **Indicatori Stato Lavori** (Media priorità) - Marker colorati per lavori attivi
-4. **Zoom Automatico Migliorato** (Bassa priorità) - Miglioramenti zoom esistente
+### Miglioramenti Mappa Aziendale Fase 2 ✅ COMPLETATI (2025-01-20)
+
+**1. Overlay Lavori Attivi** ✅
+- Visualizzazione zone lavorate come poligoni verdi semi-trasparenti sulla mappa
+- Toggle nell'header per mostrare/nascondere overlay
+- Info window con dettagli lavoro quando si clicca su zona lavorata
+- Caricamento automatico lavori attivi e zone lavorate dal modulo Manodopera
+- Legenda aggiornata con sezione "Zone Lavorate"
+
+**2. Filtri Podere e Coltura** ✅
+- Dropdown filtri nell'header mappa (Podere e Coltura)
+- Filtraggio dinamico terreni visualizzati sulla mappa
+- Filtri combinabili (podere E coltura)
+- Legenda aggiornata automaticamente in base ai filtri attivi
+- Zoom automatico sui terreni filtrati
+
+**3. Indicatori Stato Lavori** ✅
+- Marker colorati per ogni lavoro attivo sulla mappa
+- Colori: rosso (in ritardo), giallo (in tempo), verde (in anticipo), blu (in corso)
+- Marker posizionati al centro del terreno associato
+- Info window completa con dettagli lavoro (nome, terreno, tipo, stato, progresso, superficie, date)
+- Toggle nell'header per mostrare/nascondere indicatori
+- Legenda aggiornata con spiegazione colori indicatori
+
+**4. Zoom Automatico Migliorato** ✅
+- Padding personalizzato (50px standard, 100px per aree grandi) per evitare taglio bordi
+- Zoom intelligente basato su dimensione area:
+  - Terreni molto piccoli: zoom ravvicinato (livello 18)
+  - Terreni normali: zoom automatico con padding standard
+  - Aree molto grandi: zoom più lontano con padding maggiore
+- Zoom automatico quando si applicano filtri
+- Gestione responsive al ridimensionamento finestra
+
+**File modificati**: `core/dashboard-standalone.html`
 
 ## 📝 Aggiornamenti Recenti (2025-01-20) - Mappa Aziendale
 

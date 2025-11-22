@@ -2,7 +2,7 @@
 
 **Ultimo aggiornamento**: 2025-01-20  
 **Versione**: 2.0.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager
+**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato)
 
 ---
 
@@ -1002,6 +1002,12 @@ tenants/{tenantId}/comunicazioni/{comunicazioneId}
 
 **Stato**: ✅ **TESTATO E FUNZIONANTE**
 
+**Miglioramenti Fase 2 implementati** (2025-01-20):
+- ✅ **Overlay Lavori Attivi**: Visualizzazione zone lavorate come poligoni verdi semi-trasparenti, toggle nell'header, info window con dettagli lavoro
+- ✅ **Filtri Podere e Coltura**: Dropdown filtri nell'header, filtraggio dinamico terreni, legenda aggiornata automaticamente, zoom sui terreni filtrati
+- ✅ **Indicatori Stato Lavori**: Marker colorati per lavori attivi (rosso/giallo/verde/blu), posizionati al centro terreno, info window completa, toggle nell'header
+- ✅ **Zoom Automatico Migliorato**: Padding personalizzato, zoom intelligente basato su dimensione area, gestione terreni piccoli/grandi, responsive
+
 **Problema Risolto**:
 - ⚠️ Chiavi API Firebase e Google Maps esposte pubblicamente su GitHub
 - ⚠️ Google ha inviato notifiche di sicurezza per chiavi compromesse
@@ -1653,13 +1659,59 @@ modules/vendemmia/
 - ✅ Responsive design completo (desktop, tablet, mobile)
 - ✅ Allineamento perfetto con sezione "Gestione Manodopera" sottostante
 
-**Miglioramenti pianificati (Fase 2)**:
-- [ ] Overlay lavori attivi (visualizzazione zone lavorate sulla mappa) - **Alta priorità**
-- [ ] Filtri (podere, coltura) per filtrare terreni visualizzati - **Media priorità**
-- [ ] Indicatori stato lavori (marker colorati per lavori attivi) - **Media priorità**
-- [ ] Zoom automatico migliorato (padding personalizzato, zoom intelligente) - **Bassa priorità**
+**Miglioramenti Fase 2 implementati** (2025-01-20):
+- ✅ Overlay lavori attivi (visualizzazione zone lavorate sulla mappa) - **COMPLETATO**
+- ✅ Filtri (podere, coltura) per filtrare terreni visualizzati - **COMPLETATO**
+- ✅ Indicatori stato lavori (marker colorati per lavori attivi) - **COMPLETATO**
+- ✅ Zoom automatico migliorato (padding personalizzato, zoom intelligente) - **COMPLETATO**
 
-**Stato**: ✅ **TESTATO E FUNZIONANTE**
+**Stato**: ✅ **TESTATO E FUNZIONANTE - FASE 2 COMPLETA**
+
+### Miglioramenti Fase 2 Mappa Aziendale ✅
+**Data completamento**: 2025-01-20
+
+**File modificati**:
+- `core/dashboard-standalone.html` - Aggiunti tutti i miglioramenti Fase 2
+
+**1. Overlay Lavori Attivi** ✅
+- Visualizzazione zone lavorate come poligoni verdi semi-trasparenti sulla mappa
+- Toggle nell'header "Zone Lavorate" per mostrare/nascondere overlay
+- Caricamento automatico lavori attivi e zone lavorate dal modulo Manodopera
+- Info window con dettagli lavoro quando si clicca su zona lavorata (nome, tipo, data, superficie, completamento)
+- Legenda aggiornata con sezione "Zone Lavorate"
+
+**2. Filtri Podere e Coltura** ✅
+- Dropdown filtri nell'header mappa (Podere e Coltura)
+- Filtraggio dinamico terreni visualizzati sulla mappa
+- Filtri combinabili (podere E coltura)
+- Legenda aggiornata automaticamente in base ai filtri attivi
+- Zoom automatico sui terreni filtrati
+
+**3. Indicatori Stato Lavori** ✅
+- Marker colorati per ogni lavoro attivo sulla mappa
+- Colori distinti: rosso (in ritardo), giallo (in tempo), verde (in anticipo), blu (in corso)
+- Marker posizionati al centro del terreno associato al lavoro
+- Info window completa con dettagli lavoro (nome, terreno, tipo, stato, progresso, superficie, date)
+- Toggle nell'header "Indicatori Lavori" per mostrare/nascondere marker
+- Legenda aggiornata con spiegazione colori indicatori
+
+**4. Zoom Automatico Migliorato** ✅
+- Padding personalizzato (50px standard, 100px per aree grandi) per evitare taglio bordi
+- Zoom intelligente basato su dimensione area:
+  - Terreni molto piccoli (< 0.0005°): zoom ravvicinato (livello 18)
+  - Terreni normali: zoom automatico con padding standard
+  - Aree molto grandi (> 0.1°): zoom più lontano con padding maggiore
+- Zoom automatico quando si applicano filtri
+- Gestione responsive al ridimensionamento finestra
+
+**Vantaggi**:
+- ✅ Vista operativa completa con overlay lavori attivi
+- ✅ Filtraggio rapido per analisi specifiche
+- ✅ Monitoraggio stato lavori direttamente sulla mappa
+- ✅ Zoom ottimizzato per ogni situazione
+- ✅ Interfaccia completa e professionale
+
+**Stato**: ✅ **TUTTI I MIGLIORAMENTI TESTATI E FUNZIONANTI**
 
 ## 📝 Modifiche Recenti (2025-01-16)
 
@@ -2012,7 +2064,7 @@ git ls-files | grep "vecchia"
 **Riorganizzazione Dashboard Manager**: ✅ Completo e funzionante (Core Base nascosto con Manodopera attivo, card Amministrazione e Statistiche, dashboard pulita e organizzata)
 **Pagina Amministrazione Dedicata**: ✅ Completo e funzionante (Pagina dedicata con statistiche piano/moduli/utenti e card funzionalità)
 **Pagina Statistiche Manodopera**: ✅ Completo e funzionante (Pagina dedicata con statistiche complete organizzate per categoria, struttura modulare)
-**Mappa Aziendale Dashboard Manager**: ✅ Completo e funzionante (Vista mappa satellitare con tutti i terreni, layout responsive, interattività click per info, legenda colture)
+**Mappa Aziendale Dashboard Manager**: ✅ Completo e funzionante (Vista mappa satellitare con tutti i terreni, layout responsive, interattività click per info, legenda colture, overlay lavori attivi, filtri podere/coltura, indicatori stato lavori, zoom automatico migliorato)
 **Test Automatici**: ✅ 47 test funzionanti (modelli e validazioni)  
 **Audit Codice**: ✅ Completato (report disponibile in AUDIT_REPORT.md)  
 **Sicurezza API**: ✅ Chiavi API protette e funzionanti online  
