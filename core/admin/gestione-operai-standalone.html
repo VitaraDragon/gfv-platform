@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Operai - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal .btn-primary {
+            background: #2E8B57;
+            color: white;
+            border: none;
+        }
+
+        .modal .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #2E8B57;
+            font-size: 24px;
+        }
+
+        .operai-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .operai-table th,
+        .operai-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .operai-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+        }
+
+        .operai-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-secondary {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .alert-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .alert-badge.green {
+            background: #28a745;
+        }
+
+        .alert-badge.yellow {
+            background: #ffc107;
+        }
+
+        .alert-badge.red {
+            background: #dc3545;
+        }
+
+        .alert-badge.grey {
+            background: #6c757d;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2E8B57;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .form-group small {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .operai-table {
+                font-size: 12px;
+            }
+
+            .operai-table th,
+            .operai-table td {
+                padding: 8px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>👷 Gestione Operai</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Gestisci contratti e tipi operai</p>
+            </div>
+            <div class="header-actions">
+                <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Filtra per Stato</label>
+                    <select id="filter-stato">
+                        <option value="tutti">Tutti</option>
+                        <option value="attivi">Solo Attivi</option>
+                        <option value="scaduti">Solo Scaduti</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Tipo Contratto</label>
+                    <select id="filter-tipo-contratto">
+                        <option value="tutti">Tutti</option>
+                        <option value="stagionale">Stagionale</option>
+                        <option value="determinato">Determinato</option>
+                        <option value="indeterminato">Indeterminato</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Tipo Operaio</label>
+                    <select id="filter-tipo-operaio">
+                        <option value="tutti">Tutti</option>
+                        <option value="semplice">Operaio Semplice</option>
+                        <option value="specializzato">Operaio Specializzato</option>
+                        <option value="trattorista">Trattorista</option>
+                        <option value="meccanico">Meccanico</option>
+                        <option value="elettricista">Elettricista</option>
+                        <option value="altro">Altro</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Alert</label>
+                    <select id="filter-alert">
+                        <option value="tutti">Tutti</option>
+                        <option value="rosso">🔴 Rosso (0-7 giorni)</option>
+                        <option value="giallo">🟡 Giallo (8-30 giorni)</option>
+                        <option value="verde">🟢 Verde (>30 giorni)</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="align-self: flex-end;">
+                    <button class="btn btn-secondary" onclick="resetFilters()">Pulisci Filtri</button>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2>Elenco Operai</h2>
+                <div id="operai-count">0 operai</div>
+            </div>
+
+            <div id="operai-container">
+                <div class="loading">Caricamento operai...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Modifica Contratto -->
+    <div id="contratto-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifica Contratto</h3>
+                <button class="close-btn" onclick="closeContrattoModal()">&times;</button>
+            </div>
+            <form id="contratto-form" onsubmit="handleSalvaContratto(event)">
+                <input type="hidden" id="contratto-user-id">
+                
+                <div class="form-group">
+                    <label for="tipo-operaio">Tipo Operaio</label>
+                    <select id="tipo-operaio">
+                        <option value="">-- Seleziona --</option>
+                        <option value="semplice">Operaio Semplice</option>
+                        <option value="specializzato">Operaio Specializzato</option>
+                        <option value="trattorista">Trattorista</option>
+                        <option value="meccanico">Meccanico</option>
+                        <option value="elettricista">Elettricista</option>
+                        <option value="altro">Altro</option>
+                    </select>
+                    <small>Opzionale. Utile per calcolo compensi futuri.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo-contratto">Tipo Contratto *</label>
+                    <select id="tipo-contratto" required>
+                        <option value="">-- Seleziona --</option>
+                        <option value="stagionale">Stagionale</option>
+                        <option value="determinato">Determinato</option>
+                        <option value="indeterminato">Indeterminato</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="data-inizio">Data Inizio Contratto</label>
+                    <input type="date" id="data-inizio">
+                </div>
+
+                <div class="form-group" id="data-scadenza-group">
+                    <label for="data-scadenza">Data Scadenza Contratto *</label>
+                    <input type="date" id="data-scadenza">
+                    <small id="data-scadenza-info">Obbligatoria per contratti stagionali e determinati.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="note-contratto">Note Contratto</label>
+                    <textarea id="note-contratto" placeholder="Note aggiuntive sul contratto..."></textarea>
+                    <small>Opzionale.</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeContrattoModal()">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase config from external file -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, getDoc, doc, collection, getDocs, query, where, setDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentTenantId = null;
+        let operai = [];
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        currentTenantId = userData.tenantId;
+
+                        // Verifica permessi (solo Manager o Amministratore)
+                        const ruoli = userData.ruoli || [];
+                        const isManager = ruoli.some(r => {
+                            const roleLower = r.toLowerCase();
+                            return roleLower.includes('manager') || roleLower.includes('amministratore');
+                        });
+
+                        if (!isManager) {
+                            showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                            setTimeout(() => {
+                                window.location.href = '../dashboard-standalone.html';
+                            }, 2000);
+                            return;
+                        }
+
+                        // Verifica modulo Manodopera
+                        if (currentTenantId) {
+                            try {
+                                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                                if (tenantDoc.exists()) {
+                                    const tenantData = tenantDoc.data();
+                                    const hasManodopera = tenantData.modules && tenantData.modules.includes('manodopera');
+                                    if (!hasManodopera) {
+                                        showAlert('Questa pagina è disponibile solo con il modulo Manodopera attivo.', 'error');
+                                        setTimeout(() => {
+                                            window.location.href = '../dashboard-standalone.html';
+                                        }, 3000);
+                                        return;
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn('Errore verifica modulo:', error);
+                            }
+                        }
+
+                        // Setup filtri
+                        setupFilters();
+                        // Carica operai
+                        await loadOperai();
+                    } else {
+                        window.location.href = '../auth/login-standalone.html';
+                    }
+                } catch (error) {
+                    console.error('Errore:', error);
+                    showAlert('Errore caricamento dati', 'error');
+                }
+            } else {
+                window.location.href = '../auth/login-standalone.html';
+            }
+        });
+
+        // Setup filtri
+        function setupFilters() {
+            document.getElementById('filter-stato').addEventListener('change', () => filterOperai());
+            document.getElementById('filter-tipo-contratto').addEventListener('change', () => filterOperai());
+            document.getElementById('filter-tipo-operaio').addEventListener('change', () => filterOperai());
+            document.getElementById('filter-alert').addEventListener('change', () => filterOperai());
+        }
+
+        // Reset filtri
+        function resetFilters() {
+            document.getElementById('filter-stato').value = 'tutti';
+            document.getElementById('filter-tipo-contratto').value = 'tutti';
+            document.getElementById('filter-tipo-operaio').value = 'tutti';
+            document.getElementById('filter-alert').value = 'tutti';
+            filterOperai();
+        }
+
+        // Carica operai
+        async function loadOperai() {
+            const container = document.getElementById('operai-container');
+            container.innerHTML = '<div class="loading">Caricamento operai...</div>';
+
+            try {
+                if (!currentTenantId) {
+                    container.innerHTML = '<div class="empty-state">Nessun tenant trovato</div>';
+                    return;
+                }
+
+                const usersQuery = query(
+                    collection(db, 'users'),
+                    where('tenantId', '==', currentTenantId)
+                );
+
+                const snapshot = await getDocs(usersQuery);
+                operai = [];
+
+                snapshot.forEach(doc => {
+                    const userData = { id: doc.id, ...doc.data() };
+                    const ruoli = userData.ruoli || [];
+                    
+                    // Filtra solo operai
+                    if (ruoli.some(r => r.toLowerCase().includes('operaio'))) {
+                        operai.push(userData);
+                    }
+                });
+
+                filterOperai();
+            } catch (error) {
+                console.error('Errore caricamento operai:', error);
+                showAlert('Errore caricamento operai', 'error');
+                container.innerHTML = '<div class="empty-state">Errore caricamento operai</div>';
+            }
+        }
+
+        // Calcola alert semaforo
+        function calcolaAlert(tipoContratto, dataScadenza) {
+            if (!tipoContratto || tipoContratto === 'indeterminato') {
+                return { colore: 'green', testo: 'Indeterminato', giorni: null };
+            }
+
+            if (!dataScadenza) {
+                return { colore: 'grey', testo: 'Data non impostata', giorni: null };
+            }
+
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            
+            const scadenza = dataScadenza.toDate ? dataScadenza.toDate() : new Date(dataScadenza);
+            scadenza.setHours(0, 0, 0, 0);
+
+            const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+
+            if (giorniRimanenti < 0) {
+                return { colore: 'grey', testo: 'Scaduto', giorni: giorniRimanenti };
+            } else if (giorniRimanenti <= 7) {
+                return { colore: 'red', testo: `${giorniRimanenti} giorni`, giorni: giorniRimanenti };
+            } else if (giorniRimanenti <= 30) {
+                return { colore: 'yellow', testo: `${giorniRimanenti} giorni`, giorni: giorniRimanenti };
+            } else {
+                return { colore: 'green', testo: `${giorniRimanenti} giorni`, giorni: giorniRimanenti };
+            }
+        }
+
+        // Formatta data
+        function formattaData(data) {
+            if (!data) return '-';
+            const d = data.toDate ? data.toDate() : new Date(data);
+            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        // Filtra operai
+        function filterOperai() {
+            const filterStato = document.getElementById('filter-stato').value;
+            const filterTipoContratto = document.getElementById('filter-tipo-contratto').value;
+            const filterTipoOperaio = document.getElementById('filter-tipo-operaio').value;
+            const filterAlert = document.getElementById('filter-alert').value;
+
+            let filtered = operai.filter(operaio => {
+                // Filtro stato
+                if (filterStato === 'attivi') {
+                    const alert = calcolaAlert(operaio.tipoContratto, operaio.dataScadenzaContratto);
+                    if (alert.giorni !== null && alert.giorni < 0) return false;
+                } else if (filterStato === 'scaduti') {
+                    const alert = calcolaAlert(operaio.tipoContratto, operaio.dataScadenzaContratto);
+                    if (alert.giorni === null || alert.giorni >= 0) return false;
+                }
+
+                // Filtro tipo contratto
+                if (filterTipoContratto !== 'tutti' && operaio.tipoContratto !== filterTipoContratto) {
+                    return false;
+                }
+
+                // Filtro tipo operaio
+                if (filterTipoOperaio !== 'tutti' && operaio.tipoOperaio !== filterTipoOperaio) {
+                    return false;
+                }
+
+                // Filtro alert
+                if (filterAlert !== 'tutti') {
+                    const alert = calcolaAlert(operaio.tipoContratto, operaio.dataScadenzaContratto);
+                    if (filterAlert === 'rosso' && alert.colore !== 'red') return false;
+                    if (filterAlert === 'giallo' && alert.colore !== 'yellow') return false;
+                    if (filterAlert === 'verde' && alert.colore !== 'green') return false;
+                }
+
+                return true;
+            });
+
+            // Ordina per scadenza (più urgenti prima)
+            filtered.sort((a, b) => {
+                const alertA = calcolaAlert(a.tipoContratto, a.dataScadenzaContratto);
+                const alertB = calcolaAlert(b.tipoContratto, b.dataScadenzaContratto);
+                
+                // Indeterminati alla fine
+                if (alertA.giorni === null && alertB.giorni !== null) return 1;
+                if (alertA.giorni !== null && alertB.giorni === null) return -1;
+                if (alertA.giorni === null && alertB.giorni === null) return 0;
+                
+                // Scaduti alla fine
+                if (alertA.giorni < 0 && alertB.giorni >= 0) return 1;
+                if (alertA.giorni >= 0 && alertB.giorni < 0) return -1;
+                
+                // Ordina per giorni rimanenti (meno giorni = più urgente)
+                return alertA.giorni - alertB.giorni;
+            });
+
+            renderOperai(filtered);
+        }
+
+        // Render operai
+        function renderOperai(operaiList) {
+            const container = document.getElementById('operai-container');
+            document.getElementById('operai-count').textContent = `${operaiList.length} operai`;
+
+            if (operaiList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👷</div><p>Nessun operaio trovato</p></div>';
+                return;
+            }
+
+            const tipoOperaioNames = {
+                'semplice': 'Operaio Semplice',
+                'specializzato': 'Operaio Specializzato',
+                'trattorista': 'Trattorista',
+                'meccanico': 'Meccanico',
+                'elettricista': 'Elettricista',
+                'altro': 'Altro'
+            };
+
+            const tipoContrattoNames = {
+                'stagionale': 'Stagionale',
+                'determinato': 'Determinato',
+                'indeterminato': 'Indeterminato'
+            };
+
+            let html = `
+                <table class="operai-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Tipo Operaio</th>
+                            <th>Tipo Contratto</th>
+                            <th>Data Inizio</th>
+                            <th>Data Scadenza</th>
+                            <th>Alert</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            operaiList.forEach(operaio => {
+                const alert = calcolaAlert(operaio.tipoContratto, operaio.dataScadenzaContratto);
+                const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || 'N/A';
+                
+                html += `
+                    <tr>
+                        <td>${nomeCompleto}</td>
+                        <td>${operaio.email || '-'}</td>
+                        <td>${operaio.tipoOperaio ? tipoOperaioNames[operaio.tipoOperaio] || operaio.tipoOperaio : '-'}</td>
+                        <td>${operaio.tipoContratto ? tipoContrattoNames[operaio.tipoContratto] || operaio.tipoContratto : '-'}</td>
+                        <td>${formattaData(operaio.dataInizioContratto)}</td>
+                        <td>${operaio.tipoContratto === 'indeterminato' ? '-' : formattaData(operaio.dataScadenzaContratto)}</td>
+                        <td>
+                            <span class="alert-badge ${alert.colore}" title="${alert.testo}"></span>
+                            <span style="margin-left: 5px; font-size: 12px;">${alert.testo}</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-info btn-sm" onclick="openContrattoModal('${operaio.id}')">✏️ Modifica</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Apri modal contratto
+        function openContrattoModal(userId) {
+            const operaio = operai.find(o => o.id === userId);
+            if (!operaio) return;
+
+            document.getElementById('contratto-user-id').value = userId;
+            document.getElementById('tipo-operaio').value = operaio.tipoOperaio || '';
+            document.getElementById('tipo-contratto').value = operaio.tipoContratto || '';
+            
+            // Data inizio
+            if (operaio.dataInizioContratto) {
+                const dataInizio = operaio.dataInizioContratto.toDate ? operaio.dataInizioContratto.toDate() : new Date(operaio.dataInizioContratto);
+                document.getElementById('data-inizio').value = dataInizio.toISOString().split('T')[0];
+            } else {
+                document.getElementById('data-inizio').value = '';
+            }
+
+            // Data scadenza
+            if (operaio.dataScadenzaContratto) {
+                const dataScadenza = operaio.dataScadenzaContratto.toDate ? operaio.dataScadenzaContratto.toDate() : new Date(operaio.dataScadenzaContratto);
+                document.getElementById('data-scadenza').value = dataScadenza.toISOString().split('T')[0];
+            } else {
+                document.getElementById('data-scadenza').value = '';
+            }
+
+            document.getElementById('note-contratto').value = operaio.noteContratto || '';
+
+            // Mostra/nascondi campo scadenza in base al tipo contratto
+            updateScadenzaVisibility();
+
+            document.getElementById('contratto-modal').classList.add('active');
+        }
+
+        // Chiudi modal contratto
+        function closeContrattoModal() {
+            document.getElementById('contratto-modal').classList.remove('active');
+            document.getElementById('contratto-form').reset();
+        }
+
+        // Aggiorna visibilità campo scadenza
+        function updateScadenzaVisibility() {
+            const tipoContratto = document.getElementById('tipo-contratto').value;
+            const scadenzaGroup = document.getElementById('data-scadenza-group');
+            const scadenzaInput = document.getElementById('data-scadenza');
+            const scadenzaInfo = document.getElementById('data-scadenza-info');
+
+            if (tipoContratto === 'indeterminato') {
+                scadenzaGroup.style.display = 'none';
+                scadenzaInput.removeAttribute('required');
+            } else {
+                scadenzaGroup.style.display = 'block';
+                scadenzaInput.setAttribute('required', 'required');
+                if (tipoContratto === 'stagionale' || tipoContratto === 'determinato') {
+                    scadenzaInfo.textContent = 'Obbligatoria per contratti stagionali e determinati.';
+                }
+            }
+        }
+
+        // Listener cambio tipo contratto
+        document.getElementById('tipo-contratto').addEventListener('change', updateScadenzaVisibility);
+
+        // Salva contratto
+        async function handleSalvaContratto(e) {
+            e.preventDefault();
+
+            const userId = document.getElementById('contratto-user-id').value;
+            const tipoOperaio = document.getElementById('tipo-operaio').value || null;
+            const tipoContratto = document.getElementById('tipo-contratto').value;
+            const dataInizio = document.getElementById('data-inizio').value;
+            const dataScadenza = document.getElementById('data-scadenza').value;
+            const noteContratto = document.getElementById('note-contratto').value || null;
+
+            // Validazione
+            if (!tipoContratto) {
+                showAlert('Seleziona un tipo contratto', 'error');
+                return;
+            }
+
+            if (tipoContratto !== 'indeterminato' && !dataScadenza) {
+                showAlert('Data scadenza obbligatoria per contratti stagionali e determinati', 'error');
+                return;
+            }
+
+            if (dataInizio && dataScadenza) {
+                const inizio = new Date(dataInizio);
+                const scadenza = new Date(dataScadenza);
+                if (scadenza < inizio) {
+                    showAlert('La data di scadenza deve essere successiva alla data di inizio', 'error');
+                    return;
+                }
+            }
+
+            try {
+                const userRef = doc(db, 'users', userId);
+                const updateData = {
+                    tipoOperaio: tipoOperaio,
+                    tipoContratto: tipoContratto,
+                    dataInizioContratto: dataInizio ? Timestamp.fromDate(new Date(dataInizio)) : null,
+                    dataScadenzaContratto: tipoContratto !== 'indeterminato' && dataScadenza ? Timestamp.fromDate(new Date(dataScadenza)) : null,
+                    noteContratto: noteContratto
+                };
+
+                await setDoc(userRef, updateData, { merge: true });
+
+                showAlert('Contratto salvato con successo', 'success');
+                closeContrattoModal();
+                await loadOperai();
+            } catch (error) {
+                console.error('Errore salvataggio contratto:', error);
+                showAlert('Errore salvataggio contratto', 'error');
+            }
+        }
+
+        // Mostra alert
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Export funzioni globali
+        window.openContrattoModal = openContrattoModal;
+        window.closeContrattoModal = closeContrattoModal;
+        window.handleSalvaContratto = handleSalvaContratto;
+        window.resetFilters = resetFilters;
+    </script>
+</body>
+</html>
+

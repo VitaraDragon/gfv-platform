@@ -1048,6 +1048,11 @@
                     <span class="action-title">Gestione Squadre</span>
                     <span class="action-description">Crea e gestisci squadre di lavoro</span>
                 </a>
+                <a href="admin/gestione-operai-standalone.html" class="action-card">
+                    <span class="action-icon">👷‍♂️</span>
+                    <span class="action-title">Gestione Operai</span>
+                    <span class="action-description">Gestisci contratti e scadenze operai</span>
+                </a>
             `;
             
             // Report completi solo se ci sono moduli avanzati
@@ -2508,8 +2513,9 @@
                     lavoriIds.push(doc.id);
                     
                     // Calcola superficie lavorata (dalle zone lavorate)
-                    if (lavoro.superficieLavorata) {
-                        superficieLavorata += lavoro.superficieLavorata;
+                    // Usa superficieTotaleLavorata che viene aggiornato quando si tracciano zone lavorate
+                    if (lavoro.superficieTotaleLavorata) {
+                        superficieLavorata += lavoro.superficieTotaleLavorata;
                     }
                 });
                 

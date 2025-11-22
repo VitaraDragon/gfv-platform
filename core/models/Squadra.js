@@ -126,3 +126,4 @@ export class Squadra extends Base {
 export default Squadra;
 
 
+

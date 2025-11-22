@@ -22,6 +22,11 @@ export class User extends Base {
    * @param {Date} data.creatoIl - Data creazione
    * @param {Date} data.ultimoAccesso - Data ultimo accesso
    * @param {string} data.invitoId - ID invito (se creato tramite invito)
+   * @param {string} data.tipoOperaio - Tipo operaio ('semplice' | 'specializzato' | 'trattorista' | 'meccanico' | 'elettricista' | 'altro')
+   * @param {string} data.tipoContratto - Tipo contratto ('stagionale' | 'determinato' | 'indeterminato')
+   * @param {Date|Timestamp} data.dataInizioContratto - Data inizio contratto
+   * @param {Date|Timestamp} data.dataScadenzaContratto - Data scadenza contratto
+   * @param {string} data.noteContratto - Note contratto
    */
   constructor(data = {}) {
     super(data);
@@ -36,6 +41,13 @@ export class User extends Base {
     this.creatoIl = data.creatoIl ? (data.creatoIl instanceof Date ? data.creatoIl : new Date(data.creatoIl)) : null;
     this.ultimoAccesso = data.ultimoAccesso ? (data.ultimoAccesso instanceof Date ? data.ultimoAccesso : new Date(data.ultimoAccesso)) : null;
     this.invitoId = data.invitoId || null;
+    
+    // Campi contratto
+    this.tipoOperaio = data.tipoOperaio || null;
+    this.tipoContratto = data.tipoContratto || null;
+    this.dataInizioContratto = data.dataInizioContratto ? (data.dataInizioContratto instanceof Date ? data.dataInizioContratto : (data.dataInizioContratto.toDate ? data.dataInizioContratto.toDate() : new Date(data.dataInizioContratto))) : null;
+    this.dataScadenzaContratto = data.dataScadenzaContratto ? (data.dataScadenzaContratto instanceof Date ? data.dataScadenzaContratto : (data.dataScadenzaContratto.toDate ? data.dataScadenzaContratto.toDate() : new Date(data.dataScadenzaContratto))) : null;
+    this.noteContratto = data.noteContratto || null;
   }
   
   /**
@@ -177,6 +189,7 @@ export class User extends Base {
 }
 
 export default User;
+
 
 
 

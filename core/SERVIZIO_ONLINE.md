@@ -65,3 +65,4 @@ Se hai Python installato (molto probabile su Windows):
 
 
 
+

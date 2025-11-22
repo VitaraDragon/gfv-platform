@@ -1283,7 +1283,8 @@
                         // Calcola stato progresso se non presente
                         if (!lavoroConProgressi.statoProgresso && giorniEffettivi > 0) {
                             const superficieTotale = lavoroConProgressi.terreno?.superficie || 0;
-                            const superficieLavorata = lavoroConProgressi.superficieLavorata || 0;
+                            // Usa superficieTotaleLavorata dal documento lavoro o superficieLavorata calcolata da loadProgressiLavoro
+                            const superficieLavorata = lavoroConProgressi.superficieTotaleLavorata || lavoroConProgressi.superficieLavorata || 0;
                             const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100) : 0;
                             const percentualeTempo = (giorniEffettivi / lavoroConProgressi.durataPrevista) * 100;
                             const tolleranza = 10; // Tolleranza del 10%
@@ -1345,7 +1346,8 @@
                         : 'N/A';
                     
                     const superficieTotale = lavoro.terreno?.superficie || 0;
-                    const superficieLavorata = lavoro.superficieLavorata || 0;
+                    // Usa superficieTotaleLavorata dal documento lavoro
+                    const superficieLavorata = lavoro.superficieTotaleLavorata || 0;
                     const percentualeTracciata = lavoro.percentualeCompletamentoTracciata || 
                         (superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0);
                     
@@ -1418,7 +1420,8 @@
                 
                 // Calcola progressi
                 const superficieTotale = lavoro.terreno?.superficie || 0;
-                const superficieLavorata = lavoro.superficieLavorata || 0;
+                // Usa superficieTotaleLavorata dal documento lavoro
+                const superficieLavorata = lavoro.superficieTotaleLavorata || 0;
                 const percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
                 const progressBar = superficieTotale > 0 ? `
                     <div class="progress-bar-inline">
@@ -1845,6 +1848,16 @@
         // Carica progressi per un singolo lavoro
         async function loadProgressiLavoro(lavoroId) {
             try {
+                // Prima prova a usare il campo del documento lavoro (più veloce)
+                const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+                if (lavoroDoc.exists()) {
+                    const lavoroData = lavoroDoc.data();
+                    if (lavoroData.superficieTotaleLavorata) {
+                        return { superficieLavorata: lavoroData.superficieTotaleLavorata };
+                    }
+                }
+                
+                // Fallback: calcola dalle zone lavorate (più accurato ma più lento)
                 const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
                 const zoneSnapshot = await getDocs(zoneRef);
                 

@@ -369,6 +369,95 @@ gfv-platform/
 3. **Indicatori Stato Lavori** (Media priorità) - Marker colorati per lavori attivi
 4. **Zoom Automatico Migliorato** (Bassa priorità) - Miglioramenti zoom esistente
 
+## 📝 Aggiornamenti Recenti (2025-01-21)
+
+### Gestione Contratti Operai ✅
+**Data completamento**: 2025-01-21
+
+**File creati**:
+- `core/admin/gestione-operai-standalone.html` - Pagina dedicata gestione contratti operai
+
+**File modificati**:
+- `core/models/User.js` - Aggiunti campi contratto (tipoOperaio, tipoContratto, dataInizioContratto, dataScadenzaContratto, noteContratto)
+- `core/dashboard-standalone.html` - Aggiunto link Gestione Operai nella sezione Amministrazione
+- `core/admin/amministrazione-standalone.html` - Aggiunta card Gestione Operai
+
+**Funzionalità implementate**:
+- ✅ Pagina Gestione Operai con filtro automatico per ruolo "operaio"
+- ✅ Tabella completa con colonne: Nome, Email, Tipo Operaio, Tipo Contratto, Data Inizio, Data Scadenza, Alert, Azioni
+- ✅ Tipi Operai: 6 tipi predefiniti (Semplice, Specializzato, Trattorista, Meccanico, Elettricista, Altro)
+- ✅ Gestione Contratti: Tipo Contratto (Stagionale/Determinato/Indeterminato), Date Inizio/Scadenza, Note
+- ✅ Sistema Semaforo Alert: Verde (>30 giorni), Giallo (8-30 giorni), Rosso (0-7 giorni), Grigio (scaduto)
+- ✅ Filtri Avanzati: Per Stato, Tipo Contratto, Tipo Operaio, Alert
+- ✅ Storico Contratti: Contratti scaduti rimangono visibili per storico
+- ✅ Validazione: Data scadenza >= data inizio, campi obbligatori verificati
+- ✅ Permessi: Solo Manager/Amministratore può vedere/modificare contratti
+
+**Vantaggi**:
+- ✅ Scadenziario completo per monitorare rinnovi contratti
+- ✅ Sistema alert automatico per non perdere scadenze
+- ✅ Tipi operai pronti per calcolo compensi futuri
+- ✅ Storico completo contratti per tracciabilità
+- ✅ Semplice e funzionale, senza complessità normative
+
+**File modificati**:
+- `core/models/User.js`
+- `core/admin/gestione-operai-standalone.html`
+- `core/dashboard-standalone.html`
+- `core/admin/amministrazione-standalone.html`
+
+### Report Ore Operai con Filtri Avanzati ✅
+**Data completamento**: 2025-01-21
+
+**File modificati**:
+- `core/admin/statistiche-manodopera-standalone.html` - Aggiunta sezione Report Ore Operai completa
+
+**Funzionalità implementate**:
+- ✅ Sezione Report Ore Operai nella pagina Statistiche Manodopera
+- ✅ Filtri periodo: Oggi / Questa Settimana / Questo Mese / Personalizzato
+- ✅ Filtro per Tipo Operaio: Tutti i 6 tipi disponibili
+- ✅ Filtro per Singolo Operaio: Dropdown con lista operai completa
+- ✅ Aggiornamento automatico con debounce (700ms) quando si cambiano i filtri
+- ✅ Statistiche aggregate: Ore Totali, Media Ore/Giorno, Giorni Lavorati, Operai Attivi
+- ✅ Statistiche per tipo operaio: Card con ore aggregate per categoria
+- ✅ Tabella report operai: Colonne complete con ordinamento automatico
+- ✅ Formattazione ore leggibile (es. "8h 30min")
+- ✅ Colori distinti per ore validate (verde) e da validare (giallo)
+- ✅ Pulsante "Pulisci Filtri" per reset rapido
+
+**Vantaggi**:
+- ✅ Analisi rapida ore lavorate per periodo/tipo/singolo operaio
+- ✅ Aggiornamento automatico senza click ripetuti (miglior UX)
+- ✅ Statistiche aggregate sempre aggiornate in base ai filtri
+- ✅ Flessibilità filtri combinati per analisi approfondite
+- ✅ Performance ottimizzata con debounce per evitare query multiple
+
+**File modificati**:
+- `core/admin/statistiche-manodopera-standalone.html`
+
+### Fix Superficie Lavorata Dashboard Manager ✅
+**Data completamento**: 2025-01-21
+
+**Problema risolto**:
+- La card "Superficie Lavorata" nella dashboard Manager mostrava sempre 0.00 HA
+- Causa: campo cercato era `superficieLavorata` invece di `superficieTotaleLavorata`
+
+**Correzioni applicate**:
+- ✅ Corretto campo nella dashboard Manager (`loadManagerManodoperaStats()`)
+- ✅ Corretto campo nella pagina Statistiche (`loadSuperficieStats()`)
+- ✅ Corretti riferimenti in Gestione Lavori con fallback per compatibilità
+- ✅ Migliorata funzione `loadProgressiLavoro()` per usare prima campo documento
+
+**Risultato**:
+- ✅ La superficie lavorata ora mostra correttamente gli ettari lavorati
+- ✅ Dati calcolati dalle zone tracciate dai caposquadra
+- ✅ Compatibilità con lavori vecchi senza campo aggiornato
+
+**File modificati**:
+- `core/dashboard-standalone.html`
+- `core/admin/statistiche-manodopera-standalone.html`
+- `core/admin/gestione-lavori-standalone.html`
+
 
 
 

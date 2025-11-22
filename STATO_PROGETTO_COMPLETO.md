@@ -1,8 +1,8 @@
 # 📋 Stato Progetto Completo - GFV Platform
 
-**Ultimo aggiornamento**: 2025-01-20  
+**Ultimo aggiornamento**: 2025-01-21  
 **Versione**: 2.0.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato)
+**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Fix Superficie Lavorata Dashboard
 
 ---
 
@@ -1136,14 +1136,15 @@ gfv-platform/
 │   │   ├── gestione-squadre-standalone.html ✅ (Modulo Manodopera - TESTATO)
 │   │   ├── gestione-lavori-standalone.html ✅ (Modulo Manodopera - TESTATO)
 │   │   ├── lavori-caposquadra-standalone.html ✅ (Modulo Manodopera - TESTATO)
-│   │   └── validazione-ore-standalone.html ✅ (Modulo Manodopera - TESTATO - validazione ore)
+│   │   ├── validazione-ore-standalone.html ✅ (Modulo Manodopera - TESTATO - validazione ore)
+│   │   └── gestione-operai-standalone.html ✅ (Modulo Manodopera - TESTATO - gestione contratti operai)
 │   ├── dashboard.html                    ✅ (versione normale)
 │   ├── dashboard-standalone.html         ✅ (TESTATO - FUNZIONANTE - con fallback)
 │   ├── firebase-config.js                ⚠️ (deprecato - ora usa core/config/)
 │   ├── init.js                           ✅ (inizializzazione core)
 │   ├── models/
 │   │   ├── Base.js                       ✅
-│   │   ├── User.js                       ✅
+│   │   ├── User.js                       ✅ (Aggiornato con campi contratto)
 │   │   ├── Terreno.js                    ✅ (Core Base)
 │   │   ├── Attivita.js                   ✅ (Core Base)
 │   │   ├── ListePersonalizzate.js       ✅ (Core Base)
@@ -1713,6 +1714,167 @@ modules/vendemmia/
 
 **Stato**: ✅ **TUTTI I MIGLIORAMENTI TESTATI E FUNZIONANTI**
 
+### 38. Modulo Manodopera - Gestione Contratti Operai ✅
+**Data completamento**: 2025-01-21
+
+**File creati**:
+- `core/admin/gestione-operai-standalone.html` - Pagina dedicata gestione contratti operai
+
+**File modificati**:
+- `core/models/User.js` - Aggiunti campi contratto (tipoOperaio, tipoContratto, dataInizioContratto, dataScadenzaContratto, noteContratto)
+- `core/dashboard-standalone.html` - Aggiunto link Gestione Operai nella sezione Amministrazione
+- `core/admin/amministrazione-standalone.html` - Aggiunta card Gestione Operai
+
+**Funzionalità implementate**:
+- ✅ **Pagina Gestione Operai**:
+  - Filtro automatico: mostra solo utenti con ruolo "operaio"
+  - Tabella completa con colonne: Nome, Email, Tipo Operaio, Tipo Contratto, Data Inizio, Data Scadenza, Alert, Azioni
+  - Visualizzazione badge colorati per tipo operaio e tipo contratto
+  - Sistema semaforo alert scadenze (verde/giallo/rosso/grigio)
+- ✅ **Tipi Operai**:
+  - 6 tipi predefiniti: Operaio Semplice, Operaio Specializzato, Trattorista, Meccanico, Elettricista, Altro
+  - Campo opzionale nel form contratto
+  - Pronto per calcolo compensi futuri con tariffe differenziate
+- ✅ **Gestione Contratti**:
+  - Tipo Contratto: Stagionale, Determinato, Indeterminato
+  - Data Inizio Contratto (opzionale)
+  - Data Scadenza Contratto (obbligatoria per stagionale/determinato, nascosta per indeterminato)
+  - Note Contratto (opzionale)
+  - Validazione: data scadenza >= data inizio
+- ✅ **Sistema Semaforo Alert**:
+  - Verde: >30 giorni rimanenti o contratto indeterminato
+  - Giallo: 8-30 giorni rimanenti
+  - Rosso: 0-7 giorni rimanenti
+  - Grigio: contratto scaduto
+  - Calcolo automatico giorni rimanenti
+  - Visualizzazione badge colorato nella colonna Alert
+- ✅ **Filtri Avanzati**:
+  - Filtro per Stato: Solo Attivi / Solo Scaduti / Tutti
+  - Filtro per Tipo Contratto: Stagionale / Determinato / Indeterminato
+  - Filtro per Tipo Operaio: Tutti i 6 tipi disponibili
+  - Filtro per Alert: Rosso / Giallo / Verde
+  - Ordinamento automatico per urgenza (più urgenti prima)
+  - Pulsante "Pulisci Filtri" per reset rapido
+- ✅ **Storico Contratti**:
+  - Contratti scaduti rimangono visibili nell'elenco (storico)
+  - Possibilità di filtrare per nascondere/mostrare scaduti
+  - Badge "Scaduto" per contratti scaduti
+- ✅ **Permessi**:
+  - Solo Manager/Amministratore può vedere/modificare contratti
+  - Verifica modulo Manodopera attivo prima di permettere accesso
+  - Operaio non vede questa pagina (informazione personale)
+
+**Struttura dati Firestore**:
+```
+users/{userId}
+  - tipoOperaio: "semplice" | "specializzato" | "trattorista" | "meccanico" | "elettricista" | "altro" | null
+  - tipoContratto: "stagionale" | "determinato" | "indeterminato" | null
+  - dataInizioContratto: Timestamp | null
+  - dataScadenzaContratto: Timestamp | null (solo se determinato/stagionale)
+  - noteContratto: string | null
+```
+
+**Caso d'uso**:
+- Manager apre Gestione Operai dalla dashboard o pagina Amministrazione
+- Vede lista completa operai con contratti e alert scadenze
+- Può filtrare per tipo contratto, tipo operaio, alert, stato
+- Clicca "Modifica" per aggiornare contratto di un operaio
+- Compila form con tipo operaio, tipo contratto, date, note
+- Sistema semaforo mostra automaticamente urgenza scadenze
+- Contratti scaduti rimangono visibili per storico
+
+**Vantaggi**:
+- ✅ Scadenziario completo per monitorare rinnovi contratti
+- ✅ Sistema alert automatico per non perdere scadenze
+- ✅ Tipi operai pronti per calcolo compensi futuri
+- ✅ Storico completo contratti per tracciabilità
+- ✅ Filtri avanzati per analisi rapide
+- ✅ Semplice e funzionale, senza complessità normative
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 39. Modulo Manodopera - Report Ore Operai con Filtri Avanzati ✅
+**Data completamento**: 2025-01-21
+
+**File modificati**:
+- `core/admin/statistiche-manodopera-standalone.html` - Aggiunta sezione Report Ore Operai con filtri avanzati
+
+**Funzionalità implementate**:
+- ✅ **Sezione Report Ore Operai**:
+  - Nuova sezione dedicata nella pagina Statistiche Manodopera
+  - Aggregazione automatica ore per operaio con filtri periodo
+  - Statistiche aggregate: Ore Totali, Media Ore/Giorno, Giorni Lavorati, Operai Attivi
+- ✅ **Filtri Periodo**:
+  - Oggi / Questa Settimana / Questo Mese / Personalizzato
+  - Date range per periodo personalizzato
+  - Calcolo automatico date periodo
+- ✅ **Filtri Avanzati**:
+  - Filtro per Tipo Operaio: Tutti i 6 tipi disponibili + "Tutti"
+  - Filtro per Singolo Operaio: Dropdown popolato automaticamente con lista operai
+  - Combinazione filtri: Periodo + Tipo Operaio + Singolo Operaio
+  - Statistiche aggregate aggiornate in base ai filtri applicati
+- ✅ **Aggiornamento Automatico con Debounce**:
+  - Aggiornamento automatico quando si cambia un filtro (700ms di debounce)
+  - Evita query multiple se si cambiano più filtri rapidamente
+  - Pulsante "Aggiorna" mantenuto per aggiornamento immediato
+  - Pulsante "Pulisci Filtri" per reset rapido
+- ✅ **Statistiche per Tipo Operaio**:
+  - Card con ore aggregate per tipo operaio
+  - Ordinamento per ore totali (decrescente)
+  - Supporto per tutti i 6 tipi operai
+- ✅ **Tabella Report Operai**:
+  - Colonne: Operaio, Tipo Operaio, Ore Totali, Ore Validate, Da Validare, Giorni, Media/Giorno
+  - Ordinamento automatico per ore totali (decrescente)
+  - Formattazione ore leggibile (es. "8h 30min")
+  - Colori distinti per ore validate (verde) e da validare (giallo)
+- ✅ **Performance**:
+  - Caricamento lista operai all'apertura pagina
+  - Aggregazione efficiente ore per operaio
+  - Calcolo statistiche in tempo reale
+  - Gestione errori migliorata
+
+**Caso d'uso**:
+- Manager apre Statistiche Manodopera
+- Seleziona periodo (es. "Questo Mese")
+- Seleziona tipo operaio (es. "Trattorista")
+- Il report si aggiorna automaticamente dopo 700ms
+- Visualizza statistiche aggregate e tabella dettagliata
+- Può filtrare per singolo operaio per analisi individuale
+
+**Vantaggi**:
+- ✅ Analisi rapida ore lavorate per periodo/tipo/singolo operaio
+- ✅ Aggiornamento automatico senza click ripetuti
+- ✅ Statistiche aggregate sempre aggiornate
+- ✅ Flessibilità filtri combinati
+- ✅ Performance ottimizzata con debounce
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 40. Fix Superficie Lavorata Dashboard Manager ✅
+**Data completamento**: 2025-01-21
+
+**Problema risolto**:
+- La card "Superficie Lavorata" nella dashboard Manager mostrava sempre 0.00 HA
+- Causa: campo cercato era `superficieLavorata` invece di `superficieTotaleLavorata`
+
+**File modificati**:
+- `core/dashboard-standalone.html` - Corretto campo superficie lavorata nella funzione `loadManagerManodoperaStats()`
+- `core/admin/statistiche-manodopera-standalone.html` - Corretto campo superficie lavorata nella funzione `loadSuperficieStats()`
+- `core/admin/gestione-lavori-standalone.html` - Corretti 3 riferimenti a campo superficie lavorata
+
+**Correzioni applicate**:
+- ✅ Cambiato `lavoro.superficieLavorata` → `lavoro.superficieTotaleLavorata` nella dashboard Manager
+- ✅ Cambiato `lavoro.superficieLavorata` → `lavoro.superficieTotaleLavorata` nella pagina Statistiche
+- ✅ Corretti riferimenti in Gestione Lavori con fallback per compatibilità
+- ✅ Migliorata funzione `loadProgressiLavoro()` per usare prima campo documento, poi calcolo zone
+
+**Risultato**:
+- ✅ La superficie lavorata ora mostra correttamente gli ettari lavorati
+- ✅ Dati calcolati dalle zone tracciate dai caposquadra
+- ✅ Compatibilità con lavori vecchi senza campo aggiornato (fallback a calcolo zone)
+
+**Stato**: ✅ **RISOLTO E TESTATO**
+
 ## 📝 Modifiche Recenti (2025-01-16)
 
 ### Indicatore Stato Progresso Lavori
@@ -2065,11 +2227,15 @@ git ls-files | grep "vecchia"
 **Pagina Amministrazione Dedicata**: ✅ Completo e funzionante (Pagina dedicata con statistiche piano/moduli/utenti e card funzionalità)
 **Pagina Statistiche Manodopera**: ✅ Completo e funzionante (Pagina dedicata con statistiche complete organizzate per categoria, struttura modulare)
 **Mappa Aziendale Dashboard Manager**: ✅ Completo e funzionante (Vista mappa satellitare con tutti i terreni, layout responsive, interattività click per info, legenda colture, overlay lavori attivi, filtri podere/coltura, indicatori stato lavori, zoom automatico migliorato)
+**Modulo Manodopera - Gestione Contratti Operai**: ✅ Completo e funzionante (Pagina dedicata gestione contratti operai con scadenziario, tipi operai predefiniti, sistema semaforo alert scadenze, filtri avanzati, form modifica contratto completo, storico contratti scaduti)
 **Test Automatici**: ✅ 47 test funzionanti (modelli e validazioni)  
 **Audit Codice**: ✅ Completato (report disponibile in AUDIT_REPORT.md)  
 **Sicurezza API**: ✅ Chiavi API protette e funzionanti online  
 **Deploy Online**: ✅ GitHub Pages funzionante con fallback config  
 **Fix CORS/Google Maps**: ✅ Funziona sia in locale che online  
+**Modulo Manodopera - Gestione Contratti Operai**: ✅ Completo e funzionante (Scadenziario, Tipi Operai, Sistema Semaforo Alert, Filtri Avanzati)  
+**Modulo Manodopera - Report Ore Operai**: ✅ Completo e funzionante (Filtri avanzati periodo/tipo/singolo operaio, aggiornamento automatico con debounce, statistiche aggregate, tabella dettagliata)  
+**Fix Superficie Lavorata Dashboard**: ✅ Risolto (Campo corretto da superficieLavorata a superficieTotaleLavorata, superficie lavorata ora mostra correttamente gli HA)  
 **Prossimo passo**: Implementare Security Rules Firestore (critico per produzione)
 
 ---

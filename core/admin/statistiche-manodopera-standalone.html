@@ -222,18 +222,114 @@
                 </div>
             </div>
 
-            <!-- Sezione per statistiche future (facilmente espandibile) -->
-            <!-- 
+            <!-- Report Ore Operai -->
             <div class="stats-section">
-                <h2>📈 Altre Statistiche</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-custom-1">-</div>
-                        <div class="stat-label">Statistica Personalizzata 1</div>
+                <h2>⏱️ Report Ore Operai</h2>
+                
+                <!-- Filtri periodo -->
+                <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Periodo:</label>
+                            <select id="filter-periodo-ore" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                                <option value="mese">Questo Mese</option>
+                                <option value="settimana">Questa Settimana</option>
+                                <option value="oggi">Oggi</option>
+                                <option value="custom">Personalizzato</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Tipo Operaio:</label>
+                            <select id="filter-tipo-operaio-ore" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                                <option value="tutti">Tutti</option>
+                                <option value="semplice">Operaio Semplice</option>
+                                <option value="specializzato">Operaio Specializzato</option>
+                                <option value="trattorista">Trattorista</option>
+                                <option value="meccanico">Meccanico</option>
+                                <option value="elettricista">Elettricista</option>
+                                <option value="altro">Altro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Operaio:</label>
+                            <select id="filter-operaio-ore" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                                <option value="tutti">Tutti gli operai</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="date-range-group" style="display: none; margin-bottom: 15px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Da:</label>
+                                <input type="date" id="date-from-ore" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">A:</label>
+                                <input type="date" id="date-to-ore" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="loadReportOreOperai()" class="btn btn-primary" style="background: #2E8B57; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;" title="Aggiorna immediatamente il report">Aggiorna</button>
+                        <button onclick="resetFiltriOre()" class="btn btn-secondary" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Pulisci Filtri</button>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #666; font-style: italic;">
+                        💡 I filtri si aggiornano automaticamente quando cambi i valori
                     </div>
                 </div>
+
+                <!-- Statistiche aggregate -->
+                <div class="stats-grid" style="margin-bottom: 25px;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-ore-totali-operai">-</div>
+                        <div class="stat-label">Ore Totali</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-media-ore-giorno">-</div>
+                        <div class="stat-label">Media Ore/Giorno</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-giorni-lavorati">-</div>
+                        <div class="stat-label">Giorni Lavorati</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-operai-attivi">-</div>
+                        <div class="stat-label">Operai Attivi</div>
+                    </div>
+                </div>
+
+                <!-- Statistiche per tipo operaio -->
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #495057; font-size: 16px; margin-bottom: 15px;">Ore per Tipo Operaio</h3>
+                    <div id="ore-per-tipo-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div class="loading">Caricamento...</div>
+                    </div>
+                </div>
+
+                <!-- Tabella report operai -->
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                        <thead>
+                            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Operaio</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Tipo Operaio</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600; color: #495057;">Ore Totali</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600; color: #495057;">Ore Validate</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600; color: #495057;">Da Validare</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600; color: #495057;">Giorni</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600; color: #495057;">Media/Giorno</th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-ore-operai-body">
+                            <tr>
+                                <td colspan="7" style="padding: 40px; text-align: center; color: #999;">
+                                    <div class="loading">Caricamento report...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            -->
         </div>
     </div>
 
@@ -279,12 +375,16 @@
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, getDoc, doc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, getDoc, doc, collection, getDocs, query, where, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        // Variabili globali per funzioni
+        window.currentAuth = auth;
+        window.currentDb = db;
 
         // Verifica autenticazione e carica statistiche
         onAuthStateChanged(auth, async (user) => {
@@ -342,11 +442,454 @@
                 
                 // 4. Statistiche Superficie
                 await loadSuperficieStats(tenantId);
+                
+                // 5. Report Ore Operai
+                setupReportOreOperai();
+                await loadReportOreOperai(tenantId);
 
             } catch (error) {
                 console.error('Errore caricamento statistiche:', error);
             }
         }
+        
+        // Variabile per debounce
+        let debounceTimerOre = null;
+        
+        // Setup filtri report ore operai
+        async function setupReportOreOperai() {
+            const periodoSelect = document.getElementById('filter-periodo-ore');
+            const dateRangeGroup = document.getElementById('date-range-group');
+            const tipoOperaioSelect = document.getElementById('filter-tipo-operaio-ore');
+            const operaioSelect = document.getElementById('filter-operaio-ore');
+            const dateFrom = document.getElementById('date-from-ore');
+            const dateTo = document.getElementById('date-to-ore');
+            
+            // Funzione per aggiornamento automatico con debounce
+            const triggerAutoUpdate = () => {
+                // Cancella timer precedente se esiste
+                if (debounceTimerOre) {
+                    clearTimeout(debounceTimerOre);
+                }
+                
+                // Imposta nuovo timer (700ms di attesa)
+                debounceTimerOre = setTimeout(() => {
+                    loadReportOreOperai();
+                }, 700);
+            };
+            
+            // Setup cambio periodo
+            periodoSelect.addEventListener('change', () => {
+                if (periodoSelect.value === 'custom') {
+                    dateRangeGroup.style.display = 'block';
+                } else {
+                    dateRangeGroup.style.display = 'none';
+                    // Aggiorna automaticamente se non è custom
+                    triggerAutoUpdate();
+                }
+            });
+            
+            // Setup cambio tipo operaio (aggiornamento automatico)
+            tipoOperaioSelect.addEventListener('change', triggerAutoUpdate);
+            
+            // Setup cambio operaio (aggiornamento automatico)
+            operaioSelect.addEventListener('change', triggerAutoUpdate);
+            
+            // Setup cambio date personalizzate (aggiornamento automatico)
+            dateFrom.addEventListener('change', () => {
+                if (dateFrom.value && dateTo.value) {
+                    triggerAutoUpdate();
+                }
+            });
+            
+            dateTo.addEventListener('change', () => {
+                if (dateFrom.value && dateTo.value) {
+                    triggerAutoUpdate();
+                }
+            });
+            
+            // Carica lista operai per dropdown
+            try {
+                const user = window.currentAuth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(window.currentDb, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const tenantId = userDoc.data().tenantId;
+                if (!tenantId) return;
+                
+                // Carica tutti gli utenti del tenant
+                const usersQuery = query(
+                    collection(window.currentDb, 'users'),
+                    where('tenantId', '==', tenantId)
+                );
+                const usersSnapshot = await getDocs(usersQuery);
+                
+                const operai = [];
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const ruoli = userData.ruoli || [];
+                    
+                    // Filtra solo operai
+                    if (ruoli.some(r => r.toLowerCase().includes('operaio'))) {
+                        const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
+                        if (nomeCompleto) {
+                            operai.push({
+                                id: doc.id,
+                                nomeCompleto: nomeCompleto,
+                                tipoOperaio: userData.tipoOperaio || ''
+                            });
+                        }
+                    }
+                });
+                
+                // Ordina per nome
+                operai.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto));
+                
+                // Popola dropdown
+                operai.forEach(operaio => {
+                    const option = document.createElement('option');
+                    option.value = operaio.id;
+                    option.textContent = operaio.nomeCompleto;
+                    operaioSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Errore caricamento lista operai:', error);
+            }
+        }
+        
+        // Reset filtri ore
+        function resetFiltriOre() {
+            // Cancella timer debounce se esiste
+            if (debounceTimerOre) {
+                clearTimeout(debounceTimerOre);
+                debounceTimerOre = null;
+            }
+            
+            document.getElementById('filter-periodo-ore').value = 'mese';
+            document.getElementById('filter-tipo-operaio-ore').value = 'tutti';
+            document.getElementById('filter-operaio-ore').value = 'tutti';
+            document.getElementById('date-range-group').style.display = 'none';
+            document.getElementById('date-from-ore').value = '';
+            document.getElementById('date-to-ore').value = '';
+            
+            // Aggiorna immediatamente dopo reset
+            loadReportOreOperai();
+        }
+        
+        // Carica report ore operai
+        async function loadReportOreOperai(tenantId) {
+            if (!tenantId) {
+                const user = window.currentAuth.currentUser;
+                if (!user) return;
+                const userDoc = await getDoc(doc(window.currentDb, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                tenantId = userDoc.data().tenantId;
+                if (!tenantId) return;
+            }
+            
+            try {
+                // Calcola date periodo
+                const periodo = document.getElementById('filter-periodo-ore').value;
+                let dataInizio, dataFine;
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+                
+                if (periodo === 'oggi') {
+                    dataInizio = new Date(oggi);
+                    dataFine = new Date(oggi);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else if (periodo === 'settimana') {
+                    const giornoSettimana = oggi.getDay();
+                    const diff = oggi.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1); // Lunedì
+                    dataInizio = new Date(oggi.setDate(diff));
+                    dataInizio.setHours(0, 0, 0, 0);
+                    dataFine = new Date(dataInizio);
+                    dataFine.setDate(dataFine.getDate() + 6);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else if (periodo === 'mese') {
+                    dataInizio = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                    dataFine = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else if (periodo === 'custom') {
+                    const dateFrom = document.getElementById('date-from-ore').value;
+                    const dateTo = document.getElementById('date-to-ore').value;
+                    if (!dateFrom || !dateTo) {
+                        alert('Seleziona entrambe le date per il periodo personalizzato');
+                        return;
+                    }
+                    dataInizio = new Date(dateFrom);
+                    dataInizio.setHours(0, 0, 0, 0);
+                    dataFine = new Date(dateTo);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else {
+                    // Default: questo mese
+                    dataInizio = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                    dataFine = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
+                    dataFine.setHours(23, 59, 59, 999);
+                }
+                
+                // Carica tutti i lavori
+                const lavoriCollection = collection(window.currentDb, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriCollection);
+                
+                // Mappa per aggregare ore per operaio
+                const orePerOperaio = {};
+                const giorniLavoratiSet = new Set();
+                let oreTotali = 0;
+                let oreValidateTotali = 0;
+                let oreDaValidareTotali = 0;
+                
+                // Per ogni lavoro, carica le ore
+                for (const lavoroDoc of lavoriSnapshot.docs) {
+                    const lavoroId = lavoroDoc.id;
+                    const oreRef = collection(window.currentDb, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                    const oreSnapshot = await getDocs(oreRef);
+                    
+                    oreSnapshot.forEach(oraDoc => {
+                        const ora = oraDoc.data();
+                        const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
+                        
+                        // Filtra per periodo
+                        if (dataOra < dataInizio || dataOra > dataFine) {
+                            return;
+                        }
+                        
+                        const operaioId = ora.operaioId;
+                        if (!operaioId) return;
+                        
+                        const oreNette = ora.oreNette || 0;
+                        const stato = ora.stato || 'da_validare';
+                        
+                        // Inizializza operaio se non esiste
+                        if (!orePerOperaio[operaioId]) {
+                            orePerOperaio[operaioId] = {
+                                operaioId: operaioId,
+                                nome: '',
+                                cognome: '',
+                                tipoOperaio: '',
+                                oreTotali: 0,
+                                oreValidate: 0,
+                                oreDaValidare: 0,
+                                giorniLavorati: new Set()
+                            };
+                        }
+                        
+                        // Aggrega ore
+                        orePerOperaio[operaioId].oreTotali += oreNette;
+                        oreTotali += oreNette;
+                        
+                        if (stato === 'validate') {
+                            orePerOperaio[operaioId].oreValidate += oreNette;
+                            oreValidateTotali += oreNette;
+                        } else if (stato === 'da_validare') {
+                            orePerOperaio[operaioId].oreDaValidare += oreNette;
+                            oreDaValidareTotali += oreNette;
+                        }
+                        
+                        // Aggiungi giorno lavorato
+                        const giornoKey = dataOra.toISOString().split('T')[0];
+                        orePerOperaio[operaioId].giorniLavorati.add(giornoKey);
+                        giorniLavoratiSet.add(giornoKey);
+                    });
+                }
+                
+                // Carica dati operai
+                for (const operaioId of Object.keys(orePerOperaio)) {
+                    try {
+                        const operaioDoc = await getDoc(doc(window.currentDb, 'users', operaioId));
+                        if (operaioDoc.exists()) {
+                            const operaioData = operaioDoc.data();
+                            orePerOperaio[operaioId].nome = operaioData.nome || '';
+                            orePerOperaio[operaioId].cognome = operaioData.cognome || '';
+                            orePerOperaio[operaioId].tipoOperaio = operaioData.tipoOperaio || '';
+                        }
+                    } catch (error) {
+                        console.warn('Errore caricamento operaio:', error);
+                    }
+                }
+                
+                // Converti giorni lavorati da Set a numero
+                Object.keys(orePerOperaio).forEach(operaioId => {
+                    orePerOperaio[operaioId].giorniLavorati = orePerOperaio[operaioId].giorniLavorati.size;
+                });
+                
+                // Applica filtri
+                const filtroTipoOperaio = document.getElementById('filter-tipo-operaio-ore').value;
+                const filtroOperaio = document.getElementById('filter-operaio-ore').value;
+                
+                let orePerOperaioFiltrate = { ...orePerOperaio };
+                
+                // Filtro per tipo operaio
+                if (filtroTipoOperaio !== 'tutti') {
+                    Object.keys(orePerOperaioFiltrate).forEach(operaioId => {
+                        if (orePerOperaioFiltrate[operaioId].tipoOperaio !== filtroTipoOperaio) {
+                            delete orePerOperaioFiltrate[operaioId];
+                        }
+                    });
+                }
+                
+                // Filtro per singolo operaio
+                if (filtroOperaio !== 'tutti') {
+                    Object.keys(orePerOperaioFiltrate).forEach(operaioId => {
+                        if (operaioId !== filtroOperaio) {
+                            delete orePerOperaioFiltrate[operaioId];
+                        }
+                    });
+                }
+                
+                // Ricalcola statistiche aggregate solo per operai filtrati
+                let oreTotaliFiltrate = 0;
+                let oreValidateTotaliFiltrate = 0;
+                let oreDaValidareTotaliFiltrate = 0;
+                let giorniLavoratiFiltrati = 0;
+                
+                Object.values(orePerOperaioFiltrate).forEach(operaio => {
+                    oreTotaliFiltrate += operaio.oreTotali;
+                    oreValidateTotaliFiltrate += operaio.oreValidate;
+                    oreDaValidareTotaliFiltrate += operaio.oreDaValidare;
+                    giorniLavoratiFiltrati = Math.max(giorniLavoratiFiltrati, operaio.giorniLavorati);
+                });
+                
+                // Calcola statistiche aggregate (usando dati filtrati)
+                const giorniLavorati = giorniLavoratiFiltrati || giorniLavoratiSet.size;
+                const mediaOreGiorno = giorniLavorati > 0 ? oreTotaliFiltrate / giorniLavorati : 0;
+                const operaiAttivi = Object.keys(orePerOperaioFiltrate).length;
+                
+                // Aggiorna statistiche aggregate
+                const formatOre = (ore) => {
+                    const oreInt = Math.floor(ore);
+                    const minuti = Math.round((ore - oreInt) * 60);
+                    return minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
+                };
+                
+                document.getElementById('stat-ore-totali-operai').textContent = formatOre(oreTotaliFiltrate);
+                document.getElementById('stat-media-ore-giorno').textContent = formatOre(mediaOreGiorno);
+                document.getElementById('stat-giorni-lavorati').textContent = giorniLavorati;
+                document.getElementById('stat-operai-attivi').textContent = operaiAttivi;
+                
+                // Statistiche per tipo operaio (solo per operai filtrati)
+                const orePerTipo = {};
+                Object.values(orePerOperaioFiltrate).forEach(operaio => {
+                    const tipo = operaio.tipoOperaio || 'Non specificato';
+                    if (!orePerTipo[tipo]) {
+                        orePerTipo[tipo] = 0;
+                    }
+                    orePerTipo[tipo] += operaio.oreTotali;
+                });
+                
+                const tipoOperaioNames = {
+                    'semplice': 'Operaio Semplice',
+                    'specializzato': 'Operaio Specializzato',
+                    'trattorista': 'Trattorista',
+                    'meccanico': 'Meccanico',
+                    'elettricista': 'Elettricista',
+                    'altro': 'Altro',
+                    'Non specificato': 'Non specificato'
+                };
+                
+                let orePerTipoHTML = '';
+                if (Object.keys(orePerTipo).length === 0) {
+                    orePerTipoHTML = '<div style="padding: 20px; text-align: center; color: #999;">Nessun dato disponibile</div>';
+                } else {
+                    Object.keys(orePerTipo).sort((a, b) => orePerTipo[b] - orePerTipo[a]).forEach(tipo => {
+                        orePerTipoHTML += `
+                            <div class="stat-card" style="text-align: center;">
+                                <div class="stat-value" style="font-size: 24px;">${formatOre(orePerTipo[tipo])}</div>
+                                <div class="stat-label">${tipoOperaioNames[tipo] || tipo}</div>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('ore-per-tipo-container').innerHTML = orePerTipoHTML;
+                
+                // Renderizza tabella (con dati filtrati)
+                renderReportOreOperai(orePerOperaioFiltrate);
+                
+            } catch (error) {
+                console.error('Errore caricamento report ore operai:', error);
+                document.getElementById('report-ore-operai-body').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="padding: 40px; text-align: center; color: #dc3545;">
+                            Errore caricamento report
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Renderizza tabella report ore operai
+        function renderReportOreOperai(orePerOperaio) {
+            const tbody = document.getElementById('report-ore-operai-body');
+            
+            if (Object.keys(orePerOperaio).length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="padding: 40px; text-align: center; color: #999;">
+                            Nessun dato disponibile per il periodo selezionato
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            const formatOre = (ore) => {
+                const oreInt = Math.floor(ore);
+                const minuti = Math.round((ore - oreInt) * 60);
+                return minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
+            };
+            
+            const tipoOperaioNames = {
+                'semplice': 'Operaio Semplice',
+                'specializzato': 'Operaio Specializzato',
+                'trattorista': 'Trattorista',
+                'meccanico': 'Meccanico',
+                'elettricista': 'Elettricista',
+                'altro': 'Altro',
+                '': '-'
+            };
+            
+            // Ordina per ore totali (decrescente)
+            const operaiArray = Object.values(orePerOperaio).sort((a, b) => b.oreTotali - a.oreTotali);
+            
+            let html = '';
+            operaiArray.forEach(operaio => {
+                const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || 'N/A';
+                const tipoOperaio = tipoOperaioNames[operaio.tipoOperaio] || operaio.tipoOperaio || '-';
+                const mediaGiorno = operaio.giorniLavorati > 0 ? operaio.oreTotali / operaio.giorniLavorati : 0;
+                
+                html += `
+                    <tr style="border-bottom: 1px solid #e9ecef;">
+                        <td style="padding: 12px;">${nomeCompleto}</td>
+                        <td style="padding: 12px;">${tipoOperaio}</td>
+                        <td style="padding: 12px; text-align: right; font-weight: 600;">${formatOre(operaio.oreTotali)}</td>
+                        <td style="padding: 12px; text-align: right; color: #28a745;">${formatOre(operaio.oreValidate)}</td>
+                        <td style="padding: 12px; text-align: right; color: #ffc107;">${formatOre(operaio.oreDaValidare)}</td>
+                        <td style="padding: 12px; text-align: right;">${operaio.giorniLavorati}</td>
+                        <td style="padding: 12px; text-align: right;">${formatOre(mediaGiorno)}</td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // Export funzioni globali
+        window.loadReportOreOperai = () => {
+            const user = window.currentAuth.currentUser;
+            if (!user) return;
+            getDoc(doc(window.currentDb, 'users', user.uid)).then(userDoc => {
+                if (userDoc.exists()) {
+                    const tenantId = userDoc.data().tenantId;
+                    if (tenantId) {
+                        loadReportOreOperai(tenantId);
+                    }
+                }
+            });
+        };
+        
+        window.resetFiltriOre = resetFiltriOre;
 
         // Carica statistiche lavori
         async function loadLavoriStats(tenantId) {
@@ -508,8 +1051,9 @@
                 let superficieLavorata = 0;
                 lavoriSnapshot.forEach(doc => {
                     const lavoro = doc.data();
-                    if (lavoro.superficieLavorata) {
-                        superficieLavorata += lavoro.superficieLavorata;
+                    // Usa superficieTotaleLavorata che viene aggiornato quando si tracciano zone lavorate
+                    if (lavoro.superficieTotaleLavorata) {
+                        superficieLavorata += lavoro.superficieTotaleLavorata;
                     }
                 });
                 
@@ -527,4 +1071,5 @@
     </script>
 </body>
 </html>
+
 
