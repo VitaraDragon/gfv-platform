@@ -48,6 +48,9 @@ export class User extends Base {
     this.dataInizioContratto = data.dataInizioContratto ? (data.dataInizioContratto instanceof Date ? data.dataInizioContratto : (data.dataInizioContratto.toDate ? data.dataInizioContratto.toDate() : new Date(data.dataInizioContratto))) : null;
     this.dataScadenzaContratto = data.dataScadenzaContratto ? (data.dataScadenzaContratto instanceof Date ? data.dataScadenzaContratto : (data.dataScadenzaContratto.toDate ? data.dataScadenzaContratto.toDate() : new Date(data.dataScadenzaContratto))) : null;
     this.noteContratto = data.noteContratto || null;
+    
+    // Campo tariffa personalizzata (opzionale, override tariffa tipo operaio)
+    this.tariffaPersonalizzata = data.tariffaPersonalizzata || null;
   }
   
   /**

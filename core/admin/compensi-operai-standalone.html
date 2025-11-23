@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compensi Operai - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-primary {
+            background: #2E8B57;
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: #228B22;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .info-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #e7f3ff;
+            border-left: 4px solid #2E8B57;
+            border-radius: 6px;
+        }
+
+        .info-section p {
+            margin: 0;
+            color: #495057;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .filters {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .date-range-group {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .date-range-group.active {
+            display: block;
+        }
+
+        .date-range-group .date-inputs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #2E8B57;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2E8B57;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        th.text-right {
+            text-align: right;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        td {
+            padding: 12px;
+        }
+
+        td.text-right {
+            text-align: right;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💰 Compensi Operai</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Calcola e gestisci i compensi per gli operai</p>
+            </div>
+            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+        </div>
+
+        <div class="content">
+            <div class="info-section">
+                <p><strong>💡 Informazioni:</strong> I compensi vengono calcolati automaticamente basandosi sulle <strong>ore validate</strong> e le <strong>tariffe configurate</strong>. Le tariffe possono essere impostate nelle Impostazioni (tariffe default per tipo operaio) o personalizzate per singolo operaio nella pagina Gestione Operai.</p>
+            </div>
+
+            <!-- Filtri -->
+            <div class="filters">
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="filter-periodo">Periodo:</label>
+                        <select id="filter-periodo">
+                            <option value="mese">Questo Mese</option>
+                            <option value="settimana">Questa Settimana</option>
+                            <option value="oggi">Oggi</option>
+                            <option value="custom">Personalizzato</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-tipo-operaio">Tipo Operaio:</label>
+                        <select id="filter-tipo-operaio">
+                            <option value="">Tutti</option>
+                            <option value="semplice">Operaio Semplice</option>
+                            <option value="specializzato">Operaio Specializzato</option>
+                            <option value="trattorista">Trattorista</option>
+                            <option value="meccanico">Meccanico</option>
+                            <option value="elettricista">Elettricista</option>
+                            <option value="altro">Altro</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-operaio">Operaio:</label>
+                        <select id="filter-operaio">
+                            <option value="">Tutti gli operai</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="date-range-group" class="date-range-group">
+                    <div class="date-inputs">
+                        <div class="filter-group">
+                            <label for="date-from">Da:</label>
+                            <input type="date" id="date-from">
+                        </div>
+                        <div class="filter-group">
+                            <label for="date-to">A:</label>
+                            <input type="date" id="date-to">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button onclick="loadCompensi()" class="btn btn-primary">Aggiorna</button>
+                    <button onclick="resetFiltri()" class="btn btn-secondary">Pulisci Filtri</button>
+                    <button onclick="esportaExcel()" class="btn btn-info">📥 Esporta Excel</button>
+                </div>
+            </div>
+
+            <!-- Statistiche aggregate -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-compenso-totale">-</div>
+                    <div class="stat-label">Compenso Totale</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-operai-compensati">-</div>
+                    <div class="stat-label">Operai Compensati</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-ore-compensate">-</div>
+                    <div class="stat-label">Ore Compensate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-media-compenso">-</div>
+                    <div class="stat-label">Media Compenso/Operaio</div>
+                </div>
+            </div>
+
+            <!-- Tabella compensi -->
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operaio</th>
+                            <th>Tipo Operaio</th>
+                            <th class="text-right">Ore</th>
+                            <th class="text-right">Tariffa (€/h)</th>
+                            <th class="text-right">Compenso</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compensi-body">
+                        <tr>
+                            <td colspan="5" class="loading">Caricamento compensi...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load ExcelJS library for Excel export with full styling support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    
+    <!-- Load Firebase config -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, getDoc, doc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentTenantId = null;
+        let compensiData = [];
+
+        // Tariffe default
+        const TARIFFE_DEFAULT = {
+            semplice: 10.0,
+            specializzato: 12.0,
+            trattorista: 15.0,
+            meccanico: 14.0,
+            elettricista: 14.0,
+            altro: 10.0
+        };
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../auth/login-standalone.html';
+                return;
+            }
+
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    window.location.href = '../auth/login-standalone.html';
+                    return;
+                }
+
+                const userData = userDoc.data();
+                currentTenantId = userData.tenantId;
+
+                // Verifica permessi (solo Manager o Amministratore)
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => {
+                    const roleLower = r.toLowerCase();
+                    return roleLower.includes('manager') || roleLower.includes('amministratore');
+                });
+
+                if (!isManager) {
+                    alert('Non hai i permessi per accedere a questa pagina');
+                    window.location.href = '../dashboard-standalone.html';
+                    return;
+                }
+
+                // Verifica modulo Manodopera
+                if (currentTenantId) {
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    if (tenantDoc.exists()) {
+                        const tenantData = tenantDoc.data();
+                        const hasManodopera = tenantData.modules && tenantData.modules.includes('manodopera');
+                        if (!hasManodopera) {
+                            alert('Questa pagina è disponibile solo con il modulo Manodopera attivo.');
+                            window.location.href = '../dashboard-standalone.html';
+                            return;
+                        }
+                    }
+                }
+
+                // Setup pagina
+                await setupPage();
+
+            } catch (error) {
+                console.error('Errore caricamento dati:', error);
+            }
+        });
+
+        // Setup pagina
+        async function setupPage() {
+            // Setup filtri
+            document.getElementById('filter-periodo').addEventListener('change', () => {
+                const periodo = document.getElementById('filter-periodo').value;
+                const dateRangeGroup = document.getElementById('date-range-group');
+                if (periodo === 'custom') {
+                    dateRangeGroup.classList.add('active');
+                } else {
+                    dateRangeGroup.classList.remove('active');
+                    loadCompensi();
+                }
+            });
+
+            document.getElementById('filter-tipo-operaio').addEventListener('change', () => loadCompensi());
+            document.getElementById('filter-operaio').addEventListener('change', () => loadCompensi());
+            document.getElementById('date-from').addEventListener('change', () => {
+                if (document.getElementById('date-from').value && document.getElementById('date-to').value) {
+                    loadCompensi();
+                }
+            });
+            document.getElementById('date-to').addEventListener('change', () => {
+                if (document.getElementById('date-from').value && document.getElementById('date-to').value) {
+                    loadCompensi();
+                }
+            });
+
+            // Carica lista operai
+            await loadOperaiList();
+
+            // Carica compensi iniziali
+            await loadCompensi();
+        }
+
+        // Carica lista operai per dropdown
+        async function loadOperaiList() {
+            if (!currentTenantId) return;
+
+            try {
+                const usersQuery = query(
+                    collection(db, 'users'),
+                    where('tenantId', '==', currentTenantId)
+                );
+                const usersSnapshot = await getDocs(usersQuery);
+
+                const operai = [];
+                usersSnapshot.forEach(userDoc => {
+                    const userData = userDoc.data();
+                    const ruoli = userData.ruoli || [];
+
+                    if (ruoli.some(r => r.toLowerCase().includes('operaio'))) {
+                        const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
+                        if (nomeCompleto) {
+                            operai.push({
+                                id: userDoc.id,
+                                nomeCompleto: nomeCompleto
+                            });
+                        }
+                    }
+                });
+
+                operai.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto));
+
+                const select = document.getElementById('filter-operaio');
+                operai.forEach(operaio => {
+                    const option = document.createElement('option');
+                    option.value = operaio.id;
+                    option.textContent = operaio.nomeCompleto;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Errore caricamento lista operai:', error);
+            }
+        }
+
+        // Ottieni tariffa per un operaio
+        async function getTariffaOperaio(tenantId, operaio) {
+            try {
+                if (operaio.tariffaPersonalizzata !== null && operaio.tariffaPersonalizzata !== undefined) {
+                    return operaio.tariffaPersonalizzata;
+                }
+
+                if (!operaio.tipoOperaio) {
+                    return 10.0;
+                }
+
+                const tariffeRef = doc(db, `tenants/${tenantId}/tariffe`, 'operai');
+                const tariffeSnap = await getDoc(tariffeRef);
+
+                if (tariffeSnap.exists()) {
+                    const tariffe = tariffeSnap.data();
+                    return tariffe[operaio.tipoOperaio] || TARIFFE_DEFAULT[operaio.tipoOperaio] || 10.0;
+                }
+
+                return TARIFFE_DEFAULT[operaio.tipoOperaio] || 10.0;
+            } catch (error) {
+                console.error('Errore recupero tariffa operaio:', error);
+                return 10.0;
+            }
+        }
+
+        // Calcola compensi
+        async function calcolaCompensi(tenantId, dataInizio, dataFine, options = {}) {
+            try {
+                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+                const lavoriSnapshot = await getDocs(lavoriCollection);
+
+                const orePerOperaio = {};
+
+                for (const lavoroDoc of lavoriSnapshot.docs) {
+                    const lavoroId = lavoroDoc.id;
+                    const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                    const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+                    const oreSnapshot = await getDocs(oreQuery);
+
+                    oreSnapshot.forEach(oraDoc => {
+                        const ora = oraDoc.data();
+                        const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
+
+                        if (dataOra < dataInizio || dataOra > dataFine) {
+                            return;
+                        }
+
+                        const operaioId = ora.operaioId;
+                        if (!operaioId) return;
+
+                        if (options.operaioId && operaioId !== options.operaioId) {
+                            return;
+                        }
+
+                        const oreNette = ora.oreNette || 0;
+
+                        if (!orePerOperaio[operaioId]) {
+                            orePerOperaio[operaioId] = {
+                                operaioId: operaioId,
+                                oreTotali: 0
+                            };
+                        }
+
+                        orePerOperaio[operaioId].oreTotali += oreNette;
+                    });
+                }
+
+                const usersQuery = query(collection(db, 'users'), where('tenantId', '==', tenantId));
+                const usersSnapshot = await getDocs(usersQuery);
+
+                const operaiMap = {};
+                usersSnapshot.forEach(userDoc => {
+                    const userData = userDoc.data();
+                    const ruoli = userData.ruoli || [];
+
+                    if (ruoli.some(r => r.toLowerCase().includes('operaio'))) {
+                        operaiMap[userDoc.id] = {
+                            nome: userData.nome || '',
+                            cognome: userData.cognome || '',
+                            tipoOperaio: userData.tipoOperaio || null,
+                            tariffaPersonalizzata: userData.tariffaPersonalizzata || null
+                        };
+                    }
+                });
+
+                const compensi = [];
+                for (const operaioId of Object.keys(orePerOperaio)) {
+                    const datiOre = orePerOperaio[operaioId];
+                    const datiOperaio = operaiMap[operaioId];
+
+                    if (!datiOperaio) continue;
+
+                    if (options.tipoOperaio && datiOperaio.tipoOperaio !== options.tipoOperaio) {
+                        continue;
+                    }
+
+                    const tariffa = await getTariffaOperaio(tenantId, {
+                        tipoOperaio: datiOperaio.tipoOperaio,
+                        tariffaPersonalizzata: datiOperaio.tariffaPersonalizzata
+                    });
+
+                    const compenso = datiOre.oreTotali * tariffa;
+
+                    compensi.push({
+                        operaioId: operaioId,
+                        nome: datiOperaio.nome,
+                        cognome: datiOperaio.cognome,
+                        tipoOperaio: datiOperaio.tipoOperaio || '',
+                        tariffa: tariffa,
+                        oreTotali: datiOre.oreTotali,
+                        compenso: compenso
+                    });
+                }
+
+                compensi.sort((a, b) => b.compenso - a.compenso);
+                return compensi;
+            } catch (error) {
+                console.error('Errore calcolo compensi:', error);
+                throw new Error(`Errore calcolo compensi: ${error.message}`);
+            }
+        }
+
+        // Formatta ore
+        function formattaOre(ore) {
+            if (!ore || ore === 0) return '0h';
+            const oreInt = Math.floor(ore);
+            const minuti = Math.round((ore - oreInt) * 60);
+            if (minuti === 0) return `${oreInt}h`;
+            return `${oreInt}h ${minuti}min`;
+        }
+
+        // Formatta euro
+        function formattaEuro(euro) {
+            return new Intl.NumberFormat('it-IT', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(euro);
+        }
+
+        // Reset filtri
+        function resetFiltri() {
+            document.getElementById('filter-periodo').value = 'mese';
+            document.getElementById('filter-tipo-operaio').value = '';
+            document.getElementById('filter-operaio').value = '';
+            document.getElementById('date-range-group').classList.remove('active');
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            loadCompensi();
+        }
+
+        // Carica compensi
+        async function loadCompensi() {
+            if (!currentTenantId) return;
+
+            const tbody = document.getElementById('compensi-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="loading">Caricamento compensi...</td></tr>';
+
+            try {
+                const periodo = document.getElementById('filter-periodo').value;
+                let dataInizio, dataFine;
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+
+                if (periodo === 'oggi') {
+                    dataInizio = new Date(oggi);
+                    dataFine = new Date(oggi);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else if (periodo === 'settimana') {
+                    const giornoSettimana = oggi.getDay();
+                    const diff = oggi.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1);
+                    dataInizio = new Date(oggi.setDate(diff));
+                    dataInizio.setHours(0, 0, 0, 0);
+                    dataFine = new Date(dataInizio);
+                    dataFine.setDate(dataFine.getDate() + 6);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else if (periodo === 'mese') {
+                    dataInizio = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                    dataFine = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else if (periodo === 'custom') {
+                    const dateFrom = document.getElementById('date-from').value;
+                    const dateTo = document.getElementById('date-to').value;
+                    if (!dateFrom || !dateTo) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Seleziona entrambe le date per il periodo personalizzato</td></tr>';
+                        return;
+                    }
+                    dataInizio = new Date(dateFrom);
+                    dataInizio.setHours(0, 0, 0, 0);
+                    dataFine = new Date(dateTo);
+                    dataFine.setHours(23, 59, 59, 999);
+                } else {
+                    dataInizio = new Date(oggi.getFullYear(), oggi.getMonth(), 1);
+                    dataFine = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0);
+                    dataFine.setHours(23, 59, 59, 999);
+                }
+
+                const options = {};
+                const tipoOperaio = document.getElementById('filter-tipo-operaio').value;
+                const operaioId = document.getElementById('filter-operaio').value;
+
+                if (tipoOperaio) options.tipoOperaio = tipoOperaio;
+                if (operaioId) options.operaioId = operaioId;
+
+                compensiData = await calcolaCompensi(currentTenantId, dataInizio, dataFine, options);
+                renderCompensi(compensiData);
+
+            } catch (error) {
+                console.error('Errore calcolo compensi:', error);
+                tbody.innerHTML = `<tr><td colspan="5" style="padding: 40px; text-align: center; color: #dc3545;">Errore caricamento compensi: ${error.message}</td></tr>`;
+            }
+        }
+
+        // Render compensi
+        function renderCompensi(compensi) {
+            const tbody = document.getElementById('compensi-body');
+
+            if (compensi.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Nessun compenso calcolato per il periodo selezionato</td></tr>';
+                document.getElementById('stat-compenso-totale').textContent = '-';
+                document.getElementById('stat-operai-compensati').textContent = '-';
+                document.getElementById('stat-ore-compensate').textContent = '-';
+                document.getElementById('stat-media-compenso').textContent = '-';
+                return;
+            }
+
+            const tipoOperaioNames = {
+                'semplice': 'Operaio Semplice',
+                'specializzato': 'Operaio Specializzato',
+                'trattorista': 'Trattorista',
+                'meccanico': 'Meccanico',
+                'elettricista': 'Elettricista',
+                'altro': 'Altro'
+            };
+
+            const compensoTotale = compensi.reduce((sum, c) => sum + c.compenso, 0);
+            const oreTotali = compensi.reduce((sum, c) => sum + c.oreTotali, 0);
+            const mediaCompenso = compensi.length > 0 ? compensoTotale / compensi.length : 0;
+
+            document.getElementById('stat-compenso-totale').textContent = formattaEuro(compensoTotale);
+            document.getElementById('stat-operai-compensati').textContent = compensi.length;
+            document.getElementById('stat-ore-compensate').textContent = formattaOre(oreTotali);
+            document.getElementById('stat-media-compenso').textContent = formattaEuro(mediaCompenso);
+
+            tbody.innerHTML = compensi.map(c => {
+                const nomeCompleto = `${c.nome} ${c.cognome}`.trim();
+                const tipoOperaioLabel = tipoOperaioNames[c.tipoOperaio] || c.tipoOperaio || '-';
+
+                return `
+                    <tr>
+                        <td>${nomeCompleto}</td>
+                        <td>${tipoOperaioLabel}</td>
+                        <td class="text-right">${formattaOre(c.oreTotali)}</td>
+                        <td class="text-right">${c.tariffa.toFixed(2)}</td>
+                        <td class="text-right" style="font-weight: 600; color: #2E8B57;">${formattaEuro(c.compenso)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Esporta Excel con ExcelJS (supporta stili completi gratuitamente)
+        async function esportaExcel() {
+            if (compensiData.length === 0) {
+                alert('Nessun dato da esportare');
+                return;
+            }
+
+            // Verifica che ExcelJS sia caricato
+            if (typeof ExcelJS === 'undefined') {
+                alert('Errore: libreria Excel non caricata. Ricarica la pagina.');
+                return;
+            }
+
+            const tipoOperaioNames = {
+                'semplice': 'Operaio Semplice',
+                'specializzato': 'Operaio Specializzato',
+                'trattorista': 'Trattorista',
+                'meccanico': 'Meccanico',
+                'elettricista': 'Elettricista',
+                'altro': 'Altro'
+            };
+
+            try {
+                // Crea nuovo workbook
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Compensi Operai');
+
+                let startRow = 1; // Riga di partenza per la tabella
+                
+                // Carica e inserisci logo
+                try {
+                    // Prova diversi percorsi possibili
+                    const possiblePaths = [
+                        '../../icons/logoorizzontale.png',
+                        '../icons/logoorizzontale.png',
+                        'icons/logoorizzontale.png',
+                        'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/icons/logoorizzontale.png'
+                    ];
+                    
+                    let logoBuffer = null;
+                    let logoLoaded = false;
+                    
+                    for (const logoPath of possiblePaths) {
+                        try {
+                            console.log('Tentativo caricamento logo da:', logoPath);
+                            const logoResponse = await fetch(logoPath);
+                            
+                            if (logoResponse.ok) {
+                                logoBuffer = await logoResponse.arrayBuffer();
+                                console.log('Logo caricato con successo! Dimensione:', logoBuffer.byteLength, 'bytes');
+                                logoLoaded = true;
+                                break;
+                            } else {
+                                console.log('Logo non trovato in:', logoPath, 'Status:', logoResponse.status);
+                            }
+                        } catch (pathError) {
+                            console.log('Errore caricamento da', logoPath, ':', pathError.message);
+                            continue;
+                        }
+                    }
+                    
+                    if (logoLoaded && logoBuffer) {
+                        try {
+                            const logoImage = workbook.addImage({
+                                buffer: logoBuffer,
+                                extension: 'png'
+                            });
+                            
+                            console.log('Immagine aggiunta al workbook, inserisco nel foglio...');
+                            
+                            // Inserisci logo molto grande che occupa tutto lo spazio sopra la tabella
+                            // Dimensioni massime: larghezza 600px, altezza 200px per occupare righe 1-8
+                            worksheet.addImage(logoImage, {
+                                tl: { col: 0, row: 0 },
+                                ext: { width: 600, height: 200 }
+                            });
+                            
+                            console.log('Logo inserito nel foglio Excel! Dimensioni: 600x200px');
+                            
+                            // Sposta la tabella alla riga 8 (margine superiore riga 8)
+                            startRow = 8;
+                            
+                            // Imposta altezza righe prima della tabella per dare spazio al logo grande
+                            // Righe 1-7: spazio per il logo molto grande
+                            for (let i = 1; i < startRow; i++) {
+                                const row = worksheet.getRow(i);
+                                row.height = 25; // Altezza maggiore per logo più grande
+                            }
+                            
+                            console.log('Layout con logo molto grande: logo occupa righe 1-7, tabella dalla riga 8');
+                        } catch (imageError) {
+                            console.error('Errore inserimento immagine in Excel:', imageError);
+                            // Continua senza logo
+                        }
+                    } else {
+                        console.log('Logo non caricato da nessun percorso, continuo senza logo');
+                    }
+                } catch (logoError) {
+                    console.error('Errore generale caricamento logo:', logoError);
+                    // Continua senza logo
+                }
+
+                // Imposta larghezza colonne (SENZA header per evitare intestazioni duplicate)
+                worksheet.columns = [
+                    { key: 'operaio', width: 25 },
+                    { key: 'tipo', width: 20 },
+                    { key: 'ore', width: 15 },
+                    { key: 'tariffa', width: 15 },
+                    { key: 'compenso', width: 18 }
+                ];
+
+                // Aggiungi righe vuote se necessario per il logo
+                for (let i = 1; i < startRow; i++) {
+                    if (!worksheet.getRow(i)) {
+                        worksheet.addRow([]);
+                    }
+                }
+
+                // Crea riga intestazioni nella posizione corretta
+                const headerRow = worksheet.getRow(startRow);
+                headerRow.values = ['Operaio', 'Tipo Operaio', 'Ore', 'Tariffa (€/h)', 'Compenso (€)'];
+                
+                // Stile intestazioni: sfondo verde scuro, testo bianco, grassetto, centrato
+                headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                headerRow.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF2E8B57' }
+                };
+                headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+                headerRow.height = 25;
+
+                // Bordi intestazioni
+                headerRow.eachCell((cell) => {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FF1F5F3F' } },
+                        bottom: { style: 'thin', color: { argb: 'FF1F5F3F' } },
+                        left: { style: 'thin', color: { argb: 'FF1F5F3F' } },
+                        right: { style: 'thin', color: { argb: 'FF1F5F3F' } }
+                    };
+                });
+
+                // Funzione helper per convertire ore decimali in formato leggibile (es. 64.17 -> "64h 10min")
+                function formattaOreLeggibile(oreDecimali) {
+                    if (!oreDecimali || oreDecimali === 0) return '0h';
+                    
+                    const oreIntere = Math.floor(oreDecimali);
+                    const minutiDecimali = (oreDecimali - oreIntere) * 60;
+                    const minuti = Math.round(minutiDecimali);
+                    
+                    if (minuti === 0) {
+                        return `${oreIntere}h`;
+                    }
+                    
+                    return `${oreIntere}h ${minuti}min`;
+                }
+
+                // Aggiungi dati operai (partendo dalla riga dopo l'intestazione)
+                compensiData.forEach((c, index) => {
+                    const nomeCompleto = `${c.nome} ${c.cognome}`.trim();
+                    const tipoOperaioLabel = tipoOperaioNames[c.tipoOperaio] || c.tipoOperaio || '';
+                    
+                    // Converti ore in formato leggibile
+                    const oreFormattate = formattaOreLeggibile(c.oreTotali);
+                    
+                    const rowNumber = startRow + index + 1;
+                    const row = worksheet.getRow(rowNumber);
+                    row.values = [nomeCompleto, tipoOperaioLabel, oreFormattate, c.tariffa, c.compenso];
+
+                    // Zebra striping: righe alternate
+                    const isEven = (index + 1) % 2 === 0;
+                    row.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: isEven ? 'FFF8F9FA' : 'FFFFFFFF' }
+                    };
+
+                    // Formatta numeri (ore è già testo formattato)
+                    row.getCell('tariffa').numFmt = '0.00" €/h"';
+                    row.getCell('compenso').numFmt = '#,##0.00" €"';
+
+                    // Allineamento
+                    row.getCell('ore').alignment = { horizontal: 'left' }; // Testo allineato a sinistra
+                    row.getCell('tariffa').alignment = { horizontal: 'right' };
+                    row.getCell('compenso').alignment = { horizontal: 'right' };
+
+                    // Bordi righe
+                    row.eachCell((cell) => {
+                        cell.border = {
+                            bottom: { style: 'thin', color: { argb: 'FFDEE2E6' } }
+                        };
+                    });
+
+                    // Evidenzia colonna Compenso con verde chiaro
+                    row.getCell('compenso').fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFD4EDDA' }
+                    };
+                    row.getCell('compenso').font = { bold: true, color: { argb: 'FF155724' } };
+                });
+
+                // Riga vuota
+                const emptyRowIndex = startRow + compensiData.length + 1;
+                const emptyRow = worksheet.getRow(emptyRowIndex);
+                emptyRow.values = [];
+
+                // Riga totale
+                const compensoTotale = compensiData.reduce((sum, c) => sum + c.compenso, 0);
+                const oreTotaliDecimali = compensiData.reduce((sum, c) => sum + c.oreTotali, 0);
+                const oreTotaliFormattate = formattaOreLeggibile(oreTotaliDecimali);
+                
+                const totalRowIndex = emptyRowIndex + 1;
+                const totalRow = worksheet.getRow(totalRowIndex);
+                totalRow.values = ['TOTALE', '', oreTotaliFormattate, '', compensoTotale];
+
+                // Stile riga totale: sfondo grigio scuro, testo bianco, grassetto
+                totalRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                totalRow.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF495057' }
+                };
+                totalRow.height = 25;
+
+                // Formatta numeri riga totale
+                totalRow.getCell('compenso').numFmt = '#,##0.00" €"';
+                totalRow.getCell('ore').alignment = { horizontal: 'left' }; // Testo allineato a sinistra
+                totalRow.getCell('compenso').alignment = { horizontal: 'right' };
+                totalRow.getCell('operaio').alignment = { horizontal: 'left' };
+
+                // Bordi riga totale
+                totalRow.eachCell((cell) => {
+                    cell.border = {
+                        top: { style: 'medium', color: { argb: 'FF2E8B57' } },
+                        bottom: { style: 'thin', color: { argb: 'FF212529' } },
+                        left: { style: 'thin', color: { argb: 'FF212529' } },
+                        right: { style: 'thin', color: { argb: 'FF212529' } }
+                    };
+                });
+
+                // Genera file Excel
+                const oggi = new Date();
+                const dataStr = oggi.toISOString().split('T')[0];
+                const fileName = `compensi-operai-${dataStr}.xlsx`;
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error('Errore esportazione Excel:', error);
+                alert('Errore durante l\'esportazione: ' + error.message);
+            }
+        }
+
+        // Export funzioni globali
+        window.loadCompensi = loadCompensi;
+        window.resetFiltri = resetFiltri;
+        window.esportaExcel = esportaExcel;
+    </script>
+</body>
+</html>
+

@@ -530,6 +530,16 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Tariffe Operai (solo Manager/Amministratore) -->
+            <div class="card" id="tariffe-section" style="display: none;">
+                <h2>💰 Tariffe Operai</h2>
+                <p class="info-text" style="margin-bottom: 20px;">Configura le tariffe orarie di default per ogni tipo operaio. Queste tariffe verranno utilizzate per il calcolo compensi. Puoi anche impostare tariffe personalizzate per singoli operai nella pagina Gestione Operai.</p>
+                
+                <div id="tariffe-list" class="list-container">
+                    <!-- Lista verrà popolata dinamicamente -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -728,6 +738,7 @@
                         document.getElementById('azienda-section').style.display = 'block';
                         document.getElementById('poderi-section').style.display = 'block';
                         document.getElementById('liste-section').style.display = 'block';
+                        document.getElementById('tariffe-section').style.display = 'block';
                         
                         // Carica dati azienda
                         if (currentTenantId) {
@@ -746,15 +757,17 @@
                                 document.getElementById('azienda-note').value = tenantData.note || '';
                             }
                             
-                            // Carica liste personalizzate e poderi
+                            // Carica liste personalizzate, poderi e tariffe
                             await loadListe();
                             await loadPoderi();
+                            await loadTariffe();
                         }
                     } else {
                         // Nascondi sezioni azienda per non-manager
                         document.getElementById('azienda-section').style.display = 'none';
                         document.getElementById('poderi-section').style.display = 'none';
                         document.getElementById('liste-section').style.display = 'none';
+                        document.getElementById('tariffe-section').style.display = 'none';
                     }
                     
                     if (isCaposquadra) {
@@ -1228,6 +1241,124 @@
                 "'": '&#039;'
             };
             return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+        
+        // ========== Gestione Tariffe Operai ==========
+        
+        const TIPI_OPERAI = [
+            { value: 'semplice', label: 'Operaio Semplice' },
+            { value: 'specializzato', label: 'Operaio Specializzato' },
+            { value: 'trattorista', label: 'Trattorista' },
+            { value: 'meccanico', label: 'Meccanico' },
+            { value: 'elettricista', label: 'Elettricista' },
+            { value: 'altro', label: 'Altro' }
+        ];
+        
+        // Tariffe default (se non configurate)
+        const TARIFFE_DEFAULT = {
+            semplice: 10.0,
+            specializzato: 12.0,
+            trattorista: 15.0,
+            meccanico: 14.0,
+            elettricista: 14.0,
+            altro: 10.0
+        };
+        
+        // Carica tariffe
+        async function loadTariffe() {
+            if (!currentTenantId) return;
+            
+            try {
+                const tariffeRef = doc(db, `tenants/${currentTenantId}/tariffe`, 'operai');
+                const tariffeSnap = await getDoc(tariffeRef);
+                
+                let tariffe = { ...TARIFFE_DEFAULT };
+                if (tariffeSnap.exists()) {
+                    const data = tariffeSnap.data();
+                    // Unisci con default per assicurarsi che tutti i tipi siano presenti
+                    tariffe = { ...TARIFFE_DEFAULT, ...data };
+                }
+                
+                renderTariffe(tariffe);
+            } catch (error) {
+                console.error('Errore caricamento tariffe:', error);
+                showAlert('Errore caricamento tariffe', 'error');
+            }
+        }
+        
+        // Render tariffe
+        function renderTariffe(tariffe) {
+            const container = document.getElementById('tariffe-list');
+            
+            container.innerHTML = TIPI_OPERAI.map(tipo => {
+                const tariffa = tariffe[tipo.value] || TARIFFE_DEFAULT[tipo.value] || 0;
+                const escapedLabel = escapeHtml(tipo.label);
+                
+                return `
+                    <div class="list-item" style="align-items: center;">
+                        <div class="list-item-name" style="flex: 1;">
+                            <div style="font-weight: 600; color: #2E8B57;">${escapedLabel}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    min="0" 
+                                    id="tariffa-${tipo.value}" 
+                                    value="${tariffa.toFixed(2)}" 
+                                    style="width: 100px; padding: 8px; border: 1px solid #ced4da; border-radius: 6px;"
+                                    onchange="saveTariffa('${tipo.value}')"
+                                >
+                                <span style="color: #666;">€/ora</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Salva tariffa
+        async function saveTariffa(tipoOperaio) {
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            const input = document.getElementById(`tariffa-${tipoOperaio}`);
+            const valore = parseFloat(input.value);
+            
+            if (isNaN(valore) || valore < 0) {
+                showAlert('Inserisci un valore valido (>= 0)', 'error');
+                // Ripristina valore precedente
+                await loadTariffe();
+                return;
+            }
+            
+            try {
+                const tariffeRef = doc(db, `tenants/${currentTenantId}/tariffe`, 'operai');
+                const tariffeSnap = await getDoc(tariffeRef);
+                
+                let tariffe = { ...TARIFFE_DEFAULT };
+                if (tariffeSnap.exists()) {
+                    tariffe = { ...TARIFFE_DEFAULT, ...tariffeSnap.data() };
+                }
+                
+                tariffe[tipoOperaio] = valore;
+                tariffe.updatedAt = serverTimestamp();
+                
+                if (!tariffeSnap.exists()) {
+                    tariffe.createdAt = serverTimestamp();
+                }
+                
+                await setDoc(tariffeRef, tariffe);
+                showAlert('Tariffa salvata con successo', 'success');
+            } catch (error) {
+                console.error('Errore salvataggio tariffa:', error);
+                showAlert('Errore durante il salvataggio: ' + error.message, 'error');
+                // Ripristina valore precedente
+                await loadTariffe();
+            }
         }
         
         // ========== Gestione Poderi ==========

@@ -473,7 +473,13 @@
                         <option value="elettricista">Elettricista</option>
                         <option value="altro">Altro</option>
                     </select>
-                    <small>Opzionale. Utile per calcolo compensi futuri.</small>
+                    <small>Opzionale. Utile per calcolo compensi.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="tariffa-personalizzata">Tariffa Personalizzata (€/ora)</label>
+                    <input type="number" id="tariffa-personalizzata" step="0.01" min="0" placeholder="Lascia vuoto per usare tariffa tipo operaio">
+                    <small>Opzionale. Se impostata, sovrascrive la tariffa di default del tipo operaio. Lascia vuoto per usare la tariffa configurata nelle Impostazioni.</small>
                 </div>
 
                 <div class="form-group">
@@ -875,6 +881,13 @@
             }
 
             document.getElementById('note-contratto').value = operaio.noteContratto || '';
+            
+            // Tariffa personalizzata
+            if (operaio.tariffaPersonalizzata !== null && operaio.tariffaPersonalizzata !== undefined) {
+                document.getElementById('tariffa-personalizzata').value = operaio.tariffaPersonalizzata;
+            } else {
+                document.getElementById('tariffa-personalizzata').value = '';
+            }
 
             // Mostra/nascondi campo scadenza in base al tipo contratto
             updateScadenzaVisibility();
@@ -920,6 +933,8 @@
             const dataInizio = document.getElementById('data-inizio').value;
             const dataScadenza = document.getElementById('data-scadenza').value;
             const noteContratto = document.getElementById('note-contratto').value || null;
+            const tariffaPersonalizzataInput = document.getElementById('tariffa-personalizzata').value;
+            const tariffaPersonalizzata = tariffaPersonalizzataInput && tariffaPersonalizzataInput.trim() !== '' ? parseFloat(tariffaPersonalizzataInput) : null;
 
             // Validazione
             if (!tipoContratto) {
@@ -941,6 +956,12 @@
                 }
             }
 
+            // Validazione tariffa personalizzata
+            if (tariffaPersonalizzata !== null && (isNaN(tariffaPersonalizzata) || tariffaPersonalizzata < 0)) {
+                showAlert('La tariffa personalizzata deve essere un numero >= 0', 'error');
+                return;
+            }
+
             try {
                 const userRef = doc(db, 'users', userId);
                 const updateData = {
@@ -948,7 +969,8 @@
                     tipoContratto: tipoContratto,
                     dataInizioContratto: dataInizio ? Timestamp.fromDate(new Date(dataInizio)) : null,
                     dataScadenzaContratto: tipoContratto !== 'indeterminato' && dataScadenza ? Timestamp.fromDate(new Date(dataScadenza)) : null,
-                    noteContratto: noteContratto
+                    noteContratto: noteContratto,
+                    tariffaPersonalizzata: tariffaPersonalizzata
                 };
 
                 await setDoc(userRef, updateData, { merge: true });

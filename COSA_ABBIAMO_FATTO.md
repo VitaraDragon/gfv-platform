@@ -269,6 +269,15 @@ gfv-platform/
 
 ### Pagina Statistiche Manodopera Dedicata ✅
 - **File creato**: `core/admin/statistiche-manodopera-standalone.html`
+
+### Calcolo Compensi Operai ✅
+- **File creato**: `core/admin/compensi-operai-standalone.html`
+- **Funzionalità**: Pagina dedicata per calcolo compensi operai
+- **Sistema tariffe**: Tariffe default configurabili per tipo operaio + tariffe personalizzate per singolo operaio
+- **Calcolo automatico**: Basato su ore validate nel periodo selezionato
+- **Esportazione Excel**: Formato professionale con logo aziendale, colori, formattazione completa
+- **Formato ore**: Leggibile (es. "64h 10min" invece di "64.17")
+- **Accesso**: Solo Manager/Amministratore, richiede modulo Manodopera attivo
 - **Statistiche implementate**:
   - Lavori: Totali, Attivi, Completati, Pianificati
   - Ore: Validate (Mese/Totale), Da Validare, Media Ore/Giorno
@@ -434,6 +443,49 @@ gfv-platform/
 
 **File modificati**:
 - `core/admin/statistiche-manodopera-standalone.html`
+
+### Calcolo Compensi Operai ✅
+**Data completamento**: 2025-01-23
+
+**File creati**:
+- `core/admin/compensi-operai-standalone.html` - Pagina dedicata calcolo compensi operai
+
+**File modificati**:
+- `core/models/User.js` - Aggiunto campo `tariffaPersonalizzata`
+- `core/admin/impostazioni-standalone.html` - Aggiunta sezione "Tariffe Operai"
+- `core/admin/gestione-operai-standalone.html` - Aggiunto campo tariffa personalizzata
+- `core/admin/statistiche-manodopera-standalone.html` - Rimossa sezione compensi, aggiunto link
+- `core/dashboard-standalone.html` - Aggiunto link Compensi Operai
+- `core/admin/amministrazione-standalone.html` - Aggiunta card Compensi Operai
+
+**Funzionalità implementate**:
+- ✅ Pagina dedicata per calcolo compensi (separata da Statistiche)
+- ✅ Sistema tariffe: default per tipo operaio + personalizzate per singolo operaio
+- ✅ Calcolo automatico basato su ore validate nel periodo selezionato
+- ✅ Filtri: periodo (oggi/settimana/mese/personalizzato), tipo operaio, singolo operaio
+- ✅ Statistiche aggregate: compenso totale, operai compensati, ore compensate, media
+- ✅ Formato ore leggibile: "64h 10min" invece di "64.17"
+- ✅ Esportazione Excel professionale:
+  - Formato .xlsx nativo (nessun alert Excel)
+  - Logo aziendale grande e leggibile (righe 1-7)
+  - Formattazione completa con colori (intestazioni verdi, righe alternate, colonna compensi evidenziata)
+  - Formato numeri: ore leggibili, tariffe e compensi in euro italiano
+  - Tabella inizia dalla riga 8 con margine superiore corretto
+
+**Vantaggi**:
+- ✅ Gestione finanziaria dedicata (non più in Statistiche)
+- ✅ Sistema tariffe flessibile e scalabile
+- ✅ Esportazione professionale pronta per condivisione/documentazione
+- ✅ Pronto per integrazione futura con modulo Bilancio
+
+**File modificati**:
+- `core/admin/compensi-operai-standalone.html`
+- `core/admin/statistiche-manodopera-standalone.html`
+- `core/admin/impostazioni-standalone.html`
+- `core/admin/gestione-operai-standalone.html`
+- `core/models/User.js`
+- `core/dashboard-standalone.html`
+- `core/admin/amministrazione-standalone.html`
 
 ### Fix Superficie Lavorata Dashboard Manager ✅
 **Data completamento**: 2025-01-21
