@@ -2,7 +2,7 @@
 
 **Ultimo aggiornamento**: 2025-01-23  
 **Versione**: 2.0.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard + Separazione Dashboard Core Base/Manodopera (Dashboard Pulita Senza Modulo, Mappa Semplificata) + Fix Configurazione Google Maps
+**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard + Separazione Dashboard Core Base/Manodopera (Dashboard Pulita Senza Modulo, Mappa Semplificata) + Fix Configurazione Google Maps + Refactoring Dashboard Standalone (Modularizzazione CSS/JS, Riduzione 30.6%)
 
 ---
 
@@ -1948,6 +1948,73 @@ users/{userId}
 
 **Stato**: ✅ **RISOLTO E TESTATO**
 
+### 43. Refactoring Dashboard Standalone ✅
+**Data completamento**: 2025-01-23
+
+**Problema identificato**:
+- File `dashboard-standalone.html` troppo grande (4864 righe)
+- Mix di HTML, CSS e JavaScript nello stesso file
+- Difficile manutenzione e debugging
+- Codice non riutilizzabile
+
+**Soluzione implementata**:
+- ✅ **CSS estratto**: ~515 righe → `styles/dashboard.css`
+- ✅ **Config Loader estratto**: ~240 righe → `js/config-loader.js`
+  - Gestione caricamento configurazione Firebase
+  - Gestione caricamento configurazione Google Maps
+  - Supporto fallback per GitHub Pages
+  - Compatibile con protocollo `file://` (script tradizionali invece di ES6 modules)
+- ✅ **Utility Functions estratte**: ~110 righe → `js/dashboard-utils.js`
+  - Normalizzazione ruoli (`normalizeRole`, `normalizeRoles`)
+  - Escape HTML (`escapeHtml`)
+  - Verifica ruoli (`hasRole`, `hasAnyRole`)
+  - Verifica moduli (`hasOnlyCoreModules`, `hasManodoperaModule`)
+- ✅ **Sezioni Dashboard estratte**: ~600+ righe → `js/dashboard-sections.js`
+  - `createCoreBaseSection` - Sezione core base
+  - `createAdminSection` - Sezione amministratore
+  - `createManagerSection` - Sezione manager
+  - `createAmministrazioneCard` - Card amministrazione
+  - `createStatisticheCard` - Card statistiche
+  - `createTerreniCard` - Card terreni
+  - `createManagerManodoperaSection` - Sezione manager con Manodopera
+  - `createManagerLavoriSection` - Sezione lavori manager
+  - `createDiarioDaLavoriSection` - Sezione diario da lavori
+  - `createCaposquadraSection` - Sezione caposquadra
+  - `createOperaioSection` - Sezione operaio
+
+**Risultati**:
+- ✅ Riduzione file HTML: **4864 → 3374 righe (-1490 righe, -30.6%)**
+- ✅ Codice più modulare e organizzato
+- ✅ Separazione delle responsabilità migliorata
+- ✅ Funzionalità mantenute al 100%
+- ✅ Compatibile con `file://` e server HTTP
+- ✅ Risolti problemi CORS con ES6 modules
+
+**File creati**:
+- `core/styles/dashboard.css` - Tutti gli stili CSS della dashboard
+- `core/js/config-loader.js` - Caricamento configurazioni Firebase e Google Maps
+- `core/js/dashboard-utils.js` - Funzioni di utilità per ruoli e moduli
+- `core/js/dashboard-sections.js` - Funzioni per creare sezioni dashboard
+
+**File modificati**:
+- `core/dashboard-standalone.html` - Aggiornato per caricare moduli esterni, rimosse funzioni duplicate
+
+**Note tecniche**:
+- Convertiti ES6 modules in script tradizionali per compatibilità `file://`
+- Funzioni esposte su namespace globali (`window.GFVConfigLoader`, `window.GFVDashboardUtils`, `window.GFVDashboardSections`)
+- Funzioni di caricamento dati (`load*`) rimaste nel file HTML principale per dipendenze con `auth` e `db`
+- Funzione `createMappaAziendaleSection` e `loadMappaAziendale` rimaste nel file HTML per complessità e dipendenze
+
+**Vantaggi**:
+- ✅ Codice più facile da mantenere e debuggare
+- ✅ CSS riutilizzabile in altre pagine
+- ✅ Utility functions riutilizzabili
+- ✅ Sezioni dashboard modulari e testabili
+- ✅ Migliore organizzazione del codice
+- ✅ File HTML più leggibile
+
+**Stato**: ✅ **COMPLETATO E TESTATO**
+
 ## 📝 Modifiche Recenti (2025-01-16)
 
 ### Indicatore Stato Progresso Lavori
@@ -2314,6 +2381,7 @@ git ls-files | grep "vecchia"
 **Separazione Dashboard Core Base/Manodopera**: ✅ Completo e funzionante (Dashboard pulita quando Manodopera disattivato, nessuna sezione Amministrazione, mappa semplificata solo terreni, link Invita Collaboratore nascosto)  
 **Mappa Semplificata Core Base**: ✅ Completo e funzionante (Versione semplificata mappa quando Manodopera disattivato: solo terreni, nessun filtro avanzato, nessun overlay lavori, nessun indicatore lavori, legenda base colture)  
 **Fix Configurazione Google Maps**: ✅ Risolto (Corretto percorso file config, caricamento config prima di inizializzare API, gestione timing corretta, controlli dimensioni container, resize trigger per rendering)  
+**Refactoring Dashboard Standalone**: ✅ Completato (Estratto CSS in file separato, estratto config loader, estratto utility functions, estratto sezioni dashboard, riduzione file HTML da 4864 a 3374 righe -30.6%, codice più modulare e manutenibile, compatibile con file:// e HTTP)  
 **Prossimo passo**: Implementare Security Rules Firestore (critico per produzione)
 
 ---

@@ -4,521 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - GFV Platform</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            color: #333;
-        }
-
-        .dashboard-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .dashboard-header {
-            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .dashboard-header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .user-info {
-            font-size: 14px;
-            opacity: 0.95;
-        }
-
-        .user-roles {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 8px;
-        }
-
-        .role-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .logout-button {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .logout-button:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .dashboard-content {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            margin-bottom: 30px;
-            width: 100%;
-        }
-
-        /* Layout superiore: 3 card a sinistra, mappa a destra */
-        .dashboard-top-row {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-
-        .dashboard-top-left {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            min-width: 0;
-        }
-
-        .dashboard-top-right {
-            min-height: 600px;
-            width: 100%;
-            min-width: 0;
-        }
-        
-        .dashboard-top-right .dashboard-section {
-            width: 100%;
-            margin: 0;
-            padding: 25px;
-            box-sizing: border-box;
-        }
-
-        /* Responsive: tablet e schermi medi */
-        @media (max-width: 1200px) {
-            .dashboard-top-row {
-                grid-template-columns: 260px 1fr;
-            }
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-top-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .dashboard-top-left {
-                margin-bottom: 20px;
-            }
-            
-            .dashboard-top-right {
-                min-height: 500px;
-            }
-        }
-
-        /* Responsive: mobile */
-        @media (max-width: 768px) {
-            .dashboard-top-right {
-                min-height: 400px;
-            }
-            
-            .mappa-container {
-                height: 400px !important;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .dashboard-top-right {
-                min-height: 300px;
-            }
-            
-            .mappa-container {
-                height: 300px !important;
-            }
-        }
-
-        .dashboard-section {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .dashboard-section h2 {
-            color: #2E8B57;
-            font-size: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Stili per mappa aziendale */
-        .mappa-container {
-            position: relative;
-            width: 100%;
-            height: 600px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            margin-top: 20px;
-        }
-
-        .mappa-loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: #666;
-            z-index: 1;
-        }
-
-        .mappa-legenda {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            z-index: 1000;
-            max-width: 200px;
-            font-size: 12px;
-        }
-
-        .mappa-legenda h4 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #2E8B57;
-        }
-
-        .mappa-legenda-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 5px;
-        }
-
-        .mappa-legenda-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 1px solid rgba(0,0,0,0.2);
-        }
-
-        .mappa-info-window {
-            max-width: 250px;
-        }
-
-        .mappa-info-window h3 {
-            margin: 0 0 8px 0;
-            font-size: 16px;
-            color: #2E8B57;
-        }
-
-        .mappa-info-window p {
-            margin: 4px 0;
-            font-size: 13px;
-            color: #666;
-        }
-
-        .mappa-control-btn {
-            background: white;
-            border: 2px solid #2E8B57;
-            color: #2E8B57;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .mappa-control-btn:hover {
-            background: #2E8B57;
-            color: white;
-        }
-
-        .mappa-control-btn.active {
-            background: #2E8B57;
-            color: white;
-        }
-
-        .mappa-filtro-select {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            background: white;
-            color: #333;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            min-width: 150px;
-        }
-
-        .mappa-filtro-select:hover {
-            border-color: #2E8B57;
-        }
-
-        .mappa-filtro-select:focus {
-            outline: none;
-            border-color: #2E8B57;
-            box-shadow: 0 0 0 3px rgba(46, 139, 87, 0.1);
-        }
-
-        .mappa-controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            z-index: 1000;
-            display: flex;
-            gap: 10px;
-        }
-
-        .mappa-controls button {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background: white;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-
-        .mappa-controls button:hover {
-            background: #f8f9fa;
-            border-color: #2E8B57;
-        }
-
-        .mappa-controls button.active {
-            background: #2E8B57;
-            color: white;
-            border-color: #2E8B57;
-        }
-
-        .section-icon {
-            font-size: 24px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border-left: 4px solid #2E8B57;
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #2E8B57;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .action-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: #333;
-            transition: all 0.3s;
-            border: 2px solid transparent;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .action-card:hover {
-            background: #e9ecef;
-            border-color: #2E8B57;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .action-icon {
-            font-size: 32px;
-        }
-
-        .action-title {
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .action-description {
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-        }
-
-        .recent-items {
-            list-style: none;
-        }
-
-        .recent-item {
-            padding: 12px;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .recent-item:last-child {
-            border-bottom: none;
-        }
-
-        .recent-item-title {
-            font-weight: 500;
-        }
-
-        .recent-item-date {
-            font-size: 12px;
-            color: #666;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #999;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-container {
-                padding: 10px;
-            }
-
-            .dashboard-header {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 20px;
-            }
-
-            .dashboard-header h1 {
-                font-size: 24px;
-            }
-
-            .header-actions {
-                width: 100%;
-                justify-content: space-between;
-                margin-top: 15px;
-            }
-
-            .dashboard-content {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .quick-actions {
-                grid-template-columns: 1fr;
-            }
-
-            .action-card {
-                min-width: 100%;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .dashboard-header {
-                padding: 15px;
-            }
-
-            .dashboard-header h1 {
-                font-size: 20px;
-            }
-
-            .user-info {
-                font-size: 12px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header-actions {
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .header-actions .btn,
-            .logout-button {
-                width: 100%;
-                text-align: center;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles/dashboard.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -546,69 +32,18 @@
         </div>
     </div>
 
+    <!-- Load JavaScript modules -->
+    <script src="js/config-loader.js"></script>
+    <script src="js/dashboard-utils.js"></script>
+    <script src="js/dashboard-sections.js"></script>
+    
     <!-- Load Firebase and Google Maps config from external files -->
     <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
     <script>
-        function loadConfig() {
-            return new Promise((resolve, reject) => {
-                // Se già caricato, risolvi immediatamente
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve();
-                    return;
-                }
-
-                // Prova prima il percorso locale
-                const configScript = document.createElement('script');
-                configScript.src = 'config/firebase-config.js';
-                
-                configScript.onload = function() {
-                    // Aspetta un po' per assicurarsi che lo script sia eseguito
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve();
-                        } else {
-                            // Se non è stato definito, prova il fallback
-                            loadFallbackConfig().then(resolve).catch(reject);
-                        }
-                    }, 100);
-                };
-                
-                configScript.onerror = function() {
-                    // Se fallisce, prova il fallback
-                    loadFallbackConfig().then(resolve).catch(reject);
-                };
-                
-                document.head.appendChild(configScript);
-            });
-        }
-
-        function loadFallbackConfig() {
-            return new Promise((resolve, reject) => {
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-                
-                fallbackScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve();
-                        } else {
-                            reject(new Error('Firebase config not found even after loading from GitHub'));
-                        }
-                    }, 100);
-                };
-                
-                fallbackScript.onerror = function() {
-                    reject(new Error('Failed to load Firebase config from GitHub'));
-                };
-                
-                document.head.appendChild(fallbackScript);
-            });
-        }
-
         // Carica il config prima di continuare
-        loadConfig().then(() => {
+        window.GFVConfigLoader.loadConfig().then(() => {
             // Carica anche Google Maps config e poi carica l'API
-            return loadGoogleMapsConfig();
+            return window.GFVConfigLoader.loadGoogleMapsConfig();
         }).then(() => {
             // Config caricato, ora possiamo inizializzare tutto
             console.log('✅ Config caricato correttamente');
@@ -624,91 +59,35 @@
                 </div>
             `;
         });
-
-        // Carica Google Maps config
-        function loadGoogleMapsConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                    resolve();
-                    return;
-                }
-
-                // Prova prima il percorso locale (stesso percorso di Firebase config)
-                const mapsConfigScript = document.createElement('script');
-                mapsConfigScript.src = 'config/google-maps-config.js';
-                
-                mapsConfigScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                            resolve();
-                        } else {
-                            // Se non è stato definito, prova il fallback
-                            loadGoogleMapsConfigFallback().then(resolve).catch(reject);
-                        }
-                    }, 100);
-                };
-                
-                mapsConfigScript.onerror = function() {
-                    // Se fallisce, prova il fallback
-                    loadGoogleMapsConfigFallback().then(resolve).catch(reject);
-                };
-                
-                document.head.appendChild(mapsConfigScript);
-            });
-        }
-
-        function loadGoogleMapsConfigFallback() {
-            return new Promise((resolve, reject) => {
-                const fallback = document.createElement('script');
-                fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-                
-                fallback.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                            resolve();
-                        } else {
-                            console.warn('Google Maps API key not found');
-                            resolve(); // Non bloccare il caricamento
-                        }
-                    }, 100);
-                };
-                
-                fallback.onerror = function() {
-                    console.warn('Failed to load Google Maps config');
-                    resolve(); // Non bloccare il caricamento
-                };
-                
-                document.head.appendChild(fallback);
-            });
-        }
     </script>
     
     <!-- Firebase SDK da CDN -->
     <script type="module">
-        // Attendi che lo script config sia caricato
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                // Aspetta fino a 5 secondi che il config sia caricato
-                let attempts = 0;
-                const maxAttempts = 50; // 5 secondi (50 * 100ms)
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
-        }
+        // Usa funzioni dai moduli caricati
+        const { waitForConfig, waitForGoogleMapsConfig, loadGoogleMapsAPI } = window.GFVConfigLoader;
+        const { 
+            roleNames, 
+            normalizeRole, 
+            normalizeRoles, 
+            escapeHtml, 
+            hasRole, 
+            hasAnyRole, 
+            hasOnlyCoreModules, 
+            hasManodoperaModule 
+        } = window.GFVDashboardUtils;
+        const {
+            createCoreBaseSection,
+            createAdminSection,
+            createManagerSection,
+            createAmministrazioneCard,
+            createStatisticheCard,
+            createTerreniCard,
+            createManagerManodoperaSection,
+            createManagerLavoriSection,
+            createDiarioDaLavoriSection,
+            createCaposquadraSection,
+            createOperaioSection
+        } = window.GFVDashboardSections;
 
         // Carica configurazione
         const firebaseConfig = await waitForConfig();
@@ -726,190 +105,17 @@
         // Aspetta che anche il config Google Maps sia caricato
         let googleMapsReady = false;
         
-        // Funzione per aspettare che il config Google Maps sia caricato
-        async function waitForGoogleMapsConfig() {
-            return new Promise((resolve) => {
-                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                    resolve();
-                    return;
-                }
-                
-                // Aspetta fino a 5 secondi
-                let attempts = 0;
-                const maxAttempts = 50;
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve();
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        console.warn('Google Maps config non trovato dopo attesa');
-                        resolve(); // Non bloccare
-                    }
-                }, 100);
-            });
-        }
-        
         // Aspetta che il config Google Maps sia caricato, poi carica l'API
         await waitForGoogleMapsConfig();
         console.log('✅ Config Google Maps disponibile, carico API...');
         
-        // Chiama loadGoogleMapsAPI dopo che è stata definita
-        function loadGoogleMapsAPI() {
-            return new Promise((resolve) => {
-                if (typeof google !== 'undefined' && google.maps) {
-                    googleMapsReady = true;
-                    resolve();
-                    return;
-                }
-
-                // Aspetta che il config sia caricato (max 5 secondi)
-                let attempts = 0;
-                const maxAttempts = 50; // 50 tentativi x 100ms = 5 secondi
-                const checkConfig = setInterval(() => {
-                    attempts++;
-                    const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY;
-                    
-                    if (attempts === 1) {
-                        console.log('🔍 Verifica chiave API Google Maps...', GOOGLE_MAPS_API_KEY ? 'Trovata' : 'Non trovata');
-                    }
-                    
-                    if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-                        clearInterval(checkConfig);
-                        console.log('✅ Chiave API Google Maps trovata, procedo con caricamento...');
-                        // Config trovato, procedi con il caricamento
-                        loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY).then(resolve);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkConfig);
-                        console.warn('⚠️ Google Maps API key not configured after waiting', attempts, 'attempts');
-                        console.warn('Chiave disponibile?', typeof window.GOOGLE_MAPS_API_KEY !== 'undefined' ? window.GOOGLE_MAPS_API_KEY : 'undefined');
-                        resolve(); // Non bloccare il caricamento
-                    }
-                }, 100);
-            });
-        }
-        
-        function loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY) {
-            return new Promise((resolve) => {
-                if (typeof google !== 'undefined' && google.maps) {
-                    googleMapsReady = true;
-                    resolve();
-                    return;
-                }
-
-                // Verifica se lo script è già stato aggiunto
-                if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-                    // Aspetta che Google Maps sia caricato
-                    const checkInterval = setInterval(() => {
-                        if (typeof google !== 'undefined' && google.maps) {
-                            googleMapsReady = true;
-                            clearInterval(checkInterval);
-                            resolve();
-                        }
-                    }, 100);
-                    setTimeout(() => {
-                        clearInterval(checkInterval);
-                        resolve();
-                    }, 5000);
-                    return;
-                }
-
-                const script = document.createElement('script');
-                script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry&loading=async`;
-                script.async = true;
-                script.defer = true;
-                
-                script.onload = function() {
-                    googleMapsReady = true;
-                    resolve();
-                };
-                
-                script.onerror = function() {
-                    console.warn('Failed to load Google Maps API');
-                    resolve(); // Non bloccare il caricamento
-                };
-                
-                document.head.appendChild(script);
-            });
-        }
-
-        // Carica Google Maps API dopo che il config è stato caricato e la funzione è definita
-        loadGoogleMapsAPI();
-
-        // Ruoli disponibili con nomi display
-        const roleNames = {
-            'amministratore': '👑 Amministratore',
-            'manager': '📊 Manager',
-            'caposquadra': '👷 Caposquadra',
-            'operaio': '🔧 Operaio'
-        };
-
-        // Normalizza i ruoli (converte varianti in ruoli standard)
-        function normalizeRole(role) {
-            if (!role) return role;
-            const roleLower = role.toLowerCase().trim();
-            
-            // Mappa varianti comuni ai ruoli standard
-            const roleMap = {
-                'aggiungi amministratore': 'amministratore',
-                'admin': 'amministratore',
-                'administrator': 'amministratore',
-                'mgr': 'manager',
-                'capo squadra': 'caposquadra',
-                'capo-squadra': 'caposquadra',
-                'worker': 'operaio',
-                'operario': 'operaio'
-            };
-            
-            return roleMap[roleLower] || roleLower;
-        }
-
-        // Normalizza array di ruoli
-        function normalizeRoles(ruoli) {
-            if (!Array.isArray(ruoli)) return [];
-            return ruoli.map(r => normalizeRole(r));
-        }
-
-        // Funzione per escape HTML (prevenzione XSS)
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Funzione per verificare se utente ha un ruolo (con normalizzazione)
-        function hasRole(userData, role) {
-            if (!userData || !userData.ruoli) return false;
-            const normalizedRoles = normalizeRoles(userData.ruoli);
-            const normalizedRole = normalizeRole(role);
-            return normalizedRoles.includes(normalizedRole);
-        }
-
-        // Funzione per verificare se utente ha almeno uno dei ruoli (con normalizzazione)
-        function hasAnyRole(userData, roles) {
-            if (!userData || !userData.ruoli) return false;
-            const normalizedRoles = normalizeRoles(userData.ruoli);
-            const normalizedCheckRoles = roles.map(r => normalizeRole(r));
-            return normalizedCheckRoles.some(role => normalizedRoles.includes(role));
-        }
-
-        // Verifica se ha solo moduli core (nessun modulo avanzato)
-        function hasOnlyCoreModules(modules) {
-            if (!modules || modules.length === 0) return true;
-            // Filtra 'core' se presente (è sempre incluso)
-            const advancedModules = modules.filter(m => m !== 'core');
-            return advancedModules.length === 0;
-        }
+        // Carica Google Maps API dopo che il config è stato caricato
+        loadGoogleMapsAPI().then(() => {
+            googleMapsReady = true;
+        });
 
         // Conta utenti del tenant
         let tenantUserCount = 1; // Default a 1 (solo utente corrente)
-
-        // Verifica se modulo Manodopera è attivo
-        function hasManodoperaModule(availableModules) {
-            return availableModules && availableModules.includes('manodopera');
-        }
 
         // Renderizza dashboard in base ai ruoli e moduli
         async function renderDashboard(userData, availableModules = []) {
@@ -990,7 +196,7 @@
                 if (hasRole(userData, 'manager')) {
                     if (hasManodopera) {
                         // Gestione Manodopera (dopo la riga superiore)
-                        container.appendChild(createManagerManodoperaSection(userData, availableModules));
+                        container.appendChild(createManagerManodoperaSection(userData, availableModules, loadManagerManodoperaStats, loadRecentLavoriManagerManodopera));
                         
                         // Diario da Lavori (sezione principale per Manager con Manodopera)
                         const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
@@ -1002,14 +208,14 @@
                         // Layout normale per Manager senza Manodopera
                         // NOTA: La mappa è già stata aggiunta nella sezione Core Base (riga 875)
                         // quindi non la aggiungiamo qui per evitare duplicazioni
-                        container.appendChild(createManagerSection(userData, isCoreOnly, availableModules));
+                        container.appendChild(createManagerSection(userData, isCoreOnly, availableModules, loadCoreStatsForManager));
                     }
                 }
                 
                 // Sezione per Amministratore che non è Manager (solo se modulo Manodopera attivo)
                 if (hasManodopera && hasRole(userData, 'amministratore') && !hasRole(userData, 'manager')) {
                     // Gestione Manodopera (dopo la riga superiore)
-                    container.appendChild(createManagerManodoperaSection(userData, availableModules));
+                    container.appendChild(createManagerManodoperaSection(userData, availableModules, loadManagerManodoperaStats, loadRecentLavoriManagerManodopera));
                     
                     // Sezione Diario da Lavori per Amministratore (non Manager)
                     const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
@@ -1021,12 +227,12 @@
 
                 // Sezione Caposquadra (solo con moduli avanzati)
                 if (hasRole(userData, 'caposquadra')) {
-                    container.appendChild(createCaposquadraSection(userData, isCoreOnly, availableModules));
+                    container.appendChild(createCaposquadraSection(userData, isCoreOnly, availableModules, loadCaposquadraStats, loadRecentLavoriCaposquadra, loadComunicazioneRapida));
                 }
 
                 // Sezione Operaio (solo con moduli avanzati)
                 if (hasRole(userData, 'operaio')) {
-                    container.appendChild(createOperaioSection(userData, isCoreOnly, availableModules));
+                    container.appendChild(createOperaioSection(userData, isCoreOnly, availableModules, loadComunicazioniOperaio, loadLavoriOggiOperaio, loadStatisticheOreOperaio));
                 }
             }
 
@@ -1044,123 +250,8 @@
             }
         }
         
-        // Sezione Core Base (sempre visibile - essenziale)
-        function createCoreBaseSection(userData, isCoreOnly) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            
-            // Azioni rapide core (sempre disponibili)
-            let actionsHTML = `
-                <a href="terreni-standalone.html" class="action-card">
-                    <span class="action-icon">🗺️</span>
-                    <span class="action-title">Terreni</span>
-                    <span class="action-description">Gestisci terreni e vigneti</span>
-                </a>
-                <a href="attivita-standalone.html" class="action-card">
-                    <span class="action-icon">📝</span>
-                    <span class="action-title">Diario Attività</span>
-                    <span class="action-description">Registra attività lavorative</span>
-                </a>
-                <a href="statistiche-standalone.html" class="action-card">
-                    <span class="action-icon">📊</span>
-                    <span class="action-title">Statistiche</span>
-                    <span class="action-description">Visualizza statistiche e grafici</span>
-                </a>
-            `;
-            
-            // Aggiungi card Abbonamento (sempre visibile per gestire piano e moduli)
-            actionsHTML += `
-                <a href="admin/abbonamento-standalone.html" class="action-card">
-                    <span class="action-icon">💳</span>
-                    <span class="action-title">Abbonamento</span>
-                    <span class="action-description">Gestisci piano e moduli</span>
-                </a>
-            `;
-            
-            section.innerHTML = `
-                <h2><span class="section-icon">🌾</span> Core Base</h2>
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    ${actionsHTML}
-                </div>
-            `;
-            
-            return section;
-        }
-
-        // Sezione Amministratore (sempre disponibile nel core base)
-        function createAdminSection(userData, isCoreOnly, availableModules) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            
-            // Statistiche amministratore
-            let statsHTML = `
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-utenti-admin">-</div>
-                        <div class="stat-label">Utenti Totali</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-moduli-admin">-</div>
-                        <div class="stat-label">Moduli Attivi</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-piano-admin">-</div>
-                        <div class="stat-label">Piano</div>
-                    </div>
-                </div>
-            `;
-            
-            // Azioni amministratore (solo con modulo Manodopera)
-            // Nota: Abbonamento e Impostazioni sono sempre disponibili nell'header o Core Base
-            let actionsHTML = `
-                <a href="admin/gestisci-utenti-standalone.html" class="action-card">
-                    <span class="action-icon">👥</span>
-                    <span class="action-title">Gestisci Utenti</span>
-                    <span class="action-description">Invita e gestisci utenti azienda</span>
-                </a>
-                <a href="admin/gestione-squadre-standalone.html" class="action-card">
-                    <span class="action-icon">👷</span>
-                    <span class="action-title">Gestione Squadre</span>
-                    <span class="action-description">Crea e gestisci squadre di lavoro</span>
-                </a>
-                <a href="admin/gestione-operai-standalone.html" class="action-card">
-                    <span class="action-icon">👷‍♂️</span>
-                    <span class="action-title">Gestione Operai</span>
-                    <span class="action-description">Gestisci contratti e scadenze operai</span>
-                </a>
-                <a href="admin/compensi-operai-standalone.html" class="action-card">
-                    <span class="action-icon">💰</span>
-                    <span class="action-title">Compensi Operai</span>
-                    <span class="action-description">Calcola e gestisci compensi operai</span>
-                </a>
-            `;
-            
-            // Report completi solo se ci sono moduli avanzati
-            if (!isCoreOnly) {
-                actionsHTML += `
-                    <a href="admin/report-standalone.html" class="action-card">
-                        <span class="action-icon">📊</span>
-                        <span class="action-title">Report Completi</span>
-                        <span class="action-description">Visualizza tutte le statistiche</span>
-                    </a>
-                `;
-            }
-            
-            section.innerHTML = `
-                <h2><span class="section-icon">👑</span> Amministrazione</h2>
-                ${statsHTML}
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    ${actionsHTML}
-                </div>
-            `;
-            
-            // Carica statistiche amministratore
-            loadAdminStats(availableModules);
-            
-            return section;
-        }
+        // Le funzioni create* sono state estratte nel modulo dashboard-sections.js
+        // Rimangono solo le funzioni di caricamento dati e createMappaAziendaleSection
         
         // Carica statistiche amministrazione (per Manager e Amministratore con Manodopera)
         async function loadAmministrazioneStats(availableModules) {
@@ -1266,273 +357,8 @@
             }
         }
 
-        // Sezione Manager (senza Manodopera o con altri moduli)
-        function createManagerSection(userData, isCoreOnly, availableModules) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            
-            // Statistiche: se core only, mostra solo metriche core
-            let statsHTML = '';
-            if (isCoreOnly) {
-                statsHTML = `
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-terreni-manager">-</div>
-                            <div class="stat-label">Terreni</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-attivita-manager">-</div>
-                            <div class="stat-label">Attività</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-ore-manager">-</div>
-                            <div class="stat-label">Ore Questo Mese</div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                statsHTML = `
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value">-</div>
-                            <div class="stat-label">Clienti</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-terreni-manager">-</div>
-                            <div class="stat-label">Terreni</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">-</div>
-                            <div class="stat-label">Lavori Attivi</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="stat-ore-manager">-</div>
-                            <div class="stat-label">Ore Questo Mese</div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // Azioni rapide: se core only, mostra solo funzionalità core
-            let actionsHTML = '';
-            const hasManodopera = hasManodoperaModule(availableModules);
-            
-            if (isCoreOnly) {
-                actionsHTML = `
-                    <a href="terreni-standalone.html" class="action-card">
-                        <span class="action-icon">🗺️</span>
-                        <span class="action-title">Terreni</span>
-                        <span class="action-description">Gestisci terreni e vigneti</span>
-                    </a>
-                    <a href="attivita-standalone.html" class="action-card">
-                        <span class="action-icon">📝</span>
-                        <span class="action-title">Diario Attività</span>
-                        <span class="action-description">Registra attività lavorative</span>
-                    </a>
-                    <a href="statistiche-standalone.html" class="action-card">
-                        <span class="action-icon">📊</span>
-                        <span class="action-title">Statistiche</span>
-                        <span class="action-description">Visualizza statistiche e grafici</span>
-                    </a>
-                `;
-            } else {
-                actionsHTML = `
-                    <a href="#" class="action-card" onclick="alert('Modulo Clienti in sviluppo'); return false;">
-                        <span class="action-icon">👥</span>
-                        <span class="action-title">Clienti</span>
-                        <span class="action-description">Gestisci anagrafica clienti</span>
-                    </a>
-                    <a href="terreni-standalone.html" class="action-card">
-                        <span class="action-icon">🗺️</span>
-                        <span class="action-title">Terreni</span>
-                        <span class="action-description">Gestisci terreni e vigneti</span>
-                    </a>
-                    <a href="attivita-standalone.html" class="action-card">
-                        <span class="action-icon">📝</span>
-                        <span class="action-title">Diario Attività</span>
-                        <span class="action-description">Registra attività lavorative</span>
-                    </a>
-                    <a href="statistiche-standalone.html" class="action-card">
-                        <span class="action-icon">📊</span>
-                        <span class="action-title">Statistiche</span>
-                        <span class="action-description">Visualizza statistiche e grafici</span>
-                    </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Vendemmia in sviluppo'); return false;">
-                        <span class="action-icon">🍇</span>
-                        <span class="action-title">Calcolatore Vendemmia</span>
-                        <span class="action-description">Crea calcoli e preventivi</span>
-                    </a>
-                    <a href="#" class="action-card" onclick="alert('Modulo Bilancio in sviluppo'); return false;">
-                        <span class="action-icon">💰</span>
-                        <span class="action-title">Bilancio</span>
-                        <span class="action-description">Gestisci entrate e uscite</span>
-                    </a>
-                `;
-            }
-            
-            section.innerHTML = `
-                <h2><span class="section-icon">📊</span> Gestione Operativa</h2>
-                ${statsHTML}
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    ${actionsHTML}
-                </div>
-            `;
-            
-            // Carica statistiche core se core only
-            if (isCoreOnly) {
-                loadCoreStatsForManager();
-            }
-            
-            return section;
-        }
-        
-        // Card Amministrazione (porta a pagina dedicata)
-        function createAmministrazioneCard() {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            
-            section.innerHTML = `
-                <h2><span class="section-icon">👑</span> Amministrazione</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                    Gestisci utenti, squadre e abbonamento dell'azienda
-                </p>
-                <div class="quick-actions">
-                    <a href="admin/amministrazione-standalone.html" class="action-card" style="text-decoration: none;">
-                        <span class="action-icon" style="font-size: 48px;">👑</span>
-                        <span class="action-title" style="font-size: 18px;">Apri Amministrazione</span>
-                        <span class="action-description">
-                            Accedi a tutte le funzionalità amministrative: gestisci utenti, squadre e abbonamento
-                        </span>
-                    </a>
-                </div>
-            `;
-            
-            return section;
-        }
-        
-        // Card Statistiche (porta a pagina dedicata)
-        function createStatisticheCard() {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            
-            section.innerHTML = `
-                <h2><span class="section-icon">📊</span> Statistiche</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                    Visualizza statistiche e analisi dettagliate su lavori, ore, squadre e superficie
-                </p>
-                <div class="quick-actions">
-                    <a href="admin/statistiche-manodopera-standalone.html" class="action-card" style="text-decoration: none;">
-                        <span class="action-icon" style="font-size: 48px;">📊</span>
-                        <span class="action-title" style="font-size: 18px;">Apri Statistiche</span>
-                        <span class="action-description">
-                            Accedi alle statistiche complete: lavori, ore, squadre, superficie e molto altro
-                        </span>
-                    </a>
-                </div>
-            `;
-            
-            return section;
-        }
-
-        // Card Terreni (porta a pagina terreni)
-        function createTerreniCard() {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            
-            section.innerHTML = `
-                <h2><span class="section-icon">🗺️</span> Terreni</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                    Gestisci terreni, traccia confini sulla mappa e visualizza informazioni dettagliate
-                </p>
-                <div class="quick-actions">
-                    <a href="terreni-standalone.html" class="action-card" style="text-decoration: none;">
-                        <span class="action-icon" style="font-size: 48px;">🗺️</span>
-                        <span class="action-title" style="font-size: 18px;">Apri Terreni</span>
-                        <span class="action-description">
-                            Accedi alla gestione completa dei terreni: crea, modifica, traccia confini e visualizza dettagli
-                        </span>
-                    </a>
-                </div>
-            `;
-            
-            return section;
-        }
-        
-        // Sezione Manager con Modulo Manodopera attivo (layout completo)
-        function createManagerManodoperaSection(userData, availableModules) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            section.style.width = '100%'; // Occupa tutta la larghezza
-            
-            section.innerHTML = `
-                <h2><span class="section-icon">👷</span> Gestione Manodopera</h2>
-                
-                <!-- Statistiche principali lavori -->
-                <div class="stats-grid" style="margin-bottom: 30px;">
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-totali-manodopera">-</div>
-                        <div class="stat-label">Lavori Totali</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-attivi-manodopera">-</div>
-                        <div class="stat-label">Lavori Attivi</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-ore-validate-manodopera">-</div>
-                        <div class="stat-label">Ore Validate (Mese)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-superficie-lavorata-manodopera">-</div>
-                        <div class="stat-label">Superficie Lavorata (ha)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-squadre-attive-manodopera">-</div>
-                        <div class="stat-label">Squadre Attive</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-operai-online-manodopera">-</div>
-                        <div class="stat-label">Operai Online</div>
-                    </div>
-                </div>
-                
-                <!-- Azioni rapide -->
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    <a href="admin/gestione-lavori-standalone.html" class="action-card">
-                        <span class="action-icon">📋</span>
-                        <span class="action-title">Gestione Lavori</span>
-                        <span class="action-description">Crea, modifica e assegna lavori</span>
-                    </a>
-                    <a href="admin/statistiche-manodopera-standalone.html" class="action-card">
-                        <span class="action-icon">📊</span>
-                        <span class="action-title">Statistiche</span>
-                        <span class="action-description">Visualizza statistiche dettagliate</span>
-                    </a>
-                    <a href="terreni-standalone.html" class="action-card">
-                        <span class="action-icon">🗺️</span>
-                        <span class="action-title">Terreni</span>
-                        <span class="action-description">Gestisci terreni e vigneti</span>
-                    </a>
-                </div>
-                
-                <!-- Lavori recenti -->
-                <h3 style="margin: 30px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
-                <ul class="recent-items" id="recent-lavori-manager-manodopera">
-                    <li class="recent-item">
-                        <div>
-                            <div class="recent-item-title">Caricamento...</div>
-                        </div>
-                    </li>
-                </ul>
-            `;
-            
-            // Carica statistiche Manodopera
-            loadManagerManodoperaStats();
-            loadRecentLavoriManagerManodopera();
-            
-            return section;
-        }
+        // Le funzioni create* duplicate sono state rimosse - ora sono nel modulo dashboard-sections.js
+        // Rimangono solo le funzioni di caricamento dati e createMappaAziendaleSection
 
         // Sezione Mappa Aziendale (Manager)
         // hasManodopera: se true, mostra versione completa con overlay lavori, filtri avanzati, indicatori
@@ -1628,7 +454,7 @@
                 // Verifica che Google Maps sia caricato
                 if (!googleMapsReady) {
                     console.log('⏳ Google Maps non pronto, attendo caricamento...');
-                    await loadGoogleMapsAPI();
+                    await window.GFVConfigLoader.loadGoogleMapsAPI();
                 }
 
                 // Aspetta che Google Maps sia completamente disponibile
@@ -2536,140 +1362,7 @@
             }
         }
 
-        // Sezione Caposquadra
-        function createCaposquadraSection(userData, isCoreOnly, availableModules) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            section.innerHTML = `
-                <h2><span class="section-icon">👷</span> Gestione Squadra</h2>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-assegnati-capo">-</div>
-                        <div class="stat-label">Lavori Assegnati</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-ore-da-validare-capo">-</div>
-                        <div class="stat-label">Ore da Validare</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-squadra-capo">-</div>
-                        <div class="stat-label">Squadra</div>
-                    </div>
-                </div>
-
-                <!-- Comunicazione Rapida -->
-                <div id="comunicazione-rapida-section" style="background: white; border: 2px solid #2E8B57; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                        <span>📢</span> Invia Comunicazione Rapida alla Squadra
-                    </h3>
-                    <div id="comunicazione-rapida-content">
-                        <div style="text-align: center; padding: 20px; color: #666;">
-                            Caricamento lavori...
-                        </div>
-                    </div>
-                </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    <a href="admin/lavori-caposquadra-standalone.html" class="action-card">
-                        <span class="action-icon">📋</span>
-                        <span class="action-title">I Miei Lavori</span>
-                        <span class="action-description">Visualizza lavori assegnati e traccia zone</span>
-                    </a>
-                    <a href="segnatura-ore-standalone.html" class="action-card">
-                        <span class="action-icon">⏱️</span>
-                        <span class="action-title">Segna Ore</span>
-                        <span class="action-description">Registra le tue ore lavorate</span>
-                    </a>
-                    <a href="admin/validazione-ore-standalone.html" class="action-card">
-                        <span class="action-icon">✅</span>
-                        <span class="action-title">Valida Ore</span>
-                        <span class="action-description">Valida ore degli operai</span>
-                    </a>
-                    <a href="admin/gestione-squadre-standalone.html" class="action-card">
-                        <span class="action-icon">👥</span>
-                        <span class="action-title">La Mia Squadra</span>
-                        <span class="action-description">Visualizza membri squadra</span>
-                    </a>
-                </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
-                <ul class="recent-items" id="recent-lavori-capo">
-                    <li class="recent-item">
-                        <div>
-                            <div class="recent-item-title">Caricamento...</div>
-                        </div>
-                    </li>
-                </ul>
-            `;
-            
-            // Carica statistiche caposquadra
-            loadCaposquadraStats(userData);
-            loadRecentLavoriCaposquadra(userData);
-            
-            // Carica comunicazione rapida
-            loadComunicazioneRapida(userData);
-            
-            return section;
-        }
-
-        // Sezione Manager - Gestione Lavori (solo con modulo Manodopera)
-        function createManagerLavoriSection(userData, availableModules) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            section.innerHTML = `
-                <h2><span class="section-icon">📋</span> Gestione Lavori</h2>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-totali">-</div>
-                        <div class="stat-label">Lavori Totali</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-attivi">-</div>
-                        <div class="stat-label">Lavori Attivi</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-completati">-</div>
-                        <div class="stat-label">Lavori Completati</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-pianificati">-</div>
-                        <div class="stat-label">Lavori Pianificati</div>
-                    </div>
-                </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    <a href="admin/gestione-lavori-standalone.html" class="action-card">
-                        <span class="action-icon">📋</span>
-                        <span class="action-title">Gestione Lavori</span>
-                        <span class="action-description">Crea, modifica e assegna lavori</span>
-                    </a>
-                    <a href="admin/gestione-squadre-standalone.html" class="action-card">
-                        <span class="action-icon">👥</span>
-                        <span class="action-title">Gestione Squadre</span>
-                        <span class="action-description">Gestisci squadre e assegnazioni</span>
-                    </a>
-                </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
-                <ul class="recent-items" id="recent-lavori-manager">
-                    <li class="recent-item">
-                        <div>
-                            <div class="recent-item-title">Caricamento...</div>
-                        </div>
-                    </li>
-                </ul>
-            `;
-            
-            // Carica statistiche lavori
-            loadManagerLavoriStats();
-            loadRecentLavori();
-            
-            return section;
-        }
+        // Le funzioni createCaposquadraSection e createManagerLavoriSection sono state estratte nel modulo dashboard-sections.js
         
         // Carica statistiche Manodopera complete per Manager
         async function loadManagerManodoperaStats() {
@@ -3033,28 +1726,7 @@
             }
         }
 
-        // Sezione Manager - Diario da Lavori (attività generate automaticamente dalle ore validate)
-        function createDiarioDaLavoriSection(userData, availableModules) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            section.style.width = '100%'; // Occupa tutta la larghezza per renderlo prominente
-            section.innerHTML = `
-                <h2><span class="section-icon">📝</span> Diario da Lavori</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                    Attività generate automaticamente dalle ore validate dei lavori assegnati. Queste attività vengono create aggregando le ore segnate dagli operai e validate dai caposquadra.
-                </p>
-                
-                <div id="diario-lavori-container" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <div style="text-align: center; padding: 40px; color: #666;">
-                        Caricamento attività...
-                    </div>
-                </div>
-            `;
-            
-            // La funzione loadDiarioDaLavori verrà chiamata dopo che la sezione è stata aggiunta al DOM
-            
-            return section;
-        }
+        // La funzione createDiarioDaLavoriSection è stata estratta nel modulo dashboard-sections.js
 
         // Carica attività generate automaticamente dalle ore validate
         async function loadDiarioDaLavori(userData) {
@@ -3488,78 +2160,7 @@
             }
         }
 
-        // Sezione Operaio
-        function createOperaioSection(userData, isCoreOnly, availableModules) {
-            const section = document.createElement('div');
-            section.className = 'dashboard-section';
-            section.innerHTML = `
-                <h2><span class="section-icon">🔧</span> I Miei Lavori</h2>
-                
-                <!-- Comunicazioni Squadra -->
-                <div id="comunicazioni-operaio-section" style="margin-bottom: 30px;">
-                    <h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #2E8B57; border-bottom: 2px solid #2E8B57; padding-bottom: 8px;">📢 Comunicazioni dal Caposquadra</h3>
-                    <div id="comunicazioni-operaio-list">
-                        <div style="padding: 20px; text-align: center; color: #666;">
-                            Caricamento comunicazioni...
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-lavori-oggi-operaio">-</div>
-                        <div class="stat-label">Lavori Oggi</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-ore-segnate-operaio">-</div>
-                        <div class="stat-label">Ore Segnate</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="stat-stato-operaio">-</div>
-                        <div class="stat-label">Stato</div>
-                    </div>
-                </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-                <div class="quick-actions">
-                    <a href="segnatura-ore-standalone.html" class="action-card">
-                        <span class="action-icon">⏱️</span>
-                        <span class="action-title">Segna Ore</span>
-                        <span class="action-description">Registra ore lavorate</span>
-                    </a>
-                    <a href="segnatura-ore-standalone.html" class="action-card">
-                        <span class="action-icon">📊</span>
-                        <span class="action-title">Le Mie Ore</span>
-                        <span class="action-description">Visualizza storico ore</span>
-                    </a>
-                </div>
-
-                <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Lavori di Oggi</h3>
-                <ul class="recent-items" id="lavori-oggi-operaio">
-                    <li class="recent-item">
-                        <div>
-                            <div class="recent-item-title">Caricamento lavori...</div>
-                        </div>
-                    </li>
-                </ul>
-
-                <h3 style="margin: 30px 0 15px 0; font-size: 16px; color: #666;">Le Mie Ore</h3>
-                <div id="mie-ore-operaio-section">
-                    <div style="padding: 20px; text-align: center; color: #666;">
-                        Caricamento statistiche ore...
-                    </div>
-                </div>
-            `;
-            
-            // Carica dati per operaio
-            if (userData && userData.tenantId) {
-                loadComunicazioniOperaio(userData);
-                loadLavoriOggiOperaio(userData);
-                loadStatisticheOreOperaio(userData);
-            }
-            
-            return section;
-        }
+        // La funzione createOperaioSection è stata estratta nel modulo dashboard-sections.js
         
         // Carica comunicazioni per operaio
         async function loadComunicazioniOperaio(userData) {
