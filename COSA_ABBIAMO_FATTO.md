@@ -510,6 +510,53 @@ gfv-platform/
 - `core/admin/statistiche-manodopera-standalone.html`
 - `core/admin/gestione-lavori-standalone.html`
 
+## 📝 Aggiornamenti Recenti (2025-01-23)
+
+### Separazione Dashboard Core Base/Modulo Manodopera ✅
+**Data completamento**: 2025-01-23
+
+**Problema risolto**: Dashboard mostrava sezioni Amministrazione e mappa avanzata anche quando il modulo Manodopera era disattivato, creando confusione.
+
+**Soluzione implementata**:
+- ✅ **Dashboard pulita senza Manodopera**:
+  - Rimossa completamente sezione Amministrazione quando Manodopera è disattivato
+  - Link "Invita Collaboratore" nell'header nascosto quando Manodopera è disattivato
+  - Solo funzionalità Core Base visibili (Terreni, Diario Attività, Statistiche, Abbonamento)
+- ✅ **Mappa semplificata Core Base**:
+  - Versione base quando Manodopera è disattivato: solo visualizzazione terreni
+  - Nessun filtro avanzato, overlay lavori, indicatori lavori
+  - Legenda base solo con colture
+- ✅ **Mappa completa con Manodopera**:
+  - Mantiene tutte le funzionalità avanzate quando Manodopera è attivo
+  - Filtri, overlay, indicatori disponibili
+
+**Vantaggi**:
+- ✅ Dashboard pulita e focalizzata quando Manodopera è disattivato
+- ✅ Separazione logica chiara tra Core Base e moduli avanzati
+- ✅ Mappa semplificata funziona correttamente senza dipendenze dal modulo
+
+**File modificati**: `core/dashboard-standalone.html`
+
+### Fix Configurazione Google Maps ✅
+**Data completamento**: 2025-01-23
+
+**Problema risolto**: Google Maps API key non veniva caricata correttamente, mappa non visualizzata.
+
+**Soluzione implementata**:
+- ✅ Corretto percorso file config Google Maps
+- ✅ Caricamento config prima di inizializzare API
+- ✅ Gestione corretta timing: config → Firebase → Google Maps API
+- ✅ Controlli dimensioni container
+- ✅ Resize trigger per forzare rendering
+- ✅ Logging dettagliato per debugging
+
+**Risultato**:
+- ✅ Mappa visualizzata correttamente sia con che senza Manodopera
+- ✅ Config caricato correttamente da file locale o fallback GitHub
+- ✅ Funziona sia in locale che online
+
+**File modificati**: `core/dashboard-standalone.html`
+
 
 
 

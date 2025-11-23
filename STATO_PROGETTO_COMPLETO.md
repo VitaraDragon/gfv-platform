@@ -2,7 +2,7 @@
 
 **Ultimo aggiornamento**: 2025-01-23  
 **Versione**: 2.0.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard
+**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard + Separazione Dashboard Core Base/Manodopera (Dashboard Pulita Senza Modulo, Mappa Semplificata) + Fix Configurazione Google Maps
 
 ---
 
@@ -1876,6 +1876,78 @@ users/{userId}
 
 **Stato**: ✅ **RISOLTO E TESTATO**
 
+### 41. Separazione Dashboard Core Base/Modulo Manodopera ✅
+**Data completamento**: 2025-01-23
+
+**File modificati**:
+- `core/dashboard-standalone.html` - Logica condizionale per nascondere sezioni quando Manodopera è disattivato
+
+**Funzionalità implementate**:
+- ✅ **Dashboard pulita senza Manodopera**:
+  - Nessuna sezione Amministrazione visibile quando Manodopera è disattivato
+  - Link "Invita Collaboratore" nell'header nascosto quando Manodopera è disattivato
+  - Solo funzionalità Core Base visibili (Terreni, Diario Attività, Statistiche, Abbonamento)
+- ✅ **Mappa semplificata Core Base**:
+  - Versione base quando Manodopera è disattivato: solo visualizzazione terreni con confini geolocalizzati
+  - Nessun filtro avanzato (Podere/Coltura rimossi)
+  - Nessun overlay lavori attivi (zone lavorate non caricate)
+  - Nessun indicatore stato lavori (marker lavori non caricati)
+  - Legenda base: mostra solo colture dei terreni
+- ✅ **Mappa completa con Manodopera**:
+  - Mantiene tutte le funzionalità avanzate quando Manodopera è attivo
+  - Filtri Podere/Coltura disponibili
+  - Toggle overlay zone lavorate
+  - Toggle indicatori stato lavori
+  - Legenda completa con tutte le informazioni
+
+**Logica condizionale**:
+- Funzione `createMappaAziendaleSection()` accetta parametro `hasManodopera`
+- Funzione `loadMappaAziendale()` gestisce entrambe le versioni (completa/semplificata)
+- Rimossa duplicazione mappa per Manager senza Manodopera
+- Gestione visibilità link "Invita Collaboratore" basata su modulo attivo
+
+**Vantaggi**:
+- ✅ Dashboard pulita e focalizzata quando Manodopera è disattivato
+- ✅ Nessuna confusione tra funzionalità Core Base e Modulo Manodopera
+- ✅ Mappa semplificata funziona correttamente senza dipendenze dal modulo
+- ✅ Separazione logica chiara tra Core Base e moduli avanzati
+
+**Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 42. Fix Configurazione Google Maps ✅
+**Data completamento**: 2025-01-23
+
+**Problema risolto**:
+- ⚠️ Google Maps API key non configurata correttamente
+- ⚠️ Mappa non veniva visualizzata nonostante creazione riuscita
+- ⚠️ Problemi di timing nel caricamento config
+
+**File modificati**:
+- `core/dashboard-standalone.html` - Fix caricamento config Google Maps e inizializzazione API
+
+**Correzioni applicate**:
+- ✅ Corretto percorso file config: `config/google-maps-config.js` (stesso percorso di Firebase config)
+- ✅ Caricamento config Google Maps prima di inizializzare l'API
+- ✅ Funzione `waitForGoogleMapsConfig()` per aspettare che il config sia caricato
+- ✅ Chiamata a `loadGoogleMapsAPI()` nello script module dopo inizializzazione Firebase
+- ✅ Aggiunti controlli dimensioni container prima di creare mappa
+- ✅ Aggiunto resize trigger per forzare rendering mappa
+- ✅ Aggiunto logging dettagliato per debugging
+
+**Miglioramenti**:
+- ✅ Gestione corretta timing: config caricato → Firebase inizializzato → Google Maps API caricata
+- ✅ Controlli dimensioni container per evitare mappa con dimensioni 0x0
+- ✅ Resize trigger automatico dopo creazione mappa
+- ✅ Logging completo per troubleshooting
+
+**Risultato**:
+- ✅ Mappa viene visualizzata correttamente sia con che senza Manodopera
+- ✅ Config Google Maps caricato correttamente da file locale o fallback GitHub
+- ✅ Nessun errore nella console
+- ✅ Funziona sia in locale che online (GitHub Pages)
+
+**Stato**: ✅ **RISOLTO E TESTATO**
+
 ## 📝 Modifiche Recenti (2025-01-16)
 
 ### Indicatore Stato Progresso Lavori
@@ -2239,6 +2311,9 @@ git ls-files | grep "vecchia"
 **Modulo Manodopera - Calcolo Compensi Operai**: ✅ Completo e funzionante (Pagina dedicata, sistema tariffe default/personalizzate, calcolo automatico basato su ore validate, esportazione Excel professionale con logo e formattazione completa)
 **Modulo Manodopera - Calcolo Compensi Operai**: ✅ Completo e funzionante (Pagina dedicata, sistema tariffe default/personalizzate, calcolo automatico basato su ore validate, esportazione Excel professionale con logo e formattazione completa)  
 **Fix Superficie Lavorata Dashboard**: ✅ Risolto (Campo corretto da superficieLavorata a superficieTotaleLavorata, superficie lavorata ora mostra correttamente gli HA)  
+**Separazione Dashboard Core Base/Manodopera**: ✅ Completo e funzionante (Dashboard pulita quando Manodopera disattivato, nessuna sezione Amministrazione, mappa semplificata solo terreni, link Invita Collaboratore nascosto)  
+**Mappa Semplificata Core Base**: ✅ Completo e funzionante (Versione semplificata mappa quando Manodopera disattivato: solo terreni, nessun filtro avanzato, nessun overlay lavori, nessun indicatore lavori, legenda base colture)  
+**Fix Configurazione Google Maps**: ✅ Risolto (Corretto percorso file config, caricamento config prima di inizializzare API, gestione timing corretta, controlli dimensioni container, resize trigger per rendering)  
 **Prossimo passo**: Implementare Security Rules Firestore (critico per produzione)
 
 ---

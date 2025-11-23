@@ -607,8 +607,13 @@
 
         // Carica il config prima di continuare
         loadConfig().then(() => {
-            // Carica anche Google Maps config
-            loadGoogleMapsConfig();
+            // Carica anche Google Maps config e poi carica l'API
+            return loadGoogleMapsConfig();
+        }).then(() => {
+            // Config caricato, ora possiamo inizializzare tutto
+            console.log('✅ Config caricato correttamente');
+            console.log('🔑 Google Maps API Key disponibile?', typeof window.GOOGLE_MAPS_API_KEY !== 'undefined' ? 'Sì: ' + window.GOOGLE_MAPS_API_KEY.substring(0, 20) + '...' : 'No');
+            // NON chiamare loadGoogleMapsAPI() qui - viene chiamata nello script module dopo che Firebase è inizializzato
         }).catch(error => {
             console.error('Errore caricamento config:', error);
             document.getElementById('dashboard-content').innerHTML = `
@@ -628,6 +633,7 @@
                     return;
                 }
 
+                // Prova prima il percorso locale (stesso percorso di Firebase config)
                 const mapsConfigScript = document.createElement('script');
                 mapsConfigScript.src = 'config/google-maps-config.js';
                 
@@ -636,12 +642,14 @@
                         if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
                             resolve();
                         } else {
+                            // Se non è stato definito, prova il fallback
                             loadGoogleMapsConfigFallback().then(resolve).catch(reject);
                         }
                     }, 100);
                 };
                 
                 mapsConfigScript.onerror = function() {
+                    // Se fallisce, prova il fallback
                     loadGoogleMapsConfigFallback().then(resolve).catch(reject);
                 };
                 
@@ -714,8 +722,40 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Carica Google Maps API se disponibile
+        // Carica Google Maps API se disponibile (dopo che Firebase è inizializzato)
+        // Aspetta che anche il config Google Maps sia caricato
         let googleMapsReady = false;
+        
+        // Funzione per aspettare che il config Google Maps sia caricato
+        async function waitForGoogleMapsConfig() {
+            return new Promise((resolve) => {
+                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                // Aspetta fino a 5 secondi
+                let attempts = 0;
+                const maxAttempts = 50;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        console.warn('Google Maps config non trovato dopo attesa');
+                        resolve(); // Non bloccare
+                    }
+                }, 100);
+            });
+        }
+        
+        // Aspetta che il config Google Maps sia caricato, poi carica l'API
+        await waitForGoogleMapsConfig();
+        console.log('✅ Config Google Maps disponibile, carico API...');
+        
+        // Chiama loadGoogleMapsAPI dopo che è stata definita
         function loadGoogleMapsAPI() {
             return new Promise((resolve) => {
                 if (typeof google !== 'undefined' && google.maps) {
@@ -724,10 +764,37 @@
                     return;
                 }
 
-                const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY;
-                if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-                    console.warn('Google Maps API key not configured');
-                    resolve(); // Non bloccare il caricamento
+                // Aspetta che il config sia caricato (max 5 secondi)
+                let attempts = 0;
+                const maxAttempts = 50; // 50 tentativi x 100ms = 5 secondi
+                const checkConfig = setInterval(() => {
+                    attempts++;
+                    const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY;
+                    
+                    if (attempts === 1) {
+                        console.log('🔍 Verifica chiave API Google Maps...', GOOGLE_MAPS_API_KEY ? 'Trovata' : 'Non trovata');
+                    }
+                    
+                    if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                        clearInterval(checkConfig);
+                        console.log('✅ Chiave API Google Maps trovata, procedo con caricamento...');
+                        // Config trovato, procedi con il caricamento
+                        loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY).then(resolve);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkConfig);
+                        console.warn('⚠️ Google Maps API key not configured after waiting', attempts, 'attempts');
+                        console.warn('Chiave disponibile?', typeof window.GOOGLE_MAPS_API_KEY !== 'undefined' ? window.GOOGLE_MAPS_API_KEY : 'undefined');
+                        resolve(); // Non bloccare il caricamento
+                    }
+                }, 100);
+            });
+        }
+        
+        function loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY) {
+            return new Promise((resolve) => {
+                if (typeof google !== 'undefined' && google.maps) {
+                    googleMapsReady = true;
+                    resolve();
                     return;
                 }
 
@@ -767,7 +834,7 @@
             });
         }
 
-        // Carica Google Maps API all'avvio
+        // Carica Google Maps API dopo che il config è stato caricato e la funzione è definita
         loadGoogleMapsAPI();
 
         // Ruoli disponibili con nomi display
@@ -854,10 +921,19 @@
             const hasAdvancedModules = !isCoreOnly;
             const hasManodopera = hasManodoperaModule(availableModules);
 
-            // Sezione Amministratore: mostra solo se modulo Manodopera NON è attivo
-            // Se Manodopera è attivo, la sezione Amministrazione unificata viene mostrata dopo
-            if (hasRole(userData, 'amministratore') && !hasManodopera) {
-                container.appendChild(createAdminSection(userData, isCoreOnly, availableModules));
+            // Sezione Amministrazione: mostra SOLO quando Manodopera è attivo
+            // Quando Manodopera è disattivato, NON mostrare alcuna sezione Amministrazione
+            // (le funzionalità amministrative avanzate sono parte del modulo Manodopera)
+            
+            // Gestisci visibilità link "Invita Collaboratore" nell'header
+            const invitaLink = document.getElementById('invita-collaboratore-link');
+            if (invitaLink) {
+                // Mostra solo se Manodopera è attivo E utente è Manager/Amministratore
+                if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
+                    invitaLink.style.display = 'inline-flex';
+                } else {
+                    invitaLink.style.display = 'none';
+                }
             }
 
             // CORE BASE: Mostra solo se l'utente NON è solo Operaio o solo Caposquadra
@@ -871,13 +947,14 @@
                 container.appendChild(createCoreBaseSection(userData, isCoreOnly));
                 
                 // Mappa Aziendale per Manager anche senza moduli avanzati
+                // Versione semplificata quando Manodopera NON è attivo
                 if (hasRole(userData, 'manager') || hasRole(userData, 'amministratore')) {
-                    container.appendChild(createMappaAziendaleSection(userData));
+                    container.appendChild(createMappaAziendaleSection(userData, hasManodopera));
                 }
             }
 
             // Card Amministrazione (per Manager e Amministratore con Manodopera attivo)
-            // Mostra sempre quando Manodopera è attivo, indipendentemente da hasAdvancedModules
+            // Mostra SOLO quando Manodopera è attivo
             if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
                 // Layout superiore: 3 card a sinistra, mappa a destra
                 const topRow = document.createElement('div');
@@ -896,10 +973,10 @@
                 const terreniCard = createTerreniCard();
                 topLeft.appendChild(terreniCard);
                 
-                // Mappa a destra
+                // Mappa a destra (versione completa con Manodopera)
                 const topRight = document.createElement('div');
                 topRight.className = 'dashboard-top-right';
-                const mappaSection = createMappaAziendaleSection(userData);
+                const mappaSection = createMappaAziendaleSection(userData, hasManodopera);
                 topRight.appendChild(mappaSection);
                 
                 topRow.appendChild(topLeft);
@@ -923,10 +1000,9 @@
                         }, 50);
                     } else {
                         // Layout normale per Manager senza Manodopera
+                        // NOTA: La mappa è già stata aggiunta nella sezione Core Base (riga 875)
+                        // quindi non la aggiungiamo qui per evitare duplicazioni
                         container.appendChild(createManagerSection(userData, isCoreOnly, availableModules));
-                        
-                        // Mappa Aziendale (anche senza Manodopera)
-                        container.appendChild(createMappaAziendaleSection(userData));
                     }
                 }
                 
@@ -1459,7 +1535,9 @@
         }
 
         // Sezione Mappa Aziendale (Manager)
-        function createMappaAziendaleSection(userData) {
+        // hasManodopera: se true, mostra versione completa con overlay lavori, filtri avanzati, indicatori
+        // se false, mostra versione semplificata solo con terreni
+        function createMappaAziendaleSection(userData, hasManodopera = false) {
             const section = document.createElement('div');
             section.className = 'dashboard-section';
             // Non occupa tutta la larghezza quando è nella riga superiore
@@ -1467,70 +1545,115 @@
             section.style.display = 'flex';
             section.style.flexDirection = 'column';
             
-            section.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;">
-                    <div style="flex: 1;">
+            // Versione completa con Manodopera: include filtri avanzati, overlay lavori, indicatori
+            if (hasManodopera) {
+                section.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; gap: 20px;">
+                        <div style="flex: 1;">
+                            <h2 style="margin: 0;"><span class="section-icon">🗺️</span> Vista Mappa Aziendale</h2>
+                            <p style="color: #666; margin-top: 5px; margin-bottom: 0; font-size: 14px;">
+                                Visualizza tutti i terreni dell'azienda con i loro confini geolocalizzati sulla mappa satellitare
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <label for="filtro-podere" style="font-size: 12px; color: #666; font-weight: 500;">Podere</label>
+                                <select id="filtro-podere" class="mappa-filtro-select" title="Filtra per podere">
+                                    <option value="">Tutti i poderi</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <label for="filtro-coltura" style="font-size: 12px; color: #666; font-weight: 500;">Coltura</label>
+                                <select id="filtro-coltura" class="mappa-filtro-select" title="Filtra per coltura">
+                                    <option value="">Tutte le colture</option>
+                                </select>
+                            </div>
+                            <button id="toggle-overlay-lavori" class="mappa-control-btn" title="Mostra/Nascondi zone lavorate" style="margin-top: 20px;">
+                                <span>👷</span> Zone Lavorate
+                            </button>
+                            <button id="toggle-indicatori-lavori" class="mappa-control-btn" title="Mostra/Nascondi indicatori stato lavori" style="margin-top: 20px;">
+                                <span>📍</span> Indicatori Lavori
+                            </button>
+                        </div>
+                    </div>
+                    <div id="mappa-aziendale-container" class="mappa-container" style="flex: 1; min-height: 500px; width: 100%;">
+                        <div class="mappa-loading">
+                            <div>Caricamento mappa...</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Carica versione completa con Manodopera
+                setTimeout(() => {
+                    loadMappaAziendale(userData, true);
+                }, 500);
+            } else {
+                // Versione semplificata senza Manodopera: solo terreni, nessun filtro avanzato, nessun overlay
+                section.innerHTML = `
+                    <div style="margin-bottom: 20px;">
                         <h2 style="margin: 0;"><span class="section-icon">🗺️</span> Vista Mappa Aziendale</h2>
                         <p style="color: #666; margin-top: 5px; margin-bottom: 0; font-size: 14px;">
                             Visualizza tutti i terreni dell'azienda con i loro confini geolocalizzati sulla mappa satellitare
                         </p>
                     </div>
-                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <div style="display: flex; flex-direction: column; gap: 5px;">
-                            <label for="filtro-podere" style="font-size: 12px; color: #666; font-weight: 500;">Podere</label>
-                            <select id="filtro-podere" class="mappa-filtro-select" title="Filtra per podere">
-                                <option value="">Tutti i poderi</option>
-                            </select>
+                    <div id="mappa-aziendale-container" class="mappa-container" style="flex: 1; min-height: 500px; width: 100%;">
+                        <div class="mappa-loading">
+                            <div>Caricamento mappa...</div>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 5px;">
-                            <label for="filtro-coltura" style="font-size: 12px; color: #666; font-weight: 500;">Coltura</label>
-                            <select id="filtro-coltura" class="mappa-filtro-select" title="Filtra per coltura">
-                                <option value="">Tutte le colture</option>
-                            </select>
-                        </div>
-                        <button id="toggle-overlay-lavori" class="mappa-control-btn" title="Mostra/Nascondi zone lavorate" style="margin-top: 20px;">
-                            <span>👷</span> Zone Lavorate
-                        </button>
-                        <button id="toggle-indicatori-lavori" class="mappa-control-btn" title="Mostra/Nascondi indicatori stato lavori" style="margin-top: 20px;">
-                            <span>📍</span> Indicatori Lavori
-                        </button>
                     </div>
-                </div>
-                <div id="mappa-aziendale-container" class="mappa-container" style="flex: 1; min-height: 500px; width: 100%;">
-                    <div class="mappa-loading">
-                        <div>Caricamento mappa...</div>
-                    </div>
-                </div>
-            `;
-            
-            // Carica e visualizza terreni sulla mappa
-            setTimeout(() => {
-                loadMappaAziendale(userData);
-            }, 500); // Aspetta che Google Maps sia caricato
+                `;
+                
+                // Carica versione semplificata senza Manodopera
+                setTimeout(() => {
+                    loadMappaAziendale(userData, false);
+                }, 500);
+            }
             
             return section;
         }
 
         // Carica e visualizza terreni sulla mappa
-        async function loadMappaAziendale(userData) {
+        // hasManodopera: se true, carica versione completa con overlay lavori, filtri avanzati, indicatori
+        // se false, carica versione semplificata solo con terreni
+        async function loadMappaAziendale(userData, hasManodopera = false) {
             const container = document.getElementById('mappa-aziendale-container');
-            if (!container) return;
+            if (!container) {
+                console.warn('Container mappa non trovato');
+                return;
+            }
 
             try {
+                console.log('🗺️ Inizio caricamento mappa aziendale...');
+                
                 // Verifica che Google Maps sia caricato
                 if (!googleMapsReady) {
+                    console.log('⏳ Google Maps non pronto, attendo caricamento...');
                     await loadGoogleMapsAPI();
                 }
 
+                // Aspetta che Google Maps sia completamente disponibile
+                let attempts = 0;
+                const maxAttempts = 50; // 5 secondi
+                while ((typeof google === 'undefined' || !google.maps) && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
                 if (typeof google === 'undefined' || !google.maps) {
+                    console.error('❌ Google Maps non disponibile dopo attesa');
                     container.innerHTML = `
                         <div class="mappa-loading">
                             <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Google Maps non disponibile</h3>
                             <p>Per visualizzare la mappa è necessario configurare una chiave API di Google Maps valida.</p>
+                            <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                                Verifica che la chiave API sia configurata correttamente nel file di configurazione.
+                            </p>
                         </div>
                     `;
                     return;
                 }
+
+                console.log('✅ Google Maps pronto, procedo con caricamento terreni...');
 
                 const user = auth.currentUser;
                 if (!user || !userData || !userData.tenantId) {
@@ -1563,6 +1686,8 @@
                     }
                 });
 
+                console.log(`📊 Trovati ${terreni.length} terreni con mappa tracciata`);
+
                 if (terreni.length === 0) {
                     container.innerHTML = `
                         <div class="mappa-loading">
@@ -1579,11 +1704,30 @@
                 }
 
                 // Inizializza mappa
+                console.log('🗺️ Creazione elemento mappa...');
+                console.log('📐 Dimensioni container:', container.offsetWidth, 'x', container.offsetHeight);
+                
+                // Assicurati che il container abbia dimensioni corrette
+                if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+                    console.warn('⚠️ Container senza dimensioni, aspetto...');
+                    // Aspetta che il container abbia dimensioni
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    console.log('📐 Dimensioni container dopo attesa:', container.offsetWidth, 'x', container.offsetHeight);
+                }
+                
                 const mapDiv = document.createElement('div');
                 mapDiv.style.width = '100%';
                 mapDiv.style.height = '100%';
+                mapDiv.style.minHeight = '500px'; // Altezza minima per assicurare che la mappa sia visibile
+                mapDiv.style.display = 'block'; // Assicura che sia un block element
                 container.innerHTML = '';
                 container.appendChild(mapDiv);
+                
+                // Aspetta che il DOM sia aggiornato prima di creare la mappa
+                await new Promise(resolve => setTimeout(resolve, 50));
+                console.log('📐 Dimensioni mapDiv dopo inserimento:', mapDiv.offsetWidth, 'x', mapDiv.offsetHeight);
+                
+                console.log('🗺️ Inizializzazione Google Maps...');
 
                 // Calcola bounds per zoom automatico
                 const bounds = new google.maps.LatLngBounds();
@@ -1595,6 +1739,7 @@
                 });
 
                 // Crea mappa
+                console.log('🗺️ Creazione istanza Google Maps...');
                 const map = new google.maps.Map(mapDiv, {
                     center: bounds.getCenter(),
                     zoom: 12,
@@ -1608,6 +1753,13 @@
                     streetViewControl: false,
                     fullscreenControl: true
                 });
+                console.log('✅ Mappa Google Maps creata con successo!');
+                
+                // Forza resize della mappa per assicurarsi che venga renderizzata correttamente
+                setTimeout(() => {
+                    google.maps.event.trigger(map, 'resize');
+                    console.log('🔄 Resize mappa triggerato');
+                }, 100);
 
                 // Funzione per zoom intelligente con padding
                 function fitBoundsWithPadding(boundsToFit, paddingPixels = 50) {
@@ -1684,7 +1836,9 @@
 
                 // Fit bounds iniziale con padding - aspetta che la mappa sia pronta
                 google.maps.event.addListenerOnce(map, 'idle', function() {
+                    console.log('🗺️ Mappa idle, applico fitBounds...');
                     fitBoundsWithPadding(bounds, 50);
+                    console.log('✅ FitBounds applicato');
                 });
                 
                 // Gestisci ridimensionamento finestra per mantenere mappa responsive
@@ -1715,15 +1869,15 @@
                     'Default': '#2E8B57' // Verde GFV
                 };
 
-                // Estrai poderi e colture uniche per i filtri
+                // Estrai poderi e colture uniche per i filtri - SOLO se Manodopera è attivo
                 const poderiUnici = [...new Set(terreni.map(t => t.podere).filter(p => p))].sort();
                 const coltureUniche = [...new Set(terreni.map(t => t.coltura).filter(c => c))].sort();
 
-                // Popola dropdown filtri
-                const filtroPodereSelect = document.getElementById('filtro-podere');
-                const filtroColturaSelect = document.getElementById('filtro-coltura');
+                // Popola dropdown filtri - SOLO se Manodopera è attivo
+                const filtroPodereSelect = hasManodopera ? document.getElementById('filtro-podere') : null;
+                const filtroColturaSelect = hasManodopera ? document.getElementById('filtro-coltura') : null;
                 
-                if (filtroPodereSelect) {
+                if (hasManodopera && filtroPodereSelect) {
                     poderiUnici.forEach(podere => {
                         const option = document.createElement('option');
                         option.value = podere;
@@ -1732,7 +1886,7 @@
                     });
                 }
 
-                if (filtroColturaSelect) {
+                if (hasManodopera && filtroColturaSelect) {
                     coltureUniche.forEach(coltura => {
                         const option = document.createElement('option');
                         option.value = coltura;
@@ -1809,17 +1963,19 @@
                     });
                 });
 
-                // Carica e disegna zone lavorate (overlay lavori attivi)
+                // Carica e disegna zone lavorate (overlay lavori attivi) - SOLO se Manodopera è attivo
                 let overlayLavoriVisible = false;
                 const zoneLavoratePolygons = [];
                 const zoneLavorateInfoWindows = [];
                 
-                // Indicatori stato lavori
+                // Indicatori stato lavori - SOLO se Manodopera è attivo
                 let indicatoriLavoriVisible = false;
                 const lavoroMarkers = [];
                 const lavoroMarkersInfoWindows = [];
                 
                 async function loadAndDrawZoneLavorate() {
+                    // Se Manodopera non è attivo, non caricare zone lavorate
+                    if (!hasManodopera) return;
                     try {
                         // Carica lavori attivi
                         const lavoriCollection = collection(db, `tenants/${userData.tenantId}/lavori`);
@@ -1923,8 +2079,10 @@
                     }
                 }
 
-                // Carica zone lavorate
-                await loadAndDrawZoneLavorate();
+                // Carica zone lavorate - SOLO se Manodopera è attivo
+                if (hasManodopera) {
+                    await loadAndDrawZoneLavorate();
+                }
 
                 // Funzione per calcolare centroide di un poligono
                 function getPolygonCenter(coords) {
@@ -1940,8 +2098,10 @@
                     };
                 }
 
-                // Funzione per caricare e disegnare indicatori stato lavori
+                // Funzione per caricare e disegnare indicatori stato lavori - SOLO se Manodopera è attivo
                 async function loadAndDrawIndicatoriLavori() {
+                    // Se Manodopera non è attivo, non caricare indicatori lavori
+                    if (!hasManodopera) return;
                     try {
                         // Carica lavori attivi
                         const lavoriCollection = collection(db, `tenants/${userData.tenantId}/lavori`);
@@ -2102,11 +2262,16 @@
                     }
                 }
 
-                // Carica indicatori lavori
-                await loadAndDrawIndicatoriLavori();
+                // Carica indicatori lavori - SOLO se Manodopera è attivo
+                if (hasManodopera) {
+                    await loadAndDrawIndicatoriLavori();
+                }
 
-                // Funzione per filtrare terreni visualizzati
+                // Funzione per filtrare terreni visualizzati - SOLO se Manodopera è attivo (filtri avanzati)
                 function applyFilters() {
+                    // Se Manodopera non è attivo, non ci sono filtri avanzati
+                    if (!hasManodopera) return;
+                    
                     const podereFiltro = filtroPodereSelect ? filtroPodereSelect.value : '';
                     const colturaFiltro = filtroColturaSelect ? filtroColturaSelect.value : '';
                     
@@ -2144,13 +2309,19 @@
 
                 // Funzione per aggiornare legenda in base ai filtri
                 function updateLegenda(podereFiltro, colturaFiltro) {
-                    // Trova colture visibili dopo filtri
+                    // Trova colture visibili dopo filtri (se Manodopera attivo) o tutte le colture (se non attivo)
                     const coltureVisibili = [...new Set(
                         terreni
                             .filter(t => {
-                                const matchPodere = !podereFiltro || t.podere === podereFiltro;
-                                const matchColtura = !colturaFiltro || t.coltura === colturaFiltro;
-                                return matchPodere && matchColtura;
+                                if (hasManodopera) {
+                                    // Con Manodopera: applica filtri
+                                    const matchPodere = !podereFiltro || t.podere === podereFiltro;
+                                    const matchColtura = !colturaFiltro || t.coltura === colturaFiltro;
+                                    return matchPodere && matchColtura;
+                                } else {
+                                    // Senza Manodopera: mostra tutte le colture
+                                    return true;
+                                }
                             })
                             .map(t => t.coltura)
                             .filter(c => c)
@@ -2162,8 +2333,8 @@
                         legendaEsistente.remove();
                     }
                     
-                    // Crea nuova legenda se ci sono colture visibili o zone lavorate
-                    if (coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) {
+                    // Crea nuova legenda se ci sono colture visibili o zone lavorate (solo con Manodopera)
+                    if (coltureVisibili.length > 0 || (hasManodopera && zoneLavoratePolygons.length > 0)) {
                         const legendaDiv = document.createElement('div');
                         legendaDiv.className = 'mappa-legenda';
                         legendaDiv.innerHTML = `
@@ -2181,9 +2352,13 @@
                                         `;
                                     }).join('')}
                                     ${terreni.some(t => {
-                                        const matchPodere = !podereFiltro || t.podere === podereFiltro;
-                                        const matchColtura = !colturaFiltro || t.coltura === colturaFiltro;
-                                        return matchPodere && matchColtura && !t.coltura;
+                                        if (hasManodopera) {
+                                            const matchPodere = !podereFiltro || t.podere === podereFiltro;
+                                            const matchColtura = !colturaFiltro || t.coltura === colturaFiltro;
+                                            return matchPodere && matchColtura && !t.coltura;
+                                        } else {
+                                            return !t.coltura;
+                                        }
                                     }) ? `
                                         <div class="mappa-legenda-item">
                                             <div class="mappa-legenda-color" style="background-color: ${colturaColors['Default']};"></div>
@@ -2192,7 +2367,7 @@
                                     ` : ''}
                                 </div>
                             ` : ''}
-                            ${zoneLavoratePolygons.length > 0 ? `
+                            ${hasManodopera && zoneLavoratePolygons.length > 0 ? `
                                 <div style="margin-top: ${coltureVisibili.length > 0 ? '15px' : '0'}; padding-top: ${coltureVisibili.length > 0 ? '15px' : '0'}; ${coltureVisibili.length > 0 ? 'border-top: 1px solid #ddd;' : ''}">
                                     <strong style="font-size: 11px; color: #666;">Zone Lavorate:</strong>
                                     <div class="mappa-legenda-item">
@@ -2201,7 +2376,7 @@
                                     </div>
                                 </div>
                             ` : ''}
-                            ${lavoroMarkers.length > 0 ? `
+                            ${hasManodopera && lavoroMarkers.length > 0 ? `
                                 <div style="margin-top: ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? '15px' : '0'}; padding-top: ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? '15px' : '0'}; ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? 'border-top: 1px solid #ddd;' : ''}">
                                     <strong style="font-size: 11px; color: #666;">Indicatori Lavori:</strong>
                                     <div class="mappa-legenda-item">
@@ -2227,17 +2402,19 @@
                     }
                 }
 
-                // Event listener per filtri
-                if (filtroPodereSelect) {
-                    filtroPodereSelect.addEventListener('change', applyFilters);
-                }
-                if (filtroColturaSelect) {
-                    filtroColturaSelect.addEventListener('change', applyFilters);
+                // Event listener per filtri - SOLO se Manodopera è attivo
+                if (hasManodopera) {
+                    if (filtroPodereSelect) {
+                        filtroPodereSelect.addEventListener('change', applyFilters);
+                    }
+                    if (filtroColturaSelect) {
+                        filtroColturaSelect.addEventListener('change', applyFilters);
+                    }
                 }
 
-                // Toggle overlay lavori attivi (pulsante già presente nell'header)
+                // Toggle overlay lavori attivi (pulsante già presente nell'header) - SOLO se Manodopera è attivo
                 const toggleOverlayBtn = document.getElementById('toggle-overlay-lavori');
-                if (toggleOverlayBtn) {
+                if (hasManodopera && toggleOverlayBtn) {
                     toggleOverlayBtn.addEventListener('click', function() {
                         overlayLavoriVisible = !overlayLavoriVisible;
                         
@@ -2261,9 +2438,9 @@
                     });
                 }
 
-                // Toggle indicatori lavori attivi
+                // Toggle indicatori lavori attivi - SOLO se Manodopera è attivo
                 const toggleIndicatoriBtn = document.getElementById('toggle-indicatori-lavori');
-                if (toggleIndicatoriBtn) {
+                if (hasManodopera && toggleIndicatoriBtn) {
                     toggleIndicatoriBtn.addEventListener('click', function() {
                         indicatoriLavoriVisible = !indicatoriLavoriVisible;
                         
@@ -2287,15 +2464,21 @@
                     });
                 }
 
-                // Crea legenda iniziale (dopo aver caricato le zone lavorate)
+                // Crea legenda iniziale (dopo aver caricato le zone lavorate, se Manodopera attivo)
                 updateLegenda('', '');
 
             } catch (error) {
-                console.error('Errore caricamento mappa aziendale:', error);
+                console.error('❌ Errore caricamento mappa aziendale:', error);
+                console.error('Stack trace:', error.stack);
+                console.error('Google Maps disponibile?', typeof google !== 'undefined' ? 'Sì' : 'No');
+                console.error('google.maps disponibile?', typeof google !== 'undefined' && google.maps ? 'Sì' : 'No');
                 container.innerHTML = `
                     <div class="mappa-loading">
                         <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Errore</h3>
                         <p>Errore durante il caricamento della mappa: ${error.message}</p>
+                        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                            Controlla la console del browser per maggiori dettagli.
+                        </p>
                     </div>
                 `;
             }
@@ -4557,11 +4740,8 @@
                                     }
                                 }
                                 
-                                // Nascondi link "Invita Collaboratore" (non più necessario)
-                            const invitaLink = document.getElementById('invita-collaboratore-link');
-                            if (invitaLink) {
-                                invitaLink.style.display = 'none';
-                            }
+                                // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
+                                // in base a se Manodopera è attivo o no
                             
                             // Renderizza con ruoli aggiornati e moduli
                                 await renderDashboard({
@@ -4593,11 +4773,8 @@
                                 }
                             }
                             
-                            // Nascondi link "Invita Collaboratore" (non più necessario)
-                            const invitaLink = document.getElementById('invita-collaboratore-link');
-                            if (invitaLink) {
-                                invitaLink.style.display = 'none';
-                            }
+                            // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
+                            // in base a se Manodopera è attivo o no
                             
                             // Renderizza con ruolo amministratore di default
                             await renderDashboard({
@@ -4622,12 +4799,8 @@
                         }
                     }
                     
-                    // Nascondi link "Invita Collaboratore" nell'header (non più necessario)
-                    // La gestione utenti è ora parte del modulo Manodopera
-                    const invitaLink = document.getElementById('invita-collaboratore-link');
-                    if (invitaLink) {
-                        invitaLink.style.display = 'none';
-                    }
+                    // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
+                    // in base a se Manodopera è attivo o no
                     
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
