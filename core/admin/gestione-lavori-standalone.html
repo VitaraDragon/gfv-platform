@@ -724,21 +724,47 @@
                     </select>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="lavoro-terreno">Terreno *</label>
-                        <select id="lavoro-terreno" required>
-                            <option value="">Seleziona terreno...</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="lavoro-terreno">Terreno *</label>
+                    <select id="lavoro-terreno" required>
+                        <option value="">Seleziona terreno...</option>
+                    </select>
+                </div>
 
-                    <div class="form-group">
-                        <label for="lavoro-caposquadra">Caposquadra *</label>
-                        <select id="lavoro-caposquadra" required>
-                            <option value="">Seleziona caposquadra...</option>
-                        </select>
-                        <small id="squadra-info" style="color: #666; font-size: 12px; margin-top: 5px; display: block;"></small>
+                <div class="form-group">
+                    <label>Tipo Assegnazione *</label>
+                    <div style="display: flex; gap: 20px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="tipo-assegnazione" value="squadra" checked id="tipo-squadra">
+                            <span>Lavoro di Squadra</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="tipo-assegnazione" value="autonomo" id="tipo-autonomo">
+                            <span>Lavoro Autonomo</span>
+                        </label>
                     </div>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        <strong>Squadra:</strong> Assegna a un caposquadra che gestisce una squadra<br>
+                        <strong>Autonomo:</strong> Assegna direttamente a un operaio (es. trattorista)
+                    </small>
+                </div>
+
+                <div class="form-group" id="caposquadra-group">
+                    <label for="lavoro-caposquadra">Caposquadra *</label>
+                    <select id="lavoro-caposquadra">
+                        <option value="">Seleziona caposquadra...</option>
+                    </select>
+                    <small id="squadra-info" style="color: #666; font-size: 12px; margin-top: 5px; display: block;"></small>
+                </div>
+
+                <div class="form-group" id="operaio-group" style="display: none;">
+                    <label for="lavoro-operaio">Operaio *</label>
+                    <select id="lavoro-operaio">
+                        <option value="">Seleziona operaio...</option>
+                    </select>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Seleziona l'operaio a cui assegnare direttamente il lavoro
+                    </small>
                 </div>
 
                 <div class="form-row">
@@ -867,6 +893,7 @@
         let currentLavoroId = null;
         let terreniList = [];
         let caposquadraList = [];
+        let operaiList = [];
         let squadreList = [];
         let lavoriList = [];
         let filteredLavoriList = [];
@@ -926,10 +953,14 @@
                     await Promise.all([
                         loadTerreni(),
                         loadCaposquadra(),
+                        loadOperai(),
                         loadSquadre(),
                         loadTipiLavoro(),
                         loadLavori()
                     ]);
+                    
+                    // Inizializza handler tipo assegnazione
+                    setupTipoAssegnazioneHandlers();
                     
                     // Carica statistiche
                     await loadStatistics();
@@ -986,6 +1017,31 @@
             } catch (error) {
                 console.error('Errore caricamento caposquadra:', error);
                 caposquadraList = [];
+            }
+        }
+
+        // Carica lista operai disponibili
+        async function loadOperai() {
+            try {
+                const usersRef = collection(db, 'users');
+                const q = query(
+                    usersRef,
+                    where('tenantId', '==', currentTenantId),
+                    where('ruoli', 'array-contains', 'operaio'),
+                    where('stato', '==', 'attivo')
+                );
+                const snapshot = await getDocs(q);
+                
+                operaiList = [];
+                snapshot.forEach(doc => {
+                    operaiList.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Popola dropdown operai nel form
+                populateOperaiDropdown();
+            } catch (error) {
+                console.error('Errore caricamento operai:', error);
+                operaiList = [];
             }
         }
 
@@ -1160,22 +1216,28 @@
         // Popola dropdown caposquadra nel form
         function populateCaposquadraDropdown(selectedId = null) {
             const select = document.getElementById('lavoro-caposquadra');
+            if (!select) return;
+            
             const squadraInfo = document.getElementById('squadra-info');
             select.innerHTML = '<option value="">Seleziona caposquadra...</option>';
             
             if (caposquadraList.length === 0) {
                 select.innerHTML = '<option value="">Nessun caposquadra disponibile</option>';
                 select.disabled = true;
-                squadraInfo.textContent = 'Crea prima una squadra con un caposquadra.';
+                if (squadraInfo) {
+                    squadraInfo.textContent = 'Crea prima una squadra con un caposquadra.';
+                }
                 return;
             }
             
             select.disabled = false;
-            squadraInfo.textContent = '';
+            if (squadraInfo) {
+                squadraInfo.textContent = '';
+            }
             
             // Listener per mostrare info squadra quando si seleziona caposquadra
             select.onchange = function() {
-                if (this.value) {
+                if (this.value && squadraInfo) {
                     const squadra = squadreList.find(s => s.caposquadraId === this.value);
                     if (squadra) {
                         const operaiCount = squadra.operai ? squadra.operai.length : 0;
@@ -1185,7 +1247,7 @@
                         squadraInfo.textContent = '⚠️ Nessuna squadra assegnata a questo caposquadra';
                         squadraInfo.style.color = '#856404';
                     }
-                } else {
+                } else if (squadraInfo) {
                     squadraInfo.textContent = '';
                 }
             };
@@ -1201,6 +1263,83 @@
                 }
                 select.appendChild(option);
             });
+        }
+
+        // Popola dropdown operai nel form
+        function populateOperaiDropdown(selectedId = null) {
+            const select = document.getElementById('lavoro-operaio');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">Seleziona operaio...</option>';
+            
+            if (operaiList.length === 0) {
+                select.innerHTML = '<option value="">Nessun operaio disponibile</option>';
+                select.disabled = true;
+                return;
+            }
+            
+            select.disabled = false;
+            
+            // Ordina operai per nome
+            const operaiOrdinati = [...operaiList].sort((a, b) => {
+                const nomeA = `${a.nome || ''} ${a.cognome || ''}`.trim() || a.email || '';
+                const nomeB = `${b.nome || ''} ${b.cognome || ''}`.trim() || b.email || '';
+                return nomeA.localeCompare(nomeB);
+            });
+            
+            operaiOrdinati.forEach(operaio => {
+                const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A';
+                const tipoOperaio = operaio.tipoOperaio ? ` (${operaio.tipoOperaio})` : '';
+                const option = document.createElement('option');
+                option.value = operaio.id;
+                option.textContent = `${nomeCompleto}${tipoOperaio}`;
+                if (selectedId === operaio.id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        // Gestisce cambio tipo assegnazione (radio button)
+        function setupTipoAssegnazioneHandlers() {
+            const tipoSquadra = document.getElementById('tipo-squadra');
+            const tipoAutonomo = document.getElementById('tipo-autonomo');
+            const caposquadraGroup = document.getElementById('caposquadra-group');
+            const operaioGroup = document.getElementById('operaio-group');
+            const caposquadraSelect = document.getElementById('lavoro-caposquadra');
+            const operaioSelect = document.getElementById('lavoro-operaio');
+
+            if (!tipoSquadra || !tipoAutonomo || !caposquadraGroup || !operaioGroup) return;
+
+            function updateVisibility() {
+                if (tipoSquadra.checked) {
+                    caposquadraGroup.style.display = 'block';
+                    operaioGroup.style.display = 'none';
+                    if (caposquadraSelect) {
+                        caposquadraSelect.required = true;
+                    }
+                    if (operaioSelect) {
+                        operaioSelect.required = false;
+                        operaioSelect.value = '';
+                    }
+                } else if (tipoAutonomo.checked) {
+                    caposquadraGroup.style.display = 'none';
+                    operaioGroup.style.display = 'block';
+                    if (caposquadraSelect) {
+                        caposquadraSelect.required = false;
+                        caposquadraSelect.value = '';
+                    }
+                    if (operaioSelect) {
+                        operaioSelect.required = true;
+                    }
+                }
+            }
+
+            tipoSquadra.addEventListener('change', updateVisibility);
+            tipoAutonomo.addEventListener('change', updateVisibility);
+            
+            // Inizializza visibilità
+            updateVisibility();
         }
 
         // Applica filtri
@@ -1506,6 +1645,10 @@
             document.getElementById('lavoro-id').value = '';
             document.getElementById('lavoro-stato').value = 'assegnato';
             
+            // Imposta tipo assegnazione default a "squadra"
+            document.getElementById('tipo-squadra').checked = true;
+            document.getElementById('tipo-autonomo').checked = false;
+            
             // Imposta data minima a oggi
             const today = new Date().toISOString().split('T')[0];
             // Permetti date passate (il manager può assegnare lavori anche per giorni precedenti)
@@ -1513,7 +1656,11 @@
             
             populateTerrenoDropdown();
             populateCaposquadraDropdown();
+            populateOperaiDropdown();
             populateTipoLavoroDropdown();
+            
+            // Aggiorna visibilità dropdown
+            setupTipoAssegnazioneHandlers();
             
             document.getElementById('lavoro-modal').classList.add('active');
         };
@@ -1543,9 +1690,24 @@
                 document.getElementById('lavoro-data-inizio').value = dataInizio.toISOString().split('T')[0];
             }
             
+            // Determina tipo assegnazione in base ai dati del lavoro
+            if (lavoro.operaioId && !lavoro.caposquadraId) {
+                // Lavoro autonomo
+                document.getElementById('tipo-autonomo').checked = true;
+                document.getElementById('tipo-squadra').checked = false;
+            } else {
+                // Lavoro di squadra (default o se caposquadraId presente)
+                document.getElementById('tipo-squadra').checked = true;
+                document.getElementById('tipo-autonomo').checked = false;
+            }
+            
             populateTerrenoDropdown(lavoro.terrenoId);
-            populateCaposquadraDropdown(lavoro.caposquadraId);
+            populateCaposquadraDropdown(lavoro.caposquadraId || null);
+            populateOperaiDropdown(lavoro.operaioId || null);
             populateTipoLavoroDropdown(lavoro.tipoLavoro || null);
+            
+            // Aggiorna visibilità dropdown
+            setupTipoAssegnazioneHandlers();
             
             document.getElementById('lavoro-modal').classList.add('active');
         };
@@ -1562,12 +1724,16 @@
             
             const nome = document.getElementById('lavoro-nome').value.trim();
             const terrenoId = document.getElementById('lavoro-terreno').value;
-            const caposquadraId = document.getElementById('lavoro-caposquadra').value;
             const tipoLavoro = document.getElementById('lavoro-tipo-lavoro').value.trim();
             const dataInizio = document.getElementById('lavoro-data-inizio').value;
             const durataPrevista = parseInt(document.getElementById('lavoro-durata').value);
             const stato = document.getElementById('lavoro-stato').value;
             const note = document.getElementById('lavoro-note').value.trim();
+            
+            // Determina tipo assegnazione
+            const tipoAssegnazione = document.querySelector('input[name="tipo-assegnazione"]:checked')?.value;
+            const caposquadraId = document.getElementById('lavoro-caposquadra').value;
+            const operaioId = document.getElementById('lavoro-operaio').value;
             
             if (!nome || nome.length < 3) {
                 showAlert('Il nome lavoro deve essere di almeno 3 caratteri', 'error');
@@ -1584,8 +1750,19 @@
                 return;
             }
             
-            if (!caposquadraId) {
-                showAlert('Seleziona un caposquadra', 'error');
+            // Validazione assegnazione
+            if (tipoAssegnazione === 'squadra') {
+                if (!caposquadraId) {
+                    showAlert('Seleziona un caposquadra per lavori di squadra', 'error');
+                    return;
+                }
+            } else if (tipoAssegnazione === 'autonomo') {
+                if (!operaioId) {
+                    showAlert('Seleziona un operaio per lavori autonomi', 'error');
+                    return;
+                }
+            } else {
+                showAlert('Seleziona un tipo di assegnazione', 'error');
                 return;
             }
             
@@ -1603,27 +1780,34 @@
                 const lavoroData = {
                     nome,
                     terrenoId,
-                    caposquadraId,
                     tipoLavoro,
                     dataInizio: Timestamp.fromDate(new Date(dataInizio)),
                     durataPrevista,
                     stato,
                     note: note || '',
-                    creatoDa: currentUserData.id,
-                    creatoIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
                 };
                 
+                // Assegnazione flessibile: O caposquadra O operaio (non entrambi)
+                if (tipoAssegnazione === 'squadra') {
+                    lavoroData.caposquadraId = caposquadraId;
+                    lavoroData.operaioId = null;
+                } else {
+                    lavoroData.operaioId = operaioId;
+                    lavoroData.caposquadraId = null;
+                }
+                
                 if (currentLavoroId) {
                     // Modifica lavoro esistente
-                    delete lavoroData.creatoDa;
-                    delete lavoroData.creatoIl;
                     lavoroData.aggiornatoIl = serverTimestamp();
                     
                     await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', currentLavoroId), lavoroData);
                     showAlert('Lavoro modificato con successo!', 'success');
                 } else {
                     // Crea nuovo lavoro
+                    lavoroData.creatoDa = currentUserData.id;
+                    lavoroData.creatoIl = serverTimestamp();
+                    
                     await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
                     showAlert('Lavoro creato con successo!', 'success');
                 }

@@ -379,6 +379,11 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
                 <span class="action-title">Gestione Lavori</span>
                 <span class="action-description">Crea, modifica e assegna lavori</span>
             </a>
+            <a href="admin/validazione-ore-standalone.html" class="action-card">
+                <span class="action-icon">✅</span>
+                <span class="action-title">Validazione Ore</span>
+                <span class="action-description">Valida ore lavori autonomi</span>
+            </a>
             <a href="admin/statistiche-manodopera-standalone.html" class="action-card">
                 <span class="action-icon">📊</span>
                 <span class="action-title">Statistiche</span>
@@ -584,6 +589,11 @@ window.GFVDashboardSections.createOperaioSection = function createOperaioSection
                 <span class="action-icon">⏱️</span>
                 <span class="action-title">Segna Ore</span>
                 <span class="action-description">Registra ore lavorate</span>
+            </a>
+            <a href="admin/lavori-caposquadra-standalone.html" class="action-card">
+                <span class="action-icon">📍</span>
+                <span class="action-title">Traccia Zone</span>
+                <span class="action-description">Traccia zone lavorate</span>
             </a>
             <a href="segnatura-ore-standalone.html" class="action-card">
                 <span class="action-icon">📊</span>

@@ -2,7 +2,7 @@
 
 **Ultimo aggiornamento**: 2025-01-23  
 **Versione**: 2.0.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard + Separazione Dashboard Core Base/Manodopera (Dashboard Pulita Senza Modulo, Mappa Semplificata) + Fix Configurazione Google Maps + Refactoring Dashboard Standalone (Modularizzazione CSS/JS, Riduzione 30.6%)
+**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard + Separazione Dashboard Core Base/Manodopera (Dashboard Pulita Senza Modulo, Mappa Semplificata) + Fix Configurazione Google Maps + Refactoring Dashboard Standalone (Modularizzazione CSS/JS, Riduzione 30.6%) + **Sistema Assegnazione Flessibile Lavori (Lavori Autonomi per Trattoristi, Assegnazione Diretta Operaio, Tracciamento Zone Operai, Validazione Ore Manager)**
 
 ---
 
@@ -499,7 +499,7 @@
 - `core/dashboard-standalone.html` - Aggiunta sezione "Gestione Lavori" per Manager e Amministratore
 
 **Funzionalità**:
-- ✅ Visualizzazione lavori assegnati al caposquadra loggato
+- ✅ Visualizzazione lavori assegnati al caposquadra loggato (o operai con lavori autonomi)
 - ✅ Tracciamento segmenti lavorati sulla mappa Google Maps (Polyline/Polygon)
 - ✅ Sistema ibrido: segmenti aperti (lunghezza × larghezza) e poligoni chiusi (area)
 - ✅ Validazione che i segmenti siano completamente dentro i confini del terreno
@@ -507,12 +507,14 @@
 - ✅ Chiusura segmento cliccando sul primo punto o doppio clic
 - ✅ Calcolo automatico superficie: area poligono per segmenti chiusi, lunghezza × larghezza per aperti
 - ✅ Salvataggio segmenti in sub-collection `zoneLavorate` con flag `isChiuso` e `tipo`
+- ✅ Salvataggio con `caposquadraId` per lavori di squadra o `operaioId` per lavori autonomi
 - ✅ Visualizzazione segmenti salvati sulla mappa con colori diversi per data
 - ✅ Aggiornamento automatico progressi lavoro (superficie totale, percentuale, stato)
 - ✅ Visualizzazione confini terreno sulla mappa per riferimento
 - ✅ Data lavorazione modificabile (può essere anche una data passata)
 - ✅ Sezione dashboard "Gestione Lavori" per Manager/Amministratore con statistiche e lavori recenti
-- ✅ Verifica ruolo caposquadra/manager/amministratore e modulo Manodopera attivo
+- ✅ Verifica ruolo caposquadra/operaio/manager/amministratore e modulo Manodopera attivo
+- ✅ Accesso anche agli operai per tracciare zone lavorate per lavori autonomi assegnati direttamente
 
 ### 24. Modulo Manodopera - Segnatura Ore (Operaio) ✅
 
@@ -534,6 +536,56 @@
 - ✅ Fix problemi indici Firestore (filtri/ordinamento in memoria)
 
 **Stato**: ✅ **TESTATO E FUNZIONANTE**
+
+### 25. Modulo Manodopera - Validazione Ore (Caposquadra) ✅
+
+**Data completamento**: 2025-01-16
+
+**File creati/modificati**:
+- `core/admin/validazione-ore-standalone.html` - Pagina Caposquadra per validare/rifiutare ore degli operai
+
+**Funzionalità**:
+- ✅ Lista ore da validare per lavori assegnati al caposquadra (lavori di squadra) o Manager (lavori autonomi)
+- ✅ Validazione singola o multipla ore
+- ✅ Rifiuto ore con motivo obbligatorio
+- ✅ Statistiche in tempo reale (da validare, validate, rifiutate)
+- ✅ Visualizzazione dettagli operaio, lavoro, orario, ore nette
+- ✅ Badge visivi per distinguere tipo lavoro (autonomo/squadra)
+- ✅ Aggiornamento automatico con listener Firestore
+- ✅ Verifica permessi: caposquadra può validare ore lavori di squadra, Manager può validare ore lavori autonomi
+- ✅ Link "Validazione Ore" nella dashboard Manager
+
+### 26. Modulo Manodopera - Sistema Assegnazione Flessibile Lavori ✅
+
+**Data completamento**: 2025-01-23
+
+**File modificati**:
+- `core/models/Lavoro.js` - Modello Lavoro con assegnazione flessibile
+- `core/services/lavori-service.js` - Supporto filtro `operaioId`
+- `core/admin/gestione-lavori-standalone.html` - Form creazione lavoro con tipo assegnazione
+- `core/dashboard-standalone.html` - Dashboard operaio con lavori diretti
+- `core/admin/validazione-ore-standalone.html` - Validazione ore lavori autonomi
+- `core/segnatura-ore-standalone.html` - Include lavori diretti
+- `core/admin/lavori-caposquadra-standalone.html` - Tracciamento zone per operai
+- `core/js/dashboard-sections.js` - Link tracciamento zone e validazione ore
+
+**Funzionalità**:
+- ✅ **Modello Lavoro Flessibile**: `caposquadraId` opzionale, `operaioId` aggiunto come opzionale
+- ✅ **Validazione**: Almeno uno tra `caposquadraId` e `operaioId` deve essere presente (mutualmente esclusivi)
+- ✅ **Campi Parco Macchine**: Aggiunti `macchinaId`, `attrezzoId`, `operatoreMacchinaId` (opzionali) per integrazione futura
+- ✅ **Form Creazione Lavoro**: Radio button tipo assegnazione (Lavoro di Squadra / Lavoro Autonomo)
+- ✅ **Dropdown Operai**: Lista operai disponibili per assegnazione diretta
+- ✅ **Dashboard Operaio**: Include lavori diretti (`operaioId == currentUserId`) e lavori di squadra (tramite caposquadra)
+- ✅ **Badge Visivi**: Distinzione visiva tra lavori autonomi e di squadra
+- ✅ **Checkbox Completamento**: Operai possono segnare lavori autonomi come completati
+- ✅ **Validazione Ore Manager**: Manager può validare ore di lavori autonomi (link nella dashboard)
+- ✅ **Tracciamento Zone Operai**: Operai possono tracciare zone lavorate per lavori autonomi
+- ✅ **Salvataggio Zone**: Zone lavorate salvate con `operaioId` invece di `caposquadraId` per operai
+- ✅ **Compatibilità**: Lavori esistenti continuano a funzionare (hanno solo `caposquadraId`)
+
+**Flussi Supportati**:
+1. **Lavori di Squadra** (esistente): Manager → Caposquadra → Operai
+2. **Lavori Autonomi** (nuovo): Manager → Operaio diretto (per trattoristi/operai autonomi)
 
 ### 25. Modulo Manodopera - Validazione Ore (Caposquadra) ✅
 
@@ -2255,10 +2307,20 @@ git ls-files | grep "vecchia"
 - [ ] Implementazione Security Rules Firestore
 
 ### Pianificato 📋
+- [ ] **Moduli Interconnessi e Assegnazione Diretta Lavori** (Vedi `PLAN_MODULI_INTERCONNESSI.md`)
+  - [ ] Sistema ibrido assegnazione lavori (caposquadra O operaio diretto)
+  - [ ] Modifiche modello Lavoro per supportare lavori autonomi
+  - [ ] Form creazione lavoro con assegnazione flessibile
+  - [ ] Dashboard operaio con lavori diretti + squadra
+  - [ ] Validazione ore per lavori autonomi (Manager valida direttamente)
+  - [ ] Tracciamento zone per lavori autonomi (operaio può tracciare)
+  - [ ] Integrazione Parco Macchine con Manodopera (opzionale)
+  - [ ] Dashboard operaio adattiva con dettagli macchina
 - [ ] Moduli avanzati (Clienti, Vendemmia, Bilancio)
 - [ ] Modulo Clienti
 - [ ] Modulo Vendemmia
 - [ ] Modulo Bilancio
+- [ ] Modulo Parco Macchine (standalone + integrazione Manodopera)
 - [ ] Test servizi (con mock avanzati)
 - [ ] Test E2E per UI critiche
 - [ ] Standardizzazione error handling
@@ -2313,8 +2375,9 @@ git ls-files | grep "vecchia"
 
 1. **Leggi questo file** (`STATO_PROGETTO_COMPLETO.md`)
 2. **Leggi** `STRATEGIA_SVILUPPO.md` per capire prossimi passi
-3. **Chiedi** all'utente cosa vuole sviluppare
-4. **Riferisciti** ai file di documentazione per dettagli
+3. **Leggi** `PLAN_MODULI_INTERCONNESSI.md` per sviluppi pianificati (moduli interconnessi, assegnazione diretta lavori)
+4. **Chiedi** all'utente cosa vuole sviluppare
+5. **Riferisciti** ai file di documentazione per dettagli
 
 ---
 
@@ -2327,7 +2390,7 @@ git ls-files | grep "vecchia"
 
 ---
 
-**Ultimo aggiornamento**: 2025-01-20  
+**Ultimo aggiornamento**: 2025-01-23  
 **Login**: ✅ Testato e funzionante  
 **Reset Password**: ✅ Completo e funzionante (Firebase Auth)  
 **Dashboard**: ✅ Completa e funzionante (condizionale basata su moduli)  
@@ -2382,6 +2445,7 @@ git ls-files | grep "vecchia"
 **Mappa Semplificata Core Base**: ✅ Completo e funzionante (Versione semplificata mappa quando Manodopera disattivato: solo terreni, nessun filtro avanzato, nessun overlay lavori, nessun indicatore lavori, legenda base colture)  
 **Fix Configurazione Google Maps**: ✅ Risolto (Corretto percorso file config, caricamento config prima di inizializzare API, gestione timing corretta, controlli dimensioni container, resize trigger per rendering)  
 **Refactoring Dashboard Standalone**: ✅ Completato (Estratto CSS in file separato, estratto config loader, estratto utility functions, estratto sezioni dashboard, riduzione file HTML da 4864 a 3374 righe -30.6%, codice più modulare e manutenibile, compatibile con file:// e HTTP)  
+**Modulo Manodopera - Sistema Assegnazione Flessibile Lavori**: ✅ Completo e funzionante (Assegnazione diretta lavori agli operai senza caposquadra per lavori autonomi, modello Lavoro con caposquadraId opzionale e operaioId opzionale, form creazione lavoro con radio button tipo assegnazione, dashboard operaio con lavori diretti e di squadra, checkbox completamento lavori autonomi, validazione ore Manager per lavori autonomi, tracciamento zone lavorate per operai con lavori autonomi, campi opzionali per integrazione futuro modulo Parco Macchine)  
 **Prossimo passo**: Implementare Security Rules Firestore (critico per produzione)
 
 ---

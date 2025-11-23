@@ -24,6 +24,7 @@ const COLLECTION_NAME = 'lavori';
  * @param {string} options.orderBy - Campo per ordinamento (default: 'dataInizio')
  * @param {string} options.orderDirection - Direzione ordinamento ('asc' | 'desc')
  * @param {string} options.caposquadraId - Filtra per caposquadra (opzionale)
+ * @param {string} options.operaioId - Filtra per operaio diretto (opzionale)
  * @param {string} options.stato - Filtra per stato (opzionale)
  * @param {string} options.terrenoId - Filtra per terreno (opzionale)
  * @returns {Promise<Array<Lavoro>>} Array di lavori
@@ -39,6 +40,7 @@ export async function getAllLavori(options = {}) {
       orderBy = 'dataInizio', 
       orderDirection = 'desc',
       caposquadraId = null,
+      operaioId = null,
       stato = null,
       terrenoId = null
     } = options;
@@ -47,6 +49,9 @@ export async function getAllLavori(options = {}) {
     const whereFilters = [];
     if (caposquadraId) {
       whereFilters.push(['caposquadraId', '==', caposquadraId]);
+    }
+    if (operaioId) {
+      whereFilters.push(['operaioId', '==', operaioId]);
     }
     if (stato) {
       whereFilters.push(['stato', '==', stato]);
@@ -122,6 +127,29 @@ export async function getLavoriByCaposquadra(caposquadraId, options = {}) {
 }
 
 /**
+ * Ottieni lavori assegnati direttamente a un operaio (lavori autonomi)
+ * @param {string} operaioId - ID operaio
+ * @param {Object} options - Opzioni aggiuntive
+ * @param {string} options.stato - Filtra per stato (opzionale)
+ * @returns {Promise<Array<Lavoro>>} Array di lavori
+ */
+export async function getLavoriByOperaio(operaioId, options = {}) {
+  try {
+    if (!operaioId) {
+      throw new Error('ID operaio obbligatorio');
+    }
+    
+    return getAllLavori({
+      ...options,
+      operaioId
+    });
+  } catch (error) {
+    console.error('Errore recupero lavori per operaio:', error);
+    throw new Error(`Errore recupero lavori: ${error.message}`);
+  }
+}
+
+/**
  * Ottieni lavori attivi (non completati e non annullati)
  * @param {Object} options - Opzioni aggiuntive
  * @returns {Promise<Array<Lavoro>>} Array di lavori attivi
@@ -141,11 +169,15 @@ export async function getLavoriAttivi(options = {}) {
  * @param {Object} lavoroData - Dati lavoro
  * @param {string} lavoroData.nome - Nome lavoro (obbligatorio)
  * @param {string} lavoroData.terrenoId - ID terreno (obbligatorio)
- * @param {string} lavoroData.caposquadraId - ID caposquadra (obbligatorio)
+ * @param {string} lavoroData.caposquadraId - ID caposquadra (opzionale, per lavori di squadra)
+ * @param {string} lavoroData.operaioId - ID operaio (opzionale, per lavori autonomi)
  * @param {Date|string} lavoroData.dataInizio - Data inizio lavoro (obbligatorio)
  * @param {number} lavoroData.durataPrevista - Durata prevista in giorni (obbligatorio)
  * @param {string} lavoroData.stato - Stato lavoro (default: "assegnato")
  * @param {string} lavoroData.note - Note opzionali
+ * @param {string} lavoroData.macchinaId - ID macchina assegnata (opzionale, solo se Parco Macchine attivo)
+ * @param {string} lavoroData.attrezzoId - ID attrezzo assegnato (opzionale, solo se Parco Macchine attivo)
+ * @param {string} lavoroData.operatoreMacchinaId - ID operaio che usa la macchina (opzionale)
  * @returns {Promise<string>} ID lavoro creato
  */
 export async function createLavoro(lavoroData) {
@@ -184,13 +216,32 @@ export async function createLavoro(lavoroData) {
       throw new Error('Terreno non trovato');
     }
     
-    // Verifica che caposquadra esista e abbia il ruolo corretto
-    const caposquadraDoc = await getDocumentData('users', lavoroData.caposquadraId);
-    if (!caposquadraDoc) {
-      throw new Error('Caposquadra non trovato');
+    // Verifica assegnazione: O caposquadra O operaio (non entrambi)
+    if (lavoroData.caposquadraId && lavoroData.operaioId) {
+      throw new Error('Un lavoro non può essere assegnato sia a un caposquadra che a un operaio diretto');
     }
-    if (!caposquadraDoc.ruoli || !caposquadraDoc.ruoli.includes('caposquadra')) {
-      throw new Error('L\'utente selezionato non è un caposquadra');
+    
+    if (!lavoroData.caposquadraId && !lavoroData.operaioId) {
+      throw new Error('Deve essere assegnato almeno un caposquadra o un operaio');
+    }
+    
+    // Se caposquadraId presente, verifica che esista e abbia il ruolo corretto
+    if (lavoroData.caposquadraId) {
+      const caposquadraDoc = await getDocumentData('users', lavoroData.caposquadraId);
+      if (!caposquadraDoc) {
+        throw new Error('Caposquadra non trovato');
+      }
+      if (!caposquadraDoc.ruoli || !caposquadraDoc.ruoli.includes('caposquadra')) {
+        throw new Error('L\'utente selezionato non è un caposquadra');
+      }
+    }
+    
+    // Se operaioId presente, verifica che esista
+    if (lavoroData.operaioId) {
+      const operaioDoc = await getDocumentData('users', lavoroData.operaioId);
+      if (!operaioDoc) {
+        throw new Error('Operaio non trovato');
+      }
     }
     
     // Salva

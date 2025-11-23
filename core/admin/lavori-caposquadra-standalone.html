@@ -433,7 +433,7 @@
     <div class="container">
         <div class="header">
             <h1>👷 I Miei Lavori</h1>
-            <p style="opacity: 0.9; margin-top: 5px;">Visualizza e gestisci i lavori assegnati</p>
+            <p style="opacity: 0.9; margin-top: 5px;">Visualizza e traccia zone lavorate</p>
         </div>
 
         <div class="content">
@@ -601,8 +601,11 @@
                     currentUserData = userDoc.data();
                     currentTenantId = currentUserData.tenantId;
 
-                    // Verifica permessi (solo caposquadra)
-                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('caposquadra')) {
+                    // Verifica permessi (caposquadra O operaio)
+                    const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                    const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
+                    
+                    if (!isCaposquadra && !isOperaio) {
                         showAlert('Non hai i permessi per accedere a questa pagina', 'error');
                         setTimeout(() => {
                             window.location.href = '../dashboard-standalone.html';
@@ -658,29 +661,47 @@
             }
         }
 
-        // Carica lavori assegnati al caposquadra
+        // Carica lavori assegnati (caposquadra: lavori di squadra, operaio: lavori autonomi)
         async function loadLavori() {
             const container = document.getElementById('lavori-container');
             container.innerHTML = '<div class="loading">Caricamento lavori...</div>';
 
             try {
+                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
+                const userId = currentUserData.id || currentUserData.uid;
+                
                 const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-                // Carica tutti i lavori e filtra lato client per evitare bisogno di indice composto
-                const q = query(
-                    lavoriRef,
-                    where('caposquadraId', '==', currentUserData.id)
-                );
-                const snapshot = await getDocs(q);
+                
+                // Carica tutti i lavori e filtra in memoria
+                const snapshot = await getDocs(lavoriRef);
                 
                 lavoriList = [];
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const dataInizio = data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null);
-                    lavoriList.push({ 
-                        id: doc.id, 
-                        ...data,
-                        dataInizio: dataInizio
-                    });
+                    
+                    let includeLavoro = false;
+                    
+                    if (isCaposquadra) {
+                        // CAPOSQUADRA: mostra solo lavori di squadra assegnati a lui
+                        if (data.caposquadraId === userId && !data.operaioId) {
+                            includeLavoro = true;
+                        }
+                    } else if (isOperaio) {
+                        // OPERAIO: mostra solo lavori autonomi assegnati a lui
+                        if (data.operaioId === userId && !data.caposquadraId) {
+                            includeLavoro = true;
+                        }
+                    }
+                    
+                    if (includeLavoro) {
+                        const dataInizio = data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null);
+                        lavoriList.push({ 
+                            id: doc.id, 
+                            ...data,
+                            dataInizio: dataInizio
+                        });
+                    }
                 });
 
                 // Ordina lato client per dataInizio (più recente prima)
@@ -1879,10 +1900,13 @@
                 const larghezzaInput = document.getElementById('zona-larghezza');
                 const larghezzaValue = larghezzaInput ? parseFloat(larghezzaInput.value) : null;
                 
+                // Determina se è caposquadra o operaio
+                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
+                
                 const segmentoData = {
                     tipo: isChiuso ? 'poligono' : 'segmento', // Identifica se è chiuso (poligono) o aperto (segmento)
                     data: Timestamp.fromDate(new Date(data)),
-                    caposquadraId: currentUserData.id,
                     coordinate: coordinate, // Coordinate del segmento (polyline) o poligono
                     lunghezzaMetri: lunghezzaTotale,
                     larghezzaMetri: (isChiuso || !larghezzaValue || larghezzaValue <= 0) ? null : larghezzaValue, // Larghezza solo per segmenti aperti con valore valido
@@ -1891,6 +1915,13 @@
                     note: note || '',
                     creatoIl: serverTimestamp()
                 };
+                
+                // Aggiungi caposquadraId o operaioId in base al ruolo
+                if (isCaposquadra) {
+                    segmentoData.caposquadraId = currentUserData.id;
+                } else if (isOperaio) {
+                    segmentoData.operaioId = currentUserData.id;
+                }
                 
                 // Salva nella sub-collection zoneLavorate
                 await addDoc(

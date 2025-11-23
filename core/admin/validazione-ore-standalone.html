@@ -484,8 +484,11 @@
                     currentUserData = userDoc.data();
                     currentTenantId = currentUserData.tenantId;
 
-                    // Verifica permessi (solo caposquadra)
-                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('caposquadra')) {
+                    // Verifica permessi (caposquadra O manager/amministratore)
+                    const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                    const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
+                    
+                    if (!isCaposquadra && !isManager) {
                         showAlert('Non hai i permessi per accedere a questa pagina', 'error');
                         setTimeout(() => {
                             window.location.href = '../dashboard-standalone.html';
@@ -555,19 +558,41 @@
             container.innerHTML = '<div class="loading">Caricamento ore...</div>';
 
             try {
-                // Ottieni tutti i lavori del caposquadra
+                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
+                const userId = currentUserData.id || currentUserData.uid;
+                
+                // Carica tutti i lavori (filtriamo in memoria)
                 const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-                const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', currentUserData.id));
-                const lavoriSnapshot = await getDocs(lavoriQuery);
+                const lavoriSnapshot = await getDocs(lavoriRef);
                 
                 oreDaValidare = [];
                 
-                // Per ogni lavoro, ottieni le ore da validare
+                // Per ogni lavoro, verifica se l'utente può validare le ore
                 for (const lavoroDoc of lavoriSnapshot.docs) {
                     const lavoroId = lavoroDoc.id;
                     const lavoroData = lavoroDoc.data();
+                    
+                    let canValidate = false;
+                    
+                    if (isCaposquadra) {
+                        // CAPOSQUADRA: può validare solo lavori di squadra assegnati a lui
+                        if (lavoroData.caposquadraId === userId && !lavoroData.operaioId) {
+                            canValidate = true;
+                        }
+                    } else if (isManager) {
+                        // MANAGER: può validare lavori autonomi (operaioId presente, caposquadraId null)
+                        if (lavoroData.operaioId && !lavoroData.caposquadraId) {
+                            canValidate = true;
+                        }
+                    }
+                    
+                    if (!canValidate) {
+                        continue; // Salta questo lavoro
+                    }
+                    
+                    // Carica ore da validare per questo lavoro
                     const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
-                    // Rimuovo orderBy per evitare bisogno di indice composito, ordino in memoria dopo
                     const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
                     const oreSnapshot = await getDocs(oreQuery);
                     
@@ -584,6 +609,7 @@
                             id: oraDoc.id,
                             lavoroId: lavoroId,
                             lavoroNome: lavoroData.nome || 'N/A',
+                            tipoLavoro: lavoroData.operaioId ? 'autonomo' : 'squadra', // Flag per distinguere
                             ...data
                         });
                     });
@@ -613,11 +639,10 @@
 
         // Setup listener in tempo reale
         function setupRealtimeListener() {
-            // Ascolta cambiamenti nelle ore da validare
+            // Ascolta cambiamenti in tutti i lavori (filtriamo in loadOreDaValidare)
             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-            const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', currentUserData.id));
             
-            onSnapshot(lavoriQuery, async (lavoriSnapshot) => {
+            onSnapshot(lavoriRef, async (lavoriSnapshot) => {
                 // Ricarica ore quando cambiano i lavori
                 await loadOreDaValidare();
             });
@@ -632,11 +657,32 @@
             let validateCount = 0;
             let rifiutateCount = 0;
             
+            const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+            const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
+            const userId = currentUserData.id || currentUserData.uid;
+            
+            // Carica tutti i lavori (filtriamo in memoria)
             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-            const lavoriQuery = query(lavoriRef, where('caposquadraId', '==', currentUserData.id));
-            const lavoriSnapshot = await getDocs(lavoriQuery);
+            const lavoriSnapshot = await getDocs(lavoriRef);
             
             for (const lavoroDoc of lavoriSnapshot.docs) {
+                const lavoroData = lavoroDoc.data();
+                let canValidate = false;
+                
+                if (isCaposquadra) {
+                    // CAPOSQUADRA: solo lavori di squadra assegnati a lui
+                    if (lavoroData.caposquadraId === userId && !lavoroData.operaioId) {
+                        canValidate = true;
+                    }
+                } else if (isManager) {
+                    // MANAGER: solo lavori autonomi
+                    if (lavoroData.operaioId && !lavoroData.caposquadraId) {
+                        canValidate = true;
+                    }
+                }
+                
+                if (!canValidate) continue;
+                
                 const lavoroId = lavoroDoc.id;
                 const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
                 const oreSnapshot = await getDocs(oreRef);
@@ -753,15 +799,30 @@
             }
             
             try {
-                // Verifica che il lavoro esista e sia assegnato al caposquadra
+                // Verifica che il lavoro esista
                 const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
                 if (!lavoroDoc.exists()) {
                     throw new Error('Lavoro non trovato');
                 }
                 
                 const lavoroData = lavoroDoc.data();
-                if (lavoroData.caposquadraId !== currentUserData.id) {
-                    throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
+                const userId = currentUserData.id || currentUserData.uid;
+                
+                // Verifica permessi in base al tipo di lavoro
+                if (lavoroData.operaioId && !lavoroData.caposquadraId) {
+                    // Lavoro autonomo: solo Manager può validare
+                    if (!isManager) {
+                        throw new Error('Solo Manager può validare ore di lavori autonomi');
+                    }
+                } else if (lavoroData.caposquadraId && !lavoroData.operaioId) {
+                    // Lavoro di squadra: solo caposquadra assegnato può validare
+                    if (!isCaposquadra || lavoroData.caposquadraId !== userId) {
+                        throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                    }
+                } else {
+                    throw new Error('Lavoro non valido (deve essere assegnato a caposquadra o operaio)');
                 }
                 
                 // Verifica che l'ora esista e sia in stato "da_validare"
@@ -853,8 +914,23 @@
                 }
                 
                 const lavoroData = lavoroDoc.data();
-                if (lavoroData.caposquadraId !== currentUserData.id) {
-                    throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
+                const userId = currentUserData.id || currentUserData.uid;
+                
+                // Verifica permessi in base al tipo di lavoro
+                if (lavoroData.operaioId && !lavoroData.caposquadraId) {
+                    // Lavoro autonomo: solo Manager può rifiutare
+                    if (!isManager) {
+                        throw new Error('Solo Manager può rifiutare ore di lavori autonomi');
+                    }
+                } else if (lavoroData.caposquadraId && !lavoroData.operaioId) {
+                    // Lavoro di squadra: solo caposquadra assegnato può rifiutare
+                    if (!isCaposquadra || lavoroData.caposquadraId !== userId) {
+                        throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                    }
+                } else {
+                    throw new Error('Lavoro non valido (deve essere assegnato a caposquadra o operaio)');
                 }
                 
                 // Verifica che l'ora esista e sia in stato "da_validare"
@@ -975,8 +1051,23 @@
                         }
                         
                         const lavoroData = lavoroDoc.data();
-                        if (lavoroData.caposquadraId !== currentUserData.id) {
-                            throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                        const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                        const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
+                        const userId = currentUserData.id || currentUserData.uid;
+                        
+                        // Verifica permessi in base al tipo di lavoro
+                        if (lavoroData.operaioId && !lavoroData.caposquadraId) {
+                            // Lavoro autonomo: solo Manager può validare
+                            if (!isManager) {
+                                throw new Error('Solo Manager può validare ore di lavori autonomi');
+                            }
+                        } else if (lavoroData.caposquadraId && !lavoroData.operaioId) {
+                            // Lavoro di squadra: solo caposquadra assegnato può validare
+                            if (!isCaposquadra || lavoroData.caposquadraId !== userId) {
+                                throw new Error('Non sei il caposquadra assegnato a questo lavoro');
+                            }
+                        } else {
+                            throw new Error('Lavoro non valido (deve essere assegnato a caposquadra o operaio)');
                         }
                         
                         // Verifica che l'ora esista e sia in stato "da_validare"

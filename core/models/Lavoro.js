@@ -1,6 +1,6 @@
 /**
  * Lavoro Model - Modello dati lavoro
- * Gestisce dati lavoro con assegnazione a caposquadra e terreno
+ * Gestisce dati lavoro con assegnazione flessibile (caposquadra O operaio diretto) e terreno
  * 
  * @module core/models/Lavoro
  */
@@ -15,7 +15,8 @@ export class Lavoro extends Base {
    * @param {string} data.id - ID lavoro
    * @param {string} data.nome - Nome lavoro (obbligatorio)
    * @param {string} data.terrenoId - ID terreno (obbligatorio)
-   * @param {string} data.caposquadraId - ID caposquadra (obbligatorio)
+   * @param {string} data.caposquadraId - ID caposquadra (opzionale, per lavori di squadra)
+   * @param {string} data.operaioId - ID operaio (opzionale, per lavori autonomi)
    * @param {string} data.tipoLavoro - Tipo lavoro (es. "Potatura", "Vendemmia", "Trattamento") - obbligatorio
    * @param {Date|string} data.dataInizio - Data inizio lavoro (obbligatorio)
    * @param {number} data.durataPrevista - Durata prevista in giorni (obbligatorio)
@@ -24,6 +25,11 @@ export class Lavoro extends Base {
    * @param {string} data.creatoDa - ID utente che ha creato il lavoro
    * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
    * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
+   * 
+   * Campi Parco Macchine (opzionali, solo se modulo Parco Macchine attivo):
+   * @param {string} data.macchinaId - ID macchina assegnata (opzionale)
+   * @param {string} data.attrezzoId - ID attrezzo assegnato (opzionale)
+   * @param {string} data.operatoreMacchinaId - ID operaio che usa la macchina (opzionale)
    * 
    * Dati derivati (calcolati automaticamente, non modificabili direttamente):
    * @param {number} data.superficieTotaleLavorata - Superficie totale lavorata (ha)
@@ -37,8 +43,17 @@ export class Lavoro extends Base {
     
     this.nome = data.nome || '';
     this.terrenoId = data.terrenoId || null;
-    this.caposquadraId = data.caposquadraId || null;
+    
+    // ASSEGNAZIONE FLESSIBILE: O caposquadra O operaio diretto (mutualmente esclusivi)
+    this.caposquadraId = data.caposquadraId || null;    // Per lavori di squadra
+    this.operaioId = data.operaioId || null;            // Per lavori autonomi
+    
     this.tipoLavoro = data.tipoLavoro || '';
+    
+    // Campi Parco Macchine (opzionali)
+    this.macchinaId = data.macchinaId || null;
+    this.attrezzoId = data.attrezzoId || null;
+    this.operatoreMacchinaId = data.operatoreMacchinaId || null;
     
     // Gestione dataInizio
     if (data.dataInizio) {
@@ -102,8 +117,14 @@ export class Lavoro extends Base {
       errors.push('Terreno obbligatorio');
     }
     
-    if (!this.caposquadraId) {
-      errors.push('Caposquadra obbligatorio');
+    // VALIDAZIONE ASSEGNAZIONE FLESSIBILE: almeno uno tra caposquadraId e operaioId deve essere presente
+    if (!this.caposquadraId && !this.operaioId) {
+      errors.push('Deve essere assegnato almeno un caposquadra o un operaio');
+    }
+    
+    // Non possono essere entrambi presenti (mutualmente esclusivi)
+    if (this.caposquadraId && this.operaioId) {
+      errors.push('Un lavoro non può essere assegnato sia a un caposquadra che a un operaio diretto');
     }
     
     if (!this.tipoLavoro || this.tipoLavoro.trim().length === 0) {
@@ -182,6 +203,35 @@ export class Lavoro extends Base {
    */
   isAttivo() {
     return !this.isCompletato() && !this.isAnnullato();
+  }
+  
+  /**
+   * Verifica se lavoro è assegnato a una squadra (tramite caposquadra)
+   * @returns {boolean} true se è lavoro di squadra
+   */
+  isLavoroSquadra() {
+    return !!this.caposquadraId && !this.operaioId;
+  }
+  
+  /**
+   * Verifica se lavoro è assegnato direttamente a un operaio (lavoro autonomo)
+   * @returns {boolean} true se è lavoro autonomo
+   */
+  isLavoroAutonomo() {
+    return !!this.operaioId && !this.caposquadraId;
+  }
+  
+  /**
+   * Ottieni tipo assegnazione formattato per visualizzazione
+   * @returns {string} "Squadra" | "Autonomo"
+   */
+  getTipoAssegnazione() {
+    if (this.isLavoroSquadra()) {
+      return 'Squadra';
+    } else if (this.isLavoroAutonomo()) {
+      return 'Autonomo';
+    }
+    return 'Non assegnato';
   }
   
   /**

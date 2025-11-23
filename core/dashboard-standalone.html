@@ -2320,7 +2320,7 @@
         
         window.confermaComunicazione = confermaComunicazione;
         
-        // Carica lavori di oggi per operaio
+        // Carica lavori di oggi per operaio (diretti + squadra)
         async function loadLavoriOggiOperaio(userData) {
             try {
                 const user = auth.currentUser;
@@ -2329,35 +2329,7 @@
                 const operaioId = userData.id || user.uid;
                 const tenantId = userData.tenantId;
                 
-                // Trova la squadra dell'operaio
-                const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
-                const squadreSnapshot = await getDocs(squadreRef);
-                
-                let caposquadraId = null;
-                squadreSnapshot.forEach(doc => {
-                    const squadra = doc.data();
-                    if (squadra.operai && squadra.operai.includes(operaioId)) {
-                        caposquadraId = squadra.caposquadraId;
-                    }
-                });
-                
-                if (!caposquadraId) {
-                    const container = document.getElementById('lavori-oggi-operaio');
-                    if (container) {
-                        container.innerHTML = `
-                            <li class="recent-item">
-                                <div>
-                                    <div class="recent-item-title">Nessuna squadra assegnata</div>
-                                    <div class="recent-item-description">Contatta il manager per essere assegnato a una squadra</div>
-                                </div>
-                            </li>
-                        `;
-                    }
-                    document.getElementById('stat-lavori-oggi-operaio').textContent = '0';
-                    return;
-                }
-                
-                // Carica lavori assegnati al caposquadra
+                // Carica tutti i lavori
                 const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
                 const lavoriSnapshot = await getDocs(lavoriRef);
                 
@@ -2365,11 +2337,14 @@
                 oggi.setHours(0, 0, 0, 0);
                 
                 const lavoriOggi = [];
+                const lavoriIdsSet = new Set(); // Per evitare duplicati
+                
+                // 1. LAVORI DIRETTI (assegnati direttamente all'operaio)
                 lavoriSnapshot.forEach(doc => {
                     const lavoro = doc.data();
                     
-                    // Verifica che il lavoro sia assegnato al caposquadra della squadra dell'operaio
-                    if (lavoro.caposquadraId === caposquadraId) {
+                    // Verifica se è lavoro autonomo assegnato direttamente all'operaio
+                    if (lavoro.operaioId === operaioId && !lavoro.caposquadraId) {
                         const stato = lavoro.stato || 'assegnato';
                         // Solo lavori attivi
                         if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
@@ -2382,12 +2357,58 @@
                                 lavoriOggi.push({
                                     id: doc.id,
                                     ...lavoro,
-                                    dataInizio: dataInizio
+                                    dataInizio: dataInizio,
+                                    tipoAssegnazione: 'autonomo' // Flag per distinguere
                                 });
+                                lavoriIdsSet.add(doc.id);
                             }
                         }
                     }
                 });
+                
+                // 2. LAVORI DI SQUADRA (tramite caposquadra)
+                // Trova la squadra dell'operaio
+                const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
+                const squadreSnapshot = await getDocs(squadreRef);
+                
+                let caposquadraId = null;
+                squadreSnapshot.forEach(doc => {
+                    const squadra = doc.data();
+                    if (squadra.operai && squadra.operai.includes(operaioId)) {
+                        caposquadraId = squadra.caposquadraId;
+                    }
+                });
+                
+                if (caposquadraId) {
+                    lavoriSnapshot.forEach(doc => {
+                        // Evita duplicati (se già presente come lavoro diretto)
+                        if (lavoriIdsSet.has(doc.id)) return;
+                        
+                        const lavoro = doc.data();
+                        
+                        // Verifica che sia lavoro di squadra (caposquadraId presente, operaioId null)
+                        if (lavoro.caposquadraId === caposquadraId && !lavoro.operaioId) {
+                            const stato = lavoro.stato || 'assegnato';
+                            // Solo lavori attivi
+                            if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
+                                const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
+                                const dataInizioSenzaOra = new Date(dataInizio);
+                                dataInizioSenzaOra.setHours(0, 0, 0, 0);
+                                
+                                // Se la data inizio è oggi o passata, mostra il lavoro
+                                if (dataInizioSenzaOra <= oggi) {
+                                    lavoriOggi.push({
+                                        id: doc.id,
+                                        ...lavoro,
+                                        dataInizio: dataInizio,
+                                        tipoAssegnazione: 'squadra' // Flag per distinguere
+                                    });
+                                    lavoriIdsSet.add(doc.id);
+                                }
+                            }
+                        }
+                    });
+                }
                 
                 // Ordina per data (più recenti prima)
                 lavoriOggi.sort((a, b) => {
@@ -2397,17 +2418,26 @@
                 });
                 
                 // Aggiorna statistiche
-                document.getElementById('stat-lavori-oggi-operaio').textContent = lavoriOggi.length;
+                const statElement = document.getElementById('stat-lavori-oggi-operaio');
+                if (statElement) {
+                    statElement.textContent = lavoriOggi.length;
+                }
                 
                 // Renderizza lista lavori
                 const container = document.getElementById('lavori-oggi-operaio');
                 if (!container) return;
                 
                 if (lavoriOggi.length === 0) {
+                    // Mostra messaggio appropriato in base alla situazione
+                    let message = 'Nessun lavoro assegnato per oggi';
+                    if (!caposquadraId && lavoriOggi.length === 0) {
+                        message = 'Nessun lavoro assegnato. Contatta il manager per essere assegnato a una squadra o per ricevere lavori autonomi.';
+                    }
+                    
                     container.innerHTML = `
                         <li class="recent-item">
                             <div>
-                                <div class="recent-item-title">Nessun lavoro assegnato per oggi</div>
+                                <div class="recent-item-title">${message}</div>
                             </div>
                         </li>
                     `;
@@ -2423,16 +2453,49 @@
                     const statoLabel = {
                         'assegnato': 'Assegnato',
                         'in_corso': 'In Corso',
-                        'completato': 'Completato'
+                        'completato': 'Completato',
+                        'completato_da_approvare': 'In attesa approvazione'
                     }[lavoro.stato] || lavoro.stato;
+                    
+                    // Badge per tipo assegnazione
+                    const tipoBadge = lavoro.tipoAssegnazione === 'autonomo' 
+                        ? '<span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">Autonomo</span>'
+                        : '<span style="background: #2196F3; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">Squadra</span>';
+                    
+                    // Checkbox per segnare completato (solo per lavori autonomi attivi)
+                    const checkboxCompletato = lavoro.tipoAssegnazione === 'autonomo' && 
+                        lavoro.stato !== 'completato' && 
+                        lavoro.stato !== 'completato_da_approvare' && 
+                        lavoro.stato !== 'annullato'
+                        ? `
+                            <div style="margin-top: 8px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #666;">
+                                    <input type="checkbox" 
+                                           class="checkbox-completato-lavoro" 
+                                           data-lavoro-id="${lavoro.id}"
+                                           ${lavoro.stato === 'completato_da_approvare' ? 'checked disabled' : ''}
+                                           onchange="segnaLavoroCompletato('${lavoro.id}', this.checked)">
+                                    <span>Segna come completato</span>
+                                </label>
+                            </div>
+                        `
+                        : lavoro.stato === 'completato_da_approvare'
+                        ? '<div style="margin-top: 8px; color: #ffc107; font-size: 12px;">⏳ In attesa approvazione Manager</div>'
+                        : lavoro.stato === 'completato'
+                        ? '<div style="margin-top: 8px; color: #4CAF50; font-size: 12px;">✅ Completato</div>'
+                        : '';
                     
                     return `
                         <li class="recent-item">
-                            <div>
-                                <div class="recent-item-title">${escapeHtml(lavoro.nome || 'Lavoro senza nome')}</div>
+                            <div style="width: 100%;">
+                                <div class="recent-item-title">
+                                    ${escapeHtml(lavoro.nome || 'Lavoro senza nome')}
+                                    ${tipoBadge}
+                                </div>
                                 <div class="recent-item-description">
                                     ${escapeHtml(lavoro.terreno || 'Terreno non specificato')} • ${dataFormatted} • ${statoLabel}
                                 </div>
+                                ${checkboxCompletato}
                             </div>
                         </li>
                     `;
@@ -2452,6 +2515,84 @@
                 }
             }
         }
+        
+        // Segna lavoro come completato (per operai con lavori autonomi)
+        window.segnaLavoroCompletato = async function(lavoroId, isCompletato) {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                
+                // Verifica che il lavoro esista e sia assegnato all'operaio corrente
+                const lavoroDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId));
+                if (!lavoroDoc.exists()) {
+                    showAlert('Lavoro non trovato', 'error');
+                    return;
+                }
+                
+                const lavoroData = lavoroDoc.data();
+                
+                // Verifica che sia un lavoro autonomo assegnato all'operaio corrente
+                if (lavoroData.operaioId !== user.uid || lavoroData.caposquadraId) {
+                    showAlert('Non hai i permessi per completare questo lavoro', 'error');
+                    return;
+                }
+                
+                // Verifica che il lavoro non sia già completato o annullato
+                if (lavoroData.stato === 'completato' || lavoroData.stato === 'annullato') {
+                    showAlert('Questo lavoro è già completato o annullato', 'error');
+                    return;
+                }
+                
+                if (isCompletato) {
+                    // Conferma prima di segnare come completato
+                    if (!confirm('Sei sicuro di voler segnare questo lavoro come completato?\n\nIl lavoro sarà inviato al Manager per l\'approvazione finale.')) {
+                        // Reset checkbox
+                        const checkbox = document.querySelector(`.checkbox-completato-lavoro[data-lavoro-id="${lavoroId}"]`);
+                        if (checkbox) checkbox.checked = false;
+                        return;
+                    }
+                    
+                    // Aggiorna stato a "completato_da_approvare"
+                    await updateDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId), {
+                        stato: 'completato_da_approvare',
+                        completatoDa: user.uid,
+                        completatoIl: serverTimestamp(),
+                        aggiornatoIl: serverTimestamp()
+                    });
+                    
+                    showAlert('Lavoro segnato come completato! In attesa di approvazione del Manager.', 'success');
+                } else {
+                    // Se deselezionato, riporta a stato precedente (solo se era in attesa approvazione)
+                    if (lavoroData.stato === 'completato_da_approvare') {
+                        await updateDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId), {
+                            stato: 'in_corso',
+                            completatoDa: null,
+                            completatoIl: null,
+                            aggiornatoIl: serverTimestamp()
+                        });
+                        
+                        showAlert('Stato lavoro aggiornato', 'success');
+                    }
+                }
+                
+                // Ricarica lavori
+                await loadLavoriOggiOperaio(userData);
+                
+            } catch (error) {
+                console.error('Errore segnatura lavoro completato:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+                
+                // Reset checkbox in caso di errore
+                const checkbox = document.querySelector(`.checkbox-completato-lavoro[data-lavoro-id="${lavoroId}"]`);
+                if (checkbox) checkbox.checked = !isCompletato;
+            }
+        };
         
         // Carica statistiche ore per operaio
         async function loadStatisticheOreOperaio(userData) {

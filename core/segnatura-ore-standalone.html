@@ -599,28 +599,63 @@
                 const userId = currentUserData.id || currentUserData.uid;
                 
                 lavoriList = [];
+                const lavoriIdsSet = new Set(); // Per evitare duplicati
+                
+                // Se è operaio, trova il caposquadra della sua squadra
+                let caposquadraId = null;
+                if (isOperaio) {
+                    try {
+                        const squadreRef = collection(db, 'tenants', currentTenantId, 'squadre');
+                        const squadreSnapshot = await getDocs(squadreRef);
+                        
+                        squadreSnapshot.forEach(doc => {
+                            const squadra = doc.data();
+                            if (squadra.operai && squadra.operai.includes(userId)) {
+                                caposquadraId = squadra.caposquadraId;
+                            }
+                        });
+                    } catch (error) {
+                        console.warn('Errore caricamento squadre:', error);
+                    }
+                }
+                
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     // Filtra solo lavori attivi (assegnato o in_corso)
                     if (data.stato === 'assegnato' || data.stato === 'in_corso') {
-                        // Se è operaio, mostra solo lavori assegnati a lui
-                        // Se è caposquadra, mostra solo lavori assegnati a lui come caposquadra
+                        let includeLavoro = false;
+                        
                         if (isOperaio) {
-                            // Per gli operai, controlla se sono assegnati al lavoro (potrebbe essere tramite squadra)
-                            // Per ora mostriamo tutti i lavori attivi, ma in futuro si può filtrare per operaioId
-                            // Nota: gli operai potrebbero essere assegnati tramite la squadra
-                        } else if (isCaposquadra) {
-                            // Per i caposquadra, mostra solo lavori dove caposquadraId == userId
-                            if (data.caposquadraId !== userId) {
-                                return; // Salta questo lavoro
+                            // OPERAIO: mostra lavori diretti O lavori di squadra
+                            
+                            // 1. Lavori diretti (assegnati direttamente all'operaio)
+                            if (data.operaioId === userId && !data.caposquadraId) {
+                                includeLavoro = true;
                             }
+                            
+                            // 2. Lavori di squadra (tramite caposquadra)
+                            if (!includeLavoro && caposquadraId && data.caposquadraId === caposquadraId && !data.operaioId) {
+                                includeLavoro = true;
+                            }
+                            
+                        } else if (isCaposquadra) {
+                            // CAPOSQUADRA: mostra solo lavori assegnati a lui come caposquadra
+                            if (data.caposquadraId === userId && !data.operaioId) {
+                                includeLavoro = true;
+                            }
+                        } else {
+                            // MANAGER/AMMINISTRATORE: mostra tutti i lavori
+                            includeLavoro = true;
                         }
                         
-                        // Converti Timestamp in Date
-                        if (data.dataInizio && data.dataInizio.toDate) {
-                            data.dataInizio = data.dataInizio.toDate();
+                        if (includeLavoro && !lavoriIdsSet.has(doc.id)) {
+                            // Converti Timestamp in Date
+                            if (data.dataInizio && data.dataInizio.toDate) {
+                                data.dataInizio = data.dataInizio.toDate();
+                            }
+                            lavoriList.push({ id: doc.id, ...data });
+                            lavoriIdsSet.add(doc.id);
                         }
-                        lavoriList.push({ id: doc.id, ...data });
                     }
                 });
                 
