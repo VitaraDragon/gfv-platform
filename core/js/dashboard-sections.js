@@ -8,8 +8,11 @@ window.GFVDashboardSections = window.GFVDashboardSections || {};
 
 /**
  * Sezione Core Base (sempre visibile - essenziale)
+ * @param {Object} userData - Dati utente
+ * @param {boolean} isCoreOnly - Se true, solo moduli core attivi
+ * @param {Array<string>} availableModules - Array di moduli disponibili (opzionale)
  */
-window.GFVDashboardSections.createCoreBaseSection = function createCoreBaseSection(userData, isCoreOnly) {
+window.GFVDashboardSections.createCoreBaseSection = function createCoreBaseSection(userData, isCoreOnly, availableModules = []) {
     const section = document.createElement('div');
     section.className = 'dashboard-section';
     
@@ -31,6 +34,17 @@ window.GFVDashboardSections.createCoreBaseSection = function createCoreBaseSecti
             <span class="action-description">Visualizza statistiche e grafici</span>
         </a>
     `;
+    
+    // Aggiungi Gestione Macchine se modulo Parco Macchine è attivo (indipendentemente da Manodopera)
+    if (availableModules && availableModules.includes('parcoMacchine')) {
+        actionsHTML += `
+            <a href="admin/gestione-macchine-standalone.html" class="action-card">
+                <span class="action-icon">🚜</span>
+                <span class="action-title">Gestione Macchine</span>
+                <span class="action-description">Gestisci parco macchine e manutenzioni</span>
+            </a>
+        `;
+    }
     
     // Aggiungi card Abbonamento (sempre visibile per gestire piano e moduli)
     actionsHTML += `
@@ -102,6 +116,17 @@ window.GFVDashboardSections.createAdminSection = function createAdminSection(use
             <span class="action-description">Calcola e gestisci compensi operai</span>
         </a>
     `;
+    
+    // Aggiungi Gestione Macchine se modulo Parco Macchine è attivo
+    if (availableModules && availableModules.includes('parcoMacchine')) {
+        actionsHTML += `
+            <a href="admin/gestione-macchine-standalone.html" class="action-card">
+                <span class="action-icon">🚜</span>
+                <span class="action-title">Gestione Macchine</span>
+                <span class="action-description">Gestisci parco macchine e manutenzioni</span>
+            </a>
+        `;
+    }
     
     // Report completi solo se ci sono moduli avanzati
     if (!isCoreOnly) {

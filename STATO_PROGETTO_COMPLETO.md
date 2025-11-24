@@ -2,7 +2,7 @@
 
 **Ultimo aggiornamento**: 2025-01-23  
 **Versione**: 2.0.0-alpha  
-**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard + Separazione Dashboard Core Base/Manodopera (Dashboard Pulita Senza Modulo, Mappa Semplificata) + Fix Configurazione Google Maps + Refactoring Dashboard Standalone (Modularizzazione CSS/JS, Riduzione 30.6%) + **Sistema Assegnazione Flessibile Lavori (Lavori Autonomi per Trattoristi, Assegnazione Diretta Operaio, Tracciamento Zone Operai, Validazione Ore Manager)**
+**Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO (Squadre, Lavori, Tracciamento Segmenti/Poligoni, Segnatura Ore, Validazione Ore, Dashboard Gestione Lavori, Pagina Manager Migliorata, Indicatori Progresso, Dashboard Caposquadra Completa) + Campo Cellulare Utenti + Gestione Poderi + Sistema Comunicazioni Squadra + Separazione Impostazioni per Ruolo + Fix Documento Utente + Dashboard Ruoli Ottimizzate + Diario da Lavori Automatico + Riorganizzazione Dashboard Manager + Pagina Amministrazione Dedicata + Pagina Statistiche Manodopera + Mappa Aziendale Dashboard Manager Completa (Overlay Lavori Attivi, Filtri Podere/Coltura, Indicatori Stato Lavori, Zoom Migliorato) + Gestione Contratti Operai (Scadenziario, Tipi Operai, Sistema Semaforo Alert) + Report Ore Operai (Filtri Avanzati, Aggiornamento Automatico) + Calcolo Compensi Operai (Pagina Dedicata, Esportazione Excel con Logo, Formattazione Professionale) + Fix Superficie Lavorata Dashboard + Separazione Dashboard Core Base/Manodopera (Dashboard Pulita Senza Modulo, Mappa Semplificata) + Fix Configurazione Google Maps + Refactoring Dashboard Standalone (Modularizzazione CSS/JS, Riduzione 30.6%) + **Sistema Assegnazione Flessibile Lavori (Lavori Autonomi per Trattoristi, Assegnazione Diretta Operaio, Tracciamento Zone Operai, Validazione Ore Manager)** + **Modulo Parco Macchine COMPLETO (Gestione Trattori/Attrezzi, Categorie Funzionali, Compatibilità Automatica CV, Integrazione Manodopera, Gestione Stato Macchine)** + **Sistema Categorie Gerarchico Unificato (Struttura Gerarchica Categorie Attrezzi/Lavori, Migrazione Automatica Dati Esistenti, UI Gerarchica Completa)**
 
 ---
 
@@ -572,7 +572,7 @@
 **Funzionalità**:
 - ✅ **Modello Lavoro Flessibile**: `caposquadraId` opzionale, `operaioId` aggiunto come opzionale
 - ✅ **Validazione**: Almeno uno tra `caposquadraId` e `operaioId` deve essere presente (mutualmente esclusivi)
-- ✅ **Campi Parco Macchine**: Aggiunti `macchinaId`, `attrezzoId`, `operatoreMacchinaId` (opzionali) per integrazione futura
+- ✅ **Campi Parco Macchine**: Aggiunti `macchinaId`, `attrezzoId`, `operatoreMacchinaId` (opzionali) - **INTEGRAZIONE COMPLETATA** (2025-01-23)
 - ✅ **Form Creazione Lavoro**: Radio button tipo assegnazione (Lavoro di Squadra / Lavoro Autonomo)
 - ✅ **Dropdown Operai**: Lista operai disponibili per assegnazione diretta
 - ✅ **Dashboard Operaio**: Include lavori diretti (`operaioId == currentUserId`) e lavori di squadra (tramite caposquadra)
@@ -2307,20 +2307,20 @@ git ls-files | grep "vecchia"
 - [ ] Implementazione Security Rules Firestore
 
 ### Pianificato 📋
-- [ ] **Moduli Interconnessi e Assegnazione Diretta Lavori** (Vedi `PLAN_MODULI_INTERCONNESSI.md`)
-  - [ ] Sistema ibrido assegnazione lavori (caposquadra O operaio diretto)
-  - [ ] Modifiche modello Lavoro per supportare lavori autonomi
-  - [ ] Form creazione lavoro con assegnazione flessibile
-  - [ ] Dashboard operaio con lavori diretti + squadra
-  - [ ] Validazione ore per lavori autonomi (Manager valida direttamente)
-  - [ ] Tracciamento zone per lavori autonomi (operaio può tracciare)
-  - [ ] Integrazione Parco Macchine con Manodopera (opzionale)
-  - [ ] Dashboard operaio adattiva con dettagli macchina
+- [x] ✅ **Moduli Interconnessi e Assegnazione Diretta Lavori** (Vedi `PLAN_MODULI_INTERCONNESSI.md`) - COMPLETATO (2025-01-23)
+  - [x] ✅ Sistema ibrido assegnazione lavori (caposquadra O operaio diretto)
+  - [x] ✅ Modifiche modello Lavoro per supportare lavori autonomi
+  - [x] ✅ Form creazione lavoro con assegnazione flessibile
+  - [x] ✅ Dashboard operaio con lavori diretti + squadra
+  - [x] ✅ Validazione ore per lavori autonomi (Manager valida direttamente)
+  - [x] ✅ Tracciamento zone per lavori autonomi (operaio può tracciare)
+  - [x] ✅ **Integrazione Parco Macchine con Manodopera**: COMPLETATA - Assegnazione macchine ai lavori, gestione stato automatica, visualizzazione macchine nella lista lavori, dropdown compatibilità automatica
+  - [ ] Dashboard operaio adattiva con dettagli macchina (TODO futuro)
 - [ ] Moduli avanzati (Clienti, Vendemmia, Bilancio)
 - [ ] Modulo Clienti
 - [ ] Modulo Vendemmia
 - [ ] Modulo Bilancio
-- [ ] Modulo Parco Macchine (standalone + integrazione Manodopera)
+- [x] ✅ **Modulo Parco Macchine**: COMPLETATO - Gestione trattori e attrezzi con struttura gerarchica, categorie funzionali attrezzi, compatibilità automatica basata su CV, integrazione completa con Manodopera, gestione stato macchine (disponibile/in_uso/in_manutenzione/guasto/dismesso), visualizzazione macchine nella lista lavori, UI migliorata per distinguere operaio responsabile vs operatore macchina
 - [ ] Test servizi (con mock avanzati)
 - [ ] Test E2E per UI critiche
 - [ ] Standardizzazione error handling
@@ -2445,7 +2445,12 @@ git ls-files | grep "vecchia"
 **Mappa Semplificata Core Base**: ✅ Completo e funzionante (Versione semplificata mappa quando Manodopera disattivato: solo terreni, nessun filtro avanzato, nessun overlay lavori, nessun indicatore lavori, legenda base colture)  
 **Fix Configurazione Google Maps**: ✅ Risolto (Corretto percorso file config, caricamento config prima di inizializzare API, gestione timing corretta, controlli dimensioni container, resize trigger per rendering)  
 **Refactoring Dashboard Standalone**: ✅ Completato (Estratto CSS in file separato, estratto config loader, estratto utility functions, estratto sezioni dashboard, riduzione file HTML da 4864 a 3374 righe -30.6%, codice più modulare e manutenibile, compatibile con file:// e HTTP)  
-**Modulo Manodopera - Sistema Assegnazione Flessibile Lavori**: ✅ Completo e funzionante (Assegnazione diretta lavori agli operai senza caposquadra per lavori autonomi, modello Lavoro con caposquadraId opzionale e operaioId opzionale, form creazione lavoro con radio button tipo assegnazione, dashboard operaio con lavori diretti e di squadra, checkbox completamento lavori autonomi, validazione ore Manager per lavori autonomi, tracciamento zone lavorate per operai con lavori autonomi, campi opzionali per integrazione futuro modulo Parco Macchine)  
+**Modulo Manodopera - Sistema Assegnazione Flessibile Lavori**: ✅ Completo e funzionante (Assegnazione diretta lavori agli operai senza caposquadra per lavori autonomi, modello Lavoro con caposquadraId opzionale e operaioId opzionale, form creazione lavoro con radio button tipo assegnazione, dashboard operaio con lavori diretti e di squadra, checkbox completamento lavori autonomi, validazione ore Manager per lavori autonomi, tracciamento zone lavorate per operai con lavori autonomi)
+
+**Modulo Parco Macchine**: ✅ COMPLETATO (2025-01-23) - Gestione completa trattori e attrezzi agricoli con struttura gerarchica (trattore/attrezzo), sistema categorie funzionali attrezzi (8 categorie predefinite + personalizzabili), compatibilità automatica basata su CV (attrezzi compatibili con trattori selezionati), gestione stato macchine automatica (in_uso quando assegnate, disponibile quando liberate), integrazione completa con Manodopera (assegnazione macchine ai lavori, visualizzazione nella lista lavori), UI migliorata per distinguere operaio responsabile vs operatore macchina con suggerimenti automatici, filtri avanzati per tipo e categoria, visualizzazione compatibilità nella tabella macchine
+
+**Sistema Categorie Gerarchico Unificato**: ✅ COMPLETATO (2025-01-23) - Struttura gerarchica unificata per categorie attrezzi e lavori con modello `Categoria` unificato (`core/models/Categoria.js`), servizio unificato `categorie-service.js` con supporto gerarchico completo, migrazione automatica dati esistenti da `categorieAttrezzi` e `categorieLavori` alla collezione unificata `categorie`, 10 categorie principali predefinite (Lavorazione del Terreno, Trattamenti, Potatura, Raccolta, Gestione del Verde, Diserbo, Semina e Piantagione, Trasporto, Manutenzione, Altro), sottocategorie predefinite (Generale/Tra le File/Sulla Fila per Lavorazione del Terreno, Manuale/Meccanica per Potatura), campo `applicabileA` per specificare se categoria si applica ad attrezzi/lavori/entrambi, campo `parentId` per struttura gerarchica, UI gerarchica completa con dropdown categoria principale + sottocategoria dinamica, event listener automatici per mostrare sottocategorie quando cambia categoria principale, inizializzazione automatica categorie predefinite mancanti, creazione tipi lavoro specifici associati alle categorie, filtri migliorati per includere sottocategorie quando necessario
+
 **Prossimo passo**: Implementare Security Rules Firestore (critico per produzione)
 
 ---

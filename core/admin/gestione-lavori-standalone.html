@@ -718,10 +718,39 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="lavoro-tipo-lavoro">Tipo Lavoro *</label>
-                    <select id="lavoro-tipo-lavoro" required>
-                        <option value="">Seleziona tipo lavoro...</option>
+                    <label for="lavoro-categoria-principale">Categoria Principale Lavoro *</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="lavoro-categoria-principale" required style="flex: 1;">
+                            <option value="">-- Seleziona categoria principale --</option>
+                        </select>
+                        <button type="button" class="btn btn-info btn-sm" onclick="openCategoriaLavoroModal()" style="white-space: nowrap;">➕ Nuova</button>
+                    </div>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Seleziona la categoria funzionale principale del lavoro
+                    </small>
+                </div>
+
+                <div class="form-group" id="lavoro-sottocategoria-group" style="display: none;">
+                    <label for="lavoro-sottocategoria">Sottocategoria</label>
+                    <select id="lavoro-sottocategoria" style="flex: 1;">
+                        <option value="">-- Nessuna sottocategoria --</option>
                     </select>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Sottocategoria specifica (opzionale, se disponibile)
+                    </small>
+                </div>
+
+                <div class="form-group" id="tipo-lavoro-group" style="display: none;">
+                    <label for="lavoro-tipo-lavoro">Tipo Lavoro Specifico *</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="lavoro-tipo-lavoro" required style="flex: 1;">
+                            <option value="">-- Seleziona tipo lavoro --</option>
+                        </select>
+                        <button type="button" class="btn btn-info btn-sm" onclick="openTipoLavoroModal()" style="white-space: nowrap;">➕ Nuovo</button>
+                    </div>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Seleziona il tipo specifico di lavoro nella categoria selezionata
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -758,12 +787,13 @@
                 </div>
 
                 <div class="form-group" id="operaio-group" style="display: none;">
-                    <label for="lavoro-operaio">Operaio *</label>
+                    <label for="lavoro-operaio">Operaio Responsabile *</label>
                     <select id="lavoro-operaio">
                         <option value="">Seleziona operaio...</option>
                     </select>
                     <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                        Seleziona l'operaio a cui assegnare direttamente il lavoro
+                        <strong>Operaio responsabile del lavoro:</strong> L'operaio che gestisce e coordina il lavoro. 
+                        Può essere diverso da chi guida la macchina.
                     </small>
                 </div>
 
@@ -790,6 +820,43 @@
                     </select>
                 </div>
 
+                <!-- Sezione Macchine (solo se modulo Parco Macchine attivo) -->
+                <div id="macchine-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                    <h4 style="margin-bottom: 15px; color: #333;">🚜 Macchine (Opzionale)</h4>
+                    
+                    <div class="form-group">
+                        <label for="lavoro-trattore">Trattore</label>
+                        <select id="lavoro-trattore">
+                            <option value="">-- Nessun trattore --</option>
+                        </select>
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Seleziona un trattore per questo lavoro (opzionale)
+                        </small>
+                    </div>
+
+                    <div class="form-group" id="attrezzo-group" style="display: none;">
+                        <label for="lavoro-attrezzo">Attrezzo</label>
+                        <select id="lavoro-attrezzo">
+                            <option value="">-- Nessun attrezzo --</option>
+                        </select>
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Seleziona un attrezzo compatibile con il trattore selezionato
+                        </small>
+                    </div>
+
+                    <div class="form-group" id="operatore-macchina-group" style="display: none;">
+                        <label for="lavoro-operatore-macchina">Operatore Macchina</label>
+                        <select id="lavoro-operatore-macchina">
+                            <option value="">-- Nessun operatore --</option>
+                        </select>
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            <strong>Chi guida/utilizza la macchina:</strong> L'operaio specifico che guiderà il trattore/utilizzerà l'attrezzo. 
+                            Se non specificato, verrà usato l'operaio responsabile del lavoro. 
+                            <span style="color: #28a745; font-weight: bold;">💡 Tip: Se è la stessa persona, lascia il campo vuoto.</span>
+                        </small>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="lavoro-note">Note</label>
                     <textarea id="lavoro-note" placeholder="Note aggiuntive sul lavoro (opzionale)"></textarea>
@@ -798,6 +865,68 @@
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-primary" style="flex: 1;">Salva</button>
                     <button type="button" class="btn btn-secondary" onclick="closeLavoroModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Categoria Lavoro -->
+    <div id="categoria-lavoro-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuova Categoria Lavoro</h3>
+                <button class="close-btn" onclick="closeCategoriaLavoroModal()">&times;</button>
+            </div>
+            <form id="categoria-lavoro-form" onsubmit="handleSalvaCategoriaLavoro(event)">
+                <div class="form-group">
+                    <label for="categoria-lavoro-nome">Nome Categoria *</label>
+                    <input type="text" id="categoria-lavoro-nome" required placeholder="es. Lavorazione del Terreno">
+                    <small>Nome descrittivo della categoria</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoria-lavoro-descrizione">Descrizione</label>
+                    <textarea id="categoria-lavoro-descrizione" placeholder="Descrizione opzionale della categoria..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCategoriaLavoroModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tipo Lavoro -->
+    <div id="tipo-lavoro-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuovo Tipo Lavoro</h3>
+                <button class="close-btn" onclick="closeTipoLavoroModal()">&times;</button>
+            </div>
+            <form id="tipo-lavoro-form" onsubmit="handleSalvaTipoLavoro(event)">
+                <div class="form-group">
+                    <label for="tipo-lavoro-nome">Nome Tipo Lavoro *</label>
+                    <input type="text" id="tipo-lavoro-nome" required placeholder="es. Aratura">
+                    <small>Nome specifico del tipo di lavoro</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo-lavoro-categoria">Categoria *</label>
+                    <select id="tipo-lavoro-categoria" required>
+                        <option value="">-- Seleziona categoria --</option>
+                    </select>
+                    <small>La categoria selezionata nel form sarà pre-compilata</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo-lavoro-descrizione">Descrizione</label>
+                    <textarea id="tipo-lavoro-descrizione" placeholder="Descrizione opzionale del tipo lavoro..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTipoLavoroModal()">Annulla</button>
                 </div>
             </form>
         </div>
@@ -900,6 +1029,13 @@
         let dettaglioMap = null;
         let dettaglioMapMarkers = [];
         let dettaglioMapPolygons = [];
+        let trattoriList = [];
+        let attrezziList = [];
+        let categorieAttrezziList = [];
+        let hasParcoMacchineModule = false;
+        let categorieLavoriPrincipali = [];
+        let sottocategorieLavoriMap = new Map(); // parentId -> Array<sottocategorie>
+        let tipiLavoroList = [];
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
@@ -934,10 +1070,17 @@
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
                                 hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                                hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
                             }
                         } catch (error) {
-                            console.warn('Errore verifica modulo Manodopera:', error);
+                            console.warn('Errore verifica moduli:', error);
                         }
+                    }
+                    
+                    // Mostra/nascondi sezione macchine se modulo Parco Macchine attivo
+                    const macchineSection = document.getElementById('macchine-section');
+                    if (macchineSection) {
+                        macchineSection.style.display = hasParcoMacchineModule ? 'block' : 'none';
                     }
 
                     // Se modulo Manodopera non è attivo, mostra avviso e redirect
@@ -949,18 +1092,44 @@
                         return;
                     }
 
+                    // Migra prima categorie esistenti (se presenti)
+                    await migraCategorieLavoriEsistenti();
+                    
+                    // Inizializza categorie e tipi lavoro predefiniti se necessario
+                    await initializeCategorieLavori();
+                    await initializeTipiLavoroPredefiniti();
+                    
+                    // Migra dati esistenti dalla lista piatta alla struttura gerarchica
+                    await migraDatiEsistenti();
+                    
                     // Carica dati iniziali
-                    await Promise.all([
+                    const loadPromises = [
                         loadTerreni(),
                         loadCaposquadra(),
                         loadOperai(),
                         loadSquadre(),
-                        loadTipiLavoro(),
+                        loadCategorieLavori(),
+                        loadTipiLavoro(), // Carica tutti i tipi (senza filtro categoria)
                         loadLavori()
-                    ]);
+                    ];
+                    
+                    // Carica macchine solo se modulo Parco Macchine attivo
+                    if (hasParcoMacchineModule) {
+                        loadPromises.push(loadTrattori(), loadAttrezzi(), loadCategorieAttrezzi());
+                    }
+                    
+                    await Promise.all(loadPromises);
                     
                     // Inizializza handler tipo assegnazione
                     setupTipoAssegnazioneHandlers();
+                    
+                    // Inizializza handler categoria lavoro
+                    setupCategoriaLavoroHandler();
+                    
+                    // Inizializza handler macchine se modulo attivo
+                    if (hasParcoMacchineModule) {
+                        setupMacchineHandlers();
+                    }
                     
                     // Carica statistiche
                     await loadStatistics();
@@ -1062,79 +1231,900 @@
             }
         }
 
-        // Liste predefinite tipi lavoro
-        const TIPI_LAVORO_PREDEFINITI = [
-            'Potatura', 'Raccolta', 'Trattamento', 'Semina', 'Aratura',
-            'Irrigazione', 'Concimazione', 'Diserbo', 'Raccolta frutta', 'Raccolta verdura'
-        ];
-
-        // Carica lista tipi lavoro dalle liste personalizzate
-        async function loadTipiLavoro() {
+        // Carica trattori disponibili
+        async function loadTrattori() {
             try {
-                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
+                const macchineRef = collection(db, 'tenants', currentTenantId, 'macchine');
+                // Carica tutti i documenti senza filtri/ordinamenti per evitare indici composti
+                const snapshot = await getDocs(macchineRef);
                 
-                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
-                if (listeSnap.exists()) {
-                    const data = listeSnap.data();
-                    tipiLavoro = data.tipiLavoro || tipiLavoro;
-                }
+                trattoriList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const tipoMacchina = data.tipoMacchina || data.tipo;
+                    // Filtra in memoria: solo trattori non dismessi
+                    if (tipoMacchina === 'trattore' && data.stato !== 'dismesso') {
+                        trattoriList.push({ 
+                            id: doc.id, 
+                            ...data,
+                            tipoMacchina: tipoMacchina
+                        });
+                    }
+                });
                 
-                populateTipoLavoroDropdown();
+                // Ordina in memoria per nome
+                trattoriList.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                populateTrattoriDropdown();
             } catch (error) {
-                console.error('Errore caricamento tipi lavoro:', error);
-                // Usa lista predefinita in caso di errore
-                populateTipoLavoroDropdown();
+                console.error('Errore caricamento trattori:', error);
+                trattoriList = [];
             }
         }
 
-        // Popola dropdown tipo lavoro nel form
-        function populateTipoLavoroDropdown(selectedValue = null) {
-            const select = document.getElementById('lavoro-tipo-lavoro');
+        // Carica attrezzi disponibili
+        async function loadAttrezzi() {
+            try {
+                const macchineRef = collection(db, 'tenants', currentTenantId, 'macchine');
+                // Carica tutti i documenti senza filtri/ordinamenti per evitare indici composti
+                const snapshot = await getDocs(macchineRef);
+                
+                attrezziList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const tipoMacchina = data.tipoMacchina || data.tipo;
+                    // Filtra in memoria: solo attrezzi non dismessi
+                    if (tipoMacchina === 'attrezzo' && data.stato !== 'dismesso') {
+                        attrezziList.push({ 
+                            id: doc.id, 
+                            ...data,
+                            tipoMacchina: tipoMacchina
+                        });
+                    }
+                });
+                
+                // Ordina in memoria per nome
+                attrezziList.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+            } catch (error) {
+                console.error('Errore caricamento attrezzi:', error);
+                attrezziList = [];
+            }
+        }
+
+        // Carica categorie attrezzi (da collezione unificata)
+        async function loadCategorieAttrezzi() {
+            try {
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const q = query(categorieRef, orderBy('ordine', 'asc'));
+                const snapshot = await getDocs(q);
+                
+                categorieAttrezziList = [];
+                snapshot.forEach(doc => {
+                    const catData = { id: doc.id, ...doc.data() };
+                    // Filtra solo categorie applicabili ad attrezzi
+                    if (catData.applicabileA === 'attrezzi' || catData.applicabileA === 'entrambi') {
+                        categorieAttrezziList.push(catData);
+                    }
+                });
+            } catch (error) {
+                console.error('Errore caricamento categorie attrezzi:', error);
+                categorieAttrezziList = [];
+            }
+        }
+
+        // Popola dropdown trattori
+        function populateTrattoriDropdown() {
+            const select = document.getElementById('lavoro-trattore');
             if (!select) return;
             
-            select.innerHTML = '<option value="">Seleziona tipo lavoro...</option>';
+            select.innerHTML = '<option value="">-- Nessun trattore --</option>';
+            trattoriList.forEach(trattore => {
+                const option = document.createElement('option');
+                option.value = trattore.id;
+                const nome = trattore.nome || 'Trattore senza nome';
+                const cavalli = trattore.cavalli ? ` (${trattore.cavalli} CV)` : '';
+                const stato = trattore.stato === 'disponibile' ? '✅' : trattore.stato === 'in_uso' ? '🔄' : '⚠️';
+                option.textContent = `${stato} ${nome}${cavalli}`;
+                option.disabled = trattore.stato === 'in_uso' || trattore.stato === 'in_manutenzione' || trattore.stato === 'guasto';
+                select.appendChild(option);
+            });
+        }
+
+        // Popola dropdown attrezzi compatibili con trattore selezionato
+        function populateAttrezziDropdown(trattoreId) {
+            const select = document.getElementById('lavoro-attrezzo');
+            const attrezzoGroup = document.getElementById('attrezzo-group');
             
-            // Carica tipi lavoro da Firestore o usa predefiniti
-            const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-            getDoc(listeRef).then(listeSnap => {
-                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
-                if (listeSnap.exists()) {
-                    const data = listeSnap.data();
-                    tipiLavoro = data.tipiLavoro || tipiLavoro;
+            if (!select || !attrezzoGroup) return;
+            
+            select.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
+            
+            if (!trattoreId) {
+                attrezzoGroup.style.display = 'none';
+                return;
+            }
+            
+            const trattore = trattoriList.find(t => t.id === trattoreId);
+            if (!trattore || !trattore.cavalli) {
+                attrezzoGroup.style.display = 'none';
+                return;
+            }
+            
+            attrezzoGroup.style.display = 'block';
+            
+            // Filtra attrezzi compatibili
+            const attrezziCompatibili = attrezziList.filter(attrezzo => {
+                if (!attrezzo.cavalliMinimiRichiesti) return false;
+                return trattore.cavalli >= attrezzo.cavalliMinimiRichiesti;
+            });
+            
+            if (attrezziCompatibili.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- Nessun attrezzo compatibile --';
+                option.disabled = true;
+                select.appendChild(option);
+                return;
+            }
+            
+            attrezziCompatibili.forEach(attrezzo => {
+                const option = document.createElement('option');
+                option.value = attrezzo.id;
+                const nome = attrezzo.nome || 'Attrezzo senza nome';
+                const categoriaNome = getNomeCategoria(attrezzo.categoriaFunzione);
+                const cvMin = attrezzo.cavalliMinimiRichiesti ? ` (min ${attrezzo.cavalliMinimiRichiesti} CV)` : '';
+                const stato = attrezzo.stato === 'disponibile' ? '✅' : attrezzo.stato === 'in_uso' ? '🔄' : '⚠️';
+                option.textContent = `${stato} ${nome} - ${categoriaNome}${cvMin}`;
+                option.disabled = attrezzo.stato === 'in_uso' || attrezzo.stato === 'in_manutenzione' || attrezzo.stato === 'guasto';
+                select.appendChild(option);
+            });
+        }
+
+        // Helper per ottenere nome categoria (cerca in tutte le categorie)
+        function getNomeCategoria(categoriaId) {
+            if (!categoriaId) return 'Senza categoria';
+            
+            // Cerca in categorie attrezzi
+            const categoriaAttrezzo = categorieAttrezziList.find(c => c.id === categoriaId);
+            if (categoriaAttrezzo) {
+                // Se è una sottocategoria, mostra anche il parent
+                if (categoriaAttrezzo.parentId) {
+                    const parent = categorieAttrezziList.find(c => c.id === categoriaAttrezzo.parentId);
+                    return parent ? `${parent.nome} - ${categoriaAttrezzo.nome}` : categoriaAttrezzo.nome;
+                }
+                return categoriaAttrezzo.nome;
+            }
+            
+            // Cerca in categorie lavori
+            const categoriaLavoro = categorieLavoriPrincipali.find(c => c.id === categoriaId);
+            if (categoriaLavoro) return categoriaLavoro.nome;
+            
+            // Cerca in sottocategorie lavori
+            for (const [parentId, sottocat] of sottocategorieLavoriMap.entries()) {
+                const sottocategoria = sottocat.find(c => c.id === categoriaId);
+                if (sottocategoria) {
+                    const parent = categorieLavoriPrincipali.find(c => c.id === parentId);
+                    return parent ? `${parent.nome} - ${sottocategoria.nome}` : sottocategoria.nome;
+                }
+            }
+            
+            return 'Sconosciuta';
+        }
+
+        // Popola dropdown operatore macchina
+        function populateOperatoreMacchinaDropdown() {
+            const select = document.getElementById('lavoro-operatore-macchina');
+            const operatoreGroup = document.getElementById('operatore-macchina-group');
+            
+            if (!select || !operatoreGroup) return;
+            
+            // Mostra solo se trattore o attrezzo selezionato
+            const trattoreId = document.getElementById('lavoro-trattore')?.value;
+            const attrezzoId = document.getElementById('lavoro-attrezzo')?.value;
+            
+            if (!trattoreId && !attrezzoId) {
+                operatoreGroup.style.display = 'none';
+                select.innerHTML = '<option value="">-- Nessun operatore --</option>';
+                // Rimuovi suggerimento se presente
+                const suggerimento = operatoreGroup.querySelector('.suggerimento-operatore');
+                if (suggerimento) suggerimento.remove();
+                return;
+            }
+            
+            operatoreGroup.style.display = 'block';
+            
+            // Ottieni operaio responsabile del lavoro (se presente)
+            const tipoAssegnazione = document.querySelector('input[name="tipo-assegnazione"]:checked')?.value;
+            const operaioResponsabileId = tipoAssegnazione === 'autonomo' 
+                ? document.getElementById('lavoro-operaio')?.value 
+                : null;
+            
+            select.innerHTML = '<option value="">-- Usa operaio responsabile --</option>';
+            
+            // Mostra tutti gli operai attivi, evidenziando quello responsabile
+            operaiList.forEach(operaio => {
+                const option = document.createElement('option');
+                option.value = operaio.id;
+                const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'Operaio senza nome';
+                
+                if (operaio.id === operaioResponsabileId) {
+                    option.textContent = `${nomeCompleto} (responsabile lavoro)`;
+                    option.style.fontWeight = 'bold';
+                } else {
+                    option.textContent = nomeCompleto;
                 }
                 
-                // Ordina: prima predefiniti, poi custom
-                tipiLavoro.sort((a, b) => {
-                    const aIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === a.toLowerCase());
-                    const bIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === b.toLowerCase());
-                    if (aIsPredefinito && !bIsPredefinito) return -1;
-                    if (!aIsPredefinito && bIsPredefinito) return 1;
-                    return a.localeCompare(b);
+                select.appendChild(option);
+            });
+            
+            // Rimuovi suggerimento precedente se presente
+            const suggerimentoPrecedente = operatoreGroup.querySelector('.suggerimento-operatore');
+            if (suggerimentoPrecedente) {
+                suggerimentoPrecedente.remove();
+            }
+            
+            // Se c'è un operaio responsabile, mostra suggerimento
+            if (operaioResponsabileId) {
+                const operaioResponsabile = operaiList.find(o => o.id === operaioResponsabileId);
+                if (operaioResponsabile) {
+                    const nomeOp = `${operaioResponsabile.nome || ''} ${operaioResponsabile.cognome || ''}`.trim() || operaioResponsabile.email;
+                    const suggerimentoDiv = document.createElement('div');
+                    suggerimentoDiv.className = 'suggerimento-operatore';
+                    suggerimentoDiv.style.cssText = 'margin-top: 5px; padding: 8px; background: #e7f3ff; border-left: 3px solid #2196F3; border-radius: 4px; font-size: 12px; color: #1976D2;';
+                    suggerimentoDiv.innerHTML = `💡 <strong>Suggerimento:</strong> L'operaio responsabile "<strong>${nomeOp}</strong>" sarà usato come operatore macchina se non ne selezioni uno specifico.`;
+                    operatoreGroup.appendChild(suggerimentoDiv);
+                }
+            }
+        }
+
+        // Setup handler per macchine
+        function setupMacchineHandlers() {
+            const trattoreSelect = document.getElementById('lavoro-trattore');
+            const attrezzoSelect = document.getElementById('lavoro-attrezzo');
+            const operaioSelect = document.getElementById('lavoro-operaio');
+            const tipoAssegnazioneRadios = document.querySelectorAll('input[name="tipo-assegnazione"]');
+            
+            if (trattoreSelect) {
+                trattoreSelect.addEventListener('change', function() {
+                    populateAttrezziDropdown(this.value);
+                    populateOperatoreMacchinaDropdown();
                 });
-                
-                tipiLavoro.forEach(tipo => {
-                    const option = document.createElement('option');
-                    option.value = tipo;
-                    option.textContent = tipo;
-                    if (selectedValue === tipo) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
+            }
+            
+            if (attrezzoSelect) {
+                attrezzoSelect.addEventListener('change', function() {
+                    populateOperatoreMacchinaDropdown();
                 });
-            }).catch(error => {
-                console.error('Errore caricamento tipi lavoro:', error);
-                // Usa lista predefinita
-                TIPI_LAVORO_PREDEFINITI.forEach(tipo => {
-                    const option = document.createElement('option');
-                    option.value = tipo;
-                    option.textContent = tipo;
-                    if (selectedValue === tipo) {
-                        option.selected = true;
-                    }
-                    select.appendChild(option);
+            }
+            
+            // Aggiorna operatore macchina quando cambia l'operaio responsabile
+            if (operaioSelect) {
+                operaioSelect.addEventListener('change', function() {
+                    populateOperatoreMacchinaDropdown();
+                });
+            }
+            
+            // Aggiorna operatore macchina quando cambia tipo assegnazione
+            tipoAssegnazioneRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // Aspetta che setupTipoAssegnazioneHandlers aggiorni i dropdown
+                    setTimeout(() => {
+                        populateOperatoreMacchinaDropdown();
+                    }, 100);
                 });
             });
+        }
+
+        // Aggiorna stato macchina
+        async function updateMacchinaStato(macchinaId, nuovoStato) {
+            try {
+                const macchinaRef = doc(db, 'tenants', currentTenantId, 'macchine', macchinaId);
+                await updateDoc(macchinaRef, {
+                    stato: nuovoStato,
+                    updatedAt: serverTimestamp()
+                });
+            } catch (error) {
+                console.error('Errore aggiornamento stato macchina:', error);
+                // Non bloccare il salvataggio del lavoro se c'è un errore con la macchina
+            }
+        }
+
+        // Categorie predefinite
+        const CATEGORIE_LAVORI_PREDEFINITE = [
+            {
+                nome: 'Lavorazione del Terreno',
+                codice: 'lavorazione_terreno',
+                descrizione: 'Aratura, erpicatura, fresatura, vangatura, ecc.',
+                predefinita: true
+            },
+            {
+                nome: 'Trattamenti',
+                codice: 'trattamenti',
+                descrizione: 'Fitofarmaci, concimazione, irrigazione, ecc.',
+                predefinita: true
+            },
+            {
+                nome: 'Potatura',
+                codice: 'potatura',
+                descrizione: 'Potatura manuale, potatura meccanica, cimatura, ecc.',
+                predefinita: true
+            },
+            {
+                nome: 'Raccolta',
+                codice: 'raccolta',
+                descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.',
+                predefinita: true
+            },
+            {
+                nome: 'Gestione del Verde',
+                codice: 'gestione_verde',
+                descrizione: 'Falciatura, diserbo, taglio erba, ecc.',
+                predefinita: true
+            },
+            {
+                nome: 'Semina e Piantagione',
+                codice: 'semina_piantagione',
+                descrizione: 'Semina, trapianto, piantagione, ecc.',
+                predefinita: true
+            },
+            {
+                nome: 'Manutenzione',
+                codice: 'manutenzione',
+                descrizione: 'Riparazioni, manutenzione impianti, ecc.',
+                applicabileA: 'lavori',
+                predefinita: true,
+                ordine: 9
+            },
+            {
+                nome: 'Altro',
+                codice: 'altro',
+                descrizione: 'Altri tipi di lavoro non categorizzabili',
+                predefinita: true
+            }
+        ];
+
+        // Tipi lavoro predefiniti per categoria
+        const TIPI_LAVORO_PREDEFINITI = {
+            'lavorazione_terreno': [
+                { nome: 'Aratura', descrizione: 'Lavorazione profonda del terreno' },
+                { nome: 'Erpicatura', descrizione: 'Lavorazione superficiale del terreno' },
+                { nome: 'Fresatura', descrizione: 'Frantumazione e rimescolamento del terreno' },
+                { nome: 'Vangatura', descrizione: 'Lavorazione manuale o meccanica del terreno' }
+            ],
+            'trattamenti': [
+                { nome: 'Trattamento Fitofarmaci', descrizione: 'Trattamento con prodotti fitosanitari' },
+                { nome: 'Concimazione', descrizione: 'Distribuzione di concimi' },
+                { nome: 'Irrigazione', descrizione: 'Somministrazione di acqua alle colture' }
+            ],
+            'potatura': [
+                { nome: 'Potatura Manuale', descrizione: 'Potatura eseguita manualmente' },
+                { nome: 'Potatura Meccanica', descrizione: 'Potatura eseguita con macchine' },
+                { nome: 'Cimatura', descrizione: 'Taglio delle cime delle piante' }
+            ],
+            'raccolta': [
+                { nome: 'Raccolta Frutta', descrizione: 'Raccolta di frutti' },
+                { nome: 'Raccolta Verdura', descrizione: 'Raccolta di verdure' },
+                { nome: 'Vendemmia', descrizione: 'Raccolta dell\'uva' }
+            ],
+            'gestione_verde': [
+                { nome: 'Falciatura', descrizione: 'Taglio dell\'erba' },
+                { nome: 'Diserbo', descrizione: 'Eliminazione delle erbe infestanti' },
+                { nome: 'Taglio Erba', descrizione: 'Taglio dell\'erba con macchine' }
+            ],
+            'semina_piantagione': [
+                { nome: 'Semina', descrizione: 'Semina di semi' },
+                { nome: 'Trapianto', descrizione: 'Trapianto di piantine' },
+                { nome: 'Piantagione', descrizione: 'Piantagione di piante' }
+            ],
+            'manutenzione': [
+                { nome: 'Riparazioni', descrizione: 'Riparazioni di attrezzature o impianti' },
+                { nome: 'Manutenzione Impianti', descrizione: 'Manutenzione di impianti irrigui o altri' }
+            ],
+            'altro': [
+                { nome: 'Altro', descrizione: 'Altri tipi di lavoro' }
+            ]
+        };
+
+        // Inizializza categorie lavori predefinite (usa collezione unificata)
+        async function initializeCategorieLavori() {
+            try {
+                if (!currentTenantId) return;
+                
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const snapshot = await getDocs(categorieRef);
+                const codiciEsistenti = new Set();
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.codice) {
+                        codiciEsistenti.add(data.codice);
+                    }
+                });
+                
+                // Crea categorie predefinite mancanti nella collezione unificata
+                for (const categoriaPredefinita of CATEGORIE_LAVORI_PREDEFINITE) {
+                    if (!codiciEsistenti.has(categoriaPredefinita.codice)) {
+                        const categoriaData = {
+                            ...categoriaPredefinita,
+                            parentId: null, // Tutte le categorie predefinite sono principali
+                            applicabileA: categoriaPredefinita.applicabileA || 'lavori', // Di default per lavori
+                            ordine: categoriaPredefinita.ordine || null,
+                            creatoDa: 'system',
+                            createdAt: serverTimestamp(),
+                            updatedAt: serverTimestamp()
+                        };
+                        await addDoc(categorieRef, categoriaData);
+                        codiciEsistenti.add(categoriaPredefinita.codice);
+                    }
+                }
+            } catch (error) {
+                console.error('Errore inizializzazione categorie lavori:', error);
+            }
+        }
+
+        // Inizializza tipi lavoro predefiniti (usa collezione unificata)
+        async function initializeTipiLavoroPredefiniti() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Carica categorie dalla collezione unificata per ottenere ID
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const categorieSnapshot = await getDocs(categorieRef);
+                const categorieMap = new Map(); // codice -> id
+                
+                categorieSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.codice) {
+                        categorieMap.set(data.codice, doc.id);
+                    }
+                });
+                
+                // Carica tipi esistenti
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                const tipiSnapshot = await getDocs(tipiRef);
+                const nomiEsistenti = new Set();
+                
+                tipiSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.nome) {
+                        nomiEsistenti.add(data.nome.toLowerCase());
+                    }
+                });
+                
+                // Crea tipi predefiniti mancanti
+                for (const [codiceCategoria, tipi] of Object.entries(TIPI_LAVORO_PREDEFINITI)) {
+                    // Cerca categoria principale o sottocategoria
+                    let categoriaId = categorieMap.get(codiceCategoria);
+                    
+                    // Se non trovata come principale, cerca sottocategorie
+                    if (!categoriaId) {
+                        // Cerca in tutte le categorie per trovare sottocategorie
+                        categorieSnapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.codice === codiceCategoria) {
+                                categoriaId = doc.id;
+                            }
+                        });
+                    }
+                    
+                    if (!categoriaId) {
+                        console.warn(`Categoria ${codiceCategoria} non trovata per tipi predefiniti`);
+                        continue;
+                    }
+                    
+                    for (const tipoData of tipi) {
+                        if (!nomiEsistenti.has(tipoData.nome.toLowerCase())) {
+                            const tipoLavoroData = {
+                                ...tipoData,
+                                categoriaId: categoriaId,
+                                predefinito: true,
+                                creatoDa: 'system',
+                                createdAt: serverTimestamp(),
+                                updatedAt: serverTimestamp()
+                            };
+                            await addDoc(tipiRef, tipoLavoroData);
+                            nomiEsistenti.add(tipoData.nome.toLowerCase());
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Errore inizializzazione tipi lavoro predefiniti:', error);
+            }
+        }
+
+        // Carica categorie lavori principali e sottocategorie (da collezione unificata)
+        async function loadCategorieLavori() {
+            try {
+                if (!currentTenantId) return;
+                
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                
+                // Carica tutte le categorie
+                const snapshot = await getDocs(query(categorieRef, orderBy('ordine', 'asc')));
+                categorieLavoriPrincipali = [];
+                sottocategorieLavoriMap.clear();
+                
+                snapshot.forEach(doc => {
+                    const catData = { id: doc.id, ...doc.data() };
+                    
+                    // Filtra solo categorie applicabili a lavori
+                    if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
+                        if (!catData.parentId) {
+                            // Categoria principale
+                            categorieLavoriPrincipali.push(catData);
+                        } else {
+                            // Sottocategoria
+                            if (!sottocategorieLavoriMap.has(catData.parentId)) {
+                                sottocategorieLavoriMap.set(catData.parentId, []);
+                            }
+                            sottocategorieLavoriMap.get(catData.parentId).push(catData);
+                        }
+                    }
+                });
+                
+                // Ordina sottocategorie per ordine
+                sottocategorieLavoriMap.forEach((sottocat, parentId) => {
+                    sottocat.sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+                });
+                
+                populateCategoriaLavoroDropdown();
+            } catch (error) {
+                console.error('Errore caricamento categorie lavori:', error);
+                categorieLavoriPrincipali = [];
+            }
+        }
+        
+        // Popola sottocategorie quando cambia categoria principale
+        function populateSottocategorieLavoro(parentId, selectedValue = null) {
+            const sottocategoriaSelect = document.getElementById('lavoro-sottocategoria');
+            const sottocategoriaGroup = document.getElementById('lavoro-sottocategoria-group');
+            
+            if (!sottocategoriaSelect || !sottocategoriaGroup) return;
+            
+            sottocategoriaSelect.innerHTML = '<option value="">-- Nessuna sottocategoria --</option>';
+            
+            if (!parentId) {
+                sottocategoriaGroup.style.display = 'none';
+                return;
+            }
+            
+            const sottocat = sottocategorieLavoriMap.get(parentId);
+            if (sottocat && sottocat.length > 0) {
+                sottocategoriaGroup.style.display = 'block';
+                sottocat.forEach(subcat => {
+                    const option = document.createElement('option');
+                    option.value = subcat.id;
+                    option.textContent = subcat.nome;
+                    if (selectedValue === subcat.id) {
+                        option.selected = true;
+                    }
+                    sottocategoriaSelect.appendChild(option);
+                });
+            } else {
+                sottocategoriaGroup.style.display = 'none';
+            }
+        }
+
+        // Carica tipi lavoro (filtrati per categoria se specificata)
+        async function loadTipiLavoro(categoriaId = null) {
+            try {
+                if (!currentTenantId) return;
+                
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                let q = query(tipiRef, orderBy('nome', 'asc'));
+                
+                // Carica sempre tutti i tipi lavoro (per avere la lista completa)
+                const snapshot = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
+                tipiLavoroList = [];
+                
+                snapshot.forEach(doc => {
+                    tipiLavoroList.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Se è specificata una categoria, filtra per quella categoria o le sue sottocategorie
+                if (categoriaId) {
+                    // Verifica se categoriaId è una sottocategoria o categoria principale
+                    let allCategorieIds = [categoriaId];
+                    
+                    // Verifica se è una sottocategoria (ha parentId)
+                    const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
+                    
+                    if (categoriaTrovata && !categoriaTrovata.parentId) {
+                        // È una categoria principale, aggiungi le sue sottocategorie
+                        const sottocat = sottocategorieLavoriMap.get(categoriaId);
+                        if (sottocat) {
+                            sottocat.forEach(subcat => allCategorieIds.push(subcat.id));
+                        }
+                    }
+                    
+                    // Filtra i tipi per le categorie rilevanti
+                    tipiLavoroList = tipiLavoroList.filter(tipo => allCategorieIds.includes(tipo.categoriaId));
+                }
+                
+                populateTipoLavoroDropdown(categoriaId);
+            } catch (error) {
+                console.error('Errore caricamento tipi lavoro:', error);
+                tipiLavoroList = [];
+            }
+        }
+
+        // Popola dropdown categoria principale lavoro
+        function populateCategoriaLavoroDropdown(selectedValue = null) {
+            const select = document.getElementById('lavoro-categoria-principale');
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">-- Seleziona categoria principale --</option>';
+            
+            categorieLavoriPrincipali.forEach(categoria => {
+                const option = document.createElement('option');
+                option.value = categoria.id;
+                option.textContent = categoria.nome;
+                if (selectedValue === categoria.id) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        // Popola dropdown tipo lavoro nel form (filtrato per categoria)
+        function populateTipoLavoroDropdown(categoriaId = null, selectedValue = null) {
+            const select = document.getElementById('lavoro-tipo-lavoro');
+            const tipoLavoroGroup = document.getElementById('tipo-lavoro-group');
+            
+            if (!select || !tipoLavoroGroup) return;
+            
+            select.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option>';
+            
+            if (!categoriaId) {
+                tipoLavoroGroup.style.display = 'none';
+                return;
+            }
+            
+            tipoLavoroGroup.style.display = 'block';
+            
+            // Filtra tipi lavoro per categoria (include anche sottocategorie se categoriaId è principale)
+            let tipiFiltrati = tipiLavoroList.filter(tipo => tipo.categoriaId === categoriaId);
+            
+            // Se non ci sono tipi per questa categoria specifica, verifica se è una categoria principale
+            // e cerca anche nelle sue sottocategorie
+            if (tipiFiltrati.length === 0) {
+                const sottocat = sottocategorieLavoriMap.get(categoriaId);
+                if (sottocat && sottocat.length > 0) {
+                    // Cerca tipi lavoro associati alle sottocategorie
+                    const sottocatIds = sottocat.map(sc => sc.id);
+                    tipiFiltrati = tipiLavoroList.filter(tipo => sottocatIds.includes(tipo.categoriaId));
+                }
+            }
+            
+            if (tipiFiltrati.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- Nessun tipo disponibile --';
+                option.disabled = true;
+                select.appendChild(option);
+                return;
+            }
+            
+            tipiFiltrati.forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo.nome; // Usa nome per retrocompatibilità con lavori esistenti
+                option.textContent = tipo.nome;
+                if (selectedValue === tipo.nome) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        // Migra categorie lavori esistenti alla collezione unificata
+        async function migraCategorieLavoriEsistenti() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Verifica se esistono categorie nella vecchia collezione
+                const vecchiaCollezioneRef = collection(db, `tenants/${currentTenantId}/categorieLavori`);
+                const vecchiaSnapshot = await getDocs(vecchiaCollezioneRef);
+                
+                if (vecchiaSnapshot.empty) {
+                    return; // Niente da migrare
+                }
+                
+                // Verifica se la nuova collezione esiste già
+                const nuovaCollezioneRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const nuovaSnapshot = await getDocs(nuovaCollezioneRef);
+                
+                // Controlla se ci sono già categorie applicabili a lavori
+                let haCategorieLavori = false;
+                nuovaSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.applicabileA === 'lavori' || data.applicabileA === 'entrambi') {
+                        haCategorieLavori = true;
+                    }
+                });
+                
+                if (haCategorieLavori) {
+                    // Già migrato o inizializzato
+                    return;
+                }
+                
+                console.log(`Migrazione di ${vecchiaSnapshot.size} categorie lavori...`);
+                
+                // Migra ogni categoria
+                for (const docSnap of vecchiaSnapshot.docs) {
+                    const vecchiaData = docSnap.data();
+                    
+                    const nuovaCategoriaData = {
+                        nome: vecchiaData.nome,
+                        codice: vecchiaData.codice || vecchiaData.nome.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+                        descrizione: vecchiaData.descrizione || null,
+                        parentId: null, // Tutte le vecchie categorie sono principali
+                        applicabileA: 'lavori', // Le vecchie categorie erano solo per lavori
+                        predefinita: vecchiaData.predefinita || false,
+                        ordine: null,
+                        creatoDa: vecchiaData.creatoDa || 'system',
+                        createdAt: vecchiaData.createdAt || serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await addDoc(nuovaCollezioneRef, nuovaCategoriaData);
+                }
+                
+                console.log('Migrazione categorie lavori completata');
+            } catch (error) {
+                console.error('Errore migrazione categorie lavori:', error);
+                // Non bloccare il caricamento se la migrazione fallisce
+            }
+        }
+
+        // Migra dati esistenti dalla lista piatta alla struttura gerarchica
+        async function migraDatiEsistenti() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Migra prima le categorie lavori esistenti
+                await migraCategorieLavoriEsistenti();
+                
+                // Verifica se ci sono tipi lavoro nella lista piatta
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (!listeSnap.exists()) {
+                    return; // Nessuna lista personalizzata, niente da migrare
+                }
+                
+                const data = listeSnap.data();
+                const tipiLavoroPiatti = data.tipiLavoro;
+                
+                if (!tipiLavoroPiatti || !Array.isArray(tipiLavoroPiatti) || tipiLavoroPiatti.length === 0) {
+                    return; // Nessun tipo lavoro nella lista piatta
+                }
+                
+                // Verifica se ci sono già tipi lavoro nella struttura gerarchica
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                const tipiSnapshot = await getDocs(tipiRef);
+                
+                if (!tipiSnapshot.empty) {
+                    // Già migrato, niente da fare
+                    return;
+                }
+                
+                // Carica categorie per mappatura (da collezione unificata)
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const categorieSnapshot = await getDocs(categorieRef);
+                const categorieMap = new Map(); // codice -> id
+                
+                categorieSnapshot.forEach(doc => {
+                    const catData = doc.data();
+                    if (catData.codice) {
+                        categorieMap.set(catData.codice, doc.id);
+                    }
+                });
+                
+                // Mappatura tipi predefiniti alle categorie
+                const mappaturaPredefiniti = {
+                    'Potatura': 'potatura',
+                    'Raccolta': 'raccolta',
+                    'Raccolta frutta': 'raccolta',
+                    'Raccolta verdura': 'raccolta',
+                    'Trattamento': 'trattamenti',
+                    'Semina': 'semina_piantagione',
+                    'Aratura': 'lavorazione_terreno',
+                    'Irrigazione': 'trattamenti',
+                    'Concimazione': 'trattamenti',
+                    'Diserbo': 'gestione_verde'
+                };
+                
+                const nomiEsistenti = new Set();
+                tipiSnapshot.forEach(doc => {
+                    const tipoData = doc.data();
+                    if (tipoData.nome) {
+                        nomiEsistenti.add(tipoData.nome.toLowerCase());
+                    }
+                });
+                
+                let tipiCreati = 0;
+                
+                // Migra ogni tipo dalla lista piatta
+                for (const nomeTipo of tipiLavoroPiatti) {
+                    // Salta se già esiste
+                    if (nomiEsistenti.has(nomeTipo.toLowerCase())) {
+                        continue;
+                    }
+                    
+                    // Determina categoria (usa mappatura o categoria "Altro")
+                    const codiceCategoria = mappaturaPredefiniti[nomeTipo] || 'altro';
+                    const categoriaId = categorieMap.get(codiceCategoria);
+                    
+                    if (!categoriaId) {
+                        console.warn(`Categoria ${codiceCategoria} non trovata per tipo ${nomeTipo}`);
+                        continue;
+                    }
+                    
+                    // Crea tipo lavoro
+                    const tipoLavoroData = {
+                        nome: nomeTipo,
+                        categoriaId: categoriaId,
+                        descrizione: 'Migrato da lista piatta',
+                        predefinito: false,
+                        creatoDa: currentUserData.id,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await addDoc(tipiRef, tipoLavoroData);
+                    nomiEsistenti.add(nomeTipo.toLowerCase());
+                    tipiCreati++;
+                }
+                
+                if (tipiCreati > 0) {
+                    console.log(`Migrazione completata: ${tipiCreati} tipi lavoro migrati`);
+                }
+            } catch (error) {
+                console.error('Errore migrazione dati esistenti:', error);
+                // Non bloccare il caricamento della pagina se la migrazione fallisce
+            }
+        }
+
+        // Setup handler per cambio categoria lavoro
+        function setupCategoriaLavoroHandler() {
+            const categoriaPrincipaleSelect = document.getElementById('lavoro-categoria-principale');
+            const sottocategoriaSelect = document.getElementById('lavoro-sottocategoria');
+            
+            if (categoriaPrincipaleSelect) {
+                categoriaPrincipaleSelect.addEventListener('change', function() {
+                    const categoriaPrincipaleId = this.value;
+                    if (categoriaPrincipaleId) {
+                        populateSottocategorieLavoro(categoriaPrincipaleId);
+                        // Carica tipi lavoro per la categoria principale (include sottocategorie)
+                        loadTipiLavoro(categoriaPrincipaleId);
+                    } else {
+                        document.getElementById('lavoro-sottocategoria-group').style.display = 'none';
+                        document.getElementById('tipo-lavoro-group').style.display = 'none';
+                        document.getElementById('lavoro-tipo-lavoro').value = '';
+                    }
+                });
+            }
+            
+            if (sottocategoriaSelect) {
+                sottocategoriaSelect.addEventListener('change', function() {
+                    const sottocategoriaId = this.value;
+                    const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale').value;
+                    
+                    // Usa sottocategoria se selezionata, altrimenti categoria principale
+                    const categoriaId = sottocategoriaId || categoriaPrincipaleId;
+                    if (categoriaId) {
+                        loadTipiLavoro(categoriaId);
+                    }
+                });
+            }
         }
 
         // Carica lista lavori
@@ -1585,9 +2575,30 @@
                     statoProgressoBadge = '<span style="color: #999; font-size: 12px;">N/A</span>';
                 }
 
+                // Info macchine (solo se modulo Parco Macchine attivo)
+                let macchineInfo = '';
+                if (hasParcoMacchineModule && (lavoro.macchinaId || lavoro.attrezzoId)) {
+                    const macchineParts = [];
+                    if (lavoro.macchinaId) {
+                        const trattore = trattoriList.find(t => t.id === lavoro.macchinaId);
+                        if (trattore) {
+                            macchineParts.push(`🚜 ${trattore.nome || 'Trattore'}`);
+                        }
+                    }
+                    if (lavoro.attrezzoId) {
+                        const attrezzo = attrezziList.find(a => a.id === lavoro.attrezzoId);
+                        if (attrezzo) {
+                            macchineParts.push(`⚙️ ${attrezzo.nome || 'Attrezzo'}`);
+                        }
+                    }
+                    if (macchineParts.length > 0) {
+                        macchineInfo = `<div style="font-size: 11px; color: #666; margin-top: 3px;">${macchineParts.join(' + ')}</div>`;
+                    }
+                }
+
                 html += `
                     <tr>
-                        <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong></td>
+                        <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong>${macchineInfo}</td>
                         <td>${escapeHtml(terrenoNome)}</td>
                         <td>${escapeHtml(caposquadraNome)}</td>
                         <td>${dataInizioFormatted}</td>
@@ -1657,7 +2668,19 @@
             populateTerrenoDropdown();
             populateCaposquadraDropdown();
             populateOperaiDropdown();
-            populateTipoLavoroDropdown();
+            populateCategoriaLavoroDropdown();
+            document.getElementById('lavoro-sottocategoria-group').style.display = 'none';
+            document.getElementById('tipo-lavoro-group').style.display = 'none';
+            document.getElementById('lavoro-tipo-lavoro').value = '';
+            
+            // Reset campi macchine se modulo Parco Macchine attivo
+            if (hasParcoMacchineModule) {
+                document.getElementById('lavoro-trattore').value = '';
+                document.getElementById('lavoro-attrezzo').value = '';
+                document.getElementById('lavoro-operatore-macchina').value = '';
+                document.getElementById('attrezzo-group').style.display = 'none';
+                document.getElementById('operatore-macchina-group').style.display = 'none';
+            }
             
             // Aggiorna visibilità dropdown
             setupTipoAssegnazioneHandlers();
@@ -1704,7 +2727,48 @@
             populateTerrenoDropdown(lavoro.terrenoId);
             populateCaposquadraDropdown(lavoro.caposquadraId || null);
             populateOperaiDropdown(lavoro.operaioId || null);
-            populateTipoLavoroDropdown(lavoro.tipoLavoro || null);
+            
+            // Popola categoria e tipo lavoro (se struttura gerarchica disponibile)
+            if (lavoro.tipoLavoro) {
+                // Cerca il tipo lavoro per nome per ottenere categoriaId
+                const tipoLavoroObj = tipiLavoroList.find(t => t.nome === lavoro.tipoLavoro);
+                if (tipoLavoroObj && tipoLavoroObj.categoriaId) {
+                    populateCategoriaLavoroDropdown(tipoLavoroObj.categoriaId);
+                    // Carica tipi lavoro per quella categoria e poi seleziona
+                    loadTipiLavoro(tipoLavoroObj.categoriaId).then(() => {
+                        populateTipoLavoroDropdown(tipoLavoroObj.categoriaId, lavoro.tipoLavoro);
+                    });
+                } else {
+                    // Fallback: usa lista piatta se tipo non trovato nella struttura gerarchica
+                    populateCategoriaLavoroDropdown();
+                    populateTipoLavoroDropdown(null, lavoro.tipoLavoro);
+                }
+            } else {
+                populateCategoriaLavoroDropdown();
+                populateTipoLavoroDropdown();
+            }
+            
+            // Popola campi macchine se modulo Parco Macchine attivo
+            if (hasParcoMacchineModule) {
+                const macchinaId = lavoro.macchinaId || null;
+                const attrezzoId = lavoro.attrezzoId || null;
+                const operatoreMacchinaId = lavoro.operatoreMacchinaId || null;
+                
+                if (macchinaId) {
+                    document.getElementById('lavoro-trattore').value = macchinaId;
+                    populateAttrezziDropdown(macchinaId);
+                }
+                
+                if (attrezzoId) {
+                    document.getElementById('lavoro-attrezzo').value = attrezzoId;
+                }
+                
+                if (operatoreMacchinaId) {
+                    document.getElementById('lavoro-operatore-macchina').value = operatoreMacchinaId;
+                }
+                
+                populateOperatoreMacchinaDropdown();
+            }
             
             // Aggiorna visibilità dropdown
             setupTipoAssegnazioneHandlers();
@@ -1724,8 +2788,13 @@
             
             const nome = document.getElementById('lavoro-nome').value.trim();
             const terrenoId = document.getElementById('lavoro-terreno').value;
+            const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale').value;
+            const sottocategoriaId = document.getElementById('lavoro-sottocategoria').value;
             const tipoLavoro = document.getElementById('lavoro-tipo-lavoro').value.trim();
             const dataInizio = document.getElementById('lavoro-data-inizio').value;
+            
+            // Usa sottocategoria se selezionata, altrimenti categoria principale
+            const categoriaLavoroId = sottocategoriaId || categoriaPrincipaleId;
             const durataPrevista = parseInt(document.getElementById('lavoro-durata').value);
             const stato = document.getElementById('lavoro-stato').value;
             const note = document.getElementById('lavoro-note').value.trim();
@@ -1740,8 +2809,13 @@
                 return;
             }
             
+            if (!categoriaPrincipaleId) {
+                showAlert('Seleziona una categoria principale lavoro', 'error');
+                return;
+            }
+            
             if (!tipoLavoro) {
-                showAlert('Seleziona un tipo lavoro', 'error');
+                showAlert('Seleziona un tipo lavoro specifico', 'error');
                 return;
             }
             
@@ -1797,6 +2871,51 @@
                     lavoroData.caposquadraId = null;
                 }
                 
+                // Campi macchine (solo se modulo Parco Macchine attivo)
+                if (hasParcoMacchineModule) {
+                    const macchinaId = document.getElementById('lavoro-trattore')?.value || null;
+                    const attrezzoId = document.getElementById('lavoro-attrezzo')?.value || null;
+                    let operatoreMacchinaId = document.getElementById('lavoro-operatore-macchina')?.value || null;
+                    
+                    // Se operatore macchina non specificato ma c'è un operaio responsabile, usa quello
+                    if (!operatoreMacchinaId && tipoAssegnazione === 'autonomo' && operaioId) {
+                        operatoreMacchinaId = operaioId;
+                    }
+                    
+                    lavoroData.macchinaId = macchinaId || null;
+                    lavoroData.attrezzoId = attrezzoId || null;
+                    lavoroData.operatoreMacchinaId = operatoreMacchinaId || null;
+                    
+                    // Gestisci stato macchine (aggiorna solo se macchina assegnata/rimossa)
+                    if (currentLavoroId) {
+                        // Modifica: verifica se macchina è cambiata
+                        const lavoroEsistente = lavoriList.find(l => l.id === currentLavoroId);
+                        if (lavoroEsistente) {
+                            // Libera macchina vecchia se cambiata
+                            if (lavoroEsistente.macchinaId && lavoroEsistente.macchinaId !== macchinaId) {
+                                await updateMacchinaStato(lavoroEsistente.macchinaId, 'disponibile');
+                            }
+                            if (lavoroEsistente.attrezzoId && lavoroEsistente.attrezzoId !== attrezzoId) {
+                                await updateMacchinaStato(lavoroEsistente.attrezzoId, 'disponibile');
+                            }
+                        }
+                    }
+                    
+                    // Imposta macchine come in_uso se assegnate e lavoro non completato/annullato
+                    if (macchinaId && stato !== 'completato' && stato !== 'annullato') {
+                        await updateMacchinaStato(macchinaId, 'in_uso');
+                    }
+                    if (attrezzoId && stato !== 'completato' && stato !== 'annullato') {
+                        await updateMacchinaStato(attrezzoId, 'in_uso');
+                    }
+                    
+                    // Libera macchine se lavoro completato/annullato
+                    if (stato === 'completato' || stato === 'annullato') {
+                        if (macchinaId) await updateMacchinaStato(macchinaId, 'disponibile');
+                        if (attrezzoId) await updateMacchinaStato(attrezzoId, 'disponibile');
+                    }
+                }
+                
                 if (currentLavoroId) {
                     // Modifica lavoro esistente
                     lavoroData.aggiornatoIl = serverTimestamp();
@@ -1835,8 +2954,25 @@
             
             if (confirm(`Sei sicuro di voler eliminare il lavoro "${lavoro.nome}"?\n\nQuesta azione non può essere annullata.`)) {
                 try {
+                    // Libera macchine se assegnate (solo se modulo Parco Macchine attivo)
+                    if (hasParcoMacchineModule) {
+                        if (lavoro.macchinaId) {
+                            await updateMacchinaStato(lavoro.macchinaId, 'disponibile');
+                        }
+                        if (lavoro.attrezzoId) {
+                            await updateMacchinaStato(lavoro.attrezzoId, 'disponibile');
+                        }
+                    }
+                    
                     await deleteDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
                     showAlert('Lavoro eliminato con successo!', 'success');
+                    
+                    // Ricarica macchine per aggiornare stati
+                    if (hasParcoMacchineModule) {
+                        await loadTrattori();
+                        await loadAttrezzi();
+                    }
+                    
                     await loadLavori();
                 } catch (error) {
                     console.error('Errore eliminazione lavoro:', error);
@@ -2430,6 +3566,209 @@
                 container.innerHTML = '<div class="empty-state">Errore caricamento statistiche ore</div>';
             }
         }
+
+        // Funzioni per gestire modali categoria e tipo lavoro
+        let openCategoriaLavoroModal, closeCategoriaLavoroModal, handleSalvaCategoriaLavoro;
+        let openTipoLavoroModal, closeTipoLavoroModal, handleSalvaTipoLavoro;
+
+        openCategoriaLavoroModal = function() {
+            document.getElementById('categoria-lavoro-form').reset();
+            document.getElementById('categoria-lavoro-modal').classList.add('active');
+        }
+
+        closeCategoriaLavoroModal = function() {
+            document.getElementById('categoria-lavoro-modal').classList.remove('active');
+            document.getElementById('categoria-lavoro-form').reset();
+        }
+
+        handleSalvaCategoriaLavoro = async function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('categoria-lavoro-nome').value.trim();
+            const descrizione = document.getElementById('categoria-lavoro-descrizione').value.trim() || null;
+
+            if (!nome || nome.length < 3) {
+                showAlert('Il nome categoria deve essere di almeno 3 caratteri', 'error');
+                return;
+            }
+
+            try {
+                // Genera codice dal nome
+                const codice = nome
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '');
+                
+                // Verifica che il codice non esista già
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const snapshot = await getDocs(query(categorieRef, where('codice', '==', codice)));
+                
+                if (!snapshot.empty) {
+                    showAlert('Una categoria con questo nome esiste già', 'error');
+                    return;
+                }
+                
+                const categoriaData = {
+                    nome,
+                    codice,
+                    descrizione,
+                    parentId: null, // Categoria principale
+                    applicabileA: 'lavori', // Di default per lavori
+                    predefinita: false,
+                    ordine: null,
+                    creatoDa: currentUserData.id,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+                
+                const categoriaDoc = await addDoc(categorieRef, categoriaData);
+                
+                showAlert('Categoria creata con successo', 'success');
+                closeCategoriaLavoroModal();
+                
+                await loadCategorieLavori();
+                
+                // Seleziona la nuova categoria nel form lavoro
+                const categoriaSelect = document.getElementById('lavoro-categoria-principale');
+                if (categoriaSelect) {
+                    categoriaSelect.value = categoriaDoc.id;
+                    categoriaSelect.dispatchEvent(new Event('change'));
+                }
+            } catch (error) {
+                console.error('Errore salvataggio categoria:', error);
+                showAlert('Errore salvataggio categoria: ' + error.message, 'error');
+            }
+        }
+
+        openTipoLavoroModal = function() {
+            const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale').value;
+            const sottocategoriaId = document.getElementById('lavoro-sottocategoria').value;
+            
+            if (!categoriaPrincipaleId) {
+                showAlert('Seleziona prima una categoria principale lavoro', 'error');
+                return;
+            }
+
+            // Usa sottocategoria se selezionata, altrimenti categoria principale
+            const categoriaId = sottocategoriaId || categoriaPrincipaleId;
+
+            document.getElementById('tipo-lavoro-form').reset();
+            document.getElementById('tipo-lavoro-categoria').value = categoriaId;
+            
+            // Popola dropdown categoria nel modal (include principali e sottocategorie)
+            const categoriaSelectModal = document.getElementById('tipo-lavoro-categoria');
+            categoriaSelectModal.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+            
+            // Aggiungi categorie principali
+            categorieLavoriPrincipali.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.nome;
+                if (cat.id === categoriaId) {
+                    option.selected = true;
+                }
+                categoriaSelectModal.appendChild(option);
+                
+                // Aggiungi sottocategorie
+                const sottocat = sottocategorieLavoriMap.get(cat.id);
+                if (sottocat) {
+                    sottocat.forEach(subcat => {
+                        const subOption = document.createElement('option');
+                        subOption.value = subcat.id;
+                        subOption.textContent = `  └ ${subcat.nome}`;
+                        if (subcat.id === categoriaId) {
+                            subOption.selected = true;
+                        }
+                        categoriaSelectModal.appendChild(subOption);
+                    });
+                }
+            });
+            
+            document.getElementById('tipo-lavoro-modal').classList.add('active');
+        }
+
+        closeTipoLavoroModal = function() {
+            document.getElementById('tipo-lavoro-modal').classList.remove('active');
+            document.getElementById('tipo-lavoro-form').reset();
+        }
+
+        handleSalvaTipoLavoro = async function(e) {
+            e.preventDefault();
+
+            const nome = document.getElementById('tipo-lavoro-nome').value.trim();
+            const categoriaId = document.getElementById('tipo-lavoro-categoria').value;
+            const descrizione = document.getElementById('tipo-lavoro-descrizione').value.trim() || null;
+
+            if (!nome || nome.length < 2) {
+                showAlert('Il nome tipo lavoro deve essere di almeno 2 caratteri', 'error');
+                return;
+            }
+
+            if (!categoriaId) {
+                showAlert('Seleziona una categoria', 'error');
+                return;
+            }
+
+            try {
+                // Verifica che la categoria esista (nella collezione unificata)
+                const categoriaDoc = await getDoc(doc(db, `tenants/${currentTenantId}/categorie`, categoriaId));
+                if (!categoriaDoc.exists()) {
+                    showAlert('Categoria lavoro non trovata', 'error');
+                    return;
+                }
+                
+                // Verifica che non esista già un tipo con lo stesso nome nella stessa categoria
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                const tipiSnapshot = await getDocs(query(tipiRef, where('categoriaId', '==', categoriaId)));
+                
+                const tipoEsistente = tipiSnapshot.docs.find(doc => {
+                    const data = doc.data();
+                    return data.nome && data.nome.toLowerCase() === nome.toLowerCase();
+                });
+                
+                if (tipoEsistente) {
+                    showAlert(`Un tipo lavoro con nome "${nome}" esiste già in questa categoria`, 'error');
+                    return;
+                }
+                
+                const tipoLavoroData = {
+                    nome,
+                    categoriaId,
+                    descrizione,
+                    predefinito: false,
+                    creatoDa: currentUserData.id,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+                
+                const tipoDoc = await addDoc(tipiRef, tipoLavoroData);
+                
+                showAlert('Tipo lavoro creato con successo', 'success');
+                closeTipoLavoroModal();
+                
+                // Ricarica tipi lavoro per la categoria selezionata
+                await loadTipiLavoro(categoriaId);
+                
+                // Seleziona il nuovo tipo nel form lavoro
+                const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
+                if (tipoSelect) {
+                    tipoSelect.value = nome;
+                }
+            } catch (error) {
+                console.error('Errore salvataggio tipo lavoro:', error);
+                showAlert('Errore salvataggio tipo lavoro: ' + error.message, 'error');
+            }
+        }
+
+        // Export funzioni globali
+        window.openCategoriaLavoroModal = openCategoriaLavoroModal;
+        window.closeCategoriaLavoroModal = closeCategoriaLavoroModal;
+        window.handleSalvaCategoriaLavoro = handleSalvaCategoriaLavoro;
+        window.openTipoLavoroModal = openTipoLavoroModal;
+        window.closeTipoLavoroModal = closeTipoLavoroModal;
+        window.handleSalvaTipoLavoro = handleSalvaTipoLavoro;
     </script>
 </body>
 </html>

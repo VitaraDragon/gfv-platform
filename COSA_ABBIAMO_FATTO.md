@@ -89,6 +89,43 @@ gfv-platform/
 
 ---
 
+## ✅ Sistema Categorie Gerarchico Unificato (2025-01-23)
+
+### Obiettivo
+Unificare le categorie di attrezzi e lavori in un unico sistema gerarchico per evitare duplicazioni e migliorare l'organizzazione.
+
+### Modello Unificato
+- **File creato**: `core/models/Categoria.js`
+- Struttura gerarchica con `parentId` per sottocategorie
+- Campo `applicabileA` per specificare se categoria si applica ad attrezzi/lavori/entrambi
+- 10 categorie principali predefinite + sottocategorie
+
+### Servizio Unificato
+- **File creato**: `core/services/categorie-service.js`
+- CRUD completo categorie
+- Supporto gerarchico completo
+- Funzioni per ottenere struttura gerarchica
+
+### Migrazione Automatica
+- Migrazione automatica da `categorieAttrezzi` → `categorie`
+- Migrazione automatica da `categorieLavori` → `categorie`
+- Creazione automatica categorie predefinite mancanti
+- Idempotente e sicura
+
+### UI Gerarchica
+- Dropdown categoria principale + sottocategoria dinamica
+- Event listener automatici per mostrare sottocategorie
+- Filtri migliorati per includere sottocategorie
+- Supporto completo per creazione tipi lavoro specifici
+
+### File Modificati
+- `core/admin/gestione-macchine-standalone.html` - UI gerarchica attrezzi
+- `core/admin/gestione-lavori-standalone.html` - UI gerarchica lavori
+- `modules/parco-macchine/models/Macchina.js` - Usa categoriaId unificato
+- `core/models/TipoLavoro.js` - Usa categoriaId unificato
+
+---
+
 ## 🎯 Risposta alla Tua Domanda
 
 ### "Il core è solo quello che abbiamo fatto?"

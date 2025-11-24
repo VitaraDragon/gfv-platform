@@ -230,6 +230,13 @@
                         Calcola e gestisci compensi basati su ore validate e tariffe configurate
                     </div>
                 </a>
+                <a href="gestione-macchine-standalone.html" id="gestione-macchine-card" class="feature-card" style="display: none;">
+                    <div class="feature-icon">🚜</div>
+                    <div class="feature-title">Gestione Macchine</div>
+                    <div class="feature-description">
+                        Gestisci il parco macchine, manutenzioni e scadenze
+                    </div>
+                </a>
                 <a href="abbonamento-standalone.html" class="feature-card">
                     <div class="feature-icon">💳</div>
                     <div class="feature-title">Abbonamento</div>
@@ -359,6 +366,16 @@
                             moduliEl.textContent = `${moduliAvanzati.length} moduli`;
                         } else {
                             moduliEl.textContent = 'Solo Core';
+                        }
+                    }
+
+                    // Mostra card Gestione Macchine solo se modulo Parco Macchine è attivo
+                    const gestioneMacchineCard = document.getElementById('gestione-macchine-card');
+                    if (gestioneMacchineCard) {
+                        if (moduli.includes('parcoMacchine')) {
+                            gestioneMacchineCard.style.display = 'flex';
+                        } else {
+                            gestioneMacchineCard.style.display = 'none';
                         }
                     }
                 }

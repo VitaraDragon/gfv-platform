@@ -2,7 +2,8 @@
 
 **Data creazione**: 2025-01-23  
 **Data completamento**: 2025-01-23  
-**Stato**: ✅ COMPLETATO  
+**Ultimo aggiornamento**: 2025-01-23  
+**Stato**: ✅ COMPLETATO (Modulo Parco Macchine implementato e integrato + Sistema Categorie Gerarchico Unificato)  
 **Priorità**: Media-Alta
 
 ---
@@ -26,40 +27,43 @@ Implementare un sistema flessibile che permetta:
 - Le integrazioni si attivano **automaticamente** se altri moduli sono presenti
 - Nessuna dipendenza obbligatoria tra moduli
 
-### 1.2 Parco Macchine Standalone
+### 1.2 Parco Macchine Standalone ✅ COMPLETATO (2025-01-23)
 
 **Funzionalità base** (funziona senza Manodopera):
 - ✅ Gestione macchine (anagrafica, manutenzioni, scadenze)
-- ✅ Assegnazione manuale a utenti generici
-- ✅ Tracciamento utilizzi e costi
-- ✅ Report manutenzioni
+- ✅ Struttura gerarchica trattore/attrezzo
+- ✅ Sistema categorie gerarchico unificato (10 categorie principali + sottocategorie)
+- ✅ Compatibilità automatica basata su CV (attrezzi compatibili con trattori)
+- ✅ Filtri avanzati (tipo, categoria, stato)
+- ✅ Visualizzazione compatibilità nella tabella macchine
+- ✅ Gestione stato macchine (disponibile/in_uso/in_manutenzione/guasto/dismesso)
+- ✅ UI gerarchica con dropdown categoria principale + sottocategoria dinamica
 
-**File da creare**:
-- `modules/parco-macchine/models/Macchina.js`
-- `modules/parco-macchine/services/macchine-service.js`
-- `modules/parco-macchine/views/gestione-macchine-standalone.html`
+**File creati**:
+- ✅ `modules/parco-macchine/models/Macchina.js` - Modello con struttura trattore/attrezzo, CV, categoria
+- ✅ `modules/parco-macchine/models/CategoriaAttrezzo.js` - Modello categorie funzionali
+- ✅ `modules/parco-macchine/services/macchine-service.js` - CRUD completo macchine
+- ✅ `modules/parco-macchine/services/categorie-attrezzi-service.js` - CRUD categorie, inizializzazione predefinite
+- ✅ `core/admin/gestione-macchine-standalone.html` - Pagina gestione completa con form dinamico
 
-### 1.3 Parco Macchine con Manodopera Attivo
+### 1.3 Parco Macchine con Manodopera Attivo ✅ COMPLETATO (2025-01-23)
 
 **Funzionalità avanzate** (si attivano se Manodopera è attivo):
-- ✅ Assegnazione automatica a trattoristi (filtro per `tipoOperaio = "trattorista"`)
-- ✅ Integrazione con lavori (assegnazione macchina al lavoro)
-- ✅ Calcolo costi macchina nei compensi operai
-- ✅ Report utilizzo macchine per operaio
+- ✅ Integrazione con lavori (assegnazione macchina/attrezzo al lavoro)
+- ✅ Gestione stato macchine automatica (in_uso quando assegnate, disponibile quando liberate)
+- ✅ Visualizzazione macchine nella lista lavori
+- ✅ Dropdown operatore macchina con pre-compilazione intelligente
+- ✅ Distinzione chiara tra operaio responsabile e operatore macchina
+- ⏳ Calcolo costi macchina nei compensi operai (TODO futuro)
+- ⏳ Report utilizzo macchine per operaio (TODO futuro)
 
-**Pattern di implementazione**:
-```javascript
-// Esempio: Dropdown assegnazione macchina
-async function getOperaiDisponibili() {
-  if (await hasModuleAccess('manodopera')) {
-    // Se Manodopera attivo: filtra per tipoOperaio = 'trattorista'
-    return await getOperaiByTipo('trattorista');
-  } else {
-    // Se Manodopera non attivo: mostra tutti gli utenti
-    return await getAllUsers();
-  }
-}
-```
+**Implementazione**:
+- ✅ Verifica modulo Parco Macchine nel form creazione lavoro
+- ✅ Sezione macchine mostrata solo se modulo attivo
+- ✅ Dropdown trattori con filtri stato (solo disponibili)
+- ✅ Dropdown attrezzi compatibili dinamico (basato su CV trattore selezionato)
+- ✅ Gestione stato automatica al salvataggio/modifica/eliminazione lavoro
+- ✅ Liberazione macchine quando lavoro completato/annullato/eliminato
 
 ### 1.4 Estensione Modello Lavoro per Macchine
 
@@ -82,23 +86,22 @@ async function getOperaiDisponibili() {
 - `core/models/Lavoro.js` - Aggiungere campi opzionali
 - `core/services/lavori-service.js` - Validazione campi macchina
 
-### 1.5 Form Creazione Lavoro con Macchine
+### 1.5 Form Creazione Lavoro con Macchine ✅ COMPLETATO (2025-01-23)
 
 **Modifiche al form** (`core/admin/gestione-lavori-standalone.html`):
 
-1. **Verificare se Parco Macchine è attivo**:
-   ```javascript
-   const parcoMacchineAttivo = await hasModuleAccess('parcoMacchine');
-   ```
-
-2. **Se attivo, mostrare sezione macchine**:
-   - Dropdown "Macchina assegnata" (solo macchine disponibili)
-   - Dropdown "Attrezzo assegnato" (solo attrezzi disponibili)
-   - Dropdown "Operatore macchina" (se Manodopera attivo: filtra per trattoristi)
-
-3. **Salvataggio**:
-   - Salvare `macchinaId`, `attrezzoId`, `operatoreMacchinaId` nel documento lavoro
-   - Campi opzionali: possono essere null
+1. ✅ **Verificare se Parco Macchine è attivo**: Implementato controllo modulo
+2. ✅ **Sezione macchine dinamica**: Mostrata solo se modulo attivo
+3. ✅ **Dropdown trattori**: Mostra solo trattori disponibili (non in_uso/in_manutenzione/guasto/dismessi)
+4. ✅ **Dropdown attrezzi compatibili**: Si popola automaticamente in base al trattore selezionato, mostra solo attrezzi compatibili per CV
+5. ✅ **Dropdown operatore macchina**: 
+   - Mostrato solo se trattore/attrezzo selezionato
+   - Pre-compilazione automatica con operaio responsabile (se lavoro autonomo)
+   - Suggerimento visivo quando operaio responsabile sarà usato automaticamente
+   - Evidenziazione operaio responsabile nella lista
+6. ✅ **Salvataggio**: Salva `macchinaId`, `attrezzoId`, `operatoreMacchinaId` nel documento lavoro
+7. ✅ **Gestione stato automatica**: Macchine impostate come `in_uso` quando assegnate, `disponibile` quando lavoro completato/annullato/eliminato
+8. ✅ **Visualizzazione nella lista**: Macchine assegnate mostrate sotto il nome del lavoro nella lista lavori
 
 ### 1.6 Dashboard Operaio Adattiva con Macchine
 
@@ -585,13 +588,17 @@ export async function getAllLavori(options = {}) {
 - [x] Mantenere logica esistente per caposquadra
 - [x] Aggiungere link "Traccia Zone" nella dashboard operaio
 
-### Fase 6: Parco Macchine (se implementato)
-- [ ] Creare modello Macchina
-- [ ] Creare servizio macchine
-- [ ] Creare pagina gestione macchine
-- [ ] Integrare con form creazione lavoro
-- [ ] Aggiungere sezione macchine nella dashboard operaio
-- [ ] Integrare con segnatura ore
+### Fase 6: Parco Macchine ✅ COMPLETATO (2025-01-23)
+- [x] ✅ Creare modello Macchina (con struttura trattore/attrezzo, campi CV, categoria funzione)
+- [x] ✅ Creare modello CategoriaAttrezzo (categorie funzionali)
+- [x] ✅ Creare servizio macchine (CRUD completo)
+- [x] ✅ Creare servizio categorie-attrezzi-service (CRUD categorie, inizializzazione predefinite)
+- [x] ✅ Creare pagina gestione macchine (form dinamico trattore/attrezzo, filtri avanzati, compatibilità automatica)
+- [x] ✅ Integrare con form creazione lavoro (dropdown trattori/attrezzi compatibili, gestione stato automatica)
+- [x] ✅ Visualizzazione macchine nella lista lavori
+- [x] ✅ Gestione stato macchine automatica (in_uso quando assegnate, disponibile quando liberate)
+- [x] ✅ UI migliorata per distinguere operaio responsabile vs operatore macchina
+- [ ] Integrare con segnatura ore (TODO futuro - campo ore macchina per calcolo costi)
 
 ### Fase 7: Testing ✅ COMPLETATO (Testato manualmente)
 - [x] Test creazione lavoro di squadra (esistente) - ✅ Funziona

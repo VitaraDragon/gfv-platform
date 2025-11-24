@@ -15,10 +15,12 @@
 - ✅ Tenant Service - Multi-tenant
 - ✅ Permission Service - Controllo permessi
 - ✅ Role Service - Gestione ruoli
+- ✅ Categorie Service - Gestione categorie gerarchiche unificate (NUOVO)
 
 ### 2. Modelli ✅
 - ✅ Base Model - Classe base
 - ✅ User Model - Modello utente
+- ✅ Categoria Model - Modello categorie gerarchiche unificate (NUOVO)
 
 ### 3. Pagine ✅
 - ✅ Login (`login-standalone.html`) - **TESTATO E FUNZIONANTE**
@@ -125,7 +127,27 @@ gfv-platform/
 
 ---
 
-**Stato**: ✅ Login funzionante! Pronto per continuare sviluppo! 🚀
+**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Pronto per continuare sviluppo! 🚀
+
+---
+
+## 🆕 Ultimo Aggiornamento: Sistema Categorie Gerarchico Unificato (2025-01-23)
+
+### Cosa è stato fatto:
+- ✅ Modello unificato `Categoria` con supporto gerarchico
+- ✅ Servizio unificato `categorie-service.js`
+- ✅ Migrazione automatica dati esistenti
+- ✅ UI gerarchica completa per attrezzi e lavori
+- ✅ 10 categorie principali predefinite + sottocategorie
+- ✅ Supporto creazione tipi lavoro specifici
+
+### File creati/modificati:
+- ✅ `core/models/Categoria.js` (NUOVO)
+- ✅ `core/services/categorie-service.js` (NUOVO)
+- ✅ `core/admin/gestione-macchine-standalone.html` (AGGIORNATO)
+- ✅ `core/admin/gestione-lavori-standalone.html` (AGGIORNATO)
+- ✅ `modules/parco-macchine/models/Macchina.js` (AGGIORNATO)
+- ✅ `core/models/TipoLavoro.js` (AGGIORNATO)
 
 
 

@@ -150,7 +150,7 @@
             const shouldShowCoreBase = !isOnlyOperaio && !isOnlyCaposquadra && !isManagerOrAdminWithManodopera;
             
             if (shouldShowCoreBase) {
-                container.appendChild(createCoreBaseSection(userData, isCoreOnly));
+                container.appendChild(createCoreBaseSection(userData, isCoreOnly, availableModules));
                 
                 // Mappa Aziendale per Manager anche senza moduli avanzati
                 // Versione semplificata quando Manodopera NON è attivo
