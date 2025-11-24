@@ -792,6 +792,83 @@
             return `${ore}h ${minuti}min`;
         }
 
+        // Aggiorna ore macchina/attrezzo quando viene validata un'ora
+        async function aggiornaOreMacchina(oraData) {
+            if (!oraData.macchinaId && !oraData.attrezzoId) return; // Nessuna macchina/attrezzo
+            
+            const oreMacchina = oraData.oreMacchina || oraData.oreNette || 0;
+            if (oreMacchina <= 0) return; // Nessuna ora da aggiungere
+            
+            try {
+                // Verifica se modulo Parco Macchine è attivo
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!tenantDoc.exists()) return;
+                
+                const tenantData = tenantDoc.data();
+                const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                if (!hasParcoMacchineModule) return;
+                
+                // Aggiorna macchina (trattore) se presente
+                if (oraData.macchinaId) {
+                    const macchinaDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'macchine', oraData.macchinaId));
+                    if (macchinaDoc.exists()) {
+                        const macchinaData = macchinaDoc.data();
+                        const oreAttuali = (macchinaData.oreAttuali || macchinaData.oreIniziali || 0) + oreMacchina;
+                        
+                        await updateDoc(macchinaDoc.ref, {
+                            oreAttuali: oreAttuali
+                        });
+                        
+                        // Verifica se supera oreProssimaManutenzione
+                        if (macchinaData.oreProssimaManutenzione && oreAttuali >= macchinaData.oreProssimaManutenzione) {
+                            const oreOltre = oreAttuali - macchinaData.oreProssimaManutenzione;
+                            console.warn(`⚠️ ATTENZIONE: Macchina "${macchinaData.nome}" ha superato di ${oreOltre.toFixed(1)} ore la manutenzione programmata!`);
+                            // Mostra alert visibile all'utente
+                            setTimeout(() => {
+                                showAlert(`⚠️ ATTENZIONE: La macchina "${macchinaData.nome}" ha superato le ore di manutenzione programmata! Controlla in Gestione Macchine.`, 'error');
+                            }, 500);
+                        } else if (macchinaData.oreProssimaManutenzione) {
+                            const oreRimanenti = macchinaData.oreProssimaManutenzione - oreAttuali;
+                            if (oreRimanenti <= 50 && oreRimanenti > 0) {
+                                console.info(`ℹ️ INFO: Macchina "${macchinaData.nome}" si avvicina alla manutenzione (${oreRimanenti.toFixed(1)} ore rimanenti)`);
+                            }
+                        }
+                    }
+                }
+                
+                // Aggiorna attrezzo se presente
+                if (oraData.attrezzoId) {
+                    const attrezzoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'macchine', oraData.attrezzoId));
+                    if (attrezzoDoc.exists()) {
+                        const attrezzoData = attrezzoDoc.data();
+                        const oreAttuali = (attrezzoData.oreAttuali || attrezzoData.oreIniziali || 0) + oreMacchina;
+                        
+                        await updateDoc(attrezzoDoc.ref, {
+                            oreAttuali: oreAttuali
+                        });
+                        
+                        // Verifica se supera oreProssimaManutenzione
+                        if (attrezzoData.oreProssimaManutenzione && oreAttuali >= attrezzoData.oreProssimaManutenzione) {
+                            const oreOltre = oreAttuali - attrezzoData.oreProssimaManutenzione;
+                            console.warn(`⚠️ ATTENZIONE: Attrezzo "${attrezzoData.nome}" ha superato di ${oreOltre.toFixed(1)} ore la manutenzione programmata!`);
+                            // Mostra alert visibile all'utente
+                            setTimeout(() => {
+                                showAlert(`⚠️ ATTENZIONE: L'attrezzo "${attrezzoData.nome}" ha superato le ore di manutenzione programmata! Controlla in Gestione Macchine.`, 'error');
+                            }, 500);
+                        } else if (attrezzoData.oreProssimaManutenzione) {
+                            const oreRimanenti = attrezzoData.oreProssimaManutenzione - oreAttuali;
+                            if (oreRimanenti <= 50 && oreRimanenti > 0) {
+                                console.info(`ℹ️ INFO: Attrezzo "${attrezzoData.nome}" si avvicina alla manutenzione (${oreRimanenti.toFixed(1)} ore rimanenti)`);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Errore aggiornamento ore macchina:', error);
+                // Non bloccare la validazione se c'è un errore nell'aggiornamento ore
+            }
+        }
+
         // Valida ora
         window.validaOra = async function(lavoroId, oraId) {
             if (!confirm('Sei sicuro di voler validare questa ora?')) {
@@ -844,6 +921,9 @@
                     rifiutatoDa: null,
                     motivoRifiuto: null
                 });
+                
+                // Aggiorna ore macchina/attrezzo automaticamente
+                await aggiornaOreMacchina(oraData);
                 
                 showAlert('Ora validata con successo!', 'success');
                 await loadOreDaValidare();
@@ -1089,6 +1169,9 @@
                             rifiutatoDa: null,
                             motivoRifiuto: null
                         });
+                        
+                        // Aggiorna ore macchina/attrezzo automaticamente
+                        await aggiornaOreMacchina(oraData);
                         
                         successCount++;
                         return { success: true };

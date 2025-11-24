@@ -451,6 +451,39 @@
                     <p style="margin-top: 5px; font-size: 14px; color: #666;">Ore nette lavorate</p>
                 </div>
 
+                <!-- Sezione Macchine (solo se lavoro ha macchina assegnata) -->
+                <div id="macchine-sezione" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                    <h4 style="margin-bottom: 15px; color: #2E8B57; font-size: 16px;">🚜 Macchine Utilizzate</h4>
+                    
+                    <div class="form-group">
+                        <label for="ora-macchina">Macchina Utilizzata</label>
+                        <select id="ora-macchina">
+                            <option value="">-- Nessuna macchina --</option>
+                        </select>
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Macchina utilizzata per questo lavoro (pre-compilata se assegnata al lavoro)
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ora-attrezzo">Attrezzo Utilizzato</label>
+                        <select id="ora-attrezzo">
+                            <option value="">-- Nessun attrezzo --</option>
+                        </select>
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Attrezzo utilizzato per questo lavoro (pre-compilato se assegnato al lavoro)
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ora-ore-macchina">Ore Macchina</label>
+                        <input type="number" id="ora-ore-macchina" step="0.1" min="0" placeholder="es. 8.5">
+                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                            Ore di utilizzo macchina per calcolo costi (opzionale, default = ore nette lavorate)
+                        </small>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="ora-note">Note</label>
                     <textarea id="ora-note" placeholder="Note aggiuntive (opzionale)"></textarea>
@@ -516,6 +549,8 @@
         let currentTenantId = null;
         let lavoriList = [];
         let oreList = [];
+        let macchineList = [];
+        let hasParcoMacchineModule = false;
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
@@ -551,9 +586,10 @@
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
                                 hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                                hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
                             }
                         } catch (error) {
-                            console.warn('Errore verifica modulo Manodopera:', error);
+                            console.warn('Errore verifica moduli:', error);
                         }
                     }
 
@@ -570,10 +606,11 @@
                     document.getElementById('ora-data').setAttribute('max', today);
 
                     // Carica dati iniziali
-                    await Promise.all([
-                        loadLavori(),
-                        loadOre()
-                    ]);
+                    const loadPromises = [loadLavori(), loadOre()];
+                    if (hasParcoMacchineModule) {
+                        loadPromises.push(loadMacchine());
+                    }
+                    await Promise.all(loadPromises);
                 } else {
                     window.location.href = 'auth/login-standalone.html';
                 }
@@ -810,6 +847,18 @@
                 return;
             }
 
+            // Carica nomi macchine se modulo Parco Macchine attivo
+            let macchineMap = {};
+            if (hasParcoMacchineModule) {
+                try {
+                    macchineList.forEach(m => {
+                        macchineMap[m.id] = m.nome || 'Macchina senza nome';
+                    });
+                } catch (error) {
+                    console.warn('Errore creazione mappa macchine:', error);
+                }
+            }
+
             let html = `
                 <table class="ore-table">
                     <thead>
@@ -818,6 +867,7 @@
                             <th>Lavoro</th>
                             <th>Orario</th>
                             <th>Ore Nette</th>
+                            ${hasParcoMacchineModule ? '<th>Macchina/Attrezzo</th>' : ''}
                             <th>Stato</th>
                             <th>Note</th>
                         </tr>
@@ -840,12 +890,25 @@
                                   ora.stato === 'validate' ? '✅ Validata' :
                                   '❌ Rifiutata';
 
+                // Info macchina/attrezzo
+                let macchinaInfo = '-';
+                if (hasParcoMacchineModule && (ora.macchinaId || ora.attrezzoId)) {
+                    const macchinaNome = ora.macchinaId ? macchineMap[ora.macchinaId] : null;
+                    const attrezzoNome = ora.attrezzoId ? macchineMap[ora.attrezzoId] : null;
+                    const parts = [];
+                    if (macchinaNome) parts.push(`🚜 ${macchinaNome}`);
+                    if (attrezzoNome) parts.push(`⚙️ ${attrezzoNome}`);
+                    if (ora.oreMacchina) parts.push(`(${formattaOre(ora.oreMacchina)})`);
+                    macchinaInfo = parts.length > 0 ? parts.join('<br>') : '-';
+                }
+
                 html += `
                     <tr>
                         <td>${data}</td>
                         <td>${escapeHtml(ora.lavoroNome)}</td>
                         <td>${ora.orarioInizio || ''} - ${ora.orarioFine || ''}</td>
                         <td><strong>${oreFormattate}</strong></td>
+                        ${hasParcoMacchineModule ? `<td style="font-size: 12px;">${macchinaInfo}</td>` : ''}
                         <td><span class="stato-badge ${statoBadge}">${statoLabel}</span></td>
                         <td>${escapeHtml(ora.note || '-')}</td>
                     </tr>
@@ -908,18 +971,85 @@
             document.getElementById('ore-calcolate').style.display = 'block';
         }
 
+        // Carica macchine (solo se modulo Parco Macchine attivo)
+        async function loadMacchine() {
+            if (!hasParcoMacchineModule || !currentTenantId) return;
+            
+            try {
+                const macchineRef = collection(db, 'tenants', currentTenantId, 'macchine');
+                const snapshot = await getDocs(macchineRef);
+                
+                macchineList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    macchineList.push({ id: doc.id, ...data });
+                });
+            } catch (error) {
+                console.error('Errore caricamento macchine:', error);
+                macchineList = [];
+            }
+        }
+
+        // Popola dropdown macchine
+        function populateMacchineDropdown(selectedMacchinaId = null, selectedAttrezzoId = null) {
+            const macchinaSelect = document.getElementById('ora-macchina');
+            const attrezzoSelect = document.getElementById('ora-attrezzo');
+            
+            if (!macchinaSelect || !attrezzoSelect) return;
+            
+            // Popola trattori
+            macchinaSelect.innerHTML = '<option value="">-- Nessuna macchina --</option>';
+            macchineList.forEach(macchina => {
+                const tipoMacchina = macchina.tipoMacchina || macchina.tipo;
+                if (tipoMacchina === 'trattore' && macchina.stato !== 'dismesso') {
+                    const option = document.createElement('option');
+                    option.value = macchina.id;
+                    option.textContent = macchina.nome || 'Trattore senza nome';
+                    if (selectedMacchinaId === macchina.id) {
+                        option.selected = true;
+                    }
+                    macchinaSelect.appendChild(option);
+                }
+            });
+            
+            // Popola attrezzi (solo se trattore selezionato)
+            attrezzoSelect.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
+            if (selectedMacchinaId) {
+                const trattore = macchineList.find(m => m.id === selectedMacchinaId);
+                if (trattore && trattore.cavalli) {
+                    macchineList.forEach(macchina => {
+                        const tipoMacchina = macchina.tipoMacchina || macchina.tipo;
+                        if (tipoMacchina === 'attrezzo' && macchina.stato !== 'dismesso') {
+                            const cavalliMinimi = macchina.cavalliMinimiRichiesti || 0;
+                            if (trattore.cavalli >= cavalliMinimi) {
+                                const option = document.createElement('option');
+                                option.value = macchina.id;
+                                option.textContent = macchina.nome || 'Attrezzo senza nome';
+                                if (selectedAttrezzoId === macchina.id) {
+                                    option.selected = true;
+                                }
+                                attrezzoSelect.appendChild(option);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
         // Apri modal segna ora
-        window.openSegnaOraModal = function(lavoroId = null) {
+        window.openSegnaOraModal = async function(lavoroId = null) {
             // Popola dropdown lavori
             const select = document.getElementById('ora-lavoro');
             select.innerHTML = '<option value="">Seleziona lavoro...</option>';
             
+            let lavoroSelezionato = null;
             lavoriList.forEach(lavoro => {
                 const option = document.createElement('option');
                 option.value = lavoro.id;
                 option.textContent = lavoro.nome || 'N/A';
                 if (lavoroId === lavoro.id) {
                     option.selected = true;
+                    lavoroSelezionato = lavoro;
                 }
                 select.appendChild(option);
             });
@@ -932,6 +1062,29 @@
             // Imposta data di default = oggi
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('ora-data').value = today;
+            
+            // Gestione macchine se modulo attivo
+            const macchineSezione = document.getElementById('macchine-sezione');
+            if (hasParcoMacchineModule && macchineSezione) {
+                macchineSezione.style.display = 'block';
+                
+                // Pre-compila macchine se lavoro ha macchina assegnata
+                if (lavoroSelezionato && (lavoroSelezionato.macchinaId || lavoroSelezionato.attrezzoId)) {
+                    populateMacchineDropdown(lavoroSelezionato.macchinaId || null, lavoroSelezionato.attrezzoId || null);
+                } else {
+                    populateMacchineDropdown();
+                }
+                
+                // Listener per aggiornare attrezzi quando cambia trattore
+                const macchinaSelect = document.getElementById('ora-macchina');
+                if (macchinaSelect) {
+                    macchinaSelect.addEventListener('change', function() {
+                        populateMacchineDropdown(this.value, null);
+                    });
+                }
+            } else if (macchineSezione) {
+                macchineSezione.style.display = 'none';
+            }
             
             // Listener per calcolo ore
             document.getElementById('ora-inizio').addEventListener('input', calcolaOreNette);
@@ -1016,6 +1169,12 @@
                 const userId = currentUserData.id || currentUserData.uid;
                 const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
                 
+                // Campi macchina (solo se modulo Parco Macchine attivo)
+                const macchinaId = hasParcoMacchineModule ? document.getElementById('ora-macchina').value || null : null;
+                const attrezzoId = hasParcoMacchineModule ? document.getElementById('ora-attrezzo').value || null : null;
+                const oreMacchinaInput = hasParcoMacchineModule ? document.getElementById('ora-ore-macchina').value : null;
+                const oreMacchina = oreMacchinaInput ? parseFloat(oreMacchinaInput) : (oreNette || null); // Default = ore nette se non specificato
+                
                 const oraData = {
                     operaioId: userId, // Per i caposquadra, usiamo lo stesso campo operaioId
                     lavoroId: lavoroId,
@@ -1029,6 +1188,13 @@
                     stato: 'da_validare',
                     creatoIl: serverTimestamp()
                 };
+                
+                // Aggiungi campi macchina solo se modulo attivo e se presenti
+                if (hasParcoMacchineModule) {
+                    if (macchinaId) oraData.macchinaId = macchinaId;
+                    if (attrezzoId) oraData.attrezzoId = attrezzoId;
+                    if (oreMacchina !== null) oraData.oreMacchina = oreMacchina;
+                }
                 
                 const oraRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
                 await addDoc(oraRef, oraData);

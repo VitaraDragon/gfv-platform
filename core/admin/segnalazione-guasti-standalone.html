@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segnalazione Guasti - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #2E8B57;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: auto;
+        }
+
+        .guasti-list {
+            margin-top: 20px;
+        }
+
+        .guasto-item {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .guasto-item.risolto {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .guasto-item.in-attesa {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .guasto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .guasto-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .guasto-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-grave {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-non-grave {
+            background: #ffc107;
+            color: #856404;
+        }
+
+        .badge-risolto {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-in-attesa {
+            background: #6c757d;
+            color: white;
+        }
+
+        .guasto-details {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .guasto-details div {
+            margin-bottom: 5px;
+        }
+
+        .guasto-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            color: #333;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🔧 Segnalazione Guasti</h1>
+                <p>Segnala guasti alle macchine e gestisci le risoluzioni</p>
+            </div>
+            <div class="header-actions">
+                <a href="../dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <!-- Sezione Segnala Nuovo Guasto -->
+        <div class="content">
+            <h2 class="section-title">Segnala Nuovo Guasto</h2>
+            <form id="segnala-guasto-form">
+                <div class="form-group">
+                    <label for="guasto-macchina">Trattore (Macchina) *</label>
+                    <select id="guasto-macchina" required>
+                        <option value="">-- Seleziona trattore --</option>
+                    </select>
+                    <small>Seleziona il trattore con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="guasto-attrezzo">Attrezzo (Opzionale)</label>
+                    <select id="guasto-attrezzo">
+                        <option value="">-- Nessun attrezzo --</option>
+                    </select>
+                    <small>Seleziona l'attrezzo con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Gravità del guasto *</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="gravita-non-grave" name="gravita" value="non-grave" required>
+                            <label for="gravita-non-grave">Non grave - Posso finire il lavoro</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="gravita-grave" name="gravita" value="grave" required>
+                            <label for="gravita-grave">Grave - Sospendere subito</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="guasto-dettagli">Dettagli del guasto *</label>
+                    <textarea id="guasto-dettagli" required placeholder="Descrivi il problema riscontrato..."></textarea>
+                    <small>Fornisci tutti i dettagli utili per la risoluzione</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="guasto-lavoro">Lavoro corrente (opzionale)</label>
+                    <select id="guasto-lavoro">
+                        <option value="">-- Nessun lavoro associato --</option>
+                    </select>
+                    <small>Se stai lavorando su un lavoro specifico, selezionalo</small>
+                </div>
+
+                <button type="submit" class="btn btn-danger">🚨 Segnala Guasto</button>
+            </form>
+        </div>
+
+        <!-- Sezione Guasti Attivi -->
+        <div class="content">
+            <h2 class="section-title">I Miei Guasti Segnalati</h2>
+            <div id="guasti-list" class="guasti-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <p>Caricamento guasti...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Risolvi Guasto -->
+    <div id="risolvi-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Risolvi Guasto</h3>
+                <button class="close-modal" onclick="closeRisolviModal()">&times;</button>
+            </div>
+            <form id="risolvi-guasto-form">
+                <input type="hidden" id="risolvi-guasto-id">
+                
+                <div class="form-group">
+                    <label for="risolvi-note">Note di risoluzione *</label>
+                    <textarea id="risolvi-note" required placeholder="Descrivi come hai risolto il problema..."></textarea>
+                    <small>Es: "Sostituito filtro olio", "Riparato tubo idraulico"</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="risolvi-costo">Costo riparazione (€) - Opzionale</label>
+                    <input type="number" id="risolvi-costo" step="0.01" min="0" placeholder="0.00">
+                    <small>Inserisci il costo se hai acquistato pezzi di ricambio</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success">✅ Conferma Risoluzione</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRisolviModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase modules (devono essere al top-level)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Carica Firebase config
+        let firebaseConfig = {};
+        try {
+            const configScript = document.createElement('script');
+            configScript.src = '../config/firebase-config.js';
+            configScript.onload = () => {
+                if (window.firebaseConfig) {
+                    firebaseConfig = window.firebaseConfig;
+                    initApp();
+                }
+            };
+            configScript.onerror = () => {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(configScript);
+        } catch (e) {
+            console.error('Errore caricamento config:', e);
+        }
+
+        async function initApp() {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            let currentUser = null;
+            let currentTenantId = null;
+            let macchineList = [];
+            let lavoriList = [];
+            let guastiUnsubscribe = null;
+
+            // Verifica autenticazione
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        currentTenantId = userData.tenantId;
+                        
+                        // Verifica ruolo operaio
+                        const ruoli = userData.ruoli || [];
+                        if (!ruoli.includes('operaio')) {
+                            showAlert('Questa pagina è disponibile solo per operai.', 'error');
+                            setTimeout(() => {
+                                window.location.href = '../dashboard-standalone.html';
+                            }, 3000);
+                            return;
+                        }
+
+                        // Verifica modulo Parco Macchine
+                        if (currentTenantId) {
+                            try {
+                                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                                if (tenantDoc.exists()) {
+                                    const tenantData = tenantDoc.data();
+                                    const hasParcoMacchine = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                                    if (!hasParcoMacchine) {
+                                        showAlert('Questa pagina è disponibile solo con il modulo Parco Macchine attivo.', 'error');
+                                        setTimeout(() => {
+                                            window.location.href = '../dashboard-standalone.html';
+                                        }, 3000);
+                                        return;
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn('Errore verifica modulo:', error);
+                            }
+                        }
+
+                        // Carica prima le macchine, poi i lavori (per assicurarsi che i dropdown siano popolati)
+                        await loadMacchine();
+                        // Piccolo delay per assicurarsi che i dropdown siano completamente popolati
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await loadLavori();
+                        await setupGuastiRealtime();
+                    }
+                } else {
+                    window.location.href = '../auth/login-standalone.html';
+                }
+            });
+
+            // Carica macchine
+            async function loadMacchine() {
+                try {
+                    if (!currentTenantId) return;
+
+                    const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
+                    const snapshot = await getDocs(macchineRef);
+                    
+                    macchineList = [];
+                    const macchinaSelect = document.getElementById('guasto-macchina');
+                    const attrezzoSelect = document.getElementById('guasto-attrezzo');
+                    
+                    macchinaSelect.innerHTML = '<option value="">-- Seleziona trattore --</option>';
+                    attrezzoSelect.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.stato !== 'dismesso') {
+                            macchineList.push({ id: doc.id, ...data });
+                            const tipoMacchina = data.tipoMacchina || data.tipo || '';
+                            
+                            if (tipoMacchina === 'trattore') {
+                                const option = document.createElement('option');
+                                option.value = doc.id;
+                                option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
+                                macchinaSelect.appendChild(option);
+                            } else if (tipoMacchina === 'attrezzo') {
+                                const option = document.createElement('option');
+                                option.value = doc.id;
+                                option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
+                                attrezzoSelect.appendChild(option);
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('Errore caricamento macchine:', error);
+                    showAlert('Errore caricamento macchine', 'error');
+                }
+            }
+
+            // Carica lavori attivi dell'operaio e pre-seleziona macchina/attrezzo
+            async function loadLavori() {
+                try {
+                    if (!currentTenantId || !currentUser) return;
+
+                    const lavoriRef = collection(db, `tenants/${currentTenantId}/lavori`);
+                    const snapshot = await getDocs(lavoriRef);
+                    
+                    lavoriList = [];
+                    const lavoroSelect = document.getElementById('guasto-lavoro');
+                    if (!lavoroSelect) return;
+                    
+                    lavoroSelect.innerHTML = '<option value="">-- Nessun lavoro associato --</option>';
+
+                    let lavoroAttivoPiuRecente = null;
+                    let dataLavoroPiuRecente = null;
+
+                    // Carica anche i dati dell'utente per verificare se è caposquadra
+                    let userDoc = null;
+                    try {
+                        userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+                    } catch (e) {
+                        console.warn('Errore caricamento dati utente:', e);
+                    }
+                    const userData = userDoc?.exists() ? userDoc.data() : null;
+                    const isCaposquadra = userData?.ruolo === 'caposquadra' || (userData?.ruoli && userData.ruoli.includes('caposquadra'));
+
+                    // Trova il caposquadra dell'operaio (se è operaio)
+                    let caposquadraId = null;
+                    if (!isCaposquadra) {
+                        try {
+                            const squadreRef = collection(db, `tenants/${currentTenantId}/squadre`);
+                            const squadreSnapshot = await getDocs(squadreRef);
+                            
+                            squadreSnapshot.forEach(doc => {
+                                const squadra = doc.data();
+                                if (squadra.operai && squadra.operai.includes(currentUser.uid)) {
+                                    caposquadraId = squadra.caposquadraId;
+                                }
+                            });
+                        } catch (e) {
+                            console.warn('Errore caricamento squadre:', e);
+                        }
+                    }
+
+                    snapshot.forEach(doc => {
+                        const lavoro = doc.data();
+                        const stato = lavoro.stato || 'assegnato';
+                        
+                        // Considera attivi tutti i lavori che non sono completati/annullati
+                        const isLavoroAttivo = stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare';
+                        
+                        // Cerca lavori assegnati direttamente all'operaio
+                        const isAssegnatoDirettamente = lavoro.operaioId === currentUser.uid && !lavoro.caposquadraId;
+                        
+                        // Cerca lavori assegnati tramite caposquadra (se l'operaio fa parte di una squadra)
+                        const isAssegnatoTramiteCaposquadra = caposquadraId && lavoro.caposquadraId === caposquadraId && !lavoro.operaioId;
+                        
+                        // Se è caposquadra, mostra anche i lavori assegnati direttamente a lui
+                        const isLavoroCaposquadra = isCaposquadra && lavoro.caposquadraId === currentUser.uid && !lavoro.operaioId;
+                        
+                        if (isLavoroAttivo && (isAssegnatoDirettamente || isAssegnatoTramiteCaposquadra || isLavoroCaposquadra)) {
+                            const lavoroData = { id: doc.id, ...lavoro };
+                            lavoriList.push(lavoroData);
+                            
+                            const option = document.createElement('option');
+                            option.value = doc.id;
+                            let tipoAssegnazione = '';
+                            if (isAssegnatoDirettamente) {
+                                tipoAssegnazione = ' (Autonomo)';
+                            } else if (isAssegnatoTramiteCaposquadra || isLavoroCaposquadra) {
+                                tipoAssegnazione = ' (Squadra)';
+                            }
+                            option.textContent = (lavoro.nome || `Lavoro ${doc.id}`) + tipoAssegnazione;
+                            lavoroSelect.appendChild(option);
+
+                            // Trova il lavoro più recente (per pre-selezione)
+                            // Usa createdAt se disponibile, altrimenti updatedAt, altrimenti dataInizio
+                            let dataLavoro = new Date(0);
+                            if (lavoro.createdAt) {
+                                dataLavoro = lavoro.createdAt.toDate ? lavoro.createdAt.toDate() : new Date(lavoro.createdAt);
+                            } else if (lavoro.updatedAt) {
+                                dataLavoro = lavoro.updatedAt.toDate ? lavoro.updatedAt.toDate() : new Date(lavoro.updatedAt);
+                            } else if (lavoro.dataInizio) {
+                                dataLavoro = lavoro.dataInizio.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
+                            }
+                            
+                            if (!dataLavoroPiuRecente || dataLavoro > dataLavoroPiuRecente) {
+                                dataLavoroPiuRecente = dataLavoro;
+                                lavoroAttivoPiuRecente = lavoroData;
+                            }
+                        }
+                    });
+
+                    // Pre-seleziona macchina e attrezzo dal lavoro più recente
+                    if (lavoroAttivoPiuRecente) {
+                        console.log('Lavoro attivo trovato:', lavoroAttivoPiuRecente);
+                        
+                        // Pre-seleziona il lavoro nel dropdown
+                        lavoroSelect.value = lavoroAttivoPiuRecente.id;
+                        
+                        // Pre-seleziona trattore se presente
+                        if (lavoroAttivoPiuRecente.macchinaId) {
+                            const macchinaSelect = document.getElementById('guasto-macchina');
+                            if (macchinaSelect) {
+                                // Verifica che l'opzione esista nel dropdown
+                                const optionExists = Array.from(macchinaSelect.options).some(
+                                    opt => opt.value === lavoroAttivoPiuRecente.macchinaId
+                                );
+                                if (optionExists) {
+                                    macchinaSelect.value = lavoroAttivoPiuRecente.macchinaId;
+                                    console.log('Trattore pre-selezionato:', lavoroAttivoPiuRecente.macchinaId);
+                                } else {
+                                    console.warn('Trattore non trovato nel dropdown:', lavoroAttivoPiuRecente.macchinaId);
+                                }
+                            }
+                        }
+                        
+                        // Pre-seleziona attrezzo se presente
+                        if (lavoroAttivoPiuRecente.attrezzoId) {
+                            const attrezzoSelect = document.getElementById('guasto-attrezzo');
+                            if (attrezzoSelect) {
+                                // Verifica che l'opzione esista nel dropdown
+                                const optionExists = Array.from(attrezzoSelect.options).some(
+                                    opt => opt.value === lavoroAttivoPiuRecente.attrezzoId
+                                );
+                                if (optionExists) {
+                                    attrezzoSelect.value = lavoroAttivoPiuRecente.attrezzoId;
+                                    console.log('Attrezzo pre-selezionato:', lavoroAttivoPiuRecente.attrezzoId);
+                                } else {
+                                    console.warn('Attrezzo non trovato nel dropdown:', lavoroAttivoPiuRecente.attrezzoId);
+                                }
+                            }
+                        }
+                    } else {
+                        console.log('Nessun lavoro attivo trovato per l\'operaio corrente');
+                    }
+                } catch (error) {
+                    console.error('Errore caricamento lavori:', error);
+                }
+            }
+
+            // Setup listener real-time per guasti
+            function setupGuastiRealtime() {
+                try {
+                    if (!currentTenantId || !currentUser) return;
+
+                    // Rimuovi listener precedente
+                    if (guastiUnsubscribe) {
+                        guastiUnsubscribe();
+                        guastiUnsubscribe = null;
+                    }
+
+                    const guastiRef = collection(db, `tenants/${currentTenantId}/guasti`);
+                    
+                    // Usa direttamente la collection senza query filtrata per evitare errori indice
+                    // Filtriamo e ordiniamo in memoria
+                    guastiUnsubscribe = onSnapshot(
+                        guastiRef,
+                        (snapshot) => {
+                            // Filtra per operaio corrente e ordina per data segnalazione
+                            const filtered = snapshot.docs
+                                .filter(doc => {
+                                    const data = doc.data();
+                                    return data.segnalatoDa === currentUser.uid;
+                                })
+                                .sort((a, b) => {
+                                    const dateA = a.data().segnalatoIl?.toDate 
+                                        ? a.data().segnalatoIl.toDate() 
+                                        : new Date(a.data().segnalatoIl || 0);
+                                    const dateB = b.data().segnalatoIl?.toDate 
+                                        ? b.data().segnalatoIl.toDate() 
+                                        : new Date(b.data().segnalatoIl || 0);
+                                    return dateB - dateA; // Più recente prima
+                                });
+                            
+                            renderGuasti({ docs: filtered });
+                        },
+                        (error) => {
+                            // Solo logga se non è un errore di indice
+                            if (!error.message || !error.message.includes('index')) {
+                                console.error('Errore listener guasti:', error);
+                            }
+                        }
+                    );
+                } catch (error) {
+                    console.error('Errore setup listener guasti:', error);
+                }
+            }
+
+            // Render guasti
+            function renderGuasti(snapshot) {
+                const container = document.getElementById('guasti-list');
+                
+                if (snapshot.docs.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <p>Nessun guasto segnalato</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                snapshot.docs.forEach(doc => {
+                    const guasto = { id: doc.id, ...doc.data() };
+                    
+                    // Determina quale macchina/attrezzo mostrare (priorità a trattore, poi attrezzo)
+                    let macchinaNome = '';
+                    let tipoIcon = '❓';
+                    
+                    if (guasto.macchinaId) {
+                        const macchina = macchineList.find(m => m.id === guasto.macchinaId);
+                        if (macchina) {
+                            macchinaNome = `🚜 ${macchina.nome}`;
+                            tipoIcon = '🚜';
+                        }
+                    }
+                    
+                    if (guasto.attrezzoId) {
+                        const attrezzo = macchineList.find(m => m.id === guasto.attrezzoId);
+                        if (attrezzo) {
+                            if (macchinaNome) {
+                                macchinaNome += ` + ⚙️ ${attrezzo.nome}`;
+                            } else {
+                                macchinaNome = `⚙️ ${attrezzo.nome}`;
+                                tipoIcon = '⚙️';
+                            }
+                        }
+                    }
+                    
+                    if (!macchinaNome) {
+                        macchinaNome = 'Macchina non trovata';
+                    }
+
+                    const stato = guasto.stato || 'in-attesa';
+                    const gravitaBadge = guasto.gravita === 'grave' 
+                        ? '<span class="guasto-badge badge-grave">🔴 Grave</span>'
+                        : '<span class="guasto-badge badge-non-grave">🟡 Non grave</span>';
+
+                    const statoBadge = stato === 'risolto'
+                        ? '<span class="guasto-badge badge-risolto">✅ Risolto</span>'
+                        : '<span class="guasto-badge badge-in-attesa">⏳ In attesa</span>';
+
+                    const dataSegnalazione = guasto.segnalatoIl?.toDate 
+                        ? guasto.segnalatoIl.toDate().toLocaleString('it-IT')
+                        : new Date(guasto.segnalatoIl).toLocaleString('it-IT');
+
+                    html += `
+                        <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'in-attesa' : ''}">
+                            <div class="guasto-header">
+                                <div class="guasto-title">${tipoIcon} ${macchinaNome}</div>
+                                <div style="display: flex; gap: 8px;">
+                                    ${gravitaBadge}
+                                    ${statoBadge}
+                                </div>
+                            </div>
+                            <div class="guasto-details">
+                                <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
+                                <div><strong>Segnalato il:</strong> ${dataSegnalazione}</div>
+                                ${guasto.stato === 'risolto' ? `
+                                    <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? guasto.risoltoIl.toDate().toLocaleString('it-IT') : '-'}</div>
+                                    <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
+                                    ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
+                                ` : ''}
+                                ${guasto.stato === 'approvato-continuazione' ? `
+                                    <div style="color: #856404; font-weight: 600; margin-top: 10px;">
+                                        ✅ Continuazione approvata - Puoi continuare a lavorare
+                                    </div>
+                                ` : ''}
+                                ${guasto.stato === 'sospeso' ? `
+                                    <div style="color: #dc3545; font-weight: 600; margin-top: 10px;">
+                                        ⛔ Lavoro sospeso dal Manager
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${stato !== 'risolto' ? `
+                                <div class="guasto-actions">
+                                    <button class="btn btn-success" onclick="openRisolviModal('${guasto.id}')">
+                                        ✅ Risolvi Guasto
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
+            // Gestione form segnala guasto
+            document.getElementById('segnala-guasto-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const macchinaId = document.getElementById('guasto-macchina').value;
+                const attrezzoId = document.getElementById('guasto-attrezzo').value || null;
+                const gravita = document.querySelector('input[name="gravita"]:checked')?.value;
+                const dettagli = document.getElementById('guasto-dettagli').value.trim();
+                const lavoroId = document.getElementById('guasto-lavoro').value || null;
+
+                if (!gravita || !dettagli) {
+                    showAlert('Compila tutti i campi obbligatori (Gravità, Dettagli)', 'error');
+                    return;
+                }
+
+                // Deve esserci almeno un trattore o un attrezzo
+                if (!macchinaId && !attrezzoId) {
+                    showAlert('Seleziona almeno un trattore o un attrezzo', 'error');
+                    return;
+                }
+
+                try {
+                    const guastoData = {
+                        macchinaId: macchinaId || null, // Trattore (può essere null se c'è solo attrezzo)
+                        attrezzoId: attrezzoId, // Attrezzo separato se presente
+                        gravita,
+                        dettagli,
+                        lavoroId,
+                        segnalatoDa: currentUser.uid,
+                        segnalatoIl: serverTimestamp(),
+                        stato: 'in-attesa',
+                        risolto: false
+                    };
+
+                    await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
+
+                    // Aggiorna stato trattore se presente
+                    if (macchinaId) {
+                        const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
+                        const macchinaDoc = await getDoc(macchinaRef);
+                        if (macchinaDoc.exists()) {
+                            let nuovoStato = 'guasto';
+                            if (gravita === 'non-grave') {
+                                nuovoStato = 'guasto-lavoro-in-corso';
+                            }
+                            await updateDoc(macchinaRef, {
+                                stato: nuovoStato
+                            });
+                        }
+                    }
+
+                    // Aggiorna stato attrezzo se presente
+                    if (attrezzoId) {
+                        const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
+                        const attrezzoDoc = await getDoc(attrezzoRef);
+                        if (attrezzoDoc.exists()) {
+                            let nuovoStato = 'guasto';
+                            if (gravita === 'non-grave') {
+                                nuovoStato = 'guasto-lavoro-in-corso';
+                            }
+                            await updateDoc(attrezzoRef, {
+                                stato: nuovoStato
+                            });
+                        }
+                    }
+
+                    // Se guasto grave e c'è un lavoro associato, sospendi lavoro
+                    if (gravita === 'grave' && lavoroId) {
+                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, lavoroId);
+                        await updateDoc(lavoroRef, {
+                            stato: 'sospeso',
+                            motivoSospensione: 'Guasto macchina grave'
+                        });
+                    }
+
+                    showAlert('Guasto segnalato con successo!', 'success');
+                    document.getElementById('segnala-guasto-form').reset();
+                } catch (error) {
+                    console.error('Errore segnalazione guasto:', error);
+                    showAlert('Errore segnalazione guasto: ' + error.message, 'error');
+                }
+            });
+
+            // Funzioni globali per modal
+            window.openRisolviModal = function(guastoId) {
+                document.getElementById('risolvi-guasto-id').value = guastoId;
+                document.getElementById('risolvi-modal').classList.add('show');
+            };
+
+            window.closeRisolviModal = function() {
+                document.getElementById('risolvi-modal').classList.remove('show');
+                document.getElementById('risolvi-guasto-form').reset();
+            };
+
+            // Gestione form risolvi guasto
+            document.getElementById('risolvi-guasto-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const guastoId = document.getElementById('risolvi-guasto-id').value;
+                const noteRisoluzione = document.getElementById('risolvi-note').value.trim();
+                const costoRiparazione = parseFloat(document.getElementById('risolvi-costo').value) || null;
+
+                if (!noteRisoluzione) {
+                    showAlert('Inserisci le note di risoluzione', 'error');
+                    return;
+                }
+
+                try {
+                    const guastoRef = doc(db, `tenants/${currentTenantId}/guasti`, guastoId);
+                    const guastoDoc = await getDoc(guastoRef);
+                    
+                    if (!guastoDoc.exists()) {
+                        throw new Error('Guasto non trovato');
+                    }
+
+                    const guastoData = guastoDoc.data();
+                    const updateData = {
+                        stato: 'risolto',
+                        risolto: true,
+                        risoltoDa: currentUser.uid,
+                        risoltoIl: serverTimestamp(),
+                        noteRisoluzione
+                    };
+
+                    if (costoRiparazione !== null) {
+                        updateData.costoRiparazione = costoRiparazione;
+                    }
+
+                    await updateDoc(guastoRef, updateData);
+
+                    // Ripristina stato macchina
+                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                    const macchinaDoc = await getDoc(macchinaRef);
+                    if (macchinaDoc.exists()) {
+                        const macchinaData = macchinaDoc.data();
+                        // Ripristina stato precedente o disponibile
+                        let nuovoStato = 'disponibile';
+                        if (macchinaData.stato === 'guasto-lavoro-in-corso') {
+                            // Se era in uso prima del guasto, ripristina in uso
+                            nuovoStato = 'in-uso';
+                        }
+
+                        await updateDoc(macchinaRef, {
+                            stato: nuovoStato
+                        });
+                    }
+
+                    // Se c'era un lavoro sospeso, riattivalo (il manager dovrà confermare)
+                    if (guastoData.lavoroId) {
+                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
+                        const lavoroDoc = await getDoc(lavoroRef);
+                        if (lavoroDoc.exists()) {
+                            const lavoroData = lavoroDoc.data();
+                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione === 'Guasto macchina grave') {
+                                // Non riattiviamo automaticamente, il manager deve decidere
+                                await updateDoc(lavoroRef, {
+                                    motivoSospensione: 'Guasto risolto - In attesa riattivazione Manager'
+                                });
+                            }
+                        }
+                    }
+
+                    showAlert('Guasto risolto con successo! La macchina è ora disponibile.', 'success');
+                    closeRisolviModal();
+                } catch (error) {
+                    console.error('Errore risoluzione guasto:', error);
+                    showAlert('Errore risoluzione guasto: ' + error.message, 'error');
+                }
+            });
+
+            // Chiudi modal cliccando fuori
+            document.getElementById('risolvi-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'risolvi-modal') {
+                    closeRisolviModal();
+                }
+            });
+
+            // Funzione showAlert
+            function showAlert(message, type) {
+                const container = document.getElementById('alert-container');
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} show`;
+                alert.textContent = message;
+                container.innerHTML = '';
+                container.appendChild(alert);
+                
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                    setTimeout(() => container.removeChild(alert), 300);
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
+

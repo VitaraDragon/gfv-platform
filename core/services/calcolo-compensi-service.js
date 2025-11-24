@@ -234,3 +234,4 @@ export function formattaEuro(euro) {
   }).format(euro);
 }
 
+

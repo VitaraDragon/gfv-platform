@@ -25,6 +25,8 @@
 ### 3. Pagine ✅
 - ✅ Login (`login-standalone.html`) - **TESTATO E FUNZIONANTE**
 - ✅ Dashboard base (`dashboard-standalone.html`) - **TESTATO E FUNZIONANTE**
+- ✅ Segnalazione Guasti (`admin/segnalazione-guasti-standalone.html`) - **COMPLETATO**
+- ✅ Gestione Guasti (`admin/gestione-guasti-standalone.html`) - **COMPLETATO**
 
 ### 4. Configurazione ✅
 - ✅ Firebase configurato (Web, Android, iOS)
@@ -53,6 +55,25 @@
 - [x] Mostra info utente
 - [x] Logout funzionante
 - [x] **TESTATO E FUNZIONANTE**
+
+---
+
+## 🔧 Sistema Segnalazione e Gestione Guasti Macchine ✅ (2025-01-24)
+
+### Funzionalità Completate
+- ✅ Pagina segnalazione guasti per operai con precompilazione automatica
+- ✅ Pagina gestione guasti per manager con azioni complete
+- ✅ Integrazione dashboard manager (card guasti real-time)
+- ✅ Calcolo automatico stato progresso lavori (marcatori mappa)
+- ✅ Fix ricerca lavori attivi (stati multipli)
+- ✅ Fix visualizzazione terreno nella dashboard operaio
+- ✅ Supporto lavori autonomi e lavori di squadra
+
+### File Modificati
+- ✅ `core/admin/segnalazione-guasti-standalone.html` - Nuova pagina
+- ✅ `core/admin/gestione-guasti-standalone.html` - Nuova pagina
+- ✅ `core/dashboard-standalone.html` - Card guasti + calcolo progresso
+- ✅ `core/js/dashboard-sections.js` - Link segnalazione guasti
 
 ---
 

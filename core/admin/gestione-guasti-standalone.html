@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Guasti - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #856404;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #2E8B57;
+            padding-bottom: 10px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .guasti-list {
+            margin-top: 20px;
+        }
+
+        .guasto-item {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .guasto-item.risolto {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .guasto-item.approvato {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .guasto-item.sospeso {
+            border-left-color: #6c757d;
+            background: #e9ecef;
+        }
+
+        .guasto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .guasto-title {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .guasto-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-grave {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-non-grave {
+            background: #ffc107;
+            color: #856404;
+        }
+
+        .badge-risolto {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-in-attesa {
+            background: #6c757d;
+            color: white;
+        }
+
+        .badge-approvato {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge-sospeso {
+            background: #6c757d;
+            color: white;
+        }
+
+        .guasto-details {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .guasto-details div {
+            margin-bottom: 8px;
+        }
+
+        .guasto-details strong {
+            color: #333;
+        }
+
+        .guasto-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            color: #333;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group textarea,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 32px;
+            color: #2E8B57;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🔧 Gestione Guasti</h1>
+                <p>Gestisci tutti i guasti segnalati e le risoluzioni</p>
+            </div>
+            <div class="header-actions">
+                <a href="../dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <!-- Statistiche -->
+        <div class="content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="stat-gravi">-</h3>
+                    <p>Guasti Gravi</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-non-gravi">-</h3>
+                    <p>Guasti Non Gravi</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-risolti">-</h3>
+                    <p>Guasti Risolti</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="stat-totali">-</h3>
+                    <p>Totale Guasti</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtri -->
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Filtra per Stato</label>
+                    <select id="filter-stato">
+                        <option value="">Tutti</option>
+                        <option value="in-attesa">In attesa</option>
+                        <option value="approvato-continuazione">Approvato continuazione</option>
+                        <option value="sospeso">Sospeso</option>
+                        <option value="risolto">Risolto</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Gravità</label>
+                    <select id="filter-gravita">
+                        <option value="">Tutte</option>
+                        <option value="grave">Grave</option>
+                        <option value="non-grave">Non grave</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Macchina</label>
+                    <select id="filter-macchina">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="align-self: flex-end;">
+                    <button class="btn btn-secondary" onclick="resetFilters()">Pulisci Filtri</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista Guasti -->
+        <div class="content">
+            <h2 class="section-title">Elenco Guasti</h2>
+            <div id="guasti-list" class="guasti-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">⏳</div>
+                    <p>Caricamento guasti...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Risolvi Guasto -->
+    <div id="risolvi-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Risolvi Guasto</h3>
+                <button class="close-modal" onclick="closeRisolviModal()">&times;</button>
+            </div>
+            <form id="risolvi-guasto-form">
+                <input type="hidden" id="risolvi-guasto-id">
+                
+                <div class="form-group">
+                    <label for="risolvi-note">Note di risoluzione *</label>
+                    <textarea id="risolvi-note" required placeholder="Descrivi come è stato risolto il problema..."></textarea>
+                    <small>Es: "Sostituito filtro olio", "Riparato tubo idraulico"</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="risolvi-costo">Costo riparazione (€) - Opzionale</label>
+                    <input type="number" id="risolvi-costo" step="0.01" min="0" placeholder="0.00">
+                    <small>Inserisci il costo se sono stati acquistati pezzi di ricambio</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-success">✅ Conferma Risoluzione</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRisolviModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Riapri Guasto -->
+    <div id="riapri-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Riapri Guasto</h3>
+                <button class="close-modal" onclick="closeRiapriModal()">&times;</button>
+            </div>
+            <form id="riapri-guasto-form">
+                <input type="hidden" id="riapri-guasto-id">
+                
+                <div class="form-group">
+                    <label for="riapri-motivo">Motivo riapertura *</label>
+                    <textarea id="riapri-motivo" required placeholder="Spiega perché il guasto viene riaperto..."></textarea>
+                    <small>Descrivi il motivo per cui il guasto deve essere riaperto</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-danger">⚠️ Riapri Guasto</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRiapriModal()">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase SDK (devono essere al top-level del modulo)
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Carica Firebase config
+        let firebaseConfig = {};
+        let app = null;
+        let auth = null;
+        let db = null;
+
+        try {
+            const configScript = document.createElement('script');
+            configScript.src = '../config/firebase-config.js';
+            configScript.onload = () => {
+                if (window.firebaseConfig) {
+                    firebaseConfig = window.firebaseConfig;
+                    initApp();
+                }
+            };
+            configScript.onerror = () => {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(configScript);
+        } catch (e) {
+            console.error('Errore caricamento config:', e);
+        }
+
+        async function initApp() {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            let currentUser = null;
+            let currentTenantId = null;
+            let macchineList = [];
+            let usersMap = new Map();
+            let lavoriMap = new Map();
+            let guastiList = [];
+            let guastiUnsubscribe = null;
+
+            // Verifica autenticazione
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.href = '../auth/login-standalone.html';
+                    return;
+                }
+
+                try {
+                    currentUser = user;
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (!userDoc.exists()) {
+                        window.location.href = '../auth/login-standalone.html';
+                        return;
+                    }
+
+                    const userData = userDoc.data();
+                    currentTenantId = userData.tenantId;
+
+                    // Verifica permessi (solo Manager o Amministratore)
+                    const ruoli = userData.ruoli || [];
+                    const isManager = ruoli.some(r => {
+                        const roleLower = r.toLowerCase();
+                        return roleLower.includes('manager') || roleLower.includes('amministratore');
+                    });
+
+                    if (!isManager) {
+                        showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../dashboard-standalone.html';
+                        }, 2000);
+                        return;
+                    }
+
+                    // Verifica modulo Parco Macchine
+                    if (currentTenantId) {
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            if (tenantDoc.exists()) {
+                                const tenantData = tenantDoc.data();
+                                const hasParcoMacchine = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                                if (!hasParcoMacchine) {
+                                    showAlert('Questa pagina è disponibile solo con il modulo Parco Macchine attivo.', 'error');
+                                    setTimeout(() => {
+                                        window.location.href = '../dashboard-standalone.html';
+                                    }, 3000);
+                                    return;
+                                }
+                            }
+                        } catch (error) {
+                            console.warn('Errore verifica modulo:', error);
+                        }
+                    }
+
+                    await loadMacchine();
+                    await loadUsers();
+                    await loadLavori();
+                    await setupGuastiRealtime();
+                    setupFilters();
+                } catch (error) {
+                    console.error('Errore:', error);
+                    showAlert('Errore caricamento dati', 'error');
+                }
+            });
+
+            // Carica macchine
+            async function loadMacchine() {
+                try {
+                    if (!currentTenantId) return;
+
+                    const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
+                    const snapshot = await getDocs(macchineRef);
+                    
+                    macchineList = [];
+                    const macchinaSelect = document.getElementById('filter-macchina');
+                    macchinaSelect.innerHTML = '<option value="">Tutte</option>';
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        macchineList.push({ id: doc.id, ...data });
+                        const tipoIcon = (data.tipoMacchina || data.tipo) === 'trattore' ? '🚜' : '⚙️';
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.textContent = `${tipoIcon} ${data.nome || 'Macchina senza nome'}`;
+                        macchinaSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Errore caricamento macchine:', error);
+                }
+            }
+
+            // Carica utenti
+            async function loadUsers() {
+                try {
+                    const usersRef = collection(db, 'users');
+                    const snapshot = await getDocs(usersRef);
+                    
+                    usersMap.clear();
+                    snapshot.forEach(doc => {
+                        usersMap.set(doc.id, doc.data());
+                    });
+                } catch (error) {
+                    console.error('Errore caricamento utenti:', error);
+                }
+            }
+
+            // Carica lavori
+            async function loadLavori() {
+                try {
+                    if (!currentTenantId) return;
+
+                    const lavoriRef = collection(db, `tenants/${currentTenantId}/lavori`);
+                    const snapshot = await getDocs(lavoriRef);
+                    
+                    lavoriMap.clear();
+                    snapshot.forEach(doc => {
+                        lavoriMap.set(doc.id, doc.data());
+                    });
+                } catch (error) {
+                    console.error('Errore caricamento lavori:', error);
+                }
+            }
+
+            // Setup listener real-time per guasti
+            function setupGuastiRealtime() {
+                try {
+                    if (!currentTenantId) return;
+
+                    // Rimuovi listener precedente
+                    if (guastiUnsubscribe) {
+                        guastiUnsubscribe();
+                        guastiUnsubscribe = null;
+                    }
+
+                    const guastiRef = collection(db, `tenants/${currentTenantId}/guasti`);
+                    const guastiQuery = query(guastiRef, orderBy('segnalatoIl', 'desc'));
+
+                    guastiUnsubscribe = onSnapshot(
+                        guastiQuery,
+                        (snapshot) => {
+                            guastiList = [];
+                            snapshot.forEach(doc => {
+                                guastiList.push({ id: doc.id, ...doc.data() });
+                            });
+                            updateStats();
+                            filterGuasti();
+                        },
+                        (error) => {
+                            console.error('Errore listener guasti:', error);
+                            // Se fallisce, prova senza orderBy
+                            const allGuastiRef = collection(db, `tenants/${currentTenantId}/guasti`);
+                            guastiUnsubscribe = onSnapshot(
+                                allGuastiRef,
+                                (snapshot) => {
+                                    guastiList = [];
+                                    snapshot.forEach(doc => {
+                                        guastiList.push({ id: doc.id, ...doc.data() });
+                                    });
+                                    guastiList.sort((a, b) => {
+                                        const dateA = a.segnalatoIl?.toDate ? a.segnalatoIl.toDate() : new Date(a.segnalatoIl || 0);
+                                        const dateB = b.segnalatoIl?.toDate ? b.segnalatoIl.toDate() : new Date(b.segnalatoIl || 0);
+                                        return dateB - dateA;
+                                    });
+                                    updateStats();
+                                    filterGuasti();
+                                },
+                                (error) => {
+                                    console.error('Errore listener guasti:', error);
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.error('Errore setup listener guasti:', error);
+                }
+            }
+
+            // Aggiorna statistiche
+            function updateStats() {
+                const gravi = guastiList.filter(g => g.gravita === 'grave' && g.stato !== 'risolto').length;
+                const nonGravi = guastiList.filter(g => g.gravita === 'non-grave' && g.stato !== 'risolto').length;
+                const risolti = guastiList.filter(g => g.stato === 'risolto').length;
+                const totali = guastiList.length;
+
+                document.getElementById('stat-gravi').textContent = gravi;
+                document.getElementById('stat-non-gravi').textContent = nonGravi;
+                document.getElementById('stat-risolti').textContent = risolti;
+                document.getElementById('stat-totali').textContent = totali;
+            }
+
+            // Filtra guasti
+            function filterGuasti() {
+                const filterStato = document.getElementById('filter-stato').value;
+                const filterGravita = document.getElementById('filter-gravita').value;
+                const filterMacchina = document.getElementById('filter-macchina').value;
+
+                let filtered = guastiList;
+
+                if (filterStato) {
+                    filtered = filtered.filter(g => g.stato === filterStato);
+                }
+
+                if (filterGravita) {
+                    filtered = filtered.filter(g => g.gravita === filterGravita);
+                }
+
+                if (filterMacchina) {
+                    filtered = filtered.filter(g => g.macchinaId === filterMacchina);
+                }
+
+                renderGuasti(filtered);
+            }
+
+            // Render guasti
+            function renderGuasti(guasti) {
+                const container = document.getElementById('guasti-list');
+                
+                if (guasti.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">✅</div>
+                            <p>Nessun guasto trovato</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                guasti.forEach(guasto => {
+                    const macchina = macchineList.find(m => m.id === guasto.macchinaId);
+                    const macchinaNome = macchina ? macchina.nome : 'Macchina non trovata';
+                    const tipoIcon = macchina ? ((macchina.tipoMacchina || macchina.tipo) === 'trattore' ? '🚜' : '⚙️') : '❓';
+
+                    const operaio = usersMap.get(guasto.segnalatoDa);
+                    const operaioNome = operaio ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email : 'Operaio sconosciuto';
+
+                    const dataSegnalazione = guasto.segnalatoIl?.toDate 
+                        ? guasto.segnalatoIl.toDate().toLocaleString('it-IT')
+                        : new Date(guasto.segnalatoIl).toLocaleString('it-IT');
+
+                    const stato = guasto.stato || 'in-attesa';
+                    const gravitaBadge = guasto.gravita === 'grave' 
+                        ? '<span class="badge badge-grave">🔴 Grave</span>'
+                        : '<span class="badge badge-non-grave">🟡 Non grave</span>';
+
+                    let statoBadge = '';
+                    if (stato === 'risolto') {
+                        statoBadge = '<span class="badge badge-risolto">✅ Risolto</span>';
+                    } else if (stato === 'approvato-continuazione') {
+                        statoBadge = '<span class="badge badge-approvato">✅ Continuazione approvata</span>';
+                    } else if (stato === 'sospeso') {
+                        statoBadge = '<span class="badge badge-sospeso">⛔ Sospeso</span>';
+                    } else {
+                        statoBadge = '<span class="badge badge-in-attesa">⏳ In attesa</span>';
+                    }
+
+                    const lavoro = guasto.lavoroId ? lavoriMap.get(guasto.lavoroId) : null;
+                    const lavoroNome = lavoro ? lavoro.nome : null;
+
+                    html += `
+                        <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'approvato' : stato === 'sospeso' ? 'sospeso' : ''}">
+                            <div class="guasto-header">
+                                <div class="guasto-title">${tipoIcon} ${macchinaNome}</div>
+                                <div class="guasto-badges">
+                                    ${gravitaBadge}
+                                    ${statoBadge}
+                                </div>
+                            </div>
+                            <div class="guasto-details">
+                                <div><strong>Operaio:</strong> ${operaioNome}</div>
+                                <div><strong>Segnalato il:</strong> ${dataSegnalazione}</div>
+                                <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
+                                ${lavoroNome ? `<div><strong>Lavoro associato:</strong> ${lavoroNome}</div>` : ''}
+                                ${guasto.stato === 'risolto' ? `
+                                    <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? guasto.risoltoIl.toDate().toLocaleString('it-IT') : '-'}</div>
+                                    <div><strong>Risolto da:</strong> ${guasto.risoltoDa ? (usersMap.get(guasto.risoltoDa)?.nome || usersMap.get(guasto.risoltoDa)?.email || 'Sconosciuto') : 'Sconosciuto'}</div>
+                                    <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
+                                    ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
+                                ` : ''}
+                                ${guasto.stato === 'approvato-continuazione' ? `
+                                    <div style="color: #856404; font-weight: 600; margin-top: 10px;">
+                                        ✅ Continuazione approvata - L'operaio può continuare a lavorare
+                                    </div>
+                                ` : ''}
+                                ${guasto.stato === 'sospeso' ? `
+                                    <div style="color: #721c24; font-weight: 600; margin-top: 10px;">
+                                        ⛔ Lavoro sospeso
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${stato !== 'risolto' ? `
+                                <div class="guasto-actions">
+                                    ${guasto.gravita === 'non-grave' && stato === 'in-attesa' ? `
+                                        <button class="btn btn-success btn-sm" onclick="approvaContinuazione('${guasto.id}')">
+                                            ✅ Approva Continuazione
+                                        </button>
+                                    ` : ''}
+                                    ${stato !== 'sospeso' ? `
+                                        <button class="btn btn-danger btn-sm" onclick="sospendiLavoro('${guasto.id}')">
+                                            ⛔ Sospendi Lavoro
+                                        </button>
+                                    ` : ''}
+                                    <button class="btn btn-success btn-sm" onclick="openRisolviModal('${guasto.id}')">
+                                        ✅ Risolvi Guasto
+                                    </button>
+                                </div>
+                            ` : `
+                                <div class="guasto-actions">
+                                    <button class="btn btn-warning btn-sm" onclick="openRiapriModal('${guasto.id}')">
+                                        🔄 Riapri Guasto
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            }
+
+            // Setup filtri
+            function setupFilters() {
+                document.getElementById('filter-stato').addEventListener('change', filterGuasti);
+                document.getElementById('filter-gravita').addEventListener('change', filterGuasti);
+                document.getElementById('filter-macchina').addEventListener('change', filterGuasti);
+            }
+
+            // Reset filtri
+            window.resetFilters = function() {
+                document.getElementById('filter-stato').value = '';
+                document.getElementById('filter-gravita').value = '';
+                document.getElementById('filter-macchina').value = '';
+                filterGuasti();
+            };
+
+            // Approva continuazione
+            window.approvaContinuazione = async function(guastoId) {
+                if (!confirm('Sei sicuro di voler approvare la continuazione del lavoro?')) return;
+
+                try {
+                    const guastoRef = doc(db, `tenants/${currentTenantId}/guasti`, guastoId);
+                    await updateDoc(guastoRef, {
+                        stato: 'approvato-continuazione',
+                        approvatoDa: currentUser.uid,
+                        approvatoIl: serverTimestamp()
+                    });
+
+                    showAlert('Continuazione approvata con successo!', 'success');
+                } catch (error) {
+                    console.error('Errore approvazione continuazione:', error);
+                    showAlert('Errore approvazione continuazione: ' + error.message, 'error');
+                }
+            };
+
+            // Sospendi lavoro
+            window.sospendiLavoro = async function(guastoId) {
+                if (!confirm('Sei sicuro di voler sospendere il lavoro?')) return;
+
+                try {
+                    const guastoRef = doc(db, `tenants/${currentTenantId}/guasti`, guastoId);
+                    const guastoDoc = await getDoc(guastoRef);
+                    if (!guastoDoc.exists()) {
+                        throw new Error('Guasto non trovato');
+                    }
+
+                    const guastoData = guastoDoc.data();
+                    await updateDoc(guastoRef, {
+                        stato: 'sospeso',
+                        sospesoDa: currentUser.uid,
+                        sospesoIl: serverTimestamp()
+                    });
+
+                    // Aggiorna stato macchina
+                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                    await updateDoc(macchinaRef, {
+                        stato: 'guasto'
+                    });
+
+                    // Sospendi lavoro se presente
+                    if (guastoData.lavoroId) {
+                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
+                        await updateDoc(lavoroRef, {
+                            stato: 'sospeso',
+                            motivoSospensione: 'Guasto macchina - Sospeso dal Manager'
+                        });
+                    }
+
+                    showAlert('Lavoro sospeso con successo!', 'success');
+                } catch (error) {
+                    console.error('Errore sospensione lavoro:', error);
+                    showAlert('Errore sospensione lavoro: ' + error.message, 'error');
+                }
+            };
+
+            // Apri modal risolvi
+            window.openRisolviModal = function(guastoId) {
+                document.getElementById('risolvi-guasto-id').value = guastoId;
+                document.getElementById('risolvi-modal').classList.add('show');
+            };
+
+            // Chiudi modal risolvi
+            window.closeRisolviModal = function() {
+                document.getElementById('risolvi-modal').classList.remove('show');
+                document.getElementById('risolvi-guasto-form').reset();
+            };
+
+            // Gestione form risolvi
+            document.getElementById('risolvi-guasto-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const guastoId = document.getElementById('risolvi-guasto-id').value;
+                const noteRisoluzione = document.getElementById('risolvi-note').value.trim();
+                const costoRiparazione = parseFloat(document.getElementById('risolvi-costo').value) || null;
+
+                if (!noteRisoluzione) {
+                    showAlert('Inserisci le note di risoluzione', 'error');
+                    return;
+                }
+
+                try {
+                    const guastoRef = doc(db, `tenants/${currentTenantId}/guasti`, guastoId);
+                    const guastoDoc = await getDoc(guastoRef);
+                    
+                    if (!guastoDoc.exists()) {
+                        throw new Error('Guasto non trovato');
+                    }
+
+                    const guastoData = guastoDoc.data();
+                    const updateData = {
+                        stato: 'risolto',
+                        risolto: true,
+                        risoltoDa: currentUser.uid,
+                        risoltoIl: serverTimestamp(),
+                        noteRisoluzione
+                    };
+
+                    if (costoRiparazione !== null) {
+                        updateData.costoRiparazione = costoRiparazione;
+                    }
+
+                    await updateDoc(guastoRef, updateData);
+
+                    // Ripristina stato macchina
+                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                    const macchinaDoc = await getDoc(macchinaRef);
+                    if (macchinaDoc.exists()) {
+                        const macchinaData = macchinaDoc.data();
+                        let nuovoStato = 'disponibile';
+                        if (macchinaData.stato === 'guasto-lavoro-in-corso') {
+                            nuovoStato = 'in-uso';
+                        }
+
+                        await updateDoc(macchinaRef, {
+                            stato: nuovoStato
+                        });
+                    }
+
+                    // Se c'era un lavoro sospeso, riattivalo
+                    if (guastoData.lavoroId) {
+                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
+                        const lavoroDoc = await getDoc(lavoroRef);
+                        if (lavoroDoc.exists()) {
+                            const lavoroData = lavoroDoc.data();
+                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione?.includes('Guasto')) {
+                                await updateDoc(lavoroRef, {
+                                    stato: 'attivo',
+                                    motivoSospensione: null
+                                });
+                            }
+                        }
+                    }
+
+                    showAlert('Guasto risolto con successo!', 'success');
+                    closeRisolviModal();
+                } catch (error) {
+                    console.error('Errore risoluzione guasto:', error);
+                    showAlert('Errore risoluzione guasto: ' + error.message, 'error');
+                }
+            });
+
+            // Apri modal riapri
+            window.openRiapriModal = function(guastoId) {
+                document.getElementById('riapri-guasto-id').value = guastoId;
+                document.getElementById('riapri-modal').classList.add('show');
+            };
+
+            // Chiudi modal riapri
+            window.closeRiapriModal = function() {
+                document.getElementById('riapri-modal').classList.remove('show');
+                document.getElementById('riapri-guasto-form').reset();
+            };
+
+            // Gestione form riapri
+            document.getElementById('riapri-guasto-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const guastoId = document.getElementById('riapri-guasto-id').value;
+                const motivo = document.getElementById('riapri-motivo').value.trim();
+
+                if (!motivo) {
+                    showAlert('Inserisci il motivo della riapertura', 'error');
+                    return;
+                }
+
+                if (!confirm('Sei sicuro di voler riaprire questo guasto?')) return;
+
+                try {
+                    const guastoRef = doc(db, `tenants/${currentTenantId}/guasti`, guastoId);
+                    const guastoDoc = await getDoc(guastoRef);
+                    
+                    if (!guastoDoc.exists()) {
+                        throw new Error('Guasto non trovato');
+                    }
+
+                    const guastoData = guastoDoc.data();
+                    await updateDoc(guastoRef, {
+                        stato: 'in-attesa',
+                        risolto: false,
+                        riapertoDa: currentUser.uid,
+                        riapertoIl: serverTimestamp(),
+                        motivoRiapertura: motivo,
+                        noteRisoluzione: null,
+                        risoltoDa: null,
+                        risoltoIl: null
+                    });
+
+                    // Aggiorna stato macchina
+                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                    await updateDoc(macchinaRef, {
+                        stato: guastoData.gravita === 'grave' ? 'guasto' : 'guasto-lavoro-in-corso'
+                    });
+
+                    showAlert('Guasto riaperto con successo!', 'success');
+                    closeRiapriModal();
+                } catch (error) {
+                    console.error('Errore riapertura guasto:', error);
+                    showAlert('Errore riapertura guasto: ' + error.message, 'error');
+                }
+            });
+
+            // Chiudi modal cliccando fuori
+            document.getElementById('risolvi-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'risolvi-modal') {
+                    closeRisolviModal();
+                }
+            });
+
+            document.getElementById('riapri-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'riapri-modal') {
+                    closeRiapriModal();
+                }
+            });
+
+            // Funzione showAlert
+            function showAlert(message, type) {
+                const container = document.getElementById('alert-container');
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} show`;
+                alert.textContent = message;
+                container.innerHTML = '';
+                container.appendChild(alert);
+                
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                    setTimeout(() => container.removeChild(alert), 300);
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
+

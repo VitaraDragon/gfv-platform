@@ -644,3 +644,4 @@ export default {
   SOTTOCATEGORIE_PREDEFINITE
 };
 
+

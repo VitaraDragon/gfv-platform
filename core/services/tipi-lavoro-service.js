@@ -496,3 +496,4 @@ export default {
   TIPI_LAVORO_PREDEFINITI
 };
 
+

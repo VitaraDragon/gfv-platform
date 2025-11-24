@@ -414,12 +414,37 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
                 <span class="action-title">Statistiche</span>
                 <span class="action-description">Visualizza statistiche dettagliate</span>
             </a>
+            ${availableModules && availableModules.includes('parcoMacchine') ? `
+            <a href="admin/gestione-macchine-standalone.html" class="action-card">
+                <span class="action-icon">🚜</span>
+                <span class="action-title">Gestione Macchine</span>
+                <span class="action-description">Gestisci parco macchine e guasti</span>
+            </a>
+            ` : ''}
             <a href="terreni-standalone.html" class="action-card">
                 <span class="action-icon">🗺️</span>
                 <span class="action-title">Terreni</span>
                 <span class="action-description">Gestisci terreni e vigneti</span>
             </a>
         </div>
+        ${availableModules && availableModules.includes('parcoMacchine') ? `
+        <div id="manutenzioni-scadenza-section" style="margin: 30px 0; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; display: none;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #856404; display: flex; align-items: center; gap: 8px;">
+                <span>⚠️</span> Manutenzioni in Scadenza
+            </h3>
+            <div id="manutenzioni-scadenza-list">
+                <div style="padding: 10px; text-align: center; color: #856404;">Caricamento manutenzioni...</div>
+            </div>
+        </div>
+        <div id="guasti-segnalati-section" style="margin: 30px 0; padding: 20px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 8px; display: none;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #721c24; display: flex; align-items: center; gap: 8px;">
+                <span>🔧</span> Guasti Segnalati
+            </h3>
+            <div id="guasti-segnalati-list">
+                <div style="padding: 10px; text-align: center; color: #721c24;">Caricamento guasti...</div>
+            </div>
+        </div>
+        ` : ''}
         <h3 style="margin: 30px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
         <ul class="recent-items" id="recent-lavori-manager-manodopera">
             <li class="recent-item">
@@ -620,6 +645,13 @@ window.GFVDashboardSections.createOperaioSection = function createOperaioSection
                 <span class="action-title">Traccia Zone</span>
                 <span class="action-description">Traccia zone lavorate</span>
             </a>
+            ${availableModules && availableModules.includes('parcoMacchine') ? `
+            <a href="admin/segnalazione-guasti-standalone.html" class="action-card">
+                <span class="action-icon">🔧</span>
+                <span class="action-title">Segnala Guasti</span>
+                <span class="action-description">Segnala guasti alle macchine</span>
+            </a>
+            ` : ''}
             <a href="segnatura-ore-standalone.html" class="action-card">
                 <span class="action-icon">📊</span>
                 <span class="action-title">Le Mie Ore</span>

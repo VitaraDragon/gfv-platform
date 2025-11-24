@@ -132,3 +132,4 @@ export class Categoria extends Base {
 
 export default Categoria;
 
+

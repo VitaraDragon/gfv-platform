@@ -623,6 +623,59 @@ gfv-platform/
 **File modificati**:
 - `core/dashboard-standalone.html`
 
+---
+
+## 🔧 Sistema Segnalazione e Gestione Guasti Macchine (2025-01-24)
+
+### Funzionalità Implementate
+
+#### 1. Segnalazione Guasti Operai
+- ✅ Pagina dedicata per operai (`core/admin/segnalazione-guasti-standalone.html`)
+- ✅ Precompilazione automatica campi:
+  - Trattore assegnato al lavoro corrente
+  - Attrezzo assegnato al lavoro corrente
+  - Lavoro attivo più recente
+- ✅ Supporto lavori autonomi e lavori di squadra
+- ✅ Selezione gravità guasto (grave/non grave)
+- ✅ Campo dettagli guasto
+- ✅ Aggiornamento automatico stato macchine
+- ✅ Sospensione automatica lavori per guasti gravi
+- ✅ Risoluzione guasti con note e costo riparazione
+
+#### 2. Gestione Guasti Manager
+- ✅ Pagina dedicata per manager (`core/admin/gestione-guasti-standalone.html`)
+- ✅ Visualizzazione tutti i guasti (aperti e risolti)
+- ✅ Filtri per stato, gravità, macchina
+- ✅ Azioni manager:
+  - Approvare continuazione lavoro (guasti non gravi)
+  - Sospendere lavoro (qualsiasi guasto)
+  - Risolvere guasto
+  - Riaprire guasto risolto
+- ✅ Storico guasti per macchina
+- ✅ Integrazione dashboard manager (card real-time)
+
+#### 3. Correzioni e Miglioramenti
+- ✅ Fix errori sintassi ES6 modules (import statements)
+- ✅ Fix ricerca lavori attivi (stati multipli)
+- ✅ Fix visualizzazione terreno nella dashboard operaio
+- ✅ Fix calcolo automatico stato progresso marcatori mappa
+- ✅ Fix precompilazione automatica campi
+- ✅ Fix gestione lavori assegnati tramite caposquadra
+
+#### 4. Calcolo Stato Progresso Lavori
+- ✅ Calcolo automatico `giorniEffettivi` dalla `dataInizio`
+- ✅ Calcolo automatico `percentualeCompletamento` da superficie
+- ✅ Calcolo automatico `statoProgresso` (in_ritardo/in_tempo/in_anticipo)
+- ✅ Marcatori mappa colorati con stato progresso
+
+**File creati**:
+- `core/admin/segnalazione-guasti-standalone.html` (NUOVO)
+- `core/admin/gestione-guasti-standalone.html` (NUOVO)
+
+**File modificati**:
+- `core/dashboard-standalone.html` (card guasti + calcolo progresso)
+- `core/js/dashboard-sections.js` (link segnalazione guasti)
+
 
 
 

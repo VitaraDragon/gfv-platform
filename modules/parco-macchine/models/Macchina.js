@@ -27,6 +27,7 @@ export class Macchina extends Base {
    * @param {string} data.note - Note opzionali
    * @param {Date|Timestamp} data.prossimaManutenzione - Data prossima manutenzione programmata - opzionale
    * @param {number} data.oreProssimaManutenzione - Ore alla prossima manutenzione - opzionale
+   * @param {number} data.costoOra - Costo orario macchina in euro (opzionale, per calcolo costi nei compensi)
    * 
    * Campi specifici TRATTORE:
    * @param {number} data.cavalli - Potenza trattore in CV (obbligatorio se tipoMacchina = "trattore")
@@ -85,6 +86,9 @@ export class Macchina extends Base {
     this.oreProssimaManutenzione = data.oreProssimaManutenzione !== undefined 
       ? parseFloat(data.oreProssimaManutenzione) 
       : null;
+    
+    // Costo orario macchina (opzionale, per calcolo costi nei compensi)
+    this.costoOra = data.costoOra !== undefined ? parseFloat(data.costoOra) : null;
     
     // Campi specifici TRATTORE
     this.cavalli = data.cavalli !== undefined ? parseFloat(data.cavalli) : null;
@@ -176,6 +180,10 @@ export class Macchina extends Base {
     
     if (this.oreProssimaManutenzione !== null && this.oreProssimaManutenzione < 0) {
       errors.push('Ore prossima manutenzione non possono essere negative');
+    }
+    
+    if (this.costoOra !== null && this.costoOra < 0) {
+      errors.push('Costo orario non può essere negativo');
     }
     
     return {

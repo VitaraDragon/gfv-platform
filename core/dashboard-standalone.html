@@ -94,7 +94,7 @@
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, getDoc, doc, updateDoc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy, limit, addDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, getDoc, doc, updateDoc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy, limit, addDoc, Timestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
@@ -225,14 +225,46 @@
                     }, 50);
                 }
 
-                // Sezione Caposquadra (solo con moduli avanzati)
+                // Sezione Caposquadra (solo con modulo Manodopera attivo)
                 if (hasRole(userData, 'caposquadra')) {
-                    container.appendChild(createCaposquadraSection(userData, isCoreOnly, availableModules, loadCaposquadraStats, loadRecentLavoriCaposquadra, loadComunicazioneRapida));
+                    if (hasManodopera) {
+                        container.appendChild(createCaposquadraSection(userData, isCoreOnly, availableModules, loadCaposquadraStats, loadRecentLavoriCaposquadra, loadComunicazioneRapida));
+                    } else {
+                        // Messaggio se caposquadra ma modulo Manodopera non attivo
+                        const noModuleSection = document.createElement('div');
+                        noModuleSection.className = 'dashboard-section';
+                        noModuleSection.innerHTML = `
+                            <h2><span class="section-icon">👷</span> Gestione Squadra</h2>
+                            <div class="empty-state" style="padding: 40px;">
+                                <div class="empty-state-icon">⚠️</div>
+                                <h3>Modulo Manodopera non attivo</h3>
+                                <p>Per accedere alle funzionalità di gestione squadra e lavori, è necessario attivare il modulo Manodopera.</p>
+                                <p style="margin-top: 10px; font-size: 14px; color: #666;">Contatta l'amministratore per attivare il modulo.</p>
+                            </div>
+                        `;
+                        container.appendChild(noModuleSection);
+                    }
                 }
 
-                // Sezione Operaio (solo con moduli avanzati)
+                // Sezione Operaio (solo con modulo Manodopera attivo)
                 if (hasRole(userData, 'operaio')) {
-                    container.appendChild(createOperaioSection(userData, isCoreOnly, availableModules, loadComunicazioniOperaio, loadLavoriOggiOperaio, loadStatisticheOreOperaio));
+                    if (hasManodopera) {
+                        container.appendChild(createOperaioSection(userData, isCoreOnly, availableModules, loadComunicazioniOperaio, loadLavoriOggiOperaio, loadStatisticheOreOperaio));
+                    } else {
+                        // Messaggio se operaio ma modulo Manodopera non attivo
+                        const noModuleSection = document.createElement('div');
+                        noModuleSection.className = 'dashboard-section';
+                        noModuleSection.innerHTML = `
+                            <h2><span class="section-icon">🔧</span> I Miei Lavori</h2>
+                            <div class="empty-state" style="padding: 40px;">
+                                <div class="empty-state-icon">⚠️</div>
+                                <h3>Modulo Manodopera non attivo</h3>
+                                <p>Per accedere alle funzionalità di gestione lavori e segnatura ore, è necessario attivare il modulo Manodopera.</p>
+                                <p style="margin-top: 10px; font-size: 14px; color: #666;">Contatta l'amministratore per attivare il modulo.</p>
+                            </div>
+                        `;
+                        container.appendChild(noModuleSection);
+                    }
                 }
             }
 
@@ -934,11 +966,27 @@
                         const lavoriSnapshot = await getDocs(lavoriCollection);
                         
                         const lavoriConProgressi = [];
+                        const oggi = new Date();
+                        oggi.setHours(0, 0, 0, 0);
+                        
                         lavoriSnapshot.forEach(doc => {
                             const data = doc.data();
                             const stato = data.stato || 'assegnato';
                             // Solo lavori attivi (non completati e non annullati)
                             if (stato !== 'completato' && stato !== 'annullato') {
+                                // Calcola giorni effettivi se non presente
+                                let giorniEffettivi = data.giorniEffettivi || 0;
+                                if (data.dataInizio && data.durataPrevista) {
+                                    const dataInizio = data.dataInizio?.toDate 
+                                        ? data.dataInizio.toDate() 
+                                        : (data.dataInizio ? new Date(data.dataInizio) : null);
+                                    if (dataInizio) {
+                                        const dataInizioSenzaOra = new Date(dataInizio);
+                                        dataInizioSenzaOra.setHours(0, 0, 0, 0);
+                                        giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizioSenzaOra) / (1000 * 60 * 60 * 24)) + 1);
+                                    }
+                                }
+                                
                                 lavoriConProgressi.push({
                                     id: doc.id,
                                     nome: data.nome || 'Lavoro senza nome',
@@ -951,18 +999,48 @@
                                     percentualeCompletamento: data.percentualeCompletamento || 0,
                                     statoProgresso: data.statoProgresso || null, // "in_anticipo" | "in_tempo" | "in_ritardo"
                                     superficieTotaleLavorata: data.superficieTotaleLavorata || 0,
-                                    giorniEffettivi: data.giorniEffettivi || 0
+                                    giorniEffettivi: giorniEffettivi
                                 });
                             }
                         });
 
-                        // Per ogni lavoro, trova il terreno e crea marker
+                        // Per ogni lavoro, calcola stato progresso se mancante e crea marker
                         for (const lavoro of lavoriConProgressi) {
                             try {
                                 // Trova terreno associato
                                 const terreno = terreni.find(t => t.id === lavoro.terrenoId);
                                 if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length < 3) {
                                     continue; // Salta se terreno non trovato o senza coordinate
+                                }
+                                
+                                // Calcola stato progresso se non presente e abbiamo i dati necessari
+                                if (!lavoro.statoProgresso && lavoro.dataInizio && lavoro.durataPrevista && lavoro.giorniEffettivi > 0) {
+                                    const superficieTotale = terreno.superficie || 0;
+                                    const superficieLavorata = lavoro.superficieTotaleLavorata || 0;
+                                    
+                                    // Calcola percentuale completamento se non presente
+                                    let percentualeCompletamento = lavoro.percentualeCompletamento;
+                                    if (!percentualeCompletamento && superficieTotale > 0) {
+                                        percentualeCompletamento = (superficieLavorata / superficieTotale) * 100;
+                                    }
+                                    
+                                    // Calcola percentuale tempo
+                                    const percentualeTempo = (lavoro.giorniEffettivi / lavoro.durataPrevista) * 100;
+                                    const tolleranza = 10; // Tolleranza del 10%
+                                    
+                                    // Determina stato progresso
+                                    if (percentualeCompletamento > percentualeTempo + tolleranza) {
+                                        lavoro.statoProgresso = 'in_anticipo';
+                                    } else if (percentualeCompletamento < percentualeTempo - tolleranza) {
+                                        lavoro.statoProgresso = 'in_ritardo';
+                                    } else {
+                                        lavoro.statoProgresso = 'in_tempo';
+                                    }
+                                    
+                                    // Aggiorna anche percentuale completamento se calcolata
+                                    if (!lavoro.percentualeCompletamento && superficieTotale > 0) {
+                                        lavoro.percentualeCompletamento = percentualeCompletamento;
+                                    }
                                 }
 
                                 // Calcola centro del terreno
@@ -1466,6 +1544,19 @@
                 const statSquadre = document.getElementById('stat-squadre-attive-manodopera');
                 const statOperai = document.getElementById('stat-operai-online-manodopera');
                 
+                // Carica manutenzioni in scadenza e guasti segnalati con listener real-time (solo se modulo Parco Macchine attivo)
+                const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                if (tenantDoc.exists()) {
+                    const tenantData = tenantDoc.data();
+                    const hasParcoMacchine = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                    if (hasParcoMacchine) {
+                        setTimeout(() => {
+                            setupManutenzioniRealtime(tenantId);
+                            setupGuastiRealtime(tenantId);
+                        }, 100);
+                    }
+                }
+                
                 if (statTotali) statTotali.textContent = totali;
                 if (statAttivi) statAttivi.textContent = attivi;
                 
@@ -1481,6 +1572,374 @@
                 if (statOperai) statOperai.textContent = operaiOnline;
             } catch (error) {
                 console.error('Errore caricamento statistiche Manodopera:', error);
+            }
+        }
+
+        // Setup listener real-time per manutenzioni in scadenza
+        let manutenzioniUnsubscribe = null;
+        function setupManutenzioniRealtime(tenantId) {
+            try {
+                const manutenzioniSection = document.getElementById('manutenzioni-scadenza-section');
+                const manutenzioniList = document.getElementById('manutenzioni-scadenza-list');
+                if (!manutenzioniSection || !manutenzioniList) return;
+
+                // Rimuovi listener precedente se esiste
+                if (manutenzioniUnsubscribe) {
+                    manutenzioniUnsubscribe();
+                    manutenzioniUnsubscribe = null;
+                }
+
+                const macchineRef = collection(db, `tenants/${tenantId}/macchine`);
+                
+                // Setup listener real-time
+                manutenzioniUnsubscribe = onSnapshot(
+                    macchineRef,
+                    (macchineSnapshot) => {
+                        updateManutenzioniUI(macchineSnapshot, manutenzioniSection, manutenzioniList);
+                    },
+                    (error) => {
+                        console.error('Errore listener manutenzioni:', error);
+                        if (manutenzioniSection) manutenzioniSection.style.display = 'none';
+                    }
+                );
+            } catch (error) {
+                console.error('Errore setup listener manutenzioni:', error);
+            }
+        }
+
+        // Aggiorna UI manutenzioni (chiamata dal listener real-time)
+        function updateManutenzioniUI(macchineSnapshot, manutenzioniSection, manutenzioniList) {
+            try {
+
+                if (!manutenzioniSection || !manutenzioniList) return;
+
+                const manutenzioniScadute = [];
+                const manutenzioniInScadenza = [];
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+
+                macchineSnapshot.forEach(macchinaDoc => {
+                    const macchina = { id: macchinaDoc.id, ...macchinaDoc.data() };
+                    if (macchina.stato === 'dismesso') return; // Ignora macchine dismesse
+
+                    const oreAttuali = macchina.oreAttuali || macchina.oreIniziali || 0;
+                    let isScaduta = false;
+                    let isInScadenza = false;
+                    let messaggio = '';
+
+                    // Verifica per ore
+                    if (macchina.oreProssimaManutenzione !== null && macchina.oreProssimaManutenzione !== undefined) {
+                        const oreRimanenti = macchina.oreProssimaManutenzione - oreAttuali;
+                        if (oreRimanenti <= 0) {
+                            isScaduta = true;
+                            const oreOltre = Math.abs(oreRimanenti);
+                            messaggio = `⚠️ Scaduta: ${oreOltre.toFixed(1)} ore oltre la manutenzione programmata`;
+                        } else if (oreRimanenti <= 50) {
+                            isInScadenza = true;
+                            messaggio = `⏰ In scadenza: ${oreRimanenti.toFixed(1)} ore rimanenti`;
+                        }
+                    }
+
+                    // Verifica per data
+                    if (macchina.prossimaManutenzione) {
+                        const dataManutenzione = macchina.prossimaManutenzione.toDate ? macchina.prossimaManutenzione.toDate() : new Date(macchina.prossimaManutenzione);
+                        dataManutenzione.setHours(0, 0, 0, 0);
+                        const giorniRimanenti = Math.ceil((dataManutenzione - oggi) / (1000 * 60 * 60 * 24));
+                        
+                        if (giorniRimanenti < 0) {
+                            isScaduta = true;
+                            const giorniOltre = Math.abs(giorniRimanenti);
+                            messaggio = messaggio ? `${messaggio} | Scaduta: ${giorniOltre} giorni fa` : `⚠️ Scaduta: ${giorniOltre} giorni fa`;
+                        } else if (giorniRimanenti <= 30 && giorniRimanenti >= 0) {
+                            isInScadenza = true;
+                            messaggio = messaggio ? `${messaggio} | ${giorniRimanenti} giorni rimanenti` : `⏰ In scadenza: ${giorniRimanenti} giorni rimanenti`;
+                        }
+                    }
+
+                    if (isScaduta) {
+                        manutenzioniScadute.push({ ...macchina, messaggio });
+                    } else if (isInScadenza) {
+                        manutenzioniInScadenza.push({ ...macchina, messaggio });
+                    }
+                });
+
+                // Mostra sezione solo se ci sono manutenzioni
+                if (manutenzioniScadute.length === 0 && manutenzioniInScadenza.length === 0) {
+                    manutenzioniSection.style.display = 'none';
+                    return;
+                }
+
+                manutenzioniSection.style.display = 'block';
+
+                let html = '';
+                
+                // Mostra prima quelle scadute
+                if (manutenzioniScadute.length > 0) {
+                    html += '<div style="margin-bottom: 15px;"><strong style="color: #dc3545;">🔴 Scadute:</strong></div>';
+                    manutenzioniScadute.forEach(m => {
+                        const tipoIcon = (m.tipoMacchina || m.tipo) === 'trattore' ? '🚜' : '⚙️';
+                        html += `
+                            <div style="padding: 10px; margin-bottom: 8px; background: #f8d7da; border-left: 3px solid #dc3545; border-radius: 4px;">
+                                <div style="font-weight: 600; color: #721c24;">${tipoIcon} ${m.nome || 'Macchina senza nome'}</div>
+                                <div style="font-size: 13px; color: #856404; margin-top: 4px;">${m.messaggio}</div>
+                                <div style="margin-top: 6px;">
+                                    <a href="admin/gestione-macchine-standalone.html" style="font-size: 12px; color: #2E8B57; text-decoration: none;">→ Vai a Gestione Macchine</a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Poi quelle in scadenza
+                if (manutenzioniInScadenza.length > 0) {
+                    if (manutenzioniScadute.length > 0) html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #856404;">🟡 In Scadenza:</strong></div>';
+                    else html += '<div style="margin-bottom: 15px;"><strong style="color: #856404;">🟡 In Scadenza:</strong></div>';
+                    manutenzioniInScadenza.forEach(m => {
+                        const tipoIcon = (m.tipoMacchina || m.tipo) === 'trattore' ? '🚜' : '⚙️';
+                        html += `
+                            <div style="padding: 10px; margin-bottom: 8px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 4px;">
+                                <div style="font-weight: 600; color: #856404;">${tipoIcon} ${m.nome || 'Macchina senza nome'}</div>
+                                <div style="font-size: 13px; color: #856404; margin-top: 4px;">${m.messaggio}</div>
+                                <div style="margin-top: 6px;">
+                                    <a href="admin/gestione-macchine-standalone.html" style="font-size: 12px; color: #2E8B57; text-decoration: none;">→ Vai a Gestione Macchine</a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                manutenzioniList.innerHTML = html;
+            } catch (error) {
+                console.error('Errore caricamento manutenzioni in scadenza:', error);
+                const manutenzioniSection = document.getElementById('manutenzioni-scadenza-section');
+                if (manutenzioniSection) manutenzioniSection.style.display = 'none';
+            }
+        }
+
+        // Setup listener real-time per guasti segnalati
+        let guastiUnsubscribe = null;
+        function setupGuastiRealtime(tenantId) {
+            try {
+                const guastiSection = document.getElementById('guasti-segnalati-section');
+                const guastiList = document.getElementById('guasti-segnalati-list');
+                if (!guastiSection || !guastiList) return;
+
+                // Rimuovi listener precedente se esiste
+                if (guastiUnsubscribe) {
+                    guastiUnsubscribe();
+                    guastiUnsubscribe = null;
+                }
+
+                const guastiRef = collection(db, `tenants/${tenantId}/guasti`);
+                
+                // Carica tutti i guasti e filtra/ordina in memoria (evita errori indice)
+                guastiUnsubscribe = onSnapshot(
+                    guastiRef,
+                    (guastiSnapshot) => {
+                        updateGuastiUI(guastiSnapshot, guastiSection, guastiList, tenantId);
+                    },
+                    (error) => {
+                        // Solo logga se non è un errore di indice
+                        if (!error.message || !error.message.includes('index')) {
+                            console.error('Errore listener guasti:', error);
+                        }
+                        if (guastiSection) guastiSection.style.display = 'none';
+                    }
+                );
+            } catch (error) {
+                console.error('Errore setup listener guasti:', error);
+            }
+        }
+
+        // Aggiorna UI guasti (chiamata dal listener real-time)
+        async function updateGuastiUI(guastiSnapshot, guastiSection, guastiList, tenantId) {
+            try {
+                if (!guastiSection || !guastiList) return;
+
+                // Carica macchine per ottenere nomi
+                const macchineRef = collection(db, `tenants/${tenantId}/macchine`);
+                const macchineSnapshot = await getDocs(macchineRef);
+                const macchineMap = new Map();
+                macchineSnapshot.forEach(doc => {
+                    macchineMap.set(doc.id, doc.data());
+                });
+
+                // Carica utenti per ottenere nomi operai
+                const usersRef = collection(db, 'users');
+                const usersSnapshot = await getDocs(usersRef);
+                const usersMap = new Map();
+                usersSnapshot.forEach(doc => {
+                    usersMap.set(doc.id, doc.data());
+                });
+
+                // Filtra solo guasti non risolti e ordina per data
+                const guastiAperti = [];
+                const guastiRisolti = [];
+
+                guastiSnapshot.forEach(doc => {
+                    const guasto = { id: doc.id, ...doc.data() };
+                    if (guasto.stato === 'risolto') {
+                        guastiRisolti.push(guasto);
+                    } else {
+                        guastiAperti.push(guasto);
+                    }
+                });
+
+                // Ordina per data segnalazione (più recente prima)
+                guastiAperti.sort((a, b) => {
+                    const dateA = a.segnalatoIl?.toDate 
+                        ? a.segnalatoIl.toDate() 
+                        : new Date(a.segnalatoIl || 0);
+                    const dateB = b.segnalatoIl?.toDate 
+                        ? b.segnalatoIl.toDate() 
+                        : new Date(b.segnalatoIl || 0);
+                    return dateB - dateA;
+                });
+
+                guastiRisolti.sort((a, b) => {
+                    const dateA = a.risoltoIl?.toDate 
+                        ? a.risoltoIl.toDate() 
+                        : new Date(a.risoltoIl || 0);
+                    const dateB = b.risoltoIl?.toDate 
+                        ? b.risoltoIl.toDate() 
+                        : new Date(b.risoltoIl || 0);
+                    return dateB - dateA;
+                });
+
+                // Mostra sezione solo se ci sono guasti
+                if (guastiAperti.length === 0 && guastiRisolti.length === 0) {
+                    guastiSection.style.display = 'none';
+                    return;
+                }
+
+                guastiSection.style.display = 'block';
+
+                let html = '';
+
+                // Guasti aperti (urgenti)
+                if (guastiAperti.length > 0) {
+                    html += '<div style="margin-bottom: 15px;"><strong style="color: #721c24;">🔴 Guasti Aperti:</strong></div>';
+                    guastiAperti.forEach(g => {
+                        const macchinaIdDaMostrare = g.macchinaId || g.attrezzoId;
+                        const macchina = macchineMap.get(macchinaIdDaMostrare);
+                        let macchinaNome = 'Macchina non trovata';
+                        let tipoIcon = '❓';
+                        
+                        if (macchina) {
+                            macchinaNome = macchina.nome;
+                            tipoIcon = (macchina.tipoMacchina || macchina.tipo) === 'trattore' ? '🚜' : '⚙️';
+                        }
+                        
+                        // Se ci sono sia trattore che attrezzo, mostra entrambi
+                        if (g.macchinaId && g.attrezzoId) {
+                            const attrezzo = macchineMap.get(g.attrezzoId);
+                            if (attrezzo) {
+                                macchinaNome += ` + ⚙️ ${attrezzo.nome}`;
+                            }
+                        } else if (g.attrezzoId && !g.macchinaId) {
+                            const attrezzo = macchineMap.get(g.attrezzoId);
+                            if (attrezzo) {
+                                macchinaNome = `⚙️ ${attrezzo.nome}`;
+                                tipoIcon = '⚙️';
+                            }
+                        }
+                        
+                        const operaio = usersMap.get(g.segnalatoDa);
+                        const operaioNome = operaio ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email : 'Operaio sconosciuto';
+
+                        const dataSegnalazione = g.segnalatoIl?.toDate 
+                            ? g.segnalatoIl.toDate().toLocaleString('it-IT')
+                            : new Date(g.segnalatoIl).toLocaleString('it-IT');
+
+                        const gravitaBadge = g.gravita === 'grave' 
+                            ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🔴 Grave</span>'
+                            : '<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🟡 Non grave</span>';
+
+                        const statoBadge = g.stato === 'approvato-continuazione'
+                            ? '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">✅ Continuazione approvata</span>'
+                            : g.stato === 'sospeso'
+                            ? '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⛔ Sospeso</span>'
+                            : '<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⏳ In attesa</span>';
+
+                        html += `
+                            <div style="padding: 12px; margin-bottom: 10px; background: white; border-left: 3px solid ${g.gravita === 'grave' ? '#dc3545' : '#ffc107'}; border-radius: 4px;">
+                                <div style="font-weight: 600; color: #333; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>${tipoIcon} ${macchinaNome}</span>
+                                    <div style="display: flex; gap: 6px;">
+                                        ${gravitaBadge}
+                                        ${statoBadge}
+                                    </div>
+                                </div>
+                                <div style="font-size: 13px; color: #666; margin-bottom: 6px;">
+                                    <strong>Operaio:</strong> ${operaioNome} | <strong>Segnalato:</strong> ${dataSegnalazione}
+                                </div>
+                                <div style="font-size: 13px; color: #333; margin-bottom: 10px;">
+                                    <strong>Dettagli:</strong> ${g.dettagli || '-'}
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    <a href="admin/gestione-macchine-standalone.html" style="font-size: 12px; color: #2E8B57; text-decoration: none; margin-right: 15px;">→ Vai a Gestione Macchine</a>
+                                    <a href="admin/gestione-guasti-standalone.html?guasto=${g.id}" style="font-size: 12px; color: #2E8B57; text-decoration: none;">→ Gestisci Guasto</a>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Guasti risolti (ultimi 5)
+                if (guastiRisolti.length > 0) {
+                    const ultimiRisolti = guastiRisolti.slice(0, 5);
+                    if (guastiAperti.length > 0) html += '<div style="margin-top: 20px; margin-bottom: 15px;"><strong style="color: #155724;">✅ Ultimi Risolti:</strong></div>';
+                    else html += '<div style="margin-bottom: 15px;"><strong style="color: #155724;">✅ Ultimi Risolti:</strong></div>';
+                    
+                    ultimiRisolti.forEach(g => {
+                        const macchinaIdDaMostrare = g.macchinaId || g.attrezzoId;
+                        const macchina = macchineMap.get(macchinaIdDaMostrare);
+                        let macchinaNome = 'Macchina non trovata';
+                        let tipoIcon = '❓';
+                        
+                        if (macchina) {
+                            macchinaNome = macchina.nome;
+                            tipoIcon = (macchina.tipoMacchina || macchina.tipo) === 'trattore' ? '🚜' : '⚙️';
+                        }
+                        
+                        if (g.macchinaId && g.attrezzoId) {
+                            const attrezzo = macchineMap.get(g.attrezzoId);
+                            if (attrezzo) {
+                                macchinaNome += ` + ⚙️ ${attrezzo.nome}`;
+                            }
+                        } else if (g.attrezzoId && !g.macchinaId) {
+                            const attrezzo = macchineMap.get(g.attrezzoId);
+                            if (attrezzo) {
+                                macchinaNome = `⚙️ ${attrezzo.nome}`;
+                                tipoIcon = '⚙️';
+                            }
+                        }
+                        
+                        const risoltoDa = usersMap.get(g.risoltoDa);
+                        const risoltoDaNome = risoltoDa ? `${risoltoDa.nome || ''} ${risoltoDa.cognome || ''}`.trim() || risoltoDa.email : 'Sconosciuto';
+
+                        const dataRisoluzione = g.risoltoIl?.toDate 
+                            ? g.risoltoIl.toDate().toLocaleString('it-IT')
+                            : new Date(g.risoltoIl).toLocaleString('it-IT');
+
+                        html += `
+                            <div style="padding: 10px; margin-bottom: 8px; background: #d4edda; border-left: 3px solid #28a745; border-radius: 4px;">
+                                <div style="font-weight: 600; color: #155724; margin-bottom: 4px;">
+                                    ${tipoIcon} ${macchinaNome}
+                                </div>
+                                <div style="font-size: 12px; color: #155724;">
+                                    Risolto da ${risoltoDaNome} il ${dataRisoluzione}
+                                    ${g.costoRiparazione ? ` | Costo: €${g.costoRiparazione.toFixed(2)}` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                guastiList.innerHTML = html;
+            } catch (error) {
+                console.error('Errore aggiornamento guasti:', error);
+                if (guastiSection) guastiSection.style.display = 'none';
             }
         }
         
@@ -2329,6 +2788,14 @@
                 const operaioId = userData.id || user.uid;
                 const tenantId = userData.tenantId;
                 
+                // Carica terreni per ottenere nomi
+                const terreniRef = collection(db, `tenants/${tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniRef);
+                const terreniMap = new Map();
+                terreniSnapshot.forEach(doc => {
+                    terreniMap.set(doc.id, doc.data());
+                });
+                
                 // Carica tutti i lavori
                 const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
                 const lavoriSnapshot = await getDocs(lavoriRef);
@@ -2354,11 +2821,16 @@
                             
                             // Se la data inizio è oggi o passata, mostra il lavoro
                             if (dataInizioSenzaOra <= oggi) {
+                                // Carica nome terreno
+                                const terreno = lavoro.terrenoId ? terreniMap.get(lavoro.terrenoId) : null;
+                                const terrenoNome = terreno ? terreno.nome : null;
+                                
                                 lavoriOggi.push({
                                     id: doc.id,
                                     ...lavoro,
                                     dataInizio: dataInizio,
-                                    tipoAssegnazione: 'autonomo' // Flag per distinguere
+                                    tipoAssegnazione: 'autonomo', // Flag per distinguere
+                                    terreno: terrenoNome // Aggiungi nome terreno
                                 });
                                 lavoriIdsSet.add(doc.id);
                             }
@@ -2397,11 +2869,16 @@
                                 
                                 // Se la data inizio è oggi o passata, mostra il lavoro
                                 if (dataInizioSenzaOra <= oggi) {
+                                    // Carica nome terreno
+                                    const terreno = lavoro.terrenoId ? terreniMap.get(lavoro.terrenoId) : null;
+                                    const terrenoNome = terreno ? terreno.nome : null;
+                                    
                                     lavoriOggi.push({
                                         id: doc.id,
                                         ...lavoro,
                                         dataInizio: dataInizio,
-                                        tipoAssegnazione: 'squadra' // Flag per distinguere
+                                        tipoAssegnazione: 'squadra', // Flag per distinguere
+                                        terreno: terrenoNome // Aggiungi nome terreno
                                     });
                                     lavoriIdsSet.add(doc.id);
                                 }
@@ -3567,12 +4044,34 @@
             }
         });
 
+        // Pulizia listener quando si chiude la pagina
+        window.addEventListener('beforeunload', () => {
+            if (manutenzioniUnsubscribe) {
+                manutenzioniUnsubscribe();
+                manutenzioniUnsubscribe = null;
+            }
+            if (guastiUnsubscribe) {
+                guastiUnsubscribe();
+                guastiUnsubscribe = null;
+            }
+        });
+
         // Logout
         document.getElementById('logout-button').addEventListener('click', async () => {
             try {
                 // Ferma l'aggiornamento dello stato online
                 if (window.gfvOnlineInterval) {
                     clearInterval(window.gfvOnlineInterval);
+                }
+                
+                // Pulizia listener manutenzioni e guasti
+                if (manutenzioniUnsubscribe) {
+                    manutenzioniUnsubscribe();
+                    manutenzioniUnsubscribe = null;
+                }
+                if (guastiUnsubscribe) {
+                    guastiUnsubscribe();
+                    guastiUnsubscribe = null;
                 }
                 
                 // Imposta offline prima del logout

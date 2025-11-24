@@ -565,6 +565,12 @@
                     <small>Ore attuali (se non specificate, usa ore iniziali)</small>
                 </div>
 
+                <div class="form-group">
+                    <label for="macchina-costo-ora">Costo Orario (€/h)</label>
+                    <input type="number" id="macchina-costo-ora" step="0.01" min="0" placeholder="es. 25.50">
+                    <small>Costo orario macchina per calcolo costi nei compensi (opzionale)</small>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="macchina-prossima-manutenzione">Prossima Manutenzione (Data)</label>
@@ -581,6 +587,14 @@
                 <div class="form-group">
                     <label for="macchina-note">Note</label>
                     <textarea id="macchina-note" placeholder="Note aggiuntive sulla macchina..."></textarea>
+                </div>
+
+                <!-- Storico Guasti (solo per macchine esistenti) -->
+                <div id="storico-guasti-section" style="display: none; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                    <h4 style="margin-bottom: 15px; color: #333;">📋 Storico Guasti</h4>
+                    <div id="storico-guasti-list" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <div style="text-align: center; padding: 20px; color: #666;">Caricamento storico guasti...</div>
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -689,7 +703,7 @@
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, getDoc, doc, collection, getDocs, query, where, setDoc, addDoc, updateDoc, deleteDoc, Timestamp, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, getDoc, doc, collection, getDocs, query, where, setDoc, addDoc, updateDoc, deleteDoc, Timestamp, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -701,6 +715,7 @@
         let categorie = [];
         let categoriePrincipali = [];
         let sottocategorieMap = new Map(); // parentId -> Array<sottocategorie>
+        let macchineUnsubscribe = null; // Per gestire il listener real-time
 
         // Dichiarazioni funzioni (da definire dopo)
         let openMacchinaModal, closeMacchinaModal, handleSalvaMacchina, deleteMacchina, resetFilters;
@@ -759,8 +774,8 @@
                         setupFilters();
                         // Setup form dinamico
                         setupFormDinamico();
-                        // Carica macchine
-                        await loadMacchine();
+                        // Carica macchine con listener real-time
+                        await setupMacchineRealtime();
                     } else {
                         window.location.href = '../auth/login-standalone.html';
                     }
@@ -1095,8 +1110,8 @@
             filterMacchine();
         }
 
-        // Carica macchine
-        async function loadMacchine() {
+        // Setup listener real-time per macchine (aggiornamento automatico)
+        async function setupMacchineRealtime() {
             const container = document.getElementById('macchine-container');
             container.innerHTML = '<div class="loading">Caricamento macchine...</div>';
 
@@ -1106,26 +1121,54 @@
                     return;
                 }
 
+                // Rimuovi listener precedente se esiste
+                if (macchineUnsubscribe) {
+                    macchineUnsubscribe();
+                    macchineUnsubscribe = null;
+                }
+
                 const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
-                const snapshot = await getDocs(query(macchineRef, orderBy('nome')));
-                macchine = [];
+                const macchineQuery = query(macchineRef, orderBy('nome'));
 
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    macchine.push({
-                        id: doc.id,
-                        ...data,
-                        prossimaManutenzione: data.prossimaManutenzione || null,
-                        dataAcquisto: data.dataAcquisto || null
-                    });
-                });
+                // Setup listener real-time
+                macchineUnsubscribe = onSnapshot(
+                    macchineQuery,
+                    (snapshot) => {
+                        macchine = [];
 
-                filterMacchine();
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            macchine.push({
+                                id: doc.id,
+                                ...data,
+                                prossimaManutenzione: data.prossimaManutenzione || null,
+                                dataAcquisto: data.dataAcquisto || null
+                            });
+                        });
+
+                        // Aggiorna visualizzazione automaticamente
+                        filterMacchine();
+                    },
+                    (error) => {
+                        console.error('Errore listener macchine:', error);
+                        showAlert('Errore aggiornamento macchine', 'error');
+                        container.innerHTML = '<div class="empty-state">Errore caricamento macchine</div>';
+                    }
+                );
             } catch (error) {
-                console.error('Errore caricamento macchine:', error);
+                console.error('Errore setup listener macchine:', error);
                 showAlert('Errore caricamento macchine', 'error');
                 container.innerHTML = '<div class="empty-state">Errore caricamento macchine</div>';
             }
+        }
+
+        // Carica macchine (funzione legacy mantenuta per compatibilità)
+        async function loadMacchine() {
+            // Usa setupMacchineRealtime se non è già attivo
+            if (!macchineUnsubscribe) {
+                await setupMacchineRealtime();
+            }
+            // Se il listener è già attivo, i dati si aggiornano automaticamente
         }
 
         // Formatta data
@@ -1469,6 +1512,7 @@
                 
                 document.getElementById('macchina-ore-iniziali').value = macchina.oreIniziali || 0;
                 document.getElementById('macchina-ore-attuali').value = macchina.oreAttuali || '';
+                document.getElementById('macchina-costo-ora').value = macchina.costoOra || '';
                 
                 if (macchina.prossimaManutenzione) {
                     const prossimaManutenzione = macchina.prossimaManutenzione.toDate ? macchina.prossimaManutenzione.toDate() : new Date(macchina.prossimaManutenzione);
@@ -1477,18 +1521,148 @@
                 
                 document.getElementById('macchina-ore-prossima-manutenzione').value = macchina.oreProssimaManutenzione || '';
                 document.getElementById('macchina-note').value = macchina.note || '';
+                
+                // Carica storico guasti
+                await loadStoricoGuasti(macchinaId);
             } else {
                 document.getElementById('modal-title').textContent = 'Nuova Macchina';
                 document.getElementById('macchina-ore-iniziali').value = 0;
+                document.getElementById('macchina-costo-ora').value = '';
+                document.getElementById('storico-guasti-section').style.display = 'none';
             }
 
             document.getElementById('macchina-modal').classList.add('active');
+        }
+
+        // Carica storico guasti per macchina
+        async function loadStoricoGuasti(macchinaId) {
+            try {
+                const storicoSection = document.getElementById('storico-guasti-section');
+                const storicoList = document.getElementById('storico-guasti-list');
+                
+                if (!storicoSection || !storicoList || !currentTenantId) return;
+
+                storicoSection.style.display = 'block';
+                storicoList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Caricamento storico guasti...</div>';
+
+                // Carica utenti se non già caricati
+                if (usersMap.size === 0) {
+                    const usersRef = collection(db, 'users');
+                    const usersSnapshot = await getDocs(usersRef);
+                    usersSnapshot.forEach(doc => {
+                        usersMap.set(doc.id, doc.data());
+                    });
+                }
+
+                // Carica guasti per questa macchina
+                const guastiRef = collection(db, `tenants/${currentTenantId}/guasti`);
+                const guastiQuery = query(guastiRef, where('macchinaId', '==', macchinaId), orderBy('segnalatoIl', 'desc'));
+                
+                let guastiSnapshot;
+                try {
+                    guastiSnapshot = await getDocs(guastiQuery);
+                } catch (error) {
+                    // Se orderBy fallisce, carica senza orderBy e ordina in memoria
+                    const allGuastiRef = collection(db, `tenants/${currentTenantId}/guasti`);
+                    const allGuastiSnapshot = await getDocs(allGuastiRef);
+                    const guastiArray = [];
+                    allGuastiSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.macchinaId === macchinaId) {
+                            guastiArray.push({ id: doc.id, ...data });
+                        }
+                    });
+                    guastiArray.sort((a, b) => {
+                        const dateA = a.segnalatoIl?.toDate ? a.segnalatoIl.toDate() : new Date(a.segnalatoIl || 0);
+                        const dateB = b.segnalatoIl?.toDate ? b.segnalatoIl.toDate() : new Date(b.segnalatoIl || 0);
+                        return dateB - dateA;
+                    });
+                    guastiSnapshot = {
+                        empty: guastiArray.length === 0,
+                        forEach: (callback) => {
+                            guastiArray.forEach(item => {
+                                callback({ id: item.id, data: () => item });
+                            });
+                        }
+                    };
+                }
+
+                if (guastiSnapshot.empty) {
+                    storicoList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Nessun guasto segnalato per questa macchina</div>';
+                    return;
+                }
+
+                let html = '';
+                guastiSnapshot.forEach(doc => {
+                    const guasto = doc.data();
+                    const operaio = usersMap.get(guasto.segnalatoDa);
+                    const operaioNome = operaio ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email : 'Operaio sconosciuto';
+                    
+                    const risoltoDa = guasto.risoltoDa ? usersMap.get(guasto.risoltoDa) : null;
+                    const risoltoDaNome = risoltoDa ? `${risoltoDa.nome || ''} ${risoltoDa.cognome || ''}`.trim() || risoltoDa.email : null;
+
+                    const dataSegnalazione = guasto.segnalatoIl?.toDate 
+                        ? guasto.segnalatoIl.toDate().toLocaleString('it-IT')
+                        : new Date(guasto.segnalatoIl).toLocaleString('it-IT');
+
+                    const dataRisoluzione = guasto.risoltoIl?.toDate 
+                        ? guasto.risoltoIl.toDate().toLocaleString('it-IT')
+                        : guasto.risoltoIl ? new Date(guasto.risoltoIl).toLocaleString('it-IT') : null;
+
+                    const gravitaBadge = guasto.gravita === 'grave' 
+                        ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🔴 Grave</span>'
+                        : '<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🟡 Non grave</span>';
+
+                    const statoBadge = guasto.stato === 'risolto'
+                        ? '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">✅ Risolto</span>'
+                        : guasto.stato === 'approvato-continuazione'
+                        ? '<span style="background: #17a2b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">✅ Continuazione approvata</span>'
+                        : guasto.stato === 'sospeso'
+                        ? '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⛔ Sospeso</span>'
+                        : '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⏳ In attesa</span>';
+
+                    html += `
+                        <div style="background: white; padding: 12px; margin-bottom: 10px; border-left: 3px solid ${guasto.stato === 'risolto' ? '#28a745' : guasto.gravita === 'grave' ? '#dc3545' : '#ffc107'}; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-weight: 600; color: #333;">${dataSegnalazione}</div>
+                                <div style="display: flex; gap: 6px;">
+                                    ${gravitaBadge}
+                                    ${statoBadge}
+                                </div>
+                            </div>
+                            <div style="font-size: 13px; color: #666; margin-bottom: 6px;">
+                                <strong>Segnalato da:</strong> ${operaioNome}
+                            </div>
+                            <div style="font-size: 13px; color: #333; margin-bottom: 6px;">
+                                <strong>Dettagli:</strong> ${guasto.dettagli || '-'}
+                            </div>
+                            ${guasto.stato === 'risolto' ? `
+                                <div style="font-size: 13px; color: #155724; margin-top: 8px; padding-top: 8px; border-top: 1px solid #c3e6cb;">
+                                    <div><strong>Risolto il:</strong> ${dataRisoluzione || '-'}</div>
+                                    <div><strong>Risolto da:</strong> ${risoltoDaNome || 'Sconosciuto'}</div>
+                                    <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
+                                    ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+
+                storicoList.innerHTML = html;
+            } catch (error) {
+                console.error('Errore caricamento storico guasti:', error);
+                const storicoList = document.getElementById('storico-guasti-list');
+                if (storicoList) {
+                    storicoList.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">Errore caricamento storico guasti</div>';
+                }
+            }
         }
 
         // Chiudi modal macchina
         closeMacchinaModal = function() {
             document.getElementById('macchina-modal').classList.remove('active');
             document.getElementById('macchina-form').reset();
+            document.getElementById('storico-guasti-section').style.display = 'none';
         }
 
         // Salva macchina
@@ -1509,6 +1683,8 @@
             const oreIniziali = parseFloat(document.getElementById('macchina-ore-iniziali').value) || 0;
             const oreAttualiInput = document.getElementById('macchina-ore-attuali').value;
             const oreAttuali = oreAttualiInput ? parseFloat(oreAttualiInput) : oreIniziali;
+            const costoOraInput = document.getElementById('macchina-costo-ora').value;
+            const costoOra = costoOraInput ? parseFloat(costoOraInput) : null;
             const prossimaManutenzione = document.getElementById('macchina-prossima-manutenzione').value || null;
             const oreProssimaManutenzioneInput = document.getElementById('macchina-ore-prossima-manutenzione').value;
             const oreProssimaManutenzione = oreProssimaManutenzioneInput ? parseFloat(oreProssimaManutenzioneInput) : null;
@@ -1589,6 +1765,7 @@
                     oreAttuali,
                     prossimaManutenzione: prossimaManutenzione ? Timestamp.fromDate(new Date(prossimaManutenzione)) : null,
                     oreProssimaManutenzione,
+                    costoOra,
                     note,
                     creatoDa: currentUser.uid
                 };
@@ -1623,7 +1800,7 @@
                 }
 
                 closeMacchinaModal();
-                await loadMacchine();
+                // Non serve ricaricare, il listener real-time aggiorna automaticamente
             } catch (error) {
                 console.error('Errore salvataggio macchina:', error);
                 showAlert('Errore salvataggio macchina: ' + error.message, 'error');
@@ -1649,7 +1826,7 @@
 
                 await deleteDoc(doc(db, `tenants/${currentTenantId}/macchine`, macchinaId));
                 showAlert('Macchina eliminata con successo', 'success');
-                await loadMacchine();
+                // Non serve ricaricare, il listener real-time aggiorna automaticamente
             } catch (error) {
                 console.error('Errore eliminazione macchina:', error);
                 showAlert('Errore eliminazione macchina: ' + error.message, 'error');
@@ -1784,6 +1961,14 @@
         window.openCategoriaModal = openCategoriaModal;
         window.closeCategoriaModal = closeCategoriaModal;
         window.handleSalvaCategoria = handleSalvaCategoria;
+
+        // Pulizia listener quando si chiude la pagina
+        window.addEventListener('beforeunload', () => {
+            if (macchineUnsubscribe) {
+                macchineUnsubscribe();
+                macchineUnsubscribe = null;
+            }
+        });
     </script>
 </body>
 </html>

@@ -88,3 +88,4 @@ export class CategoriaAttrezzo extends Base {
 
 export default CategoriaAttrezzo;
 
+
