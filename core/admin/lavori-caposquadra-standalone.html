@@ -2208,7 +2208,8 @@
                 
                 // Aggiorna stato lavoro se completato
                 let nuovoStato = lavoro.stato;
-                if (percentualeCompletamento >= 100 && lavoro.stato !== 'completato') {
+                const lavoroCompletato = percentualeCompletamento >= 100 && lavoro.stato !== 'completato';
+                if (lavoroCompletato) {
                     nuovoStato = 'completato';
                 } else if (percentualeCompletamento > 0 && lavoro.stato === 'assegnato') {
                     nuovoStato = 'in_corso';
@@ -2224,6 +2225,37 @@
                     stato: nuovoStato,
                     aggiornatoIl: serverTimestamp()
                 });
+                
+                // Libera macchine se lavoro completato (verifica modulo Parco Macchine)
+                if (lavoroCompletato && lavoro.macchinaId) {
+                    try {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                        if (tenantDoc.exists()) {
+                            const tenantData = tenantDoc.data();
+                            const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                            
+                            if (hasParcoMacchineModule) {
+                                // Libera trattore
+                                if (lavoro.macchinaId) {
+                                    await updateDoc(doc(db, 'tenants', currentTenantId, 'macchine', lavoro.macchinaId), {
+                                        stato: 'disponibile',
+                                        updatedAt: serverTimestamp()
+                                    });
+                                }
+                                // Libera attrezzo
+                                if (lavoro.attrezzoId) {
+                                    await updateDoc(doc(db, 'tenants', currentTenantId, 'macchine', lavoro.attrezzoId), {
+                                        stato: 'disponibile',
+                                        updatedAt: serverTimestamp()
+                                    });
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Errore liberazione macchine:', error);
+                        // Non blocchiamo il salvataggio se c'è un errore con le macchine
+                    }
+                }
             } catch (error) {
                 console.error('Errore aggiornamento progressi:', error);
                 // Non blocchiamo il salvataggio della zona se c'è un errore nel calcolo progressi

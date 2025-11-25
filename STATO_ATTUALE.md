@@ -77,6 +77,77 @@
 
 ---
 
+## 🚜 Integrazione Modulo Macchine nel Core Base ✅ (2025-01-24)
+
+### Funzionalità Completate
+
+#### 1. Service Unificato Macchine Utilizzo ✅
+- ✅ **File creato**: `modules/parco-macchine/services/macchine-utilizzo-service.js`
+- ✅ Funzione riutilizzabile `aggiornaOreMacchinaDaUtilizzo()` per aggiornare ore macchine
+- ✅ Verifica automatica manutenzioni e alert quando superate
+- ✅ Usabile da Core Base (Diario Attività) e modulo Manodopera (Segna Ore/Validazione Ore)
+- ✅ Calcolo ore macchina default basato su ore lavoratore
+
+#### 2. Diario Attività con Macchine ✅
+- ✅ **File modificato**: `core/attivita-standalone.html`
+- ✅ Campo "Ora fine" reso opzionale (non più obbligatorio)
+- ✅ Dropdown trattori e attrezzi (solo se modulo Parco Macchine attivo)
+- ✅ Compatibilità attrezzi basata su CV trattore (filtro automatico)
+- ✅ Campo ore macchina separato da ore lavoratore
+- ✅ Liberazione automatica macchine quando c'è "ora fine" (attività completata)
+- ✅ Impostazione "in_uso" quando non c'è "ora fine" (attività in corso)
+- ✅ Controllo conflitti orario: previene sovrapposizioni stessa macchina/attrezzo stesso orario/data
+- ✅ Fallback automatico: libera macchine di attività del giorno precedente senza "ora fine"
+- ✅ Visualizzazione macchine nella lista attività
+- ✅ Gestione modifica attività: libera macchine vecchie se cambiate, gestisce aggiunta/rimozione "ora fine"
+- ✅ **Struttura gerarchica tipi lavoro**: Quando Macchine o Manodopera attivo, usa struttura gerarchica (Categoria → Sottocategoria → Tipo Lavoro) invece di lista piatta
+- ✅ **Compatibilità completa**: Stessa logica e struttura gerarchica sia con solo Macchine, sia con Manodopera attivo
+- ✅ **Campo coltura**: Aggiunto anche nella struttura gerarchica, popolato automaticamente dai terreni
+- ✅ **Modali categoria e tipo lavoro**: Aggiunti modali per creare nuove categorie e tipi lavoro direttamente dal diario
+- ✅ **Layout modali**: Corretto layout e visibilità pulsanti nei modali annidati
+
+#### 3. Gestione Lavori con Macchine ✅
+- ✅ **File modificato**: `core/admin/gestione-lavori-standalone.html`
+- ✅ Liberazione automatica macchine quando lavoro completato/approvato
+- ✅ Correzione automatica macchine di lavori già completati (funzione `correggiMacchineLavoriCompletati()`)
+- ✅ Popolamento dropdown trattori quando si apre modal creazione/modifica lavoro
+- ✅ Log dettagliati per debugging gestione macchine
+
+#### 4. Lavori Caposquadra con Macchine ✅
+- ✅ **File modificato**: `core/admin/lavori-caposquadra-standalone.html`
+- ✅ Liberazione automatica macchine quando lavoro raggiunge 100% completamento
+
+### Caratteristiche Principali
+
+**Tracciamento Accurato**:
+- Ore precise per terreno e macchina
+- Possibilità di tracciare utilizzo macchina per ogni campo lavorato
+- Statistiche accurate per macchina/attrezzo
+
+**Gestione Automatica Stati**:
+- Macchine liberate automaticamente quando attività completata (con "ora fine")
+- Macchine impostate come "in_uso" quando attività in corso (senza "ora fine")
+- Fallback automatico per attività del giorno precedente
+
+**Controllo Conflitti**:
+- Previene sovrapposizioni di orario per stessa macchina/attrezzo
+- Permette utilizzo stesso trattore/attrezzo in orari diversi
+- Gestisce correttamente attività completate vs attività in corso
+
+**Compatibilità Moduli**:
+- Funziona con solo Core Base + modulo Macchine
+- Funziona con Core Base + modulo Macchine + modulo Manodopera
+- Zero perdita dati quando si aggiungono/rimuovono moduli
+
+### File Creati/Modificati
+- ✅ `modules/parco-macchine/services/macchine-utilizzo-service.js` (NUOVO)
+- ✅ `core/attivita-standalone.html` (MODIFICATO)
+- ✅ `core/admin/gestione-lavori-standalone.html` (MODIFICATO)
+- ✅ `core/admin/lavori-caposquadra-standalone.html` (MODIFICATO)
+- ✅ `core/statistiche-standalone.html` (MODIFICATO - Sezione Statistiche Macchine aggiunta)
+
+---
+
 ## 🚀 Prossimi Passi
 
 ### Opzione 1: Dashboard Completa (Consigliato)

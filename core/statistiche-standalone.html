@@ -350,6 +350,63 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Sezione Statistiche Macchine (solo se modulo Parco Macchine attivo) -->
+            <div id="statistiche-macchine-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
+                <h2 style="color: #2E8B57; font-size: 2em; margin-bottom: 30px; text-align: center;">🚜 Statistiche Macchine</h2>
+                
+                <!-- Metriche Macchine -->
+                <div class="metrics-grid">
+                    <div class="metric-card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);">
+                        <div class="metric-value" id="metric-ore-macchine-totali">-</div>
+                        <div class="metric-label">Ore Macchine Totali</div>
+                        <div class="metric-subtitle" id="metric-ore-macchine-subtitle">Periodo selezionato</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                        <div class="metric-value" id="metric-macchine-utilizzate">-</div>
+                        <div class="metric-label">Macchine Utilizzate</div>
+                        <div class="metric-subtitle" id="metric-macchine-utilizzate-subtitle">Periodo selezionato</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);">
+                        <div class="metric-value" id="metric-manutenzioni-scadenza">-</div>
+                        <div class="metric-label">Manutenzioni in Scadenza</div>
+                        <div class="metric-subtitle">Prossimi 30 giorni / 50 ore</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);">
+                        <div class="metric-value" id="metric-utilizzo-medio">-</div>
+                        <div class="metric-label">Utilizzo Medio Macchina</div>
+                        <div class="metric-subtitle" id="metric-utilizzo-medio-subtitle">Ore/macchina</div>
+                    </div>
+                </div>
+
+                <!-- Grafici Macchine -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Top 5 Macchine Più Utilizzate</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-top-macchine"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Ore Macchina per Terreno</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-ore-macchina-terreno"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Ore Macchina vs Ore Lavoratore</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-ore-macchina-vs-lavoratore"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3>Ore Macchine per Mese</h3>
+                        <div class="chart-container tall">
+                            <canvas id="chart-ore-macchine-mese"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -460,6 +517,8 @@
 
         // Variabili globali
         let currentTenantId = null;
+        let hasParcoMacchineModule = false;
+        let macchineList = [];
 
         // Funzione helper: ottieni tenant ID
         async function getTenantId(userId) {
@@ -489,6 +548,33 @@
             return collection(db, `tenants/${tenantId}/attivita`);
         }
 
+        function getMacchineCollection(tenantId) {
+            if (!tenantId) throw new Error('Tenant ID non disponibile');
+            return collection(db, `tenants/${tenantId}/macchine`);
+        }
+
+        // Carica macchine
+        async function loadMacchine() {
+            if (!currentTenantId) return;
+            
+            try {
+                const macchineRef = getMacchineCollection(currentTenantId);
+                const snapshot = await getDocs(macchineRef);
+                macchineList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    macchineList.push({
+                        id: doc.id,
+                        ...data
+                    });
+                });
+                console.log(`✅ Caricate ${macchineList.length} macchine`);
+            } catch (error) {
+                console.error('Errore caricamento macchine:', error);
+                macchineList = [];
+            }
+        }
+
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -506,6 +592,28 @@
                     document.getElementById('user-name').textContent = nomeCompleto || email || 'Utente';
                     
                     currentTenantId = userData.tenantId;
+                    
+                    // Verifica modulo Parco Macchine
+                    try {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                        if (tenantDoc.exists()) {
+                            const tenantData = tenantDoc.data();
+                            hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                            
+                            // Mostra/nascondi sezione statistiche macchine
+                            const macchineSection = document.getElementById('statistiche-macchine-section');
+                            if (macchineSection) {
+                                macchineSection.style.display = hasParcoMacchineModule ? 'block' : 'none';
+                            }
+                            
+                            // Carica macchine se modulo attivo
+                            if (hasParcoMacchineModule) {
+                                await loadMacchine();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Errore verifica modulo Parco Macchine:', error);
+                    }
                 } else {
                     document.getElementById('user-name').textContent = user.email || 'Utente';
                 }
@@ -729,6 +837,12 @@
         let chartAttivitaTerreno = null;
         let chartOreMese = null;
         let chartTopLavori = null;
+        
+        // Grafici Macchine
+        let chartTopMacchine = null;
+        let chartOreMacchinaTerreno = null;
+        let chartOreMacchinaVsLavoratore = null;
+        let chartOreMacchineMese = null;
 
         function formatOre(ore) {
             const oreInt = Math.floor(ore);
@@ -1066,10 +1180,674 @@
                 updateChartAttivitaTerreno(attivitaPerTerreno);
                 updateChartOreMese(orePerMese);
                 updateChartTopLavori(tipiLavoroPiuFrequenti);
+
+                // Carica statistiche macchine se modulo attivo
+                if (hasParcoMacchineModule) {
+                    await loadStatisticheMacchine(periodo);
+                }
             } catch (error) {
                 console.error('Errore caricamento statistiche:', error);
                 alert('Errore nel caricamento delle statistiche: ' + error.message);
             }
+        }
+
+        // Funzioni statistiche macchine
+        async function getOreMacchineTotali(periodo = {}) {
+            if (!hasParcoMacchineModule) return 0;
+            
+            try {
+                const attivita = await getAllAttivita(periodo);
+                let totaleOre = 0;
+                
+                // Somma ore macchina da attività Core Base
+                attivita.forEach(att => {
+                    if (att.oreMacchina && att.oreMacchina > 0) {
+                        totaleOre += att.oreMacchina;
+                    }
+                });
+                
+                // Se modulo Manodopera attivo, aggiungi anche ore da lavori
+                try {
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    if (tenantDoc.exists()) {
+                        const tenantData = tenantDoc.data();
+                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        
+                        if (hasManodoperaModule) {
+                            const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                            const lavoriSnapshot = await getDocs(lavoriRef);
+                            
+                            for (const lavoroDoc of lavoriSnapshot.docs) {
+                                const lavoro = lavoroDoc.data();
+                                const lavoroId = lavoroDoc.id;
+                                
+                                // Filtra per periodo se necessario
+                                if (periodo.dataDa || periodo.dataA) {
+                                    const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
+                                    const dataInizioString = dataInizio.toISOString().split('T')[0];
+                                    
+                                    if (periodo.dataDa && dataInizioString < periodo.dataDa) continue;
+                                    if (periodo.dataA && dataInizioString > periodo.dataA) continue;
+                                }
+                                
+                                // Carica ore validate per questo lavoro
+                                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                                const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+                                const oreSnapshot = await getDocs(oreQuery);
+                                
+                                oreSnapshot.forEach(oraDoc => {
+                                    const ora = oraDoc.data();
+                                    if (ora.oreMacchina && ora.oreMacchina > 0) {
+                                        totaleOre += ora.oreMacchina;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Errore caricamento ore macchine da Manodopera:', error);
+                }
+                
+                return parseFloat(totaleOre.toFixed(2));
+            } catch (error) {
+                console.error('Errore calcolo ore macchine totali:', error);
+                return 0;
+            }
+        }
+
+        async function getMacchinePiuUtilizzate(periodo = {}, limit = 5) {
+            if (!hasParcoMacchineModule) return [];
+            
+            try {
+                const attivita = await getAllAttivita(periodo);
+                const orePerMacchina = {};
+                
+                // Conta ore per macchina da attività Core Base
+                attivita.forEach(att => {
+                    if (att.macchinaId && att.oreMacchina && att.oreMacchina > 0) {
+                        if (!orePerMacchina[att.macchinaId]) {
+                            orePerMacchina[att.macchinaId] = 0;
+                        }
+                        orePerMacchina[att.macchinaId] += att.oreMacchina;
+                    }
+                    if (att.attrezzoId && att.oreMacchina && att.oreMacchina > 0) {
+                        if (!orePerMacchina[att.attrezzoId]) {
+                            orePerMacchina[att.attrezzoId] = 0;
+                        }
+                        orePerMacchina[att.attrezzoId] += att.oreMacchina;
+                    }
+                });
+                
+                // Se modulo Manodopera attivo, aggiungi anche ore da lavori
+                try {
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    if (tenantDoc.exists()) {
+                        const tenantData = tenantDoc.data();
+                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        
+                        if (hasManodoperaModule) {
+                            const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                            const lavoriSnapshot = await getDocs(lavoriRef);
+                            
+                            for (const lavoroDoc of lavoriSnapshot.docs) {
+                                const lavoro = lavoroDoc.data();
+                                const lavoroId = lavoroDoc.id;
+                                
+                                // Filtra per periodo se necessario
+                                if (periodo.dataDa || periodo.dataA) {
+                                    const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
+                                    const dataInizioString = dataInizio.toISOString().split('T')[0];
+                                    
+                                    if (periodo.dataDa && dataInizioString < periodo.dataDa) continue;
+                                    if (periodo.dataA && dataInizioString > periodo.dataA) continue;
+                                }
+                                
+                                // Carica ore validate per questo lavoro
+                                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                                const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+                                const oreSnapshot = await getDocs(oreQuery);
+                                
+                                oreSnapshot.forEach(oraDoc => {
+                                    const ora = oraDoc.data();
+                                    if (ora.macchinaId && ora.oreMacchina && ora.oreMacchina > 0) {
+                                        if (!orePerMacchina[ora.macchinaId]) {
+                                            orePerMacchina[ora.macchinaId] = 0;
+                                        }
+                                        orePerMacchina[ora.macchinaId] += ora.oreMacchina;
+                                    }
+                                    if (ora.attrezzoId && ora.oreMacchina && ora.oreMacchina > 0) {
+                                        if (!orePerMacchina[ora.attrezzoId]) {
+                                            orePerMacchina[ora.attrezzoId] = 0;
+                                        }
+                                        orePerMacchina[ora.attrezzoId] += ora.oreMacchina;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Errore caricamento ore macchine da Manodopera:', error);
+                }
+                
+                // Assicurati che le macchine siano caricate
+                if (macchineList.length === 0) {
+                    await loadMacchine();
+                }
+                
+                // Crea mappa macchine
+                const macchineMap = {};
+                macchineList.forEach(m => {
+                    macchineMap[m.id] = m;
+                });
+                
+                console.log('📊 Statistiche Macchine - Debug:');
+                console.log('  - Macchine caricate:', macchineList.length);
+                console.log('  - Macchine con ore:', Object.keys(orePerMacchina).length);
+                console.log('  - ID macchine con ore:', Object.keys(orePerMacchina));
+                console.log('  - ID macchine caricate:', macchineList.map(m => m.id));
+                console.log('  - Nomi macchine caricate:', macchineList.map(m => ({ id: m.id, nome: m.nome })));
+                
+                return Object.entries(orePerMacchina)
+                    .map(([macchinaId, ore]) => {
+                        const macchina = macchineMap[macchinaId];
+                        if (!macchina) {
+                            console.warn(`⚠️ Macchina ID "${macchinaId}" non trovata nella lista`);
+                            console.warn(`  - ID cercato: "${macchinaId}"`);
+                            console.warn(`  - ID disponibili:`, macchineList.map(m => `"${m.id}"`));
+                        } else {
+                            console.log(`✅ Macchina ID "${macchinaId}" trovata: "${macchina.nome}"`);
+                        }
+                        return {
+                            macchinaId,
+                            nome: macchina?.nome || `Macchina ${macchinaId.substring(0, 8)}...`,
+                            tipo: macchina?.tipoMacchina || macchina?.tipo || 'macchina',
+                            ore: parseFloat(ore.toFixed(2))
+                        };
+                    })
+                    .sort((a, b) => b.ore - a.ore)
+                    .slice(0, limit);
+            } catch (error) {
+                console.error('Errore calcolo macchine più utilizzate:', error);
+                return [];
+            }
+        }
+
+        async function getManutenzioniInScadenza() {
+            if (!hasParcoMacchineModule) return 0;
+            
+            try {
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+                const tra30Giorni = new Date(oggi);
+                tra30Giorni.setDate(tra30Giorni.getDate() + 30);
+                
+                let count = 0;
+                
+                macchineList.forEach(macchina => {
+                    if (macchina.stato === 'dismesso') return;
+                    
+                    // Verifica per ore
+                    if (macchina.oreProssimaManutenzione && macchina.oreAttuali) {
+                        const oreRimanenti = macchina.oreProssimaManutenzione - macchina.oreAttuali;
+                        if (oreRimanenti <= 50 && oreRimanenti > 0) {
+                            count++;
+                        }
+                    }
+                    
+                    // Verifica per data
+                    if (macchina.prossimaManutenzione) {
+                        const scadenza = macchina.prossimaManutenzione.toDate 
+                            ? macchina.prossimaManutenzione.toDate() 
+                            : new Date(macchina.prossimaManutenzione);
+                        scadenza.setHours(0, 0, 0, 0);
+                        
+                        if (scadenza >= oggi && scadenza <= tra30Giorni) {
+                            count++;
+                        }
+                    }
+                });
+                
+                return count;
+            } catch (error) {
+                console.error('Errore calcolo manutenzioni in scadenza:', error);
+                return 0;
+            }
+        }
+
+        async function getOreMacchinaPerTerreno(periodo = {}) {
+            if (!hasParcoMacchineModule) return [];
+            
+            try {
+                const attivita = await getAllAttivita(periodo);
+                const orePerTerreno = {};
+                
+                attivita.forEach(att => {
+                    if (att.terrenoNome && att.oreMacchina && att.oreMacchina > 0) {
+                        if (!orePerTerreno[att.terrenoNome]) {
+                            orePerTerreno[att.terrenoNome] = 0;
+                        }
+                        orePerTerreno[att.terrenoNome] += att.oreMacchina;
+                    }
+                });
+                
+                // Se modulo Manodopera attivo, aggiungi anche ore da lavori
+                try {
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    if (tenantDoc.exists()) {
+                        const tenantData = tenantDoc.data();
+                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        
+                        if (hasManodoperaModule) {
+                            const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                            const lavoriSnapshot = await getDocs(lavoriRef);
+                            
+                            for (const lavoroDoc of lavoriSnapshot.docs) {
+                                const lavoro = lavoroDoc.data();
+                                const lavoroId = lavoroDoc.id;
+                                
+                                // Filtra per periodo se necessario
+                                if (periodo.dataDa || periodo.dataA) {
+                                    const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
+                                    const dataInizioString = dataInizio.toISOString().split('T')[0];
+                                    
+                                    if (periodo.dataDa && dataInizioString < periodo.dataDa) continue;
+                                    if (periodo.dataA && dataInizioString > periodo.dataA) continue;
+                                }
+                                
+                                // Carica terreno
+                                const terrenoId = lavoro.terrenoId;
+                                if (!terrenoId) continue;
+                                
+                                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId));
+                                const terrenoNome = terrenoDoc.exists() ? terrenoDoc.data().nome : 'Terreno sconosciuto';
+                                
+                                // Carica ore validate per questo lavoro
+                                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                                const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+                                const oreSnapshot = await getDocs(oreQuery);
+                                
+                                oreSnapshot.forEach(oraDoc => {
+                                    const ora = oraDoc.data();
+                                    if (ora.oreMacchina && ora.oreMacchina > 0) {
+                                        if (!orePerTerreno[terrenoNome]) {
+                                            orePerTerreno[terrenoNome] = 0;
+                                        }
+                                        orePerTerreno[terrenoNome] += ora.oreMacchina;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Errore caricamento ore macchine da Manodopera:', error);
+                }
+                
+                return Object.entries(orePerTerreno)
+                    .map(([terrenoNome, ore]) => ({
+                        terrenoNome,
+                        ore: parseFloat(ore.toFixed(2))
+                    }))
+                    .sort((a, b) => b.ore - a.ore);
+            } catch (error) {
+                console.error('Errore calcolo ore macchina per terreno:', error);
+                return [];
+            }
+        }
+
+        async function getOreMacchinaVsLavoratore(periodo = {}) {
+            if (!hasParcoMacchineModule) return { oreLavoratore: 0, oreMacchina: 0 };
+            
+            try {
+                const attivita = await getAllAttivita(periodo);
+                let oreLavoratore = 0;
+                let oreMacchina = 0;
+                
+                attivita.forEach(att => {
+                    if (att.oreNette) oreLavoratore += att.oreNette;
+                    if (att.oreMacchina) oreMacchina += att.oreMacchina;
+                });
+                
+                return {
+                    oreLavoratore: parseFloat(oreLavoratore.toFixed(2)),
+                    oreMacchina: parseFloat(oreMacchina.toFixed(2))
+                };
+            } catch (error) {
+                console.error('Errore calcolo ore macchina vs lavoratore:', error);
+                return { oreLavoratore: 0, oreMacchina: 0 };
+            }
+        }
+
+        async function getOreMacchinePerMese(periodo = {}) {
+            if (!hasParcoMacchineModule) return [];
+            
+            try {
+                const attivita = await getAllAttivita(periodo);
+                const orePerMese = {};
+                
+                attivita.forEach(att => {
+                    if (!att.data || !att.oreMacchina) return;
+                    const mese = att.data.substring(0, 7);
+                    if (!orePerMese[mese]) {
+                        orePerMese[mese] = 0;
+                    }
+                    orePerMese[mese] += att.oreMacchina;
+                });
+                
+                // Se modulo Manodopera attivo, aggiungi anche ore da lavori
+                try {
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    if (tenantDoc.exists()) {
+                        const tenantData = tenantDoc.data();
+                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        
+                        if (hasManodoperaModule) {
+                            const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                            const lavoriSnapshot = await getDocs(lavoriRef);
+                            
+                            for (const lavoroDoc of lavoriSnapshot.docs) {
+                                const lavoro = lavoroDoc.data();
+                                const lavoroId = lavoroDoc.id;
+                                
+                                // Carica ore validate per questo lavoro
+                                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                                const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+                                const oreSnapshot = await getDocs(oreQuery);
+                                
+                                oreSnapshot.forEach(oraDoc => {
+                                    const ora = oraDoc.data();
+                                    if (ora.data && ora.oreMacchina && ora.oreMacchina > 0) {
+                                        const dataOra = ora.data.toDate ? ora.data.toDate() : new Date(ora.data);
+                                        const mese = dataOra.toISOString().substring(0, 7);
+                                        
+                                        // Filtra per periodo se necessario
+                                        if (periodo.dataDa && mese < periodo.dataDa.substring(0, 7)) return;
+                                        if (periodo.dataA && mese > periodo.dataA.substring(0, 7)) return;
+                                        
+                                        if (!orePerMese[mese]) {
+                                            orePerMese[mese] = 0;
+                                        }
+                                        orePerMese[mese] += ora.oreMacchina;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Errore caricamento ore macchine da Manodopera:', error);
+                }
+                
+                return Object.entries(orePerMese)
+                    .map(([mese, ore]) => ({
+                        mese,
+                        ore: parseFloat(ore.toFixed(2))
+                    }))
+                    .sort((a, b) => a.mese.localeCompare(b.mese));
+            } catch (error) {
+                console.error('Errore calcolo ore macchine per mese:', error);
+                return [];
+            }
+        }
+
+        // Carica e aggiorna statistiche macchine
+        async function loadStatisticheMacchine(periodo = {}) {
+            try {
+                // Assicurati che le macchine siano caricate
+                if (macchineList.length === 0) {
+                    await loadMacchine();
+                }
+                
+                const [
+                    oreMacchineTotali,
+                    macchinePiuUtilizzate,
+                    manutenzioniScadenza,
+                    oreMacchinaPerTerreno,
+                    oreMacchinaVsLavoratore,
+                    oreMacchinePerMese
+                ] = await Promise.all([
+                    getOreMacchineTotali(periodo),
+                    getMacchinePiuUtilizzate(periodo, 5),
+                    getManutenzioniInScadenza(),
+                    getOreMacchinaPerTerreno(periodo),
+                    getOreMacchinaVsLavoratore(periodo),
+                    getOreMacchinePerMese(periodo)
+                ]);
+
+                // Aggiorna metriche
+                document.getElementById('metric-ore-macchine-totali').textContent = formatOre(oreMacchineTotali);
+                document.getElementById('metric-macchine-utilizzate').textContent = macchinePiuUtilizzate.length;
+                
+                const macchineTotali = macchineList.filter(m => m.stato !== 'dismesso').length;
+                const utilizzoMedio = macchineTotali > 0 ? (oreMacchineTotali / macchineTotali).toFixed(1) : 0;
+                document.getElementById('metric-utilizzo-medio').textContent = formatOre(parseFloat(utilizzoMedio));
+                document.getElementById('metric-manutenzioni-scadenza').textContent = manutenzioniScadenza;
+
+                // Aggiorna sottotitoli
+                const periodoText = periodo.dataDa && periodo.dataA ? `${periodo.dataDa} - ${periodo.dataA}` : 'Tutti i periodi';
+                document.getElementById('metric-ore-macchine-subtitle').textContent = periodoText;
+                document.getElementById('metric-macchine-utilizzate-subtitle').textContent = periodoText;
+
+                // Aggiorna grafici
+                updateChartTopMacchine(macchinePiuUtilizzate);
+                updateChartOreMacchinaTerreno(oreMacchinaPerTerreno);
+                updateChartOreMacchinaVsLavoratore(oreMacchinaVsLavoratore);
+                updateChartOreMacchineMese(oreMacchinePerMese);
+            } catch (error) {
+                console.error('Errore caricamento statistiche macchine:', error);
+            }
+        }
+
+        // Funzioni aggiornamento grafici macchine
+        function updateChartTopMacchine(data) {
+            const chartContainer = document.querySelector('#chart-top-macchine')?.closest('.chart-card');
+            if (!chartContainer) return;
+            
+            let canvas = chartContainer.querySelector('canvas#chart-top-macchine');
+            if (!canvas) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-top-macchine"></canvas>';
+                canvas = document.getElementById('chart-top-macchine');
+            }
+            
+            if (chartTopMacchine) chartTopMacchine.destroy();
+            
+            if (data.length === 0) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            chartTopMacchine = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.nome),
+                    datasets: [{
+                        label: 'Ore Utilizzate',
+                        data: data.map(d => d.ore),
+                        backgroundColor: '#007bff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${formatOre(context.parsed.x)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatOre(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartOreMacchinaTerreno(data) {
+            const chartContainer = document.querySelector('#chart-ore-macchina-terreno')?.closest('.chart-card');
+            if (!chartContainer) return;
+            
+            let canvas = chartContainer.querySelector('canvas#chart-ore-macchina-terreno');
+            if (!canvas) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-ore-macchina-terreno"></canvas>';
+                canvas = document.getElementById('chart-ore-macchina-terreno');
+            }
+            
+            if (chartOreMacchinaTerreno) chartOreMacchinaTerreno.destroy();
+            
+            if (data.length === 0) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            chartOreMacchinaTerreno = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.terrenoNome),
+                    datasets: [{
+                        label: 'Ore Macchina',
+                        data: data.map(d => d.ore),
+                        backgroundColor: '#2E8B57'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${formatOre(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatOre(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartOreMacchinaVsLavoratore(data) {
+            const chartContainer = document.querySelector('#chart-ore-macchina-vs-lavoratore')?.closest('.chart-card');
+            if (!chartContainer) return;
+            
+            let canvas = chartContainer.querySelector('canvas#chart-ore-macchina-vs-lavoratore');
+            if (!canvas) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-ore-macchina-vs-lavoratore"></canvas>';
+                canvas = document.getElementById('chart-ore-macchina-vs-lavoratore');
+            }
+            
+            if (chartOreMacchinaVsLavoratore) chartOreMacchinaVsLavoratore.destroy();
+            
+            if (data.oreLavoratore === 0 && data.oreMacchina === 0) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            chartOreMacchinaVsLavoratore = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ore Lavoratore', 'Ore Macchina'],
+                    datasets: [{
+                        data: [data.oreLavoratore, data.oreMacchina],
+                        backgroundColor: ['#2E8B57', '#007bff']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${formatOre(context.parsed)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartOreMacchineMese(data) {
+            const chartContainer = document.querySelector('#chart-ore-macchine-mese')?.closest('.chart-card');
+            if (!chartContainer) return;
+            
+            let canvas = chartContainer.querySelector('canvas#chart-ore-macchine-mese');
+            if (!canvas) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<canvas id="chart-ore-macchine-mese"></canvas>';
+                canvas = document.getElementById('chart-ore-macchine-mese');
+            }
+            
+            if (chartOreMacchineMese) chartOreMacchineMese.destroy();
+            
+            if (data.length === 0) {
+                chartContainer.querySelector('.chart-container').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessun dato disponibile</p></div>';
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            chartOreMacchineMese = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => formatMese(d.mese)),
+                    datasets: [{
+                        label: 'Ore Macchine',
+                        data: data.map(d => d.ore),
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatOre(context.parsed.y)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatOre(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Carica dropdown filtri

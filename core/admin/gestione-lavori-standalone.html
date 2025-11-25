@@ -1323,9 +1323,18 @@
         // Popola dropdown trattori
         function populateTrattoriDropdown() {
             const select = document.getElementById('lavoro-trattore');
-            if (!select) return;
+            if (!select) {
+                console.warn('Dropdown lavoro-trattore non trovato');
+                return;
+            }
             
             select.innerHTML = '<option value="">-- Nessun trattore --</option>';
+            
+            if (!trattoriList || trattoriList.length === 0) {
+                console.warn('Nessun trattore disponibile nella lista. Verifica che le macchine siano state caricate correttamente.');
+                return;
+            }
+            
             trattoriList.forEach(trattore => {
                 const option = document.createElement('option');
                 option.value = trattore.id;
@@ -1526,13 +1535,33 @@
         // Aggiorna stato macchina
         async function updateMacchinaStato(macchinaId, nuovoStato) {
             try {
+                if (!macchinaId) {
+                    console.warn('⚠️ updateMacchinaStato chiamata senza macchinaId');
+                    return;
+                }
+                
+                console.log(`🔄 Aggiornamento stato macchina ${macchinaId} da "${nuovoStato}" a "${nuovoStato}"`);
+                
                 const macchinaRef = doc(db, 'tenants', currentTenantId, 'macchine', macchinaId);
+                
+                // Verifica stato attuale prima di aggiornare
+                const macchinaDoc = await getDoc(macchinaRef);
+                if (macchinaDoc.exists()) {
+                    const statoAttuale = macchinaDoc.data().stato;
+                    console.log(`  📊 Stato attuale: ${statoAttuale}, nuovo stato: ${nuovoStato}`);
+                } else {
+                    console.warn(`  ⚠️ Macchina ${macchinaId} non trovata nel database`);
+                    return;
+                }
+                
                 await updateDoc(macchinaRef, {
                     stato: nuovoStato,
                     updatedAt: serverTimestamp()
                 });
+                
+                console.log(`  ✅ Stato macchina ${macchinaId} aggiornato con successo a "${nuovoStato}"`);
             } catch (error) {
-                console.error('Errore aggiornamento stato macchina:', error);
+                console.error(`❌ Errore aggiornamento stato macchina ${macchinaId}:`, error);
                 // Non bloccare il salvataggio del lavoro se c'è un errore con la macchina
             }
         }
@@ -2147,11 +2176,147 @@
                     });
                 });
 
+                // Corregge macchine ancora in uso per lavori completati
+                console.log('🔍 Verifica modulo Parco Macchine:', hasParcoMacchineModule);
+                if (hasParcoMacchineModule) {
+                    await correggiMacchineLavoriCompletati();
+                } else {
+                    console.log('⚠️ Modulo Parco Macchine non attivo, skip correzione macchine');
+                }
+
                 applyFilters();
             } catch (error) {
                 console.error('Errore caricamento lavori:', error);
                 container.innerHTML = '<div class="empty-state">Errore caricamento lavori</div>';
                 showAlert('Errore caricamento lavori', 'error');
+            }
+        }
+
+        // Corregge macchine ancora in uso per lavori completati
+        // IMPORTANTE: Libera solo se la macchina NON è assegnata ad altri lavori attivi
+        async function correggiMacchineLavoriCompletati() {
+            try {
+                console.log('🔧 Inizio correzione macchine per lavori completati...');
+                console.log('📊 Totale lavori caricati:', lavoriList.length);
+                
+                // Log di tutti gli stati dei lavori
+                const statiLavori = {};
+                lavoriList.forEach(l => {
+                    const stato = l.stato || 'senza_stato';
+                    statiLavori[stato] = (statiLavori[stato] || 0) + 1;
+                });
+                console.log('📈 Distribuzione stati lavori:', statiLavori);
+                
+                const lavoriCompletati = lavoriList.filter(l => 
+                    (l.stato === 'completato' || l.stato === 'completato_da_approvare') && 
+                    (l.macchinaId || l.attrezzoId)
+                );
+
+                console.log('✅ Lavori completati trovati:', lavoriCompletati.length);
+                
+                if (lavoriCompletati.length === 0) {
+                    console.log('ℹ️ Nessun lavoro completato con macchine associate');
+                    return;
+                }
+
+                // Trova lavori attivi (non completati/annullati)
+                const lavoriAttivi = lavoriList.filter(l => 
+                    l.stato !== 'completato' && 
+                    l.stato !== 'completato_da_approvare' && 
+                    l.stato !== 'annullato' &&
+                    (l.macchinaId || l.attrezzoId)
+                );
+                console.log('🔄 Lavori attivi con macchine:', lavoriAttivi.length);
+
+                // Crea mappa delle macchine/attrezzi in uso per lavori attivi
+                const macchineInUsoAttive = new Set();
+                const attrezziInUsoAttivi = new Set();
+                lavoriAttivi.forEach(l => {
+                    if (l.macchinaId) macchineInUsoAttive.add(l.macchinaId);
+                    if (l.attrezzoId) attrezziInUsoAttivi.add(l.attrezzoId);
+                });
+                console.log('📋 Macchine in uso per lavori attivi:', Array.from(macchineInUsoAttive));
+                console.log('📋 Attrezzi in uso per lavori attivi:', Array.from(attrezziInUsoAttivi));
+
+                let macchineCorrette = 0;
+                for (const lavoro of lavoriCompletati) {
+                    console.log(`🔍 Analizzando lavoro "${lavoro.nome}" (ID: ${lavoro.id})`);
+                    
+                    if (lavoro.macchinaId) {
+                        console.log(`  🚜 Verifica trattore ID: ${lavoro.macchinaId}`);
+                        
+                        // Verifica se la macchina è ancora in uso per altri lavori attivi
+                        if (macchineInUsoAttive.has(lavoro.macchinaId)) {
+                            console.log(`  ⚠️ Trattore ancora in uso per altri lavori attivi, NON libero`);
+                            continue;
+                        }
+                        
+                        try {
+                            const macchinaDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'macchine', lavoro.macchinaId));
+                            if (macchinaDoc.exists()) {
+                                const macchinaData = macchinaDoc.data();
+                                console.log(`  📊 Stato attuale trattore: ${macchinaData.stato}`);
+                                if (macchinaData.stato === 'in_uso') {
+                                    console.log(`  ✅ Libero trattore "${macchinaData.nome || lavoro.macchinaId}"`);
+                                    await updateMacchinaStato(lavoro.macchinaId, 'disponibile');
+                                    macchineCorrette++;
+                                    console.log(`  ✅ Trattore liberato con successo`);
+                                } else {
+                                    console.log(`  ℹ️ Trattore già in stato: ${macchinaData.stato}`);
+                                }
+                            } else {
+                                console.log(`  ⚠️ Trattore non trovato nel database`);
+                            }
+                        } catch (error) {
+                            console.error(`  ❌ Errore verifica trattore:`, error);
+                        }
+                    }
+                    
+                    if (lavoro.attrezzoId) {
+                        console.log(`  ⚙️ Verifica attrezzo ID: ${lavoro.attrezzoId}`);
+                        
+                        // Verifica se l'attrezzo è ancora in uso per altri lavori attivi
+                        if (attrezziInUsoAttivi.has(lavoro.attrezzoId)) {
+                            console.log(`  ⚠️ Attrezzo ancora in uso per altri lavori attivi, NON libero`);
+                            continue;
+                        }
+                        
+                        try {
+                            const attrezzoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'macchine', lavoro.attrezzoId));
+                            if (attrezzoDoc.exists()) {
+                                const attrezzoData = attrezzoDoc.data();
+                                console.log(`  📊 Stato attuale attrezzo: ${attrezzoData.stato}`);
+                                if (attrezzoData.stato === 'in_uso') {
+                                    console.log(`  ✅ Libero attrezzo "${attrezzoData.nome || lavoro.attrezzoId}"`);
+                                    await updateMacchinaStato(lavoro.attrezzoId, 'disponibile');
+                                    macchineCorrette++;
+                                    console.log(`  ✅ Attrezzo liberato con successo`);
+                                } else {
+                                    console.log(`  ℹ️ Attrezzo già in stato: ${attrezzoData.stato}`);
+                                }
+                            } else {
+                                console.log(`  ⚠️ Attrezzo non trovato nel database`);
+                            }
+                        } catch (error) {
+                            console.error(`  ❌ Errore verifica attrezzo:`, error);
+                        }
+                    }
+                }
+
+                console.log(`📊 Riepilogo: ${macchineCorrette} macchine corrette su ${lavoriCompletati.length} lavori completati`);
+                
+                if (macchineCorrette > 0) {
+                    console.log(`✅ Corrette ${macchineCorrette} macchine per lavori completati`);
+                    // Ricarica trattori e attrezzi per aggiornare dropdown
+                    await loadTrattori();
+                    await loadAttrezzi();
+                } else {
+                    console.log('ℹ️ Nessuna macchina da correggere (tutte già disponibili o ancora in uso per altri lavori)');
+                }
+            } catch (error) {
+                console.error('❌ Errore correzione macchine lavori completati:', error);
+                console.error('Stack trace:', error.stack);
+                // Non blocchiamo il caricamento se c'è un errore
             }
         }
 
@@ -2673,8 +2838,9 @@
             document.getElementById('tipo-lavoro-group').style.display = 'none';
             document.getElementById('lavoro-tipo-lavoro').value = '';
             
-            // Reset campi macchine se modulo Parco Macchine attivo
+            // Reset e popola campi macchine se modulo Parco Macchine attivo
             if (hasParcoMacchineModule) {
+                populateTrattoriDropdown(); // Popola dropdown trattori
                 document.getElementById('lavoro-trattore').value = '';
                 document.getElementById('lavoro-attrezzo').value = '';
                 document.getElementById('lavoro-operatore-macchina').value = '';
@@ -2750,6 +2916,7 @@
             
             // Popola campi macchine se modulo Parco Macchine attivo
             if (hasParcoMacchineModule) {
+                populateTrattoriDropdown(); // Popola dropdown trattori
                 const macchinaId = lavoro.macchinaId || null;
                 const attrezzoId = lavoro.attrezzoId || null;
                 const operatoreMacchinaId = lavoro.operatoreMacchinaId || null;
@@ -2902,17 +3069,36 @@
                     }
                     
                     // Imposta macchine come in_uso se assegnate e lavoro non completato/annullato
-                    if (macchinaId && stato !== 'completato' && stato !== 'annullato') {
+                    const statiCompletati = ['completato', 'completato_da_approvare', 'annullato'];
+                    const lavoroNonCompletato = !statiCompletati.includes(stato);
+                    
+                    console.log(`📊 Gestione macchine - Stato lavoro: ${stato}, Non completato: ${lavoroNonCompletato}`);
+                    console.log(`📊 Macchine assegnate - Trattore: ${macchinaId}, Attrezzo: ${attrezzoId}`);
+                    
+                    if (macchinaId && lavoroNonCompletato) {
+                        console.log(`🔧 Imposto trattore ${macchinaId} come in_uso per lavoro ${currentLavoroId || 'nuovo'}`);
                         await updateMacchinaStato(macchinaId, 'in_uso');
+                    } else if (macchinaId && !lavoroNonCompletato) {
+                        console.log(`⏭️ Trattore ${macchinaId} NON impostato come in_uso perché lavoro è ${stato}`);
                     }
-                    if (attrezzoId && stato !== 'completato' && stato !== 'annullato') {
+                    
+                    if (attrezzoId && lavoroNonCompletato) {
+                        console.log(`🔧 Imposto attrezzo ${attrezzoId} come in_uso per lavoro ${currentLavoroId || 'nuovo'}`);
                         await updateMacchinaStato(attrezzoId, 'in_uso');
+                    } else if (attrezzoId && !lavoroNonCompletato) {
+                        console.log(`⏭️ Attrezzo ${attrezzoId} NON impostato come in_uso perché lavoro è ${stato}`);
                     }
                     
                     // Libera macchine se lavoro completato/annullato
-                    if (stato === 'completato' || stato === 'annullato') {
-                        if (macchinaId) await updateMacchinaStato(macchinaId, 'disponibile');
-                        if (attrezzoId) await updateMacchinaStato(attrezzoId, 'disponibile');
+                    if (statiCompletati.includes(stato)) {
+                        if (macchinaId) {
+                            console.log(`🔧 Libero trattore ${macchinaId} per lavoro ${stato}`);
+                            await updateMacchinaStato(macchinaId, 'disponibile');
+                        }
+                        if (attrezzoId) {
+                            console.log(`🔧 Libero attrezzo ${attrezzoId} per lavoro ${stato}`);
+                            await updateMacchinaStato(attrezzoId, 'disponibile');
+                        }
                     }
                 }
                 
@@ -2932,6 +3118,13 @@
                 }
                 
                 closeLavoroModal();
+                
+                // Ricarica macchine se modulo Parco Macchine attivo (per aggiornare stati)
+                if (hasParcoMacchineModule) {
+                    await loadTrattori();
+                    await loadAttrezzi();
+                }
+                
                 await loadLavori();
                 await loadStatistics();
             } catch (error) {
@@ -3027,6 +3220,20 @@
                     approvatoIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
                 });
+                
+                // Libera macchine se modulo Parco Macchine attivo
+                if (hasParcoMacchineModule) {
+                    if (lavoro.macchinaId) {
+                        await updateMacchinaStato(lavoro.macchinaId, 'disponibile');
+                    }
+                    if (lavoro.attrezzoId) {
+                        await updateMacchinaStato(lavoro.attrezzoId, 'disponibile');
+                    }
+                    
+                    // Ricarica trattori e attrezzi per aggiornare dropdown
+                    await loadTrattori();
+                    await loadAttrezzi();
+                }
                 
                 showAlert('Lavoro approvato con successo!', 'success');
                 await loadLavori(); // Ricarica lavori
