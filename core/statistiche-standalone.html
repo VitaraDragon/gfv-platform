@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistiche - GFV Platform</title>
+    <link rel="manifest" href="../../manifest.json">
+    <meta name="theme-color" content="#2E8B57">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
@@ -1938,6 +1940,21 @@
             } catch (error) {
                 console.error('Errore inizializzazione app:', error);
             }
+        }
+    </script>
+    
+    <!-- Service Worker Registration for PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../../service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker registrato con successo:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Registrazione Service Worker fallita:', error);
+                    });
+            });
         }
     </script>
 </body>
