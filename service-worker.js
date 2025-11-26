@@ -1,21 +1,21 @@
 // Service Worker per PWA - GFV Platform
 const CACHE_NAME = 'gfv-platform-v1';
-// Usa path relativi per compatibilità con GitHub Pages
+// Usa path assoluti per compatibilità con GitHub Pages
 const urlsToCache = [
-  './',
-  './index.html',
-  './core/auth/login-standalone.html',
-  './core/dashboard-standalone.html',
-  './core/attivita-standalone.html',
-  './core/terreni-standalone.html',
-  './core/statistiche-standalone.html',
-  './core/segnatura-ore-standalone.html',
-  './icons/icon-192x192.png',
-  './icons/icon-512x512.png',
-  './core/styles/dashboard.css',
-  './core/js/config-loader.js',
-  './core/js/dashboard-utils.js',
-  './core/js/dashboard-sections.js'
+  '/gfv-platform/',
+  '/gfv-platform/index.html',
+  '/gfv-platform/core/auth/login-standalone.html',
+  '/gfv-platform/core/dashboard-standalone.html',
+  '/gfv-platform/core/attivita-standalone.html',
+  '/gfv-platform/core/terreni-standalone.html',
+  '/gfv-platform/core/statistiche-standalone.html',
+  '/gfv-platform/core/segnatura-ore-standalone.html',
+  '/gfv-platform/icons/icon-192x192.png',
+  '/gfv-platform/icons/icon-512x512.png',
+  '/gfv-platform/core/styles/dashboard.css',
+  '/gfv-platform/core/js/config-loader.js',
+  '/gfv-platform/core/js/dashboard-utils.js',
+  '/gfv-platform/core/js/dashboard-sections.js'
 ];
 
 // Installazione Service Worker
@@ -95,7 +95,7 @@ self.addEventListener('fetch', (event) => {
           }
           // Se non c'è in cache, restituisci una risposta di fallback per HTML
           if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('./index.html');
+            return caches.match('/gfv-platform/index.html');
           }
         });
       })

@@ -67,3 +67,7 @@ export class TipoLavoro extends Base {
 export default TipoLavoro;
 
 
+
+
+
+

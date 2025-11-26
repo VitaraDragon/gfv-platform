@@ -89,3 +89,7 @@ export class CategoriaLavoro extends Base {
 export default CategoriaLavoro;
 
 
+
+
+
+
