@@ -3580,6 +3580,15 @@
             console.log('🚀 INIZIO CARICAMENTO DATI UTENTE');
             console.log('🚀 User ID:', user.uid);
             console.log('🚀 User Email:', user.email);
+            
+            // Verifica se l'utente si è appena registrato
+            const justRegistered = sessionStorage.getItem('gfv_user_just_registered') === 'true';
+            const expectedTenantId = sessionStorage.getItem('gfv_expected_tenant_id');
+            if (justRegistered) {
+                console.log('🆕 Utente appena registrato, attendo propagazione Firestore...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            
             try {
                 const userDocRef = doc(db, 'users', user.uid);
                 console.log('🚀 Sto leggendo documento da Firestore...');
@@ -3624,19 +3633,41 @@
                             if (!updatedUserDoc.exists()) {
                                 throw new Error('Errore: documento non creato correttamente dopo merge');
                             }
-                        } else {
-                            // Nessun documento esistente con questa email, procedi con la creazione normale
-                            console.log('✅ Nessun documento esistente trovato, creazione nuovo documento...');
-                            
-                            // Attendi un breve momento per evitare race condition con registrazione appena completata
-                            await new Promise(resolve => setTimeout(resolve, 1000));
-                            
-                            // Ricontrolla se nel frattempo è stato creato il documento
-                            const recheckDoc = await getDoc(userDocRef);
-                            if (recheckDoc.exists()) {
-                                console.log('✅ Documento trovato dopo attesa, uso quello esistente');
-                                // Il documento esiste ora, continua con il flusso normale dopo il blocco try
                             } else {
+                                // Nessun documento esistente con questa email, procedi con la creazione normale
+                                console.log('✅ Nessun documento esistente trovato');
+                                
+                                // IMPORTANTE: Se l'utente non viene dalla registrazione, NON creare documento vuoto
+                                // L'utente deve completare la registrazione prima
+                                const justRegistered = sessionStorage.getItem('gfv_user_just_registered') === 'true';
+                                
+                                if (!justRegistered) {
+                                    console.warn('⚠️ ATTENZIONE: Utente autenticato ma documento non trovato e non viene dalla registrazione!');
+                                    console.warn('⚠️ Questo potrebbe indicare un problema. Redirect alla registrazione...');
+                                    await auth.signOut();
+                                    alert('Errore: documento utente non trovato. Completa la registrazione.');
+                                    window.location.href = '../auth/registrazione-standalone.html';
+                                    return;
+                                }
+                                
+                                console.log('✅ Utente viene dalla registrazione, procedo con creazione documento...');
+                                
+                                // Attendi un breve momento per evitare race condition con registrazione appena completata
+                                await new Promise(resolve => setTimeout(resolve, 2000));
+                                
+                                // Ricontrolla se nel frattempo è stato creato il documento dalla registrazione
+                                const recheckDoc = await getDoc(userDocRef);
+                                if (recheckDoc.exists()) {
+                                    const recheckData = recheckDoc.data();
+                                    // Se il documento esiste e ha tenantId e ruoli, usa quello
+                                    if (recheckData.tenantId && recheckData.ruoli && recheckData.ruoli.length > 0) {
+                                        console.log('✅ Documento trovato dopo attesa con dati completi, uso quello esistente');
+                                        // Il documento esiste ora, continua con il flusso normale dopo il blocco try
+                                    } else {
+                                        console.warn('⚠️ Documento trovato ma incompleto, procedo con fix...');
+                                        // Continua con la creazione/fix
+                                    }
+                                } else {
                                 // Cerca se esiste un invito per questa email
                                 const invitiQuery = query(
                                     collection(db, 'inviti'),
@@ -3662,6 +3693,27 @@
                                     cognome = invitoData.cognome || '';
                                     console.log('✅ Trovato invito accettato, tenantId:', tenantId, 'ruoli:', ruoli);
                                     console.log('✅ Nome e cognome dall\'invito:', nome, cognome);
+                                } else {
+                                    // Nessun invito trovato - verifica se l'utente si è appena registrato
+                                    // Cerca se esiste un tenant creato da questo utente (registrazione appena completata)
+                                    console.log('🔍 Nessun invito trovato, verifico se esiste tenant creato da questo utente...');
+                                    const tenantQuery = query(
+                                        collection(db, 'tenants'),
+                                        where('creatoDa', '==', user.uid)
+                                    );
+                                    const tenantSnapshot = await getDocs(tenantQuery);
+                                    
+                                    if (!tenantSnapshot.empty) {
+                                        // Trovato tenant creato da questo utente = si è appena registrato
+                                        const tenantDoc = tenantSnapshot.docs[0];
+                                        tenantId = tenantDoc.id;
+                                        ruoli = ['amministratore']; // Primo utente è sempre amministratore
+                                        console.log('✅ Trovato tenant creato da questo utente (registrazione appena completata)');
+                                        console.log('✅ TenantId:', tenantId);
+                                        console.log('✅ Assegnato ruolo amministratore');
+                                    } else {
+                                        console.warn('⚠️ Nessun tenant trovato per questo utente');
+                                    }
                                 }
                                 
                                 // Se nome/cognome non sono nell'invito, prova a recuperarli da displayName di Firebase Auth
@@ -3678,7 +3730,7 @@
                                     nome: nome,
                                     cognome: cognome,
                                     tenantId: tenantId,
-                                    ruoli: ruoli,
+                                    ruoli: ruoli.length > 0 ? ruoli : (tenantId ? ['amministratore'] : []), // Se ha tenant ma non ruoli, assegna amministratore
                                     stato: 'attivo',
                                     createdAt: serverTimestamp(),
                                     createdBy: user.uid,
@@ -3688,7 +3740,7 @@
                                 };
                                 
                                 await setDoc(userDocRef, newUserData, { merge: true });
-                                console.log('✅ Documento utente creato automaticamente');
+                                console.log('✅ Documento utente creato automaticamente con ruoli:', newUserData.ruoli);
                             }
                         }
                         
@@ -3844,9 +3896,101 @@
                         throw new Error('Documento utente non trovato');
                     }
                     
-                    const userData = userDocUpdated.data();
+                    let userData = userDocUpdated.data();
                     console.log('🔍 DEBUG: Dati utente letti:', userData);
                     console.log('🔍 DEBUG: userData.ruoli =', userData.ruoli);
+                    console.log('🔍 DEBUG: userData.tenantId =', userData.tenantId);
+                    
+                    // FIX: Se l'utente ha tenantId null o ruoli vuoti, cerca il tenant creato da lui
+                    const ruoliVuoti = !userData.ruoli || !Array.isArray(userData.ruoli) || userData.ruoli.length === 0;
+                    const tenantIdMancante = !userData.tenantId;
+                    
+                    if (tenantIdMancante || ruoliVuoti) {
+                        console.warn('⚠️ PROBLEMA RILEVATO: tenantId o ruoli mancanti');
+                        console.warn('⚠️ tenantId nel documento:', userData.tenantId, 'ruoli:', userData.ruoli);
+                        
+                        let foundTenantId = null;
+                        
+                        // PRIMA: Prova a usare il tenantId da sessionStorage (se l'utente si è appena registrato)
+                        const expectedTenantId = sessionStorage.getItem('gfv_expected_tenant_id');
+                        if (expectedTenantId) {
+                            console.log('🔍 Verifico tenantId da sessionStorage:', expectedTenantId);
+                            try {
+                                const tenantCheck = await getDoc(doc(db, 'tenants', expectedTenantId));
+                                if (tenantCheck.exists()) {
+                                    foundTenantId = expectedTenantId;
+                                    console.log('✅ TenantId da sessionStorage valido:', foundTenantId);
+                                } else {
+                                    console.warn('⚠️ TenantId da sessionStorage non trovato in Firestore');
+                                }
+                            } catch (error) {
+                                console.warn('⚠️ Errore verifica tenantId da sessionStorage:', error);
+                            }
+                        }
+                        
+                        // SECONDA: Se non trovato, cerca tenant creato da questo utente
+                        if (!foundTenantId) {
+                            console.warn('⚠️ Cerco tenant creato da questo utente...');
+                            try {
+                                const tenantQuery = query(
+                                    collection(db, 'tenants'),
+                                    where('creatoDa', '==', user.uid)
+                                );
+                                const tenantSnapshot = await getDocs(tenantQuery);
+                                
+                                if (!tenantSnapshot.empty) {
+                                    const tenantDoc = tenantSnapshot.docs[0];
+                                    foundTenantId = tenantDoc.id;
+                                    console.log('✅ Trovato tenant creato da questo utente:', foundTenantId);
+                                } else {
+                                    console.warn('⚠️ Nessun tenant trovato per questo utente');
+                                }
+                            } catch (error) {
+                                console.error('❌ Errore durante ricerca tenant:', error);
+                            }
+                        }
+                        
+                        // Se abbiamo trovato un tenantId, aggiorna il documento
+                        if (foundTenantId) {
+                            const updates = {};
+                            
+                            if (tenantIdMancante) {
+                                updates.tenantId = foundTenantId;
+                                userData.tenantId = foundTenantId;
+                                console.log('✅ Aggiornato tenantId:', foundTenantId);
+                            }
+                            
+                            if (ruoliVuoti) {
+                                updates.ruoli = ['amministratore'];
+                                userData.ruoli = ['amministratore'];
+                                console.log('✅ Assegnato ruolo amministratore');
+                            }
+                            
+                            // Aggiorna il documento utente
+                            if (Object.keys(updates).length > 0) {
+                                await updateDoc(userDocRef, updates);
+                                console.log('✅ Documento utente aggiornato con:', updates);
+                                
+                                // Attendi propagazione
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                
+                                // Ricarica i dati aggiornati
+                                const updatedDoc = await getDoc(userDocRef);
+                                if (updatedDoc.exists()) {
+                                    userData = updatedDoc.data();
+                                    console.log('✅ Dati utente aggiornati:', userData);
+                                }
+                            }
+                        } else {
+                            console.error('❌ ERRORE: Impossibile trovare tenant per questo utente!');
+                            console.error('❌ User ID:', user.uid);
+                            console.error('❌ Email:', user.email);
+                        }
+                        
+                        // Pulisci sessionStorage dopo aver usato i dati
+                        sessionStorage.removeItem('gfv_user_just_registered');
+                        sessionStorage.removeItem('gfv_expected_tenant_id');
+                    }
                     
                     const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
                     const email = userData.email || user.email;

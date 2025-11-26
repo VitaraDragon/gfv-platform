@@ -93,6 +93,18 @@
 - Link registrazione nuovo account
 - **TESTATO CON SUCCESSO**
 
+**Funzionalità Registrazione**:
+- Form completo (nome, cognome, email, password, nome azienda)
+- Validazione input lato client
+- Creazione utente Firebase Authentication
+- Creazione tenant con nome azienda normalizzato come ID
+- Gestione conflitti ID tenant (suffissi numerici)
+- Creazione documento utente con ruoli e tenantId
+- Verifica e retry automatico se dati non salvati correttamente
+- Logging dettagliato per debug
+- Redirect automatico alla dashboard dopo registrazione
+- **TESTATO E FUNZIONANTE** ✅ (2025-01-26)
+
 **Funzionalità Dashboard**:
 - Verifica autenticazione
 - Mostra info utente e ruoli
@@ -102,7 +114,12 @@
 - Aggiornamento ultimo accesso automatico
 - Sistema stato online in tempo reale
 - Redirect a login se non autenticato
-- **TESTATO CON SUCCESSO**
+- **Fix automatico dati utente incompleti** (2025-01-26):
+  - Rileva utenti con tenantId null o ruoli vuoti
+  - Cerca automaticamente tenant creato dall'utente
+  - Aggiorna automaticamente tenantId e ruoli se mancanti
+  - Usa sessionStorage per recuperare tenantId da registrazione
+- **TESTATO E FUNZIONANTE** ✅
 
 **Funzionalità Gestione Utenti**:
 - Lista utenti e inviti pendenti

@@ -359,6 +359,7 @@
         const db = getFirestore(app);
 
         // Elementi DOM
+        console.log('🔍 Caricamento elementi DOM...');
         const registerForm = document.getElementById('register-form');
         const nomeInput = document.getElementById('nome');
         const cognomeInput = document.getElementById('cognome');
@@ -369,12 +370,51 @@
         const registerButton = document.getElementById('register-button');
         const loadingOverlay = document.getElementById('loading-overlay');
         const successMessage = document.getElementById('success-message');
+        
+        // Verifica che tutti gli elementi esistano
+        if (!registerForm) {
+            console.error('❌ ERRORE CRITICO: Form di registrazione non trovato!');
+            throw new Error('Form di registrazione non trovato nel DOM');
+        }
+        if (!nomeInput || !cognomeInput || !emailInput || !passwordInput || !passwordConfirmInput || !aziendaNomeInput) {
+            console.error('❌ ERRORE CRITICO: Alcuni campi del form non trovati!');
+            console.error('Campi trovati:', { nomeInput, cognomeInput, emailInput, passwordInput, passwordConfirmInput, aziendaNomeInput });
+        }
+        if (!registerButton || !loadingOverlay) {
+            console.error('❌ ERRORE CRITICO: Pulsante o overlay non trovati!');
+        }
+        console.log('✅ Tutti gli elementi DOM caricati correttamente');
 
         // Verifica se già autenticato
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Già autenticato, redirect a dashboard
-                window.location.href = '../dashboard-standalone.html';
+                console.log('🔍 Utente già autenticato, verifico se ha completato la registrazione...');
+                // Verifica se l'utente ha completato la registrazione (ha tenantId e ruoli)
+                try {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        const hasTenantId = userData.tenantId && userData.tenantId !== null;
+                        const hasRoles = userData.ruoli && Array.isArray(userData.ruoli) && userData.ruoli.length > 0;
+                        
+                        if (hasTenantId && hasRoles) {
+                            console.log('✅ Utente ha completato la registrazione, redirect alla dashboard');
+                            window.location.href = '../dashboard-standalone.html';
+                        } else {
+                            console.warn('⚠️ Utente autenticato ma registrazione incompleta (tenantId:', hasTenantId, 'ruoli:', hasRoles, ')');
+                            console.warn('⚠️ Rimango nella pagina di registrazione per completare...');
+                            // NON fare redirect, lascia l'utente completare la registrazione
+                        }
+                    } else {
+                        console.warn('⚠️ Utente autenticato ma documento non trovato, rimango nella pagina di registrazione');
+                        // NON fare redirect, lascia l'utente completare la registrazione
+                    }
+                } catch (error) {
+                    console.error('❌ Errore verifica documento utente:', error);
+                    // In caso di errore, non fare redirect
+                }
             }
         });
 
@@ -468,15 +508,34 @@
         }
 
         // Gestione submit form
+        console.log('🔗 Registro event listener per il form...');
+        if (!registerForm) {
+            console.error('❌ ERRORE: registerForm è null, non posso registrare l\'event listener!');
+        } else {
+            console.log('✅ Form trovato, registro event listener...');
+        }
+        
+        // Aggiungi anche event listener al pulsante come fallback
+        registerButton.addEventListener('click', (e) => {
+            console.log('🖱️ CLICK PULSANTE: Pulsante Crea Account cliccato!');
+        });
+        
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('📝 FORM SUBMIT: Form di registrazione inviato!');
+            console.log('📝 Event object:', e);
+            console.log('📝 Form element:', registerForm);
+            console.log('📝 Valido il form...');
 
             // Valida form
             if (!validateForm()) {
+                console.warn('⚠️ Validazione form fallita');
                 return;
             }
+            console.log('✅ Validazione form OK');
 
             // Mostra loading
+            console.log('⏳ Mostro loading overlay...');
             loadingOverlay.classList.add('active');
             registerButton.disabled = true;
             hideErrors();
@@ -487,13 +546,48 @@
                 const email = emailInput.value.trim().toLowerCase();
                 const password = passwordInput.value;
                 const aziendaNome = aziendaNomeInput.value.trim();
+                
+                console.log('📝 Dati form:', { nome, cognome, email, aziendaNome, passwordLength: password.length });
 
                 // Crea utente Firebase Auth
+                console.log('🔐 Creando utente Firebase Auth...');
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const firebaseUser = userCredential.user;
+                console.log('✅ Utente Firebase Auth creato:', firebaseUser.uid);
 
-                // Genera ID tenant (semplice, basato su timestamp e random)
-                const tenantId = `tenant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                // Genera ID tenant basato sul nome azienda (normalizzato)
+                // Normalizza il nome: minuscolo, rimuovi spazi e caratteri speciali, sostituisci con underscore
+                let tenantIdBase = aziendaNome
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9]/g, '_') // Sostituisci caratteri non alfanumerici con underscore
+                    .replace(/_+/g, '_') // Sostituisci underscore multipli con uno solo
+                    .replace(/^_|_$/g, ''); // Rimuovi underscore all'inizio e alla fine
+                
+                // Se il nome normalizzato è vuoto, usa un fallback
+                if (!tenantIdBase || tenantIdBase.length === 0) {
+                    tenantIdBase = 'azienda_' + Date.now();
+                }
+                
+                // Verifica se esiste già un tenant con questo ID
+                let tenantId = tenantIdBase;
+                let suffix = 1;
+                let tenantExists = true;
+                
+                while (tenantExists) {
+                    const tenantCheck = await getDoc(doc(db, 'tenants', tenantId));
+                    if (!tenantCheck.exists()) {
+                        tenantExists = false;
+                    } else {
+                        // Se esiste, aggiungi un suffisso numerico
+                        tenantId = `${tenantIdBase}_${suffix}`;
+                        suffix++;
+                        console.log(`⚠️ Tenant ID "${tenantIdBase}" già esistente, provo con: ${tenantId}`);
+                    }
+                }
+                
+                console.log('🏢 Tenant ID generato dal nome azienda:', tenantId);
+                console.log('🏢 Nome azienda originale:', aziendaNome);
 
                 // Crea tenant
                 const tenantData = {
@@ -505,33 +599,85 @@
                     stato: 'attivo'
                 };
 
-                await setDoc(doc(db, 'tenants', tenantId), tenantData);
+                // Salva il tenant PRIMA dell'utente
+                console.log('💾 STEP 1: Salvando tenant con ID:', tenantId);
+                console.log('💾 Dati tenant:', JSON.stringify(tenantData, null, 2));
+                console.log('💾 Database reference:', db);
+                console.log('💾 Document reference:', doc(db, 'tenants', tenantId));
+                
+                try {
+                    const tenantDocRef = doc(db, 'tenants', tenantId);
+                    console.log('💾 Tentativo salvataggio tenant...');
+                    await setDoc(tenantDocRef, tenantData);
+                    console.log('✅ STEP 1 COMPLETATO: Tenant salvato in Firestore');
+                } catch (tenantError) {
+                    console.error('❌ ERRORE CRITICO durante salvataggio tenant:', tenantError);
+                    console.error('❌ Tipo errore:', typeof tenantError);
+                    console.error('❌ Codice errore:', tenantError.code);
+                    console.error('❌ Messaggio errore:', tenantError.message);
+                    console.error('❌ Stack completo:', tenantError.stack);
+                    
+                    // Se è un errore di permessi Firestore
+                    if (tenantError.code === 'permission-denied' || tenantError.message?.includes('permission')) {
+                        throw new Error('Errore permessi Firestore: verifica le regole di sicurezza. Codice: ' + tenantError.code);
+                    }
+                    
+                    throw new Error(`Errore durante creazione tenant: ${tenantError.message || tenantError}`);
+                }
+                
+                // Verifica che il tenant sia stato salvato
+                console.log('🔍 STEP 2: Verifico che il tenant sia stato salvato...');
+                try {
+                    const tenantCheck = await getDoc(doc(db, 'tenants', tenantId));
+                    if (!tenantCheck.exists()) {
+                        console.error('❌ ERRORE: Tenant non trovato dopo il salvataggio!');
+                        throw new Error('Errore: tenant non salvato correttamente - documento non trovato');
+                    }
+                    console.log('✅ STEP 2 COMPLETATO: Tenant verificato in Firestore');
+                    console.log('✅ Dati tenant salvati:', tenantCheck.data());
+                } catch (verifyError) {
+                    console.error('❌ ERRORE durante verifica tenant:', verifyError);
+                    throw new Error(`Errore durante verifica tenant: ${verifyError.message}`);
+                }
 
                 // Crea documento utente in Firestore
                 // Assicurati che ruoli sia un array esplicito
                 const ruoliArray = ['amministratore'];
-                console.log('Creando utente con ruoli:', ruoliArray);
+                console.log('💾 Creando utente con ruoli:', ruoliArray);
+                console.log('💾 TenantId da associare:', tenantId);
                 
                 const userData = {
                     id: firebaseUser.uid,
-                    email: email,
+                    email: email.toLowerCase().trim(),
                     nome: nome,
                     cognome: cognome,
                     ruoli: ruoliArray, // Primo utente è sempre amministratore
-                    tenantId: tenantId,
+                    tenantId: tenantId, // IMPORTANTE: associa il tenant
                     stato: 'attivo',
                     creatoDa: firebaseUser.uid,
                     creatoIl: serverTimestamp(),
                     ultimoAccesso: null
                 };
 
-                console.log('Dati utente da salvare:', userData);
-                // Usa merge: true per evitare sovrascritture accidentali se il documento esiste già
-                await setDoc(doc(db, 'users', firebaseUser.uid), userData, { merge: true });
-                console.log('Documento utente salvato');
+                console.log('💾 Dati utente da salvare:', userData);
+                console.log('💾 Verifico se documento utente esiste già...');
+                
+                // Verifica se il documento esiste già
+                const existingUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                if (existingUserDoc.exists()) {
+                    console.warn('⚠️ Documento utente esiste già, uso updateDoc invece di setDoc');
+                    // Se esiste, usa updateDoc per aggiornare tutti i campi
+                    await updateDoc(doc(db, 'users', firebaseUser.uid), userData);
+                } else {
+                    console.log('✅ Documento utente non esiste, creo nuovo documento');
+                    // Se non esiste, crea nuovo documento SENZA merge
+                    await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+                }
+                console.log('✅ Documento utente salvato');
 
                 // Attendi un momento per assicurarsi che Firestore abbia processato
-                await new Promise(resolve => setTimeout(resolve, 500));
+                console.log('⏳ Attendo 1 secondo per propagazione Firestore...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
                 // Verifica che il documento sia stato salvato correttamente
                 const userDocRef = doc(db, 'users', firebaseUser.uid);
@@ -541,46 +687,75 @@
                     throw new Error('Errore: documento utente non creato correttamente');
                 }
 
-                // Verifica che i ruoli siano stati salvati
+                // Verifica che i dati siano stati salvati correttamente
                 const savedData = userDocCheck.data();
-                console.log('Dati salvati letti da Firestore:', savedData);
-                console.log('Ruoli salvati:', savedData.ruoli);
-                console.log('Tipo ruoli:', typeof savedData.ruoli, Array.isArray(savedData.ruoli));
+                console.log('✅ Dati salvati letti da Firestore:', savedData);
+                console.log('✅ Ruoli salvati:', savedData.ruoli);
+                console.log('✅ TenantId salvato:', savedData.tenantId);
+                console.log('✅ Tipo ruoli:', typeof savedData.ruoli, Array.isArray(savedData.ruoli));
+                
+                // Verifica tenantId
+                if (!savedData.tenantId || savedData.tenantId !== tenantId) {
+                    console.error('❌ ERRORE: tenantId non salvato correttamente!');
+                    console.error('❌ Atteso:', tenantId, 'Trovato:', savedData.tenantId);
+                    // Riprova a salvare tenantId
+                    await updateDoc(userDocRef, {
+                        tenantId: tenantId
+                    });
+                    console.log('✅ TenantId aggiornato');
+                }
                 
                 // Controlla se i ruoli sono stati salvati correttamente
                 let ruoliSalvati = savedData.ruoli;
                 if (!ruoliSalvati || !Array.isArray(ruoliSalvati) || ruoliSalvati.length === 0) {
-                    console.warn('Ruoli non trovati o non validi, riprovo con updateDoc...');
+                    console.warn('⚠️ Ruoli non trovati o non validi, riprovo con updateDoc...');
                     // Riprova a salvare i ruoli usando updateDoc
-                    await updateDoc(doc(db, 'users', firebaseUser.uid), {
+                    await updateDoc(userDocRef, {
                         ruoli: ['amministratore']
                     });
                     
                     // Attendi e verifica di nuovo
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    const userDocCheck2 = await getDoc(doc(db, 'users', firebaseUser.uid));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    const userDocCheck2 = await getDoc(userDocRef);
                     const savedData2 = userDocCheck2.data();
-                    console.log('Dopo updateDoc - Ruoli:', savedData2.ruoli);
+                    console.log('✅ Dopo updateDoc - Ruoli:', savedData2.ruoli);
+                    console.log('✅ Dopo updateDoc - TenantId:', savedData2.tenantId);
                     ruoliSalvati = savedData2.ruoli;
                 }
                 
                 if (!ruoliSalvati || !Array.isArray(ruoliSalvati) || ruoliSalvati.length === 0) {
-                    console.error('ERRORE: Ruoli ancora non salvati dopo retry!');
+                    console.error('❌ ERRORE: Ruoli ancora non salvati dopo retry!');
                     throw new Error('Impossibile salvare i ruoli. Controlla la console per dettagli.');
                 }
                 
+                if (!savedData.tenantId) {
+                    console.error('❌ ERRORE: TenantId ancora non salvato dopo retry!');
+                    throw new Error('Impossibile salvare il tenantId. Controlla la console per dettagli.');
+                }
+                
                 console.log('✅ Ruoli salvati correttamente:', ruoliSalvati);
+                console.log('✅ TenantId salvato correttamente:', savedData.tenantId);
 
                 // Successo!
                 showSuccess('✅ Account creato con successo! Reindirizzamento alla dashboard...');
                 
-                // Attendi un attimo per assicurarsi che tutto sia salvato e redirect
+                // Salva flag che l'utente si è appena registrato
+                sessionStorage.setItem('gfv_user_just_registered', 'true');
+                sessionStorage.setItem('gfv_expected_user_id', firebaseUser.uid);
+                sessionStorage.setItem('gfv_expected_tenant_id', tenantId);
+                
+                // Attendi più tempo per assicurarsi che tutto sia salvato e propagato in Firestore
+                console.log('⏳ Attendo 3 secondi prima del redirect per propagazione Firestore...');
                 setTimeout(() => {
+                    console.log('🚀 Redirect alla dashboard...');
                     window.location.href = '../dashboard-standalone.html';
-                }, 2000);
+                }, 3000);
 
             } catch (error) {
-                console.error('Errore registrazione:', error);
+                console.error('❌ ERRORE REGISTRAZIONE:', error);
+                console.error('❌ Stack trace:', error.stack);
+                console.error('❌ Codice errore:', error.code);
+                console.error('❌ Messaggio errore:', error.message);
                 
                 let errorMessage = 'Errore durante la registrazione';
                 
@@ -593,8 +768,15 @@
                 } else if (error.code === 'auth/weak-password') {
                     errorMessage = 'Password troppo debole';
                     showError('password', errorMessage);
+                } else if (error.message && error.message.includes('tenant')) {
+                    // Errore relativo al tenant
+                    errorMessage = `Errore creazione azienda: ${error.message}`;
+                    console.error('❌ ERRORE TENANT - Mostro messaggio all\'utente');
+                    showError('azienda-nome', errorMessage);
                 } else {
-                    showError('email', errorMessage + ': ' + error.message);
+                    errorMessage = error.message || 'Errore sconosciuto durante la registrazione';
+                    console.error('❌ ERRORE GENERICO - Mostro messaggio all\'utente');
+                    showError('email', errorMessage);
                 }
             } finally {
                 loadingOverlay.classList.remove('active');
