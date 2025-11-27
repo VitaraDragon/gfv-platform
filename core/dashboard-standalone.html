@@ -505,7 +505,7 @@
                 steps.push({
                     element: header,
                     title: 'Benvenuto!',
-                    intro: 'Qui trovi i tuoi dati, i ruoli assegnati e le azioni principali come impostazioni, guide e logout.'
+                    intro: 'Qui trovi i tuoi dati, i ruoli assegnati e tutte le scorciatoie principali: Impostazioni, Guide, Tour e Logout.'
                 });
             }
 
@@ -514,7 +514,7 @@
                 steps.push({
                     element: guideLink,
                     title: 'Guide sempre disponibili',
-                    intro: 'Apri il portale documentazione per trovare Primi Passi, FAQ e guide per ruolo o funzionalità.'
+                    intro: 'Il portale documentazione ospita Primi Passi, FAQ e guide per ruolo/funzionalità (incluso il modulo Parco Macchine).'
                 });
             }
 
@@ -523,7 +523,7 @@
                 steps.push({
                     element: tourButton,
                     title: 'Tour interattivo',
-                    intro: 'Puoi riaprire questo tour in qualsiasi momento cliccando qui.'
+                    intro: 'Puoi riaprire questo tour guidato in qualunque momento cliccando qui.'
                 });
             }
 
@@ -541,7 +541,7 @@
                 steps.push({
                     element: panoramica,
                     title: 'Panoramica aziendale',
-                    intro: 'Card rapide per Amministrazione, Statistiche e Terreni, con la mappa avanzata sulla destra.'
+                    intro: 'Card rapide per Amministrazione, Statistiche e Terreni con la mappa aziendale sempre visibile sulla destra.'
                 });
             }
 
@@ -550,7 +550,7 @@
                 steps.push({
                     element: mappaSection,
                     title: 'Mappa Aziendale',
-                    intro: 'Visualizza terreni, zone lavorate e indicatori stato lavori. Usa i filtri in alto per podere e coltura.'
+                    intro: 'Visualizza terreni, zone lavorate e indicatori stato lavori. I filtri in alto ti permettono di concentrarti su un podere o una coltura.'
                 });
             }
 
@@ -559,7 +559,7 @@
                 steps.push({
                     element: manodoperaSection,
                     title: 'Gestione Manodopera',
-                    intro: 'Per Manager/Amministratori: statistiche lavori, squadre e accesso rapido a creazione e monitoraggio lavori.'
+                    intro: 'Sezione dedicata a Manager/Amministratori per creare lavori, monitorare squadre, validare ore e vedere statistiche operative.'
                 });
             }
 
@@ -577,7 +577,7 @@
                 steps.push({
                     element: caposquadraSection,
                     title: 'Dashboard Caposquadra',
-                    intro: 'Comunicazioni rapide alla squadra, validazione ore e lavori recenti assegnati.'
+                    intro: 'Qui il caposquadra gestisce comunicazioni rapide, validazione ore e può controllare i lavori assegnati.'
                 });
             }
 
@@ -589,6 +589,20 @@
                     intro: 'Qui gli operai trovano lavori del giorno, comunicazioni e un riepilogo delle loro ore.'
                 });
             }
+
+            const manutenzioniSection = document.getElementById('manutenzioni-scadenza-section');
+            if (manutenzioniSection && window.getComputedStyle(manutenzioniSection).display !== 'none') {
+                steps.push({
+                    element: manutenzioniSection,
+                    title: 'Modulo Parco Macchine',
+                    intro: 'Con il modulo Parco Macchine attivo controlli qui manutenzioni imminenti e guasti. Ogni segnalazione aggiorna anche i lavori collegati.'
+                });
+            }
+
+            steps.push({
+                title: 'Serve altro?',
+                intro: 'Per workflow completi (Parco Macchine, Bilancio, Tenant) approfondisci sempre nella sezione “📘 Guide”. Buon lavoro!'
+            });
 
             return steps;
         }
