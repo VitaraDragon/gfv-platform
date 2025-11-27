@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Macchine - GFV Platform</title>
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
     <style>
         * {
             margin: 0;
@@ -115,6 +116,97 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Intro.js customizations */
+        .introjs-tooltip {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: rgba(255,255,255,0.95);
+            border-radius: 18px;
+            border: none;
+            box-shadow: 0 25px 55px rgba(15, 23, 42, 0.35);
+            max-width: 380px;
+            font-size: 15px;
+            line-height: 1.6;
+            padding: 22px 26px 20px;
+        }
+
+        .introjs-tooltip-header {
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .introjs-tooltip h1,
+        .introjs-tooltip .introjs-tooltip-title {
+            font-size: 19px;
+            margin: 0;
+            color: #ffffff;
+        }
+
+        .introjs-tooltiptext {
+            color: rgba(255,255,255,0.85);
+        }
+
+        .introjs-tooltiptext strong {
+            color: #ffffff;
+        }
+
+        .introjs-button {
+            border-radius: 999px;
+            background: rgba(255,255,255,0.94);
+            border: 1px solid rgba(255,255,255,0.65);
+            color: #1f2933;
+            padding: 8px 22px;
+            font-weight: 600;
+            margin-left: 8px;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.25);
+        }
+
+        .introjs-button:hover {
+            background: #ffffff;
+        }
+
+        .introjs-prevbutton {
+            background: rgba(255,255,255,0.15);
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.45);
+        }
+
+        .introjs-tooltip-buttons {
+            padding-top: 16px;
+        }
+
+        .introjs-tooltipReferenceLayer * {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .introjs-tooltip .introjs-closebutton {
+            color: rgba(255,255,255,0.85);
+            font-size: 18px;
+            top: 14px;
+            right: 18px;
+            font-weight: 600;
+            text-transform: none;
+        }
+
+        .introjs-tooltip .introjs-closebutton:hover {
+            color: #ffffff;
+        }
+
+        .introjs-progress,
+        .introjs-progressbar {
+            height: 6px;
+            border-radius: 999px;
+        }
+
+        .introjs-progress {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .introjs-progressbar {
+            background: #ffffff;
         }
 
         .filters {
@@ -386,7 +478,8 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Gestisci il parco macchine aziendale</p>
             </div>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="openMacchinaModal()">➕ Nuova Macchina</button>
+                <button class="btn btn-primary" id="macchine-tour-button" type="button">🧭 Tour</button>
+                <button class="btn btn-primary" id="nuova-macchina-button" onclick="openMacchinaModal()">➕ Nuova Macchina</button>
                 <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
@@ -394,7 +487,7 @@
         <div class="content">
             <div id="alert-container"></div>
             
-            <div class="filters">
+            <div class="filters" data-tour-section="macchine-filters">
                 <div class="filter-group">
                     <label>Filtra per Stato</label>
                     <select id="filter-stato">
@@ -437,7 +530,7 @@
                 <div id="macchine-count">0 macchine</div>
             </div>
 
-            <div id="macchine-container">
+            <div id="macchine-container" data-tour-section="macchine-list">
                 <div class="loading">Caricamento macchine...</div>
             </div>
         </div>
@@ -445,7 +538,7 @@
 
     <!-- Modal Macchina -->
     <div id="macchina-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" data-tour-section="macchina-form">
             <div class="modal-header">
                 <h3 id="modal-title">Nuova Macchina</h3>
                 <button class="close-btn" onclick="closeMacchinaModal()">&times;</button>
@@ -674,6 +767,7 @@
         };
     </script>
     
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -716,6 +810,10 @@
         let categoriePrincipali = [];
         let sottocategorieMap = new Map(); // parentId -> Array<sottocategorie>
         let macchineUnsubscribe = null; // Per gestire il listener real-time
+        const MACCHINE_TOUR_STORAGE_KEY = 'gfv_macchine_tour_v1';
+        let macchineTourAutoRequested = false;
+
+        setupMacchineTourButton();
 
         // Dichiarazioni funzioni (da definire dopo)
         let openMacchinaModal, closeMacchinaModal, handleSalvaMacchina, deleteMacchina, resetFilters;
@@ -1285,6 +1383,7 @@
 
             if (macchineList.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessuna macchina trovata</p></div>';
+                maybeAutoStartMacchineTour();
                 return;
             }
 
@@ -1417,6 +1516,131 @@
             `;
 
             container.innerHTML = html;
+            maybeAutoStartMacchineTour();
+        }
+
+        function setupMacchineTourButton() {
+            const tourButton = document.getElementById('macchine-tour-button');
+            if (tourButton) {
+                tourButton.addEventListener('click', () => startMacchineTour(true));
+            }
+        }
+
+        function maybeAutoStartMacchineTour() {
+            if (macchineTourAutoRequested) return;
+            try {
+                const hasSeen = localStorage.getItem(MACCHINE_TOUR_STORAGE_KEY);
+                if (!hasSeen) {
+                    macchineTourAutoRequested = true;
+                    setTimeout(() => startMacchineTour(false), 2000);
+                }
+            } catch (error) {
+                // Ignora errori localStorage
+            }
+        }
+
+        function startMacchineTour(triggeredManually) {
+            if (typeof introJs === 'undefined') {
+                if (triggeredManually) {
+                    alert('Tour non disponibile al momento. Riprova più tardi.');
+                }
+                return;
+            }
+
+            const modal = document.getElementById('macchina-modal');
+            const modalAlreadyOpen = modal && modal.classList.contains('active');
+            if (!modalAlreadyOpen && typeof openMacchinaModal === 'function') {
+                openMacchinaModal();
+            }
+
+            const steps = buildMacchineTourSteps();
+            if (!steps.length) {
+                if (!modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
+                    closeMacchinaModal();
+                }
+                if (triggeredManually) {
+                    alert('Completa il caricamento della pagina per vedere il tour.');
+                }
+                return;
+            }
+
+            const tour = introJs();
+            tour.setOptions({
+                steps,
+                showProgress: true,
+                showBullets: false,
+                exitOnOverlayClick: true,
+                nextLabel: 'Avanti',
+                prevLabel: 'Indietro',
+                skipLabel: '×',
+                doneLabel: 'Fatto'
+            }).oncomplete(() => {
+                if (!modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
+                    closeMacchinaModal();
+                }
+                try { localStorage.setItem(MACCHINE_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).onexit(() => {
+                if (!modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
+                    closeMacchinaModal();
+                }
+                try { localStorage.setItem(MACCHINE_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).start();
+        }
+
+        function buildMacchineTourSteps() {
+            const steps = [];
+
+            const header = document.querySelector('.header');
+            if (header) {
+                steps.push({
+                    element: header,
+                    title: 'Gestione Parco Macchine',
+                    intro: 'Gestisci trattori e attrezzi dell’azienda, monitora stati e pianifica manutenzioni.'
+                });
+            }
+
+            const addButton = document.getElementById('nuova-macchina-button');
+            if (addButton) {
+                steps.push({
+                    element: addButton,
+                    title: 'Nuova macchina o attrezzo',
+                    intro: 'Apri il modulo per inserire una macchina. Scegli il tipo (trattore o attrezzo), inserisci marca/modello e imposta lo stato.'
+                });
+            }
+
+            const filters = document.querySelector('[data-tour-section="macchine-filters"]');
+            if (filters) {
+                steps.push({
+                    element: filters,
+                    title: 'Filtri rapidi',
+                    intro: 'Filtra per stato, tipo, categoria e visualizza solo macchine attive. Usa “Pulisci filtri” per tornare alla vista completa.'
+                });
+            }
+
+            const lista = document.querySelector('[data-tour-section="macchine-list"]');
+            if (lista) {
+                steps.push({
+                    element: lista,
+                    title: 'Elenco macchine',
+                    intro: 'La tabella mostra stato, ore, manutenzioni e compatibilità. Usa i pulsanti Modifica/Elimina per intervenire rapidamente.'
+                });
+            }
+
+            const form = document.querySelector('[data-tour-section="macchina-form"]');
+            if (form && window.getComputedStyle(form).display !== 'none') {
+                steps.push({
+                    element: form,
+                    title: 'Modulo dettagli',
+                    intro: 'Il modulo è dinamico: per i trattori inserisci cavalli e dati tecnici, per gli attrezzi scegli la categoria e i CV minimi richiesti.'
+                });
+            }
+
+            steps.push({
+                title: 'Approfondisci',
+                intro: 'Trovi procedure complete e best practice nella guida “Parco Macchine”. Clicca su 📘 Guide dalla dashboard per aprirla.'
+            });
+
+            return steps;
         }
 
         // Apri modal macchina

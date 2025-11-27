@@ -6,6 +6,7 @@
     <title>Gestione Terreni - GFV Platform</title>
     <link rel="manifest" href="/gfv-platform/manifest.json">
     <meta name="theme-color" content="#2E8B57">
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
     <style>
         * {
             margin: 0;
@@ -491,19 +492,20 @@
             </div>
             <div class="header-actions">
                 <a href="dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
-                <button class="btn btn-primary" onclick="openTerrenoModal()">+ Aggiungi Terreno</button>
+                <button class="btn btn-primary" id="terreni-tour-button" type="button">🧭 Tour</button>
+                <button class="btn btn-primary" id="add-terreno-button" onclick="openTerrenoModal()">+ Aggiungi Terreno</button>
             </div>
         </div>
 
         <div class="content">
             <div id="alert-container"></div>
-            <div id="terreni-container" class="loading">Caricamento terreni...</div>
+            <div id="terreni-container" class="loading" data-tour-section="lista-terreni">Caricamento terreni...</div>
         </div>
     </div>
 
     <!-- Modal Terreno -->
     <div id="terreno-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" data-tour-section="form-terreno">
             <div class="modal-header">
                 <h2 id="modal-title">Aggiungi Terreno</h2>
                 <button class="close-modal" onclick="closeTerrenoModal()">&times;</button>
@@ -539,7 +541,7 @@
 
                 <div class="form-group">
                     <label>Mappa (opzionale)</label>
-                    <div class="map-container">
+                    <div class="map-container" data-tour-section="mappa-terreno">
                         <div class="map-controls">
                             <input type="text" id="map-search" placeholder="Cerca indirizzo...">
                             <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
@@ -590,6 +592,7 @@
         document.head.appendChild(mapsConfigScript);
     </script>
     
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Firebase SDK e Google Maps -->
     <script type="module">
         // Attendi che le configurazioni siano caricate
@@ -660,6 +663,10 @@
         let currentTenantId = null;
         let colture = []; // Lista colture disponibili
         let poderi = []; // Lista poderi disponibili
+        const TERRENI_TOUR_STORAGE_KEY = 'gfv_terreni_tour_v1';
+        let terreniTourAutoRequested = false;
+
+        setupTerreniTourButton();
 
         // Carica Google Maps API (con async per migliori performance)
         if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
@@ -1074,6 +1081,131 @@
                     }).join('')}
                 </div>
             `;
+
+            maybeAutoStartTerreniTour();
+        }
+
+        function setupTerreniTourButton() {
+            const tourButton = document.getElementById('terreni-tour-button');
+            if (tourButton) {
+                tourButton.addEventListener('click', () => startTerreniTour(true));
+            }
+        }
+
+        function maybeAutoStartTerreniTour() {
+            if (terreniTourAutoRequested) return;
+            try {
+                const hasSeen = localStorage.getItem(TERRENI_TOUR_STORAGE_KEY);
+                if (!hasSeen) {
+                    terreniTourAutoRequested = true;
+                    setTimeout(() => startTerreniTour(false), 2000);
+                }
+            } catch (error) {
+                // Ignora errori localStorage
+            }
+        }
+
+        function startTerreniTour(triggeredManually) {
+            if (typeof introJs === 'undefined') {
+                if (triggeredManually) {
+                    alert('Tour non disponibile al momento. Riprova più tardi.');
+                }
+                return;
+            }
+
+            const modal = document.getElementById('terreno-modal');
+            const modalAlreadyOpen = modal && modal.classList.contains('active');
+            if (!modalAlreadyOpen && typeof window.openTerrenoModal === 'function') {
+                window.openTerrenoModal();
+            }
+
+            const steps = buildTerreniTourSteps();
+            if (!steps.length) {
+                if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
+                    window.closeTerrenoModal();
+                }
+                if (triggeredManually) {
+                    alert('Completa il caricamento della pagina per poter vedere il tour.');
+                }
+                return;
+            }
+
+            const tour = introJs();
+            tour.setOptions({
+                steps,
+                showProgress: true,
+                showBullets: false,
+                exitOnOverlayClick: true,
+                nextLabel: 'Avanti',
+                prevLabel: 'Indietro',
+                skipLabel: '×',
+                doneLabel: 'Fatto'
+            }).oncomplete(() => {
+                if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
+                    window.closeTerrenoModal();
+                }
+                try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).onexit(() => {
+                if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
+                    window.closeTerrenoModal();
+                }
+                try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).start();
+        }
+
+        function buildTerreniTourSteps() {
+            const steps = [];
+            const header = document.querySelector('.header');
+            if (header) {
+                steps.push({
+                    element: header,
+                    title: 'Gestione Terreni',
+                    intro: 'Da qui accedi alle anagrafiche terreni dell’azienda. Trovi il tuo profilo e le scorciatoie principali.'
+                });
+            }
+
+            const addButton = document.getElementById('add-terreno-button');
+            if (addButton) {
+                steps.push({
+                    element: addButton,
+                    title: 'Aggiungi o modifica terreni',
+                    intro: 'Premi qui per aprire il modulo completo: dati anagrafici, podere, note e tracciamento confini su mappa.'
+                });
+            }
+
+            const lista = document.querySelector('[data-tour-section="lista-terreni"]');
+            if (lista) {
+                steps.push({
+                    element: lista,
+                    title: 'Elenco terreni',
+                    intro: 'La tabella mostra nome campo, coltura, podere, ettari e stato mappa. Usa le icone per modificare o eliminare.'
+                });
+            }
+
+            const form = document.querySelector('[data-tour-section="form-terreno"]');
+            if (form && window.getComputedStyle(form).display !== 'none') {
+                steps.push({
+                    element: form,
+                    title: 'Modulo dettagli',
+                    intro: 'Compila Nome, Superficie, Coltura, Podere e note operative. I dropdown sono alimentati dalle liste aziendali.'
+                });
+            }
+
+            const mappa = document.querySelector('[data-tour-section="mappa-terreno"]');
+            if (mappa && window.getComputedStyle(mappa).display !== 'none') {
+                steps.push({
+                    element: mappa,
+                    title: 'Tracciamento confini',
+                    intro: 'Cerca l’indirizzo, traccia il perimetro e calcola automaticamente gli ettari. Usa i pulsanti per iniziare/fermare il disegno.'
+                });
+            }
+
+            steps.push({
+                title: 'Serve altro?',
+                intro: 'Trovi walkthrough completi nella guida “Gestione Terreni”. Clicca su 📘 Guide per aprire il portale documentazione.'
+            });
+
+            return steps;
         }
 
         // Apri modal terreno
