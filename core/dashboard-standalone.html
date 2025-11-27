@@ -7,6 +7,7 @@
     <link rel="manifest" href="/gfv-platform/manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -21,10 +22,14 @@
                     <span>⚙️</span>
                     <span>Impostazioni</span>
                 </a>
-                <a href="../documentazione-utente/index.html" target="_blank" rel="noopener" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                <a href="../documentazione-utente/index.html" target="_blank" rel="noopener" class="btn btn-primary" data-tour="guide-link" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
                     <span>📘</span>
                     <span>Guide</span>
                 </a>
+                <button class="btn btn-primary" id="dashboard-tour-button" type="button" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <span>🧭</span>
+                    <span>Tour</span>
+                </button>
                 <a href="admin/gestisci-utenti-standalone.html" id="invita-collaboratore-link" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px; font-size: 13px; padding: 8px 16px;">
                     <span>➕</span>
                     <span>Invita Collaboratore</span>
@@ -38,6 +43,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Load JavaScript modules -->
     <script src="js/config-loader.js"></script>
     <script src="js/dashboard-utils.js"></script>
@@ -94,6 +100,7 @@
             createCaposquadraSection,
             createOperaioSection
         } = window.GFVDashboardSections;
+        const TOUR_STORAGE_KEY = 'gfv_dashboard_tour_v1';
 
         // Carica configurazione
         const firebaseConfig = await waitForConfig();
@@ -156,21 +163,30 @@
             const shouldShowCoreBase = !isOnlyOperaio && !isOnlyCaposquadra && !isManagerOrAdminWithManodopera;
             
             if (shouldShowCoreBase) {
-                container.appendChild(createCoreBaseSection(userData, isCoreOnly, availableModules));
+                const coreSection = createCoreBaseSection(userData, isCoreOnly, availableModules);
+                if (coreSection) {
+                    coreSection.setAttribute('data-tour-section', 'core-base');
+                    container.appendChild(coreSection);
+                }
                 
                 // Mappa Aziendale per Manager anche senza moduli avanzati
                 // Versione semplificata quando Manodopera NON è attivo
                 if (hasRole(userData, 'manager') || hasRole(userData, 'amministratore')) {
-                    container.appendChild(createMappaAziendaleSection(userData, hasManodopera));
+                    const mapSection = createMappaAziendaleSection(userData, hasManodopera);
+                    if (mapSection) {
+                        mapSection.setAttribute('data-tour-section', 'mappa');
+                        container.appendChild(mapSection);
+                    }
                 }
             }
 
             // Card Amministrazione (per Manager e Amministratore con Manodopera attivo)
             // Mostra SOLO quando Manodopera è attivo
-            if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
+                if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
                 // Layout superiore: 3 card a sinistra, mappa a destra
                 const topRow = document.createElement('div');
                 topRow.className = 'dashboard-top-row';
+                topRow.setAttribute('data-tour-section', 'panoramica');
                 
                 const topLeft = document.createElement('div');
                 topLeft.className = 'dashboard-top-left';
@@ -189,7 +205,10 @@
                 const topRight = document.createElement('div');
                 topRight.className = 'dashboard-top-right';
                 const mappaSection = createMappaAziendaleSection(userData, hasManodopera);
-                topRight.appendChild(mappaSection);
+                if (mappaSection) {
+                    mappaSection.setAttribute('data-tour-section', 'mappa');
+                    topRight.appendChild(mappaSection);
+                }
                 
                 topRow.appendChild(topLeft);
                 topRow.appendChild(topRight);
@@ -202,11 +221,18 @@
                 if (hasRole(userData, 'manager')) {
                     if (hasManodopera) {
                         // Gestione Manodopera (dopo la riga superiore)
-                        container.appendChild(createManagerManodoperaSection(userData, availableModules, loadManagerManodoperaStats, loadRecentLavoriManagerManodopera));
+                        const managerManodoperaSection = createManagerManodoperaSection(userData, availableModules, loadManagerManodoperaStats, loadRecentLavoriManagerManodopera);
+                        if (managerManodoperaSection) {
+                            managerManodoperaSection.setAttribute('data-tour-section', 'gestione-manodopera');
+                            container.appendChild(managerManodoperaSection);
+                        }
                         
                         // Diario da Lavori (sezione principale per Manager con Manodopera)
                         const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
-                        container.appendChild(diarioSection);
+                        if (diarioSection) {
+                            diarioSection.setAttribute('data-tour-section', 'diario');
+                            container.appendChild(diarioSection);
+                        }
                         setTimeout(() => {
                             loadDiarioDaLavori(userData);
                         }, 50);
@@ -214,18 +240,29 @@
                         // Layout normale per Manager senza Manodopera
                         // NOTA: La mappa è già stata aggiunta nella sezione Core Base (riga 875)
                         // quindi non la aggiungiamo qui per evitare duplicazioni
-                        container.appendChild(createManagerSection(userData, isCoreOnly, availableModules, loadCoreStatsForManager));
+                        const managerSection = createManagerSection(userData, isCoreOnly, availableModules, loadCoreStatsForManager);
+                        if (managerSection) {
+                            managerSection.setAttribute('data-tour-section', 'gestione-core');
+                            container.appendChild(managerSection);
+                        }
                     }
                 }
                 
                 // Sezione per Amministratore che non è Manager (solo se modulo Manodopera attivo)
                 if (hasManodopera && hasRole(userData, 'amministratore') && !hasRole(userData, 'manager')) {
                     // Gestione Manodopera (dopo la riga superiore)
-                    container.appendChild(createManagerManodoperaSection(userData, availableModules, loadManagerManodoperaStats, loadRecentLavoriManagerManodopera));
+                    const adminManodoperaSection = createManagerManodoperaSection(userData, availableModules, loadManagerManodoperaStats, loadRecentLavoriManagerManodopera);
+                    if (adminManodoperaSection) {
+                        adminManodoperaSection.setAttribute('data-tour-section', 'gestione-manodopera');
+                        container.appendChild(adminManodoperaSection);
+                    }
                     
                     // Sezione Diario da Lavori per Amministratore (non Manager)
                     const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
-                    container.appendChild(diarioSection);
+                    if (diarioSection) {
+                        diarioSection.setAttribute('data-tour-section', 'diario');
+                        container.appendChild(diarioSection);
+                    }
                     setTimeout(() => {
                         loadDiarioDaLavori(userData);
                     }, 50);
@@ -234,7 +271,11 @@
                 // Sezione Caposquadra (solo con modulo Manodopera attivo)
                 if (hasRole(userData, 'caposquadra')) {
                     if (hasManodopera) {
-                        container.appendChild(createCaposquadraSection(userData, isCoreOnly, availableModules, loadCaposquadraStats, loadRecentLavoriCaposquadra, loadComunicazioneRapida));
+                        const caposquadraSection = createCaposquadraSection(userData, isCoreOnly, availableModules, loadCaposquadraStats, loadRecentLavoriCaposquadra, loadComunicazioneRapida);
+                        if (caposquadraSection) {
+                            caposquadraSection.setAttribute('data-tour-section', 'caposquadra');
+                            container.appendChild(caposquadraSection);
+                        }
                     } else {
                         // Messaggio se caposquadra ma modulo Manodopera non attivo
                         const noModuleSection = document.createElement('div');
@@ -255,7 +296,11 @@
                 // Sezione Operaio (solo con modulo Manodopera attivo)
                 if (hasRole(userData, 'operaio')) {
                     if (hasManodopera) {
-                        container.appendChild(createOperaioSection(userData, isCoreOnly, availableModules, loadComunicazioniOperaio, loadLavoriOggiOperaio, loadStatisticheOreOperaio));
+                        const operaioSection = createOperaioSection(userData, isCoreOnly, availableModules, loadComunicazioniOperaio, loadLavoriOggiOperaio, loadStatisticheOreOperaio);
+                        if (operaioSection) {
+                            operaioSection.setAttribute('data-tour-section', 'operaio');
+                            container.appendChild(operaioSection);
+                        }
                     } else {
                         // Messaggio se operaio ma modulo Manodopera non attivo
                         const noModuleSection = document.createElement('div');
@@ -286,6 +331,8 @@
                     </div>
                 `;
             }
+
+            setupDashboardTour(userData);
         }
         
         // Le funzioni create* sono state estratte nel modulo dashboard-sections.js
@@ -399,6 +446,152 @@
         // Rimangono solo le funzioni di caricamento dati e createMappaAziendaleSection
 
         // Sezione Mappa Aziendale (Manager)
+        function setupDashboardTour(userData) {
+            try {
+                const tourButton = document.getElementById('dashboard-tour-button');
+                if (tourButton) {
+                    tourButton.onclick = () => startDashboardTour(userData, true);
+                }
+
+                const hasRoles = Array.isArray(userData.ruoli) && userData.ruoli.length > 0;
+                const hasSeenTour = localStorage.getItem(TOUR_STORAGE_KEY);
+
+                if (!hasSeenTour && hasRoles) {
+                    setTimeout(() => startDashboardTour(userData, false), 2200);
+                }
+            } catch (error) {
+                console.warn('Tour onboarding non disponibile:', error);
+            }
+        }
+
+        function startDashboardTour(userData, triggeredManually) {
+            if (typeof introJs === 'undefined') {
+                if (triggeredManually) {
+                    alert('Tour non disponibile al momento. Riprova più tardi.');
+                }
+                return;
+            }
+
+            const steps = buildDashboardTourSteps(userData);
+            if (!steps.length) {
+                if (triggeredManually) {
+                    alert('Tour non disponibile per questa vista.');
+                }
+                return;
+            }
+
+            const tour = introJs();
+            tour.setOptions({
+                steps,
+                showProgress: true,
+                showBullets: false,
+                exitOnOverlayClick: true,
+                nextLabel: 'Avanti',
+                prevLabel: 'Indietro',
+                skipLabel: 'Chiudi',
+                doneLabel: 'Fatto'
+            }).oncomplete(() => {
+                try { localStorage.setItem(TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).onexit(() => {
+                try { localStorage.setItem(TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).start();
+        }
+
+        function buildDashboardTourSteps(userData) {
+            const steps = [];
+
+            const header = document.querySelector('.dashboard-header');
+            if (header) {
+                steps.push({
+                    element: header,
+                    title: 'Benvenuto!',
+                    intro: 'Qui trovi i tuoi dati, i ruoli assegnati e le azioni principali come impostazioni, guide e logout.'
+                });
+            }
+
+            const guideLink = document.querySelector('[data-tour="guide-link"]');
+            if (guideLink) {
+                steps.push({
+                    element: guideLink,
+                    title: 'Guide sempre disponibili',
+                    intro: 'Apri il portale documentazione per trovare Primi Passi, FAQ e guide per ruolo o funzionalità.'
+                });
+            }
+
+            const tourButton = document.getElementById('dashboard-tour-button');
+            if (tourButton) {
+                steps.push({
+                    element: tourButton,
+                    title: 'Tour interattivo',
+                    intro: 'Puoi riaprire questo tour in qualsiasi momento cliccando qui.'
+                });
+            }
+
+            const coreBase = document.querySelector('[data-tour-section="core-base"]');
+            if (coreBase) {
+                steps.push({
+                    element: coreBase,
+                    title: 'Sezione Core Base',
+                    intro: 'Da qui accedi a Terreni, Diario attività e statistiche rapide quando il modulo Manodopera non è attivo.'
+                });
+            }
+
+            const panoramica = document.querySelector('[data-tour-section="panoramica"]');
+            if (panoramica) {
+                steps.push({
+                    element: panoramica,
+                    title: 'Panoramica aziendale',
+                    intro: 'Card rapide per Amministrazione, Statistiche e Terreni, con la mappa avanzata sulla destra.'
+                });
+            }
+
+            const mappaSection = document.querySelector('[data-tour-section="mappa"]');
+            if (mappaSection) {
+                steps.push({
+                    element: mappaSection,
+                    title: 'Mappa Aziendale',
+                    intro: 'Visualizza terreni, zone lavorate e indicatori stato lavori. Usa i filtri in alto per podere e coltura.'
+                });
+            }
+
+            const manodoperaSection = document.querySelector('[data-tour-section="gestione-manodopera"]');
+            if (manodoperaSection) {
+                steps.push({
+                    element: manodoperaSection,
+                    title: 'Gestione Manodopera',
+                    intro: 'Per Manager/Amministratori: statistiche lavori, squadre e accesso rapido a creazione e monitoraggio lavori.'
+                });
+            }
+
+            const diarioSection = document.querySelector('[data-tour-section="diario"]');
+            if (diarioSection) {
+                steps.push({
+                    element: diarioSection,
+                    title: 'Diario da Lavori',
+                    intro: 'Riepilogo automatico delle attività generate dalle ore validate: utile per controllare l’avanzamento reale.'
+                });
+            }
+
+            const caposquadraSection = document.querySelector('[data-tour-section="caposquadra"]');
+            if (caposquadraSection) {
+                steps.push({
+                    element: caposquadraSection,
+                    title: 'Dashboard Caposquadra',
+                    intro: 'Comunicazioni rapide alla squadra, validazione ore e lavori recenti assegnati.'
+                });
+            }
+
+            const operaioSection = document.querySelector('[data-tour-section="operaio"]');
+            if (operaioSection) {
+                steps.push({
+                    element: operaioSection,
+                    title: 'Dashboard Operaio',
+                    intro: 'Qui gli operai trovano lavori del giorno, comunicazioni e un riepilogo delle loro ore.'
+                });
+            }
+
+            return steps;
+        }
         // hasManodopera: se true, mostra versione completa con overlay lavori, filtri avanzati, indicatori
         // se false, mostra versione semplificata solo con terreni
         function createMappaAziendaleSection(userData, hasManodopera = false) {
