@@ -4006,6 +4006,8 @@
             }
         }
 
+        let lavoriTourFormOverlay = null;
+
         function startLavoriTour(triggeredManually) {
             if (typeof introJs === 'undefined') {
                 if (triggeredManually) {
@@ -4042,10 +4044,19 @@
                 doneLabel: 'Fatto'
             });
 
+            tour.onbeforechange((element) => {
+                toggleFormOverlay(element && element.closest && element.closest('[data-tour-section="lavoro-form"]'));
+            });
+
+            tour.onafterchange((element) => {
+                toggleFormOverlay(element && element.closest && element.closest('[data-tour-section="lavoro-form"]'));
+            });
+
             tour.oncomplete(() => {
                 if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
                     closeLavoroModal();
                 }
+                toggleFormOverlay(false);
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
@@ -4053,10 +4064,35 @@
                 if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
                     closeLavoroModal();
                 }
+                toggleFormOverlay(false);
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.start();
+        }
+
+        function toggleFormOverlay(shouldShow) {
+            const form = document.querySelector('[data-tour-section="lavoro-form"]');
+            if (!form) return;
+
+            if (shouldShow) {
+                if (!lavoriTourFormOverlay) {
+                    lavoriTourFormOverlay = document.createElement('div');
+                    lavoriTourFormOverlay.style.position = 'absolute';
+                    lavoriTourFormOverlay.style.top = '0';
+                    lavoriTourFormOverlay.style.left = '0';
+                    lavoriTourFormOverlay.style.right = '0';
+                    lavoriTourFormOverlay.style.bottom = '0';
+                    lavoriTourFormOverlay.style.background = 'rgba(255,255,255,0.6)';
+                    lavoriTourFormOverlay.style.zIndex = '2';
+                    lavoriTourFormOverlay.style.borderRadius = '12px';
+                    form.style.position = 'relative';
+                    form.appendChild(lavoriTourFormOverlay);
+                }
+            } else if (lavoriTourFormOverlay) {
+                lavoriTourFormOverlay.remove();
+                lavoriTourFormOverlay = null;
+            }
         }
 
         function buildLavoriTourSteps() {
