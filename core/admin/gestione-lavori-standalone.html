@@ -4042,8 +4042,11 @@
                 doneLabel: 'Fatto'
             });
 
-            tour.onbeforechange((element) => handleFormStep(element, modalAlreadyOpen));
-            tour.onafterchange((element) => handleFormStep(element, modalAlreadyOpen));
+            tour.onchange((element) => {
+                setTimeout(() => {
+                    handleFormStep(element, modalAlreadyOpen);
+                }, 100);
+            });
 
             tour.oncomplete(() => {
                 if (!modalAlreadyOpen) {
@@ -4065,10 +4068,20 @@
         }
 
         function handleFormStep(element, modalAlreadyOpen) {
+            if (!element) return;
+            
             const isFormStep = isLavoroFormStep(element);
             if (isFormStep) {
-                ensureLavoroFormOpen(modalAlreadyOpen);
-                toggleFormOverlay(true);
+                // Apri il modal se necessario
+                if (!modalAlreadyOpen) {
+                    ensureLavoroFormOpen(modalAlreadyOpen);
+                    // Aspetta che il modal sia aperto prima di mostrare l'overlay
+                    setTimeout(() => {
+                        toggleFormOverlay(true);
+                    }, 200);
+                } else {
+                    toggleFormOverlay(true);
+                }
             } else {
                 toggleFormOverlay(false);
                 if (!modalAlreadyOpen) {
@@ -4084,13 +4097,17 @@
         }
 
         function ensureLavoroFormOpen(modalAlreadyOpen) {
+            if (modalAlreadyOpen) return;
+            
             const modal = document.getElementById('lavoro-modal');
-            if (!modal || modal.classList.contains('active')) {
+            if (!modal) return;
+            
+            if (modal.classList.contains('active')) {
                 return;
             }
 
-            if (typeof openCreaModal === 'function') {
-                openCreaModal();
+            if (typeof window.openCreaModal === 'function') {
+                window.openCreaModal();
                 lavoriTourOpenedModal = true;
             }
         }
@@ -4103,7 +4120,9 @@
         }
 
         function toggleFormOverlay(shouldShow) {
-            const form = document.querySelector('[data-tour-section="lavoro-form"]');
+            // Cerca il form dentro il modal (anche se chiuso)
+            const modal = document.getElementById('lavoro-modal');
+            const form = modal ? modal.querySelector('[data-tour-section="lavoro-form"]') : null;
             if (!form) return;
 
             if (shouldShow) {
@@ -4115,10 +4134,12 @@
                     lavoriTourFormOverlay.style.right = '0';
                     lavoriTourFormOverlay.style.bottom = '0';
                     lavoriTourFormOverlay.style.background = 'rgba(255,255,255,0.6)';
-                    lavoriTourFormOverlay.style.zIndex = '2';
+                    lavoriTourFormOverlay.style.zIndex = '9999';
                     lavoriTourFormOverlay.style.borderRadius = '12px';
-                    form.style.position = 'relative';
-                    form.appendChild(lavoriTourFormOverlay);
+                    lavoriTourFormOverlay.style.pointerEvents = 'none';
+                    const formContainer = form.closest('.modal-content') || form;
+                    formContainer.style.position = 'relative';
+                    formContainer.appendChild(lavoriTourFormOverlay);
                 }
             } else if (lavoriTourFormOverlay) {
                 lavoriTourFormOverlay.remove();
@@ -4201,12 +4222,14 @@
                 });
             }
 
-            const form = document.querySelector('[data-tour-section="lavoro-form"]');
-            if (form && window.getComputedStyle(form).display !== 'none') {
+            // Cerca il form anche se il modal è chiuso
+            const modal = document.getElementById('lavoro-modal');
+            const form = modal ? modal.querySelector('[data-tour-section="lavoro-form"]') : null;
+            if (form) {
                 steps.push({
                     element: form,
                     title: 'Modulo lavoro',
-                    intro: 'Compila nome, durata, note e scegli categoria/sottocategoria → tipo lavoro. I pulsanti “+” aprono i moduli per creare nuove voci.'
+                    intro: 'Compila nome, durata, note e scegli categoria/sottocategoria → tipo lavoro. I pulsanti "+" aprono i moduli per creare nuove voci.'
                 });
 
                 const assegnazione = form.querySelector('input[name="tipo-assegnazione"]')?.closest('.form-group');
@@ -4223,15 +4246,19 @@
                     steps.push({
                         element: macchinaSection,
                         title: 'Integrazione Parco Macchine',
-                        intro: 'Collega il trattore e l’attrezzo da utilizzare. I dropdown mostrano solo i mezzi disponibili e compatibili.'
+                        intro: 'Collega il trattore e l'attrezzo da utilizzare. I dropdown mostrano solo i mezzi disponibili e compatibili.'
                     });
                 }
             }
 
-            steps.push({
-                title: 'Serve altro?',
-                intro: 'Per procedure passo-passo e best practice apri il portale 📘 Guide e leggi “Gestione Lavori” o “Modulo Manodopera”.'
-            });
+            const container = document.querySelector('.container');
+            if (container) {
+                steps.push({
+                    element: container,
+                    title: 'Serve altro?',
+                    intro: 'Per procedure passo-passo e best practice apri il portale 📘 Guide e leggi "Gestione Lavori" o "Modulo Manodopera".'
+                });
+            }
 
             return steps;
         }
