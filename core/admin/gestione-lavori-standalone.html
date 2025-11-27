@@ -1041,6 +1041,8 @@
         let tipiLavoroList = [];
         const LAVORI_TOUR_STORAGE_KEY = 'gfv_lavori_tour_v1';
         let lavoriTourAutoRequested = false;
+        let lavoriTourFormOverlay = null;
+        let lavoriTourOpenedModal = false;
 
         setupLavoriTourButton();
 
@@ -4006,8 +4008,6 @@
             }
         }
 
-        let lavoriTourFormOverlay = null;
-
         function startLavoriTour(triggeredManually) {
             if (typeof introJs === 'undefined') {
                 if (triggeredManually) {
@@ -4018,9 +4018,7 @@
 
             const modal = document.getElementById('lavoro-modal');
             const modalAlreadyOpen = modal && modal.classList.contains('active');
-            if (!modalAlreadyOpen && typeof openCreaModal === 'function') {
-                openCreaModal();
-            }
+            lavoriTourOpenedModal = false;
 
             const steps = buildLavoriTourSteps();
             if (!steps.length) {
@@ -4044,31 +4042,64 @@
                 doneLabel: 'Fatto'
             });
 
-            tour.onbeforechange((element) => {
-                toggleFormOverlay(element && element.closest && element.closest('[data-tour-section="lavoro-form"]'));
-            });
-
-            tour.onafterchange((element) => {
-                toggleFormOverlay(element && element.closest && element.closest('[data-tour-section="lavoro-form"]'));
-            });
+            tour.onbeforechange((element) => handleFormStep(element, modalAlreadyOpen));
+            tour.onafterchange((element) => handleFormStep(element, modalAlreadyOpen));
 
             tour.oncomplete(() => {
-                if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
-                    closeLavoroModal();
+                if (!modalAlreadyOpen) {
+                    closeLavoroFormIfOpenedByTour();
                 }
                 toggleFormOverlay(false);
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.onexit(() => {
-                if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
-                    closeLavoroModal();
+                if (!modalAlreadyOpen) {
+                    closeLavoroFormIfOpenedByTour();
                 }
                 toggleFormOverlay(false);
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.start();
+        }
+
+        function handleFormStep(element, modalAlreadyOpen) {
+            const isFormStep = isLavoroFormStep(element);
+            if (isFormStep) {
+                ensureLavoroFormOpen(modalAlreadyOpen);
+                toggleFormOverlay(true);
+            } else {
+                toggleFormOverlay(false);
+                if (!modalAlreadyOpen) {
+                    closeLavoroFormIfOpenedByTour();
+                }
+            }
+        }
+
+        function isLavoroFormStep(element) {
+            if (!element) return false;
+            return element.matches?.('[data-tour-section="lavoro-form"]') ||
+                element.closest?.('[data-tour-section="lavoro-form"]');
+        }
+
+        function ensureLavoroFormOpen(modalAlreadyOpen) {
+            const modal = document.getElementById('lavoro-modal');
+            if (!modal || modal.classList.contains('active')) {
+                return;
+            }
+
+            if (typeof openCreaModal === 'function') {
+                openCreaModal();
+                lavoriTourOpenedModal = true;
+            }
+        }
+
+        function closeLavoroFormIfOpenedByTour() {
+            if (lavoriTourOpenedModal && typeof closeLavoroModal === 'function') {
+                closeLavoroModal();
+                lavoriTourOpenedModal = false;
+            }
         }
 
         function toggleFormOverlay(shouldShow) {

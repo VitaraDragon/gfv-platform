@@ -88,3 +88,10 @@
     background: #ffffff;
 }
 
+.introjs-overlay,
+.introjs-helperLayer,
+.introjs-tooltipReferenceLayer,
+.introjs-fixParent {
+    z-index: 9999 !important;
+}
+
