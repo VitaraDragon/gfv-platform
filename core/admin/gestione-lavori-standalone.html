@@ -2624,7 +2624,7 @@
             // Sezione lavori in attesa di approvazione
             if (lavoriInAttesa.length > 0) {
                 html += `
-                    <div style="background: #fff3cd; padding: 20px; border-radius: 12px; margin-bottom: 30px; border-left: 5px solid #ffc107;">
+                    <div style="background: #fff3cd; padding: 20px; border-radius: 12px; margin-bottom: 30px; border-left: 5px solid #ffc107;" data-tour-section="lavori-approvazione">
                         <h2 style="color: #856404; margin-bottom: 15px; font-size: 20px;">
                             ⏳ Lavori in attesa di approvazione (${lavoriInAttesa.length})
                         </h2>
@@ -4062,7 +4062,7 @@
                 steps.push({
                     element: header,
                     title: 'Gestione Lavori',
-                    intro: 'Pianifica e monitora tutte le attività delle squadre da questa pagina.'
+                    intro: 'Qui pianifichi, assegni e monitori tutte le attività. Puoi sempre tornare alla dashboard o aprire le guide.'
                 });
             }
 
@@ -4071,7 +4071,7 @@
                 steps.push({
                     element: stats,
                     title: 'Statistiche rapide',
-                    intro: 'Controlla lavori totali, stati di avanzamento e superficie lavorata per avere subito una panoramica.'
+                    intro: 'Lavori totali, in corso, ore validate e superficie lavorata: controlla questi numeri per capire dove intervenire.'
                 });
             }
 
@@ -4079,8 +4079,8 @@
             if (filters) {
                 steps.push({
                     element: filters,
-                    title: 'Filtri',
-                    intro: 'Filtra per stato, progresso, caposquadra o terreno per trovare rapidamente i lavori che ti interessano.'
+                    title: 'Filtri combinabili',
+                    intro: 'Combina stato, progresso, caposquadra e terreno per isolare esattamente i lavori da analizzare. Usa “Pulisci filtri” per ripartire.'
                 });
             }
 
@@ -4088,8 +4088,17 @@
             if (count) {
                 steps.push({
                     element: count,
-                    title: 'Numero lavori',
-                    intro: 'Il contatore si aggiorna con i filtri applicati: utile per vedere subito quanti lavori soddisfano i criteri.'
+                    title: 'Quanti lavori stai vedendo',
+                    intro: 'Il contatore riflette i filtri correnti: utile per capire l’ampiezza della selezione (es. lavori in ritardo).'
+                });
+            }
+
+            const approvazione = document.querySelector('[data-tour-section="lavori-approvazione"]');
+            if (approvazione) {
+                steps.push({
+                    element: approvazione,
+                    title: 'Lavori da approvare',
+                    intro: 'Quando i capisquadra completano un lavoro passa di qui: approva o rifiuta, oppure apri i dettagli per verificare i progressi.'
                 });
             }
 
@@ -4098,7 +4107,25 @@
                 steps.push({
                     element: list,
                     title: 'Elenco lavori',
-                    intro: 'La tabella mostra stato, progressi e azioni rapide (modifica, dettagli, approvazione). Usa le icone per intervenire.'
+                    intro: 'Ogni riga mostra terreno, caposquadra, progressi, stato e azioni. Passa sulle icone per leggere note e dettagli.'
+                });
+            }
+
+            const progressExample = document.querySelector('.progress-bar-inline');
+            if (progressExample) {
+                steps.push({
+                    element: progressExample,
+                    title: 'Progressi tracciati',
+                    intro: 'La barra confronta superficie lavorata con quella totale. Se è corta o rossa, significa che il lavoro è in ritardo.'
+                });
+            }
+
+            const actionButtons = document.querySelector('.action-buttons');
+            if (actionButtons) {
+                steps.push({
+                    element: actionButtons,
+                    title: 'Azioni rapide',
+                    intro: 'Dettagli, Modifica ed Elimina sono sempre qui. Usa il dettaglio per aprire la mappa e vedere zone e ore lavorate.'
                 });
             }
 
@@ -4106,14 +4133,32 @@
             if (form && window.getComputedStyle(form).display !== 'none') {
                 steps.push({
                     element: form,
-                    title: 'Creazione/Modifica lavoro',
-                    intro: 'Compila i dettagli del lavoro, scegli il tipo di assegnazione, collega terreno, squadra e (se attivo) macchine e attrezzi.'
+                    title: 'Modulo lavoro',
+                    intro: 'Compila nome, durata, note e scegli categoria/sottocategoria → tipo lavoro. I pulsanti “+” aprono i moduli per creare nuove voci.'
                 });
+
+                const assegnazione = form.querySelector('input[name="tipo-assegnazione"]')?.closest('.form-group');
+                if (assegnazione) {
+                    steps.push({
+                        element: assegnazione,
+                        title: 'Assegna a squadra o autonomo',
+                        intro: 'Decidi se assegnare il lavoro a un caposquadra con la sua squadra oppure direttamente a un operaio autonomo.'
+                    });
+                }
+
+                const macchinaSection = hasParcoMacchineModule ? document.getElementById('macchina-section') : null;
+                if (macchinaSection) {
+                    steps.push({
+                        element: macchinaSection,
+                        title: 'Integrazione Parco Macchine',
+                        intro: 'Collega il trattore e l’attrezzo da utilizzare. I dropdown mostrano solo i mezzi disponibili e compatibili.'
+                    });
+                }
             }
 
             steps.push({
                 title: 'Serve altro?',
-                intro: 'Trovi tutte le procedure dettagliate nelle guide “Gestione Lavori” e “Modulo Manodopera”. Premi 📘 Guide dalla dashboard.'
+                intro: 'Per procedure passo-passo e best practice apri il portale 📘 Guide e leggi “Gestione Lavori” o “Modulo Manodopera”.'
             });
 
             return steps;
