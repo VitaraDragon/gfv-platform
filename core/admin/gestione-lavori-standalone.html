@@ -4031,8 +4031,7 @@
                 return;
             }
 
-            const tour = introJs();
-            tour.setOptions({
+            const tour = introJs().setOptions({
                 steps,
                 showProgress: true,
                 showBullets: false,
@@ -4041,17 +4040,23 @@
                 prevLabel: 'Indietro',
                 skipLabel: '×',
                 doneLabel: 'Fatto'
-            }).oncomplete(() => {
+            });
+
+            tour.oncomplete(() => {
                 if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
                     closeLavoroModal();
                 }
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            }).onexit(() => {
+            });
+
+            tour.onexit(() => {
                 if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
                     closeLavoroModal();
                 }
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            }).start();
+            });
+
+            tour.start();
         }
 
         function buildLavoriTourSteps() {
