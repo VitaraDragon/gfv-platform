@@ -124,22 +124,23 @@ body {
 
 .introjs-button {
     border-radius: 999px;
-    background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
-    border: none;
-    color: #fff;
-    padding: 8px 18px;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid rgba(255,255,255,0.7);
+    color: #1f2933;
+    padding: 8px 22px;
     font-weight: 600;
-    margin-left: 6px;
+    margin-left: 8px;
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.25);
 }
 
 .introjs-button:hover {
-    opacity: 0.9;
+    background: #ffffff;
 }
 
 .introjs-prevbutton {
     background: transparent;
     color: #ffffff;
-    border: 1px solid rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.6);
 }
 
 .introjs-tooltip-buttons {
@@ -151,10 +152,11 @@ body {
 }
 
 .introjs-tooltip .introjs-closebutton {
-    color: rgba(255,255,255,0.8);
-    font-size: 14px;
-    top: 16px;
-    right: 20px;
+    color: rgba(255,255,255,0.85);
+    font-size: 18px;
+    top: 14px;
+    right: 18px;
+    font-weight: 600;
 }
 
 .introjs-tooltip .introjs-closebutton:hover {
