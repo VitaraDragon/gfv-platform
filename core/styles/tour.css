@@ -1,0 +1,90 @@
+.introjs-tooltip {
+    background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+    color: rgba(255,255,255,0.95);
+    border-radius: 18px;
+    border: none;
+    box-shadow: 0 25px 55px rgba(15, 23, 42, 0.35);
+    max-width: 380px;
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 22px 26px 20px;
+}
+
+.introjs-tooltip-header {
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.introjs-tooltip h1,
+.introjs-tooltip .introjs-tooltip-title {
+    font-size: 19px;
+    margin: 0;
+    color: #ffffff;
+}
+
+.introjs-tooltiptext {
+    color: rgba(255,255,255,0.85);
+}
+
+.introjs-tooltiptext strong {
+    color: #ffffff;
+}
+
+.introjs-button {
+    border-radius: 999px;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(255,255,255,0.65);
+    color: #1f2933;
+    padding: 8px 22px;
+    font-weight: 600;
+    margin-left: 8px;
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.25);
+}
+
+.introjs-button:hover {
+    background: #ffffff;
+}
+
+.introjs-prevbutton {
+    background: rgba(255,255,255,0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.45);
+}
+
+.introjs-tooltip-buttons {
+    padding-top: 16px;
+}
+
+.introjs-tooltipReferenceLayer * {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.introjs-tooltip .introjs-closebutton {
+    color: rgba(255,255,255,0.85);
+    font-size: 18px;
+    top: 14px;
+    right: 18px;
+    font-weight: 600;
+    text-transform: none;
+}
+
+.introjs-tooltip .introjs-closebutton:hover {
+    color: #ffffff;
+}
+
+.introjs-progress,
+.introjs-progressbar {
+    height: 6px;
+    border-radius: 999px;
+}
+
+.introjs-progress {
+    background: rgba(255,255,255,0.25);
+}
+
+.introjs-progressbar {
+    background: #ffffff;
+}
+

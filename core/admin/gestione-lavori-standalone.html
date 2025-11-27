@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Lavori - GFV Platform</title>
+    <link rel="stylesheet" href="../styles/tour.css">
     <style>
         * {
             margin: 0;
@@ -571,7 +572,8 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Pianifica e assegna lavori alle squadre</p>
             </div>
             <div class="header-actions">
-                <button class="btn btn-primary" onclick="openCreaModal()">➕ Crea Nuovo Lavoro</button>
+                <button class="btn btn-primary" id="lavori-tour-button" type="button">🧭 Tour</button>
+                <button class="btn btn-primary" id="crea-lavoro-button" onclick="openCreaModal()">➕ Crea Nuovo Lavoro</button>
                 <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
@@ -580,7 +582,7 @@
             <div id="alert-container"></div>
             
             <!-- Card Statistiche -->
-            <div class="stats-grid" id="stats-container">
+            <div class="stats-grid" id="stats-container" data-tour-section="lavori-stats">
                 <div class="stat-card">
                     <div class="stat-value" id="stat-totale-lavori">0</div>
                     <div class="stat-label">Lavori Totali</div>
@@ -616,7 +618,7 @@
                 <div id="lavori-count">0 lavori</div>
             </div>
 
-            <div class="filters">
+            <div class="filters" data-tour-section="lavori-filters">
                 <div class="filter-group">
                     <label>Filtra per Stato</label>
                     <select id="filter-stato" onchange="applyFilters()">
@@ -654,7 +656,7 @@
                 </div>
             </div>
 
-            <div id="lavori-container">
+            <div id="lavori-container" data-tour-section="lavori-list">
                 <div class="loading">Caricamento lavori...</div>
             </div>
         </div>
@@ -703,7 +705,7 @@
 
     <!-- Modal Crea/Modifica Lavoro -->
     <div id="lavoro-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" data-tour-section="lavoro-form">
             <div class="modal-header">
                 <h3 id="modal-title">Crea Nuovo Lavoro</h3>
                 <button class="close-btn" onclick="closeLavoroModal()">&times;</button>
@@ -976,6 +978,7 @@
         setTimeout(loadGoogleMapsAPI, 500);
     </script>
     
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
         // Funzione per attendere il caricamento della configurazione Firebase
@@ -1036,6 +1039,10 @@
         let categorieLavoriPrincipali = [];
         let sottocategorieLavoriMap = new Map(); // parentId -> Array<sottocategorie>
         let tipiLavoroList = [];
+        const LAVORI_TOUR_STORAGE_KEY = 'gfv_lavori_tour_v1';
+        let lavoriTourAutoRequested = false;
+
+        setupLavoriTourButton();
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
@@ -2537,6 +2544,7 @@
                     </div>
                 `;
                 countEl.textContent = '0 lavori';
+                maybeAutoStartLavoriTour();
                 return;
             }
 
@@ -2789,6 +2797,7 @@
 
             container.innerHTML = html;
             countEl.textContent = `${filteredLavoriList.length} lavoro${filteredLavoriList.length !== 1 ? 'i' : ''}`;
+            maybeAutoStartLavoriTour();
         }
 
         // Ottieni stato formattato
@@ -3976,6 +3985,139 @@
         window.openTipoLavoroModal = openTipoLavoroModal;
         window.closeTipoLavoroModal = closeTipoLavoroModal;
         window.handleSalvaTipoLavoro = handleSalvaTipoLavoro;
+        // Tour interattivo
+        function setupLavoriTourButton() {
+            const tourButton = document.getElementById('lavori-tour-button');
+            if (tourButton) {
+                tourButton.addEventListener('click', () => startLavoriTour(true));
+            }
+        }
+
+        function maybeAutoStartLavoriTour() {
+            if (lavoriTourAutoRequested) return;
+            try {
+                const hasSeen = localStorage.getItem(LAVORI_TOUR_STORAGE_KEY);
+                if (!hasSeen) {
+                    lavoriTourAutoRequested = true;
+                    setTimeout(() => startLavoriTour(false), 2200);
+                }
+            } catch (error) {
+                // Ignora errori localStorage
+            }
+        }
+
+        function startLavoriTour(triggeredManually) {
+            if (typeof introJs === 'undefined') {
+                if (triggeredManually) {
+                    alert('Tour non disponibile al momento. Riprova più tardi.');
+                }
+                return;
+            }
+
+            const modal = document.getElementById('lavoro-modal');
+            const modalAlreadyOpen = modal && modal.classList.contains('active');
+            if (!modalAlreadyOpen && typeof openCreaModal === 'function') {
+                openCreaModal();
+            }
+
+            const steps = buildLavoriTourSteps();
+            if (!steps.length) {
+                if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
+                    closeLavoroModal();
+                }
+                if (triggeredManually) {
+                    alert('Completa il caricamento della pagina per poter vedere il tour.');
+                }
+                return;
+            }
+
+            const tour = introJs();
+            tour.setOptions({
+                steps,
+                showProgress: true,
+                showBullets: false,
+                exitOnOverlayClick: true,
+                nextLabel: 'Avanti',
+                prevLabel: 'Indietro',
+                skipLabel: '×',
+                doneLabel: 'Fatto'
+            }).oncomplete(() => {
+                if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
+                    closeLavoroModal();
+                }
+                try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).onexit(() => {
+                if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
+                    closeLavoroModal();
+                }
+                try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
+            }).start();
+        }
+
+        function buildLavoriTourSteps() {
+            const steps = [];
+
+            const header = document.querySelector('.header');
+            if (header) {
+                steps.push({
+                    element: header,
+                    title: 'Gestione Lavori',
+                    intro: 'Pianifica e monitora tutte le attività delle squadre da questa pagina.'
+                });
+            }
+
+            const stats = document.querySelector('[data-tour-section="lavori-stats"]');
+            if (stats) {
+                steps.push({
+                    element: stats,
+                    title: 'Statistiche rapide',
+                    intro: 'Controlla lavori totali, stati di avanzamento e superficie lavorata per avere subito una panoramica.'
+                });
+            }
+
+            const filters = document.querySelector('[data-tour-section="lavori-filters"]');
+            if (filters) {
+                steps.push({
+                    element: filters,
+                    title: 'Filtri',
+                    intro: 'Filtra per stato, progresso, caposquadra o terreno per trovare rapidamente i lavori che ti interessano.'
+                });
+            }
+
+            const count = document.getElementById('lavori-count');
+            if (count) {
+                steps.push({
+                    element: count,
+                    title: 'Numero lavori',
+                    intro: 'Il contatore si aggiorna con i filtri applicati: utile per vedere subito quanti lavori soddisfano i criteri.'
+                });
+            }
+
+            const list = document.querySelector('[data-tour-section="lavori-list"]');
+            if (list) {
+                steps.push({
+                    element: list,
+                    title: 'Elenco lavori',
+                    intro: 'La tabella mostra stato, progressi e azioni rapide (modifica, dettagli, approvazione). Usa le icone per intervenire.'
+                });
+            }
+
+            const form = document.querySelector('[data-tour-section="lavoro-form"]');
+            if (form && window.getComputedStyle(form).display !== 'none') {
+                steps.push({
+                    element: form,
+                    title: 'Creazione/Modifica lavoro',
+                    intro: 'Compila i dettagli del lavoro, scegli il tipo di assegnazione, collega terreno, squadra e (se attivo) macchine e attrezzi.'
+                });
+            }
+
+            steps.push({
+                title: 'Serve altro?',
+                intro: 'Trovi tutte le procedure dettagliate nelle guide “Gestione Lavori” e “Modulo Manodopera”. Premi 📘 Guide dalla dashboard.'
+            });
+
+            return steps;
+        }
     </script>
 </body>
 </html>
