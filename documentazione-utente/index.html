@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentazione Utente - GFV Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --text-color: #1f2933;
+            --accent-color: #2E8B57;
+            --accent-hover: #267447;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111827;
+                --card-bg: #1f2937;
+                --border-color: #374151;
+                --text-color: #f9fafb;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .doc-header {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: #fff;
+            padding: 32px;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .doc-header h1 {
+            margin: 0 0 8px;
+            font-size: clamp(24px, 4vw, 32px);
+        }
+
+        .doc-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            background: transparent;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .doc-layout {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+            padding: 24px;
+        }
+
+        nav {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: fit-content;
+        }
+
+        nav h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .doc-nav-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .doc-nav-list button {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            padding: 10px 12px;
+            border-radius: 10px;
+            text-align: left;
+            font-size: 14px;
+            cursor: pointer;
+            color: inherit;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .doc-nav-list button:hover {
+            border-color: var(--accent-color);
+        }
+
+        .doc-nav-list button.active {
+            border-color: var(--accent-color);
+            background: rgba(46, 139, 87, 0.08);
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: rgba(46, 139, 87, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            border: 1px solid rgba(46, 139, 87, 0.2);
+        }
+
+        main {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+            min-height: 70vh;
+        }
+
+        #doc-content {
+            line-height: 1.65;
+            color: inherit;
+        }
+
+        #doc-content h1,
+        #doc-content h2,
+        #doc-content h3 {
+            color: inherit;
+        }
+
+        #doc-content h1 {
+            font-size: 28px;
+        }
+
+        #doc-content h2 {
+            font-size: 22px;
+            margin-top: 32px;
+        }
+
+        #doc-content h3 {
+            font-size: 18px;
+            margin-top: 24px;
+        }
+
+        #doc-content ul {
+            padding-left: 20px;
+        }
+
+        #doc-content code {
+            background: rgba(15, 23, 42, 0.08);
+            padding: 3px 6px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        #doc-content pre {
+            background: rgba(15, 23, 42, 0.08);
+            padding: 16px;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        .placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #6c757d;
+        }
+
+        .loading span {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            border: 3px solid rgba(46, 139, 87, 0.4);
+            border-top-color: var(--accent-color);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error-state {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            color: #8c1f2c;
+        }
+
+        .error-state p {
+            margin: 0 0 8px;
+        }
+
+        .error-state a {
+            color: var(--accent-color);
+        }
+
+        @media (max-width: 960px) {
+            .doc-layout {
+                grid-template-columns: 1fr;
+            }
+
+            nav {
+                position: sticky;
+                top: 0;
+                z-index: 2;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .doc-header {
+                padding: 24px 20px;
+            }
+
+            .doc-layout {
+                padding: 16px;
+            }
+
+            nav {
+                padding: 16px;
+            }
+
+            main {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="doc-header">
+        <div>
+            <h1>📘 Documentazione GFV Platform</h1>
+            <p>Guide rapide, FAQ e procedure per ogni ruolo.</p>
+        </div>
+        <div class="header-actions">
+            <a class="btn" href="../core/dashboard-standalone.html">
+                ← Torna alla Dashboard
+            </a>
+        </div>
+    </header>
+
+    <div class="doc-layout">
+        <nav>
+            <h2>Sezioni</h2>
+            <ul class="doc-nav-list">
+                <li><button data-doc="primi-passi" class="active">🚀 Primi Passi</button></li>
+                <li><button data-doc="faq">❓ Domande Frequenti</button></li>
+                <li><button data-doc="manager">📊 Guida Manager</button></li>
+                <li><button data-doc="caposquadra">👷 Guida Caposquadra</button></li>
+                <li><button data-doc="operaio">🔧 Guida Operaio</button></li>
+                <li><button data-doc="amministratore">👑 Guida Amministratore</button></li>
+            </ul>
+
+            <div class="info-box">
+                <strong>Suggerimenti</strong>
+                <ul>
+                    <li>Usa le guide ruolo per formazione rapida.</li>
+                    <li>La FAQ contiene soluzioni ai problemi comuni.</li>
+                    <li>Condividi questo link con i nuovi utenti.</li>
+                </ul>
+            </div>
+        </nav>
+
+        <main>
+            <div id="doc-content">
+                <div class="placeholder">
+                    Seleziona una sezione dal menu per visualizzare la guida corrispondente.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const DOCS = {
+            'primi-passi': {
+                title: 'Primi Passi',
+                path: '01-PRIMI_PASSI.md'
+            },
+            'faq': {
+                title: 'Domande Frequenti',
+                path: '02-FAQ.md'
+            },
+            'manager': {
+                title: 'Guida Manager',
+                path: '03-GUIDE_RUOLO/GUIDA_MANAGER.md'
+            },
+            'caposquadra': {
+                title: 'Guida Caposquadra',
+                path: '03-GUIDE_RUOLO/GUIDA_CAPOSQUADRA.md'
+            },
+            'operaio': {
+                title: 'Guida Operaio',
+                path: '03-GUIDE_RUOLO/GUIDA_OPERAIO.md'
+            },
+            'amministratore': {
+                title: 'Guida Amministratore',
+                path: '03-GUIDE_RUOLO/GUIDA_AMMINISTRATORE.md'
+            }
+        };
+
+        const contentEl = document.getElementById('doc-content');
+        const buttons = document.querySelectorAll('[data-doc]');
+
+        function setActiveButton(docId) {
+            buttons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.doc === docId);
+            });
+        }
+
+        async function loadDocument(docId) {
+            const doc = DOCS[docId];
+            if (!doc) return;
+
+            setActiveButton(docId);
+            contentEl.innerHTML = `
+                <div class="loading">
+                    <span aria-hidden="true"></span>
+                    <div>Caricamento "${doc.title}"...</div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(doc.path);
+                if (!response.ok) {
+                    throw new Error(`Impossibile caricare ${doc.path}`);
+                }
+
+                const markdown = await response.text();
+                const html = marked.parse(markdown, { mangle: false, headerIds: true });
+
+                contentEl.innerHTML = html;
+                contentEl.scrollTop = 0;
+            } catch (error) {
+                console.error('Errore caricamento documentazione:', error);
+                const isFileProtocol = window.location.protocol === 'file:';
+                contentEl.innerHTML = `
+                    <div class="error-state">
+                        <p><strong>Impossibile caricare "${doc.title}".</strong></p>
+                        <p>Errore: ${error.message}</p>
+                        ${isFileProtocol ? `
+                            <p>Stai aprendo il file direttamente dal computer (protocollo file://). Per visualizzare le guide:</p>
+                            <ol>
+                                <li>Apri la cartella <code>documentazione-utente</code>.</li>
+                                <li>Apri manualmente il file <code>${doc.path}</code>.</li>
+                                <li>Oppure avvia un piccolo server locale (es. <code>npx serve</code>).</li>
+                            </ol>
+                        ` : `
+                            <p>Riprova più tardi o apri il file direttamente da <code>${doc.path}</code>.</p>
+                        `}
+                    </div>
+                `;
+            }
+        }
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => loadDocument(button.dataset.doc));
+        });
+
+        loadDocument('primi-passi');
+    </script>
+</body>
+</html>
+
