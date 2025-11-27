@@ -7,6 +7,7 @@
     <link rel="manifest" href="/gfv-platform/manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/tour.css">
     <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
 </head>
 <body>
@@ -480,8 +481,7 @@
                 return;
             }
 
-            const tour = introJs();
-            tour.setOptions({
+            const tour = introJs().setOptions({
                 steps,
                 showProgress: true,
                 showBullets: false,
@@ -490,11 +490,17 @@
                 prevLabel: 'Indietro',
                 skipLabel: '×',
                 doneLabel: 'Fatto'
-            }).oncomplete(() => {
+            });
+
+            tour.oncomplete(() => {
                 try { localStorage.setItem(TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            }).onexit(() => {
+            });
+
+            tour.onexit(() => {
                 try { localStorage.setItem(TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            }).start();
+            });
+
+            tour.start();
         }
 
         function buildDashboardTourSteps(userData) {

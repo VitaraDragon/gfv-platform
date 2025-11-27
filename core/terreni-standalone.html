@@ -7,6 +7,7 @@
     <link rel="manifest" href="/gfv-platform/manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
+    <link rel="stylesheet" href="styles/tour.css">
     <style>
         * {
             margin: 0;
@@ -1130,8 +1131,7 @@
                 return;
             }
 
-            const tour = introJs();
-            tour.setOptions({
+            const tour = introJs().setOptions({
                 steps,
                 showProgress: true,
                 showBullets: false,
@@ -1140,17 +1140,23 @@
                 prevLabel: 'Indietro',
                 skipLabel: '×',
                 doneLabel: 'Fatto'
-            }).oncomplete(() => {
+            });
+
+            tour.oncomplete(() => {
                 if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
                     window.closeTerrenoModal();
                 }
                 try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            }).onexit(() => {
+            });
+
+            tour.onexit(() => {
                 if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
                     window.closeTerrenoModal();
                 }
                 try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            }).start();
+            });
+
+            tour.start();
         }
 
         function buildTerreniTourSteps() {
