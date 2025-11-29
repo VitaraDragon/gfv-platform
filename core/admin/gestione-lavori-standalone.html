@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Lavori - GFV Platform</title>
+    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
     <link rel="stylesheet" href="../styles/tour.css">
     <style>
         * {
@@ -1041,7 +1042,6 @@
         let tipiLavoroList = [];
         const LAVORI_TOUR_STORAGE_KEY = 'gfv_lavori_tour_v1';
         let lavoriTourAutoRequested = false;
-        let lavoriTourFormOverlay = null;
         let lavoriTourOpenedModal = false;
 
         setupLavoriTourButton();
@@ -4018,9 +4018,17 @@
 
             const modal = document.getElementById('lavoro-modal');
             const modalAlreadyOpen = modal && modal.classList.contains('active');
-            lavoriTourOpenedModal = false;
+            
+            // Apri il modal se non è già aperto (come fanno Terreni/Macchine)
+            if (!modalAlreadyOpen && typeof window.openCreaModal === 'function') {
+                window.openCreaModal();
+                lavoriTourOpenedModal = true;
+            } else {
+                lavoriTourOpenedModal = false;
+            }
 
             const steps = buildLavoriTourSteps();
+            
             if (!steps.length) {
                 if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
                     closeLavoroModal();
@@ -4042,110 +4050,23 @@
                 doneLabel: 'Fatto'
             });
 
-            tour.onchange((element) => {
-                setTimeout(() => {
-                    handleFormStep(element, modalAlreadyOpen);
-                }, 100);
-            });
-
             tour.oncomplete(() => {
-                if (!modalAlreadyOpen) {
-                    closeLavoroFormIfOpenedByTour();
+                if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
+                    closeLavoroModal();
                 }
-                toggleFormOverlay(false);
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.onexit(() => {
-                if (!modalAlreadyOpen) {
-                    closeLavoroFormIfOpenedByTour();
+                if (!modalAlreadyOpen && typeof closeLavoroModal === 'function') {
+                    closeLavoroModal();
                 }
-                toggleFormOverlay(false);
                 try { localStorage.setItem(LAVORI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.start();
         }
 
-        function handleFormStep(element, modalAlreadyOpen) {
-            if (!element) return;
-            
-            const isFormStep = isLavoroFormStep(element);
-            if (isFormStep) {
-                // Apri il modal se necessario
-                if (!modalAlreadyOpen) {
-                    ensureLavoroFormOpen(modalAlreadyOpen);
-                    // Aspetta che il modal sia aperto prima di mostrare l'overlay
-                    setTimeout(() => {
-                        toggleFormOverlay(true);
-                    }, 200);
-                } else {
-                    toggleFormOverlay(true);
-                }
-            } else {
-                toggleFormOverlay(false);
-                if (!modalAlreadyOpen) {
-                    closeLavoroFormIfOpenedByTour();
-                }
-            }
-        }
-
-        function isLavoroFormStep(element) {
-            if (!element) return false;
-            return element.matches?.('[data-tour-section="lavoro-form"]') ||
-                element.closest?.('[data-tour-section="lavoro-form"]');
-        }
-
-        function ensureLavoroFormOpen(modalAlreadyOpen) {
-            if (modalAlreadyOpen) return;
-            
-            const modal = document.getElementById('lavoro-modal');
-            if (!modal) return;
-            
-            if (modal.classList.contains('active')) {
-                return;
-            }
-
-            if (typeof window.openCreaModal === 'function') {
-                window.openCreaModal();
-                lavoriTourOpenedModal = true;
-            }
-        }
-
-        function closeLavoroFormIfOpenedByTour() {
-            if (lavoriTourOpenedModal && typeof closeLavoroModal === 'function') {
-                closeLavoroModal();
-                lavoriTourOpenedModal = false;
-            }
-        }
-
-        function toggleFormOverlay(shouldShow) {
-            // Cerca il form dentro il modal (anche se chiuso)
-            const modal = document.getElementById('lavoro-modal');
-            const form = modal ? modal.querySelector('[data-tour-section="lavoro-form"]') : null;
-            if (!form) return;
-
-            if (shouldShow) {
-                if (!lavoriTourFormOverlay) {
-                    lavoriTourFormOverlay = document.createElement('div');
-                    lavoriTourFormOverlay.style.position = 'absolute';
-                    lavoriTourFormOverlay.style.top = '0';
-                    lavoriTourFormOverlay.style.left = '0';
-                    lavoriTourFormOverlay.style.right = '0';
-                    lavoriTourFormOverlay.style.bottom = '0';
-                    lavoriTourFormOverlay.style.background = 'rgba(255,255,255,0.6)';
-                    lavoriTourFormOverlay.style.zIndex = '9999';
-                    lavoriTourFormOverlay.style.borderRadius = '12px';
-                    lavoriTourFormOverlay.style.pointerEvents = 'none';
-                    const formContainer = form.closest('.modal-content') || form;
-                    formContainer.style.position = 'relative';
-                    formContainer.appendChild(lavoriTourFormOverlay);
-                }
-            } else if (lavoriTourFormOverlay) {
-                lavoriTourFormOverlay.remove();
-                lavoriTourFormOverlay = null;
-            }
-        }
 
         function buildLavoriTourSteps() {
             const steps = [];
@@ -4222,10 +4143,10 @@
                 });
             }
 
-            // Cerca il form anche se il modal è chiuso
+            // Cerca il form nel modal (ora dovrebbe essere aperto)
             const modal = document.getElementById('lavoro-modal');
             const form = modal ? modal.querySelector('[data-tour-section="lavoro-form"]') : null;
-            if (form) {
+            if (form && window.getComputedStyle(form).display !== 'none') {
                 steps.push({
                     element: form,
                     title: 'Modulo lavoro',
