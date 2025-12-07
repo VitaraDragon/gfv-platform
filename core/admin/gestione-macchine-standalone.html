@@ -1460,18 +1460,22 @@
 
             const modal = document.getElementById('macchina-modal');
             const modalAlreadyOpen = modal && modal.classList.contains('active');
-            if (!modalAlreadyOpen && typeof openMacchinaModal === 'function') {
-                openMacchinaModal();
-                // Aspetta che il modal sia completamente renderizzato prima di costruire gli step
-                setTimeout(() => {
-                    startMacchineTourWithSteps(modalAlreadyOpen);
-                }, 300);
-            } else {
-                startMacchineTourWithSteps(modalAlreadyOpen);
+            
+            // NON apriamo il modal all'inizio - lo apriremo solo quando necessario (step del form)
+            // Chiudiamo il modal se è già aperto per vedere gli step iniziali
+            if (modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
+                closeMacchinaModal();
             }
+            
+            let macchineTourOpenedModal = false; // Non abbiamo aperto il modal noi
+            
+            // Avvia il tour senza aprire il modal
+            setTimeout(() => {
+                startMacchineTourWithSteps(modalAlreadyOpen, macchineTourOpenedModal);
+            }, 300);
         }
 
-        function startMacchineTourWithSteps(modalAlreadyOpen) {
+        function startMacchineTourWithSteps(modalAlreadyOpen, macchineTourOpenedModal) {
             const steps = buildMacchineTourSteps();
             if (!steps.length) {
                 if (!modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
@@ -1569,7 +1573,7 @@
                 }, 150);
             }
 
-            const tour = introJs().setOptions({
+            const tour = introJs.tour().setOptions({
                 steps,
                 showProgress: true,
                 showBullets: false,
@@ -1579,12 +1583,69 @@
                 skipLabel: '×',
                 doneLabel: 'Fatto',
                 scrollToElement: true,
-                scrollPadding: 50
+                scrollPadding: 50,
+                tooltipClass: 'customTooltip',
+                highlightClass: 'customHighlight'
+            });
+
+            // Assicurati che il tooltip sia visibile quando il tour inizia
+            tour.onstart(() => {
+                setTimeout(() => {
+                    ensureTooltipVisible();
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    if (tooltip) {
+                        tooltip.style.zIndex = '99999';
+                        tooltip.style.position = 'absolute';
+                    }
+                }, 100);
             });
 
             // Gestisci scroll e posizionamento durante il tour
             tour.onchange((targetElement) => {
                 if (!targetElement) return;
+                
+                // Controlla se lo step corrente è nel modal (form)
+                const isFormStep = targetElement.closest('#macchina-modal') !== null || 
+                                  targetElement.closest('[data-tour-section="macchina-form"]') !== null;
+                
+                // Se siamo agli step del form, apri il modal se non è già aperto
+                if (isFormStep) {
+                    const modal = document.getElementById('macchina-modal');
+                    const modalIsOpen = modal && modal.classList.contains('active');
+                    if (!modalIsOpen && typeof openMacchinaModal === 'function') {
+                        openMacchinaModal();
+                        macchineTourOpenedModal = true;
+                        // Aspetta che il modal sia aperto prima di continuare
+                        setTimeout(() => {
+                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
+                                targetElement.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'center',
+                                    inline: 'nearest'
+                                });
+                            }
+                            ensureTooltipVisible();
+                        }, 400);
+                    }
+                } else {
+                    // Se NON siamo agli step del form, chiudi il modal se l'abbiamo aperto noi
+                    const modal = document.getElementById('macchina-modal');
+                    const modalIsOpen = modal && modal.classList.contains('active');
+                    if (modalIsOpen && macchineTourOpenedModal && typeof closeMacchinaModal === 'function') {
+                        closeMacchinaModal();
+                        // Aspetta che il modal sia chiuso prima di continuare
+                        setTimeout(() => {
+                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
+                                targetElement.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'center',
+                                    inline: 'nearest'
+                                });
+                            }
+                            ensureTooltipVisible();
+                        }, 300);
+                    }
+                }
                 
                 // Scroll l'elemento in vista con un piccolo delay
                 setTimeout(() => {
@@ -1595,8 +1656,12 @@
                             inline: 'nearest'
                         });
                     }
-                    // Forza il tooltip a essere visibile
+                    // Forza il tooltip a essere visibile e sopra il modal
                     ensureTooltipVisible();
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    if (tooltip) {
+                        tooltip.style.zIndex = '99999';
+                    }
                     
                     // Forza il refresh dell'overlay di Intro.js per correggere il posizionamento
                     setTimeout(() => {
@@ -1648,14 +1713,14 @@
             });
 
             tour.oncomplete(() => {
-                if (!modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
+                if (!modalAlreadyOpen && macchineTourOpenedModal && typeof closeMacchinaModal === 'function') {
                     closeMacchinaModal();
                 }
                 try { localStorage.setItem(MACCHINE_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.onexit(() => {
-                if (!modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
+                if (!modalAlreadyOpen && macchineTourOpenedModal && typeof closeMacchinaModal === 'function') {
                     closeMacchinaModal();
                 }
                 try { localStorage.setItem(MACCHINE_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
@@ -1704,7 +1769,8 @@
             }
 
             const form = document.querySelector('[data-tour-section="macchina-form"]');
-            if (form && window.getComputedStyle(form).display !== 'none') {
+            // Aggiungiamo lo step del form anche se il modal non è aperto - verrà aperto durante il tour
+            if (form) {
                 steps.push({
                     element: form,
                     title: 'Modulo dettagli',

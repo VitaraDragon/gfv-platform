@@ -89,6 +89,47 @@ gfv-platform/
 
 ---
 
+## ✅ Gestione Affitti Terreni e Statistiche (2025-01-26)
+
+### Obiettivo
+Aggiungere la possibilità di specificare se un terreno è di proprietà o in affitto, con monitoraggio scadenze e statistiche complete.
+
+### Implementazione
+
+#### Modello Terreno Esteso
+- **File modificato**: `core/models/Terreno.js`
+- Campo `tipoPossesso`: "proprieta" | "affitto" (default: "proprieta")
+- Campo `dataScadenzaAffitto`: Data scadenza contratto (obbligatorio se affitto)
+- Campo `canoneAffitto`: Canone mensile in euro (opzionale)
+- Validazione: Data scadenza obbligatoria per terreni in affitto
+- Retrocompatibilità: Terreni esistenti senza campo considerati "proprietà"
+
+#### Sistema Alert Scadenza
+- **File modificato**: `core/terreni-standalone.html`
+- Traffic light system: Verde (>6 mesi), Giallo (1-6 mesi), Rosso (≤1 mese), Grigio (scaduto)
+- Visualizzazione: Pallini colorati nella lista terreni con tooltip
+- Filtri: Per tipo possesso e alert scadenza
+
+#### Card Dashboard Affitti
+- **File modificato**: `core/dashboard-standalone.html`, `core/js/dashboard-sections.js`
+- Card "Affitti in Scadenza" per Core Base e Manager
+- Mostra solo affitti urgenti (rosso/giallo), massimo 5
+- Link diretto a gestione terreni
+
+#### Statistiche Terreni
+- **File modificato**: `core/statistiche-standalone.html`, `core/admin/statistiche-manodopera-standalone.html`
+- 8 metriche: Totali, Proprietà, Affitto, Superficie, Canoni
+- Grafici Chart.js: Distribuzione terreni e superficie
+- Lista affitti in scadenza completa
+
+#### Layout Core Base Ottimizzato
+- **File modificato**: `core/dashboard-standalone.html`, `core/styles/dashboard.css`
+- Layout con 5 card sopra mappa (Terreni, Diario, Affitti, Statistiche, Abbonamento)
+- Larghezza ottimizzata: 240px (desktop), 220px (tablet)
+- Padding ridotto per card più compatte
+
+---
+
 ## ✅ Sistema Categorie Gerarchico Unificato (2025-01-23)
 
 ### Obiettivo
@@ -771,6 +812,54 @@ Integrare il modulo Parco Macchine nel Core Base per permettere tracciamento mac
     - Ore operai (se modulo Manodopera attivo)
   - **Filtri applicati**: I filtri periodo/terreno/tipo lavoro si applicano anche alle statistiche macchine
   - **Compatibilità**: Funziona con e senza modulo Manodopera
+
+## 📝 Aggiornamenti Recenti (2025-01-24) - Correzione Tour Terreni
+
+### Problema Identificato
+Il tour della pagina terreni aveva problemi di posizionamento dei popup:
+- Popup che coprivano elementi importanti (barra ricerca)
+- Overlay evidenziato non allineato correttamente agli elementi
+- Popup non leggibili o tagliati
+- Problemi di refresh quando si navigava avanti/indietro nel tour
+
+### Soluzioni Implementate
+
+#### 1. Wrapper Barra Ricerca ✅
+- **File modificato**: `core/terreni-standalone.html`
+- **Problema**: L'overlay evidenziato non era allineato con la barra di ricerca
+- **Soluzione**: Creato wrapper `#map-search-wrapper` che contiene input e pulsante "Cerca"
+- **Risultato**: Overlay ora evidenzia correttamente l'area della barra di ricerca
+
+#### 2. Posizionamento Popup Ottimizzato ✅
+- **Popup barra ricerca**: Posizionato a sinistra (`position: 'left'`) per non coprire l'input
+- **Popup tracciamento confini**: Posizionamento dinamico (~60% viewport) per ottimale leggibilità
+- **Funzione `ensureTooltipVisible()`**: Gestisce posizionamento adattivo in base a dimensioni schermo
+- **Margini dinamici**: Mobile (30px), Tablet (25px), Desktop (20px)
+
+#### 3. Refresh Overlay Corretto ✅
+- **Problema**: Overlay non si aggiornava correttamente quando si navigava avanti
+- **Soluzione**: Logica di refresh con tentativi multipli (50ms, 150ms, 300ms, 500ms)
+- **Calcolo diretto coordinate**: Overlay posizionato usando `getBoundingClientRect()` dell'elemento target
+- **Gestione scroll**: Include `window.scrollY` e `window.scrollX` per coordinate corrette
+
+#### 4. Gestione Modal Migliorata ✅
+- **Apertura temporanea**: Modal aperto temporaneamente per costruire step correttamente
+- **Chiusura/riapetura**: Modal chiuso prima del tour, riaperto quando necessario
+- **Scroll intelligente**: Scroll automatico quando si apre/chiude il modal
+
+#### 5. Ordine Step Ottimizzato ✅
+- **Nuovo ordine**: Header → Pulsante aggiungi → Form/Mappa → Lista terreni
+- **Lista terreni alla fine**: Spostata dopo tutti gli step del modal per migliore UX
+- **Gestione apertura/chiusura**: Modal aperto per step form/mappa, chiuso per lista
+
+### Caratteristiche Finali
+- ✅ Popup sempre leggibili e posizionati correttamente
+- ✅ Overlay evidenziato allineato perfettamente agli elementi
+- ✅ Navigazione fluida avanti/indietro senza problemi di posizionamento
+- ✅ Adattivo a diverse dimensioni schermo (mobile, tablet, desktop)
+- ✅ Scroll automatico intelligente per mantenere tutto visibile
+
+**File modificati**: `core/terreni-standalone.html`
 
 
 

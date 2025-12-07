@@ -188,3 +188,4 @@ Questo garantisce che i dati dinamici siano sempre aggiornati.
 **Ultimo aggiornamento**: 2025-01-25  
 **Versione PWA**: v1
 
+

@@ -150,7 +150,15 @@
 
 ## 🚀 Prossimi Passi
 
-### Opzione 1: Dashboard Completa (Consigliato)
+### Opzione 1: Ottimizzazione Tour Altre Pagine
+Applicare le correzioni del tour terreni ad altre pagine:
+- Tour Gestione Macchine - Verificare posizionamento popup
+- Tour Gestione Lavori - Fix problemi noti (si blocca dopo primo popup)
+- Tour Dashboard - Verificare funzionamento su tutti i ruoli
+
+**Tempo stimato**: 2-3 ore
+
+### Opzione 2: Dashboard Completa (Consigliato)
 Sviluppare dashboard con contenuto per ruolo:
 - Contenuto Amministratore (più completo)
 - Contenuto Manager
@@ -159,7 +167,7 @@ Sviluppare dashboard con contenuto per ruolo:
 
 **Tempo stimato**: 3-4 ore
 
-### Opzione 2: Modulo Clienti
+### Opzione 3: Modulo Clienti
 Refactorizzare modulo clienti dalla vecchia app:
 - CRUD clienti completo
 - Integrazione con core services
@@ -167,7 +175,7 @@ Refactorizzare modulo clienti dalla vecchia app:
 
 **Tempo stimato**: 4-6 ore
 
-### Opzione 3: Gestione Tenant
+### Opzione 4: Gestione Tenant
 Sviluppare gestione tenant/azienda:
 - Creazione tenant
 - Configurazione azienda
@@ -219,7 +227,70 @@ gfv-platform/
 
 ---
 
-**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Pronto per continuare sviluppo! 🚀
+**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Tour terreni ottimizzato! Gestione affitti terreni e statistiche complete! Pronto per continuare sviluppo! 🚀
+
+---
+
+## 🆕 Ultimo Aggiornamento: Gestione Affitti Terreni e Statistiche (2025-01-26)
+
+### Funzionalità Completate
+- ✅ **Tipo Possesso Terreni**: Aggiunto campo `tipoPossesso` (proprietà/affitto) al modello Terreno
+- ✅ **Sistema Alert Scadenza Affitti**: Traffic light system (verde/giallo/rosso/grigio) per monitorare scadenze affitti
+  - Verde: scadenza >6 mesi
+  - Giallo: scadenza 1-6 mesi
+  - Rosso: scadenza ≤1 mese
+  - Grigio: scaduto
+- ✅ **Card Affitti in Scadenza**: Card dashboard per visualizzare affitti urgenti (Core Base + Manager)
+- ✅ **Statistiche Terreni Complete**: Sezione statistiche con metriche proprietà vs affitto, superficie, canoni
+- ✅ **Layout Ottimizzato Core Base**: Card sopra mappa (5 card: Terreni, Diario, Affitti, Statistiche, Abbonamento)
+- ✅ **Retrocompatibilità**: Terreni esistenti senza `tipoPossesso` considerati automaticamente come "proprietà"
+
+### File Modificati
+- ✅ `core/models/Terreno.js` - Aggiunto tipoPossesso, dataScadenzaAffitto, canoneAffitto
+- ✅ `core/terreni-standalone.html` - Form tipo possesso, filtri, colonna possesso con alert
+- ✅ `core/dashboard-standalone.html` - Card affitti, layout Core Base ottimizzato
+- ✅ `core/js/dashboard-sections.js` - Card Diario Attività, Abbonamento, Affitti
+- ✅ `core/statistiche-standalone.html` - Sezione statistiche terreni completa
+- ✅ `core/admin/statistiche-manodopera-standalone.html` - Sezione statistiche terreni completa
+- ✅ `core/styles/dashboard.css` - Layout ottimizzato (larghezza colonna 240px)
+
+### Caratteristiche Principali
+**Gestione Affitti**:
+- Form completo per specificare tipo possesso e dati affitto
+- Validazione: data scadenza obbligatoria per terreni in affitto
+- Visualizzazione alert colorati nella lista terreni
+- Filtri per tipo possesso e alert scadenza
+
+**Dashboard**:
+- Card "Affitti in Scadenza" mostra solo affitti urgenti (rosso/giallo)
+- Layout Core Base con 5 card sopra mappa (larghezza ottimizzata)
+- Card compatte e responsive
+
+**Statistiche**:
+- 8 metriche: Totali, Proprietà, Affitto, Superficie (totale/proprietà/affitto), Canoni (mensile/annuo)
+- Grafici Chart.js: distribuzione terreni e superficie
+- Lista affitti in scadenza completa con dettagli
+
+---
+
+## 🆕 Ultimo Aggiornamento: Correzione Tour Terreni (2025-01-24)
+
+### Problemi Risolti
+- ✅ **Posizionamento popup**: Popup ora posizionati correttamente e sempre leggibili
+- ✅ **Allineamento overlay**: Overlay evidenziato allineato correttamente agli elementi
+- ✅ **Navigazione tour**: Refresh overlay corretto quando si naviga avanti/indietro
+- ✅ **Barra ricerca mappa**: Wrapper creato per allineare correttamente l'overlay
+- ✅ **Popup tracciamento confini**: Posizionamento dinamico ottimizzato per leggibilità
+
+### Modifiche Tecniche
+- ✅ Creato wrapper `#map-search-wrapper` per barra ricerca
+- ✅ Aggiunta funzione `ensureTooltipVisible()` per gestione posizionamento adattivo
+- ✅ Logica refresh overlay con tentativi multipli per gestire timing
+- ✅ Posizionamento dinamico popup basato su dimensioni viewport
+- ✅ Scroll automatico intelligente per mantenere elementi visibili
+
+### File Modificati
+- ✅ `core/terreni-standalone.html` - Tour completamente ottimizzato
 
 ---
 

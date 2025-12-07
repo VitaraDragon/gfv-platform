@@ -95,6 +95,9 @@
             createAmministrazioneCard,
             createStatisticheCard,
             createTerreniCard,
+            createDiarioAttivitaCard,
+            createAbbonamentoCard,
+            createAffittiScadenzaCard,
             createManagerManodoperaSection,
             createManagerLavoriSection,
             createDiarioDaLavoriSection,
@@ -164,19 +167,55 @@
             const shouldShowCoreBase = !isOnlyOperaio && !isOnlyCaposquadra && !isManagerOrAdminWithManodopera;
             
             if (shouldShowCoreBase) {
-                const coreSection = createCoreBaseSection(userData, isCoreOnly, availableModules);
-                if (coreSection) {
-                    coreSection.setAttribute('data-tour-section', 'core-base');
-                    container.appendChild(coreSection);
-                }
-                
-                // Mappa Aziendale per Manager anche senza moduli avanzati
-                // Versione semplificata quando Manodopera NON è attivo
-                if (hasRole(userData, 'manager') || hasRole(userData, 'amministratore')) {
-                    const mapSection = createMappaAziendaleSection(userData, hasManodopera);
-                    if (mapSection) {
-                        mapSection.setAttribute('data-tour-section', 'mappa');
-                        container.appendChild(mapSection);
+                // Per Manager/Amministratore senza Manodopera: layout con card sopra mappa
+                if ((hasRole(userData, 'manager') || hasRole(userData, 'amministratore')) && !hasManodopera) {
+                    // Layout superiore: card a sinistra, mappa a destra (come Manager con Manodopera)
+                    const topRow = document.createElement('div');
+                    topRow.className = 'dashboard-top-row';
+                    topRow.setAttribute('data-tour-section', 'panoramica');
+                    
+                    const topLeft = document.createElement('div');
+                    topLeft.className = 'dashboard-top-left';
+                    
+                    // Card Terreni
+                    topLeft.appendChild(createTerreniCard());
+                    
+                    // Card Diario Attività
+                    topLeft.appendChild(createDiarioAttivitaCard());
+                    
+                    // Card Affitti in Scadenza
+                    const affittiCardCore = createAffittiScadenzaCard();
+                    topLeft.appendChild(affittiCardCore);
+                    
+                    // Card Statistiche
+                    topLeft.appendChild(createStatisticheCard(false)); // false = Core Base
+                    
+                    // Card Abbonamento
+                    topLeft.appendChild(createAbbonamentoCard());
+                    
+                    // Carica dati affitti in scadenza
+                    setTimeout(() => {
+                        loadAffittiInScadenza();
+                    }, 100);
+                    
+                    // Mappa a destra (versione semplificata senza Manodopera)
+                    const topRight = document.createElement('div');
+                    topRight.className = 'dashboard-top-right';
+                    const mappaSection = createMappaAziendaleSection(userData, hasManodopera);
+                    if (mappaSection) {
+                        mappaSection.setAttribute('data-tour-section', 'mappa');
+                        topRight.appendChild(mappaSection);
+                    }
+                    
+                    topRow.appendChild(topLeft);
+                    topRow.appendChild(topRight);
+                    container.appendChild(topRow);
+                } else {
+                    // Per altri utenti: layout normale con sezione Core Base
+                    const coreSection = createCoreBaseSection(userData, isCoreOnly, availableModules);
+                    if (coreSection) {
+                        coreSection.setAttribute('data-tour-section', 'core-base');
+                        container.appendChild(coreSection);
                     }
                 }
             }
@@ -196,11 +235,20 @@
                 topLeft.appendChild(createAmministrazioneCard());
                 
                 // Card Statistiche
-                topLeft.appendChild(createStatisticheCard());
+                topLeft.appendChild(createStatisticheCard(true)); // true = ha Manodopera
                 
                 // Card Terreni
                 const terreniCard = createTerreniCard();
                 topLeft.appendChild(terreniCard);
+                
+                // Card Affitti in Scadenza
+                const affittiCard = createAffittiScadenzaCard();
+                topLeft.appendChild(affittiCard);
+                
+                // Carica dati affitti in scadenza
+                setTimeout(() => {
+                    loadAffittiInScadenza();
+                }, 100);
                 
                 // Mappa a destra (versione completa con Manodopera)
                 const topRight = document.createElement('div');
@@ -246,6 +294,13 @@
                             managerSection.setAttribute('data-tour-section', 'gestione-core');
                             container.appendChild(managerSection);
                         }
+                        
+                        // Card Affitti in Scadenza anche per Manager senza Manodopera
+                        const affittiCardCore = createAffittiScadenzaCard();
+                        container.appendChild(affittiCardCore);
+                        setTimeout(() => {
+                            loadAffittiInScadenza();
+                        }, 100);
                     }
                 }
                 
@@ -481,13 +536,77 @@
                 return;
             }
 
+            // Avvia il tour con gli step
+            setTimeout(() => {
+                startDashboardTourWithSteps(userData);
+            }, 300);
+        }
+
+        function startDashboardTourWithSteps(userData) {
+            const steps = buildDashboardTourSteps(userData || {});
+            
+            if (!steps.length) {
+                return;
+            }
+
+            // Flag per evitare loop infiniti
+            let isRepositioning = false;
+            let ensureTooltipCallCount = 0;
+            let lastCallTime = 0;
+            const MAX_ENSURE_CALLS = 3; // Massimo 3 chiamate consecutive
+            const CALL_RESET_TIME = 500; // Reset contatore dopo 500ms di inattività
+            let isMappaStepActive = false; // Flag per preservare position: fixed per mappa
+            let scrollListener = null; // Listener per mantenere tooltip fisso durante scroll
+            
             // Funzione per forzare il posizionamento corretto del tooltip in base alle dimensioni dello schermo
             function ensureTooltipVisible() {
+                const now = Date.now();
+                
+                // Reset contatore se è passato abbastanza tempo dall'ultima chiamata
+                if (now - lastCallTime > CALL_RESET_TIME) {
+                    ensureTooltipCallCount = 0;
+                }
+                lastCallTime = now;
+                
+                ensureTooltipCallCount++;
+                if (ensureTooltipCallCount > MAX_ENSURE_CALLS) {
+                    console.log('⏸️ [TOUR DEBUG] Troppe chiamate consecutive, salto');
+                    ensureTooltipCallCount = 0;
+                    return;
+                }
+                
+                if (isRepositioning) {
+                    console.log('⏸️ [TOUR DEBUG] Reposizionamento già in corso, salto');
+                    return;
+                }
+                
                 setTimeout(() => {
                     const tooltip = document.querySelector('.introjs-tooltip');
                     const highlightedElement = document.querySelector('.introjs-showElement');
                     
-                    if (!tooltip) return;
+                    console.log('🔍 [TOUR DEBUG] ensureTooltipVisible chiamata (#', ensureTooltipCallCount, ')');
+                    
+                    if (!tooltip) {
+                        console.warn('⚠️ [TOUR DEBUG] Tooltip non trovato!');
+                        ensureTooltipCallCount = 0; // Reset se tooltip non esiste
+                        return;
+                    }
+                    
+                    // Se siamo nello step della mappa, preserva position: fixed
+                    if (isMappaStepActive) {
+                        console.log('🗺️ [TOUR DEBUG] Preservo position: fixed per mappa');
+                        tooltip.style.setProperty('position', 'fixed', 'important');
+                        tooltip.style.setProperty('z-index', '9999999', 'important');
+                    } else {
+                        // FORZA position: absolute con !important per uscire dallo stacking context del parent
+                        tooltip.style.setProperty('position', 'absolute', 'important');
+                        tooltip.style.setProperty('z-index', '999999', 'important');
+                    }
+                    
+                    // Log z-index attuale del tooltip
+                    const tooltipZIndex = window.getComputedStyle(tooltip).zIndex;
+                    const tooltipPosition = window.getComputedStyle(tooltip).position;
+                    console.log('📊 [TOUR DEBUG] Tooltip z-index:', tooltipZIndex, 'position:', tooltipPosition);
                     
                     const rect = tooltip.getBoundingClientRect();
                     const viewportHeight = window.innerHeight;
@@ -500,50 +619,150 @@
                     const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
                     const margin = isMobile ? 30 : (isTablet ? 25 : 20);
                     
-                    // Ottieni la posizione corrente del tooltip
-                    const currentTop = parseInt(tooltip.style.top) || rect.top;
-                    const currentLeft = parseInt(tooltip.style.left) || rect.left;
-                    
-                    // Controlla e correggi posizione verticale
-                    let newTop = currentTop;
-                    if (rect.top < margin) {
-                        // Tooltip troppo in alto - spostalo in basso
-                        newTop = margin;
-                        tooltip.style.top = newTop + 'px';
-                        tooltip.style.bottom = 'auto';
-                    } else if (rect.bottom > viewportHeight - margin) {
-                        // Tooltip troppo in basso - spostalo in alto
-                        newTop = viewportHeight - tooltipHeight - margin;
-                        tooltip.style.top = newTop + 'px';
-                        tooltip.style.bottom = 'auto';
+                    // Se siamo nello step della mappa con position: fixed, centra il tooltip nel viewport
+                    if (isMappaStepActive) {
+                        console.log('🗺️ [TOUR DEBUG] Centro tooltip per step mappa');
+                        
+                        // Usa le dimensioni reali del tooltip (offsetHeight/Width sono più affidabili per elementi fixed)
+                        const realTooltipHeight = tooltip.offsetHeight || tooltipHeight || 350;
+                        const realTooltipWidth = tooltip.offsetWidth || tooltipWidth || 400;
+                        
+                        // Centra verticalmente e orizzontalmente nel viewport
+                        const centerTop = (viewportHeight - realTooltipHeight) / 2;
+                        const centerLeft = (viewportWidth - realTooltipWidth) / 2;
+                        
+                        // Assicurati che sia dentro il viewport con margini adeguati
+                        // Usa margini più grandi per schermi grandi
+                        const safeMargin = Math.max(margin, Math.min(viewportHeight * 0.05, 50));
+                        const newTop = Math.max(safeMargin, Math.min(centerTop, viewportHeight - realTooltipHeight - safeMargin));
+                        const newLeft = Math.max(safeMargin, Math.min(centerLeft, viewportWidth - realTooltipWidth - safeMargin));
+                        
+                        console.log('🗺️ [TOUR DEBUG] Viewport:', viewportWidth, 'x', viewportHeight, 'Tooltip:', realTooltipWidth, 'x', realTooltipHeight, 'Posizione:', newTop, newLeft);
+                        
+                        tooltip.style.setProperty('top', newTop + 'px', 'important');
+                        tooltip.style.setProperty('left', newLeft + 'px', 'important');
+                        tooltip.style.setProperty('bottom', 'auto', 'important');
+                        tooltip.style.setProperty('right', 'auto', 'important');
+                        tooltip.style.setProperty('transform', 'none', 'important');
+                        tooltip.style.setProperty('position', 'fixed', 'important');
+                        tooltip.style.setProperty('z-index', '9999999', 'important');
+                    } else {
+                        // Per gli altri step, usa la logica normale
+                        // Ottieni la posizione corrente del tooltip
+                        const currentTop = parseInt(tooltip.style.top) || rect.top;
+                        const currentLeft = parseInt(tooltip.style.left) || rect.left;
+                        
+                        // Controlla e correggi posizione verticale
+                        let newTop = currentTop;
+                        if (rect.top < margin) {
+                            // Tooltip troppo in alto - spostalo in basso
+                            newTop = margin;
+                            tooltip.style.top = newTop + 'px';
+                            tooltip.style.bottom = 'auto';
+                        } else if (rect.bottom > viewportHeight - margin) {
+                            // Tooltip troppo in basso - spostalo in alto
+                            newTop = viewportHeight - tooltipHeight - margin;
+                            tooltip.style.top = newTop + 'px';
+                            tooltip.style.bottom = 'auto';
+                        }
+                        
+                        // Controlla e correggi posizione orizzontale
+                        let newLeft = currentLeft;
+                        if (rect.left < margin) {
+                            // Tooltip troppo a sinistra - spostalo a destra
+                            newLeft = margin;
+                            tooltip.style.left = newLeft + 'px';
+                            tooltip.style.right = 'auto';
+                        } else if (rect.right > viewportWidth - margin) {
+                            // Tooltip troppo a destra - spostalo a sinistra
+                            newLeft = viewportWidth - tooltipWidth - margin;
+                            tooltip.style.left = newLeft + 'px';
+                            tooltip.style.right = 'auto';
+                        }
+                        
+                        // Su schermi piccoli, centra il tooltip se è troppo largo
+                        if (isMobile && tooltipWidth > viewportWidth - (margin * 2)) {
+                            tooltip.style.left = margin + 'px';
+                            tooltip.style.right = margin + 'px';
+                            tooltip.style.width = 'auto';
+                            tooltip.style.maxWidth = (viewportWidth - (margin * 2)) + 'px';
+                        }
                     }
                     
-                    // Controlla e correggi posizione orizzontale
-                    let newLeft = currentLeft;
-                    if (rect.left < margin) {
-                        // Tooltip troppo a sinistra - spostalo a destra
-                        newLeft = margin;
-                        tooltip.style.left = newLeft + 'px';
-                        tooltip.style.right = 'auto';
-                    } else if (rect.right > viewportWidth - margin) {
-                        // Tooltip troppo a destra - spostalo a sinistra
-                        newLeft = viewportWidth - tooltipWidth - margin;
-                        tooltip.style.left = newLeft + 'px';
-                        tooltip.style.right = 'auto';
+                    // FORZA anche il tooltipReferenceLayer ad avere position absolute/fixed e z-index alto
+                    const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                    if (tooltipReferenceLayer) {
+                        if (isMappaStepActive) {
+                            tooltipReferenceLayer.style.setProperty('position', 'fixed', 'important');
+                            tooltipReferenceLayer.style.setProperty('z-index', '9999999', 'important');
+                        } else {
+                            tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
+                            tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
+                        }
+                        const refLayerZIndex = window.getComputedStyle(tooltipReferenceLayer).zIndex;
+                        const refLayerPosition = window.getComputedStyle(tooltipReferenceLayer).position;
+                        console.log('📌 [TOUR DEBUG] TooltipReferenceLayer z-index:', refLayerZIndex, 'position:', refLayerPosition);
                     }
                     
-                    // Su schermi piccoli, centra il tooltip se è troppo largo
-                    if (isMobile && tooltipWidth > viewportWidth - (margin * 2)) {
-                        tooltip.style.left = margin + 'px';
-                        tooltip.style.right = margin + 'px';
-                        tooltip.style.width = 'auto';
-                        tooltip.style.maxWidth = (viewportWidth - (margin * 2)) + 'px';
+                    // Verifica z-index degli elementi che potrebbero coprire il tooltip
+                    const mappaContainer = document.querySelector('.mappa-container') || 
+                                          document.querySelector('[data-tour-section="mappa"]');
+                    if (mappaContainer) {
+                        const mappaZIndex = window.getComputedStyle(mappaContainer).zIndex;
+                        console.log('🗺️ [TOUR DEBUG] Mappa z-index:', mappaZIndex);
+                    }
+                    
+                    // Verifica z-index di altri elementi potenzialmente problematici
+                    const listaTerreni = document.querySelector('[data-tour-section="lista-terreni"]') ||
+                                       document.querySelector('.terreni-list') ||
+                                       document.querySelector('table');
+                    if (listaTerreni) {
+                        const listaZIndex = window.getComputedStyle(listaTerreni).zIndex;
+                        console.log('📋 [TOUR DEBUG] Lista/Tabella z-index:', listaZIndex);
                     }
                     
                     // Se c'è un elemento evidenziato, assicurati che non sia coperto dal tooltip
                     if (highlightedElement) {
                         const elementRect = highlightedElement.getBoundingClientRect();
                         const tooltipRect = tooltip.getBoundingClientRect();
+                        const elementHeight = elementRect.height;
+                        const elementWidth = elementRect.width;
+                        const viewportHeight = window.innerHeight;
+                        const viewportWidth = window.innerWidth;
+                        
+                        console.log('🎯 [TOUR DEBUG] Elemento evidenziato:', highlightedElement.tagName, highlightedElement.className, highlightedElement.id);
+                        console.log('📏 [TOUR DEBUG] Elemento dimensioni:', elementWidth, 'x', elementHeight, 'Viewport:', viewportWidth, 'x', viewportHeight);
+                        console.log('📍 [TOUR DEBUG] Tooltip posizione:', {
+                            top: tooltipRect.top,
+                            left: tooltipRect.left,
+                            bottom: tooltipRect.bottom,
+                            right: tooltipRect.right,
+                            height: tooltipRect.height,
+                            width: tooltipRect.width
+                        });
+                        console.log('📍 [TOUR DEBUG] Elemento posizione:', {
+                            top: elementRect.top,
+                            left: elementRect.left,
+                            bottom: elementRect.bottom,
+                            right: elementRect.right,
+                            height: elementRect.height,
+                            width: elementRect.width
+                        });
+                        
+                        // Se l'elemento è molto grande (più grande del viewport), forza lo scroll all'inizio dell'elemento
+                        if (elementHeight > viewportHeight * 0.8) {
+                            console.log('📐 [TOUR DEBUG] Elemento molto grande, forzo scroll all\'inizio');
+                            highlightedElement.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'start', // Scroll all'inizio invece di center
+                                inline: 'nearest'
+                            });
+                            
+                            // Dopo lo scroll, riposiziona il tooltip
+                            setTimeout(() => {
+                                ensureTooltipVisible();
+                            }, 400);
+                        }
                         
                         // Controlla se il tooltip copre l'elemento evidenziato
                         const tooltipCoversElement = !(
@@ -553,7 +772,11 @@
                             tooltipRect.left > elementRect.right
                         );
                         
-                        if (tooltipCoversElement) {
+                        // Per la mappa, non fare scroll se il tooltip copre l'elemento (è normale)
+                        if (tooltipCoversElement && !isRepositioning && ensureTooltipCallCount <= 1 && !isMappaStepActive) {
+                            console.log('⚠️ [TOUR DEBUG] Tooltip copre l\'elemento evidenziato!');
+                            isRepositioning = true;
+                            
                             // Scrolla l'elemento in vista, lasciando spazio per il tooltip
                             highlightedElement.scrollIntoView({ 
                                 behavior: 'smooth', 
@@ -561,16 +784,87 @@
                                 inline: 'nearest'
                             });
                             
-                            // Dopo lo scroll, riposiziona il tooltip se necessario
+                            // Dopo lo scroll, riposiziona il tooltip se necessario (solo una volta)
                             setTimeout(() => {
+                                isRepositioning = false;
+                                ensureTooltipCallCount = 0; // Reset contatore
                                 ensureTooltipVisible();
                             }, 300);
+                        } else if (tooltipCoversElement && isMappaStepActive) {
+                            console.log('ℹ️ [TOUR DEBUG] Tooltip copre elemento mappa (normale per step mappa)');
+                        } else if (tooltipCoversElement) {
+                            console.log('⏸️ [TOUR DEBUG] Tooltip copre elemento ma già in riposizionamento o troppe chiamate');
+                        }
+                        
+                        // Se non siamo nello step mappa, verifica se il tooltip è fuori dal viewport
+                        if (!isMappaStepActive && highlightedElement) {
+                            const elementRect = highlightedElement.getBoundingClientRect();
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            const viewportHeight = window.innerHeight;
+                            const viewportWidth = window.innerWidth;
+                            
+                            // Verifica se il tooltip è completamente fuori dal viewport
+                            const tooltipOutOfViewport = 
+                                tooltipRect.bottom < 0 || 
+                                tooltipRect.top > viewportHeight ||
+                                tooltipRect.right < 0 ||
+                                tooltipRect.left > viewportWidth;
+                            
+                            // Verifica se il tooltip è parzialmente fuori dal viewport
+                            const tooltipPartiallyOut = 
+                                tooltipRect.top < 0 ||
+                                tooltipRect.bottom > viewportHeight ||
+                                tooltipRect.left < 0 ||
+                                tooltipRect.right > viewportWidth;
+                            
+                            if (tooltipOutOfViewport) {
+                                console.log('❌ [TOUR DEBUG] Tooltip completamente fuori dal viewport!');
+                                // Forza scroll dell'elemento e riposizionamento
+                                highlightedElement.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'start', // Scroll all'inizio per elementi grandi
+                                    inline: 'nearest'
+                                });
+                                
+                                setTimeout(() => {
+                                    ensureTooltipVisible();
+                                }, 400);
+                            } else if (tooltipPartiallyOut) {
+                                console.log('⚠️ [TOUR DEBUG] Tooltip parzialmente fuori dal viewport');
+                                // Correggi la posizione del tooltip
+                                if (tooltipRect.top < 0) {
+                                    tooltip.style.setProperty('top', '20px', 'important');
+                                }
+                                if (tooltipRect.bottom > viewportHeight) {
+                                    const newTop = viewportHeight - tooltipRect.height - 20;
+                                    tooltip.style.setProperty('top', newTop + 'px', 'important');
+                                }
+                                if (tooltipRect.left < 0) {
+                                    tooltip.style.setProperty('left', '20px', 'important');
+                                }
+                                if (tooltipRect.right > viewportWidth) {
+                                    const newLeft = viewportWidth - tooltipRect.width - 20;
+                                    tooltip.style.setProperty('left', newLeft + 'px', 'important');
+                                }
+                            }
+                            
+                            // Se il tooltip è sopra l'elemento e l'elemento è molto in basso nella pagina, forza lo scroll
+                            if (tooltipRect.bottom < elementRect.top && elementRect.top > viewportHeight * 0.5) {
+                                console.log('⬇️ [TOUR DEBUG] Tooltip troppo in alto rispetto all\'elemento, forzo scroll');
+                                highlightedElement.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'start', // Per elementi grandi, scroll all'inizio
+                                    inline: 'nearest'
+                                });
+                            }
                         }
                     }
+                    
+                    console.log('✅ [TOUR DEBUG] ensureTooltipVisible completata');
                 }, 150);
             }
 
-            const tour = introJs().setOptions({
+            const tour = introJs.tour().setOptions({
                 steps,
                 showProgress: true,
                 showBullets: false,
@@ -579,13 +873,91 @@
                 prevLabel: 'Indietro',
                 skipLabel: '×',
                 doneLabel: 'Fatto',
-                scrollToElement: true,
-                scrollPadding: 50
+                scrollToElement: true, // Scroll automatico agli elementi
+                scrollPadding: 50, // Padding maggiore per lo scroll
+                tooltipClass: 'customTooltip',
+                highlightClass: 'customHighlight'
+            });
+
+            // Assicurati che il tooltip sia visibile quando il tour inizia
+            tour.onstart(() => {
+                console.log('🚀 [TOUR DEBUG] Tour iniziato');
+                setTimeout(() => {
+                    ensureTooltipVisible();
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    const overlay = document.querySelector('.introjs-overlay');
+                    const helperLayer = document.querySelector('.introjs-helperLayer');
+                    const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                    
+                    if (tooltip) {
+                        console.log('🎨 [TOUR DEBUG] Applicando stili al tooltip in onstart');
+                        // FORZA position: absolute con !important
+                        tooltip.style.setProperty('position', 'absolute', 'important');
+                        tooltip.style.setProperty('z-index', '999999', 'important');
+                        
+                        // Forza stili uniformi
+                        tooltip.style.background = 'linear-gradient(135deg, #2E8B57 0%, #228B22 100%)';
+                        tooltip.style.color = 'rgba(255,255,255,0.95)';
+                        tooltip.style.borderRadius = '18px';
+                        tooltip.style.border = 'none';
+                        tooltip.style.boxShadow = '0 25px 55px rgba(15, 23, 42, 0.35)';
+                        tooltip.style.maxWidth = '380px';
+                        tooltip.style.fontSize = '15px';
+                        tooltip.style.lineHeight = '1.6';
+                        tooltip.style.padding = '22px 26px 20px';
+                        tooltip.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                        const finalZIndex = window.getComputedStyle(tooltip).zIndex;
+                        const finalPosition = window.getComputedStyle(tooltip).position;
+                        console.log('📊 [TOUR DEBUG] Tooltip z-index dopo stili:', finalZIndex, 'position:', finalPosition);
+                    }
+                    
+                    if (tooltipReferenceLayer) {
+                        tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
+                        tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
+                    }
+                    
+                    if (overlay) {
+                        overlay.style.zIndex = '999998';
+                    }
+                    if (helperLayer) {
+                        helperLayer.style.zIndex = '999998';
+                    }
+                }, 100);
             });
 
             // Gestisci scroll e posizionamento durante il tour
             tour.onchange((targetElement) => {
-                if (!targetElement) return;
+                if (!targetElement) {
+                    console.warn('⚠️ [TOUR DEBUG] onchange: targetElement è null');
+                    return;
+                }
+                
+                console.log('🔄 [TOUR DEBUG] onchange chiamato per elemento:', targetElement.tagName, targetElement.className, targetElement.id);
+                
+                // Verifica se stiamo passando da step mappa a step normale
+                const wasMappaStep = isMappaStepActive;
+                const isMappaStepNow = targetElement && (
+                    targetElement.closest('[data-tour-section="mappa"]') ||
+                    targetElement.querySelector('[data-tour-section="mappa"]') ||
+                    (targetElement.getAttribute && targetElement.getAttribute('data-tour-section') === 'mappa') ||
+                    (targetElement.classList && targetElement.classList.contains('dashboard-section') && 
+                     (targetElement.querySelector('[data-tour-section="mappa"]') || 
+                      targetElement.querySelector('.mappa-container')))
+                );
+                
+                // Se passiamo da mappa a normale, rimuovi le proprietà fixed
+                if (wasMappaStep && !isMappaStepNow) {
+                    console.log('🔄 [TOUR DEBUG] Passaggio da step mappa a step normale, reset completo');
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    if (tooltip) {
+                        // Rimuovi tutte le proprietà che potrebbero interferire
+                        tooltip.style.removeProperty('top');
+                        tooltip.style.removeProperty('left');
+                        tooltip.style.removeProperty('transform');
+                        tooltip.style.setProperty('position', 'absolute', 'important');
+                        tooltip.style.setProperty('z-index', '999999', 'important');
+                    }
+                }
                 
                 // Scroll l'elemento in vista con un piccolo delay
                 setTimeout(() => {
@@ -596,10 +968,38 @@
                             inline: 'nearest'
                         });
                     }
+                    
+                    // FORZA position e z-index PRIMA di ensureTooltipVisible
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                    
+                    if (tooltip) {
+                        // Se non siamo nello step mappa, forza absolute
+                        if (!isMappaStepNow) {
+                            tooltip.style.setProperty('position', 'absolute', 'important');
+                            tooltip.style.setProperty('z-index', '999999', 'important');
+                        }
+                    }
+                    
+                    if (tooltipReferenceLayer) {
+                        if (!isMappaStepNow) {
+                            tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
+                            tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
+                        }
+                    }
+                    
                     // Forza il tooltip a essere visibile
                     ensureTooltipVisible();
                     
+                    // Verifica z-index dopo ensureTooltipVisible
+                    if (tooltip) {
+                        const zIndexAfter = window.getComputedStyle(tooltip).zIndex;
+                        const positionAfter = window.getComputedStyle(tooltip).position;
+                        console.log('📊 [TOUR DEBUG] Tooltip z-index dopo onchange:', zIndexAfter, 'position:', positionAfter);
+                    }
+                    
                     // Forza il refresh dell'overlay di Intro.js per correggere il posizionamento
+                    // Questo è importante quando si naviga avanti perché l'elemento potrebbe non essere ancora completamente renderizzato
                     setTimeout(() => {
                         const helperLayer = document.querySelector('.introjs-helperLayer');
                         if (helperLayer && targetElement) {
@@ -619,18 +1019,218 @@
 
             // Assicurati che il tooltip sia visibile quando viene mostrato
             tour.onafterchange((targetElement) => {
-                ensureTooltipVisible();
+                console.log('✨ [TOUR DEBUG] onafterchange chiamato');
+                
+                // Se è lo step della mappa, forza il tooltip sopra la mappa
+                // Verifica anche se l'elemento è dentro una sezione dashboard che contiene la mappa
+                let isMappaStep = false;
+                
+                if (targetElement) {
+                    // Verifica direttamente l'attributo data-tour-section
+                    const tourSection = targetElement.getAttribute && targetElement.getAttribute('data-tour-section');
+                    if (tourSection === 'mappa') {
+                        isMappaStep = true;
+                    }
+                    
+                    // Verifica se l'elemento contiene o è dentro [data-tour-section="mappa"]
+                    if (!isMappaStep) {
+                        const mappaParent = targetElement.closest('[data-tour-section="mappa"]');
+                        const mappaChild = targetElement.querySelector('[data-tour-section="mappa"]');
+                        if (mappaParent || mappaChild) {
+                            isMappaStep = true;
+                        }
+                    }
+                    
+                    // Verifica se l'elemento è un dashboard-section che contiene la mappa
+                    if (!isMappaStep && targetElement.classList && targetElement.classList.contains('dashboard-section')) {
+                        const hasMappaSection = targetElement.querySelector('[data-tour-section="mappa"]');
+                        const hasMappaContainer = targetElement.querySelector('.mappa-container');
+                        if (hasMappaSection || hasMappaContainer) {
+                            isMappaStep = true;
+                        }
+                    }
+                    
+                    // Verifica anche se l'elemento è dentro un container che ha la mappa
+                    if (!isMappaStep) {
+                        const parent = targetElement.parentElement;
+                        if (parent) {
+                            const parentMappa = parent.closest('[data-tour-section="mappa"]');
+                            if (parentMappa) {
+                                isMappaStep = true;
+                            }
+                        }
+                    }
+                }
+                
+                // Log per debug
+                if (isMappaStep) {
+                    console.log('🗺️ [TOUR DEBUG] Rilevato step mappa per elemento:', targetElement?.tagName, targetElement?.className, targetElement?.id, 'data-tour-section:', targetElement?.getAttribute?.('data-tour-section'));
+                } else {
+                    console.log('📍 [TOUR DEBUG] Step NON mappa per elemento:', targetElement?.tagName, targetElement?.className, targetElement?.id, 'data-tour-section:', targetElement?.getAttribute?.('data-tour-section'));
+                }
+                
+                // Imposta il flag per preservare position: fixed
+                isMappaStepActive = !!isMappaStep;
+                
+                // FORZA position e z-index PRIMA di tutto
+                const tooltip = document.querySelector('.introjs-tooltip');
+                const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                
+                if (tooltip) {
+                    console.log('🎨 [TOUR DEBUG] Applicando stili al tooltip in onafterchange');
+                    const zIndexBefore = window.getComputedStyle(tooltip).zIndex;
+                    const positionBefore = window.getComputedStyle(tooltip).position;
+                    console.log('📊 [TOUR DEBUG] Tooltip z-index PRIMA:', zIndexBefore, 'position:', positionBefore);
+                    
+                    if (isMappaStep) {
+                        console.log('🗺️ [TOUR DEBUG] Step mappa - forzo tooltip sopra la mappa');
+                        // Forza z-index ancora più alto e assicurati che sia sopra tutto
+                        tooltip.style.setProperty('z-index', '9999999', 'important');
+                        tooltip.style.setProperty('position', 'fixed', 'important'); // Usa fixed per essere sicuro che sia sopra tutto
+                        // Reset contatore per permettere nuove chiamate per questo step
+                        ensureTooltipCallCount = 0;
+                        
+                        // Rimuovi listener precedente se esiste
+                        if (scrollListener) {
+                            window.removeEventListener('scroll', scrollListener, true);
+                            window.removeEventListener('wheel', scrollListener, true);
+                        }
+                        
+                        // Crea nuovo listener per mantenere tooltip fisso durante scroll
+                        scrollListener = function() {
+                            if (isMappaStepActive) {
+                                const tooltip = document.querySelector('.introjs-tooltip');
+                                const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                                
+                                if (tooltip) {
+                                    const viewportHeight = window.innerHeight;
+                                    const viewportWidth = window.innerWidth;
+                                    
+                                    // Usa le dimensioni reali del tooltip (offsetHeight/Width sono più affidabili)
+                                    const realTooltipHeight = tooltip.offsetHeight || 350;
+                                    const realTooltipWidth = tooltip.offsetWidth || 400;
+                                    
+                                    // Margini adeguati per schermi grandi
+                                    const safeMargin = Math.max(20, Math.min(viewportHeight * 0.05, 50));
+                                    
+                                    // Mantieni il tooltip centrato nel viewport
+                                    const centerTop = (viewportHeight - realTooltipHeight) / 2;
+                                    const centerLeft = (viewportWidth - realTooltipWidth) / 2;
+                                    
+                                    const newTop = Math.max(safeMargin, Math.min(centerTop, viewportHeight - realTooltipHeight - safeMargin));
+                                    const newLeft = Math.max(safeMargin, Math.min(centerLeft, viewportWidth - realTooltipWidth - safeMargin));
+                                    
+                                    tooltip.style.setProperty('position', 'fixed', 'important');
+                                    tooltip.style.setProperty('z-index', '9999999', 'important');
+                                    tooltip.style.setProperty('top', newTop + 'px', 'important');
+                                    tooltip.style.setProperty('left', newLeft + 'px', 'important');
+                                    tooltip.style.setProperty('transform', 'none', 'important');
+                                }
+                                
+                                // Mantieni anche il tooltipReferenceLayer fisso
+                                if (tooltipReferenceLayer) {
+                                    tooltipReferenceLayer.style.setProperty('position', 'fixed', 'important');
+                                    tooltipReferenceLayer.style.setProperty('z-index', '9999999', 'important');
+                                }
+                            }
+                        };
+                        // Aggiungi listener per scroll e wheel
+                        window.addEventListener('scroll', scrollListener, true);
+                        window.addEventListener('wheel', scrollListener, true);
+                        
+                        // Forza anche il posizionamento iniziale con delay per assicurarsi che il tooltip sia renderizzato
+                        setTimeout(() => {
+                            if (scrollListener && isMappaStepActive) {
+                                scrollListener();
+                                // Riposiziona anche dopo un breve delay per assicurarsi che le dimensioni siano corrette
+                                setTimeout(() => {
+                                    if (scrollListener && isMappaStepActive) {
+                                        scrollListener();
+                                    }
+                                }, 100);
+                            }
+                        }, 150);
+                    } else {
+                        // Rimuovi listener se non siamo più nello step della mappa
+                        if (scrollListener) {
+                            window.removeEventListener('scroll', scrollListener, true);
+                            window.removeEventListener('wheel', scrollListener, true);
+                            scrollListener = null;
+                        }
+                        
+                        // FORZA position: absolute con !important
+                        tooltip.style.setProperty('position', 'absolute', 'important');
+                        tooltip.style.setProperty('z-index', '999999', 'important');
+                        
+                        // Se veniamo da uno step mappa (era fixed), forza il riposizionamento
+                        // Rimuovi eventuali posizioni fixed che potrebbero interferire
+                        tooltip.style.removeProperty('top');
+                        tooltip.style.removeProperty('left');
+                        tooltip.style.removeProperty('transform');
+                        
+                        // Reset flag per permettere scroll se necessario
+                        isRepositioning = false;
+                        ensureTooltipCallCount = 0;
+                        
+                        console.log('🔄 [TOUR DEBUG] Passato da step mappa a step normale, reset posizionamento');
+                    }
+                    
+                    tooltip.style.background = 'linear-gradient(135deg, #2E8B57 0%, #228B22 100%)';
+                    tooltip.style.color = 'rgba(255,255,255,0.95)';
+                    tooltip.style.borderRadius = '18px';
+                    tooltip.style.border = 'none';
+                    tooltip.style.boxShadow = '0 25px 55px rgba(15, 23, 42, 0.35)';
+                    tooltip.style.maxWidth = '380px';
+                    tooltip.style.fontSize = '15px';
+                    tooltip.style.lineHeight = '1.6';
+                    tooltip.style.padding = '22px 26px 20px';
+                    tooltip.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                    
+                    const zIndexAfter = window.getComputedStyle(tooltip).zIndex;
+                    const positionAfter = window.getComputedStyle(tooltip).position;
+                    console.log('📊 [TOUR DEBUG] Tooltip z-index DOPO:', zIndexAfter, 'position:', positionAfter);
+                    
+                    // Verifica se lo z-index è quello che ci aspettiamo
+                    // Per la mappa deve essere 9999999, per gli altri step 999999
+                    const expectedZIndex = isMappaStep ? '9999999' : '999999';
+                    if (zIndexAfter !== expectedZIndex && zIndexAfter !== expectedZIndex + 'px') {
+                        console.error('❌ [TOUR DEBUG] PROBLEMA: z-index non è', expectedZIndex, '! È:', zIndexAfter);
+                    }
+                    if (positionAfter !== 'absolute' && positionAfter !== 'fixed') {
+                        console.error('❌ [TOUR DEBUG] PROBLEMA: position non è absolute/fixed! È:', positionAfter);
+                    }
+                }
+                
+                if (tooltipReferenceLayer) {
+                    if (isMappaStep) {
+                        tooltipReferenceLayer.style.setProperty('z-index', '9999999', 'important');
+                        tooltipReferenceLayer.style.setProperty('position', 'fixed', 'important');
+                    } else {
+                        tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
+                        tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
+                    }
+                }
+                
+                // Chiama ensureTooltipVisible solo se il tooltip esiste
+                const tooltipExists = document.querySelector('.introjs-tooltip');
+                if (tooltipExists) {
+                    ensureTooltipVisible();
+                } else {
+                    console.log('⏸️ [TOUR DEBUG] Tooltip non esiste ancora in onafterchange, aspetto...');
+                    // Aspetta che Intro.js crei il tooltip
+                    setTimeout(() => {
+                        const tooltipAfterWait = document.querySelector('.introjs-tooltip');
+                        if (tooltipAfterWait) {
+                            ensureTooltipVisible();
+                        }
+                    }, 100);
+                }
                 
                 // Forza il refresh dell'overlay dopo che il tooltip è stato posizionato
-                if (targetElement) {
-                    // Funzione per forzare il refresh dell'overlay
-                    function refreshOverlay() {
-                        const helperLayer = document.querySelector('.introjs-helperLayer');
-                        if (!helperLayer || !targetElement) return;
-                        
+                setTimeout(() => {
+                    const helperLayer = document.querySelector('.introjs-helperLayer');
+                    if (helperLayer && targetElement) {
                         const targetRect = targetElement.getBoundingClientRect();
-                        
-                        // Verifica che l'elemento sia visibile e abbia dimensioni valide
                         if (targetRect.width > 0 && targetRect.height > 0) {
                             // Forza il ricalcolo dell'overlay usando le coordinate dell'elemento target
                             helperLayer.style.width = targetRect.width + 'px';
@@ -639,24 +1239,47 @@
                             helperLayer.style.left = (targetRect.left + window.scrollX) + 'px';
                         }
                     }
-                    
-                    // Esegui il refresh più volte con delay crescenti per assicurarsi che funzioni
-                    setTimeout(refreshOverlay, 50);
-                    setTimeout(refreshOverlay, 150);
-                    setTimeout(refreshOverlay, 300);
-                    setTimeout(refreshOverlay, 500);
-                }
+                }, 200);
             });
 
             tour.oncomplete(() => {
+                // Reset flag quando il tour finisce
+                isMappaStepActive = false;
+                isRepositioning = false;
+                ensureTooltipCallCount = 0;
+                
+                // Rimuovi listener scroll
+                if (scrollListener) {
+                    window.removeEventListener('scroll', scrollListener, true);
+                    window.removeEventListener('wheel', scrollListener, true);
+                    scrollListener = null;
+                }
+                
                 try { localStorage.setItem(TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.onexit(() => {
+                // Reset flag quando il tour viene chiuso
+                isMappaStepActive = false;
+                isRepositioning = false;
+                ensureTooltipCallCount = 0;
+                
+                // Rimuovi listener scroll
+                if (scrollListener) {
+                    window.removeEventListener('scroll', scrollListener, true);
+                    window.removeEventListener('wheel', scrollListener, true);
+                    scrollListener = null;
+                }
+                
                 try { localStorage.setItem(TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.start();
+            
+            // Assicurati che il tooltip sia visibile anche all'inizio
+            setTimeout(() => {
+                ensureTooltipVisible();
+            }, 300);
         }
 
         function buildDashboardTourSteps(userData) {
@@ -666,8 +1289,8 @@
             if (header) {
                 steps.push({
                     element: header,
-                    title: 'Benvenuto!',
-                    intro: 'Qui trovi i tuoi dati, i ruoli assegnati e tutte le scorciatoie principali: Impostazioni, Guide, Tour e Logout.'
+                    title: 'Dashboard Principale',
+                    intro: 'Qui trovi i tuoi dati, i ruoli assegnati e tutte le scorciatoie principali. Puoi sempre tornare qui dalla dashboard o aprire le guide.'
                 });
             }
 
@@ -676,7 +1299,7 @@
                 steps.push({
                     element: guideLink,
                     title: 'Guide sempre disponibili',
-                    intro: 'Il portale documentazione ospita Primi Passi, FAQ e guide per ruolo/funzionalità (incluso il modulo Parco Macchine).'
+                    intro: 'Il portale documentazione ospita Primi Passi, FAQ e guide per ruolo/funzionalità. Trovi procedure complete per ogni modulo, incluso il Parco Macchine.'
                 });
             }
 
@@ -685,7 +1308,7 @@
                 steps.push({
                     element: tourButton,
                     title: 'Tour interattivo',
-                    intro: 'Puoi riaprire questo tour guidato in qualunque momento cliccando qui.'
+                    intro: 'Puoi riaprire questo tour guidato in qualunque momento cliccando qui. Utile per rivedere le funzionalità disponibili.'
                 });
             }
 
@@ -694,7 +1317,7 @@
                 steps.push({
                     element: coreBase,
                     title: 'Sezione Core Base',
-                    intro: 'Da qui accedi a Terreni, Diario attività e statistiche rapide quando il modulo Manodopera non è attivo.'
+                    intro: 'Da qui accedi a Terreni, Diario attività e statistiche rapide quando il modulo Manodopera non è attivo. Queste funzionalità sono sempre disponibili indipendentemente dai moduli aggiuntivi.'
                 });
             }
 
@@ -703,7 +1326,7 @@
                 steps.push({
                     element: panoramica,
                     title: 'Panoramica aziendale',
-                    intro: 'Card rapide per Amministrazione, Statistiche e Terreni con la mappa aziendale sempre visibile sulla destra.'
+                    intro: 'Card rapide per Amministrazione, Statistiche e Terreni. La mappa aziendale è sempre visibile sulla destra: clicca sulle card per accedere alle sezioni dedicate.'
                 });
             }
 
@@ -712,7 +1335,7 @@
                 steps.push({
                     element: mappaSection,
                     title: 'Mappa Aziendale',
-                    intro: 'Visualizza terreni, zone lavorate e indicatori stato lavori. I filtri in alto ti permettono di concentrarti su un podere o una coltura.'
+                    intro: 'Visualizza tutti i terreni con confini geolocalizzati, zone lavorate e indicatori stato lavori. I filtri in alto ti permettono di concentrarti su un podere o una coltura specifica. Clicca su un terreno per vedere i dettagli.'
                 });
             }
 
@@ -721,7 +1344,7 @@
                 steps.push({
                     element: manodoperaSection,
                     title: 'Gestione Manodopera',
-                    intro: 'Sezione dedicata a Manager/Amministratori per creare lavori, monitorare squadre, validare ore e vedere statistiche operative.'
+                    intro: 'Sezione dedicata a Manager e Amministratori per creare lavori, monitorare squadre, validare ore e vedere statistiche operative. Da qui accedi a tutte le funzionalità del modulo Manodopera.'
                 });
             }
 
@@ -730,7 +1353,7 @@
                 steps.push({
                     element: diarioSection,
                     title: 'Diario da Lavori',
-                    intro: 'Riepilogo automatico delle attività generate dalle ore validate: utile per controllare l’avanzamento reale.'
+                    intro: 'Riepilogo automatico delle attività generate dalle ore validate dai caposquadra. Utile per controllare l\'avanzamento reale dei lavori senza dover aprire ogni singolo dettaglio.'
                 });
             }
 
@@ -739,7 +1362,7 @@
                 steps.push({
                     element: caposquadraSection,
                     title: 'Dashboard Caposquadra',
-                    intro: 'Qui il caposquadra gestisce comunicazioni rapide, validazione ore e può controllare i lavori assegnati.'
+                    intro: 'Qui il caposquadra gestisce comunicazioni rapide alla squadra, valida le ore degli operai e può controllare i lavori assegnati. Le comunicazioni vengono notificate immediatamente agli operai.'
                 });
             }
 
@@ -748,7 +1371,7 @@
                 steps.push({
                     element: operaioSection,
                     title: 'Dashboard Operaio',
-                    intro: 'Qui gli operai trovano lavori del giorno, comunicazioni e un riepilogo delle loro ore.'
+                    intro: 'Qui gli operai trovano i lavori del giorno, le comunicazioni dal caposquadra e un riepilogo delle loro ore. Possono segnare le ore lavorate e confermare le comunicazioni di ritrovo.'
                 });
             }
 
@@ -757,14 +1380,26 @@
                 steps.push({
                     element: manutenzioniSection,
                     title: 'Modulo Parco Macchine',
-                    intro: 'Con il modulo Parco Macchine attivo controlli qui manutenzioni imminenti e guasti. Ogni segnalazione aggiorna anche i lavori collegati.'
+                    intro: 'Con il modulo Parco Macchine attivo controlli qui manutenzioni imminenti e guasti segnalati. Ogni segnalazione aggiorna automaticamente anche i lavori collegati alle macchine interessate.'
                 });
             }
 
-            steps.push({
-                title: 'Serve altro?',
-                intro: 'Per workflow completi (Parco Macchine, Bilancio, Tenant) approfondisci sempre nella sezione “📘 Guide”. Buon lavoro!'
-            });
+            // Ultimo step: usa le statistiche come elemento target (sono subito dopo l'header)
+            const statsSection = document.querySelector('[data-tour-section="panoramica"]') || 
+                                document.querySelector('[data-tour-section="mappa"]');
+            if (statsSection) {
+                steps.push({
+                    element: statsSection,
+                    title: 'Serve altro?',
+                    intro: 'Per workflow completi (Parco Macchine, Bilancio, Tenant) e procedure passo-passo approfondisci sempre nella sezione "📘 Guide". Buon lavoro!'
+                });
+            } else {
+                // Fallback se non trova elementi
+                steps.push({
+                    title: 'Serve altro?',
+                    intro: 'Per workflow completi (Parco Macchine, Bilancio, Tenant) e procedure passo-passo approfondisci sempre nella sezione "📘 Guide". Buon lavoro!'
+                });
+            }
 
             return steps;
         }
@@ -1763,6 +2398,166 @@
             }
         }
         
+        // Calcola alert scadenza affitto (stessa logica di terreni-standalone.html)
+        function calcolaAlertAffitto(dataScadenza) {
+            if (!dataScadenza) {
+                return { colore: null, testo: '', giorni: null };
+            }
+
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            
+            const scadenza = dataScadenza.toDate ? dataScadenza.toDate() : new Date(dataScadenza);
+            scadenza.setHours(0, 0, 0, 0);
+
+            const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+            const mesiRimanenti = giorniRimanenti / 30;
+
+            if (giorniRimanenti < 0) {
+                return { colore: 'grey', testo: 'Scaduto', giorni: giorniRimanenti, mesi: null };
+            } else if (giorniRimanenti <= 30) {
+                // Rosso: ≤1 mese
+                return { colore: 'red', testo: `${giorniRimanenti} giorni`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            } else if (giorniRimanenti <= 180) {
+                // Giallo: 1-6 mesi
+                const mesi = Math.floor(mesiRimanenti);
+                return { colore: 'yellow', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            } else {
+                // Verde: >6 mesi
+                const mesi = Math.floor(mesiRimanenti);
+                return { colore: 'green', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            }
+        }
+
+        // Formatta data scadenza
+        function formattaDataScadenza(data) {
+            if (!data) return '';
+            const d = data.toDate ? data.toDate() : new Date(data);
+            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        // Carica affitti in scadenza per la card dashboard
+        async function loadAffittiInScadenza() {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) return;
+                
+                const userData = userDoc.data();
+                const tenantId = userData.tenantId;
+                if (!tenantId) return;
+                
+                const contentEl = document.getElementById('affitti-scadenza-content');
+                if (!contentEl) return;
+                
+                // Carica terreni
+                const terreniCollection = collection(db, `tenants/${tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniCollection);
+                
+                const affitti = [];
+                terreniSnapshot.forEach(doc => {
+                    const terreno = doc.data();
+                    if (terreno.tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
+                        const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
+                        affitti.push({
+                            id: doc.id,
+                            nome: terreno.nome || 'Senza nome',
+                            dataScadenza: terreno.dataScadenzaAffitto,
+                            alert: alert,
+                            canone: terreno.canoneAffitto || null
+                        });
+                    }
+                });
+                
+                // Ordina per urgenza: rosso prima, poi giallo, poi verde, poi grigio
+                affitti.sort((a, b) => {
+                    const order = { 'red': 0, 'yellow': 1, 'green': 2, 'grey': 3 };
+                    const orderA = order[a.alert.colore] !== undefined ? order[a.alert.colore] : 999;
+                    const orderB = order[b.alert.colore] !== undefined ? order[b.alert.colore] : 999;
+                    if (orderA !== orderB) return orderA - orderB;
+                    // Se stesso colore, ordina per giorni rimanenti (meno giorni = più urgente)
+                    return (a.alert.giorni || 999) - (b.alert.giorni || 999);
+                });
+                
+                // Prendi solo quelli urgenti (rosso e giallo) - massimo 5
+                const affittiUrgenti = affitti.filter(a => a.alert.colore === 'red' || a.alert.colore === 'yellow').slice(0, 5);
+                
+                if (affitti.length === 0) {
+                    contentEl.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #666;">
+                            <p>Nessun terreno in affitto registrato</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (affittiUrgenti.length === 0) {
+                    contentEl.innerHTML = `
+                        <div style="text-align: center; padding: 15px; color: #28a745;">
+                            <p style="font-size: 14px; margin-bottom: 8px;">✅ Tutti in regola</p>
+                            <p style="font-size: 12px; color: #666;">
+                                ${affitti.length} terreno${affitti.length !== 1 ? 'i' : ''} in affitto
+                            </p>
+                            <a href="terreni-standalone.html" style="display: inline-block; margin-top: 10px; color: #2E8B57; text-decoration: underline; font-size: 12px;">
+                                → Vai a Terreni
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = `
+                    <div style="margin-bottom: 10px;">
+                        <p style="color: #666; font-size: 12px; margin-bottom: 8px;">
+                            <strong>${affittiUrgenti.length}</strong> urgente${affittiUrgenti.length !== 1 ? 'i' : ''}
+                            ${affitti.length > affittiUrgenti.length ? `(${affitti.length} totali)` : ''}
+                        </p>
+                    </div>
+                `;
+                
+                affittiUrgenti.forEach(affitto => {
+                    const dataFormattata = formattaDataScadenza(affitto.dataScadenza);
+                    const pallinoEmoji = affitto.alert.colore === 'red' ? '🔴' : affitto.alert.colore === 'yellow' ? '🟡' : '🟢';
+                    const coloreBordo = affitto.alert.colore === 'red' ? '#dc3545' : '#ffc107';
+                    const coloreSfondo = affitto.alert.colore === 'red' ? '#f8d7da' : '#fff3cd';
+                    
+                    html += `
+                        <div style="padding: 10px; margin-bottom: 8px; background: ${coloreSfondo}; border-left: 3px solid ${coloreBordo}; border-radius: 4px;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                                <span>${pallinoEmoji}</span>
+                                <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(affitto.nome)}</span>
+                            </div>
+                            <div style="font-size: 11px; color: #666;">
+                                ${dataFormattata} (${affitto.alert.testo})
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                    <div style="margin-top: 10px; text-align: center;">
+                        <a href="terreni-standalone.html" style="color: #2E8B57; text-decoration: underline; font-size: 12px;">
+                            → Vedi tutti
+                        </a>
+                    </div>
+                `;
+                
+                contentEl.innerHTML = html;
+            } catch (error) {
+                console.error('Errore caricamento affitti in scadenza:', error);
+                const contentEl = document.getElementById('affitti-scadenza-content');
+                if (contentEl) {
+                    contentEl.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #dc3545;">
+                            <p>Errore nel caricamento degli affitti</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
         // Carica statistiche core per manager
         async function loadCoreStatsForManager() {
             try {

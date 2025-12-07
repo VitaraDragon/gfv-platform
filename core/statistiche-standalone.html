@@ -353,6 +353,71 @@
                 </div>
             </div>
 
+            <!-- Sezione Statistiche Terreni -->
+            <div id="statistiche-terreni-section" style="margin-top: 50px; padding-top: 30px; border-top: 2px solid #e9ecef;">
+                <h2 style="color: #2E8B57; font-size: 2em; margin-bottom: 30px; text-align: center;">🌾 Statistiche Terreni</h2>
+                
+                <!-- Metriche Terreni -->
+                <div class="metrics-grid" style="margin-bottom: 40px;">
+                    <div class="metric-card">
+                        <div class="metric-value" id="stat-terreni-totali">-</div>
+                        <div class="metric-label">Terreni Totali</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);">
+                        <div class="metric-value" id="stat-terreni-proprieta">-</div>
+                        <div class="metric-label">Di Proprietà</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);">
+                        <div class="metric-value" id="stat-terreni-affitto">-</div>
+                        <div class="metric-label">In Affitto</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="stat-superficie-totale">-</div>
+                        <div class="metric-label">Superficie Totale (ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);">
+                        <div class="metric-value" id="stat-superficie-proprieta">-</div>
+                        <div class="metric-label">Superficie Proprietà (ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);">
+                        <div class="metric-value" id="stat-superficie-affitto">-</div>
+                        <div class="metric-label">Superficie Affitto (ha)</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                        <div class="metric-value" id="stat-canone-mensile">-</div>
+                        <div class="metric-label">Canone Mensile Totale</div>
+                    </div>
+                    <div class="metric-card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                        <div class="metric-value" id="stat-canone-annuo">-</div>
+                        <div class="metric-label">Canone Annuo Totale</div>
+                    </div>
+                </div>
+                
+                <!-- Grafici Terreni -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px;">
+                    <div class="chart-card">
+                        <h3>Distribuzione Terreni</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-distribuzione-terreni"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Distribuzione Superficie</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-distribuzione-superficie"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Affitti in Scadenza -->
+                <div style="margin-top: 40px;">
+                    <h3 style="color: #2E8B57; margin-bottom: 20px; text-align: center;">📅 Affitti in Scadenza</h3>
+                    <div id="affitti-scadenza-lista" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                        <div style="text-align: center; color: #666;">Caricamento...</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sezione Statistiche Macchine (solo se modulo Parco Macchine attivo) -->
             <div id="statistiche-macchine-section" style="display: none; margin-top: 40px; padding-top: 40px; border-top: 2px solid #e9ecef;">
                 <h2 style="color: #2E8B57; font-size: 2em; margin-bottom: 30px; text-align: center;">🚜 Statistiche Macchine</h2>
@@ -1183,6 +1248,9 @@
                 updateChartOreMese(orePerMese);
                 updateChartTopLavori(tipiLavoroPiuFrequenti);
 
+                // Carica statistiche terreni
+                await loadStatisticheTerreni();
+                
                 // Carica statistiche macchine se modulo attivo
                 if (hasParcoMacchineModule) {
                     await loadStatisticheMacchine(periodo);
@@ -1844,6 +1912,227 @@
                             ticks: {
                                 callback: function(value) {
                                     return formatOre(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Calcola alert scadenza affitto (stessa logica di terreni-standalone.html)
+        function calcolaAlertAffitto(dataScadenza) {
+            if (!dataScadenza) {
+                return { colore: null, testo: '', giorni: null };
+            }
+
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            
+            const scadenza = dataScadenza.toDate ? dataScadenza.toDate() : new Date(dataScadenza);
+            scadenza.setHours(0, 0, 0, 0);
+
+            const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+            const mesiRimanenti = giorniRimanenti / 30;
+
+            if (giorniRimanenti < 0) {
+                return { colore: 'grey', testo: 'Scaduto', giorni: giorniRimanenti, mesi: null };
+            } else if (giorniRimanenti <= 30) {
+                return { colore: 'red', testo: `${giorniRimanenti} giorni`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            } else if (giorniRimanenti <= 180) {
+                const mesi = Math.floor(mesiRimanenti);
+                return { colore: 'yellow', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            } else {
+                const mesi = Math.floor(mesiRimanenti);
+                return { colore: 'green', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            }
+        }
+
+        // Formatta data scadenza
+        function formattaDataScadenza(data) {
+            if (!data) return '';
+            const d = data.toDate ? data.toDate() : new Date(data);
+            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        // Carica statistiche terreni
+        async function loadStatisticheTerreni() {
+            try {
+                if (!currentTenantId) {
+                    const user = auth.currentUser;
+                    if (user) {
+                        currentTenantId = await getTenantId(user.uid);
+                    }
+                }
+                
+                if (!currentTenantId) return;
+                
+                const terreni = await getAllTerreni();
+                
+                // Calcola statistiche
+                let totaleTerreni = terreni.length;
+                let terreniProprieta = 0;
+                let terreniAffitto = 0;
+                let superficieTotale = 0;
+                let superficieProprieta = 0;
+                let superficieAffitto = 0;
+                let canoneMensileTotale = 0;
+                
+                terreni.forEach(terreno => {
+                    const superficie = terreno.superficie || 0;
+                    superficieTotale += superficie;
+                    
+                    // Applica default 'proprieta' per retrocompatibilità (terreni esistenti senza tipoPossesso)
+                    const tipoPossesso = terreno.tipoPossesso || 'proprieta';
+                    
+                    if (tipoPossesso === 'proprieta') {
+                        terreniProprieta++;
+                        superficieProprieta += superficie;
+                    } else if (tipoPossesso === 'affitto') {
+                        terreniAffitto++;
+                        superficieAffitto += superficie;
+                        if (terreno.canoneAffitto) {
+                            canoneMensileTotale += terreno.canoneAffitto;
+                        }
+                    }
+                });
+                
+                const canoneAnnuoTotale = canoneMensileTotale * 12;
+                
+                // Aggiorna metriche
+                document.getElementById('stat-terreni-totali').textContent = totaleTerreni;
+                document.getElementById('stat-terreni-proprieta').textContent = terreniProprieta;
+                document.getElementById('stat-terreni-affitto').textContent = terreniAffitto;
+                document.getElementById('stat-superficie-totale').textContent = superficieTotale.toFixed(2);
+                document.getElementById('stat-superficie-proprieta').textContent = superficieProprieta.toFixed(2);
+                document.getElementById('stat-superficie-affitto').textContent = superficieAffitto.toFixed(2);
+                document.getElementById('stat-canone-mensile').textContent = canoneMensileTotale > 0 ? `€${canoneMensileTotale.toFixed(2)}` : '-';
+                document.getElementById('stat-canone-annuo').textContent = canoneAnnuoTotale > 0 ? `€${canoneAnnuoTotale.toFixed(2)}` : '-';
+                
+                // Aggiorna grafici
+                updateChartDistribuzioneTerreni(terreniProprieta, terreniAffitto);
+                updateChartDistribuzioneSuperficie(superficieProprieta, superficieAffitto);
+                
+                // Carica affitti in scadenza
+                const affitti = terreni
+                    .filter(t => t.tipoPossesso === 'affitto' && t.dataScadenzaAffitto)
+                    .map(t => ({
+                        ...t,
+                        alert: calcolaAlertAffitto(t.dataScadenzaAffitto)
+                    }))
+                    .sort((a, b) => {
+                        const order = { 'red': 0, 'yellow': 1, 'green': 2, 'grey': 3 };
+                        const orderA = order[a.alert.colore] !== undefined ? order[a.alert.colore] : 999;
+                        const orderB = order[b.alert.colore] !== undefined ? order[b.alert.colore] : 999;
+                        if (orderA !== orderB) return orderA - orderB;
+                        return (a.alert.giorni || 999) - (b.alert.giorni || 999);
+                    });
+                
+                const listaEl = document.getElementById('affitti-scadenza-lista');
+                if (affitti.length === 0) {
+                    listaEl.innerHTML = '<div style="text-align: center; color: #666;">Nessun terreno in affitto registrato</div>';
+                } else {
+                    let html = '';
+                    affitti.forEach(affitto => {
+                        const dataFormattata = formattaDataScadenza(affitto.dataScadenzaAffitto);
+                        const pallinoEmoji = affitto.alert.colore === 'red' ? '🔴' : affitto.alert.colore === 'yellow' ? '🟡' : affitto.alert.colore === 'green' ? '🟢' : '⚫';
+                        const coloreBordo = affitto.alert.colore === 'red' ? '#dc3545' : affitto.alert.colore === 'yellow' ? '#ffc107' : affitto.alert.colore === 'green' ? '#28a745' : '#6c757d';
+                        const coloreSfondo = affitto.alert.colore === 'red' ? '#f8d7da' : affitto.alert.colore === 'yellow' ? '#fff3cd' : affitto.alert.colore === 'green' ? '#d4edda' : '#e9ecef';
+                        
+                        html += `
+                            <div style="padding: 12px; margin-bottom: 10px; background: ${coloreSfondo}; border-left: 3px solid ${coloreBordo}; border-radius: 4px;">
+                                <div style="font-weight: 600; color: #333; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                                    <span>${pallinoEmoji}</span>
+                                    <span>${escapeHtml(affitto.nome || 'Senza nome')}</span>
+                                </div>
+                                <div style="font-size: 13px; color: #666; margin-bottom: 4px;">
+                                    <strong>Scade:</strong> ${dataFormattata} (${affitto.alert.testo})
+                                </div>
+                                ${affitto.canoneAffitto ? `
+                                    <div style="font-size: 12px; color: #666;">
+                                        <strong>Canone:</strong> €${affitto.canoneAffitto.toFixed(2)}/mese
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                    listaEl.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Errore caricamento statistiche terreni:', error);
+            }
+        }
+
+        // Aggiorna grafico distribuzione terreni
+        function updateChartDistribuzioneTerreni(proprieta, affitto) {
+            const ctx = document.getElementById('chart-distribuzione-terreni');
+            if (!ctx) return;
+            
+            if (window.chartDistribuzioneTerreni) {
+                window.chartDistribuzioneTerreni.destroy();
+            }
+            
+            window.chartDistribuzioneTerreni = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Proprietà', 'Affitto'],
+                    datasets: [{
+                        data: [proprieta, affitto],
+                        backgroundColor: ['#28a745', '#17a2b8'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Aggiorna grafico distribuzione superficie
+        function updateChartDistribuzioneSuperficie(proprieta, affitto) {
+            const ctx = document.getElementById('chart-distribuzione-superficie');
+            if (!ctx) return;
+            
+            if (window.chartDistribuzioneSuperficie) {
+                window.chartDistribuzioneSuperficie.destroy();
+            }
+            
+            window.chartDistribuzioneSuperficie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Proprietà', 'Affitto'],
+                    datasets: [{
+                        data: [proprieta, affitto],
+                        backgroundColor: ['#28a745', '#17a2b8'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${context.parsed.toFixed(2)} ha (${percentage}%)`;
                                 }
                             }
                         }

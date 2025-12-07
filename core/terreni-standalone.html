@@ -131,7 +131,7 @@
             background: #f8f9fa;
             color: #000;
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
+            grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
             gap: 15px;
             padding: 15px 20px;
             font-weight: 600;
@@ -142,7 +142,7 @@
 
         .terreno-row {
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
+            grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 1fr 0.8fr 2fr 1.5fr;
             gap: 15px;
             padding: 15px 20px;
             border-bottom: 1px solid #eee;
@@ -190,6 +190,41 @@
         .terreno-podere {
             color: #666;
             font-size: 0.9em;
+        }
+
+        .col-possesso {
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .alert-dot {
+            display: inline-block;
+            font-size: 1.2em;
+            cursor: help;
+            vertical-align: middle;
         }
 
         .col-ettari {
@@ -426,6 +461,19 @@
             border-radius: 4px;
         }
 
+        #map-search-wrapper {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-width: 200px;
+            align-items: center;
+        }
+
+        #map-search-wrapper input {
+            flex: 1;
+            min-width: 0; /* Permette al flex di funzionare correttamente */
+        }
+
         .map-info {
             background: #e7f3ff;
             padding: 15px;
@@ -500,6 +548,32 @@
 
         <div class="content">
             <div id="alert-container"></div>
+            
+            <!-- Filtri -->
+            <div class="filters" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-size: 12px; font-weight: 600; color: #495057;">Tipo Possesso</label>
+                    <select id="filter-tipo-possesso" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
+                        <option value="">Tutti</option>
+                        <option value="proprieta">Proprietà</option>
+                        <option value="affitto">Affitto</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-size: 12px; font-weight: 600; color: #495057;">Alert Scadenza</label>
+                    <select id="filter-alert" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
+                        <option value="">Tutti</option>
+                        <option value="red">Rosso (≤1 mese)</option>
+                        <option value="yellow">Giallo (1-6 mesi)</option>
+                        <option value="green">Verde (>6 mesi)</option>
+                        <option value="grey">Scaduto</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="display: flex; align-items: flex-end;">
+                    <button onclick="clearFilters()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Pulisci Filtri</button>
+                </div>
+            </div>
+            
             <div id="terreni-container" class="loading" data-tour-section="lista-terreni">Caricamento terreni...</div>
         </div>
     </div>
@@ -541,11 +615,34 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="terreno-tipo-possesso">Tipo Possesso *</label>
+                    <select id="terreno-tipo-possesso" required onchange="toggleDataScadenzaAffitto()">
+                        <option value="proprieta">Proprietà</option>
+                        <option value="affitto">Affitto</option>
+                    </select>
+                    <small>Specifica se il terreno è di proprietà o in affitto</small>
+                </div>
+
+                <div class="form-group" id="affitto-fields" style="display: none;">
+                    <label for="terreno-data-scadenza-affitto">Data Scadenza Affitto *</label>
+                    <input type="date" id="terreno-data-scadenza-affitto">
+                    <small>Data di scadenza del contratto di affitto</small>
+                </div>
+
+                <div class="form-group" id="affitto-canone-field" style="display: none;">
+                    <label for="terreno-canone-affitto">Canone Mensile (€)</label>
+                    <input type="number" id="terreno-canone-affitto" step="0.01" min="0" placeholder="0.00">
+                    <small>Canone mensile dell'affitto (opzionale, per statistiche future)</small>
+                </div>
+
+                <div class="form-group">
                     <label>Mappa (opzionale)</label>
                     <div class="map-container" data-tour-section="mappa-terreno">
                         <div class="map-controls">
-                            <input type="text" id="map-search" placeholder="Cerca indirizzo...">
-                            <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
+                            <div id="map-search-wrapper">
+                                <input type="text" id="map-search" placeholder="Cerca indirizzo...">
+                                <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
+                            </div>
                             <button type="button" class="btn btn-success" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Confini</button>
                             <button type="button" class="btn btn-danger" onclick="clearPolygon()">🗑️ Cancella</button>
                         </div>
@@ -656,6 +753,7 @@
 
         // Variabili globali
         let terreni = [];
+        let terreniFiltrati = [];
         let currentTerrenoId = null;
         let map = null;
         let polygon = null;
@@ -666,6 +764,7 @@
         let poderi = []; // Lista poderi disponibili
         const TERRENI_TOUR_STORAGE_KEY = 'gfv_terreni_tour_v1';
         let terreniTourAutoRequested = false;
+        let terreniTourOpenedModal = false;
 
         setupTerreniTourButton();
 
@@ -995,12 +1094,17 @@
                         coordinate: data.coordinate || null,
                         polygonCoords: data.polygonCoords || null,
                         note: data.note || '',
+                        tipoPossesso: data.tipoPossesso || 'proprieta',
+                        dataScadenzaAffitto: data.dataScadenzaAffitto || null,
+                        canoneAffitto: data.canoneAffitto || null,
                         hasMappa: function() {
                             return this.polygonCoords && Array.isArray(this.polygonCoords) && this.polygonCoords.length > 0;
                         }
                     });
                 });
                 
+                // Reset filtri quando si ricaricano i terreni
+                terreniFiltrati = [];
                 renderTerreni();
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
@@ -1013,11 +1117,50 @@
             }
         }
 
+        // Filtra terreni
+        window.filterTerreni = function() {
+            const filterTipoPossesso = document.getElementById('filter-tipo-possesso').value;
+            const filterAlert = document.getElementById('filter-alert').value;
+            
+            terreniFiltrati = terreni.filter(terreno => {
+                // Filtro tipo possesso
+                if (filterTipoPossesso && terreno.tipoPossesso !== filterTipoPossesso) {
+                    return false;
+                }
+                
+                // Filtro alert (solo per affitti)
+                if (filterAlert && terreno.tipoPossesso === 'affitto') {
+                    const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
+                    if (alert.colore !== filterAlert) {
+                        return false;
+                    }
+                } else if (filterAlert && terreno.tipoPossesso === 'proprieta') {
+                    // Se filtro per alert ma terreno è proprietà, escludi
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            renderTerreni();
+        };
+
+        // Pulisci filtri
+        window.clearFilters = function() {
+            document.getElementById('filter-tipo-possesso').value = '';
+            document.getElementById('filter-alert').value = '';
+            terreniFiltrati = [];
+            renderTerreni();
+        };
+
         // Render terreni (tabella come vecchia app)
         function renderTerreni() {
             const container = document.getElementById('terreni-container');
             
-            if (terreni.length === 0) {
+            // Usa terreni filtrati se disponibili, altrimenti tutti i terreni
+            const terreniDaMostrare = terreniFiltrati.length > 0 ? terreniFiltrati : terreni;
+            
+            if (terreniDaMostrare.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🌾</div>
@@ -1030,25 +1173,53 @@
 
             container.innerHTML = `
                 <div class="section-header">
-                    <h2>I Tuoi Terreni (${terreni.length})</h2>
+                    <h2>I Tuoi Terreni (${terreniDaMostrare.length}${terreniFiltrati.length > 0 ? ` di ${terreni.length}` : ''})</h2>
                 </div>
                 <div class="terreni-table">
                     <div class="terreni-header">
                         <div class="col-nome">Nome Campo</div>
                         <div class="col-coltura">Coltura</div>
                         <div class="col-podere">Podere</div>
+                        <div class="col-possesso">Possesso</div>
                         <div class="col-ettari">Ha</div>
                         <div class="col-mappa">Mappa</div>
                         <div class="col-note">Note</div>
                         <div class="col-azioni">Azioni</div>
                     </div>
-                    ${terreni.map(terreno => {
+                    ${terreniDaMostrare.map(terreno => {
                         const escapedNome = escapeHtml(terreno.nome || 'Senza nome');
                         const escapedColtura = escapeHtml(terreno.coltura || '');
                         const escapedPodere = escapeHtml(terreno.podere || '');
                         const ettariValue = terreno.superficie ? terreno.superficie.toFixed(2) : '0.00';
                         const hasMappa = terreno.polygonCoords && Array.isArray(terreno.polygonCoords) && terreno.polygonCoords.length > 0;
                         const escapedNote = escapeHtml(terreno.note || '');
+                        
+                        // Calcola alert scadenza affitto
+                        const tipoPossesso = terreno.tipoPossesso || 'proprieta';
+                        let possessoHtml = '';
+                        
+                        if (tipoPossesso === 'proprieta') {
+                            possessoHtml = '<span class="badge badge-success">Proprietà</span>';
+                        } else if (tipoPossesso === 'affitto') {
+                            const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
+                            const dataScadenzaFormattata = terreno.dataScadenzaAffitto ? formattaDataScadenza(terreno.dataScadenzaAffitto) : '';
+                            let tooltipText = `Affitto - Scade il ${dataScadenzaFormattata}`;
+                            if (alert.giorni !== null) {
+                                if (alert.giorni < 0) {
+                                    tooltipText = `Affitto - Scaduto il ${dataScadenzaFormattata}`;
+                                } else {
+                                    tooltipText = `Affitto - Scade tra ${alert.testo} (${dataScadenzaFormattata})`;
+                                }
+                            }
+                            
+                            let pallinoHtml = '';
+                            if (alert.colore) {
+                                const pallinoEmoji = alert.colore === 'green' ? '🟢' : alert.colore === 'yellow' ? '🟡' : alert.colore === 'red' ? '🔴' : '⚫';
+                                pallinoHtml = `<span class="alert-dot alert-dot-${alert.colore}" title="${tooltipText}">${pallinoEmoji}</span>`;
+                            }
+                            
+                            possessoHtml = `<span class="badge badge-info" title="${tooltipText}">Affitto</span> ${pallinoHtml}`;
+                        }
                         
                         return `
                         <div class="terreno-row">
@@ -1060,6 +1231,9 @@
                             </div>
                             <div class="col-podere" data-label="Podere">
                                 <span class="terreno-podere">${escapedPodere || '-'}</span>
+                            </div>
+                            <div class="col-possesso" data-label="Possesso">
+                                ${possessoHtml}
                             </div>
                             <div class="col-ettari" data-label="Ettari">
                                 <span class="terreno-ettari">${ettariValue}</span>
@@ -1116,22 +1290,63 @@
 
             const modal = document.getElementById('terreno-modal');
             const modalAlreadyOpen = modal && modal.classList.contains('active');
+            
+            // Apriamo temporaneamente il modal per costruire gli step correttamente
+            // (così tutti gli elementi sono visibili quando vengono cercati)
+            let modalWasOpenedForTour = false;
             if (!modalAlreadyOpen && typeof window.openTerrenoModal === 'function') {
                 window.openTerrenoModal();
-            }
+                modalWasOpenedForTour = true;
+                // Piccolo delay per assicurarsi che il modal sia completamente aperto
+                setTimeout(() => {
+                    // Costruisci gli step ora che il modal è aperto
+                    const steps = buildTerreniTourSteps();
+                    
+                    if (!steps.length) {
+                        if (modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
+                            window.closeTerrenoModal();
+                        }
+                        if (triggeredManually) {
+                            alert('Completa il caricamento della pagina per poter vedere il tour.');
+                        }
+                        return;
+                    }
 
-            const steps = buildTerreniTourSteps();
-            if (!steps.length) {
-                if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
-                    window.closeTerrenoModal();
-                }
-                if (triggeredManually) {
-                    alert('Completa il caricamento della pagina per poter vedere il tour.');
-                }
-                return;
-            }
+                    terreniTourOpenedModal = false;
 
-            const tour = introJs().setOptions({
+                    // Se abbiamo aperto il modal, chiudiamolo prima di iniziare il tour
+                    // (lo riapriremo quando arriviamo agli step del form)
+                    if (modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
+                        window.closeTerrenoModal();
+                        // Piccolo delay per assicurarsi che il modal sia chiuso
+                        setTimeout(() => {
+                            startTourWithSteps(steps, modalAlreadyOpen, modalWasOpenedForTour);
+                        }, 100);
+                    } else {
+                        startTourWithSteps(steps, modalAlreadyOpen, modalWasOpenedForTour);
+                    }
+                }, 200);
+            } else {
+                // Il modal è già aperto, costruisci gli step direttamente
+                const steps = buildTerreniTourSteps();
+                
+                if (!steps.length) {
+                    if (triggeredManually) {
+                        alert('Completa il caricamento della pagina per poter vedere il tour.');
+                    }
+                    return;
+                }
+
+                terreniTourOpenedModal = false;
+                startTourWithSteps(steps, modalAlreadyOpen, false);
+            }
+        }
+
+        function startTourWithSteps(steps, modalAlreadyOpen, modalWasOpenedForTour) {
+            // Variabile per salvare la posizione top del popup della barra di ricerca
+            let searchPopupTop = null;
+            
+            const tour = introJs.tour().setOptions({
                 steps,
                 showProgress: true,
                 showBullets: false,
@@ -1139,77 +1354,636 @@
                 nextLabel: 'Avanti',
                 prevLabel: 'Indietro',
                 skipLabel: '×',
-                doneLabel: 'Fatto'
+                doneLabel: 'Fatto',
+                scrollToElement: true, // Scroll automatico agli elementi
+                scrollPadding: 50, // Padding maggiore per lo scroll
+                tooltipClass: 'customTooltip',
+                highlightClass: 'customHighlight'
+            });
+            
+            // Flag per evitare loop infiniti
+            let isRepositioning = false;
+            let ensureTooltipCallCount = 0;
+            let lastCallTime = 0;
+            const MAX_ENSURE_CALLS = 3; // Massimo 3 chiamate consecutive
+            const CALL_RESET_TIME = 500; // Reset contatore dopo 500ms di inattività
+            let isListaStepActive = false; // Flag per preservare position: fixed per lista terreni
+            
+            // Funzione per forzare il posizionamento corretto del tooltip in base alle dimensioni dello schermo
+            function ensureTooltipVisible() {
+                const now = Date.now();
+                
+                // Reset contatore se è passato abbastanza tempo dall'ultima chiamata
+                if (now - lastCallTime > CALL_RESET_TIME) {
+                    ensureTooltipCallCount = 0;
+                }
+                lastCallTime = now;
+                
+                ensureTooltipCallCount++;
+                if (ensureTooltipCallCount > MAX_ENSURE_CALLS) {
+                    console.log('⏸️ [TERRENI TOUR DEBUG] Troppe chiamate consecutive, salto');
+                    ensureTooltipCallCount = 0;
+                    return;
+                }
+                
+                if (isRepositioning) {
+                    console.log('⏸️ [TERRENI TOUR DEBUG] Reposizionamento già in corso, salto');
+                    return;
+                }
+                
+                setTimeout(() => {
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    const highlightedElement = document.querySelector('.introjs-showElement');
+                    
+                    console.log('🔍 [TERRENI TOUR DEBUG] ensureTooltipVisible chiamata (#', ensureTooltipCallCount, ')');
+                    
+                    if (!tooltip) {
+                        console.warn('⚠️ [TERRENI TOUR DEBUG] Tooltip non trovato!');
+                        ensureTooltipCallCount = 0; // Reset se tooltip non esiste
+                        return;
+                    }
+                    
+                    // Se siamo nello step della lista, preserva position: fixed
+                    if (isListaStepActive) {
+                        console.log('📋 [TERRENI TOUR DEBUG] Preservo position: fixed per lista terreni');
+                        tooltip.style.setProperty('position', 'fixed', 'important');
+                        tooltip.style.setProperty('z-index', '9999999', 'important');
+                    } else {
+                        // FORZA position: absolute con !important per uscire dallo stacking context del parent
+                        tooltip.style.setProperty('position', 'absolute', 'important');
+                        tooltip.style.setProperty('z-index', '999999', 'important');
+                    }
+                    
+                    // Log z-index attuale del tooltip
+                    const tooltipZIndex = window.getComputedStyle(tooltip).zIndex;
+                    const tooltipPosition = window.getComputedStyle(tooltip).position;
+                    console.log('📊 [TERRENI TOUR DEBUG] Tooltip z-index:', tooltipZIndex, 'position:', tooltipPosition);
+                    
+                    const rect = tooltip.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    const viewportWidth = window.innerWidth;
+                    const tooltipHeight = rect.height;
+                    const tooltipWidth = rect.width;
+                    
+                    // Margine di sicurezza (più grande per schermi piccoli)
+                    const isMobile = viewportWidth < 768;
+                    const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
+                    const margin = isMobile ? 30 : (isTablet ? 25 : 20);
+                    
+                    // Ottieni la posizione corrente del tooltip
+                    const currentTop = parseInt(tooltip.style.top) || rect.top;
+                    const currentLeft = parseInt(tooltip.style.left) || rect.left;
+                    
+                    // Controlla e correggi posizione verticale
+                    let newTop = currentTop;
+                    if (rect.top < margin) {
+                        // Tooltip troppo in alto - spostalo in basso
+                        newTop = margin;
+                        tooltip.style.top = newTop + 'px';
+                        tooltip.style.bottom = 'auto';
+                    } else if (rect.bottom > viewportHeight - margin) {
+                        // Tooltip troppo in basso - spostalo in alto
+                        newTop = viewportHeight - tooltipHeight - margin;
+                        tooltip.style.top = newTop + 'px';
+                        tooltip.style.bottom = 'auto';
+                    }
+                    
+                    // Controlla e correggi posizione orizzontale
+                    let newLeft = currentLeft;
+                    if (rect.left < margin) {
+                        // Tooltip troppo a sinistra - spostalo a destra
+                        newLeft = margin;
+                        tooltip.style.left = newLeft + 'px';
+                        tooltip.style.right = 'auto';
+                    } else if (rect.right > viewportWidth - margin) {
+                        // Tooltip troppo a destra - spostalo a sinistra
+                        newLeft = viewportWidth - tooltipWidth - margin;
+                        tooltip.style.left = newLeft + 'px';
+                        tooltip.style.right = 'auto';
+                    }
+                    
+                    // Su schermi piccoli, centra il tooltip se è troppo largo
+                    if (isMobile && tooltipWidth > viewportWidth - (margin * 2)) {
+                        tooltip.style.left = margin + 'px';
+                        tooltip.style.right = margin + 'px';
+                        tooltip.style.width = 'auto';
+                        tooltip.style.maxWidth = (viewportWidth - (margin * 2)) + 'px';
+                    }
+                    
+                    // FORZA anche il tooltipReferenceLayer ad avere position absolute/fixed e z-index alto
+                    const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                    if (tooltipReferenceLayer) {
+                        if (isListaStepActive) {
+                            tooltipReferenceLayer.style.setProperty('position', 'fixed', 'important');
+                            tooltipReferenceLayer.style.setProperty('z-index', '9999999', 'important');
+                        } else {
+                            tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
+                            tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
+                        }
+                        const refLayerZIndex = window.getComputedStyle(tooltipReferenceLayer).zIndex;
+                        const refLayerPosition = window.getComputedStyle(tooltipReferenceLayer).position;
+                        console.log('📌 [TERRENI TOUR DEBUG] TooltipReferenceLayer z-index:', refLayerZIndex, 'position:', refLayerPosition);
+                    }
+                    
+                    // Verifica z-index e stacking context degli elementi che potrebbero coprire il tooltip
+                    const listaTerreni = document.querySelector('[data-tour-section="lista-terreni"]') ||
+                                       document.querySelector('.terreni-list') ||
+                                       document.querySelector('table');
+                    if (listaTerreni) {
+                        const listaStyle = window.getComputedStyle(listaTerreni);
+                        const listaZIndex = listaStyle.zIndex;
+                        const listaPosition = listaStyle.position;
+                        const listaTransform = listaStyle.transform;
+                        const listaOpacity = listaStyle.opacity;
+                        console.log('📋 [TERRENI TOUR DEBUG] Lista/Tabella z-index:', listaZIndex, 'position:', listaPosition, 'transform:', listaTransform, 'opacity:', listaOpacity);
+                        
+                        // Se la lista ha position o transform, potrebbe creare un nuovo stacking context
+                        if (listaPosition !== 'static' || listaTransform !== 'none') {
+                            console.warn('⚠️ [TERRENI TOUR DEBUG] Lista/Tabella potrebbe creare un nuovo stacking context!');
+                        }
+                    }
+                    
+                    // Se c'è un elemento evidenziato, assicurati che non sia coperto dal tooltip
+                    if (highlightedElement) {
+                        const elementRect = highlightedElement.getBoundingClientRect();
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        
+                        console.log('🎯 [TERRENI TOUR DEBUG] Elemento evidenziato:', highlightedElement.tagName, highlightedElement.className, highlightedElement.id);
+                        console.log('📍 [TERRENI TOUR DEBUG] Tooltip posizione:', {
+                            top: tooltipRect.top,
+                            left: tooltipRect.left,
+                            bottom: tooltipRect.bottom,
+                            right: tooltipRect.right
+                        });
+                        console.log('📍 [TERRENI TOUR DEBUG] Elemento posizione:', {
+                            top: elementRect.top,
+                            left: elementRect.left,
+                            bottom: elementRect.bottom,
+                            right: elementRect.right
+                        });
+                        
+                        // Controlla se il tooltip copre l'elemento evidenziato
+                        const tooltipCoversElement = !(
+                            tooltipRect.bottom < elementRect.top ||
+                            tooltipRect.top > elementRect.bottom ||
+                            tooltipRect.right < elementRect.left ||
+                            tooltipRect.left > elementRect.right
+                        );
+                        
+                        // Per la lista terreni, non fare scroll se il tooltip copre l'elemento (è normale)
+                        if (tooltipCoversElement && !isRepositioning && ensureTooltipCallCount <= 1 && !isListaStepActive) {
+                            console.log('⚠️ [TERRENI TOUR DEBUG] Tooltip copre l\'elemento evidenziato!');
+                            isRepositioning = true;
+                            
+                            // Scrolla l'elemento in vista, lasciando spazio per il tooltip
+                            highlightedElement.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center',
+                                inline: 'nearest'
+                            });
+                            
+                            // Dopo lo scroll, riposiziona il tooltip se necessario (solo una volta)
+                            setTimeout(() => {
+                                isRepositioning = false;
+                                ensureTooltipCallCount = 0; // Reset contatore
+                                ensureTooltipVisible();
+                            }, 300);
+                        } else if (tooltipCoversElement && isListaStepActive) {
+                            console.log('ℹ️ [TERRENI TOUR DEBUG] Tooltip copre elemento lista (normale per step lista)');
+                        } else if (tooltipCoversElement) {
+                            console.log('⏸️ [TERRENI TOUR DEBUG] Tooltip copre elemento ma già in riposizionamento o troppe chiamate');
+                        }
+                    }
+                    
+                    console.log('✅ [TERRENI TOUR DEBUG] ensureTooltipVisible completata');
+                }, 150);
+            }
+
+            // Gestisci apertura/chiusura modal e scroll durante il tour
+            tour.onchange((targetElement) => {
+                if (!targetElement) return;
+                
+                // Se è lo step del pulsante traccia confini, sposta il popup in una posizione leggibile
+                const drawButton = document.getElementById('btn-draw');
+                if (targetElement && drawButton && (targetElement === drawButton || targetElement.id === 'btn-draw')) {
+                    // Forza il posizionamento del popup in una posizione ottimale
+                    function forcePopupPosition() {
+                        const tooltip = document.querySelector('.introjs-tooltip');
+                        if (tooltip) {
+                            const viewportHeight = window.innerHeight;
+                            const tooltipHeight = tooltip.offsetHeight || 350; // Stima se non disponibile
+                            const margin = 50; // Margine maggiore per i pulsanti
+                            
+                            // Calcola posizione: circa 60% dall'alto dello schermo (non proprio in fondo)
+                            // Questo lascia spazio per i pulsanti in basso
+                            const optimalPosition = (viewportHeight * 0.6) - (tooltipHeight / 2);
+                            
+                            // Assicurati che non sia troppo in basso (lascia almeno 150px per i pulsanti)
+                            const maxPosition = viewportHeight - tooltipHeight - 150;
+                            const finalPosition = Math.min(optimalPosition, maxPosition);
+                            
+                            // Forza il posizionamento con !important tramite setProperty
+                            tooltip.style.setProperty('top', finalPosition + 'px', 'important');
+                            tooltip.style.setProperty('bottom', 'auto', 'important');
+                            tooltip.style.setProperty('margin-top', '0', 'important');
+                        }
+                    }
+                    
+                    // Esegui più volte per forzare il posizionamento
+                    setTimeout(forcePopupPosition, 50);
+                    setTimeout(forcePopupPosition, 150);
+                    setTimeout(forcePopupPosition, 300);
+                    setTimeout(forcePopupPosition, 500);
+                    setTimeout(forcePopupPosition, 800);
+                }
+                
+                // Scroll l'elemento in vista con un piccolo delay
+                setTimeout(() => {
+                    if (targetElement && typeof targetElement.scrollIntoView === 'function') {
+                        targetElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                    }
+                    
+                    // FORZA position e z-index PRIMA di ensureTooltipVisible
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                    
+                    if (tooltip) {
+                        tooltip.style.setProperty('position', 'absolute', 'important');
+                        tooltip.style.setProperty('z-index', '999999', 'important');
+                    }
+                    
+                    if (tooltipReferenceLayer) {
+                        tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
+                        tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
+                    }
+                    
+                    // Forza il tooltip a essere visibile
+                    ensureTooltipVisible();
+                    
+                    // Forza il refresh dell'overlay di Intro.js per correggere il posizionamento
+                    // Questo è importante quando si naviga avanti perché l'elemento potrebbe non essere ancora completamente renderizzato
+                    setTimeout(() => {
+                        const helperLayer = document.querySelector('.introjs-helperLayer');
+                        if (helperLayer && targetElement) {
+                            // Forza il ricalcolo del posizionamento
+                            const rect = targetElement.getBoundingClientRect();
+                            if (rect.width > 0 && rect.height > 0) {
+                                // L'elemento è visibile, forza il refresh
+                                helperLayer.style.display = 'none';
+                                setTimeout(() => {
+                                    helperLayer.style.display = '';
+                                }, 10);
+                            }
+                        }
+                    }, 200);
+                }, 150);
+                
+                const isFormStep = targetElement.closest('[data-tour-section="form-terreno"]') ||
+                                  targetElement.closest('[data-tour-section="mappa-terreno"]');
+                
+                const isListaStep = targetElement.closest('[data-tour-section="lista-terreni"]');
+                
+                // Apri il modal quando arriviamo agli step del form/mappa
+                if (isFormStep && !modalAlreadyOpen && !terreniTourOpenedModal && typeof window.openTerrenoModal === 'function') {
+                    terreniTourOpenedModal = true;
+                    // Apri il modal con delay per assicurarsi che sia completamente renderizzato
+                    setTimeout(() => {
+                        window.openTerrenoModal();
+                        // Scroll l'elemento dopo che il modal è aperto
+                        setTimeout(() => {
+                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
+                                targetElement.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'center',
+                                    inline: 'nearest'
+                                });
+                            }
+                            // Forza il tooltip a essere visibile
+                            ensureTooltipVisible();
+                        }, 300);
+                    }, 300);
+                }
+                
+                // Chiudi il modal quando arriviamo alla lista (se l'abbiamo aperto noi)
+                if (isListaStep && modalWasOpenedForTour && terreniTourOpenedModal && typeof window.closeTerrenoModal === 'function') {
+                    terreniTourOpenedModal = false;
+                    setTimeout(() => {
+                        window.closeTerrenoModal();
+                        // Scroll la lista dopo che il modal è chiuso
+                        setTimeout(() => {
+                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
+                                targetElement.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'center',
+                                    inline: 'nearest'
+                                });
+                            }
+                            // Forza il tooltip a essere visibile solo se esiste
+                            const tooltipAfterClose = document.querySelector('.introjs-tooltip');
+                            if (tooltipAfterClose) {
+                                ensureTooltipVisible();
+                            } else {
+                                console.log('⏸️ [TERRENI TOUR DEBUG] Tooltip non esiste dopo chiusura modal, aspetto...');
+                                setTimeout(() => {
+                                    const tooltipAfterWait = document.querySelector('.introjs-tooltip');
+                                    if (tooltipAfterWait) {
+                                        ensureTooltipVisible();
+                                    }
+                                }, 200);
+                            }
+                        }, 300);
+                    }, 200);
+                }
+            });
+
+            // Assicurati che il tooltip sia visibile quando viene mostrato
+            tour.onafterchange((targetElement) => {
+                console.log('✨ [TERRENI TOUR DEBUG] onafterchange chiamato per:', targetElement?.tagName, targetElement?.className, targetElement?.id);
+                
+                // FORZA position e z-index PRIMA di tutto
+                const tooltip = document.querySelector('.introjs-tooltip');
+                const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+                
+                if (tooltip) {
+                    // FORZA position: absolute con !important
+                    tooltip.style.setProperty('position', 'absolute', 'important');
+                    tooltip.style.setProperty('z-index', '999999', 'important');
+                    
+                    const zIndexAfter = window.getComputedStyle(tooltip).zIndex;
+                    const positionAfter = window.getComputedStyle(tooltip).position;
+                    console.log('📊 [TERRENI TOUR DEBUG] Tooltip z-index in onafterchange:', zIndexAfter, 'position:', positionAfter);
+                    
+                    // Verifica se lo z-index è quello che ci aspettiamo
+                    if (zIndexAfter !== '999999' && zIndexAfter !== '999999px') {
+                        console.error('❌ [TERRENI TOUR DEBUG] PROBLEMA: z-index non è 999999! È:', zIndexAfter);
+                    }
+                    if (positionAfter !== 'absolute' && positionAfter !== 'fixed') {
+                        console.error('❌ [TERRENI TOUR DEBUG] PROBLEMA: position non è absolute/fixed! È:', positionAfter);
+                    }
+                }
+                
+                if (tooltipReferenceLayer) {
+                    tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
+                    tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
+                }
+                
+                // Se è lo step della lista terreni, forza il tooltip sopra la lista
+                const isListaStep = targetElement && (
+                    targetElement.closest('[data-tour-section="lista-terreni"]') ||
+                    targetElement.classList.contains('terreni-table') ||
+                    targetElement.querySelector('table')
+                );
+                
+                // Imposta il flag per preservare position: fixed
+                isListaStepActive = !!isListaStep;
+                
+                if (isListaStep && tooltip) {
+                    console.log('📋 [TERRENI TOUR DEBUG] Step lista terreni - forzo tooltip sopra la lista');
+                    // Forza z-index ancora più alto e assicurati che sia sopra tutto
+                    tooltip.style.setProperty('z-index', '9999999', 'important');
+                    tooltip.style.setProperty('position', 'fixed', 'important'); // Usa fixed per essere sicuro che sia sopra tutto
+                    if (tooltipReferenceLayer) {
+                        tooltipReferenceLayer.style.setProperty('z-index', '9999999', 'important');
+                        tooltipReferenceLayer.style.setProperty('position', 'fixed', 'important');
+                    }
+                    // Reset contatore per permettere nuove chiamate per questo step
+                    ensureTooltipCallCount = 0;
+                } else {
+                    // Reset flag se non siamo nello step della lista
+                    isListaStepActive = false;
+                }
+                
+                // Chiama ensureTooltipVisible solo se il tooltip esiste
+                const tooltipExists = document.querySelector('.introjs-tooltip');
+                if (tooltipExists) {
+                    ensureTooltipVisible();
+                } else {
+                    console.log('⏸️ [TERRENI TOUR DEBUG] Tooltip non esiste ancora in onafterchange, aspetto...');
+                    // Aspetta che Intro.js crei il tooltip
+                    setTimeout(() => {
+                        const tooltipAfterWait = document.querySelector('.introjs-tooltip');
+                        if (tooltipAfterWait) {
+                            ensureTooltipVisible();
+                        }
+                    }, 100);
+                }
+                
+                // Se è lo step del pulsante traccia confini, forza il popup in una posizione leggibile
+                const drawButton = document.getElementById('btn-draw');
+                if (targetElement && drawButton && (targetElement === drawButton || targetElement.id === 'btn-draw')) {
+                    function forcePopupPosition() {
+                        const tooltip = document.querySelector('.introjs-tooltip');
+                        if (tooltip) {
+                            const viewportHeight = window.innerHeight;
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            const tooltipHeight = tooltipRect.height || 350;
+                            
+                            // Posizione ottimale: circa 60% dall'alto, lasciando spazio per i pulsanti
+                            const optimalPosition = (viewportHeight * 0.6) - (tooltipHeight / 2);
+                            const maxPosition = viewportHeight - tooltipHeight - 150; // Lascia 150px per i pulsanti
+                            const finalPosition = Math.min(optimalPosition, maxPosition);
+                            
+                            // Forza con !important
+                            tooltip.style.setProperty('top', finalPosition + 'px', 'important');
+                            tooltip.style.setProperty('bottom', 'auto', 'important');
+                            tooltip.style.setProperty('margin-top', '0', 'important');
+                            tooltip.style.setProperty('transform', 'none', 'important');
+                        }
+                    }
+                    
+                    // Esegui più volte
+                    setTimeout(forcePopupPosition, 100);
+                    setTimeout(forcePopupPosition, 300);
+                    setTimeout(forcePopupPosition, 600);
+                }
+                
+                // Forza il refresh dell'overlay dopo che il tooltip è stato posizionato
+                // Questo è critico quando si naviga avanti perché l'elemento potrebbe non essere ancora completamente renderizzato
+                if (targetElement) {
+                    // Funzione per forzare il refresh dell'overlay
+                    function refreshOverlay() {
+                        const helperLayer = document.querySelector('.introjs-helperLayer');
+                        if (!helperLayer || !targetElement) return;
+                        
+                        const targetRect = targetElement.getBoundingClientRect();
+                        
+                        // Verifica che l'elemento sia visibile e abbia dimensioni valide
+                        if (targetRect.width > 0 && targetRect.height > 0) {
+                            // Forza il ricalcolo dell'overlay usando le coordinate dell'elemento target
+                            helperLayer.style.width = targetRect.width + 'px';
+                            helperLayer.style.height = targetRect.height + 'px';
+                            helperLayer.style.top = (targetRect.top + window.scrollY) + 'px';
+                            helperLayer.style.left = (targetRect.left + window.scrollX) + 'px';
+                        }
+                    }
+                    
+                    // Esegui il refresh più volte con delay crescenti per assicurarsi che funzioni
+                    // Questo gestisce il caso in cui l'elemento non è ancora completamente renderizzato
+                    setTimeout(refreshOverlay, 50);
+                    setTimeout(refreshOverlay, 150);
+                    setTimeout(refreshOverlay, 300);
+                    setTimeout(refreshOverlay, 500);
+                }
             });
 
             tour.oncomplete(() => {
-                if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
+                // Reset flag quando il tour finisce
+                isListaStepActive = false;
+                isRepositioning = false;
+                ensureTooltipCallCount = 0;
+                
+                if (!modalAlreadyOpen && modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
                     window.closeTerrenoModal();
                 }
                 try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.onexit(() => {
-                if (!modalAlreadyOpen && typeof window.closeTerrenoModal === 'function') {
+                // Reset flag quando il tour viene chiuso
+                isListaStepActive = false;
+                isRepositioning = false;
+                ensureTooltipCallCount = 0;
+                
+                if (!modalAlreadyOpen && modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
                     window.closeTerrenoModal();
                 }
                 try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
             });
 
             tour.start();
+            
+            // Assicurati che il tooltip sia visibile anche all'inizio
+            setTimeout(() => {
+                ensureTooltipVisible();
+            }, 300);
         }
 
         function buildTerreniTourSteps() {
             const steps = [];
+
+            // 1. Header - usa l'intero header per migliore visibilità
             const header = document.querySelector('.header');
             if (header) {
                 steps.push({
                     element: header,
+                    position: 'bottom',
                     title: 'Gestione Terreni',
-                    intro: 'Da qui accedi alle anagrafiche terreni dell’azienda. Trovi il tuo profilo e le scorciatoie principali.'
+                    intro: 'Qui gestisci l\'anagrafica completa dei terreni aziendali. Puoi sempre tornare alla dashboard o aprire le guide.'
                 });
             }
 
+            // 2. Pulsante aggiungi
             const addButton = document.getElementById('add-terreno-button');
             if (addButton) {
                 steps.push({
                     element: addButton,
-                    title: 'Aggiungi o modifica terreni',
-                    intro: 'Premi qui per aprire il modulo completo: dati anagrafici, podere, note e tracciamento confini su mappa.'
+                    position: 'auto', // Lascia che Intro.js scelga la posizione migliore
+                    title: 'Aggiungi nuovo terreno',
+                    intro: 'Premi qui per aprire il modulo completo: inserisci dati anagrafici, podere, coltura e traccia i confini sulla mappa.'
                 });
             }
 
-            const lista = document.querySelector('[data-tour-section="lista-terreni"]');
-            if (lista) {
-                steps.push({
-                    element: lista,
-                    title: 'Elenco terreni',
-                    intro: 'La tabella mostra nome campo, coltura, podere, ettari e stato mappa. Usa le icone per modificare o eliminare.'
-                });
-            }
-
-            const form = document.querySelector('[data-tour-section="form-terreno"]');
-            if (form && window.getComputedStyle(form).display !== 'none') {
+            // 3. Form e mappa (nel modal - verrà aperto durante il tour)
+            const modal = document.getElementById('terreno-modal');
+            const form = modal ? modal.querySelector('#terreno-form') : null;
+            
+            // Usa il form specifico invece del modal-content
+            if (form) {
                 steps.push({
                     element: form,
-                    title: 'Modulo dettagli',
-                    intro: 'Compila Nome, Superficie, Coltura, Podere e note operative. I dropdown sono alimentati dalle liste aziendali.'
+                    position: 'left', // A sinistra del form
+                    title: 'Modulo dettagli terreno',
+                    intro: 'Compila Nome, Superficie, Coltura, Podere e note operative. I dropdown sono alimentati dalle liste aziendali. La superficie può essere calcolata automaticamente tracciando i confini.'
                 });
             }
 
-            const mappa = document.querySelector('[data-tour-section="mappa-terreno"]');
-            if (mappa && window.getComputedStyle(mappa).display !== 'none') {
-                steps.push({
-                    element: mappa,
-                    title: 'Tracciamento confini',
-                    intro: 'Cerca l’indirizzo, traccia il perimetro e calcola automaticamente gli ettari. Usa i pulsanti per iniziare/fermare il disegno.'
-                });
+            // Step dettagliati per il tracciamento confini
+            const mappa = modal ? modal.querySelector('[data-tour-section="mappa-terreno"]') : null;
+            if (mappa) {
+                // Step 1: Ricerca indirizzo - usa il wrapper che include input e pulsante
+                // Questo assicura che l'evidenziazione sia allineata correttamente
+                const searchWrapper = document.getElementById('map-search-wrapper');
+                if (searchWrapper) {
+                    steps.push({
+                        element: searchWrapper,
+                        position: 'left', // A SINISTRA per non coprire la barra di ricerca
+                        title: 'Cerca l\'indirizzo del terreno',
+                        intro: 'Digita l\'indirizzo o il nome del luogo e clicca "🔍 Cerca" per centrare la mappa. Puoi anche trascinare manualmente la mappa per posizionarla.'
+                    });
+                } else {
+                    // Fallback all'input se il wrapper non esiste
+                    const searchInput = document.getElementById('map-search');
+                    if (searchInput) {
+                        steps.push({
+                            element: searchInput,
+                            position: 'left',
+                            title: 'Cerca l\'indirizzo del terreno',
+                            intro: 'Digita l\'indirizzo o il nome del luogo e clicca "🔍 Cerca" per centrare la mappa. Puoi anche trascinare manualmente la mappa per posizionarla.'
+                        });
+                    }
+                }
+
+                // Step 2: Pulsante tracciamento - punta DIRETTAMENTE al pulsante
+                // Sposta il popup a destra nella zona vuota (non sopra o sotto il pulsante)
+                const drawButton = document.getElementById('btn-draw');
+                if (drawButton) {
+                    steps.push({
+                        element: drawButton,
+                        position: 'right', // A DESTRA del pulsante per metterlo nella zona vuota
+                        title: 'Inizia il tracciamento confini',
+                        intro: 'Clicca "✏️ Traccia Confini" per attivare la modalità disegno. Il cursore diventerà una croce: ora puoi cliccare sulla mappa per aggiungere punti al perimetro. 🆕 Nuovo terreno: clicca sulla mappa per tracciare. ✏️ Modifica esistente: i confini vengono caricati automaticamente e puoi trascinare i vertici (pallini verdi) per modificarli. Servono almeno 3 punti per calcolare la superficie.'
+                    });
+                }
+
+                // Step 3: Area calcolata - punta DIRETTAMENTE al container map-info
+                const mapInfo = document.getElementById('map-info');
+                if (mapInfo) {
+                    steps.push({
+                        element: mapInfo,
+                        position: 'top', // Sopra l'info
+                        title: 'Superficie calcolata automaticamente',
+                        intro: 'La superficie viene calcolata in tempo reale mentre tracci. Puoi anche inserire manualmente la superficie nel campo "Superficie" del form se preferisci. Il valore calcolato dalla mappa ha priorità se presente.'
+                    });
+                }
             }
 
-            steps.push({
-                title: 'Serve altro?',
-                intro: 'Trovi walkthrough completi nella guida “Gestione Terreni”. Clicca su 📘 Guide per aprire il portale documentazione.'
-            });
+            // 4. Lista terreni - ALLA FINE (dopo aver chiuso il modal)
+            const lista = document.querySelector('[data-tour-section="lista-terreni"]');
+            if (lista) {
+                // Verifica che l'elemento sia nel DOM
+                const listaStyle = window.getComputedStyle(lista);
+                const isListaVisible = listaStyle.display !== 'none' && 
+                                      listaStyle.visibility !== 'hidden';
+                
+                if (isListaVisible) {
+                    // Prova a trovare la tabella, altrimenti usa il container
+                    let targetElement = lista.querySelector('table');
+                    if (!targetElement) {
+                        targetElement = lista.querySelector('.terreni-table');
+                    }
+                    if (!targetElement) {
+                        // Se non c'è tabella, usa il container stesso
+                        targetElement = lista;
+                    }
+                    
+                    // Aggiungi lo step solo se l'elemento esiste
+                    if (targetElement) {
+                        steps.push({
+                            element: targetElement,
+                            position: 'auto', // Lascia che Intro.js scelga la posizione migliore
+                            title: 'Elenco terreni',
+                            intro: 'La tabella mostra nome campo, coltura, podere, superficie e stato mappa. Clicca "✏️ Modifica" per modificare un terreno esistente: i confini verranno caricati sulla mappa e potrai modificarli trascinando i vertici.'
+                        });
+                    }
+                }
+            }
+
+            // 5. Step finale - rimuoviamo questo step perché è troppo generico
+            // Se necessario, possiamo aggiungere uno step più specifico
 
             return steps;
         }
@@ -1237,6 +2011,20 @@
                     document.getElementById('terreno-podere').value = podereValue;
                     document.getElementById('terreno-note').value = terreno.note || '';
                     
+                    // Carica tipo possesso e campi affitto
+                    const tipoPossesso = terreno.tipoPossesso || 'proprieta';
+                    document.getElementById('terreno-tipo-possesso').value = tipoPossesso;
+                    
+                    if (tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
+                        const scadenza = terreno.dataScadenzaAffitto.toDate ? terreno.dataScadenzaAffitto.toDate() : new Date(terreno.dataScadenzaAffitto);
+                        const scadenzaStr = scadenza.toISOString().split('T')[0];
+                        document.getElementById('terreno-data-scadenza-affitto').value = scadenzaStr;
+                        document.getElementById('terreno-canone-affitto').value = terreno.canoneAffitto || '';
+                    }
+                    
+                    // Mostra/nascondi campi affitto
+                    toggleDataScadenzaAffitto();
+                    
                     // Inizializza mappa se disponibile
                     if (window.googleMapsReady) {
                         setTimeout(() => {
@@ -1263,6 +2051,8 @@
                 form.reset();
                 document.getElementById('terreno-coltura').value = '';
                 document.getElementById('terreno-podere').value = '';
+                document.getElementById('terreno-tipo-possesso').value = 'proprieta';
+                toggleDataScadenzaAffitto(); // Nascondi campi affitto
                 currentPolygonCoords = [];
                 polygon = null;
                 if (window.googleMapsReady) {
@@ -1327,6 +2117,9 @@
             const coltura = document.getElementById('terreno-coltura').value.trim() || null;
             const podere = document.getElementById('terreno-podere').value.trim() || null;
             const note = document.getElementById('terreno-note').value.trim();
+            const tipoPossesso = document.getElementById('terreno-tipo-possesso').value;
+            const dataScadenzaAffitto = document.getElementById('terreno-data-scadenza-affitto').value;
+            const canoneAffitto = document.getElementById('terreno-canone-affitto').value;
             
             // Prepara dati terreno
             const terrenoData = {
@@ -1335,8 +2128,23 @@
                 coltura: coltura || null,
                 podere: podere || null,
                 note: note || null,
+                tipoPossesso: tipoPossesso || 'proprieta',
                 updatedAt: serverTimestamp()
             };
+            
+            // Aggiungi campi affitto solo se tipo possesso è affitto
+            if (tipoPossesso === 'affitto') {
+                if (!dataScadenzaAffitto) {
+                    showAlert('Data scadenza affitto obbligatoria per terreni in affitto', 'error');
+                    return;
+                }
+                terrenoData.dataScadenzaAffitto = Timestamp.fromDate(new Date(dataScadenzaAffitto));
+                terrenoData.canoneAffitto = canoneAffitto ? parseFloat(canoneAffitto) : null;
+            } else {
+                // Se è proprietà, rimuovi eventuali campi affitto esistenti
+                terrenoData.dataScadenzaAffitto = null;
+                terrenoData.canoneAffitto = null;
+            }
             
             // Aggiungi coordinate se disponibili
             if (currentPolygonCoords && currentPolygonCoords.length > 0) {
@@ -1492,6 +2300,64 @@
                 "'": '&#039;'
             };
             return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Toggle campi affitto in base al tipo possesso
+        window.toggleDataScadenzaAffitto = function() {
+            const tipoPossesso = document.getElementById('terreno-tipo-possesso').value;
+            const affittoFields = document.getElementById('affitto-fields');
+            const affittoCanoneField = document.getElementById('affitto-canone-field');
+            const dataScadenzaInput = document.getElementById('terreno-data-scadenza-affitto');
+            
+            if (tipoPossesso === 'affitto') {
+                affittoFields.style.display = 'block';
+                affittoCanoneField.style.display = 'block';
+                dataScadenzaInput.required = true;
+            } else {
+                affittoFields.style.display = 'none';
+                affittoCanoneField.style.display = 'none';
+                dataScadenzaInput.required = false;
+                dataScadenzaInput.value = '';
+                document.getElementById('terreno-canone-affitto').value = '';
+            }
+        };
+
+        // Calcola alert scadenza affitto
+        function calcolaAlertAffitto(dataScadenza) {
+            if (!dataScadenza) {
+                return { colore: null, testo: '', giorni: null };
+            }
+
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            
+            const scadenza = dataScadenza.toDate ? dataScadenza.toDate() : new Date(dataScadenza);
+            scadenza.setHours(0, 0, 0, 0);
+
+            const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+            const mesiRimanenti = giorniRimanenti / 30;
+
+            if (giorniRimanenti < 0) {
+                return { colore: 'grey', testo: 'Scaduto', giorni: giorniRimanenti, mesi: null };
+            } else if (giorniRimanenti <= 30) {
+                // Rosso: ≤1 mese
+                return { colore: 'red', testo: `${giorniRimanenti} giorni`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            } else if (giorniRimanenti <= 180) {
+                // Giallo: 1-6 mesi
+                const mesi = Math.floor(mesiRimanenti);
+                return { colore: 'yellow', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            } else {
+                // Verde: >6 mesi
+                const mesi = Math.floor(mesiRimanenti);
+                return { colore: 'green', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
+            }
+        }
+
+        // Formatta data scadenza per tooltip
+        function formattaDataScadenza(data) {
+            if (!data) return '';
+            const d = data.toDate ? data.toDate() : new Date(data);
+            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
 
         // ========== Google Maps Functions ==========

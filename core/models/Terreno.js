@@ -18,6 +18,9 @@ export class Terreno extends Base {
    * @param {Array} data.polygonCoords - Coordinate poligono mappa (opzionale)
    * @param {string} data.note - Note opzionali
    * @param {string} data.podere - Nome del podere (opzionale)
+   * @param {string} data.tipoPossesso - Tipo possesso: "proprieta" | "affitto" (default: "proprieta")
+   * @param {Date|Timestamp} data.dataScadenzaAffitto - Data scadenza affitto (opzionale, solo se tipoPossesso === "affitto")
+   * @param {number} data.canoneAffitto - Canone mensile affitto in euro (opzionale)
    * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
    * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
    */
@@ -30,6 +33,9 @@ export class Terreno extends Base {
     this.polygonCoords = data.polygonCoords || null;
     this.note = data.note || '';
     this.podere = data.podere || null;
+    this.tipoPossesso = data.tipoPossesso || 'proprieta';
+    this.dataScadenzaAffitto = data.dataScadenzaAffitto || null;
+    this.canoneAffitto = data.canoneAffitto !== undefined ? parseFloat(data.canoneAffitto) : null;
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;
@@ -55,6 +61,21 @@ export class Terreno extends Base {
       if (typeof this.coordinate.lat !== 'number' || typeof this.coordinate.lng !== 'number') {
         errors.push('Coordinate devono essere oggetti con lat e lng numerici');
       }
+    }
+    
+    // Validazione tipo possesso
+    if (this.tipoPossesso !== 'proprieta' && this.tipoPossesso !== 'affitto') {
+      errors.push('Tipo possesso deve essere "proprieta" o "affitto"');
+    }
+    
+    // Se è in affitto, data scadenza è obbligatoria
+    if (this.tipoPossesso === 'affitto' && !this.dataScadenzaAffitto) {
+      errors.push('Data scadenza affitto obbligatoria per terreni in affitto');
+    }
+    
+    // Validazione canone affitto
+    if (this.canoneAffitto !== null && this.canoneAffitto < 0) {
+      errors.push('Canone affitto non può essere negativo');
     }
     
     return {

@@ -190,10 +190,6 @@ window.GFVDashboardSections.createManagerSection = function createManagerSection
         statsHTML = `
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value">-</div>
-                    <div class="stat-label">Clienti</div>
-                </div>
-                <div class="stat-card">
                     <div class="stat-value" id="stat-terreni-manager">-</div>
                     <div class="stat-label">Terreni</div>
                 </div>
@@ -233,11 +229,6 @@ window.GFVDashboardSections.createManagerSection = function createManagerSection
         `;
     } else {
         actionsHTML = `
-            <a href="#" class="action-card" onclick="alert('Modulo Clienti in sviluppo'); return false;">
-                <span class="action-icon">👥</span>
-                <span class="action-title">Clienti</span>
-                <span class="action-description">Gestisci anagrafica clienti</span>
-            </a>
             <a href="terreni-standalone.html" class="action-card">
                 <span class="action-icon">🗺️</span>
                 <span class="action-title">Terreni</span>
@@ -252,16 +243,6 @@ window.GFVDashboardSections.createManagerSection = function createManagerSection
                 <span class="action-icon">📊</span>
                 <span class="action-title">Statistiche</span>
                 <span class="action-description">Visualizza statistiche e grafici</span>
-            </a>
-            <a href="#" class="action-card" onclick="alert('Modulo Vendemmia in sviluppo'); return false;">
-                <span class="action-icon">🍇</span>
-                <span class="action-title">Calcolatore Vendemmia</span>
-                <span class="action-description">Crea calcoli e preventivi</span>
-            </a>
-            <a href="#" class="action-card" onclick="alert('Modulo Bilancio in sviluppo'); return false;">
-                <span class="action-icon">💰</span>
-                <span class="action-title">Bilancio</span>
-                <span class="action-description">Gestisci entrate e uscite</span>
             </a>
         `;
     }
@@ -311,22 +292,28 @@ window.GFVDashboardSections.createAmministrazioneCard = function createAmministr
 
 /**
  * Card Statistiche (porta a pagina dedicata)
+ * @param {boolean} hasManodopera - Se true, linka a statistiche manodopera, altrimenti a statistiche core
  */
-window.GFVDashboardSections.createStatisticheCard = function createStatisticheCard() {
+window.GFVDashboardSections.createStatisticheCard = function createStatisticheCard(hasManodopera = false) {
     const section = document.createElement('div');
     section.className = 'dashboard-section';
+    
+    const linkUrl = hasManodopera ? 'admin/statistiche-manodopera-standalone.html' : 'statistiche-standalone.html';
+    const description = hasManodopera 
+        ? 'Accedi alle statistiche complete: lavori, ore, squadre, superficie e molto altro'
+        : 'Visualizza statistiche e analisi dettagliate su attività, ore, terreni e affitti';
     
     section.innerHTML = `
         <h2><span class="section-icon">📊</span> Statistiche</h2>
         <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Visualizza statistiche e analisi dettagliate su lavori, ore, squadre e superficie
+            ${hasManodopera ? 'Visualizza statistiche e analisi dettagliate su lavori, ore, squadre e superficie' : 'Visualizza statistiche e analisi dettagliate su attività, ore, terreni e affitti'}
         </p>
         <div class="quick-actions">
-            <a href="admin/statistiche-manodopera-standalone.html" class="action-card" style="text-decoration: none;">
+            <a href="${linkUrl}" class="action-card" style="text-decoration: none;">
                 <span class="action-icon" style="font-size: 48px;">📊</span>
                 <span class="action-title" style="font-size: 18px;">Apri Statistiche</span>
                 <span class="action-description">
-                    Accedi alle statistiche complete: lavori, ore, squadre, superficie e molto altro
+                    ${description}
                 </span>
             </a>
         </div>
@@ -355,6 +342,78 @@ window.GFVDashboardSections.createTerreniCard = function createTerreniCard() {
                     Accedi alla gestione completa dei terreni: crea, modifica, traccia confini e visualizza dettagli
                 </span>
             </a>
+        </div>
+    `;
+    
+    return section;
+};
+
+/**
+ * Card Diario Attività (porta a pagina diario)
+ */
+window.GFVDashboardSections.createDiarioAttivitaCard = function createDiarioAttivitaCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    
+    section.innerHTML = `
+        <h2><span class="section-icon">📝</span> Diario Attività</h2>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+            Registra le attività lavorative svolte sui terreni
+        </p>
+        <div class="quick-actions">
+            <a href="attivita-standalone.html" class="action-card" style="text-decoration: none;">
+                <span class="action-icon" style="font-size: 48px;">📝</span>
+                <span class="action-title" style="font-size: 18px;">Apri Diario</span>
+                <span class="action-description">
+                    Accedi al diario attività: registra orari, tipo lavoro, terreno e note
+                </span>
+            </a>
+        </div>
+    `;
+    
+    return section;
+};
+
+/**
+ * Card Abbonamento (porta a pagina abbonamento)
+ */
+window.GFVDashboardSections.createAbbonamentoCard = function createAbbonamentoCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    
+    section.innerHTML = `
+        <h2><span class="section-icon">💳</span> Abbonamento</h2>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+            Gestisci piano e moduli attivi dell'azienda
+        </p>
+        <div class="quick-actions">
+            <a href="admin/abbonamento-standalone.html" class="action-card" style="text-decoration: none;">
+                <span class="action-icon" style="font-size: 48px;">💳</span>
+                <span class="action-title" style="font-size: 18px;">Apri Abbonamento</span>
+                <span class="action-description">
+                    Visualizza piano attivo e gestisci moduli disponibili
+                </span>
+            </a>
+        </div>
+    `;
+    
+    return section;
+};
+
+/**
+ * Card Affitti in Scadenza (mostra affitti con scadenze imminenti)
+ */
+window.GFVDashboardSections.createAffittiScadenzaCard = function createAffittiScadenzaCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    section.id = 'affitti-scadenza-card';
+    
+    section.innerHTML = `
+        <h2><span class="section-icon">📅</span> Affitti in Scadenza</h2>
+        <div id="affitti-scadenza-content" style="min-height: 80px; max-height: 200px; overflow-y: auto;">
+            <div style="text-align: center; padding: 15px; color: #666; font-size: 13px;">
+                Caricamento affitti...
+            </div>
         </div>
     `;
     

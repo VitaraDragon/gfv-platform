@@ -4019,18 +4019,18 @@
             const modal = document.getElementById('lavoro-modal');
             const modalAlreadyOpen = modal && modal.classList.contains('active');
             
-            // Apri il modal se non è già aperto (come fanno Terreni/Macchine)
-            if (!modalAlreadyOpen && typeof window.openCreaModal === 'function') {
-                window.openCreaModal();
-                lavoriTourOpenedModal = true;
-                // Aspetta che il modal sia completamente renderizzato prima di costruire gli step
-                setTimeout(() => {
-                    startLavoriTourWithSteps(modalAlreadyOpen);
-                }, 300);
-            } else {
-                lavoriTourOpenedModal = false;
-                startLavoriTourWithSteps(modalAlreadyOpen);
+            // NON apriamo il modal all'inizio - lo apriremo solo quando necessario (step del form)
+            // Chiudiamo il modal se è già aperto per vedere gli step iniziali
+            if (modalAlreadyOpen && typeof closeLavoroModal === 'function') {
+                closeLavoroModal();
             }
+            
+            lavoriTourOpenedModal = false; // Non abbiamo aperto il modal noi
+            
+            // Avvia il tour senza aprire il modal
+            setTimeout(() => {
+                startLavoriTourWithSteps(modalAlreadyOpen);
+            }, 300);
         }
 
         function startLavoriTourWithSteps(modalAlreadyOpen) {
@@ -4115,24 +4115,18 @@
                             tooltipRect.left > elementRect.right
                         );
                         
+                        // Non forziamo lo scroll qui per evitare loop - solo riposizioniamo il tooltip
                         if (tooltipCoversElement) {
-                            // Scrolla l'elemento in vista, lasciando spazio per il tooltip
-                            highlightedElement.scrollIntoView({ 
-                                behavior: 'smooth', 
-                                block: 'center',
-                                inline: 'nearest'
-                            });
-                            
-                            // Dopo lo scroll, riposiziona il tooltip se necessario
+                            // Riposiziona il tooltip senza scrollare
                             setTimeout(() => {
                                 ensureTooltipVisible();
-                            }, 300);
+                            }, 100);
                         }
                     }
                 }, 150);
             }
 
-            const tour = introJs().setOptions({
+            const tour = introJs.tour().setOptions({
                 steps,
                 showProgress: true,
                 showBullets: false,
@@ -4141,52 +4135,173 @@
                 prevLabel: 'Indietro',
                 skipLabel: '×',
                 doneLabel: 'Fatto',
-                scrollToElement: true,
-                scrollPadding: 50
+                scrollToElement: false, // Disabilitato per evitare conflitti con scroll manuale
+                scrollPadding: 50,
+                tooltipClass: 'customTooltip',
+                highlightClass: 'customHighlight'
+            });
+
+            // Assicurati che il tooltip sia visibile quando il tour inizia
+            tour.onstart(() => {
+                setTimeout(() => {
+                    ensureTooltipVisible();
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    const overlay = document.querySelector('.introjs-overlay');
+                    const helperLayer = document.querySelector('.introjs-helperLayer');
+                    if (tooltip) {
+                        // Forza stili uniformi
+                        tooltip.style.zIndex = '99999';
+                        tooltip.style.position = 'absolute';
+                        tooltip.style.background = 'linear-gradient(135deg, #2E8B57 0%, #228B22 100%)';
+                        tooltip.style.color = 'rgba(255,255,255,0.95)';
+                        tooltip.style.borderRadius = '18px';
+                        tooltip.style.border = 'none';
+                        tooltip.style.boxShadow = '0 25px 55px rgba(15, 23, 42, 0.35)';
+                        tooltip.style.maxWidth = '380px';
+                        tooltip.style.fontSize = '15px';
+                        tooltip.style.lineHeight = '1.6';
+                        tooltip.style.padding = '22px 26px 20px';
+                        tooltip.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                    }
+                    if (overlay) {
+                        overlay.style.zIndex = '99998';
+                    }
+                    if (helperLayer) {
+                        helperLayer.style.zIndex = '99998';
+                    }
+                }, 100);
             });
 
             // Gestisci scroll e posizionamento durante il tour
+            let lastScrollTime = 0;
+            const SCROLL_DEBOUNCE = 500; // Evita scroll multipli in meno di 500ms
+            
             tour.onchange((targetElement) => {
                 if (!targetElement) return;
                 
-                // Scroll l'elemento in vista con un piccolo delay
-                setTimeout(() => {
-                    if (targetElement && typeof targetElement.scrollIntoView === 'function') {
-                        targetElement.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center',
-                            inline: 'nearest'
-                        });
+                // Controlla se lo step corrente è nel modal (form)
+                const isFormStep = targetElement.closest('#lavoro-modal') !== null || 
+                                  targetElement.closest('[data-tour-section="lavoro-form"]') !== null;
+                
+                // Se siamo agli step del form, apri il modal se non è già aperto
+                if (isFormStep) {
+                    const modal = document.getElementById('lavoro-modal');
+                    const modalIsOpen = modal && modal.classList.contains('active');
+                    if (!modalIsOpen && typeof window.openCreaModal === 'function') {
+                        window.openCreaModal();
+                        lavoriTourOpenedModal = true;
+                        // Aspetta che il modal sia aperto prima di continuare
+                        setTimeout(() => {
+                            ensureTooltipVisible();
+                        }, 400);
                     }
-                    // Forza il tooltip a essere visibile
+                } else {
+                    // Se NON siamo agli step del form, chiudi il modal se l'abbiamo aperto noi
+                    const modal = document.getElementById('lavoro-modal');
+                    const modalIsOpen = modal && modal.classList.contains('active');
+                    if (modalIsOpen && lavoriTourOpenedModal && typeof closeLavoroModal === 'function') {
+                        closeLavoroModal();
+                        // Aspetta che il modal sia chiuso prima di continuare
+                        setTimeout(() => {
+                            ensureTooltipVisible();
+                        }, 300);
+                    }
+                }
+                
+                // Forza il tooltip a essere visibile e sopra il modal (sempre, senza debounce)
+                setTimeout(() => {
                     ensureTooltipVisible();
-                    
-                    // Forza il refresh dell'overlay di Intro.js per correggere il posizionamento
-                    setTimeout(() => {
-                        const helperLayer = document.querySelector('.introjs-helperLayer');
-                        if (helperLayer && targetElement) {
-                            // Forza il ricalcolo del posizionamento
-                            const rect = targetElement.getBoundingClientRect();
-                            if (rect.width > 0 && rect.height > 0) {
-                                // L'elemento è visibile, forza il refresh
-                                helperLayer.style.display = 'none';
-                                setTimeout(() => {
-                                    helperLayer.style.display = '';
-                                }, 10);
+                    const tooltip = document.querySelector('.introjs-tooltip');
+                    if (tooltip) {
+                        // Forza stili uniformi
+                        tooltip.style.zIndex = '99999';
+                        tooltip.style.background = 'linear-gradient(135deg, #2E8B57 0%, #228B22 100%)';
+                        tooltip.style.color = 'rgba(255,255,255,0.95)';
+                        tooltip.style.borderRadius = '18px';
+                        tooltip.style.border = 'none';
+                        tooltip.style.boxShadow = '0 25px 55px rgba(15, 23, 42, 0.35)';
+                        tooltip.style.maxWidth = '380px';
+                        tooltip.style.fontSize = '15px';
+                        tooltip.style.lineHeight = '1.6';
+                        tooltip.style.padding = '22px 26px 20px';
+                        tooltip.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                        
+                        // Logica speciale per l'ultimo step: posiziona il tooltip sopra l'header
+                        const header = document.querySelector('.header');
+                        if (header && targetElement && !targetElement.closest('.header')) {
+                            const headerRect = header.getBoundingClientRect();
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            
+                            // Se il tooltip è sotto l'header, spostalo sopra
+                            if (tooltipRect.top < headerRect.bottom + 20) {
+                                const newTop = headerRect.bottom + 30;
+                                tooltip.style.top = newTop + 'px';
+                                tooltip.style.bottom = 'auto';
+                                tooltip.style.position = 'fixed';
                             }
                         }
-                    }, 200);
-                }, 150);
+                    }
+                }, 100);
+                
+                // Scroll l'elemento in vista UNA SOLA VOLTA con debounce per evitare loop
+                const now = Date.now();
+                if (now - lastScrollTime >= SCROLL_DEBOUNCE) {
+                    lastScrollTime = now;
+                    setTimeout(() => {
+                        // Verifica che l'elemento sia visibile prima di scrollare
+                        const rect = targetElement.getBoundingClientRect();
+                        const isVisible = rect.top >= 0 && rect.top <= window.innerHeight;
+                        
+                        // Scroll solo se l'elemento non è già visibile
+                        if (!isVisible && typeof targetElement.scrollIntoView === 'function') {
+                            targetElement.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center',
+                                inline: 'nearest'
+                            });
+                        }
+                        
+                        // Forza il refresh dell'overlay di Intro.js per correggere il posizionamento
+                        setTimeout(() => {
+                            const helperLayer = document.querySelector('.introjs-helperLayer');
+                            if (helperLayer && targetElement) {
+                                // Forza il ricalcolo del posizionamento
+                                const targetRect = targetElement.getBoundingClientRect();
+                                if (targetRect.width > 0 && targetRect.height > 0) {
+                                    // L'elemento è visibile, forza il refresh
+                                    helperLayer.style.display = 'none';
+                                    setTimeout(() => {
+                                        helperLayer.style.display = '';
+                                    }, 10);
+                                }
+                            }
+                        }, 200);
+                    }, 150);
+                }
             });
 
             // Assicurati che il tooltip sia visibile quando viene mostrato
             tour.onafterchange((targetElement) => {
                 ensureTooltipVisible();
                 
-                // Forza il refresh dell'overlay dopo che il tooltip è stato posizionato
+                // Forza stili uniformi ad ogni cambio step
+                const tooltip = document.querySelector('.introjs-tooltip');
+                if (tooltip) {
+                    tooltip.style.background = 'linear-gradient(135deg, #2E8B57 0%, #228B22 100%)';
+                    tooltip.style.color = 'rgba(255,255,255,0.95)';
+                    tooltip.style.borderRadius = '18px';
+                    tooltip.style.border = 'none';
+                    tooltip.style.boxShadow = '0 25px 55px rgba(15, 23, 42, 0.35)';
+                    tooltip.style.maxWidth = '380px';
+                    tooltip.style.fontSize = '15px';
+                    tooltip.style.lineHeight = '1.6';
+                    tooltip.style.padding = '22px 26px 20px';
+                    tooltip.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+                }
+                
+                // Refresh overlay UNA SOLA VOLTA per evitare loop
                 if (targetElement) {
-                    // Funzione per forzare il refresh dell'overlay
-                    function refreshOverlay() {
+                    setTimeout(() => {
                         const helperLayer = document.querySelector('.introjs-helperLayer');
                         if (!helperLayer || !targetElement) return;
                         
@@ -4200,13 +4315,7 @@
                             helperLayer.style.top = (targetRect.top + window.scrollY) + 'px';
                             helperLayer.style.left = (targetRect.left + window.scrollX) + 'px';
                         }
-                    }
-                    
-                    // Esegui il refresh più volte con delay crescenti per assicurarsi che funzioni
-                    setTimeout(refreshOverlay, 50);
-                    setTimeout(refreshOverlay, 150);
-                    setTimeout(refreshOverlay, 300);
-                    setTimeout(refreshOverlay, 500);
+                    }, 200);
                 }
             });
 
@@ -4303,10 +4412,11 @@
                 });
             }
 
-            // Cerca il form nel modal (ora dovrebbe essere aperto)
+            // Cerca il form nel modal (il modal verrà aperto quando necessario durante il tour)
             const modal = document.getElementById('lavoro-modal');
             const form = modal ? modal.querySelector('[data-tour-section="lavoro-form"]') : null;
-            if (form && window.getComputedStyle(form).display !== 'none') {
+            // Aggiungiamo gli step del form anche se il modal non è aperto - verrà aperto durante il tour
+            if (form) {
                 steps.push({
                     element: form,
                     title: 'Modulo lavoro',
@@ -4332,10 +4442,11 @@
                 }
             }
 
-            const container = document.querySelector('.container');
-            if (container) {
+            // Ultimo step: usa le statistiche come elemento target (sono subito dopo l'header)
+            const statsSection = document.querySelector('[data-tour-section="lavori-stats"]');
+            if (statsSection) {
                 steps.push({
-                    element: container,
+                    element: statsSection,
                     title: 'Serve altro?',
                     intro: 'Per procedure passo-passo e best practice apri il portale 📘 Guide e leggi "Gestione Lavori" o "Modulo Manodopera".'
                 });
