@@ -231,6 +231,34 @@ gfv-platform/
 
 ---
 
+## 🆕 Ultimo Aggiornamento: Uniformazione Stile Statistiche Colorato (2025-01-26)
+
+### Funzionalità Completate
+- ✅ **Uniformazione Stile Colorato**: Applicato stile colorato con gradienti a tutte le statistiche
+- ✅ **Coerenza Visiva**: Tutte le pagine statistiche ora hanno lo stesso stile vivace e moderno
+- ✅ **Palette Colori Semantica**: 
+  - Blu: metriche neutre/informative (totali, attivi)
+  - Verde: metriche positive (completati, validate, attive)
+  - Arancione: metriche intermedie (in corso, da validare)
+  - Viola: metriche speciali (media, percentuali, pianificati)
+  - Rosso: metriche critiche (canoni, scadenze)
+  - Turchese: metriche informative alternative (affitto, giorni)
+
+### File Modificati
+- ✅ `core/admin/statistiche-manodopera-standalone.html` - Tutte le card statistiche colorate
+- ✅ `core/statistiche-standalone.html` - Card "Terreni Totali" colorata per coerenza
+
+### Sezioni Colorate
+- ✅ Statistiche Lavori (4 card)
+- ✅ Statistiche Ore (4 card)
+- ✅ Statistiche Squadre (4 card)
+- ✅ Statistiche Superficie (3 card)
+- ✅ Report Ore Operai - Statistiche Aggregate (4 card)
+- ✅ Statistiche Terreni (già colorate, verificate)
+- ✅ Statistiche Macchine (già colorate, verificate)
+
+---
+
 ## 🆕 Ultimo Aggiornamento: Gestione Affitti Terreni e Statistiche (2025-01-26)
 
 ### Funzionalità Completate

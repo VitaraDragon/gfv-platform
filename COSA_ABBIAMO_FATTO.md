@@ -89,6 +89,36 @@ gfv-platform/
 
 ---
 
+## ✅ Uniformazione Stile Statistiche Colorato (2025-01-26)
+
+### Obiettivo
+Uniformare lo stile di tutte le statistiche applicando gradienti colorati per creare coerenza visiva in tutta l'applicazione.
+
+### Implementazione
+
+#### Statistiche Manodopera
+- **File modificato**: `core/admin/statistiche-manodopera-standalone.html`
+- Statistiche Lavori: 4 card colorate (Blu, Arancione, Verde, Viola)
+- Statistiche Ore: 4 card colorate (Verde, Arancione, Viola)
+- Statistiche Squadre: 4 card colorate (Blu, Verde)
+- Statistiche Superficie: 3 card colorate (Verde, Blu, Viola)
+- Report Ore Operai: 4 card aggregate colorate
+
+#### Statistiche Core Base
+- **File modificato**: `core/statistiche-standalone.html`
+- Card "Terreni Totali" colorata (Blu) per coerenza
+- Statistiche Terreni e Macchine già colorate, verificate
+
+#### Palette Colori
+- Blu: metriche neutre/informative
+- Verde: metriche positive
+- Arancione: metriche intermedie
+- Viola: metriche speciali
+- Rosso: metriche critiche
+- Turchese: metriche informative alternative
+
+---
+
 ## ✅ Gestione Affitti Terreni e Statistiche (2025-01-26)
 
 ### Obiettivo
