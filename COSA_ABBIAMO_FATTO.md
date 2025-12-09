@@ -37,7 +37,12 @@ gfv-platform/
 │   ├── tenant/        ❌ DA FARE - UI gestione tenant
 │   └── subscription/  ❌ DA FARE - UI abbonamenti
 │
-├── modules/           ❌ DA SVILUPPARE - Moduli applicativi
+├── modules/           ✅ IN SVILUPPO - Moduli applicativi
+│   ├── conto-terzi/   ✅ Fase 1 MVP completata (2025-12-07)
+│   │   ├── models/Cliente.js
+│   │   ├── services/clienti-service.js
+│   │   └── views/ (3 pagine)
+│   ├── parco-macchine/ ✅ Completato
 │   ├── vendemmia/     ❌ Da refactorizzare da vecchia app
 │   ├── clienti/       ❌ Da refactorizzare da vecchia app
 │   ├── bilancio/      ❌ Da refactorizzare da vecchia app
@@ -890,6 +895,64 @@ Il tour della pagina terreni aveva problemi di posizionamento dei popup:
 - ✅ Scroll automatico intelligente per mantenere tutto visibile
 
 **File modificati**: `core/terreni-standalone.html`
+
+---
+
+## 📝 Aggiornamenti Recenti (2025-12-09) - Fix Statistiche e Permessi
+
+### 1. Fix Visualizzazione Caposquadra nelle Statistiche Manodopera ✅
+
+**Problema Identificato**:
+- I caposquadra non venivano visualizzati correttamente nella tabella statistiche
+- Il campo "Tipo Operaio" risultava vuoto per i caposquadra senza `tipoOperaio` impostato
+- Il sistema leggeva solo `tipoOperaio`, ignorando il ruolo `caposquadra`
+
+**Soluzione Implementata**:
+- **Funzione `getTipoOperaioDisplay()`**: Combina ruolo e tipoOperaio per visualizzazione corretta
+  - Se è caposquadra senza `tipoOperaio` → mostra "Caposquadra"
+  - Se è caposquadra con `tipoOperaio` → mostra "Caposquadra - Trattorista" (esempio)
+  - Se è solo operaio → mostra solo il tipoOperaio
+- **Salvataggio ruoli**: Ora vengono salvati anche i `ruoli` quando si caricano i dati degli operai
+- **Filtro aggiornato**: Aggiunta opzione "Caposquadra" nel dropdown filtro
+- **Dropdown operai**: Ora include anche i caposquadra (non solo gli operai)
+
+**Caratteristiche**:
+- ✅ I caposquadra compaiono sempre nelle statistiche, anche senza `tipoOperaio` impostato
+- ✅ Distinzione mantenuta tra ruolo (permessi) e tipo (classificazione)
+- ✅ Possibilità di filtrare per "Caposquadra" nel dropdown
+- ✅ Statistiche per tipo ora mostrano anche "Caposquadra" come categoria separata
+
+**File modificati**: `core/admin/statistiche-manodopera-standalone.html`
+
+---
+
+### 2. Fix Permessi Firestore per Categorie Attrezzi ✅
+
+**Problema Identificato**:
+- Errore "Missing or insufficient permissions" in `gestione-macchine-standalone.html`
+- La collezione `categorieAttrezzi` (vecchia collezione per migrazione) non aveva regole Firestore
+
+**Soluzione Implementata**:
+- Aggiunta regola Firestore per `categorieAttrezzi`:
+  - **Lettura**: permessa per utenti autenticati del tenant
+  - **Scrittura**: permessa solo per Manager/Amministratore del tenant
+- Stessa logica della regola per `categorieLavori` (altra collezione vecchia per migrazione)
+
+**File modificati**: `firestore.rules`
+
+---
+
+### 3. Fix Funzione escapeHtml Mancante in Statistiche ✅
+
+**Problema Identificato**:
+- Errore `ReferenceError: escapeHtml is not defined` in `statistiche-standalone.html`
+- La funzione veniva chiamata ma non era definita nel file
+
+**Soluzione Implementata**:
+- Aggiunta funzione `escapeHtml()` per prevenire XSS quando si inserisce testo nell'HTML
+- Funzione posizionata prima di `loadStatisticheTerreni()` dove viene utilizzata
+
+**File modificati**: `core/statistiche-standalone.html`
 
 
 

@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terreni Clienti - Conto Terzi - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E3F2FD 0%, #1976D2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal .btn-primary {
+            background: #1976D2;
+            color: white;
+            border: none;
+        }
+
+        .modal .btn-primary:hover {
+            background: #1565C0;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #1976D2;
+            font-size: 24px;
+        }
+
+        .terreni-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .terreno-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .terreno-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .terreno-card h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+
+        .terreno-card .info {
+            margin: 8px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .terreno-card .info strong {
+            color: #333;
+        }
+
+        .terreno-card .actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #1976D2;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1976D2;
+        }
+
+        .form-group small {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Map Styles */
+        .map-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 400px;
+        }
+
+        .map-controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .map-controls input {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #map-search-wrapper {
+            display: flex;
+            gap: 10px;
+            flex: 1;
+            min-width: 200px;
+            align-items: center;
+        }
+
+        #map-search-wrapper input {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .map-info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            display: none;
+        }
+
+        .map-info.active {
+            display: block;
+        }
+
+        .map-info p {
+            margin: 5px 0;
+            color: #333;
+        }
+
+        .modal-content {
+            max-width: 800px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .terreni-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🗺️ Terreni Clienti</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Gestisci terreni dei clienti per lavori conto terzi</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openTerrenoModal()" id="btn-nuovo-terreno" disabled>➕ Nuovo Terreno</button>
+                <a href="conto-terzi-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Seleziona Cliente *</label>
+                    <select id="filter-cliente" required>
+                        <option value="">-- Seleziona un cliente --</option>
+                    </select>
+                    <small>Seleziona un cliente per vedere i suoi terreni</small>
+                </div>
+            </div>
+
+            <div id="cliente-info" style="display: none; margin-bottom: 20px;">
+                <div class="alert alert-info">
+                    <strong id="cliente-nome"></strong><br>
+                    <small id="cliente-dettagli"></small>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 30px;">
+                <h2>Poderi del Cliente</h2>
+                <button class="btn btn-primary btn-sm" onclick="openAddPodereModal()" id="btn-nuovo-podere" disabled>➕ Nuovo Podere</button>
+            </div>
+
+            <div id="poderi-container" style="margin-bottom: 30px;">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏠</div>
+                    <p>Seleziona un cliente per vedere i suoi poderi</p>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2>Elenco Terreni</h2>
+                <div id="terreni-count">0 terreni</div>
+            </div>
+
+            <div id="terreni-container">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🗺️</div>
+                    <p>Seleziona un cliente per vedere i suoi terreni</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Terreno -->
+    <div id="terreno-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Nuovo Terreno</h3>
+                <button class="close-btn" onclick="closeTerrenoModal()">&times;</button>
+            </div>
+            <form id="terreno-form" onsubmit="handleSalvaTerreno(event)">
+                <input type="hidden" id="terreno-id">
+                <input type="hidden" id="terreno-cliente-id">
+                
+                <div class="form-group">
+                    <label for="terreno-nome">Nome Terreno *</label>
+                    <input type="text" id="terreno-nome" required placeholder="Es: Campo Nord">
+                    <small>Nome identificativo del terreno</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="terreno-superficie">Superficie (ettari)</label>
+                    <input type="number" id="terreno-superficie" step="0.01" min="0" placeholder="0.00">
+                    <small>Inserisci manualmente o traccia i confini sulla mappa per calcolo automatico</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Categoria Coltura</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="terreno-coltura-categoria" style="flex: 1;" onchange="updateColturaSottocategoria()">
+                            <option value="">-- Seleziona categoria --</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" onclick="openAddColturaModal('categoria')" style="padding: 10px 15px; white-space: nowrap;">➕</button>
+                    </div>
+                    <small>Seleziona la categoria principale (es: Seminativo, Frutteto, Orticole)</small>
+                </div>
+
+                <div class="form-group" id="coltura-sottocategoria-group" style="display: none;">
+                    <label for="terreno-coltura-sottocategoria">Sottocategoria</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="terreno-coltura-sottocategoria" style="flex: 1;">
+                            <option value="">-- Seleziona sottocategoria --</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" onclick="openAddColturaModal('sottocategoria')" style="padding: 10px 15px; white-space: nowrap;">➕</button>
+                    </div>
+                    <small>Seleziona la sottocategoria specifica (es: Grano, Melo, Fragole)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="terreno-podere">Podere</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="terreno-podere" style="flex: 1;">
+                            <option value="">-- Nessun podere --</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" onclick="openAddPodereModal()" style="padding: 10px 15px; white-space: nowrap;">➕</button>
+                    </div>
+                    <small>Seleziona il podere del cliente a cui appartiene il terreno o aggiungine uno nuovo</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Mappa (opzionale)</label>
+                    <div class="map-container">
+                        <div class="map-controls">
+                            <div id="map-search-wrapper">
+                                <input type="text" id="map-search" placeholder="Cerca indirizzo...">
+                                <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
+                            </div>
+                            <button type="button" class="btn btn-success" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Confini</button>
+                            <button type="button" class="btn btn-danger" onclick="clearPolygon()">🗑️ Cancella</button>
+                        </div>
+                        <div id="map"></div>
+                        <div class="map-info" id="map-info">
+                            <p><strong>Superficie calcolata:</strong> <span id="calculated-area">0.00</span> ettari</p>
+                            <p><strong>Superficie manuale:</strong> <span id="manual-area">0.00</span> ettari</p>
+                        </div>
+                    </div>
+                    <small>Traccia i confini del terreno sulla mappa per calcolare automaticamente la superficie</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="terreno-note">Note</label>
+                    <textarea id="terreno-note" placeholder="Note aggiuntive sul terreno..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTerrenoModal()">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva Terreno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Aggiungi Podere -->
+    <div id="podere-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="podere-modal-title">Aggiungi Nuovo Podere</h3>
+                <button class="close-btn" onclick="closeAddPodereModal()">&times;</button>
+            </div>
+            <form onsubmit="handleAddPodere(event)">
+                <input type="hidden" id="podere-id">
+                <div class="form-group">
+                    <label for="new-podere-nome">Nome Podere *</label>
+                    <input type="text" id="new-podere-nome" required placeholder="Es: Podere Nord, Fattoria Est...">
+                    <small>Nome identificativo del podere</small>
+                </div>
+                <div class="form-group">
+                    <label for="new-podere-indirizzo">Indirizzo</label>
+                    <input type="text" id="new-podere-indirizzo" placeholder="Via, numero civico...">
+                    <small>Indirizzo completo del podere (utile per indicazioni agli operai)</small>
+                </div>
+                <div class="form-group">
+                    <label for="new-podere-localita">Località/Comune</label>
+                    <input type="text" id="new-podere-localita" placeholder="Comune">
+                </div>
+                <div class="form-group">
+                    <label>Posizione sulla Mappa (opzionale)</label>
+                    <div class="map-container">
+                        <div class="map-controls">
+                            <div id="podere-map-search-wrapper">
+                                <input type="text" id="podere-map-search" placeholder="Cerca indirizzo...">
+                                <button type="button" class="btn btn-primary" onclick="searchPodereLocation()">🔍 Cerca</button>
+                            </div>
+                            <button type="button" class="btn btn-danger" onclick="clearPodereMarker()">🗑️ Rimuovi Marker</button>
+                        </div>
+                        <div id="podere-map" style="width: 100%; height: 300px;"></div>
+                        <div class="map-info" id="podere-map-info" style="display: none;">
+                            <p><strong>Posizione:</strong> <span id="podere-coordinates">Non impostata</span></p>
+                            <small>Clicca sulla mappa per posizionare il marker del podere</small>
+                        </div>
+                    </div>
+                    <small>Clicca sulla mappa per indicare la posizione del podere (centro aziendale)</small>
+                </div>
+                <div class="form-group">
+                    <label for="new-podere-note">Note</label>
+                    <textarea id="new-podere-note" placeholder="Note aggiuntive, indicazioni stradali..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddPodereModal()">Annulla</button>
+                    <button type="submit" class="btn btn-primary" id="podere-submit-btn">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Aggiungi Coltura -->
+    <div id="coltura-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="coltura-modal-title">Aggiungi Nuova Categoria</h3>
+                <button class="close-btn" onclick="closeAddColturaModal()">&times;</button>
+            </div>
+            <form onsubmit="handleAddColtura(event)">
+                <input type="hidden" id="coltura-modal-type" value="categoria">
+                <div class="form-group" id="coltura-categoria-select-group" style="display: none;">
+                    <label for="coltura-parent-categoria">Categoria Principale</label>
+                    <select id="coltura-parent-categoria">
+                        <option value="">-- Seleziona categoria --</option>
+                    </select>
+                    <small>Seleziona la categoria a cui aggiungere la sottocategoria</small>
+                </div>
+                <div class="form-group">
+                    <label for="new-coltura-nome" id="coltura-nome-label">Nome Categoria *</label>
+                    <input type="text" id="new-coltura-nome" required placeholder="Es: Seminativo, Grano, Melo...">
+                    <small id="coltura-nome-help">Inserisci il nome della categoria o sottocategoria</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddColturaModal()">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase and Google Maps config from external files -->
+    <script>
+        const firebaseConfigScript = document.createElement('script');
+        firebaseConfigScript.src = '../../../core/config/firebase-config.js';
+        firebaseConfigScript.onerror = function() {
+            const fallback = document.createElement('script');
+            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallback);
+        };
+        document.head.appendChild(firebaseConfigScript);
+        
+        const mapsConfigScript = document.createElement('script');
+        mapsConfigScript.src = '../../../core/config/google-maps-config.js';
+        mapsConfigScript.onerror = function() {
+            const fallback = document.createElement('script');
+            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+            document.head.appendChild(fallback);
+        };
+        document.head.appendChild(mapsConfigScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Classe Terreno inline (per evitare import ES6)
+        class Terreno {
+            constructor(data = {}) {
+                this.id = data.id || null;
+                this.nome = data.nome || '';
+                this.superficie = data.superficie !== undefined ? parseFloat(data.superficie) : null;
+                // Supporta sia struttura vecchia (coltura singola) che nuova (gerarchica)
+                this.coltura = data.coltura || null; // Per retrocompatibilità
+                this.colturaCategoria = data.colturaCategoria || null;
+                this.colturaSottocategoria = data.colturaSottocategoria || null;
+                this.podere = data.podere || null;
+                this.note = data.note || '';
+                this.clienteId = data.clienteId || null;
+                this.polygonCoords = data.polygonCoords || null;
+            }
+        }
+
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentTenantId = null;
+        let currentClienteId = null;
+        let terreni = [];
+        let clienti = [];
+        
+        // Google Maps variables (per terreni)
+        let map = null;
+        let polygon = null;
+        let isDrawing = false;
+        let currentPolygonCoords = [];
+        
+        // Google Maps variables (per poderi)
+        let podereMap = null;
+        let podereMarker = null;
+        
+        let colture = [];
+        let poderi = [];
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        currentTenantId = userData.tenantId;
+
+                        // Verifica permessi (solo Manager o Amministratore)
+                        const ruoli = userData.ruoli || [];
+                        const isManager = ruoli.some(r => {
+                            const roleLower = r.toLowerCase();
+                            return roleLower.includes('manager') || roleLower.includes('amministratore');
+                        });
+
+                        if (!isManager) {
+                            showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                            setTimeout(() => {
+                                window.location.href = '../../../core/dashboard-standalone.html';
+                            }, 2000);
+                            return;
+                        }
+
+                        // Carica clienti
+                        await loadClienti();
+                        
+                        // Setup filtri
+                        document.getElementById('filter-cliente').addEventListener('change', async (e) => {
+                            currentClienteId = e.target.value;
+                            if (currentClienteId) {
+                                await loadTerreni();
+                                await loadPoderi(); // Ricarica poderi del cliente selezionato
+                                await renderPoderi(); // Mostra lista poderi
+                                updateClienteInfo();
+                                document.getElementById('btn-nuovo-terreno').disabled = false;
+                                document.getElementById('btn-nuovo-podere').disabled = false;
+                            } else {
+                                terreni = [];
+                                renderTerreni([]);
+                                poderi = [];
+                                renderPoderi([]);
+                                document.getElementById('cliente-info').style.display = 'none';
+                                document.getElementById('btn-nuovo-terreno').disabled = true;
+                                document.getElementById('btn-nuovo-podere').disabled = true;
+                                // Reset poderi se nessun cliente selezionato
+                                const select = document.getElementById('terreno-podere');
+                                if (select) {
+                                    select.innerHTML = '<option value="">-- Seleziona prima un cliente --</option>';
+                                }
+                            }
+                        });
+                    } else {
+                        window.location.href = '../../../core/auth/login-standalone.html';
+                    }
+                } catch (error) {
+                    console.error('Errore:', error);
+                    showAlert('Errore caricamento dati', 'error');
+                }
+            } else {
+                window.location.href = '../../../core/auth/login-standalone.html';
+            }
+        });
+
+        // Carica clienti
+        async function loadClienti() {
+            try {
+                if (!currentTenantId) return;
+
+                const clientiQuery = query(
+                    collection(db, 'tenants', currentTenantId, 'clienti'),
+                    orderBy('ragioneSociale')
+                );
+                const snapshot = await getDocs(clientiQuery);
+                clienti = [];
+                snapshot.forEach(doc => {
+                    clienti.push({ id: doc.id, ...doc.data() });
+                });
+
+                const select = document.getElementById('filter-cliente');
+                select.innerHTML = '<option value="">-- Seleziona un cliente --</option>';
+                clienti.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.id;
+                    option.textContent = cliente.ragioneSociale;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Errore caricamento clienti:', error);
+                showAlert('Errore caricamento clienti: ' + error.message, 'error');
+            }
+        }
+
+        // Carica terreni
+        async function loadTerreni() {
+            const container = document.getElementById('terreni-container');
+            container.innerHTML = '<div class="loading">Caricamento terreni...</div>';
+
+            try {
+                if (!currentTenantId || !currentClienteId) {
+                    container.innerHTML = '<div class="empty-state">Seleziona un cliente</div>';
+                    return;
+                }
+
+                // Carica tutti i terreni del tenant e filtra client-side per evitare indice composito
+                const terreniQuery = query(
+                    collection(db, 'tenants', currentTenantId, 'terreni')
+                );
+                const snapshot = await getDocs(terreniQuery);
+                terreni = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Filtra solo i terreni del cliente selezionato
+                    if (data.clienteId === currentClienteId) {
+                        terreni.push({ id: doc.id, ...data });
+                    }
+                });
+                // Ordina client-side per nome
+                terreni.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+                renderTerreni(terreni);
+            } catch (error) {
+                console.error('Errore caricamento terreni:', error);
+                showAlert('Errore caricamento terreni: ' + error.message, 'error');
+                container.innerHTML = '<div class="empty-state">Errore caricamento terreni</div>';
+            }
+        }
+
+        // Aggiorna info cliente
+        async function updateClienteInfo() {
+            if (!currentClienteId || !currentTenantId) return;
+            
+            try {
+                const clienteDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'clienti', currentClienteId));
+                if (clienteDoc.exists()) {
+                    const cliente = clienteDoc.data();
+                    document.getElementById('cliente-nome').textContent = cliente.ragioneSociale;
+                    const dettagli = [];
+                    if (cliente.partitaIva) dettagli.push(`P.IVA: ${cliente.partitaIva}`);
+                    if (cliente.email) dettagli.push(`Email: ${cliente.email}`);
+                    if (cliente.telefono) dettagli.push(`Tel: ${cliente.telefono}`);
+                    document.getElementById('cliente-dettagli').textContent = dettagli.join(' | ') || 'Nessun dettaglio';
+                    document.getElementById('cliente-info').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Errore caricamento cliente:', error);
+            }
+        }
+
+        // Render poderi
+        function renderPoderi(poderiList = null) {
+            const container = document.getElementById('poderi-container');
+            const poderiToRender = poderiList !== null ? poderiList : poderi;
+
+            if (!currentClienteId) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏠</div><p>Seleziona un cliente per vedere i suoi poderi</p></div>';
+                return;
+            }
+
+            if (poderiToRender.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏠</div><p>Nessun podere trovato per questo cliente</p></div>';
+                return;
+            }
+
+            let html = '<div class="terreni-grid">';
+            poderiToRender.forEach(podere => {
+                html += '<div class="terreno-card">';
+                html += `<h3>${escapeHtml(podere.nome)}</h3>`;
+                if (podere.indirizzo) {
+                    html += `<div class="info"><strong>Indirizzo:</strong> ${escapeHtml(podere.indirizzo)}</div>`;
+                }
+                if (podere.localita) {
+                    html += `<div class="info"><strong>Località:</strong> ${escapeHtml(podere.localita)}</div>`;
+                }
+                if (podere.coordinate) {
+                    html += `<div class="info">📍 <strong>Posizione impostata</strong></div>`;
+                }
+                if (podere.note) {
+                    html += `<div class="info"><strong>Note:</strong> ${escapeHtml(podere.note)}</div>`;
+                }
+                html += `<div class="actions">
+                    <button class="btn btn-sm btn-primary" onclick="window.openAddPodereModal('${escapeHtml(podere.id)}')">✏️ Modifica</button>
+                    <button class="btn btn-sm btn-danger" onclick="window.deletePodereConfirm('${escapeHtml(podere.id)}')">🗑️ Elimina</button>
+                </div>`;
+                html += '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Render terreni
+        function renderTerreni(terreniList) {
+            const container = document.getElementById('terreni-container');
+            document.getElementById('terreni-count').textContent = `${terreniList.length} terreni`;
+
+            if (terreniList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🗺️</div><p>Nessun terreno trovato per questo cliente</p></div>';
+                return;
+            }
+
+            let html = '<div class="terreni-grid">';
+            terreniList.forEach(terreno => {
+                const terrenoObj = new Terreno(terreno);
+                html += '<div class="terreno-card">';
+                html += `<h3>${escapeHtml(terrenoObj.nome)}</h3>`;
+                if (terrenoObj.superficie) {
+                    html += `<div class="info"><strong>Superficie:</strong> ${terrenoObj.superficie.toFixed(2)} ha</div>`;
+                }
+                // Mostra coltura (categoria e sottocategoria se presente)
+                if (terrenoObj.colturaCategoria) {
+                    let colturaText = escapeHtml(terrenoObj.colturaCategoria);
+                    if (terrenoObj.colturaSottocategoria) {
+                        colturaText += ` - ${escapeHtml(terrenoObj.colturaSottocategoria)}`;
+                    }
+                    html += `<div class="info"><strong>Coltura:</strong> ${colturaText}</div>`;
+                } else if (terrenoObj.coltura) {
+                    // Retrocompatibilità
+                    html += `<div class="info"><strong>Coltura:</strong> ${escapeHtml(terrenoObj.coltura)}</div>`;
+                }
+                if (terrenoObj.podere) {
+                    html += `<div class="info"><strong>Podere:</strong> ${escapeHtml(terrenoObj.podere)}</div>`;
+                }
+                if (terrenoObj.polygonCoords && terrenoObj.polygonCoords.length > 0) {
+                    html += `<div class="info">🗺️ <strong>Mappa disponibile</strong></div>`;
+                }
+                if (terrenoObj.note) {
+                    html += `<div class="info"><strong>Note:</strong> ${escapeHtml(terrenoObj.note)}</div>`;
+                }
+                html += `<div class="actions">
+                    <button class="btn btn-sm btn-primary" onclick="window.editTerreno('${escapeHtml(terrenoObj.id)}')">✏️ Modifica</button>
+                    <button class="btn btn-sm btn-danger" onclick="window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">🗑️ Elimina</button>
+                </div>`;
+                html += '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Apri modal nuovo terreno
+        async function openTerrenoModal(terrenoId = null) {
+            if (!currentClienteId) {
+                showAlert('Seleziona prima un cliente', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('terreno-modal');
+            const form = document.getElementById('terreno-form');
+            const title = document.getElementById('modal-title');
+            
+            form.reset();
+            document.getElementById('terreno-id').value = '';
+            document.getElementById('terreno-cliente-id').value = currentClienteId;
+            
+            // Reset mappa
+            clearPolygon();
+            isDrawing = false;
+            if (map) {
+                map = null;
+            }
+            
+            // Carica colture e poderi
+            await loadColture();
+            await loadPoderi();
+            
+            // Salva terreno per uso nel setTimeout
+            let terrenoDaCaricare = null;
+            
+            if (terrenoId) {
+                title.textContent = 'Modifica Terreno';
+                const terreno = terreni.find(t => t.id === terrenoId);
+                if (terreno) {
+                    terrenoDaCaricare = terreno; // Salva per uso nel setTimeout
+                    const terrenoObj = new Terreno(terreno);
+                    document.getElementById('terreno-id').value = terrenoObj.id;
+                    document.getElementById('terreno-cliente-id').value = terrenoObj.clienteId;
+                    document.getElementById('terreno-nome').value = terrenoObj.nome;
+                    document.getElementById('terreno-superficie').value = terrenoObj.superficie || '';
+                    
+                    // Gestisci coltura
+                    if (terrenoObj.colturaCategoria) {
+                        document.getElementById('terreno-coltura-categoria').value = terrenoObj.colturaCategoria;
+                        updateColturaSottocategoria();
+                        setTimeout(() => {
+                            if (terrenoObj.colturaSottocategoria) {
+                                document.getElementById('terreno-coltura-sottocategoria').value = terrenoObj.colturaSottocategoria;
+                            }
+                        }, 100);
+                    }
+                    
+                    document.getElementById('terreno-podere').value = terrenoObj.podere || '';
+                    document.getElementById('terreno-note').value = terrenoObj.note || '';
+                }
+            } else {
+                title.textContent = 'Nuovo Terreno';
+                // Reset select colture
+                document.getElementById('terreno-coltura-categoria').value = '';
+                document.getElementById('terreno-coltura-sottocategoria').value = '';
+                document.getElementById('coltura-sottocategoria-group').style.display = 'none';
+            }
+            
+            modal.classList.add('active');
+            
+            // Inizializza mappa dopo che il modal è visibile
+            setTimeout(async () => {
+                await initMap();
+                // Aspetta che la mappa sia completamente pronta
+                if (terrenoDaCaricare) {
+                    const terrenoObj = new Terreno(terrenoDaCaricare);
+                    if (terrenoObj.polygonCoords && terrenoObj.polygonCoords.length > 0) {
+                        // Piccolo delay per assicurarsi che la mappa sia pronta
+                        setTimeout(() => {
+                            loadExistingPolygon(terrenoObj.polygonCoords);
+                        }, 100);
+                    }
+                }
+            }, 200);
+        }
+
+        // Chiudi modal
+        function closeTerrenoModal() {
+            document.getElementById('terreno-modal').classList.remove('active');
+            clearPolygon();
+            isDrawing = false;
+        }
+
+        // Salva terreno
+        async function handleSalvaTerreno(event) {
+            event.preventDefault();
+            
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile', 'error');
+                return;
+            }
+
+            const terrenoId = document.getElementById('terreno-id').value;
+            const clienteId = document.getElementById('terreno-cliente-id').value;
+            const colturaCategoria = document.getElementById('terreno-coltura-categoria').value || null;
+            const colturaSottocategoria = document.getElementById('terreno-coltura-sottocategoria').value || null;
+            
+            const terrenoData = {
+                nome: document.getElementById('terreno-nome').value.trim(),
+                superficie: document.getElementById('terreno-superficie').value ? parseFloat(document.getElementById('terreno-superficie').value) : null,
+                colturaCategoria: colturaCategoria,
+                colturaSottocategoria: colturaSottocategoria,
+                // Mantieni anche coltura per retrocompatibilità (usa sottocategoria se presente, altrimenti categoria)
+                coltura: colturaSottocategoria || colturaCategoria || null,
+                podere: document.getElementById('terreno-podere').value || null,
+                note: document.getElementById('terreno-note').value.trim() || '',
+                clienteId: clienteId,
+                updatedAt: serverTimestamp()
+            };
+            
+            // Salva coordinate poligono se presente
+            if (currentPolygonCoords && currentPolygonCoords.length >= 3) {
+                terrenoData.polygonCoords = currentPolygonCoords.map(coord => ({
+                    lat: coord.lat(),
+                    lng: coord.lng()
+                }));
+            }
+
+            try {
+                if (terrenoId) {
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId), terrenoData);
+                    showAlert('Terreno aggiornato con successo', 'success');
+                } else {
+                    terrenoData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'tenants', currentTenantId, 'terreni'), terrenoData);
+                    showAlert('Terreno creato con successo', 'success');
+                }
+                
+                closeTerrenoModal();
+                await loadTerreni();
+            } catch (error) {
+                console.error('Errore salvataggio terreno:', error);
+                showAlert('Errore: ' + error.message, 'error');
+            }
+        }
+
+        // Modifica terreno
+        window.editTerreno = function(terrenoId) {
+            if (!terrenoId) {
+                console.error('ID terreno non valido');
+                return;
+            }
+            console.log('Modifica terreno:', terrenoId);
+            openTerrenoModal(terrenoId);
+        };
+
+        // Elimina terreno
+        window.deleteTerrenoConfirm = async function(terrenoId) {
+            if (!terrenoId) {
+                console.error('ID terreno non valido');
+                return;
+            }
+            
+            const terreno = terreni.find(t => t.id === terrenoId);
+            if (!terreno) {
+                showAlert('Terreno non trovato', 'error');
+                return;
+            }
+
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile', 'error');
+                return;
+            }
+
+            if (!confirm(`Sei sicuro di voler eliminare il terreno "${terreno.nome}"?`)) {
+                return;
+            }
+
+            try {
+                await deleteDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId));
+                showAlert('Terreno eliminato con successo', 'success');
+                await loadTerreni();
+            } catch (error) {
+                console.error('Errore eliminazione terreno:', error);
+                showAlert('Errore: ' + error.message, 'error');
+            }
+        };
+
+        // Utility functions
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Colture predefinite gerarchiche
+        const COLTURE_PREDEFINITE = {
+            'Seminativo': ['Grano', 'Orzo', 'Mais', 'Girasole', 'Soia'],
+            'Frutteto': ['Melo', 'Pero', 'Pesco', 'Albicocco', 'Ciliegio'],
+            'Orticole': ['Fragole', 'Ravanelli', 'Insalata', 'Cocomero', 'Pomodoro', 'Zucchine'],
+            'Vite': [],
+            'Olivo': [],
+            'Agrumeto': ['Limone', 'Arancio', 'Mandarino'],
+            'Prato': [],
+            'Bosco': []
+        };
+
+        // Variabile per struttura colture gerarchica
+        let coltureGerarchiche = {};
+
+        // Carica colture gerarchiche
+        async function loadColture() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Carica liste personalizzate
+                const listeRef = doc(db, 'tenants', currentTenantId, 'liste', 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (listeSnap.exists()) {
+                    const data = listeSnap.data();
+                    // Supporta sia struttura vecchia (array) che nuova (oggetto gerarchico)
+                    if (Array.isArray(data.colture)) {
+                        // Migra da array a struttura gerarchica
+                        coltureGerarchiche = { ...COLTURE_PREDEFINITE };
+                        data.colture.forEach(coltura => {
+                            if (!Object.keys(coltureGerarchiche).includes(coltura)) {
+                                coltureGerarchiche[coltura] = [];
+                            }
+                        });
+                    } else {
+                        coltureGerarchiche = data.colture || COLTURE_PREDEFINITE;
+                    }
+                } else {
+                    // Se non esistono, usa predefinite
+                    coltureGerarchiche = { ...COLTURE_PREDEFINITE };
+                }
+                
+                // Assicura che tutte le categorie predefinite siano presenti
+                Object.keys(COLTURE_PREDEFINITE).forEach(categoria => {
+                    if (!coltureGerarchiche[categoria]) {
+                        coltureGerarchiche[categoria] = [...COLTURE_PREDEFINITE[categoria]];
+                    } else {
+                        // Mantieni sottocategorie predefinite
+                        COLTURE_PREDEFINITE[categoria].forEach(sub => {
+                            if (!coltureGerarchiche[categoria].includes(sub)) {
+                                coltureGerarchiche[categoria].push(sub);
+                            }
+                        });
+                    }
+                });
+                
+                // Popola dropdown categorie
+                const selectCategoria = document.getElementById('terreno-coltura-categoria');
+                if (selectCategoria) {
+                    selectCategoria.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+                    Object.keys(coltureGerarchiche).sort().forEach(categoria => {
+                        const option = document.createElement('option');
+                        option.value = categoria;
+                        option.textContent = categoria;
+                        selectCategoria.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Errore caricamento colture:', error);
+                // Fallback a predefinite
+                coltureGerarchiche = { ...COLTURE_PREDEFINITE };
+                const selectCategoria = document.getElementById('terreno-coltura-categoria');
+                if (selectCategoria) {
+                    selectCategoria.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+                    Object.keys(coltureGerarchiche).sort().forEach(categoria => {
+                        const option = document.createElement('option');
+                        option.value = categoria;
+                        option.textContent = categoria;
+                        selectCategoria.appendChild(option);
+                    });
+                }
+            }
+        }
+
+        // Aggiorna sottocategorie in base alla categoria selezionata
+        window.updateColturaSottocategoria = function() {
+            const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+            const sottocategoriaSelect = document.getElementById('terreno-coltura-sottocategoria');
+            const sottocategoriaGroup = document.getElementById('coltura-sottocategoria-group');
+            
+            const categoria = categoriaSelect.value;
+            
+            if (!categoria) {
+                sottocategoriaGroup.style.display = 'none';
+                sottocategoriaSelect.value = '';
+                return;
+            }
+            
+            // Mostra gruppo sottocategoria
+            sottocategoriaGroup.style.display = 'block';
+            
+            // Popola sottocategorie
+            sottocategoriaSelect.innerHTML = '<option value="">-- Seleziona sottocategoria --</option>';
+            
+            const sottocategorie = coltureGerarchiche[categoria] || [];
+            if (sottocategorie.length > 0) {
+                sottocategorie.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    option.textContent = sub;
+                    sottocategoriaSelect.appendChild(option);
+                });
+            } else {
+                // Se non ci sono sottocategorie, aggiungi opzione "Nessuna sottocategoria"
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = '-- Nessuna sottocategoria disponibile --';
+                option.disabled = true;
+                sottocategoriaSelect.appendChild(option);
+            }
+        };
+
+        // Apri modal aggiungi coltura
+        window.openAddColturaModal = function(type = 'categoria') {
+            const modal = document.getElementById('coltura-modal');
+            const title = document.getElementById('coltura-modal-title');
+            const label = document.getElementById('coltura-nome-label');
+            const help = document.getElementById('coltura-nome-help');
+            const categoriaGroup = document.getElementById('coltura-categoria-select-group');
+            const parentSelect = document.getElementById('coltura-parent-categoria');
+            const typeInput = document.getElementById('coltura-modal-type');
+            
+            typeInput.value = type;
+            
+            if (type === 'categoria') {
+                title.textContent = 'Aggiungi Nuova Categoria';
+                label.textContent = 'Nome Categoria *';
+                help.textContent = 'Inserisci il nome della categoria principale (es: Seminativo, Frutteto, Orticole)';
+                categoriaGroup.style.display = 'none';
+            } else {
+                title.textContent = 'Aggiungi Nuova Sottocategoria';
+                label.textContent = 'Nome Sottocategoria *';
+                help.textContent = 'Inserisci il nome della sottocategoria (es: Grano, Melo, Fragole)';
+                categoriaGroup.style.display = 'block';
+                
+                // Popola select categorie
+                parentSelect.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+                Object.keys(coltureGerarchiche).sort().forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    parentSelect.appendChild(option);
+                });
+            }
+            
+            modal.classList.add('active');
+            document.getElementById('new-coltura-nome').focus();
+        };
+
+        // Chiudi modal aggiungi coltura
+        window.closeAddColturaModal = function() {
+            document.getElementById('coltura-modal').classList.remove('active');
+            document.getElementById('new-coltura-nome').value = '';
+            document.getElementById('coltura-parent-categoria').value = '';
+        };
+
+        // Aggiungi nuova coltura (categoria o sottocategoria)
+        window.handleAddColtura = async function(event) {
+            event.preventDefault();
+            
+            const nome = document.getElementById('new-coltura-nome').value.trim();
+            const type = document.getElementById('coltura-modal-type').value;
+            
+            if (!nome) {
+                showAlert('Inserisci un nome', 'error');
+                return;
+            }
+            
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile', 'error');
+                return;
+            }
+            
+            try {
+                // Carica liste esistenti
+                const listeRef = doc(db, 'tenants', currentTenantId, 'liste', 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                let coltureData = { ...coltureGerarchiche };
+                
+                if (type === 'categoria') {
+                    // Aggiungi nuova categoria
+                    if (coltureData[nome]) {
+                        showAlert('Questa categoria è già presente', 'error');
+                        return;
+                    }
+                    coltureData[nome] = [];
+                } else {
+                    // Aggiungi nuova sottocategoria
+                    const parentCategoria = document.getElementById('coltura-parent-categoria').value;
+                    if (!parentCategoria) {
+                        showAlert('Seleziona una categoria principale', 'error');
+                        return;
+                    }
+                    
+                    if (!coltureData[parentCategoria]) {
+                        coltureData[parentCategoria] = [];
+                    }
+                    
+                    // Verifica duplicati (case-insensitive)
+                    if (coltureData[parentCategoria].some(c => c.toLowerCase() === nome.toLowerCase())) {
+                        showAlert('Questa sottocategoria è già presente in questa categoria', 'error');
+                        return;
+                    }
+                    
+                    coltureData[parentCategoria].push(nome);
+                    // Ordina sottocategorie
+                    coltureData[parentCategoria].sort();
+                }
+                
+                // Salva
+                const listeData = {
+                    tipiLavoro: listeSnap.exists() ? (listeSnap.data().tipiLavoro || []) : [],
+                    colture: coltureData,
+                    updatedAt: serverTimestamp()
+                };
+                
+                if (!listeSnap.exists()) {
+                    listeData.createdAt = serverTimestamp();
+                }
+                
+                await setDoc(listeRef, listeData);
+                
+                // Ricarica colture
+                await loadColture();
+                
+                // Se è una categoria, selezionala
+                if (type === 'categoria') {
+                    const selectCategoria = document.getElementById('terreno-coltura-categoria');
+                    if (selectCategoria) {
+                        selectCategoria.value = nome;
+                        updateColturaSottocategoria();
+                    }
+                } else {
+                    // Se è una sottocategoria, aggiorna il select sottocategorie
+                    const parentCategoria = document.getElementById('coltura-parent-categoria').value;
+                    const selectCategoria = document.getElementById('terreno-coltura-categoria');
+                    const selectSottocategoria = document.getElementById('terreno-coltura-sottocategoria');
+                    
+                    if (selectCategoria && selectCategoria.value !== parentCategoria) {
+                        selectCategoria.value = parentCategoria;
+                        updateColturaSottocategoria();
+                    }
+                    
+                    setTimeout(() => {
+                        if (selectSottocategoria) {
+                            selectSottocategoria.value = nome;
+                        }
+                    }, 100);
+                }
+                
+                closeAddColturaModal();
+                showAlert(type === 'categoria' ? 'Categoria aggiunta con successo' : 'Sottocategoria aggiunta con successo', 'success');
+            } catch (error) {
+                console.error('Errore aggiunta coltura:', error);
+                showAlert('Errore durante l\'aggiunta: ' + error.message, 'error');
+            }
+        };
+
+        // Carica poderi del cliente
+        async function loadPoderi() {
+            if (!currentClienteId || !currentTenantId) {
+                const select = document.getElementById('terreno-podere');
+                if (select) {
+                    select.innerHTML = '<option value="">-- Seleziona prima un cliente --</option>';
+                }
+                return;
+            }
+            
+            try {
+                // Carica tutti i poderi-clienti e filtra client-side per evitare indice composito
+                const allPoderiQuery = query(
+                    collection(db, 'tenants', currentTenantId, 'poderi-clienti')
+                );
+                const snapshot = await getDocs(allPoderiQuery);
+                poderi = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Filtra solo i poderi del cliente selezionato
+                    if (data.clienteId === currentClienteId) {
+                        poderi.push({ id: doc.id, ...data });
+                    }
+                });
+                // Ordina client-side per nome
+                poderi.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+                
+                const select = document.getElementById('terreno-podere');
+                if (select) {
+                    select.innerHTML = '<option value="">-- Nessun podere --</option>';
+                    poderi.forEach(podere => {
+                        const option = document.createElement('option');
+                        option.value = podere.nome || podere.id;
+                        option.textContent = podere.nome || podere.id;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Errore caricamento poderi:', error);
+                const select = document.getElementById('terreno-podere');
+                if (select) {
+                    select.innerHTML = '<option value="">-- Errore caricamento poderi --</option>';
+                }
+            }
+        }
+
+        // Apri modal aggiungi/modifica podere
+        window.openAddPodereModal = function(podereId = null) {
+            if (!currentClienteId) {
+                showAlert('Seleziona prima un cliente', 'error');
+                return;
+            }
+            
+            const modal = document.getElementById('podere-modal');
+            const form = document.querySelector('#podere-modal form');
+            const title = document.getElementById('podere-modal-title');
+            const submitBtn = document.getElementById('podere-submit-btn');
+            
+            form.reset();
+            document.getElementById('podere-id').value = '';
+            
+            // Reset mappa podere
+            clearPodereMarker();
+            if (podereMap) {
+                podereMap = null;
+            }
+            
+            if (podereId) {
+                title.textContent = 'Modifica Podere';
+                submitBtn.textContent = 'Salva Modifiche';
+                const podere = poderi.find(p => p.id === podereId);
+                if (podere) {
+                    document.getElementById('podere-id').value = podere.id;
+                    document.getElementById('new-podere-nome').value = podere.nome || '';
+                    document.getElementById('new-podere-indirizzo').value = podere.indirizzo || '';
+                    document.getElementById('new-podere-localita').value = podere.localita || '';
+                    document.getElementById('new-podere-note').value = podere.note || '';
+                }
+            } else {
+                title.textContent = 'Aggiungi Nuovo Podere';
+                submitBtn.textContent = 'Aggiungi';
+            }
+            
+            modal.classList.add('active');
+            
+            // Inizializza mappa podere dopo che il modal è visibile
+            setTimeout(async () => {
+                await initPodereMap();
+                if (podereId) {
+                    const podere = poderi.find(p => p.id === podereId);
+                    if (podere && podere.coordinate) {
+                        setPodereMarker(podere.coordinate.lat, podere.coordinate.lng);
+                    }
+                }
+            }, 200);
+        };
+
+        // Chiudi modal aggiungi podere
+        window.closeAddPodereModal = function() {
+            document.getElementById('podere-modal').classList.remove('active');
+            clearPodereMarker();
+        };
+
+        // Aggiungi/modifica podere
+        window.handleAddPodere = async function(event) {
+            event.preventDefault();
+            
+            if (!currentClienteId || !currentTenantId) {
+                showAlert('Errore: nessun cliente selezionato o tenant disponibile', 'error');
+                return;
+            }
+            
+            const nome = document.getElementById('new-podere-nome').value.trim();
+            if (!nome) {
+                showAlert('Inserisci un nome per il podere', 'error');
+                return;
+            }
+            
+            const podereId = document.getElementById('podere-id').value;
+            
+            try {
+                const podereData = {
+                    clienteId: currentClienteId,
+                    nome: nome,
+                    indirizzo: document.getElementById('new-podere-indirizzo').value.trim() || null,
+                    localita: document.getElementById('new-podere-localita').value.trim() || null,
+                    note: document.getElementById('new-podere-note').value.trim() || null,
+                    updatedAt: serverTimestamp()
+                };
+                
+                // Aggiungi coordinate se il marker è posizionato
+                if (podereMarker) {
+                    const position = podereMarker.getPosition();
+                    podereData.coordinate = {
+                        lat: position.lat(),
+                        lng: position.lng()
+                    };
+                }
+                
+                if (podereId) {
+                    // Modifica podere esistente
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'poderi-clienti', podereId), podereData);
+                    showAlert('Podere modificato con successo', 'success');
+                } else {
+                    // Crea nuovo podere
+                    podereData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'tenants', currentTenantId, 'poderi-clienti'), podereData);
+                    showAlert('Podere aggiunto con successo', 'success');
+                }
+                
+                // Ricarica poderi e aggiorna select
+                await loadPoderi();
+                await renderPoderi(); // Aggiorna anche la lista visualizzata
+                
+                // Seleziona il podere nel select
+                const select = document.getElementById('terreno-podere');
+                if (select) {
+                    select.value = nome;
+                }
+                
+                closeAddPodereModal();
+            } catch (error) {
+                console.error('Errore salvataggio podere:', error);
+                showAlert('Errore durante il salvataggio: ' + error.message, 'error');
+            }
+        };
+
+        // ========== Google Maps Functions ==========
+        
+        // Funzione per attendere il caricamento di Google Maps API
+        function waitForGoogleMaps() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined' && window.GOOGLE_MAPS_API_KEY) {
+                    if (typeof google !== 'undefined' && google.maps) {
+                        resolve();
+                        return;
+                    }
+                    
+                    // Carica Google Maps API
+                    const script = document.createElement('script');
+                    script.async = true;
+                    script.defer = true;
+                    script.src = `https://maps.googleapis.com/maps/api/js?key=${window.GOOGLE_MAPS_API_KEY}&libraries=geometry&loading=async&callback=initGoogleMapsCallback`;
+                    document.head.appendChild(script);
+                    
+                    window.initGoogleMapsCallback = function() {
+                        console.log('✅ Google Maps initialized');
+                        window.googleMapsReady = true;
+                        resolve();
+                    };
+                    
+                    script.onerror = () => {
+                        console.warn('⚠️ Google Maps API non disponibile');
+                        resolve(); // Continua comunque senza Maps
+                    };
+                } else {
+                    console.warn('⚠️ Google Maps API key non configurata');
+                    resolve(); // Continua comunque senza Maps
+                }
+            });
+        }
+
+        // Inizializza mappa
+        window.initMap = async function() {
+            await waitForGoogleMaps();
+            
+            if (!window.googleMapsReady || !google || !google.maps) {
+                document.getElementById('map').innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; border-radius: 8px; flex-direction: column; padding: 20px;">
+                        <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Google Maps non disponibile</h3>
+                        <p style="color: #666; text-align: center;">
+                            Per utilizzare la mappa e il calcolo automatico della superficie,<br>
+                            è necessario configurare una chiave API di Google Maps valida.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (map) return; // Già inizializzata
+            
+            try {
+                const defaultCenter = { lat: 44.4949, lng: 11.3426 }; // Bologna area
+                
+                map = new google.maps.Map(document.getElementById('map'), {
+                    zoom: 15,
+                    center: defaultCenter,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE
+                });
+
+                // Click listener per tracciamento poligono
+                map.addListener('click', function(event) {
+                    if (isDrawing) {
+                        if (!polygon) {
+                            polygon = new google.maps.Polygon({
+                                paths: [event.latLng],
+                                fillColor: '#28a745',
+                                fillOpacity: 0.3,
+                                strokeColor: '#28a745',
+                                strokeWeight: 2,
+                                clickable: false,
+                                editable: true,
+                                draggable: true
+                            });
+                            polygon.setMap(map);
+                            currentPolygonCoords = [event.latLng];
+                        } else {
+                            const path = polygon.getPath();
+                            path.push(event.latLng);
+                            currentPolygonCoords = path.getArray();
+                        }
+                        
+                        if (currentPolygonCoords.length >= 3) {
+                            document.getElementById('map-info').classList.add('active');
+                            updateAreaInfo();
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Errore inizializzazione mappa:', error);
+            }
+        };
+
+        // Cerca indirizzo
+        window.searchLocation = function() {
+            if (!map || !google || !google.maps) return;
+            
+            const geocoder = new google.maps.Geocoder();
+            const address = document.getElementById('map-search').value;
+
+            if (!address) {
+                showAlert('Inserisci un indirizzo da cercare', 'error');
+                return;
+            }
+
+            geocoder.geocode({ address: address }, function(results, status) {
+                if (status === 'OK') {
+                    map.setCenter(results[0].geometry.location);
+                    map.setZoom(18);
+                    
+                    new google.maps.Marker({
+                        map: map,
+                        position: results[0].geometry.location,
+                        title: address
+                    });
+                } else {
+                    showAlert('Indirizzo non trovato: ' + status, 'error');
+                }
+            });
+        };
+
+        // Toggle tracciamento
+        window.toggleDrawing = function() {
+            if (!map) return;
+            
+            isDrawing = !isDrawing;
+            const btn = document.getElementById('btn-draw');
+            
+            if (isDrawing) {
+                btn.textContent = '⏹️ Stop Tracciamento';
+                btn.className = 'btn btn-danger';
+                document.getElementById('map').style.cursor = 'crosshair';
+                if (polygon) {
+                    polygon.setMap(null);
+                    polygon = null;
+                    currentPolygonCoords = [];
+                    document.getElementById('map-info').classList.remove('active');
+                }
+            } else {
+                btn.textContent = '✏️ Traccia Confini';
+                btn.className = 'btn btn-success';
+                document.getElementById('map').style.cursor = 'default';
+            }
+        };
+
+        // Cancella poligono
+        window.clearPolygon = function() {
+            if (polygon) {
+                polygon.setMap(null);
+                polygon = null;
+                currentPolygonCoords = [];
+                document.getElementById('map-info').classList.remove('active');
+                document.getElementById('terreno-superficie').value = '';
+            }
+        };
+
+        // Aggiorna info area
+        function updateAreaInfo() {
+            if (!polygon || !google || !google.maps) return;
+            
+            const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
+            const areaHectares = area / 10000;
+            
+            document.getElementById('calculated-area').textContent = areaHectares.toFixed(2);
+            
+            // Aggiorna SEMPRE il campo superficie con il valore calcolato dalla mappa
+            if (areaHectares > 0) {
+                document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
+                document.getElementById('manual-area').textContent = areaHectares.toFixed(2);
+            }
+        }
+
+        // Carica poligono esistente
+        window.loadExistingPolygon = function(polygonCoords) {
+            if (!map || !google || !google.maps) return;
+            
+            if (!polygonCoords || polygonCoords.length === 0) return;
+            
+            clearPolygon();
+            
+            // Converti coordinate in LatLng se necessario
+            const coords = polygonCoords.map(coord => {
+                if (coord.lat && coord.lng) {
+                    return new google.maps.LatLng(coord.lat, coord.lng);
+                }
+                return coord;
+            });
+            
+            polygon = new google.maps.Polygon({
+                paths: coords,
+                fillColor: '#28a745',
+                fillOpacity: 0.3,
+                strokeColor: '#28a745',
+                strokeWeight: 2,
+                editable: true,
+                draggable: true
+            });
+            
+            polygon.setMap(map);
+            currentPolygonCoords = polygon.getPath().getArray();
+            
+            // Listener per modifiche
+            google.maps.event.addListener(polygon.getPath(), 'set_at', function() {
+                currentPolygonCoords = polygon.getPath().getArray();
+                if (currentPolygonCoords.length >= 3) {
+                    updateAreaInfo();
+                }
+            });
+
+            google.maps.event.addListener(polygon.getPath(), 'insert_at', function() {
+                currentPolygonCoords = polygon.getPath().getArray();
+                if (currentPolygonCoords.length >= 3) {
+                    updateAreaInfo();
+                }
+            });
+
+            google.maps.event.addListener(polygon.getPath(), 'remove_at', function() {
+                currentPolygonCoords = polygon.getPath().getArray();
+                if (currentPolygonCoords.length >= 3) {
+                    updateAreaInfo();
+                }
+            });
+            
+            // Fit bounds
+            const bounds = new google.maps.LatLngBounds();
+            coords.forEach(coord => bounds.extend(coord));
+            map.fitBounds(bounds);
+            
+            document.getElementById('map-info').classList.add('active');
+            updateAreaInfo();
+            
+            // Calcola e aggiorna superficie quando si carica un poligono esistente
+            if (currentPolygonCoords.length >= 3) {
+                const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
+                const areaHectares = area / 10000;
+                document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
+            }
+        };
+
+        // ========== Google Maps Functions per Poderi ==========
+        
+        // Inizializza mappa podere
+        async function initPodereMap() {
+            await waitForGoogleMaps();
+            
+            if (!window.googleMapsReady || !google || !google.maps) {
+                document.getElementById('podere-map').innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; border-radius: 8px; flex-direction: column; padding: 20px;">
+                        <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Google Maps non disponibile</h3>
+                        <p style="color: #666; text-align: center;">
+                            Per utilizzare la mappa, è necessario configurare una chiave API di Google Maps valida.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (podereMap) return; // Già inizializzata
+            
+            try {
+                const defaultCenter = { lat: 44.4949, lng: 11.3426 }; // Bologna area
+                
+                podereMap = new google.maps.Map(document.getElementById('podere-map'), {
+                    zoom: 15,
+                    center: defaultCenter,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                });
+
+                // Click listener per posizionare marker
+                podereMap.addListener('click', function(event) {
+                    setPodereMarker(event.latLng.lat(), event.latLng.lng());
+                });
+            } catch (error) {
+                console.error('Errore inizializzazione mappa podere:', error);
+            }
+        }
+
+        // Posiziona marker sulla mappa podere
+        function setPodereMarker(lat, lng) {
+            if (!podereMap || !google || !google.maps) return;
+            
+            const position = { lat: lat, lng: lng };
+            
+            // Rimuovi marker esistente
+            if (podereMarker) {
+                podereMarker.setMap(null);
+            }
+            
+            // Crea nuovo marker
+            podereMarker = new google.maps.Marker({
+                position: position,
+                map: podereMap,
+                draggable: true,
+                title: 'Posizione Podere'
+            });
+            
+            // Listener per drag marker
+            podereMarker.addListener('dragend', function() {
+                updatePodereCoordinates();
+            });
+            
+            // Centra mappa sul marker
+            podereMap.setCenter(position);
+            podereMap.setZoom(16);
+            
+            // Mostra info coordinate
+            updatePodereCoordinates();
+            document.getElementById('podere-map-info').style.display = 'block';
+        }
+
+        // Aggiorna visualizzazione coordinate
+        function updatePodereCoordinates() {
+            if (!podereMarker) return;
+            
+            const position = podereMarker.getPosition();
+            const lat = position.lat().toFixed(6);
+            const lng = position.lng().toFixed(6);
+            document.getElementById('podere-coordinates').textContent = `${lat}, ${lng}`;
+        }
+
+        // Rimuovi marker podere
+        window.clearPodereMarker = function() {
+            if (podereMarker) {
+                podereMarker.setMap(null);
+                podereMarker = null;
+            }
+            const infoDiv = document.getElementById('podere-map-info');
+            if (infoDiv) {
+                infoDiv.style.display = 'none';
+            }
+            const coordsSpan = document.getElementById('podere-coordinates');
+            if (coordsSpan) {
+                coordsSpan.textContent = 'Non impostata';
+            }
+        }
+
+        // Elimina podere
+        window.deletePodereConfirm = async function(podereId) {
+            if (!podereId) {
+                console.error('ID podere non valido');
+                return;
+            }
+            
+            const podere = poderi.find(p => p.id === podereId);
+            if (!podere) {
+                showAlert('Podere non trovato', 'error');
+                return;
+            }
+
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile', 'error');
+                return;
+            }
+
+            if (!confirm(`Sei sicuro di voler eliminare il podere "${podere.nome}"?\n\nAttenzione: I terreni associati a questo podere perderanno il riferimento.`)) {
+                return;
+            }
+
+            try {
+                await deleteDoc(doc(db, 'tenants', currentTenantId, 'poderi-clienti', podereId));
+                showAlert('Podere eliminato con successo', 'success');
+                await loadPoderi();
+                await renderPoderi();
+                
+                // Aggiorna anche il select nel modal terreno se aperto
+                const select = document.getElementById('terreno-podere');
+                if (select) {
+                    select.innerHTML = '<option value="">-- Nessun podere --</option>';
+                    poderi.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = p.nome || p.id;
+                        option.textContent = p.nome || p.id;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Errore eliminazione podere:', error);
+                showAlert('Errore: ' + error.message, 'error');
+            }
+        };
+
+        // Cerca indirizzo per mappa podere
+        window.searchPodereLocation = function() {
+            if (!podereMap || !google || !google.maps) return;
+            
+            const geocoder = new google.maps.Geocoder();
+            const address = document.getElementById('podere-map-search').value;
+
+            if (!address) {
+                showAlert('Inserisci un indirizzo da cercare', 'error');
+                return;
+            }
+
+            geocoder.geocode({ address: address }, function(results, status) {
+                if (status === 'OK') {
+                    const location = results[0].geometry.location;
+                    setPodereMarker(location.lat(), location.lng());
+                    
+                    // Aggiorna anche i campi indirizzo se vuoti
+                    if (!document.getElementById('new-podere-indirizzo').value && results[0].formatted_address) {
+                        document.getElementById('new-podere-indirizzo').value = results[0].formatted_address;
+                    }
+                } else {
+                    showAlert('Indirizzo non trovato: ' + status, 'error');
+                }
+            });
+        };
+
+        // Export per onclick (già esportate sopra come window.functionName)
+        window.openTerrenoModal = openTerrenoModal;
+        window.closeTerrenoModal = closeTerrenoModal;
+        window.handleSalvaTerreno = handleSalvaTerreno;
+    </script>
+</body>
+</html>
+

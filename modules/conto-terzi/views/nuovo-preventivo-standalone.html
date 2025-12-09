@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuovo Preventivo - Conto Terzi - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E3F2FD 0%, #1976D2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1976D2;
+        }
+
+        .form-group small {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .totale-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 2px solid #1976D2;
+        }
+
+        .totale-box h3 {
+            color: #1976D2;
+            margin-bottom: 15px;
+        }
+
+        .totale-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .totale-row:last-child {
+            border-bottom: none;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1976D2;
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 2px solid #1976D2;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📋 Nuovo Preventivo</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Crea un nuovo preventivo per un cliente</p>
+            </div>
+            <div class="header-actions">
+                <a href="preventivi-standalone.html" class="btn btn-secondary">← Elenco Preventivi</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <form id="preventivo-form" onsubmit="handleSalvaPreventivo(event)">
+                <div class="form-group">
+                    <label for="cliente-id">Cliente *</label>
+                    <select id="cliente-id" required onchange="onClienteChange()">
+                        <option value="">-- Seleziona un cliente --</option>
+                    </select>
+                    <small>Se il cliente non è in lista, crealo prima dall'anagrafica clienti</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="terreno-id">Terreno</label>
+                    <select id="terreno-id" onchange="onTerrenoChange()">
+                        <option value="">-- Seleziona un terreno (opzionale) --</option>
+                    </select>
+                    <small>Seleziona un terreno esistente del cliente o lascia vuoto per nuovo terreno</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo-lavoro">Tipo Lavoro *</label>
+                        <select id="tipo-lavoro" required onchange="onTipoLavoroChange()">
+                            <option value="">-- Seleziona tipo lavoro --</option>
+                        </select>
+                        <input type="text" id="tipo-lavoro-custom" style="display: none; margin-top: 5px;" placeholder="Inserisci nuovo tipo lavoro" onchange="calcolaTotale()">
+                        <small style="display: block; margin-top: 5px;">
+                            <a href="#" onclick="event.preventDefault(); showCustomInput('tipo-lavoro'); return false;" style="color: #1976D2; text-decoration: underline; font-size: 12px;">+ Aggiungi nuovo tipo lavoro</a>
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="coltura">Coltura *</label>
+                        <select id="coltura" required onchange="onColturaChange()">
+                            <option value="">-- Seleziona coltura --</option>
+                        </select>
+                        <input type="text" id="coltura-custom" style="display: none; margin-top: 5px;" placeholder="Inserisci nuova coltura" onchange="calcolaTotale()">
+                        <small style="display: block; margin-top: 5px;">
+                            <a href="#" onclick="event.preventDefault(); showCustomInput('coltura'); return false;" style="color: #1976D2; text-decoration: underline; font-size: 12px;">+ Aggiungi nuova coltura</a>
+                        </small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo-campo">Tipo Campo *</label>
+                        <select id="tipo-campo" required onchange="calcolaTotale()">
+                            <option value="pianura">🏞️ Pianura</option>
+                            <option value="collina">⛰️ Collina</option>
+                            <option value="montagna">🏔️ Montagna</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="superficie">Superficie (ettari) *</label>
+                        <input type="number" id="superficie" required step="0.01" min="0" placeholder="0.00" onchange="calcolaTotale()" oninput="calcolaTotale()">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="iva">IVA (%)</label>
+                        <input type="number" id="iva" step="0.01" min="0" max="100" value="22" onchange="calcolaTotale()" oninput="calcolaTotale()">
+                        <small>Percentuale IVA (default: 22%)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="giorni-scadenza">Giorni Scadenza</label>
+                        <input type="number" id="giorni-scadenza" min="1" value="30">
+                        <small>Giorni di validità preventivo (default: 30)</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="data-prevista">Data Prevista Lavoro</label>
+                    <input type="date" id="data-prevista">
+                    <small>Data prevista per l'esecuzione del lavoro (opzionale)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="note">Note</label>
+                    <textarea id="note" placeholder="Note aggiuntive sul preventivo..."></textarea>
+                </div>
+
+                <!-- Box Totale -->
+                <div class="totale-box">
+                    <h3>💰 Riepilogo Preventivo</h3>
+                    <div class="totale-row">
+                        <span>Totale Imponibile:</span>
+                        <span id="totale-imponibile">€ 0.00</span>
+                    </div>
+                    <div class="totale-row">
+                        <span>IVA (<span id="iva-percentuale">22</span>%):</span>
+                        <span id="totale-iva">€ 0.00</span>
+                    </div>
+                    <div class="totale-row">
+                        <span>Totale con IVA:</span>
+                        <span id="totale-con-iva">€ 0.00</span>
+                    </div>
+                </div>
+
+                <div id="tariffa-info" class="alert alert-info" style="display: none;">
+                    <strong>ℹ️ Info:</strong> <span id="tariffa-info-text"></span>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                    <a href="preventivi-standalone.html" class="btn btn-secondary">Annulla</a>
+                    <button type="submit" class="btn btn-success">💾 Salva come Bozza</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase config from external file -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, query, where, orderBy, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentTenantId = null;
+        let clienti = [];
+        let terreni = [];
+        let tariffe = [];
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        currentTenantId = userData.tenantId;
+
+                        // Verifica permessi (solo Manager o Amministratore)
+                        const ruoli = userData.ruoli || [];
+                        const isManager = ruoli.some(r => {
+                            const roleLower = r.toLowerCase();
+                            return roleLower.includes('manager') || roleLower.includes('amministratore');
+                        });
+
+                        if (!isManager) {
+                            showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                            setTimeout(() => {
+                                window.location.href = '../../../core/dashboard-standalone.html';
+                            }, 2000);
+                            return;
+                        }
+
+                        // Carica dati
+                        await loadClienti();
+                        await loadTariffe();
+                    } else {
+                        window.location.href = '../../../core/auth/login-standalone.html';
+                    }
+                } catch (error) {
+                    console.error('Errore:', error);
+                    showAlert('Errore caricamento dati', 'error');
+                }
+            } else {
+                window.location.href = '../../../core/auth/login-standalone.html';
+            }
+        });
+
+        // Carica clienti
+        async function loadClienti() {
+            try {
+                if (!currentTenantId) return;
+                // Carica tutti i clienti e filtra client-side per evitare indice Firestore
+                const clientiCollection = collection(db, 'tenants', currentTenantId, 'clienti');
+                const snapshot = await getDocs(clientiCollection);
+                clienti = [];
+                const select = document.getElementById('cliente-id');
+                select.innerHTML = '<option value="">Seleziona cliente...</option>';
+                
+                const clientiAttivi = [];
+                snapshot.forEach(doc => {
+                    const data = { id: doc.id, ...doc.data() };
+                    if (data.stato === 'attivo') {
+                        clientiAttivi.push(data);
+                    }
+                });
+                
+                // Ordina per ragioneSociale
+                clientiAttivi.sort((a, b) => {
+                    const nomeA = a.ragioneSociale || '';
+                    const nomeB = b.ragioneSociale || '';
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                clientiAttivi.forEach(data => {
+                    clienti.push(data);
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.textContent = data.ragioneSociale;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Errore caricamento clienti:', error);
+            }
+        }
+
+        // Carica tariffe
+        async function loadTariffe() {
+            try {
+                if (!currentTenantId) return;
+                // Carica tutte le tariffe e filtra client-side per evitare indice Firestore
+                const tariffeCollection = collection(db, 'tenants', currentTenantId, 'tariffe');
+                const snapshot = await getDocs(tariffeCollection);
+                tariffe = [];
+                snapshot.forEach(doc => {
+                    const data = { id: doc.id, ...doc.data() };
+                    if (data.attiva === true) {
+                        tariffe.push(data);
+                    }
+                });
+                
+                // Popola dropdown tipo lavoro e coltura
+                populateDropdowns();
+            } catch (error) {
+                console.error('Errore caricamento tariffe:', error);
+            }
+        }
+
+        // Popola dropdown tipo lavoro e coltura dalle tariffe
+        function populateDropdowns() {
+            // Estrai valori unici
+            const tipiLavoro = [...new Set(tariffe.map(t => t.tipoLavoro).filter(t => t))].sort();
+            const colture = [...new Set(tariffe.map(t => t.coltura).filter(c => c))].sort();
+            
+            // Popola tipo lavoro
+            const tipoLavoroSelect = document.getElementById('tipo-lavoro');
+            const currentTipoLavoro = tipoLavoroSelect.value;
+            tipoLavoroSelect.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option>';
+            tipiLavoro.forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo;
+                option.textContent = tipo;
+                tipoLavoroSelect.appendChild(option);
+            });
+            if (currentTipoLavoro && tipiLavoro.includes(currentTipoLavoro)) {
+                tipoLavoroSelect.value = currentTipoLavoro;
+            }
+            
+            // Popola coltura
+            const colturaSelect = document.getElementById('coltura');
+            const currentColtura = colturaSelect.value;
+            colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
+            colture.forEach(coltura => {
+                const option = document.createElement('option');
+                option.value = coltura;
+                option.textContent = coltura;
+                colturaSelect.appendChild(option);
+            });
+            if (currentColtura && colture.includes(currentColtura)) {
+                colturaSelect.value = currentColtura;
+            }
+        }
+
+        // Mostra input personalizzato
+        window.showCustomInput = function(type) {
+            const select = document.getElementById(type);
+            const customInput = document.getElementById(`${type}-custom`);
+            
+            if (type === 'tipo-lavoro') {
+                select.value = '';
+                customInput.style.display = 'block';
+                customInput.value = '';
+                customInput.focus();
+            } else if (type === 'coltura') {
+                select.value = '';
+                customInput.style.display = 'block';
+                customInput.value = '';
+                customInput.focus();
+            }
+        };
+
+        // Quando cambia tipo lavoro
+        window.onTipoLavoroChange = function() {
+            const select = document.getElementById('tipo-lavoro');
+            const customInput = document.getElementById('tipo-lavoro-custom');
+            
+            if (select.value) {
+                customInput.style.display = 'none';
+                customInput.value = '';
+            }
+            calcolaTotale();
+        };
+
+        // Quando cambia coltura
+        window.onColturaChange = function() {
+            const select = document.getElementById('coltura');
+            const customInput = document.getElementById('coltura-custom');
+            
+            if (select.value) {
+                customInput.style.display = 'none';
+                customInput.value = '';
+            }
+            calcolaTotale();
+        };
+
+        // Carica terreni cliente
+        async function loadTerreniCliente(clienteId) {
+            try {
+                if (!currentTenantId || !clienteId) return;
+                // Carica tutti i terreni e filtra client-side per evitare indice Firestore
+                const terreniCollection = collection(db, 'tenants', currentTenantId, 'terreni');
+                const snapshot = await getDocs(terreniCollection);
+                terreni = [];
+                const select = document.getElementById('terreno-id');
+                select.innerHTML = '<option value="">-- Seleziona un terreno (opzionale) --</option>';
+                
+                const terreniCliente = [];
+                snapshot.forEach(doc => {
+                    const data = { id: doc.id, ...doc.data() };
+                    if (data.clienteId === clienteId) {
+                        terreniCliente.push(data);
+                    }
+                });
+                
+                // Ordina per nome
+                terreniCliente.sort((a, b) => {
+                    const nomeA = a.nome || '';
+                    const nomeB = b.nome || '';
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                terreniCliente.forEach(data => {
+                    terreni.push(data);
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.textContent = `${data.nome}${data.superficie ? ` (${data.superficie} ha)` : ''}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Errore caricamento terreni:', error);
+            }
+        }
+
+        // Quando cambia cliente - rendi globale per accesso da HTML
+        window.onClienteChange = function() {
+            const clienteId = document.getElementById('cliente-id').value;
+            if (clienteId) {
+                loadTerreniCliente(clienteId);
+            } else {
+                document.getElementById('terreno-id').innerHTML = '<option value="">-- Seleziona un terreno (opzionale) --</option>';
+            }
+        };
+
+        // Quando cambia terreno - rendi globale per accesso da HTML
+        window.onTerrenoChange = function() {
+            const terrenoId = document.getElementById('terreno-id').value;
+            if (terrenoId) {
+                const terreno = terreni.find(t => t.id === terrenoId);
+                if (terreno && terreno.superficie) {
+                    document.getElementById('superficie').value = terreno.superficie;
+                    calcolaTotale();
+                }
+            }
+        };
+
+        // Calcola totale preventivo - rendi globale per accesso da HTML
+        window.calcolaTotale = async function() {
+            // Prendi valore da select o da input custom
+            const tipoLavoroSelect = document.getElementById('tipo-lavoro');
+            const tipoLavoroCustom = document.getElementById('tipo-lavoro-custom');
+            const tipoLavoro = tipoLavoroSelect.value || tipoLavoroCustom.value.trim();
+            
+            const colturaSelect = document.getElementById('coltura');
+            const colturaCustom = document.getElementById('coltura-custom');
+            const coltura = colturaSelect.value || colturaCustom.value.trim();
+            const tipoCampo = document.getElementById('tipo-campo').value;
+            const superficie = parseFloat(document.getElementById('superficie').value) || 0;
+            const iva = parseFloat(document.getElementById('iva').value) || 22;
+
+            // Aggiorna percentuale IVA visualizzata
+            document.getElementById('iva-percentuale').textContent = iva;
+
+            if (!tipoLavoro || !coltura || !tipoCampo || superficie <= 0) {
+                document.getElementById('totale-imponibile').textContent = '€ 0.00';
+                document.getElementById('totale-iva').textContent = '€ 0.00';
+                document.getElementById('totale-con-iva').textContent = '€ 0.00';
+                document.getElementById('tariffa-info').style.display = 'none';
+                return;
+            }
+
+            // Cerca tariffa
+            const tariffa = tariffe.find(t => 
+                t.tipoLavoro === tipoLavoro && 
+                t.coltura === coltura && 
+                t.tipoCampo === tipoCampo
+            );
+
+            if (tariffa) {
+                const tariffaFinale = (tariffa.tariffaBase || 0) * (tariffa.coefficiente || 1);
+                const totale = tariffaFinale * superficie;
+                const totaleIva = totale * (iva / 100);
+                const totaleConIva = totale + totaleIva;
+
+                document.getElementById('totale-imponibile').textContent = `€ ${totale.toFixed(2)}`;
+                document.getElementById('totale-iva').textContent = `€ ${totaleIva.toFixed(2)}`;
+                document.getElementById('totale-con-iva').textContent = `€ ${totaleConIva.toFixed(2)}`;
+
+                // Mostra info tariffa
+                document.getElementById('tariffa-info-text').textContent = 
+                    `Tariffa: € ${tariffaFinale.toFixed(2)}/ha (Base: € ${tariffa.tariffaBase.toFixed(2)} × ${tariffa.coefficiente.toFixed(2)})`;
+                document.getElementById('tariffa-info').style.display = 'block';
+            } else {
+                document.getElementById('totale-imponibile').textContent = '€ 0.00';
+                document.getElementById('totale-iva').textContent = '€ 0.00';
+                document.getElementById('totale-con-iva').textContent = '€ 0.00';
+                document.getElementById('tariffa-info-text').textContent = 
+                    `⚠️ Tariffa non trovata per: ${tipoLavoro} - ${coltura} - ${tipoCampo}. Verifica che esista una tariffa attiva per questa combinazione.`;
+                document.getElementById('tariffa-info').style.display = 'block';
+            }
+        }
+
+        // Genera numero preventivo
+        async function generaNumeroPreventivo() {
+            try {
+                const anno = new Date().getFullYear();
+                const prefisso = `PREV-${anno}-`;
+                
+                const preventiviQuery = query(
+                    collection(db, 'tenants', currentTenantId, 'preventivi'),
+                    where('numero', '>=', prefisso),
+                    where('numero', '<', `${prefisso}Z`)
+                );
+                const snapshot = await getDocs(preventiviQuery);
+                
+                const numeri = [];
+                snapshot.forEach(doc => {
+                    const match = doc.data().numero?.match(new RegExp(`^${prefisso}(\\d+)$`));
+                    if (match) numeri.push(parseInt(match[1]));
+                });
+                
+                const prossimoNumero = numeri.length > 0 ? Math.max(...numeri) + 1 : 1;
+                return `${prefisso}${String(prossimoNumero).padStart(3, '0')}`;
+            } catch (error) {
+                console.error('Errore generazione numero:', error);
+                const anno = new Date().getFullYear();
+                const timestamp = Date.now().toString().slice(-6);
+                return `PREV-${anno}-${timestamp}`;
+            }
+        }
+
+        // Genera token accettazione
+        function generaToken() {
+            return Math.random().toString(36).substring(2, 15) + 
+                   Math.random().toString(36).substring(2, 15) +
+                   Date.now().toString(36);
+        }
+
+        // Salva preventivo
+        // Rendere globale per accesso da HTML
+        window.handleSalvaPreventivo = async function(event) {
+            event.preventDefault();
+            
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile', 'error');
+                return;
+            }
+
+            try {
+                // Calcola totale
+                await calcolaTotale();
+                const totaleImponibile = parseFloat(document.getElementById('totale-imponibile').textContent.replace('€ ', '').replace(',', '.')) || 0;
+                const iva = parseFloat(document.getElementById('iva').value) || 22;
+                const totaleConIva = parseFloat(document.getElementById('totale-con-iva').textContent.replace('€ ', '').replace(',', '.')) || 0;
+
+                if (totaleImponibile === 0) {
+                    showAlert('Impossibile salvare: totale è 0. Verifica che esista una tariffa per la combinazione selezionata.', 'error');
+                    return;
+                }
+
+                // Genera numero e token
+                const numero = await generaNumeroPreventivo();
+                const tokenAccettazione = generaToken();
+
+                // Calcola data scadenza
+                const giorniScadenza = parseInt(document.getElementById('giorni-scadenza').value) || 30;
+                const dataScadenza = new Date();
+                dataScadenza.setDate(dataScadenza.getDate() + giorniScadenza);
+
+                // Prepara dati
+                const dataPrevista = document.getElementById('data-prevista').value ? 
+                    Timestamp.fromDate(new Date(document.getElementById('data-prevista').value)) : null;
+
+                const preventivoData = {
+                    numero,
+                    clienteId: document.getElementById('cliente-id').value,
+                    terrenoId: document.getElementById('terreno-id').value || null,
+                    tipoLavoro: (document.getElementById('tipo-lavoro').value || document.getElementById('tipo-lavoro-custom').value.trim()),
+                    coltura: (document.getElementById('coltura').value || document.getElementById('coltura-custom').value.trim()),
+                    tipoCampo: document.getElementById('tipo-campo').value,
+                    superficie: parseFloat(document.getElementById('superficie').value),
+                    totale: totaleImponibile,
+                    iva,
+                    totaleConIva,
+                    note: document.getElementById('note').value.trim() || '',
+                    tokenAccettazione,
+                    dataScadenza: Timestamp.fromDate(dataScadenza),
+                    giorniScadenza,
+                    stato: 'bozza',
+                    dataPrevista,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+
+                // Salva
+                await addDoc(collection(db, 'tenants', currentTenantId, 'preventivi'), preventivoData);
+                
+                showAlert('Preventivo creato con successo!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'preventivi-standalone.html';
+                }, 1500);
+            } catch (error) {
+                console.error('Errore salvataggio preventivo:', error);
+                showAlert('Errore: ' + error.message, 'error');
+            }
+        }
+
+        // Utility functions
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

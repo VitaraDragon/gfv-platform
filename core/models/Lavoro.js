@@ -50,6 +50,10 @@ export class Lavoro extends Base {
     
     this.tipoLavoro = data.tipoLavoro || '';
     
+    // Campi Conto Terzi (opzionali)
+    this.clienteId = data.clienteId || null;        // Se presente → lavoro conto terzi
+    this.preventivoId = data.preventivoId || null;  // Se creato da preventivo accettato
+    
     // Campi Parco Macchine (opzionali)
     this.macchinaId = data.macchinaId || null;
     this.attrezzoId = data.attrezzoId || null;
@@ -68,7 +72,7 @@ export class Lavoro extends Base {
       ? parseInt(data.durataPrevista) 
       : null;
     
-    // Stato lavoro: "assegnato" | "in_corso" | "completato" | "annullato"
+    // Stato lavoro: "da_pianificare" | "assegnato" | "in_corso" | "completato" | "annullato"
     this.stato = data.stato || 'assegnato';
     
     this.note = data.note || '';
@@ -156,7 +160,7 @@ export class Lavoro extends Base {
       errors.push('Durata prevista non può superare 365 giorni');
     }
     
-    const statiValidi = ['assegnato', 'in_corso', 'completato', 'annullato'];
+    const statiValidi = ['da_pianificare', 'assegnato', 'in_corso', 'completato', 'annullato'];
     if (this.stato && !statiValidi.includes(this.stato)) {
       errors.push(`Stato non valido. Stati validi: ${statiValidi.join(', ')}`);
     }
@@ -240,12 +244,21 @@ export class Lavoro extends Base {
    */
   getStatoFormattato() {
     const statiFormattati = {
+      'da_pianificare': '📝 Da pianificare',
       'assegnato': '📋 Assegnato',
       'in_corso': '🔄 In corso',
       'completato': '✅ Completato',
       'annullato': '❌ Annullato'
     };
     return statiFormattati[this.stato] || this.stato;
+  }
+  
+  /**
+   * Verifica se lavoro è conto terzi
+   * @returns {boolean} true se lavoro è conto terzi
+   */
+  isContoTerzi() {
+    return !!this.clienteId;
   }
   
   /**

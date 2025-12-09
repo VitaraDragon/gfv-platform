@@ -1,0 +1,185 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: verifica autenticazione
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper: verifica che l'utente appartenga al tenant
+    // Legge il documento users dell'utente corrente (ha sempre permesso di lettura)
+    function belongsToTenant(tenantId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
+    }
+    
+    // Helper: verifica ruolo utente
+    function hasRole(role) {
+      return isAuthenticated() &&
+             role in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli;
+    }
+    
+    // Helper: verifica se è Manager o Amministratore
+    function isManagerOrAdmin() {
+      return isAuthenticated() &&
+             (hasRole('manager') || hasRole('amministratore'));
+    }
+    
+    // Collection: users (globale)
+    // IMPORTANTE: Permetti lettura del proprio documento per evitare dipendenza circolare
+    // Permetti anche lettura di utenti dello stesso tenant (per statistiche, report, ecc.)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        // Permetti lettura se l'utente richiedente appartiene allo stesso tenant del documento richiesto
+        // Gestisce anche il caso in cui resource.data.tenantId potrebbe essere null o non esistere
+        (resource.data.keys().hasAny(['tenantId']) &&
+         resource.data.tenantId != null && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId)
+      );
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Collection: tenants (globale)
+    match /tenants/{tenantId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow write: if isAuthenticated() && isManagerOrAdmin() && belongsToTenant(tenantId);
+    }
+    
+    // Collection: inviti (globale)
+    match /inviti/{invitoId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isManagerOrAdmin();
+    }
+    
+    // Dati tenant (multi-tenant) - Regola generica per tutte le subcollection
+    // NOTA: Le regole specifiche hanno priorità, questa è solo un fallback
+    // DISABILITATA per evitare conflitti con onSnapshot
+    // match /tenants/{tenantId}/{document=**} {
+    //   allow read: if isAuthenticated() && belongsToTenant(tenantId);
+    // }
+    
+    // Regole specifiche per collection Conto Terzi
+    
+    // Collection: clienti
+    match /tenants/{tenantId}/clienti/{clienteId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+    
+    // Collection: tariffe
+    match /tenants/{tenantId}/tariffe/{tariffaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+    
+    // Collection: preventivi
+    match /tenants/{tenantId}/preventivi/{preventivoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+    
+    // Collection: poderi-clienti
+    match /tenants/{tenantId}/poderi-clienti/{podereId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+    
+    // Collection: terreni (già esistente, ma assicuriamoci che funzioni)
+    match /tenants/{tenantId}/terreni/{terrenoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: poderi (aziendali, non clienti)
+    match /tenants/{tenantId}/poderi/{podereId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: liste (dati personalizzati, es. colture)
+    match /tenants/{tenantId}/liste/{listaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: categorie (unificata per lavori e attrezzi)
+    match /tenants/{tenantId}/categorie/{categoriaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: tipiLavoro (tipi di lavoro gerarchici)
+    match /tenants/{tenantId}/tipiLavoro/{tipoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: categorieLavori (vecchia collezione, per migrazione)
+    match /tenants/{tenantId}/categorieLavori/{categoriaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: categorieAttrezzi (vecchia collezione, per migrazione)
+    match /tenants/{tenantId}/categorieAttrezzi/{categoriaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+    
+    // Collection: lavori (già esistente)
+    match /tenants/{tenantId}/lavori/{lavoroId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+    
+    // Collection: attivita (già esistente)
+    match /tenants/{tenantId}/attivita/{attivitaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId);
+    }
+
+    // Collection: squadre (Manodopera)
+    match /tenants/{tenantId}/squadre/{squadraId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: guasti (Parco Macchine)
+    // NOTA: Usa controllo diretto invece di belongsToTenant per evitare problemi con onSnapshot
+    match /tenants/{tenantId}/guasti/{guastoId} {
+      allow read: if isAuthenticated() && 
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
+      allow create, update, delete: if isAuthenticated() && 
+                                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
+    }
+
+    // Collection: macchine (Parco Macchine)
+    match /tenants/{tenantId}/macchine/{macchinaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Subcollection: oreOperai (sotto lavori)
+    match /tenants/{tenantId}/lavori/{lavoroId}/oreOperai/{oraId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId);
+    }
+
+    // Subcollection: zoneLavorate (sotto lavori)
+    match /tenants/{tenantId}/lavori/{lavoroId}/zoneLavorate/{zonaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId);
+    }
+
+    // Subcollection: manutenzioni (sotto macchine)
+    match /tenants/{tenantId}/macchine/{macchinaId}/manutenzioni/{manutenzioneId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+  }
+}
+

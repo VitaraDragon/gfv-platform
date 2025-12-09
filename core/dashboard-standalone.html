@@ -98,6 +98,7 @@
             createDiarioAttivitaCard,
             createAbbonamentoCard,
             createAffittiScadenzaCard,
+            createContoTerziCard,
             createManagerManodoperaSection,
             createManagerLavoriSection,
             createDiarioDaLavoriSection,
@@ -193,6 +194,12 @@
                     // Card Abbonamento
                     topLeft.appendChild(createAbbonamentoCard());
                     
+                    // Card Conto Terzi (solo se modulo attivo)
+                    const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
+                    if (hasContoTerzi) {
+                        topLeft.appendChild(createContoTerziCard());
+                    }
+                    
                     // Carica dati affitti in scadenza
                     setTimeout(() => {
                         loadAffittiInScadenza();
@@ -240,6 +247,12 @@
                 // Card Terreni
                 const terreniCard = createTerreniCard();
                 topLeft.appendChild(terreniCard);
+                
+                // Card Conto Terzi (solo se modulo attivo)
+                const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
+                if (hasContoTerzi) {
+                    topLeft.appendChild(createContoTerziCard());
+                }
                 
                 // Card Affitti in Scadenza
                 const affittiCard = createAffittiScadenzaCard();
@@ -293,6 +306,12 @@
                         if (managerSection) {
                             managerSection.setAttribute('data-tour-section', 'gestione-core');
                             container.appendChild(managerSection);
+                        }
+                        
+                        // Card Conto Terzi (solo se modulo attivo) anche per Manager senza Manodopera
+                        const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
+                        if (hasContoTerzi) {
+                            container.appendChild(createContoTerziCard());
                         }
                         
                         // Card Affitti in Scadenza anche per Manager senza Manodopera
@@ -2892,7 +2911,17 @@
             try {
                 const guastiSection = document.getElementById('guasti-segnalati-section');
                 const guastiList = document.getElementById('guasti-segnalati-list');
-                if (!guastiSection || !guastiList) return;
+                if (!guastiSection || !guastiList) {
+                    console.log('🔍 [GUASTI] setupGuastiRealtime: Sezione o lista non trovata');
+                    return;
+                }
+
+                const user = auth.currentUser;
+                console.log('🔍 [GUASTI] setupGuastiRealtime - INIZIO');
+                console.log('🔍 [GUASTI] tenantId:', tenantId);
+                console.log('🔍 [GUASTI] user.uid:', user?.uid);
+                console.log('🔍 [GUASTI] user.email:', user?.email);
+                console.log('🔍 [GUASTI] Path collection:', `tenants/${tenantId}/guasti`);
 
                 // Rimuovi listener precedente se esiste
                 if (guastiUnsubscribe) {
@@ -2902,41 +2931,85 @@
 
                 const guastiRef = collection(db, `tenants/${tenantId}/guasti`);
                 
+                // Verifica che l'utente abbia i dati corretti
+                if (user) {
+                    getDoc(doc(db, 'users', user.uid)).then(userDoc => {
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            console.log('🔍 [GUASTI] userData.tenantId:', userData.tenantId);
+                            console.log('🔍 [GUASTI] tenantId match:', userData.tenantId === tenantId);
+                        } else {
+                            console.warn('🔍 [GUASTI] Documento utente non trovato');
+                        }
+                    }).catch(err => {
+                        console.error('🔍 [GUASTI] Errore lettura documento utente:', err);
+                    });
+                }
+                
                 // Carica tutti i guasti e filtra/ordina in memoria (evita errori indice)
+                console.log('🔍 [GUASTI] Creazione onSnapshot listener...');
                 guastiUnsubscribe = onSnapshot(
                     guastiRef,
                     (guastiSnapshot) => {
+                        console.log('✅ [GUASTI] onSnapshot successo, documenti:', guastiSnapshot.size);
                         updateGuastiUI(guastiSnapshot, guastiSection, guastiList, tenantId);
                     },
                     (error) => {
+                        console.error('❌ [GUASTI] Errore onSnapshot DETTAGLIATO:');
+                        console.error('❌ [GUASTI] Error code:', error.code);
+                        console.error('❌ [GUASTI] Error message:', error.message);
+                        console.error('❌ [GUASTI] Error stack:', error.stack);
+                        console.error('❌ [GUASTI] Error name:', error.name);
+                        console.error('❌ [GUASTI] tenantId usato:', tenantId);
+                        console.error('❌ [GUASTI] user.uid:', user?.uid);
+                        
+                        // Gestisci errori di permessi in modo più robusto
+                        if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+                            console.warn('⚠️ [GUASTI] Permessi insufficienti per guasti. Verifica le regole Firestore.');
+                            if (guastiSection) guastiSection.style.display = 'none';
+                            return;
+                        }
                         // Solo logga se non è un errore di indice
                         if (!error.message || !error.message.includes('index')) {
-                            console.error('Errore listener guasti:', error);
+                            console.error('❌ [GUASTI] Errore listener guasti:', error);
                         }
                         if (guastiSection) guastiSection.style.display = 'none';
                     }
                 );
+                console.log('✅ [GUASTI] onSnapshot listener creato');
             } catch (error) {
-                console.error('Errore setup listener guasti:', error);
+                console.error('❌ [GUASTI] Errore setup listener guasti:', error);
             }
         }
 
         // Aggiorna UI guasti (chiamata dal listener real-time)
         async function updateGuastiUI(guastiSnapshot, guastiSection, guastiList, tenantId) {
             try {
-                if (!guastiSection || !guastiList) return;
+                console.log('🔍 [GUASTI] updateGuastiUI - INIZIO');
+                console.log('🔍 [GUASTI] updateGuastiUI - tenantId:', tenantId);
+                console.log('🔍 [GUASTI] updateGuastiUI - documenti nello snapshot:', guastiSnapshot.size);
+                
+                if (!guastiSection || !guastiList) {
+                    console.warn('🔍 [GUASTI] updateGuastiUI: Sezione o lista non trovata');
+                    return;
+                }
 
                 // Carica macchine per ottenere nomi
+                console.log('🔍 [GUASTI] Caricamento macchine per tenantId:', tenantId);
                 const macchineRef = collection(db, `tenants/${tenantId}/macchine`);
                 const macchineSnapshot = await getDocs(macchineRef);
+                console.log('✅ [GUASTI] Macchine caricate:', macchineSnapshot.size);
                 const macchineMap = new Map();
                 macchineSnapshot.forEach(doc => {
                     macchineMap.set(doc.id, doc.data());
                 });
 
-                // Carica utenti per ottenere nomi operai
+                // Carica utenti per ottenere nomi operai (filtra per tenantId)
+                console.log('🔍 [GUASTI] Caricamento utenti per tenantId:', tenantId);
                 const usersRef = collection(db, 'users');
-                const usersSnapshot = await getDocs(usersRef);
+                const usersQuery = query(usersRef, where('tenantId', '==', tenantId));
+                const usersSnapshot = await getDocs(usersQuery);
+                console.log('✅ [GUASTI] Utenti caricati:', usersSnapshot.size);
                 const usersMap = new Map();
                 usersSnapshot.forEach(doc => {
                     usersMap.set(doc.id, doc.data());

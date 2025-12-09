@@ -22,6 +22,7 @@ const COLLECTION_NAME = 'terreni';
  * @param {Object} options - Opzioni di query
  * @param {string} options.orderBy - Campo per ordinamento (default: 'nome')
  * @param {string} options.orderDirection - Direzione ordinamento ('asc' | 'desc')
+ * @param {string} options.clienteId - Filtra per cliente (opzionale, per conto terzi)
  * @returns {Promise<Array<Terreno>>} Array di terreni
  */
 export async function getAllTerreni(options = {}) {
@@ -31,12 +32,23 @@ export async function getAllTerreni(options = {}) {
       throw new Error('Nessun tenant corrente disponibile');
     }
     
-    const { orderBy = 'nome', orderDirection = 'asc' } = options;
+    const { 
+      orderBy = 'nome', 
+      orderDirection = 'asc',
+      clienteId = null
+    } = options;
+    
+    // Costruisci filtri where
+    const whereFilters = [];
+    if (clienteId !== null) {
+      whereFilters.push(['clienteId', '==', clienteId]);
+    }
     
     const documents = await getCollectionData(COLLECTION_NAME, {
       tenantId,
       orderBy,
-      orderDirection
+      orderDirection,
+      where: whereFilters.length > 0 ? whereFilters : undefined
     });
     
     return documents.map(doc => Terreno.fromData(doc));

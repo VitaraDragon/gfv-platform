@@ -421,6 +421,35 @@ window.GFVDashboardSections.createAffittiScadenzaCard = function createAffittiSc
 };
 
 /**
+ * Card Conto Terzi (design blu distintivo)
+ */
+window.GFVDashboardSections.createContoTerziCard = function createContoTerziCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    section.style.background = 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)';
+    section.style.border = '2px solid #1976D2';
+    section.style.borderRadius = '12px';
+    
+    section.innerHTML = `
+        <h2 style="color: #1976D2;"><span class="section-icon">🤝</span> Conto Terzi</h2>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+            Gestisci clienti e lavori esterni
+        </p>
+        <div class="quick-actions">
+            <a href="../modules/conto-terzi/views/conto-terzi-home-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #1976D2;">
+                <span class="action-icon" style="font-size: 48px;">🤝</span>
+                <span class="action-title" style="font-size: 18px; color: #1976D2;">Apri Conto Terzi</span>
+                <span class="action-description" style="color: #666;">
+                    Accedi alla gestione completa clienti, terreni e lavori conto terzi
+                </span>
+            </a>
+        </div>
+    `;
+    
+    return section;
+};
+
+/**
  * Sezione Manager con Modulo Manodopera attivo (layout completo)
  */
 window.GFVDashboardSections.createManagerManodoperaSection = function createManagerManodoperaSection(userData, availableModules, loadStatsCallback, loadRecentCallback) {

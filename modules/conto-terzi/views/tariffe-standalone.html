@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Tariffe - Conto Terzi - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E3F2FD 0%, #1976D2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .modal .btn-primary {
+            background: #1976D2;
+            color: white;
+            border: none;
+        }
+
+        .modal .btn-primary:hover {
+            background: #1565C0;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: #1976D2;
+            font-size: 24px;
+        }
+
+        .tariffe-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .tariffe-table th,
+        .tariffe-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tariffe-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+        }
+
+        .tariffe-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-secondary {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #1976D2;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1976D2;
+        }
+
+        .form-group small {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .tariffe-table {
+                font-size: 12px;
+            }
+
+            .tariffe-table th,
+            .tariffe-table td {
+                padding: 8px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💰 Gestione Tariffe</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Configura tariffe per calcolo preventivi automatici</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openTariffaModal()">➕ Nuova Tariffa</button>
+                <a href="conto-terzi-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Filtra per Tipo Lavoro</label>
+                    <input type="text" id="filter-tipo-lavoro" placeholder="Es: Aratura, Semina...">
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Coltura</label>
+                    <input type="text" id="filter-coltura" placeholder="Es: Grano, Mais...">
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Tipo Campo</label>
+                    <select id="filter-tipo-campo">
+                        <option value="">Tutti</option>
+                        <option value="pianura">Pianura</option>
+                        <option value="collina">Collina</option>
+                        <option value="montagna">Montagna</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Stato</label>
+                    <select id="filter-attiva">
+                        <option value="">Tutte</option>
+                        <option value="true">Attive</option>
+                        <option value="false">Disattivate</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="align-self: flex-end;">
+                    <button class="btn btn-secondary" onclick="resetFilters()">Pulisci Filtri</button>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h2>Elenco Tariffe</h2>
+                <div id="tariffe-count">0 tariffe</div>
+            </div>
+
+            <div id="tariffe-container">
+                <div class="loading">Caricamento tariffe...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tariffa -->
+    <div id="tariffa-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Nuova Tariffa</h3>
+                <button class="close-btn" onclick="closeTariffaModal()">&times;</button>
+            </div>
+            <form id="tariffa-form" onsubmit="handleSalvaTariffa(event)">
+                <input type="hidden" id="tariffa-id">
+                
+                <div class="form-group">
+                    <label for="tipo-lavoro">Tipo Lavoro *</label>
+                    <input type="text" id="tipo-lavoro" required placeholder="Es: Aratura, Semina, Raccolta">
+                </div>
+
+                <div class="form-group">
+                    <label for="coltura">Coltura *</label>
+                    <input type="text" id="coltura" required placeholder="Es: Grano, Mais, Vite">
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo-campo">Tipo Campo *</label>
+                    <select id="tipo-campo" required>
+                        <option value="pianura">🏞️ Pianura</option>
+                        <option value="collina">⛰️ Collina</option>
+                        <option value="montagna">🏔️ Montagna</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tariffa-base">Tariffa Base (€/ettaro) *</label>
+                        <input type="number" id="tariffa-base" required step="0.01" min="0" placeholder="0.00">
+                        <small>Tariffa base per ettaro</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="coefficiente">Coefficiente *</label>
+                        <input type="number" id="coefficiente" required step="0.01" min="0.1" value="1.0" placeholder="1.0">
+                        <small>Moltiplicatore per tipo campo (es: collina = 1.2)</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="attiva">Stato</label>
+                    <select id="attiva">
+                        <option value="true">Attiva</option>
+                        <option value="false">Disattivata</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="note">Note</label>
+                    <textarea id="note" placeholder="Note aggiuntive sulla tariffa..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeTariffaModal()">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Load Firebase config from external file -->
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Funzione per attendere il caricamento della configurazione Firebase
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded after 5 seconds'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentTenantId = null;
+        let tariffe = [];
+
+        // Verifica autenticazione
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        currentTenantId = userData.tenantId;
+                        
+                        if (!currentTenantId) {
+                            console.error('⚠️ TenantId non trovato nel documento utente');
+                            showAlert('Errore: Tenant non configurato per questo utente', 'error');
+                            return;
+                        }
+
+                        // Verifica permessi (solo Manager o Amministratore)
+                        const ruoli = userData.ruoli || [];
+                        const isManager = ruoli.some(r => {
+                            const roleLower = r.toLowerCase();
+                            return roleLower.includes('manager') || roleLower.includes('amministratore');
+                        });
+
+                        if (!isManager) {
+                            showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                            setTimeout(() => {
+                                window.location.href = '../../../core/dashboard-standalone.html';
+                            }, 2000);
+                            return;
+                        }
+
+                        // Setup filtri
+                        setupFilters();
+                        // Carica tariffe
+                        await loadTariffe();
+                    } else {
+                        window.location.href = '../../../core/auth/login-standalone.html';
+                    }
+                } catch (error) {
+                    console.error('Errore:', error);
+                    showAlert('Errore caricamento dati', 'error');
+                }
+            } else {
+                window.location.href = '../../../core/auth/login-standalone.html';
+            }
+        });
+
+        // Setup filtri
+        function setupFilters() {
+            document.getElementById('filter-tipo-lavoro').addEventListener('input', () => filterTariffe());
+            document.getElementById('filter-coltura').addEventListener('input', () => filterTariffe());
+            document.getElementById('filter-tipo-campo').addEventListener('change', () => filterTariffe());
+            document.getElementById('filter-attiva').addEventListener('change', () => filterTariffe());
+        }
+
+        // Reset filtri
+        function resetFilters() {
+            document.getElementById('filter-tipo-lavoro').value = '';
+            document.getElementById('filter-coltura').value = '';
+            document.getElementById('filter-tipo-campo').value = '';
+            document.getElementById('filter-attiva').value = '';
+            filterTariffe();
+        }
+
+        // Carica tariffe
+        async function loadTariffe() {
+            const container = document.getElementById('tariffe-container');
+            container.innerHTML = '<div class="loading">Caricamento tariffe...</div>';
+
+            try {
+                if (!currentTenantId) {
+                    container.innerHTML = '<div class="empty-state">Nessun tenant trovato</div>';
+                    return;
+                }
+
+                // Prova a caricare tariffe, se la collection non esiste mostra lista vuota
+                try {
+                    const tariffeQuery = query(
+                        collection(db, 'tenants', currentTenantId, 'tariffe'),
+                        orderBy('tipoLavoro')
+                    );
+                    const snapshot = await getDocs(tariffeQuery);
+                    tariffe = [];
+                    snapshot.forEach(doc => {
+                        tariffe.push({ id: doc.id, ...doc.data() });
+                    });
+                } catch (error) {
+                    // Se la collection non esiste o non ci sono permessi, lista vuota
+                    if (error.code === 'permission-denied' || error.code === 'not-found') {
+                        console.warn('Collection tariffe non accessibile o non esistente:', error.message);
+                        tariffe = [];
+                    } else {
+                        throw error;
+                    }
+                }
+                filterTariffe();
+            } catch (error) {
+                console.error('Errore caricamento tariffe:', error);
+                showAlert('Errore caricamento tariffe: ' + error.message, 'error');
+                container.innerHTML = '<div class="empty-state">Errore caricamento tariffe</div>';
+            }
+        }
+
+        // Filtra tariffe
+        function filterTariffe() {
+            const filterTipoLavoro = document.getElementById('filter-tipo-lavoro').value.toLowerCase();
+            const filterColtura = document.getElementById('filter-coltura').value.toLowerCase();
+            const filterTipoCampo = document.getElementById('filter-tipo-campo').value;
+            const filterAttiva = document.getElementById('filter-attiva').value;
+
+            let filtered = tariffe.filter(tariffa => {
+                // Filtro tipo lavoro
+                if (filterTipoLavoro && !tariffa.tipoLavoro?.toLowerCase().includes(filterTipoLavoro)) {
+                    return false;
+                }
+
+                // Filtro coltura
+                if (filterColtura && !tariffa.coltura?.toLowerCase().includes(filterColtura)) {
+                    return false;
+                }
+
+                // Filtro tipo campo
+                if (filterTipoCampo && tariffa.tipoCampo !== filterTipoCampo) {
+                    return false;
+                }
+
+                // Filtro attiva
+                if (filterAttiva !== '') {
+                    const isAttiva = filterAttiva === 'true';
+                    if (tariffa.attiva !== isAttiva) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            renderTariffe(filtered);
+        }
+
+        // Render tariffe
+        function renderTariffe(tariffeList) {
+            const container = document.getElementById('tariffe-container');
+            document.getElementById('tariffe-count').textContent = `${tariffeList.length} tariffe`;
+
+            if (tariffeList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Nessuna tariffa trovata</p></div>';
+                return;
+            }
+
+            let html = '<table class="tariffe-table"><thead><tr>';
+            html += '<th>Tipo Lavoro</th>';
+            html += '<th>Coltura</th>';
+            html += '<th>Tipo Campo</th>';
+            html += '<th>Tariffa Base</th>';
+            html += '<th>Coefficiente</th>';
+            html += '<th>Tariffa Finale</th>';
+            html += '<th>Stato</th>';
+            html += '<th>Azioni</th>';
+            html += '</tr></thead><tbody>';
+
+            tariffeList.forEach(tariffa => {
+                const tariffaFinale = (tariffa.tariffaBase || 0) * (tariffa.coefficiente || 1);
+                const tipoCampoFormattato = {
+                    'pianura': '🏞️ Pianura',
+                    'collina': '⛰️ Collina',
+                    'montagna': '🏔️ Montagna'
+                }[tariffa.tipoCampo] || tariffa.tipoCampo;
+                
+                html += '<tr>';
+                html += `<td><strong>${escapeHtml(tariffa.tipoLavoro || '')}</strong></td>`;
+                html += `<td>${escapeHtml(tariffa.coltura || '')}</td>`;
+                html += `<td>${tipoCampoFormattato}</td>`;
+                html += `<td>€ ${(tariffa.tariffaBase || 0).toFixed(2)}</td>`;
+                html += `<td>${(tariffa.coefficiente || 1).toFixed(2)}x</td>`;
+                html += `<td><strong>€ ${tariffaFinale.toFixed(2)}</strong></td>`;
+                html += `<td><span class="badge ${tariffa.attiva ? 'badge-success' : 'badge-secondary'}">${tariffa.attiva ? 'Attiva' : 'Disattivata'}</span></td>`;
+                html += `<td><div class="action-buttons">
+                    <button class="btn btn-sm btn-primary" onclick="editTariffa('${tariffa.id}')">✏️ Modifica</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteTariffaConfirm('${tariffa.id}')">🗑️ Elimina</button>
+                </div></td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Apri modal nuova tariffa
+        window.openTariffaModal = function(tariffaId = null) {
+            const modal = document.getElementById('tariffa-modal');
+            const form = document.getElementById('tariffa-form');
+            const title = document.getElementById('modal-title');
+            
+            form.reset();
+            document.getElementById('tariffa-id').value = '';
+            
+            if (tariffaId) {
+                title.textContent = 'Modifica Tariffa';
+                const tariffa = tariffe.find(t => t.id === tariffaId);
+                if (tariffa) {
+                    document.getElementById('tariffa-id').value = tariffa.id;
+                    document.getElementById('tipo-lavoro').value = tariffa.tipoLavoro || '';
+                    document.getElementById('coltura').value = tariffa.coltura || '';
+                    document.getElementById('tipo-campo').value = tariffa.tipoCampo || 'pianura';
+                    document.getElementById('tariffa-base').value = tariffa.tariffaBase || '';
+                    document.getElementById('coefficiente').value = tariffa.coefficiente || 1.0;
+                    document.getElementById('attiva').value = tariffa.attiva ? 'true' : 'false';
+                    document.getElementById('note').value = tariffa.note || '';
+                }
+            } else {
+                title.textContent = 'Nuova Tariffa';
+            }
+            
+            modal.classList.add('active');
+        };
+
+        // Chiudi modal
+        window.closeTariffaModal = function() {
+            document.getElementById('tariffa-modal').classList.remove('active');
+        };
+
+        // Salva tariffa
+        window.handleSalvaTariffa = async function(event) {
+            event.preventDefault();
+            
+            // Verifica e recupera tenantId se necessario
+            if (!currentTenantId && currentUser) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+                    if (userDoc.exists()) {
+                        currentTenantId = userDoc.data().tenantId;
+                    }
+                } catch (error) {
+                    console.error('Errore recupero tenant:', error);
+                    if (error.code === 'permission-denied') {
+                        showAlert('Errore: Permessi insufficienti per leggere i dati utente. Verifica le regole di sicurezza Firestore.', 'error');
+                        return;
+                    }
+                }
+            }
+            
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile. Verifica che il tuo account abbia un tenantId configurato.', 'error');
+                return;
+            }
+
+            const tariffaId = document.getElementById('tariffa-id').value;
+            const tariffaData = {
+                tipoLavoro: document.getElementById('tipo-lavoro').value.trim(),
+                coltura: document.getElementById('coltura').value.trim(),
+                tipoCampo: document.getElementById('tipo-campo').value,
+                tariffaBase: parseFloat(document.getElementById('tariffa-base').value),
+                coefficiente: parseFloat(document.getElementById('coefficiente').value),
+                attiva: document.getElementById('attiva').value === 'true',
+                note: document.getElementById('note').value.trim() || '',
+                updatedAt: serverTimestamp()
+            };
+
+            try {
+                if (tariffaId) {
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'tariffe', tariffaId), tariffaData);
+                    showAlert('Tariffa aggiornata con successo', 'success');
+                } else {
+                    tariffaData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'tenants', currentTenantId, 'tariffe'), tariffaData);
+                    showAlert('Tariffa creata con successo', 'success');
+                }
+                
+                window.closeTariffaModal();
+                await loadTariffe();
+            } catch (error) {
+                console.error('Errore salvataggio tariffa:', error);
+                if (error.code === 'permission-denied') {
+                    showAlert('Errore: Permessi insufficienti per salvare la tariffa. Verifica che le regole Firestore permettano l\'accesso alla collection "tariffe". Vedi file firestore.rules nella root del progetto.', 'error');
+                } else {
+                    showAlert('Errore: ' + error.message, 'error');
+                }
+            }
+        };
+
+        // Elimina tariffa
+        window.deleteTariffaConfirm = async function(tariffaId) {
+            const tariffa = tariffe.find(t => t.id === tariffaId);
+            if (!tariffa) return;
+
+            // Verifica e recupera tenantId se necessario
+            if (!currentTenantId && currentUser) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+                    if (userDoc.exists()) {
+                        currentTenantId = userDoc.data().tenantId;
+                    }
+                } catch (error) {
+                    console.error('Errore recupero tenant:', error);
+                }
+            }
+
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile. Ricarica la pagina.', 'error');
+                return;
+            }
+
+            if (!confirm(`Sei sicuro di voler eliminare la tariffa "${tariffa.tipoLavoro} - ${tariffa.coltura} - ${tariffa.tipoCampo}"?`)) {
+                return;
+            }
+
+            try {
+                await deleteDoc(doc(db, 'tenants', currentTenantId, 'tariffe', tariffaId));
+                showAlert('Tariffa eliminata con successo', 'success');
+                await loadTariffe();
+            } catch (error) {
+                console.error('Errore eliminazione tariffa:', error);
+                showAlert('Errore: ' + error.message, 'error');
+            }
+        };
+
+        // Alias per compatibilità
+        window.editTariffa = function(tariffaId) {
+            window.openTariffaModal(tariffaId);
+        };
+
+        // Utility functions
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+

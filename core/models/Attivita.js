@@ -39,6 +39,10 @@ export class Attivita extends Base {
     this.oreNette = data.oreNette !== undefined ? parseFloat(data.oreNette) : 0;
     this.note = data.note || '';
     
+    // Campi Conto Terzi (opzionali)
+    this.clienteId = data.clienteId || null;  // Se presente → attività conto terzi
+    this.lavoroId = data.lavoroId || null;     // Se collegata a un lavoro
+    
     // Alias per compatibilità
     this.creatoIl = this.createdAt;
     this.aggiornatoIl = this.updatedAt;
@@ -204,6 +208,14 @@ export class Attivita extends Base {
     this.orarioFine = orarioFine;
     this.pauseMinuti = pauseMinuti || 0;
     this.oreNette = this.calculateOreNette();
+  }
+  
+  /**
+   * Verifica se attività è conto terzi
+   * @returns {boolean} true se attività è conto terzi
+   */
+  isContoTerzi() {
+    return !!this.clienteId;
   }
 }
 

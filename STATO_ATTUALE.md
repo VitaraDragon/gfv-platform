@@ -227,7 +227,55 @@ gfv-platform/
 
 ---
 
-**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Tour terreni ottimizzato! Gestione affitti terreni e statistiche complete! Pronto per continuare sviluppo! 🚀
+**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Tour terreni ottimizzato! Gestione affitti terreni e statistiche complete! **Modulo Conto Terzi - Fase 1 MVP completata!** Pronto per continuare sviluppo! 🚀
+
+---
+
+## 🆕 Ultimo Aggiornamento: Modulo Conto Terzi - Fase 1 MVP (2025-12-07)
+
+### Funzionalità Completate
+- ✅ **Modifiche modelli esistenti**: Aggiunto `clienteId` e `preventivoId` a Lavoro, Terreno, Attività
+- ✅ **Struttura modulo**: Creata cartella `modules/conto-terzi/` con models, services, views
+- ✅ **Modello Cliente**: Modello completo con validazione (P.IVA, CF, email, CAP)
+- ✅ **Service clienti**: CRUD completo con statistiche e verifica lavori associati
+- ✅ **Pagina anagrafica clienti**: Gestione completa clienti con filtri e form modal
+- ✅ **Pagina terreni clienti**: Gestione terreni dei clienti con selezione cliente
+- ✅ **Pagina principale Conto Terzi**: Dashboard sezione con statistiche e azioni rapide
+- ✅ **Card dashboard**: Card blu distintiva nella dashboard principale
+- ✅ **Design sezione**: Colore blu (`#1976D2`, `#E3F2FD`) per distinguere dal Core Base
+- ✅ **Integrazione abbonamento**: Modulo aggiunto alla lista moduli disponibili
+- ✅ **Fix CORS**: Riscritte pagine per usare Firebase SDK direttamente (compatibile file://)
+- ✅ **Navigazione**: Sistema navigazione gerarchico (Dashboard Principale / Dashboard Conto Terzi)
+
+### File Creati/Modificati
+- ✅ `modules/conto-terzi/models/Cliente.js` (NUOVO)
+- ✅ `modules/conto-terzi/services/clienti-service.js` (NUOVO)
+- ✅ `modules/conto-terzi/views/conto-terzi-home-standalone.html` (NUOVO)
+- ✅ `modules/conto-terzi/views/clienti-standalone.html` (NUOVO)
+- ✅ `modules/conto-terzi/views/terreni-clienti-standalone.html` (NUOVO)
+- ✅ `core/models/Lavoro.js` (MODIFICATO - aggiunto clienteId, preventivoId)
+- ✅ `core/models/Terreno.js` (MODIFICATO - aggiunto clienteId)
+- ✅ `core/models/Attivita.js` (MODIFICATO - aggiunto clienteId, lavoroId)
+- ✅ `core/services/terreni-service.js` (MODIFICATO - supporto filtro clienteId)
+- ✅ `core/js/dashboard-sections.js` (MODIFICATO - aggiunta createContoTerziCard)
+- ✅ `core/dashboard-standalone.html` (MODIFICATO - aggiunta card Conto Terzi)
+- ✅ `core/admin/abbonamento-standalone.html` (MODIFICATO - aggiunto modulo contoTerzi)
+
+### Caratteristiche Principali
+**Separazione Visiva, Unificazione Logica**:
+- Sezione dedicata con colore blu distintivo
+- Riutilizzo completo logica esistente (modelli, servizi)
+- Filtri automatici per distinguere lavori interni da conto terzi
+
+**Compatibilità**:
+- Funziona con solo Core Base
+- Funziona con Core Base + Manodopera
+- Funziona con Core Base + Parco Macchine
+- Funziona con tutti i moduli attivi
+
+**Navigazione**:
+- Dashboard Conto Terzi → "Dashboard Principale" → dashboard principale
+- Pagine modulo → "Dashboard" → dashboard Conto Terzi
 
 ---
 

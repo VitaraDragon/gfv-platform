@@ -1,0 +1,106 @@
+<!-- 
+    VERSIONE MINIMALE - COPIA E INCOLLA QUESTO CODICE IN EMAILJS
+    Se funziona, poi possiamo aggiungere l'immagine
+-->
+
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+    <div style="background: #1976D2; padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Preventivo Lavoro</h1>
+    </div>
+
+    <div style="padding: 30px; background: #f8f9fa;">
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+            Gentile <strong>{{ragione_sociale}}</strong>,
+        </p>
+        
+        <p style="font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px;">
+            Le inviamo il preventivo per il lavoro richiesto. Di seguito i dettagli:
+        </p>
+
+        <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #ddd;">
+            <h2 style="color: #1976D2; margin-top: 0; margin-bottom: 20px; font-size: 20px;">
+                Preventivo {{numero_preventivo}}
+            </h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px; width: 40%;">Tipo Lavoro:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{tipo_lavoro}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">Coltura:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{coltura}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">Tipo Campo:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{tipo_campo}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">Superficie:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{superficie}} ha</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">Terreno:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{terreno_nome}}</td>
+                </tr>
+            </table>
+
+            <div style="border-top: 2px solid #1976D2; padding-top: 15px; margin-top: 15px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #666; font-size: 14px;">Totale Imponibile:</td>
+                        <td style="padding: 8px 0; color: #333; font-size: 14px; text-align: right; font-weight: 600;">{{totale_imponibile}}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #666; font-size: 14px;">IVA ({{iva_percentuale}}%):</td>
+                        <td style="padding: 8px 0; color: #333; font-size: 14px; text-align: right; font-weight: 600;">{{totale_iva}}</td>
+                    </tr>
+                    <tr style="background: #E3F2FD;">
+                        <td style="padding: 12px 0; color: #1976D2; font-size: 16px; font-weight: bold;">TOTALE:</td>
+                        <td style="padding: 12px 0; color: #1976D2; font-size: 18px; text-align: right; font-weight: bold;">{{totale_con_iva}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #1976D2;">
+                <p style="margin: 0; color: #666; font-size: 13px; line-height: 1.5;">
+                    <strong>Note:</strong> {{note}}
+                </p>
+            </div>
+        </div>
+
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+                Scadenza preventivo: {{scadenza}}
+            </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{link_accettazione}}" 
+               style="display: inline-block; background: #28a745; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                Accetta Preventivo
+            </a>
+        </div>
+
+        <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
+            Oppure copia questo link nel browser:<br>
+            <a href="{{link_accettazione}}" style="color: #1976D2; word-break: break-all;">{{link_accettazione}}</a>
+        </p>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="{{link_rifiuto}}" 
+               style="display: inline-block; background: #dc3545; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">
+                Rifiuta Preventivo
+            </a>
+        </div>
+    </div>
+
+    <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #dee2e6;">
+        <p style="margin: 0; color: #666; font-size: 12px;">
+            Questo è un messaggio automatico inviato da GFV Platform.<br>
+            Per domande o chiarimenti, contattare direttamente l'azienda.
+        </p>
+    </div>
+</div>
+
+

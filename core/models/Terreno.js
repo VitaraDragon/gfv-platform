@@ -37,6 +37,9 @@ export class Terreno extends Base {
     this.dataScadenzaAffitto = data.dataScadenzaAffitto || null;
     this.canoneAffitto = data.canoneAffitto !== undefined ? parseFloat(data.canoneAffitto) : null;
     
+    // Campo Conto Terzi (opzionale)
+    this.clienteId = data.clienteId || null;  // Se presente → terreno cliente
+    
     // Alias per compatibilità
     this.creatoIl = this.createdAt;
     this.aggiornatoIl = this.updatedAt;
@@ -136,6 +139,14 @@ export class Terreno extends Base {
       return false;
     }
     return this.polygonCoords.length > 0;
+  }
+  
+  /**
+   * Verifica se terreno è di un cliente (conto terzi)
+   * @returns {boolean} true se terreno è di un cliente
+   */
+  isContoTerzi() {
+    return !!this.clienteId;
   }
 }
 

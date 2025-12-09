@@ -242,6 +242,7 @@
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #495057;">Tipo Operaio:</label>
                             <select id="filter-tipo-operaio-ore" style="width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;">
                                 <option value="tutti">Tutti</option>
+                                <option value="Caposquadra">Caposquadra</option>
                                 <option value="semplice">Operaio Semplice</option>
                                 <option value="specializzato">Operaio Specializzato</option>
                                 <option value="trattorista">Trattorista</option>
@@ -588,26 +589,51 @@
                 );
                 const usersSnapshot = await getDocs(usersQuery);
                 
+                // Log TUTTI gli utenti del tenant per trovare Pier Best
+                console.log('🔍 [REPORT ORE] TUTTI gli utenti del tenant (per trovare Pier Best):');
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
+                    const ruoli = userData.ruoli || [];
+                    console.log(`  - ID: ${doc.id}, Nome: ${nomeCompleto || 'N/A'}, Ruoli: [${ruoli.join(', ')}], TenantId: ${userData.tenantId || 'N/A'}`);
+                });
+                
                 const operai = [];
                 usersSnapshot.forEach(doc => {
                     const userData = doc.data();
                     const ruoli = userData.ruoli || [];
                     
-                    // Filtra solo operai
-                    if (ruoli.some(r => r.toLowerCase().includes('operaio'))) {
+                    // Filtra operai e caposquadra (entrambi possono avere ore registrate)
+                    const isOperaio = ruoli.some(r => r.toLowerCase().includes('operaio'));
+                    const isCaposquadra = ruoli.some(r => r.toLowerCase() === 'caposquadra');
+                    
+                    if (isOperaio || isCaposquadra) {
                         const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
                         if (nomeCompleto) {
                             operai.push({
                                 id: doc.id,
                                 nomeCompleto: nomeCompleto,
-                                tipoOperaio: userData.tipoOperaio || ''
+                                tipoOperaio: userData.tipoOperaio || '',
+                                ruoli: ruoli
                             });
                         }
                     }
                 });
                 
+                // Log dettagliato operai trovati
+                console.log('🔍 [REPORT ORE] Operai trovati (operaio o caposquadra):', operai.length);
+                operai.forEach(op => {
+                    console.log(`  - ID: ${op.id}, Nome: ${op.nomeCompleto}, Tipo: ${op.tipoOperaio}`);
+                });
+                
                 // Ordina per nome
                 operai.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto));
+                
+                // Log dettagliato per debug
+                console.log('🔍 [REPORT ORE] Operai trovati (id, nome, ruoli):', operai.length);
+                operai.forEach(op => {
+                    console.log(`  - ID: ${op.id}, Nome: ${op.nomeCompleto}, Tipo: ${op.tipoOperaio}`);
+                });
                 
                 // Popola dropdown
                 operai.forEach(operaio => {
@@ -639,6 +665,45 @@
             
             // Aggiorna immediatamente dopo reset
             loadReportOreOperai();
+        }
+        
+        // Funzione helper per determinare il tipo operaio da visualizzare
+        // Combina ruolo (caposquadra) e tipoOperaio (trattorista, semplice, ecc.)
+        function getTipoOperaioDisplay(operaio) {
+            const tipoOperaioNames = {
+                'semplice': 'Operaio Semplice',
+                'specializzato': 'Operaio Specializzato',
+                'trattorista': 'Trattorista',
+                'meccanico': 'Meccanico',
+                'elettricista': 'Elettricista',
+                'altro': 'Altro'
+            };
+            
+            const ruoli = operaio.ruoli || [];
+            const tipoOperaio = operaio.tipoOperaio || '';
+            const isCaposquadra = ruoli.some(r => r.toLowerCase() === 'caposquadra');
+            
+            // Se è caposquadra
+            if (isCaposquadra) {
+                // Se ha anche un tipoOperaio, mostra entrambi
+                if (tipoOperaio && tipoOperaioNames[tipoOperaio]) {
+                    return `Caposquadra - ${tipoOperaioNames[tipoOperaio]}`;
+                } else if (tipoOperaio) {
+                    return `Caposquadra - ${tipoOperaio}`;
+                } else {
+                    // Solo caposquadra, senza tipoOperaio
+                    return 'Caposquadra';
+                }
+            }
+            
+            // Se non è caposquadra, usa solo tipoOperaio
+            if (tipoOperaio && tipoOperaioNames[tipoOperaio]) {
+                return tipoOperaioNames[tipoOperaio];
+            } else if (tipoOperaio) {
+                return tipoOperaio;
+            }
+            
+            return '-';
         }
         
         // Carica report ore operai
@@ -732,6 +797,7 @@
                                 nome: '',
                                 cognome: '',
                                 tipoOperaio: '',
+                                ruoli: [],
                                 oreTotali: 0,
                                 oreValidate: 0,
                                 oreDaValidare: 0,
@@ -759,19 +825,68 @@
                 }
                 
                 // Carica dati operai
+                const currentUser = window.currentAuth.currentUser;
+                console.log('🔍 [REPORT ORE] Caricamento dati operai - INIZIO');
+                console.log('🔍 [REPORT ORE] Current user UID:', currentUser?.uid);
+                console.log('🔍 [REPORT ORE] TenantId:', tenantId);
+                console.log('🔍 [REPORT ORE] Numero operai da caricare:', Object.keys(orePerOperaio).length);
+                
+                // Carica prima il tenantId dell'utente corrente per verificare
+                if (currentUser) {
+                    try {
+                        const currentUserDoc = await getDoc(doc(window.currentDb, 'users', currentUser.uid));
+                        if (currentUserDoc.exists()) {
+                            const currentUserData = currentUserDoc.data();
+                            console.log('🔍 [REPORT ORE] Current user tenantId:', currentUserData.tenantId);
+                        }
+                    } catch (err) {
+                        console.error('🔍 [REPORT ORE] Errore lettura current user:', err);
+                    }
+                }
+                
                 for (const operaioId of Object.keys(orePerOperaio)) {
                     try {
+                        console.log(`🔍 [REPORT ORE] Tentativo lettura operaio ID: ${operaioId}`);
                         const operaioDoc = await getDoc(doc(window.currentDb, 'users', operaioId));
                         if (operaioDoc.exists()) {
                             const operaioData = operaioDoc.data();
+                            console.log(`✅ [REPORT ORE] Operaio ${operaioId} letto con successo`);
+                            console.log(`🔍 [REPORT ORE] Operaio tenantId: ${operaioData.tenantId}`);
+                            console.log(`🔍 [REPORT ORE] TenantId match: ${operaioData.tenantId === tenantId}`);
                             orePerOperaio[operaioId].nome = operaioData.nome || '';
                             orePerOperaio[operaioId].cognome = operaioData.cognome || '';
                             orePerOperaio[operaioId].tipoOperaio = operaioData.tipoOperaio || '';
+                            orePerOperaio[operaioId].ruoli = operaioData.ruoli || [];
+                        } else {
+                            console.warn(`⚠️ [REPORT ORE] Operaio ${operaioId} non trovato`);
+                            // Usa dati di fallback se il documento non esiste
+                            orePerOperaio[operaioId].nome = 'N/A';
+                            orePerOperaio[operaioId].cognome = '';
+                            orePerOperaio[operaioId].tipoOperaio = '';
+                            orePerOperaio[operaioId].ruoli = [];
                         }
                     } catch (error) {
-                        console.warn('Errore caricamento operaio:', error);
+                        console.error(`❌ [REPORT ORE] Errore caricamento operaio ${operaioId}:`);
+                        console.error(`❌ [REPORT ORE] Error code: ${error.code}`);
+                        console.error(`❌ [REPORT ORE] Error message: ${error.message}`);
+                        console.error(`❌ [REPORT ORE] Error stack:`, error.stack);
+                        
+                        // Verifica se il documento esiste ma non possiamo leggerlo
+                        if (error.code === 'permission-denied') {
+                            console.warn(`⚠️ [REPORT ORE] Permesso negato per operaio ${operaioId}. Possibili cause:`);
+                            console.warn(`⚠️ [REPORT ORE] - Il documento potrebbe non avere tenantId impostato`);
+                            console.warn(`⚠️ [REPORT ORE] - Il tenantId potrebbe essere diverso da "${tenantId}"`);
+                            console.warn(`⚠️ [REPORT ORE] - Il documento potrebbe non esistere`);
+                            
+                            // Usa dati di fallback
+                            orePerOperaio[operaioId].nome = 'N/A';
+                            orePerOperaio[operaioId].cognome = '';
+                            orePerOperaio[operaioId].tipoOperaio = '';
+                            orePerOperaio[operaioId].ruoli = [];
+                        }
                     }
                 }
+                console.log('🔍 [REPORT ORE] Caricamento dati operai - FINE');
                 
                 // Converti giorni lavorati da Set a numero
                 Object.keys(orePerOperaio).forEach(operaioId => {
@@ -784,11 +899,24 @@
                 
                 let orePerOperaioFiltrate = { ...orePerOperaio };
                 
-                // Filtro per tipo operaio
+                // Filtro per tipo operaio (usa la funzione helper per confrontare il display)
                 if (filtroTipoOperaio !== 'tutti') {
                     Object.keys(orePerOperaioFiltrate).forEach(operaioId => {
-                        if (orePerOperaioFiltrate[operaioId].tipoOperaio !== filtroTipoOperaio) {
-                            delete orePerOperaioFiltrate[operaioId];
+                        const tipoDisplay = getTipoOperaioDisplay(orePerOperaioFiltrate[operaioId]);
+                        const operaio = orePerOperaioFiltrate[operaioId];
+                        const ruoli = operaio.ruoli || [];
+                        const isCaposquadra = ruoli.some(r => r.toLowerCase() === 'caposquadra');
+                        
+                        // Se il filtro è "Caposquadra", mostra solo i caposquadra
+                        if (filtroTipoOperaio === 'Caposquadra') {
+                            if (!isCaposquadra) {
+                                delete orePerOperaioFiltrate[operaioId];
+                            }
+                        } else {
+                            // Per gli altri filtri, confronta con tipoOperaio (non con il display)
+                            if (operaio.tipoOperaio !== filtroTipoOperaio) {
+                                delete orePerOperaioFiltrate[operaioId];
+                            }
                         }
                     });
                 }
@@ -833,24 +961,15 @@
                 document.getElementById('stat-operai-attivi').textContent = operaiAttivi;
                 
                 // Statistiche per tipo operaio (solo per operai filtrati)
+                // Usa la funzione helper per ottenere il tipo display corretto
                 const orePerTipo = {};
                 Object.values(orePerOperaioFiltrate).forEach(operaio => {
-                    const tipo = operaio.tipoOperaio || 'Non specificato';
-                    if (!orePerTipo[tipo]) {
-                        orePerTipo[tipo] = 0;
+                    const tipoDisplay = getTipoOperaioDisplay(operaio);
+                    if (!orePerTipo[tipoDisplay]) {
+                        orePerTipo[tipoDisplay] = 0;
                     }
-                    orePerTipo[tipo] += operaio.oreTotali;
+                    orePerTipo[tipoDisplay] += operaio.oreTotali;
                 });
-                
-                const tipoOperaioNames = {
-                    'semplice': 'Operaio Semplice',
-                    'specializzato': 'Operaio Specializzato',
-                    'trattorista': 'Trattorista',
-                    'meccanico': 'Meccanico',
-                    'elettricista': 'Elettricista',
-                    'altro': 'Altro',
-                    'Non specificato': 'Non specificato'
-                };
                 
                 let orePerTipoHTML = '';
                 if (Object.keys(orePerTipo).length === 0) {
@@ -860,7 +979,7 @@
                         orePerTipoHTML += `
                             <div class="stat-card" style="text-align: center;">
                                 <div class="stat-value" style="font-size: 24px;">${formatOre(orePerTipo[tipo])}</div>
-                                <div class="stat-label">${tipoOperaioNames[tipo] || tipo}</div>
+                                <div class="stat-label">${tipo}</div>
                             </div>
                         `;
                     });
@@ -903,29 +1022,19 @@
                 return minuti === 0 ? `${oreInt}h` : `${oreInt}h ${minuti}min`;
             };
             
-            const tipoOperaioNames = {
-                'semplice': 'Operaio Semplice',
-                'specializzato': 'Operaio Specializzato',
-                'trattorista': 'Trattorista',
-                'meccanico': 'Meccanico',
-                'elettricista': 'Elettricista',
-                'altro': 'Altro',
-                '': '-'
-            };
-            
             // Ordina per ore totali (decrescente)
             const operaiArray = Object.values(orePerOperaio).sort((a, b) => b.oreTotali - a.oreTotali);
             
             let html = '';
             operaiArray.forEach(operaio => {
                 const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || 'N/A';
-                const tipoOperaio = tipoOperaioNames[operaio.tipoOperaio] || operaio.tipoOperaio || '-';
+                const tipoOperaioDisplay = getTipoOperaioDisplay(operaio);
                 const mediaGiorno = operaio.giorniLavorati > 0 ? operaio.oreTotali / operaio.giorniLavorati : 0;
                 
                 html += `
                     <tr style="border-bottom: 1px solid #e9ecef;">
                         <td style="padding: 12px;">${nomeCompleto}</td>
-                        <td style="padding: 12px;">${tipoOperaio}</td>
+                        <td style="padding: 12px;">${tipoOperaioDisplay}</td>
                         <td style="padding: 12px; text-align: right; font-weight: 600;">${formatOre(operaio.oreTotali)}</td>
                         <td style="padding: 12px; text-align: right; color: #28a745;">${formatOre(operaio.oreValidate)}</td>
                         <td style="padding: 12px; text-align: right; color: #ffc107;">${formatOre(operaio.oreDaValidare)}</td>
