@@ -2650,6 +2650,7 @@
                 
                 let totali = 0;
                 let attivi = 0;
+                let daPianificare = 0;
                 let superficieLavorata = 0;
                 
                 const lavoriIds = [];
@@ -2658,6 +2659,7 @@
                     const lavoro = doc.data();
                     const stato = lavoro.stato || 'pianificato';
                     if (stato === 'attivo') attivi++;
+                    if (stato === 'da_pianificare') daPianificare++;
                     lavoriIds.push(doc.id);
                     
                     // Calcola superficie lavorata (dalle zone lavorate)
@@ -2728,6 +2730,7 @@
                 // Aggiorna UI
                 const statTotali = document.getElementById('stat-lavori-totali-manodopera');
                 const statAttivi = document.getElementById('stat-lavori-attivi-manodopera');
+                const statDaPianificare = document.getElementById('stat-lavori-da-pianificare');
                 const statOre = document.getElementById('stat-ore-validate-manodopera');
                 const statSuperficie = document.getElementById('stat-superficie-lavorata-manodopera');
                 const statSquadre = document.getElementById('stat-squadre-attive-manodopera');
@@ -2748,6 +2751,7 @@
                 
                 if (statTotali) statTotali.textContent = totali;
                 if (statAttivi) statAttivi.textContent = attivi;
+                if (statDaPianificare) statDaPianificare.textContent = daPianificare;
                 
                 // Formatta ore
                 const oreInt = Math.floor(oreValidateTotali);
@@ -3303,6 +3307,7 @@
                 let completati = 0;
                 let pianificati = 0;
                 
+                let daPianificare = 0;
                 lavoriSnapshot.forEach(doc => {
                     totali++;
                     const lavoro = doc.data();
@@ -3311,6 +3316,10 @@
                     if (stato === 'attivo') attivi++;
                     else if (stato === 'completato') completati++;
                     else if (stato === 'pianificato') pianificati++;
+                    else if (stato === 'da_pianificare') {
+                        daPianificare++;
+                        pianificati++; // Include anche da_pianificare nel conteggio totale pianificati
+                    }
                 });
                 
                 const statTotali = document.getElementById('stat-lavori-totali');
@@ -3569,6 +3578,7 @@
                                 pauseMinuti: pauseTotali,
                                 oreNette: oreNetteTotali,
                                 numOperai: operaiSet.size,
+                                clienteId: lavoro.clienteId || null, // Aggiunto per identificare conto terzi
                                 note: `Lavoro: ${lavoro.nome || 'Senza nome'} - ${operaiSet.size} operaio${operaiSet.size !== 1 ? 'i' : ''}`
                             });
                         });
@@ -3605,6 +3615,15 @@
                 const attivitaMostrate = attivitaArray.slice(0, 20);
                 
                 let html = `
+                    <style>
+                        .lavoro-conto-terzi-dashboard {
+                            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%) !important;
+                            border-left: 4px solid #1976D2;
+                        }
+                        .lavoro-conto-terzi-dashboard:hover {
+                            background: linear-gradient(135deg, #BBDEFB 0%, #90CAF9 100%) !important;
+                        }
+                    </style>
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
@@ -3635,11 +3654,16 @@
                     
                     const oreFormatted = Math.floor(att.oreNette) + 'h ' + Math.round((att.oreNette % 1) * 60) + 'min';
                     
+                    // Verifica se è lavoro conto terzi
+                    const isContoTerzi = !!att.clienteId;
+                    const contoTerziBadge = isContoTerzi ? '<span style="background: #1976D2; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; font-weight: 500;">💼 Conto Terzi</span>' : '';
+                    const rowClass = isContoTerzi ? 'lavoro-conto-terzi-dashboard' : '';
+                    
                     html += `
-                        <tr style="border-bottom: 1px solid #e9ecef;">
+                        <tr class="${rowClass}" style="border-bottom: 1px solid #e9ecef;">
                             <td style="padding: 12px;">${dataFormatted}</td>
                             <td style="padding: 12px;">${escapeHtml(att.terrenoNome)}</td>
-                            <td style="padding: 12px;">${escapeHtml(att.tipoLavoro)}</td>
+                            <td style="padding: 12px;">${escapeHtml(att.tipoLavoro)}${contoTerziBadge}</td>
                             <td style="padding: 12px;">${escapeHtml(att.coltura || '-')}</td>
                             <td style="padding: 12px;">${orarioFormatted}</td>
                             <td style="padding: 12px; font-weight: 600; color: #2E8B57;">${oreFormatted}</td>
@@ -4050,11 +4074,23 @@
                 const lavoriIdsSet = new Set(); // Per evitare duplicati
                 
                 // 1. LAVORI DIRETTI (assegnati direttamente all'operaio)
+                console.log('🔍 [OPERAIO] Caricamento lavori per operaio:', operaioId);
+                console.log('🔍 [OPERAIO] Totale lavori nel database:', lavoriSnapshot.size);
+                
                 lavoriSnapshot.forEach(doc => {
                     const lavoro = doc.data();
                     
                     // Verifica se è lavoro autonomo assegnato direttamente all'operaio
                     if (lavoro.operaioId === operaioId && !lavoro.caposquadraId) {
+                        console.log('✅ [OPERAIO] Lavoro diretto trovato:', {
+                            id: doc.id,
+                            nome: lavoro.nome,
+                            stato: lavoro.stato,
+                            operaioId: lavoro.operaioId,
+                            caposquadraId: lavoro.caposquadraId,
+                            clienteId: lavoro.clienteId
+                        });
+                        
                         const stato = lavoro.stato || 'assegnato';
                         // Solo lavori attivi
                         if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
@@ -4062,8 +4098,18 @@
                             const dataInizioSenzaOra = new Date(dataInizio);
                             dataInizioSenzaOra.setHours(0, 0, 0, 0);
                             
-                            // Se la data inizio è oggi o passata, mostra il lavoro
-                            if (dataInizioSenzaOra <= oggi) {
+                            // Mostra il lavoro se:
+                            // - Stato "assegnato": mostra sempre (anche se data futura, l'operaio deve sapere che ha un lavoro assegnato)
+                            // - Stato "in_corso": mostra solo se data <= oggi
+                            const deveMostrare = (stato === 'assegnato') || (dataInizioSenzaOra <= oggi);
+                            
+                            if (deveMostrare) {
+                                console.log('✅ [OPERAIO] Lavoro incluso:', {
+                                    nome: lavoro.nome,
+                                    stato: stato,
+                                    dataInizio: dataInizioSenzaOra.toISOString().split('T')[0],
+                                    oggi: oggi.toISOString().split('T')[0]
+                                });
                                 // Carica nome terreno
                                 const terreno = lavoro.terrenoId ? terreniMap.get(lavoro.terrenoId) : null;
                                 const terrenoNome = terreno ? terreno.nome : null;
@@ -4110,8 +4156,12 @@
                                 const dataInizioSenzaOra = new Date(dataInizio);
                                 dataInizioSenzaOra.setHours(0, 0, 0, 0);
                                 
-                                // Se la data inizio è oggi o passata, mostra il lavoro
-                                if (dataInizioSenzaOra <= oggi) {
+                                // Mostra il lavoro se:
+                                // - Stato "assegnato": mostra sempre (anche se data futura, l'operaio deve sapere che ha un lavoro assegnato)
+                                // - Stato "in_corso": mostra solo se data <= oggi
+                                const deveMostrare = (stato === 'assegnato') || (dataInizioSenzaOra <= oggi);
+                                
+                                if (deveMostrare) {
                                     // Carica nome terreno
                                     const terreno = lavoro.terrenoId ? terreniMap.get(lavoro.terrenoId) : null;
                                     const terrenoNome = terreno ? terreno.nome : null;
@@ -4128,6 +4178,17 @@
                             }
                         }
                     });
+                }
+                
+                console.log(`✅ [OPERAIO] Totale lavori trovati per oggi: ${lavoriOggi.length}`);
+                if (lavoriOggi.length > 0) {
+                    console.log('📋 [OPERAIO] Lavori trovati:', lavoriOggi.map(l => ({
+                        id: l.id,
+                        nome: l.nome,
+                        stato: l.stato,
+                        tipoAssegnazione: l.tipoAssegnazione,
+                        dataInizio: l.dataInizio instanceof Date ? l.dataInizio.toISOString().split('T')[0] : l.dataInizio
+                    })));
                 }
                 
                 // Ordina per data (più recenti prima)

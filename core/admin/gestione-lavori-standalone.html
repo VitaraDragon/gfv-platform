@@ -185,6 +185,15 @@
             background: #f8f9fa;
         }
 
+        .lavoro-conto-terzi {
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%) !important;
+            border-left: 4px solid #1976D2;
+        }
+
+        .lavoro-conto-terzi:hover {
+            background: linear-gradient(135deg, #BBDEFB 0%, #90CAF9 100%) !important;
+        }
+
         .action-buttons {
             display: flex;
             gap: 5px;
@@ -624,6 +633,7 @@
                     <label>Filtra per Stato</label>
                     <select id="filter-stato" onchange="applyFilters()">
                         <option value="">Tutti gli stati</option>
+                        <option value="da_pianificare">📝 Da Pianificare</option>
                         <option value="assegnato">Assegnato</option>
                         <option value="in_corso">In corso</option>
                         <option value="completato_da_approvare">In attesa approvazione</option>
@@ -650,6 +660,14 @@
                     <label>Filtra per Terreno</label>
                     <select id="filter-terreno" onchange="applyFilters()">
                         <option value="">Tutti i terreni</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Filtra per Tipo</label>
+                    <select id="filter-tipo" onchange="applyFilters()">
+                        <option value="">Tutti i lavori</option>
+                        <option value="interno">🏠 Lavori Interni</option>
+                        <option value="conto_terzi">💼 Conto Terzi</option>
                     </select>
                 </div>
                 <div class="filter-group" style="align-self: flex-end;">
@@ -816,6 +834,7 @@
                 <div class="form-group">
                     <label for="lavoro-stato">Stato</label>
                     <select id="lavoro-stato">
+                        <option value="da_pianificare">📝 Da Pianificare</option>
                         <option value="assegnato">Assegnato</option>
                         <option value="in_corso">In corso</option>
                         <option value="completato">Completato</option>
@@ -1111,6 +1130,21 @@
                     // Migra dati esistenti dalla lista piatta alla struttura gerarchica
                     await migraDatiEsistenti();
                     
+                    // Leggi parametro URL per filtro stato (es: ?stato=da_pianificare)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const statoFromUrl = urlParams.get('stato');
+                    console.log('🔍 Parametro URL stato:', statoFromUrl);
+                    
+                    if (statoFromUrl) {
+                        const filterStatoEl = document.getElementById('filter-stato');
+                        if (filterStatoEl) {
+                            filterStatoEl.value = statoFromUrl;
+                            console.log('✅ Filtro stato impostato dal URL:', statoFromUrl);
+                        } else {
+                            console.warn('⚠️ Elemento filter-stato non trovato');
+                        }
+                    }
+                    
                     // Carica dati iniziali
                     const loadPromises = [
                         loadTerreni(),
@@ -1128,6 +1162,12 @@
                     }
                     
                     await Promise.all(loadPromises);
+                    
+                    // Applica filtro stato se presente nell'URL (loadLavori chiama già applyFilters, ma lo richiamiamo per sicurezza)
+                    if (statoFromUrl) {
+                        console.log('🔄 Richiamo applyFilters dopo caricamento dati per applicare filtro URL');
+                        applyFilters();
+                    }
                     
                     // Inizializza handler tipo assegnazione
                     setupTipoAssegnazioneHandlers();
@@ -2172,8 +2212,19 @@
 
             try {
                 const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-                const q = query(lavoriRef, orderBy('dataInizio', 'desc'));
-                const snapshot = await getDocs(q);
+                let snapshot;
+                
+                // Prova prima con orderBy, se fallisce carica senza orderBy e ordina in memoria
+                try {
+                    const q = query(lavoriRef, orderBy('dataInizio', 'desc'));
+                    snapshot = await getDocs(q);
+                    console.log('✅ Lavori caricati con orderBy:', snapshot.size);
+                } catch (orderByError) {
+                    // Se fallisce per mancanza di indice o altri errori, carica senza orderBy
+                    console.warn('⚠️ Errore query con orderBy, carico senza orderBy:', orderByError);
+                    snapshot = await getDocs(lavoriRef);
+                    console.log('✅ Lavori caricati senza orderBy:', snapshot.size);
+                }
                 
                 lavoriList = [];
                 snapshot.forEach(doc => {
@@ -2184,6 +2235,18 @@
                         dataInizio: data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null)
                     });
                 });
+
+                // Ordina in memoria se non è stato fatto dalla query
+                lavoriList.sort((a, b) => {
+                    if (!a.dataInizio && !b.dataInizio) return 0;
+                    if (!a.dataInizio) return 1;
+                    if (!b.dataInizio) return -1;
+                    return b.dataInizio - a.dataInizio;
+                });
+
+                console.log(`📊 Totale lavori caricati: ${lavoriList.length}`);
+                console.log(`📊 Lavori da_pianificare: ${lavoriList.filter(l => l.stato === 'da_pianificare').length}`);
+                console.log(`📊 Lavori con clienteId: ${lavoriList.filter(l => l.clienteId).length}`);
 
                 // Corregge macchine ancora in uso per lavori completati
                 console.log('🔍 Verifica modulo Parco Macchine:', hasParcoMacchineModule);
@@ -2511,13 +2574,35 @@
             const statoFilter = document.getElementById('filter-stato').value;
             const caposquadraFilter = document.getElementById('filter-caposquadra').value;
             const terrenoFilter = document.getElementById('filter-terreno').value;
+            const tipoFilter = document.getElementById('filter-tipo').value;
+
+            console.log('🔍 Applicazione filtri:', {
+                statoFilter,
+                caposquadraFilter,
+                terrenoFilter,
+                tipoFilter,
+                totaleLavori: lavoriList.length
+            });
 
             filteredLavoriList = lavoriList.filter(lavoro => {
                 if (statoFilter && lavoro.stato !== statoFilter) return false;
                 if (caposquadraFilter && lavoro.caposquadraId !== caposquadraFilter) return false;
                 if (terrenoFilter && lavoro.terrenoId !== terrenoFilter) return false;
+                if (tipoFilter === 'conto_terzi' && !lavoro.clienteId) return false;
+                if (tipoFilter === 'interno' && lavoro.clienteId) return false;
                 return true;
             });
+
+            console.log(`✅ Lavori filtrati: ${filteredLavoriList.length}`);
+            if (statoFilter === 'da_pianificare') {
+                console.log('📝 Lavori da_pianificare trovati:', filteredLavoriList.map(l => ({
+                    id: l.id,
+                    nome: l.nome,
+                    clienteId: l.clienteId,
+                    preventivoId: l.preventivoId,
+                    stato: l.stato
+                })));
+            }
 
             // Il filtro stato progresso viene applicato in renderLavori dopo il calcolo
             renderLavori();
@@ -2529,6 +2614,7 @@
             document.getElementById('filter-progresso').value = '';
             document.getElementById('filter-caposquadra').value = '';
             document.getElementById('filter-terreno').value = '';
+            document.getElementById('filter-tipo').value = '';
             applyFilters();
         };
 
@@ -2655,8 +2741,13 @@
                     const percentualeTracciata = lavoro.percentualeCompletamentoTracciata || 
                         (superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0);
                     
+                    // Applica stile conto terzi se presente clienteId
+                    const isContoTerzi = !!lavoro.clienteId;
+                    const rowClass = isContoTerzi ? 'lavoro-conto-terzi' : '';
+                    const rowStyle = isContoTerzi ? '' : 'background: #fffbf0;';
+                    
                     html += `
-                        <tr style="background: #fffbf0;">
+                        <tr class="${rowClass}" style="${rowStyle}">
                             <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong></td>
                             <td>${escapeHtml(terrenoNome)}</td>
                             <td>${escapeHtml(caposquadraNome)}</td>
@@ -2771,9 +2862,13 @@
                     }
                 }
 
+                // Verifica se è lavoro conto terzi
+                const isContoTerzi = !!lavoro.clienteId;
+                const contoTerziBadge = isContoTerzi ? '<span class="badge" style="background: #1976D2; color: white; margin-left: 5px; font-size: 10px;">💼 Conto Terzi</span>' : '';
+                
                 html += `
-                    <tr>
-                        <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong>${macchineInfo}</td>
+                    <tr class="${isContoTerzi ? 'lavoro-conto-terzi' : ''}">
+                        <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong>${contoTerziBadge}${macchineInfo}</td>
                         <td>${escapeHtml(terrenoNome)}</td>
                         <td>${escapeHtml(caposquadraNome)}</td>
                         <td>${dataInizioFormatted}</td>
@@ -3029,13 +3124,28 @@
             }
             
             try {
+                // Se il lavoro era "da_pianificare" e ora ha tutti i campi necessari, passa automaticamente a "assegnato"
+                const lavoroOriginale = currentLavoroId ? lavoriList.find(l => l.id === currentLavoroId) : null;
+                const eraDaPianificare = lavoroOriginale?.stato === 'da_pianificare';
+                
+                // Verifica se la pianificazione è completa (ha caposquadra/operaio e terreno)
+                const pianificazioneCompleta = (tipoAssegnazione === 'squadra' && caposquadraId) || 
+                                               (tipoAssegnazione === 'autonomo' && operaioId);
+                
+                // Se era da_pianificare e ora è completo, passa automaticamente a "assegnato"
+                let nuovoStato = stato;
+                if (eraDaPianificare && pianificazioneCompleta && terrenoId) {
+                    nuovoStato = 'assegnato';
+                    showAlert('Pianificazione completata! Il lavoro è stato assegnato.', 'success');
+                }
+                
                 const lavoroData = {
                     nome,
                     terrenoId,
                     tipoLavoro,
                     dataInizio: Timestamp.fromDate(new Date(dataInizio)),
                     durataPrevista,
-                    stato,
+                    stato: nuovoStato,
                     note: note || '',
                     aggiornatoIl: serverTimestamp()
                 };
