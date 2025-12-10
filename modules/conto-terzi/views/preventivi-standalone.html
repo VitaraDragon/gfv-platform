@@ -463,8 +463,8 @@
             document.getElementById('filter-search').addEventListener('input', () => filterPreventivi());
         }
 
-        // Reset filtri
-        function resetFilters() {
+        // Reset filtri - rendi globale per accesso da HTML
+        window.resetFilters = function() {
             document.getElementById('filter-stato').value = '';
             document.getElementById('filter-search').value = '';
             filterPreventivi();
@@ -758,8 +758,8 @@
             document.body.appendChild(modal);
         }
 
-        // Accetta preventivo (manager)
-        async function accettaPreventivoManager(preventivoId) {
+        // Accetta preventivo (manager) - rendi globale per accesso da HTML
+        window.accettaPreventivoManager = async function(preventivoId) {
             try {
                 if (!currentTenantId) {
                     showAlert('Errore: nessun tenant disponibile', 'error');
@@ -780,8 +780,8 @@
             }
         }
 
-        // Rifiuta preventivo
-        async function rifiutaPreventivo(preventivoId) {
+        // Rifiuta preventivo - rendi globale per accesso da HTML
+        window.rifiutaPreventivo = async function(preventivoId) {
             if (!confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
                 return;
             }
@@ -805,8 +805,8 @@
             }
         }
 
-        // Annulla preventivo
-        async function annullaPreventivo(preventivoId) {
+        // Annulla preventivo - rendi globale per accesso da HTML
+        window.annullaPreventivo = async function(preventivoId) {
             if (!confirm('Sei sicuro di voler annullare questo preventivo?')) {
                 return;
             }
@@ -830,8 +830,8 @@
             }
         }
 
-        // Pianifica preventivo (crea lavoro)
-        async function pianificaPreventivo(preventivoId) {
+        // Pianifica preventivo (crea lavoro) - rendi globale per accesso da HTML
+        window.pianificaPreventivo = async function(preventivoId) {
             const preventivo = preventivi.find(p => p.id === preventivoId);
             if (!preventivo) {
                 showAlert('Preventivo non trovato', 'error');
@@ -913,8 +913,8 @@
             }
         }
 
-        // Elimina preventivo
-        async function deletePreventivoConfirm(preventivoId) {
+        // Elimina preventivo - rendi globale per accesso da HTML
+        window.deletePreventivoConfirm = async function(preventivoId) {
             const preventivo = preventivi.find(p => p.id === preventivoId);
             if (!preventivo) return;
 
