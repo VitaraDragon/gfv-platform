@@ -369,6 +369,28 @@
                         <textarea id="azienda-note" placeholder="Note aggiuntive sull'azienda"></textarea>
                     </div>
 
+                    <div class="form-group">
+                        <label for="azienda-logo">Logo Aziendale</label>
+                        <div style="display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <input type="file" id="azienda-logo" accept="image/*" onchange="handleLogoUpload(event)" style="margin-bottom: 10px;">
+                                <small style="display: block; color: #666; margin-top: 5px;">
+                                    Formati supportati: PNG, JPG, SVG (max 2MB). Il logo verrà usato nei preventivi inviati ai clienti.
+                                </small>
+                            </div>
+                            <div id="logo-preview-container" style="min-width: 150px;">
+                                <div id="logo-preview" style="display: none; margin-top: 10px;">
+                                    <img id="logo-preview-img" src="" alt="Logo preview" style="max-width: 150px; max-height: 80px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; background: white;">
+                                    <button type="button" onclick="rimuoviLogo()" style="display: block; margin-top: 5px; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Rimuovi Logo</button>
+                                </div>
+                                <div id="logo-current" style="display: none; margin-top: 10px;">
+                                    <p style="font-size: 12px; color: #666; margin-bottom: 5px;">Logo attuale:</p>
+                                    <img id="logo-current-img" src="" alt="Logo attuale" style="max-width: 150px; max-height: 80px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; background: white;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Salva Impostazioni Azienda</button>
                 </form>
             </div>
@@ -685,10 +707,12 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, getDoc, updateDoc, setDoc, serverTimestamp, query, collection, where, getDocs, addDoc, deleteDoc, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         let currentUserData = null;
         let currentTenantId = null;
@@ -696,6 +720,7 @@
         let poderiList = [];
         let podereMap = null;
         let podereMarker = null;
+        let logoFileToUpload = null;
         
         // Liste predefinite
         const TIPI_LAVORO_PREDEFINITI = [
@@ -755,6 +780,12 @@
                                 document.getElementById('azienda-telefono').value = tenantData.telefono || '';
                                 document.getElementById('azienda-email').value = tenantData.email || '';
                                 document.getElementById('azienda-note').value = tenantData.note || '';
+                                
+                                // Carica logo esistente se presente
+                                if (tenantData.logoUrl) {
+                                    document.getElementById('logo-current-img').src = tenantData.logoUrl;
+                                    document.getElementById('logo-current').style.display = 'block';
+                                }
                             }
                             
                             // Carica liste personalizzate, poderi e tariffe
@@ -798,6 +829,102 @@
             }
         });
 
+        // Gestisce upload logo
+        window.handleLogoUpload = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Verifica se l'app è aperta con file:// (problema CORS)
+            if (window.location.protocol === 'file:') {
+                showAlert('⚠️ L\'app è aperta con file://. Per caricare il logo, apri l\'app da un server HTTP (es. GitHub Pages o server locale).', 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            // Validazione file
+            const maxSize = 2 * 1024 * 1024; // 2MB
+            if (file.size > maxSize) {
+                showAlert('Il file è troppo grande. Dimensione massima: 2MB', 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+            if (!validTypes.includes(file.type)) {
+                showAlert('Formato file non supportato. Usa PNG, JPG o SVG', 'error');
+                event.target.value = '';
+                return;
+            }
+            
+            // Mostra preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('logo-preview-img').src = e.target.result;
+                document.getElementById('logo-preview').style.display = 'block';
+                document.getElementById('logo-current').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+            
+            // Salva file per upload successivo
+            logoFileToUpload = file;
+        };
+        
+        // Rimuove logo
+        window.rimuoviLogo = async function() {
+            if (!currentTenantId) return;
+            
+            try {
+                // Verifica autenticazione
+                const user = auth.currentUser;
+                if (!user) {
+                    showAlert('Utente non autenticato. Effettua il login.', 'error');
+                    return;
+                }
+                
+                const tenantRef = doc(db, 'tenants', currentTenantId);
+                const tenantSnap = await getDoc(tenantRef);
+                
+                if (tenantSnap.exists()) {
+                    const tenantData = tenantSnap.data();
+                    
+                    // Elimina logo da Storage se presente
+                    if (tenantData.logoUrl) {
+                        try {
+                            // Estrai percorso dal URL completo
+                            const urlParts = tenantData.logoUrl.split('/o/');
+                            if (urlParts.length > 1) {
+                                const pathPart = urlParts[1].split('?')[0];
+                                const decodedPath = decodeURIComponent(pathPart);
+                                const logoRef = ref(storage, decodedPath);
+                                await deleteObject(logoRef);
+                                console.log('🗑️ Logo eliminato da Storage');
+                            }
+                        } catch (storageError) {
+                            console.warn('⚠️ Errore eliminazione logo da Storage (non critico):', storageError);
+                            // Continua comunque
+                        }
+                    }
+                    
+                    // Rimuovi URL logo dal tenant
+                    await updateDoc(tenantRef, {
+                        logoUrl: null,
+                        aggiornatoIl: serverTimestamp()
+                    });
+                    
+                    // Aggiorna UI
+                    document.getElementById('logo-preview').style.display = 'none';
+                    document.getElementById('logo-current').style.display = 'none';
+                    document.getElementById('azienda-logo').value = '';
+                    logoFileToUpload = null;
+                    
+                    showAlert('Logo rimosso con successo', 'success');
+                }
+            } catch (error) {
+                console.error('Errore rimozione logo:', error);
+                showAlert('Errore durante la rimozione del logo: ' + error.message, 'error');
+            }
+        };
+
         // Salva impostazioni azienda
         async function handleSaveAzienda(e) {
             e.preventDefault();
@@ -810,6 +937,108 @@
             try {
                 const tenantRef = doc(db, 'tenants', currentUserData.tenantId);
                 const tenantSnap = await getDoc(tenantRef);
+                
+                let logoUrl = null;
+                
+                // Upload logo se presente
+                if (logoFileToUpload) {
+                    try {
+                        // Verifica autenticazione
+                        const user = auth.currentUser;
+                        if (!user) {
+                            throw new Error('Utente non autenticato. Effettua il login.');
+                        }
+                        
+                        // Normalizza tenantId per percorso Storage (rimuovi spazi e caratteri speciali)
+                        const normalizedTenantId = currentUserData.tenantId
+                            .replace(/[^a-zA-Z0-9_-]/g, '_')
+                            .replace(/_+/g, '_')
+                            .replace(/^_|_$/g, '');
+                        
+                        // Estrai estensione file
+                        const fileExtension = logoFileToUpload.name.split('.').pop().toLowerCase();
+                        const logoFileName = `tenants/${normalizedTenantId}/logo_${Date.now()}.${fileExtension}`;
+                        
+                        console.log('📤 Upload logo:', {
+                            tenantId: currentUserData.tenantId,
+                            normalizedTenantId: normalizedTenantId,
+                            fileName: logoFileName,
+                            fileSize: logoFileToUpload.size,
+                            fileType: logoFileToUpload.type
+                        });
+                        
+                        const logoStorageRef = ref(storage, logoFileName);
+                        
+                        // Elimina logo vecchio se presente
+                        if (tenantSnap.exists()) {
+                            const oldTenantData = tenantSnap.data();
+                            if (oldTenantData.logoUrl) {
+                                try {
+                                    // Estrai percorso dal URL completo
+                                    const urlParts = oldTenantData.logoUrl.split('/o/');
+                                    if (urlParts.length > 1) {
+                                        const pathPart = urlParts[1].split('?')[0];
+                                        const decodedPath = decodeURIComponent(pathPart);
+                                        const oldLogoRef = ref(storage, decodedPath);
+                                        await deleteObject(oldLogoRef);
+                                        console.log('🗑️ Logo vecchio eliminato');
+                                    }
+                                } catch (deleteError) {
+                                    console.warn('⚠️ Errore eliminazione logo vecchio (non critico):', deleteError);
+                                    // Continua comunque
+                                }
+                            }
+                        }
+                        
+                        // Upload nuovo logo con metadata
+                        const metadata = {
+                            contentType: logoFileToUpload.type,
+                            customMetadata: {
+                                uploadedBy: user.uid,
+                                tenantId: normalizedTenantId,
+                                uploadedAt: new Date().toISOString()
+                            }
+                        };
+                        
+                        await uploadBytes(logoStorageRef, logoFileToUpload, metadata);
+                        logoUrl = await getDownloadURL(logoStorageRef);
+                        
+                        console.log('✅ Logo caricato con successo:', logoUrl);
+                    } catch (uploadError) {
+                        console.error('❌ Errore upload logo:', uploadError);
+                        
+                        let errorMessage = 'Errore durante il caricamento del logo';
+                        const errorCode = uploadError.code || '';
+                        const errorMsg = uploadError.message || '';
+                        
+                        if (window.location.protocol === 'file:') {
+                            errorMessage = '⚠️ ERRORE CORS: L\'app è aperta con file://. Per caricare il logo:\n\n' +
+                                         '1. Apri l\'app da GitHub Pages: https://vitaradragon.github.io/gfv-platform/\n' +
+                                         '2. Oppure usa un server locale (es. Live Server in VS Code)\n\n' +
+                                         'Firebase Storage richiede un\'origine HTTP valida.';
+                        } else if (errorCode.includes('unauthorized') || errorMsg.includes('permission') || errorCode === 'storage/unauthorized') {
+                            errorMessage = '❌ Errore permessi Storage. Verifica:\n\n' +
+                                         '1. Le regole Storage sono deployate: firebase deploy --only storage\n' +
+                                         '2. Sei autenticato correttamente\n' +
+                                         '3. Il tuo tenantId è corretto';
+                        } else if (errorCode.includes('network') || errorCode === 'storage/network-request-failed' || errorMsg.includes('network')) {
+                            errorMessage = '🌐 Errore di rete. Verifica:\n\n' +
+                                         '1. La connessione internet\n' +
+                                         '2. Che Firebase Storage sia abilitato nel progetto';
+                        } else if (errorMsg.includes('CORS') || errorMsg.includes('origin')) {
+                            errorMessage = '⚠️ Errore CORS. Apri l\'app da un server HTTP (non file://).';
+                        } else {
+                            errorMessage = `Errore: ${errorMsg || errorCode || 'Errore sconosciuto durante l\'upload'}`;
+                        }
+                        
+                        showAlert(errorMessage, 'error');
+                        return;
+                    }
+                } else if (tenantSnap.exists()) {
+                    // Mantieni logo esistente se non c'è nuovo upload
+                    const existingData = tenantSnap.data();
+                    logoUrl = existingData.logoUrl || null;
+                }
                 
                 const tenantData = {
                     nome: document.getElementById('azienda-nome').value,
@@ -824,6 +1053,11 @@
                     note: document.getElementById('azienda-note').value,
                     aggiornatoIl: serverTimestamp()
                 };
+                
+                // Aggiungi logoUrl se presente
+                if (logoUrl !== null) {
+                    tenantData.logoUrl = logoUrl;
+                }
 
                 // Se il documento esiste, aggiorna; altrimenti crea
                 if (tenantSnap.exists()) {
@@ -833,6 +1067,17 @@
                     tenantData.creatoIl = serverTimestamp();
                     await setDoc(tenantRef, tenantData);
                 }
+                
+                // Aggiorna preview logo
+                if (logoUrl) {
+                    document.getElementById('logo-current-img').src = logoUrl;
+                    document.getElementById('logo-current').style.display = 'block';
+                    document.getElementById('logo-preview').style.display = 'none';
+                }
+                
+                // Reset upload
+                logoFileToUpload = null;
+                document.getElementById('azienda-logo').value = '';
                 
                 showAlert('Impostazioni azienda salvate con successo', 'success');
             } catch (error) {

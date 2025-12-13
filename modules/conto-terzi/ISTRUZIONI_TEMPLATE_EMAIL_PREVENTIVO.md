@@ -21,6 +21,7 @@
 ## Passo 5: Configura le Variabili
 EmailJS riconoscerà automaticamente le variabili nel template. Assicurati che queste variabili siano presenti:
 
+**Variabili Preventivo:**
 - `{{ragione_sociale}}` - Nome cliente
 - `{{numero_preventivo}}` - Numero preventivo
 - `{{tipo_lavoro}}` - Tipo di lavoro
@@ -37,6 +38,16 @@ EmailJS riconoscerà automaticamente le variabili nel template. Assicurati che q
 - `{{link_rifiuto}}` - Link per rifiutare preventivo (opzionale)
 - `{{note}}` - Note aggiuntive (opzionale)
 
+**Variabili Azienda (Branding):**
+- `{{logo_azienda}}` - HTML del logo aziendale (se presente, altrimenti vuoto)
+- `{{nome_azienda}}` - Nome azienda (HTML formattato o testo semplice)
+- `{{indirizzo_azienda}}` - Indirizzo completo formattato (HTML, opzionale)
+- `{{telefono_azienda}}` - Telefono formattato (HTML, opzionale)
+- `{{email_azienda}}` - Email formattata (HTML, opzionale)
+- `{{piva_azienda}}` - Partita IVA formattata (HTML, opzionale)
+
+**Nota**: Le variabili azienda contengono già HTML formattato (tag `<p>`, `<img>`, ecc.) perché EmailJS non supporta condizioni `{{#if}}`. Se una variabile è vuota, semplicemente non verrà visualizzato nulla.
+
 ## Passo 6: Salva e Ottieni Template ID
 1. Clicca su **"Save"** per salvare il template
 2. Copia il **Template ID** (es: `template_xxxxxxx`)
@@ -49,8 +60,9 @@ EmailJS riconoscerà automaticamente le variabili nel template. Assicurati che q
 ## Note Importanti
 - **Service ID**: Usa lo stesso Service ID già configurato: `service_f4to9qr`
 - **Public Key**: Usa la stessa Public Key già configurata: `AnLLhJOew6d6sCIOG`
-- Il template supporta variabili opzionali (usando `{{#if variabile}}`) per mostrare/nascondere sezioni
-- Il design è coerente con il template degli inviti (stesso logo e colori)
+- **Branding Aziendale**: Il template ora usa il logo e i dati dell'azienda invece del logo GFV Platform. Configura i dati azienda nelle Impostazioni.
+- EmailJS non supporta condizioni `{{#if}}`, quindi le variabili opzionali contengono già HTML formattato (vuoto se non presente)
+- Il design mantiene i colori blu del modulo Conto Terzi ma mostra il branding dell'azienda cliente
 
 ## Troubleshooting
 - Se le variabili non vengono sostituite, verifica che i nomi nel codice JavaScript corrispondano esattamente a quelli nel template

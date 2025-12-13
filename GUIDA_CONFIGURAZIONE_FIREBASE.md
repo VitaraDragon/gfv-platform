@@ -303,11 +303,51 @@ Dovresti aver completato:
 
 ---
 
+## 🔥 STEP 9: Configura Firebase Storage (Per Logo Aziendale)
+
+### 9.1 Abilita Storage
+
+1. Vai su Firebase Console → **Storage** nel menu laterale
+2. Clicca **"Inizia"** o **"Get started"**
+3. Scegli **"Inizia in modalità test"** (per ora, poi aggiorneremo le regole)
+4. Scegli una **location** (es. `europe-west1` per l'Europa)
+5. Clicca **"Fine"** o **"Done"**
+
+### 9.2 Deploy Regole Storage
+
+1. Installa Firebase CLI (se non già installato):
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. Login Firebase:
+   ```bash
+   firebase login
+   ```
+
+3. Inizializza Firebase (se non già fatto):
+   ```bash
+   firebase init storage
+   ```
+   - Seleziona il progetto `gfv-platform`
+   - Conferma il file `storage.rules`
+
+4. Deploy regole Storage:
+   ```bash
+   firebase deploy --only storage
+   ```
+
+5. Verifica in Firebase Console → Storage → **Rules** che le regole siano deployate
+
+**Nota**: Le regole Storage permettono agli utenti autenticati di caricare/eliminare loghi aziendali nel percorso `tenants/{tenantId}/logo_*.{ext}`
+
+---
+
 ## 📚 Prossimi Passi (Dopo questa configurazione)
 
 1. **Test connessione**: Crea una pagina HTML di test per verificare che Firebase funzioni
 2. **Configura Security Rules**: Sostituisci regole di test con regole di produzione
-3. **Abilita Storage**: Se necessario per file upload
+3. ✅ **Storage configurato**: Per upload logo aziendale
 4. **Configura Hosting**: Se vuoi deployare l'app su Firebase Hosting
 
 ---

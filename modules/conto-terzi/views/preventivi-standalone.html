@@ -679,6 +679,92 @@
                 // Genera link rifiuto (opzionale)
                 const rifiutoUrl = `${baseUrl}/accetta-preventivo-standalone.html?token=${preventivo.tokenAccettazione}&action=rifiuta`;
 
+                // Carica dati azienda per branding email
+                let datiAzienda = {
+                    nome: '',
+                    logoUrl: null,
+                    indirizzo: '',
+                    citta: '',
+                    cap: '',
+                    provincia: '',
+                    telefono: '',
+                    email: '',
+                    piva: ''
+                };
+                
+                try {
+                    const tenantRef = doc(db, 'tenants', currentTenantId);
+                    const tenantSnap = await getDoc(tenantRef);
+                    if (tenantSnap.exists()) {
+                        const tenantData = tenantSnap.data();
+                        datiAzienda = {
+                            nome: tenantData.nome || '',
+                            logoUrl: tenantData.logoUrl || null,
+                            indirizzo: tenantData.indirizzo || '',
+                            citta: tenantData.citta || '',
+                            cap: tenantData.cap || '',
+                            provincia: tenantData.provincia || '',
+                            telefono: tenantData.telefono || '',
+                            email: tenantData.email || '',
+                            piva: tenantData.piva || ''
+                        };
+                    }
+                } catch (tenantError) {
+                    console.warn('Errore caricamento dati azienda:', tenantError);
+                    // Continua con dati vuoti
+                }
+
+                // Prepara variabili azienda per template email
+                // EmailJS non supporta {{#if}}, quindi prepariamo HTML già formattato
+                let logoAziendaHtml = '';
+                if (datiAzienda.logoUrl) {
+                    logoAziendaHtml = `<img src="${datiAzienda.logoUrl}" alt="${datiAzienda.nome || 'Azienda'}" style="max-width: 200px; max-height: 100px; height: auto; margin-bottom: 15px;">`;
+                }
+                
+                // Nome azienda nell'header: solo se NON c'è logo
+                let nomeAziendaHeaderHtml = '';
+                if (datiAzienda.nome && !datiAzienda.logoUrl) {
+                    nomeAziendaHeaderHtml = `<h1 style="color: white; margin: 0 0 15px 0; font-size: 28px; font-weight: bold;">${datiAzienda.nome}</h1>`;
+                }
+                
+                // Nome azienda nel footer: sempre presente se c'è il nome
+                let nomeAziendaFooterHtml = '';
+                if (datiAzienda.nome) {
+                    nomeAziendaFooterHtml = `<p style="margin: 0 0 10px 0; color: #333; font-size: 14px; font-weight: bold;">${datiAzienda.nome}</p>`;
+                }
+                
+                // Formatta indirizzo completo
+                let indirizzoCompleto = '';
+                if (datiAzienda.indirizzo) {
+                    indirizzoCompleto = datiAzienda.indirizzo;
+                    if (datiAzienda.citta) {
+                        indirizzoCompleto += `, ${datiAzienda.citta}`;
+                    }
+                    if (datiAzienda.cap) {
+                        indirizzoCompleto += ` ${datiAzienda.cap}`;
+                    }
+                }
+                
+                let indirizzoAziendaHtml = '';
+                if (indirizzoCompleto) {
+                    indirizzoAziendaHtml = `<p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">${indirizzoCompleto}</p>`;
+                }
+                
+                let telefonoAziendaHtml = '';
+                if (datiAzienda.telefono) {
+                    telefonoAziendaHtml = `<p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">Tel: ${datiAzienda.telefono}</p>`;
+                }
+                
+                let emailAziendaHtml = '';
+                if (datiAzienda.email) {
+                    emailAziendaHtml = `<p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">Email: ${datiAzienda.email}</p>`;
+                }
+                
+                let pivaAziendaHtml = '';
+                if (datiAzienda.piva) {
+                    pivaAziendaHtml = `<p style="margin: 0 0 10px 0; color: #666; font-size: 12px;">P.IVA: ${datiAzienda.piva}</p>`;
+                }
+
                 // Invia email tramite EmailJS
                 let emailInviata = false;
                 try {
@@ -708,7 +794,17 @@
                             scadenza: scadenzaFormattata,
                             link_accettazione: accettazioneUrl,
                             link_rifiuto: rifiutoUrl,
-                            note: preventivo.note || ''
+                            note: preventivo.note || '',
+                            // Dati azienda per branding
+                            logo_azienda: logoAziendaHtml,
+                            nome_azienda: nomeAziendaHeaderHtml || nomeAziendaFooterHtml || '',
+                            nome_azienda_footer: nomeAziendaFooterHtml,
+                            indirizzo_azienda: indirizzoAziendaHtml,
+                            citta_azienda: datiAzienda.citta || '',
+                            cap_azienda: datiAzienda.cap || '',
+                            telefono_azienda: telefonoAziendaHtml,
+                            email_azienda: emailAziendaHtml,
+                            piva_azienda: pivaAziendaHtml
                         }
                     );
                     console.log('✅ Email inviata con successo');

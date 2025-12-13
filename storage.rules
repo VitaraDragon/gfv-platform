@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper: verifica autenticazione
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper: verifica che l'utente appartenga al tenant
+    function belongsToTenant(tenantId) {
+      return isAuthenticated() && 
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
+    }
+    
+    // Regola per loghi aziendali: tenants/{tenantId}/logo_*.{ext}
+    match /tenants/{tenantId}/{logoFileName} {
+      // Verifica che il file sia un logo (nome inizia con "logo_")
+      function isLogoFile() {
+        return logoFileName.matches('logo_.*');
+      }
+      
+      // Lettura: utenti autenticati del tenant
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      
+      // Scrittura: solo utenti autenticati del tenant (Manager/Amministratore verificato lato client)
+      allow write: if isAuthenticated() && 
+                      belongsToTenant(tenantId) &&
+                      isLogoFile() &&
+                      request.resource.size < 2 * 1024 * 1024 && // Max 2MB
+                      request.resource.contentType.matches('image/.*'); // Solo immagini
+      
+      // Eliminazione: utenti autenticati del tenant
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId);
+    }
+    
+    // Blocca tutto il resto
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
