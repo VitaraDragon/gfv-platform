@@ -1016,6 +1016,14 @@
                                          '1. Apri l\'app da GitHub Pages: https://vitaradragon.github.io/gfv-platform/\n' +
                                          '2. Oppure usa un server locale (es. Live Server in VS Code)\n\n' +
                                          'Firebase Storage richiede un\'origine HTTP valida.';
+                        } else if (errorMsg.includes('CORS') || errorMsg.includes('origin') || errorMsg.includes('preflight')) {
+                            errorMessage = '⚠️ ERRORE CORS: Configurazione CORS mancante sul bucket Storage.\n\n' +
+                                         'SOLUZIONE:\n' +
+                                         '1. Vai su Firebase Console → Storage → Settings\n' +
+                                         '2. Copia il nome del bucket (es: gfv-platform.firebasestorage.app)\n' +
+                                         '3. Segui le istruzioni in CONFIGURA_CORS_STORAGE.md\n' +
+                                         '4. Oppure usa: gsutil cors set cors.json gs://[BUCKET_NAME]\n\n' +
+                                         'Vedi il file CONFIGURA_CORS_STORAGE.md per istruzioni dettagliate.';
                         } else if (errorCode.includes('unauthorized') || errorMsg.includes('permission') || errorCode === 'storage/unauthorized') {
                             errorMessage = '❌ Errore permessi Storage. Verifica:\n\n' +
                                          '1. Le regole Storage sono deployate: firebase deploy --only storage\n' +
@@ -1024,11 +1032,15 @@
                         } else if (errorCode.includes('network') || errorCode === 'storage/network-request-failed' || errorMsg.includes('network')) {
                             errorMessage = '🌐 Errore di rete. Verifica:\n\n' +
                                          '1. La connessione internet\n' +
-                                         '2. Che Firebase Storage sia abilitato nel progetto';
-                        } else if (errorMsg.includes('CORS') || errorMsg.includes('origin')) {
-                            errorMessage = '⚠️ Errore CORS. Apri l\'app da un server HTTP (non file://).';
+                                         '2. Che Firebase Storage sia abilitato nel progetto Firebase Console';
+                        } else if (errorCode === 'storage/bucket-not-found' || errorMsg.includes('bucket')) {
+                            errorMessage = '❌ Bucket Storage non trovato. Verifica:\n\n' +
+                                         '1. Storage è abilitato in Firebase Console → Storage\n' +
+                                         '2. Il nome bucket in firebase-config.js è corretto';
                         } else {
-                            errorMessage = `Errore: ${errorMsg || errorCode || 'Errore sconosciuto durante l\'upload'}`;
+                            errorMessage = `Errore: ${errorMsg || errorCode || 'Errore sconosciuto durante l\'upload'}\n\n` +
+                                         `Codice: ${errorCode || 'N/A'}\n` +
+                                         `Messaggio: ${errorMsg || 'N/A'}`;
                         }
                         
                         showAlert(errorMessage, 'error');
