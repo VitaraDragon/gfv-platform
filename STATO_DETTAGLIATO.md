@@ -1,7 +1,7 @@
 # 📊 Stato Dettagliato Progetto - GFV Platform
 
-**Data aggiornamento**: 2025-01-26  
-**Versione**: 1.1  
+**Data aggiornamento**: 2025-12-10  
+**Versione**: 1.2  
 **Stato generale**: ✅ **IN SVILUPPO ATTIVO - FUNZIONANTE**
 
 ---
@@ -17,7 +17,61 @@
 
 ---
 
+## 🆕 Ultime Modifiche (2025-12-10)
+
+### Evidenziazione Visiva Lavori Conto Terzi ✅
+- ✅ Filtro "Tipo Lavoro" in Gestione Lavori (Interni/Conto Terzi)
+- ✅ Gradiente blu/azzurro distintivo per lavori conto terzi
+- ✅ Badge "💼 Conto Terzi" accanto al nome lavoro
+- ✅ Evidenziazione nel Diario da Lavori della dashboard
+- ✅ Stile coerente con sezione Conto Terzi
+
+### Pianificazione Lavori Conto Terzi senza Manodopera 📝
+- 📝 **Pianificato**: Rendere "Gestione Lavori" accessibile anche senza Manodopera
+- 📝 Modalità semplificata: solo pianificazione base (nome, terreno, tipo, data, durata, note, stato)
+- 📝 Supporto Parco Macchine: assegnazione macchine ai lavori
+- 📝 Funziona con: Core Base + Conto Terzi, Core Base + Parco Macchine + Conto Terzi
+
+---
+
 ## ✅ Moduli Completati e Funzionanti
+
+### 0. Modulo Conto Terzi - Fase 1 MVP ✅ COMPLETO
+
+**Stato**: ✅ **100% Funzionante**
+
+#### Funzionalità Principali
+- ✅ **Anagrafica Clienti** - CRUD completo clienti
+- ✅ **Gestione Terreni Clienti** - Terreni associati ai clienti
+- ✅ **Preventivi e Offerte** - Creazione, invio email, accettazione
+- ✅ **Creazione Lavori da Preventivi** - Generazione automatica lavori da preventivi accettati
+- ✅ **Evidenziazione Visiva Lavori Conto Terzi** - Gradiente blu/azzurro distintivo
+- ✅ **Filtro Lavori Conto Terzi** - Separazione visiva e funzionale lavori interni/conto terzi
+- ✅ **Integrazione Dashboard** - Card dedicata, evidenziazione nel Diario da Lavori
+
+#### Pagine Modulo
+- ✅ **Dashboard Conto Terzi** (`modules/conto-terzi/views/conto-terzi-home-standalone.html`)
+- ✅ **Anagrafica Clienti** (`modules/conto-terzi/views/clienti-standalone.html`)
+- ✅ **Terreni Clienti** (`modules/conto-terzi/views/terreni-clienti-standalone.html`)
+- ✅ **Gestione Preventivi** (`modules/conto-terzi/views/preventivi-standalone.html`)
+- ✅ **Nuovo Preventivo** (`modules/conto-terzi/views/nuovo-preventivo-standalone.html`)
+- ✅ **Accetta Preventivo** (`modules/conto-terzi/views/accetta-preventivo-standalone.html`)
+- ✅ **Tariffe** (`modules/conto-terzi/views/tariffe-standalone.html`)
+- ✅ **Mappa Clienti** (`modules/conto-terzi/views/mappa-clienti-standalone.html`)
+
+#### Caratteristiche Avanzate
+- ✅ **Design Distintivo** - Colore blu (`#1976D2`, `#E3F2FD`) per distinguere dal Core Base
+- ✅ **Sistema Email Preventivi** - Invio automatico via EmailJS
+- ✅ **Link Accettazione** - Token sicuro per accettazione preventivi
+- ✅ **Integrazione Modelli** - Campi `clienteId` e `preventivoId` in Lavoro, Terreno, Attività
+- ✅ **Navigazione Gerarchica** - Dashboard Conto Terzi → Dashboard Principale
+
+#### Funzionalità in Pianificazione (Fase 2)
+- 📝 **Pianificazione Lavori senza Manodopera** - Rendere "Gestione Lavori" accessibile anche senza Manodopera
+- 📝 **Modalità Semplificata** - Solo pianificazione base quando Manodopera non attivo
+- 📝 **Supporto Parco Macchine** - Assegnazione macchine ai lavori conto terzi
+
+---
 
 ### 1. Core Base ✅ COMPLETO
 
@@ -126,27 +180,37 @@
 
 ## 🚧 Moduli in Pianificazione
 
-### 1. Modulo Conto Terzi 📝 PIANIFICATO
+### 1. Modulo Conto Terzi ✅ FASE 1 MVP COMPLETATA - 📝 FASE 2 IN SVILUPPO
 
-**Stato**: 📝 **Pianificato ma non ancora implementato**
+**Stato**: ✅ **Fase 1 MVP Completata** - 📝 **Fase 2 in sviluppo**
 
 **Piano completo**: Vedi `PLAN_MODULO_CONTO_TERZI.md`
 
-#### Obiettivo
-Gestione lavori agricoli svolti per conto di clienti esterni.
+#### Funzionalità Completate (Fase 1 MVP)
+- ✅ Anagrafica clienti
+- ✅ Gestione terreni clienti
+- ✅ Preventivi e offerte
+- ✅ Invio preventivi via email
+- ✅ Accettazione preventivi (email + manager)
+- ✅ Creazione lavori da preventivi accettati
+- ✅ Evidenziazione visiva lavori conto terzi (gradiente blu/azzurro)
+- ✅ Filtro lavori conto terzi in Gestione Lavori
+- ✅ Evidenziazione lavori conto terzi nel Diario da Lavori dashboard
 
-#### Funzionalità Pianificate
-- 📝 Anagrafica clienti
-- 📝 Gestione terreni clienti
-- 📝 Preventivi e offerte
-- 📝 Pianificazione lavori conto terzi
-- 📝 Calcolo costi e ore
-- 📝 Integrazione con moduli esistenti
+#### Funzionalità in Pianificazione (Fase 2)
+- 📝 **Pianificazione lavori conto terzi senza Manodopera** (priorità alta)
+  - Rendere "Gestione Lavori" accessibile anche senza Manodopera
+  - Modalità semplificata: solo pianificazione base (nome, terreno, tipo, data, durata, note, stato)
+  - Supporto Parco Macchine: assegnazione macchine ai lavori
+  - Nascondere funzionalità Manodopera (caposquadra, operai, squadre, ore)
+  - Funziona con: Core Base + Conto Terzi, Core Base + Parco Macchine + Conto Terzi
+- 📝 Calcolo costi e ore avanzato
+- 📝 Integrazione completa con moduli esistenti
 
 #### Priorità
-- **Fase 1 (MVP)**: 8-10 ore stimati
-- **Fase 2 (Preventivi)**: 6-8 ore stimati
-- **Fase 3 (Integrazione)**: 4-6 ore stimati
+- **Fase 1 (MVP)**: ✅ Completata (2025-12-07)
+- **Fase 2 (Pianificazione)**: 📝 In sviluppo (2025-12-10)
+- **Fase 3 (Integrazione)**: 📝 Pianificata
 
 ---
 
@@ -254,7 +318,8 @@ Gestione lavori agricoli svolti per conto di clienti esterni.
 - ✅ **Core Base**: 100% completo
 - ✅ **Modulo Manodopera**: 100% completo
 - ✅ **Modulo Parco Macchine**: 100% completo
-- 📝 **Modulo Conto Terzi**: 0% (pianificato)
+- ✅ **Modulo Conto Terzi - Fase 1 (MVP)**: 100% completo
+- 📝 **Modulo Conto Terzi - Fase 2 (Pianificazione)**: 0% (pianificato)
 
 ### Pagine Implementate
 
@@ -339,7 +404,8 @@ Gestione lavori agricoli svolti per conto di clienti esterni.
 - ✅ **Core Base**: 100% completo
 - ✅ **Modulo Manodopera**: 100% completo
 - ✅ **Modulo Parco Macchine**: 100% completo
-- 📝 **Modulo Conto Terzi**: 0% (pianificato)
+- ✅ **Modulo Conto Terzi - Fase 1 (MVP)**: 100% completo
+- 📝 **Modulo Conto Terzi - Fase 2 (Pianificazione)**: 0% (pianificato)
 
 ### Qualità
 - ✅ **PWA**: Installabile e funzionante
@@ -358,7 +424,7 @@ Gestione lavori agricoli svolti per conto di clienti esterni.
 ## 📝 Note Finali
 
 ### Stato Generale
-Il progetto è **molto avanzato** e **funzionante**. I moduli Core Base, Manodopera e Parco Macchine sono completi e testati. L'app è deployata online e utilizzabile.
+Il progetto è **molto avanzato** e **funzionante**. I moduli Core Base, Manodopera, Parco Macchine e Conto Terzi (Fase 1 MVP) sono completi e testati. L'app è deployata online e utilizzabile.
 
 ### Punti di Forza
 - ✅ Architettura solida e modulare
@@ -368,15 +434,15 @@ Il progetto è **molto avanzato** e **funzionante**. I moduli Core Base, Manodop
 - ✅ PWA installabile
 
 ### Aree di Miglioramento
-- 📝 Completare Modulo Conto Terzi
+- 📝 Completare Modulo Conto Terzi - Fase 2 (Pianificazione lavori senza Manodopera)
 - 📝 Fixare tour Gestione Lavori
 - 📝 Aggiungere sistema pagamenti
 - 📝 Migliorare sicurezza per produzione
 
 ---
 
-**Ultimo aggiornamento**: 2025-01-26  
-**Versione documento**: 1.1  
-**Ultima funzionalità**: Gestione Affitti Terreni e Statistiche Complete  
+**Ultimo aggiornamento**: 2025-12-10  
+**Versione documento**: 1.3  
+**Ultima funzionalità**: Evidenziazione Visiva Lavori Conto Terzi + Pianificazione Lavori Conto Terzi (pianificato)  
 **Stato**: ✅ Progetto attivo e funzionante
 

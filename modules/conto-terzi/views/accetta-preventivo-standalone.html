@@ -212,20 +212,53 @@
 
     <!-- Load Firebase config from external file -->
     <script>
+        // Configurazione Firebase di fallback (se il file esterno non viene caricato)
+        const fallbackConfig = {
+            apiKey: "AIzaSyBOqH6Oax3_JRQhMaU8Fp36wxgYo3s_pw0",
+            authDomain: "gfv-platform.firebaseapp.com",
+            projectId: "gfv-platform",
+            storageBucket: "gfv-platform.firebasestorage.app",
+            messagingSenderId: "495860225347",
+            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+        };
+
+        // Prova a caricare la configurazione da file esterno
         const configScript = document.createElement('script');
         configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onload = function() {
+            // Se il file viene caricato ma non definisce window.firebaseConfig, usa il fallback
+            setTimeout(() => {
+                if (typeof window.firebaseConfig === 'undefined') {
+                    console.warn('Firebase config file loaded but config not found, using fallback');
+                    window.firebaseConfig = fallbackConfig;
+                }
+            }, 100);
+        };
         configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
+            console.warn('Firebase config file not found, using fallback');
+            // Usa configurazione di fallback
+            window.firebaseConfig = fallbackConfig;
         };
         document.head.appendChild(configScript);
+        
+        // Timeout di sicurezza: se dopo 1 secondo non è ancora caricato, usa fallback
+        setTimeout(() => {
+            if (typeof window.firebaseConfig === 'undefined') {
+                console.warn('Firebase config loading timeout, using fallback');
+                window.firebaseConfig = fallbackConfig;
+            }
+        }, 1000);
     </script>
     
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Variabili globali per le funzioni di accettazione/rifiuto
+        let preventivoData = null;
+        let tenantIdData = null;
+        let dbInstance = null;
 
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
@@ -251,32 +284,122 @@
             });
         }
 
+        // Utility functions
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Funzioni accetta/rifiuta (definite globalmente)
+        window.accettaPreventivo = async function() {
+            if (!preventivoData || !tenantIdData || !dbInstance) {
+                showAlert('Errore: Dati preventivo non disponibili. Ricarica la pagina.', 'error');
+                console.error('Dati mancanti:', { preventivoData, tenantIdData, dbInstance });
+                return;
+            }
+
+            if (!confirm('Sei sicuro di voler accettare questo preventivo?')) {
+                return;
+            }
+
+            const actionsContainer = document.getElementById('actions-container');
+            const btnAccetta = actionsContainer.querySelector('.btn-success');
+            if (btnAccetta) {
+                btnAccetta.disabled = true;
+                btnAccetta.textContent = '⏳ Elaborazione...';
+            }
+
+            try {
+                await updateDoc(doc(dbInstance, 'tenants', tenantIdData, 'preventivi', preventivoData.id), {
+                    stato: 'accettato_email',
+                    dataAccettazione: serverTimestamp()
+                });
+                
+                showAlert('Preventivo accettato con successo!', 'success');
+                actionsContainer.innerHTML = '<div class="alert alert-success">✅ Preventivo accettato con successo!</div>';
+                
+                // Aggiorna i dati locali
+                preventivoData.stato = 'accettato_email';
+            } catch (error) {
+                console.error('Errore accettazione:', error);
+                showAlert('Errore: ' + error.message, 'error');
+                if (btnAccetta) {
+                    btnAccetta.disabled = false;
+                    btnAccetta.textContent = '✅ Accetta Preventivo';
+                }
+            }
+        };
+
+        window.rifiutaPreventivo = async function() {
+            if (!preventivoData || !tenantIdData || !dbInstance) {
+                showAlert('Errore: Dati preventivo non disponibili. Ricarica la pagina.', 'error');
+                console.error('Dati mancanti:', { preventivoData, tenantIdData, dbInstance });
+                return;
+            }
+
+            if (!confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
+                return;
+            }
+
+            const actionsContainer = document.getElementById('actions-container');
+            const btnRifiuta = actionsContainer.querySelector('.btn-danger');
+            if (btnRifiuta) {
+                btnRifiuta.disabled = true;
+                btnRifiuta.textContent = '⏳ Elaborazione...';
+            }
+
+            try {
+                await updateDoc(doc(dbInstance, 'tenants', tenantIdData, 'preventivi', preventivoData.id), {
+                    stato: 'rifiutato'
+                });
+                
+                showAlert('Preventivo rifiutato.', 'success');
+                actionsContainer.innerHTML = '<div class="alert alert-error">❌ Preventivo rifiutato.</div>';
+                
+                // Aggiorna i dati locali
+                preventivoData.stato = 'rifiutato';
+            } catch (error) {
+                console.error('Errore rifiuto:', error);
+                showAlert('Errore: ' + error.message, 'error');
+                if (btnRifiuta) {
+                    btnRifiuta.disabled = false;
+                    btnRifiuta.textContent = '❌ Rifiuta Preventivo';
+                }
+            }
+        };
+
         // Ottieni token dalla URL
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
-        const action = window.location.pathname.includes('accetta') ? 'accetta' : 'rifiuta';
+        const action = urlParams.get('action') || (window.location.pathname.includes('accetta') ? 'accetta' : 'rifiuta');
 
         if (!token) {
             document.getElementById('loading').innerHTML = '<div class="alert alert-error">Token non valido. Link non valido o scaduto.</div>';
         } else {
-            const firebaseConfig = await waitForConfig();
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-
-            // Cerca preventivo per token
-            let preventivo = null;
-            let tenantId = null;
-
             try {
+                const firebaseConfig = await waitForConfig();
+                const app = initializeApp(firebaseConfig);
+                dbInstance = getFirestore(app);
+
+                // Cerca preventivo per token
+                let preventivo = null;
+                let tenantId = null;
+
                 // Cerca in tutti i tenant (non abbiamo tenantId dal token)
-                // Per ora assumiamo che il token sia unico, altrimenti dovremmo cercare in tutti i tenant
-                // TODO: Migliorare con ricerca più efficiente
-                const tenantsSnapshot = await getDocs(collection(db, 'tenants'));
+                const tenantsSnapshot = await getDocs(collection(dbInstance, 'tenants'));
                 
                 for (const tenantDoc of tenantsSnapshot.docs) {
                     const tenantIdCheck = tenantDoc.id;
                     const preventiviQuery = query(
-                        collection(db, 'tenants', tenantIdCheck, 'preventivi'),
+                        collection(dbInstance, 'tenants', tenantIdCheck, 'preventivi'),
                         where('tokenAccettazione', '==', token)
                     );
                     const preventiviSnapshot = await getDocs(preventiviQuery);
@@ -292,8 +415,12 @@
                 if (!preventivo) {
                     document.getElementById('loading').innerHTML = '<div class="alert alert-error">Preventivo non trovato. Link non valido o scaduto.</div>';
                 } else {
+                    // Salva i dati globalmente per le funzioni
+                    preventivoData = preventivo;
+                    tenantIdData = tenantId;
+
                     // Carica dati cliente
-                    const clienteDoc = await getDoc(doc(db, 'tenants', tenantId, 'clienti', preventivo.clienteId));
+                    const clienteDoc = await getDoc(doc(dbInstance, 'tenants', tenantId, 'clienti', preventivo.clienteId));
                     const cliente = clienteDoc.exists() ? clienteDoc.data() : null;
 
                     // Verifica stato
@@ -349,66 +476,16 @@
                     } else {
                         actionsContainer.innerHTML = '<div class="alert alert-warning">⚠️ Stato preventivo non valido per questa operazione.</div>';
                     }
-
-                    // Funzioni accetta/rifiuta
-                    window.accettaPreventivo = async function() {
-                        if (!confirm('Sei sicuro di voler accettare questo preventivo?')) {
-                            return;
-                        }
-
-                        try {
-                            await updateDoc(doc(db, 'tenants', tenantId, 'preventivi', preventivo.id), {
-                                stato: 'accettato_email',
-                                dataAccettazione: serverTimestamp()
-                            });
-                            
-                            showAlert('Preventivo accettato con successo!', 'success');
-                            actionsContainer.innerHTML = '<div class="alert alert-success">✅ Preventivo accettato con successo!</div>';
-                        } catch (error) {
-                            console.error('Errore accettazione:', error);
-                            showAlert('Errore: ' + error.message, 'error');
-                        }
-                    };
-
-                    window.rifiutaPreventivo = async function() {
-                        if (!confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
-                            return;
-                        }
-
-                        try {
-                            await updateDoc(doc(db, 'tenants', tenantId, 'preventivi', preventivo.id), {
-                                stato: 'rifiutato'
-                            });
-                            
-                            showAlert('Preventivo rifiutato.', 'success');
-                            actionsContainer.innerHTML = '<div class="alert alert-error">❌ Preventivo rifiutato.</div>';
-                        } catch (error) {
-                            console.error('Errore rifiuto:', error);
-                            showAlert('Errore: ' + error.message, 'error');
-                        }
-                    };
                 }
             } catch (error) {
                 console.error('Errore caricamento preventivo:', error);
                 document.getElementById('loading').innerHTML = '<div class="alert alert-error">Errore caricamento preventivo: ' + error.message + '</div>';
             }
         }
-
-        // Utility functions
-        function showAlert(message, type = 'info') {
-            const container = document.getElementById('alert-container');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            container.innerHTML = '';
-            container.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
-        }
     </script>
 </body>
 </html>
+
+
 
 

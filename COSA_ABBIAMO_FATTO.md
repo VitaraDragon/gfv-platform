@@ -954,7 +954,186 @@ Il tour della pagina terreni aveva problemi di posizionamento dei popup:
 
 **File modificati**: `core/statistiche-standalone.html`
 
+---
 
+## 📝 Aggiornamenti Recenti (2025-12-10) - Supporto Operai Autonomi e Comunicazioni
 
+### 1. Regole Firestore per Comunicazioni ✅
+
+**Problema Identificato**:
+- Gli operai non potevano leggere le comunicazioni del tenant
+- Gli operai non potevano confermare la ricezione delle comunicazioni (aggiornare campo `conferme`)
+
+**Soluzione Implementata**:
+- Aggiunta regola Firestore per `/tenants/{tenantId}/comunicazioni/{comunicazioneId}`:
+  - **Lettura**: permessa per utenti autenticati del tenant (`isAuthenticated() && belongsToTenant(tenantId)`)
+  - **Creazione**: permessa per caposquadra e manager/admin (`hasRole('caposquadra') || isManagerOrAdmin()`)
+  - **Aggiornamento**: permessa per caposquadra/manager/admin O per operai che aggiornano solo il campo `conferme`
+  - **Eliminazione**: permessa solo per manager/admin
+
+**Caratteristiche**:
+- ✅ Operai possono leggere tutte le comunicazioni del loro tenant
+- ✅ Operai possono confermare la ricezione aggiornando il campo `conferme`
+- ✅ Caposquadra e manager possono creare e gestire comunicazioni
+- ✅ Solo manager/admin possono eliminare comunicazioni
+
+**File modificati**: `firestore.rules`
+
+---
+
+### 2. Supporto Operai Autonomi - Segnatura Lavori Completati ✅
+
+**Problema Identificato**:
+- Gli operai autonomi non potevano segnare come completato i lavori autonomi assegnati a loro
+- La funzione `segnaCompletato` in `lavori-caposquadra-standalone.html` supportava solo i caposquadra per lavori di squadra
+- Le regole Firestore per `lavori` non permettevano agli operai di aggiornare i lavori autonomi
+
+**Soluzione Implementata**:
+
+#### A. Regole Firestore per Lavori - Operai Autonomi
+- Aggiunta regola per permettere agli operai di aggiornare lavori autonomi assegnati a loro:
+  - **Condizioni**: `hasRole('operaio') && resource.data.operaioId == request.auth.uid && resource.data.caposquadraId == null`
+  - **Campi permessi**: `stato`, `percentualeCompletamentoTracciata`, `completatoDa`, `completatoIl`, `aggiornatoIl`
+  - **Stati permessi**: `completato_da_approvare`, `in_corso`, o mantenere lo stato corrente
+- Aggiunto campo `percentualeCompletamentoTracciata` alla lista dei campi permessi per operai
+
+#### B. Funzione `segnaCompletato` Aggiornata
+- **Supporto doppio**: Ora supporta sia caposquadra (lavori di squadra) che operai (lavori autonomi)
+- **Verifica permessi**:
+  - Per caposquadra: verifica che il lavoro sia di squadra (`caposquadraId == userId && operaioId == null`)
+  - Per operai: verifica che il lavoro sia autonomo (`operaioId == userId && caposquadraId == null`)
+- **Log di debug**: Aggiunti log dettagliati per tracciare:
+  - Dati lavoro (ID, nome, caposquadraId, operaioId, stato)
+  - Utente corrente (ID, ruoli)
+  - Campi aggiornati
+  - Esito operazione
+
+#### C. Logica Visualizzazione Lavori Migliorata
+- **Lavori "assegnato"**: Ora vengono mostrati anche se la data inizio è futura
+- **Lavori "in_corso"**: Mostrati solo se la data inizio è oggi o passata
+- **Log di debug**: Aggiunti log per tracciare totale lavori, lavori diretti, lavori inclusi
+
+**Caratteristiche**:
+- ✅ Operai autonomi possono segnare come completato i lavori autonomi assegnati a loro
+- ✅ Caposquadra possono segnare come completato i lavori di squadra assegnati a loro
+- ✅ Validazione permessi lato client e server (Firestore rules)
+- ✅ Log dettagliati per debugging e tracciamento operazioni
+- ✅ Messaggi di errore specifici per tipo di lavoro (squadra vs autonomo)
+
+**File modificati**: 
+- `firestore.rules`
+- `core/admin/lavori-caposquadra-standalone.html`
+- `core/dashboard-standalone.html`
+
+---
+
+### 3. Log di Debug Aggiunti ✅
+
+**Miglioramenti Debug**:
+- **`loadLavori()` in lavori-caposquadra-standalone.html**: Log per `isCaposquadra`, `isOperaio`, `userId`, `totaleLavori`
+- **`segnaCompletato()`**: Log dettagliati per dati lavoro, utente corrente, permessi, campi aggiornati
+- **`loadComunicazioniOperaio()` in dashboard-standalone.html**: Log per tracciare caricamento e filtraggio comunicazioni
+- **`loadLavoriOggiOperaio()`**: Log per totale lavori, lavori diretti, lavori inclusi
+
+**Caratteristiche**:
+- ✅ Debug completo per tracciare flusso dati e permessi
+- ✅ Facilita identificazione problemi di permessi o logica
+- ✅ Log strutturati con emoji per facile identificazione
+
+**File modificati**: 
+- `core/admin/lavori-caposquadra-standalone.html`
+- `core/dashboard-standalone.html`
+
+---
+
+## ✅ Evidenziazione Visiva Lavori Conto Terzi (2025-12-10)
+
+### Obiettivo
+Rendere immediatamente riconoscibili i lavori conto terzi rispetto ai lavori interni, sia nella gestione lavori che nel diario da lavori della dashboard.
+
+### Implementazione
+
+#### Gestione Lavori
+- **File modificato**: `core/admin/gestione-lavori-standalone.html`
+- **Filtro "Tipo Lavoro"**: Aggiunto filtro per separare lavori interni da conto terzi
+  - Opzioni: Tutti i lavori, Lavori Interni, Conto Terzi
+- **Evidenziazione visiva**: Gradiente blu/azzurro (`#E3F2FD` → `#BBDEFB`) per lavori conto terzi
+  - Bordo sinistro blu (`#1976D2`)
+  - Badge "💼 Conto Terzi" accanto al nome lavoro
+  - Hover con gradiente più scuro
+- **Logica filtraggio**: Filtra in base al campo `clienteId` (se presente = conto terzi)
+- **Applicato a tutte le sezioni**: Tabella lavori normali e sezione lavori in attesa di approvazione
+
+#### Dashboard - Diario da Lavori
+- **File modificato**: `core/dashboard-standalone.html`
+- **Evidenziazione visiva**: Stesso gradiente blu/azzurro per lavori conto terzi
+  - Badge "💼 Conto Terzi" accanto al tipo lavoro
+  - Stile CSS inline per evitare conflitti
+- **Campo clienteId**: Aggiunto all'oggetto attività quando viene creata dalla funzione `loadDiarioDaLavori()`
+
+### Caratteristiche
+- ✅ Stile coerente con sezione Conto Terzi (colori blu distintivi)
+- ✅ Riconoscimento immediato a colpo d'occhio
+- ✅ Filtro funzionante insieme agli altri filtri esistenti
+- ✅ Compatibile con tutti i moduli attivi
+
+**File modificati**:
+- `core/admin/gestione-lavori-standalone.html`
+- `core/dashboard-standalone.html`
+
+---
+
+## 📝 Pianificazione Lavori Conto Terzi senza Manodopera (2025-12-10) - PIANIFICATO
+
+### Problema Identificato
+Quando un utente ha solo **Core Base + Conto Terzi** (o **Core Base + Parco Macchine + Conto Terzi**), può creare lavori da preventivi accettati, ma non può pianificarli perché la pagina "Gestione Lavori" richiede obbligatoriamente il modulo Manodopera attivo.
+
+### Scenario Realistico
+Piccolo proprietario che:
+- Fa lavori conto terzi per clienti
+- Ha trattori/attrezzi da gestire (Parco Macchine)
+- Lavora da solo o con pochi collaboratori
+- Non ha bisogno di gestione squadre/operai (Manodopera)
+
+### Soluzione Pianificata: Opzione 1 Rivista
+
+**Rendere "Gestione Lavori" accessibile anche senza Manodopera**, con modalità semplificata:
+
+#### Quando Manodopera NON è attivo:
+- ✅ Mostra solo pianificazione base:
+  - Nome lavoro
+  - Terreno
+  - Tipo lavoro
+  - Data inizio
+  - Durata prevista
+  - Note
+  - Stato (da_pianificare → in_corso → completato)
+- ✅ Se Parco Macchine attivo: mostra anche assegnazione macchine (trattore/attrezzo)
+- ✅ Nascondi completamente:
+  - Assegnazione caposquadra/operai
+  - Gestione squadre
+  - Tracciamento zone lavorate
+  - Segnatura/validazione ore
+- ✅ Se lavoro ha `clienteId` (conto terzi): mostra anche dati cliente
+
+#### Quando Manodopera è attivo:
+- ✅ Mostra tutte le funzionalità complete (come ora)
+
+### Vantaggi
+- ✅ Funziona in tutti gli scenari realistici
+- ✅ Non duplica codice (una sola pagina che si adatta)
+- ✅ Scalabile (se aggiungi Manodopera dopo, tutto funziona già)
+- ✅ Non cambia il Core Base (pianificazione rimane opzionale)
+
+### Impatto
+- **Core Base**: Rimane "solo diario" per default
+- **Pianificazione lavori**: Diventa disponibile solo se crei lavori da preventivi o manualmente
+- **Non obbligatoria**: Puoi continuare a usare solo il diario attività
+
+### Stato
+📝 **Pianificato** - Da implementare
+
+**File da modificare**:
+- `core/admin/gestione-lavori-standalone.html` - Rimuovere blocco Manodopera, aggiungere modalità semplificata
 
 

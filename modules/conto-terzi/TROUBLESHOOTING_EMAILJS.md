@@ -59,3 +59,5 @@ Se vedi errori relativi a `cid:logo.png`:
 - Non copiare i commenti HTML `<!-- -->` - solo il contenuto HTML
 
 
+
+

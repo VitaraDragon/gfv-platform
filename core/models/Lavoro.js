@@ -121,15 +121,15 @@ export class Lavoro extends Base {
       errors.push('Terreno obbligatorio');
     }
     
-    // VALIDAZIONE ASSEGNAZIONE FLESSIBILE: almeno uno tra caposquadraId e operaioId deve essere presente
-    if (!this.caposquadraId && !this.operaioId) {
-      errors.push('Deve essere assegnato almeno un caposquadra o un operaio');
-    }
-    
-    // Non possono essere entrambi presenti (mutualmente esclusivi)
+    // VALIDAZIONE ASSEGNAZIONE FLESSIBILE: opzionale (richiesta solo se modulo Manodopera attivo)
+    // Se almeno uno è presente, verifica che non siano entrambi presenti (mutualmente esclusivi)
     if (this.caposquadraId && this.operaioId) {
       errors.push('Un lavoro non può essere assegnato sia a un caposquadra che a un operaio diretto');
     }
+    
+    // Nota: L'assegnazione (caposquadraId o operaioId) è opzionale per supportare modalità semplificata
+    // senza modulo Manodopera. La validazione dell'assegnazione obbligatoria viene fatta a livello UI
+    // quando il modulo Manodopera è attivo.
     
     if (!this.tipoLavoro || this.tipoLavoro.trim().length === 0) {
       errors.push('Tipo lavoro obbligatorio');

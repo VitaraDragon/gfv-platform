@@ -70,3 +70,5 @@ Dopo aver pubblicato le regole, puoi testare usando il simulatore nella Firebase
 3. Configura un test per verificare che le regole funzionino
 
 
+
+

@@ -200,10 +200,14 @@
                     <div class="stat-value" id="stat-clienti">-</div>
                     <div class="stat-label">Clienti Attivi</div>
                 </div>
-                <div class="stat-card">
+                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=in_corso" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Clicca per vedere i lavori in corso">
                     <div class="stat-value" id="stat-lavori">-</div>
                     <div class="stat-label">Lavori in Corso</div>
-                </div>
+                </a>
+                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=completato" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border: 2px solid #4CAF50;" title="Clicca per vedere i lavori completati">
+                    <div class="stat-value" id="stat-lavori-completati" style="color: #2E7D32;">-</div>
+                    <div class="stat-label" style="color: #2E7D32;">✅ Lavori Completati</div>
+                </a>
                 <div class="stat-card">
                     <div class="stat-value" id="stat-preventivi">-</div>
                     <div class="stat-label">Preventivi Aperti</div>
@@ -212,6 +216,10 @@
                     <div class="stat-value" id="stat-terreni">-</div>
                     <div class="stat-label">Terreni Clienti</div>
                 </div>
+                <a href="../../../core/admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%); border: 2px solid #ffc107;" title="Clicca per vedere i lavori da pianificare">
+                    <div class="stat-value" id="stat-lavori-da-pianificare" style="color: #856404;">-</div>
+                    <div class="stat-label" style="color: #856404;">📝 Da Pianificare</div>
+                </a>
             </div>
 
             <h2 style="color: #1976D2; margin: 40px 0 20px 0;">Azioni Rapide</h2>
@@ -241,20 +249,20 @@
                     <span class="action-title">Tariffe</span>
                     <span class="action-description">Configura tariffe per preventivi automatici</span>
                 </a>
-                <a href="#" class="action-card" style="opacity: 0.6; cursor: not-allowed;">
+                <a href="../../../core/admin/gestione-lavori-standalone.html?stato=da_pianificare" class="action-card">
                     <span class="action-icon">📝</span>
                     <span class="action-title">Lavori da Pianificare</span>
-                    <span class="action-description">Prossimamente disponibile</span>
+                    <span class="action-description">Completa la pianificazione dei lavori creati da preventivi</span>
                 </a>
-                <a href="#" class="action-card" style="opacity: 0.6; cursor: not-allowed;">
+                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=in_corso" class="action-card" style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); border: 2px solid #1976D2;">
                     <span class="action-icon">🔄</span>
-                    <span class="action-title">Lavori in Corso</span>
-                    <span class="action-description">Prossimamente disponibile</span>
+                    <span class="action-title" style="color: #1976D2;">Lavori in Corso</span>
+                    <span class="action-description" style="color: #666;">Segna ore e macchine per lavori conto terzi</span>
                 </a>
-                <a href="#" class="action-card" style="opacity: 0.6; cursor: not-allowed;">
+                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=completato" class="action-card" style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border: 2px solid #4CAF50;">
                     <span class="action-icon">✅</span>
-                    <span class="action-title">Lavori Completati</span>
-                    <span class="action-description">Prossimamente disponibile</span>
+                    <span class="action-title" style="color: #2E7D32;">Lavori Completati</span>
+                    <span class="action-description" style="color: #666;">Visualizza storico lavori conto terzi completati</span>
                 </a>
             </div>
         </div>
@@ -358,6 +366,8 @@
                     document.getElementById('stat-terreni').textContent = '0';
                     document.getElementById('stat-lavori').textContent = '0';
                     document.getElementById('stat-preventivi').textContent = '0';
+                    const statDaPianificare = document.getElementById('stat-lavori-da-pianificare');
+                    if (statDaPianificare) statDaPianificare.textContent = '0';
                     return;
                 }
 
@@ -421,9 +431,29 @@
                         return data.clienteId != null && data.clienteId !== '' && data.stato === 'in_corso';
                     });
                     document.getElementById('stat-lavori').textContent = lavoriInCorso.length;
+                    
+                    // Lavori da pianificare (con clienteId e stato da_pianificare)
+                    const lavoriDaPianificare = lavoriSnapshot.docs.filter(doc => {
+                        const data = doc.data();
+                        return data.clienteId != null && data.clienteId !== '' && data.stato === 'da_pianificare';
+                    });
+                    const statDaPianificare = document.getElementById('stat-lavori-da-pianificare');
+                    if (statDaPianificare) statDaPianificare.textContent = lavoriDaPianificare.length;
+                    
+                    // Lavori completati (con clienteId e stato completato)
+                    const lavoriCompletati = lavoriSnapshot.docs.filter(doc => {
+                        const data = doc.data();
+                        return data.clienteId != null && data.clienteId !== '' && data.stato === 'completato';
+                    });
+                    const statCompletati = document.getElementById('stat-lavori-completati');
+                    if (statCompletati) statCompletati.textContent = lavoriCompletati.length;
                 } catch (error) {
                     console.warn('Errore caricamento lavori:', error);
                     document.getElementById('stat-lavori').textContent = '0';
+                    const statDaPianificare = document.getElementById('stat-lavori-da-pianificare');
+                    if (statDaPianificare) statDaPianificare.textContent = '0';
+                    const statCompletati = document.getElementById('stat-lavori-completati');
+                    if (statCompletati) statCompletati.textContent = '0';
                 }
             } catch (error) {
                 console.error('Errore caricamento statistiche:', error);

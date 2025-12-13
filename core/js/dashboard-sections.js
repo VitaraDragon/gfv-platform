@@ -468,6 +468,10 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
                 <div class="stat-value" id="stat-lavori-attivi-manodopera">-</div>
                 <div class="stat-label">Lavori Attivi</div>
             </div>
+            <a href="admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff3cd; border: 2px solid #ffc107;" title="Clicca per vedere i lavori da pianificare">
+                <div class="stat-value" id="stat-lavori-da-pianificare" style="color: #856404;">-</div>
+                <div class="stat-label" style="color: #856404;">📝 Da Pianificare</div>
+            </a>
             <div class="stat-card">
                 <div class="stat-value" id="stat-ore-validate-manodopera">-</div>
                 <div class="stat-label">Ore Validate (Mese)</div>
@@ -570,10 +574,10 @@ window.GFVDashboardSections.createManagerLavoriSection = function createManagerL
                 <div class="stat-value" id="stat-lavori-completati">-</div>
                 <div class="stat-label">Lavori Completati</div>
             </div>
-            <div class="stat-card">
+            <a href="admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Clicca per vedere i lavori da pianificare">
                 <div class="stat-value" id="stat-lavori-pianificati">-</div>
                 <div class="stat-label">Lavori Pianificati</div>
-            </div>
+            </a>
         </div>
         <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
         <div class="quick-actions">
