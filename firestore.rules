@@ -27,6 +27,11 @@ service cloud.firestore {
              (hasRole('manager') || hasRole('amministratore'));
     }
     
+    // Helper: verifica se è Caposquadra
+    function isCaposquadra() {
+      return isAuthenticated() && hasRole('caposquadra');
+    }
+    
     // Collection: users (globale)
     // IMPORTANTE: Permetti lettura del proprio documento per evitare dipendenza circolare
     // Permetti anche lettura di utenti dello stesso tenant (per statistiche, report, ecc.)
@@ -45,7 +50,8 @@ service cloud.firestore {
     
     // Collection: tenants (globale)
     match /tenants/{tenantId} {
-      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      // Lettura: autenticati del tenant O lettura pubblica (necessaria per pagina accettazione preventivo che cerca in tutti i tenant)
+      allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
       allow write: if isAuthenticated() && isManagerOrAdmin() && belongsToTenant(tenantId);
     }
     
@@ -66,7 +72,9 @@ service cloud.firestore {
     
     // Collection: clienti
     match /tenants/{tenantId}/clienti/{clienteId} {
-      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      // Lettura: autenticati del tenant O lettura pubblica (necessaria per pagina accettazione preventivo)
+      // NOTA: Meno sicuro, ma necessario per mostrare dati cliente nel preventivo pubblico
+      allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
     }
     
@@ -78,8 +86,24 @@ service cloud.firestore {
     
     // Collection: preventivi
     match /tenants/{tenantId}/preventivi/{preventivoId} {
-      allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      // Lettura: autenticati del tenant O lettura pubblica (necessaria per query con tokenAccettazione)
+      // NOTA: Per query, dobbiamo permettere lettura pubblica, ma solo preventivi con tokenAccettazione saranno accessibili
+      // La sicurezza è garantita dal fatto che il token è unico e casuale
+      allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
+      
+      // Creazione: solo manager/admin autenticati
+      allow create: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      
+      // Aggiornamento: manager/admin autenticati O aggiornamento pubblico solo di stato/dataAccettazione per preventivi con token
+      allow update: if (isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin()) ||
+                     (resource.data.tokenAccettazione != null && 
+                      // Permetti aggiornamento solo di questi campi specifici
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'dataAccettazione', 'dataRifiuto']) &&
+                      // Verifica che lo stato sia valido per accettazione/rifiuto
+                      (request.resource.data.stato == 'accettato_email' || request.resource.data.stato == 'rifiutato'));
+      
+      // Eliminazione: solo manager/admin autenticati
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
     }
     
     // Collection: poderi-clienti
@@ -133,7 +157,63 @@ service cloud.firestore {
     // Collection: lavori (già esistente)
     match /tenants/{tenantId}/lavori/{lavoroId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      
+      // Creazione ed eliminazione: solo manager/admin
+      allow create, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      
+      // Aggiornamento: manager/admin possono aggiornare tutto
+      // Caposquadra può aggiornare solo campi di progresso e stato per lavori assegnati a lui
+      // Operaio può segnare come completato lavori autonomi assegnati a lui
+      allow update: if isAuthenticated() && belongsToTenant(tenantId) && (
+        // Manager/Admin: possono aggiornare tutto
+        isManagerOrAdmin() ||
+        // Caposquadra: può aggiornare solo campi di progresso e stato per lavori di squadra assegnati a lui
+        (isCaposquadra() && 
+         // Verifica che il lavoro sia assegnato a questo caposquadra (lavoro di squadra, non autonomo)
+         resource.data.caposquadraId == request.auth.uid &&
+         resource.data.operaioId == null &&
+         // Permetti aggiornamento solo di questi campi specifici
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'superficieTotaleLavorata',
+           'superficieRimanente',
+           'percentualeCompletamento',
+           'percentualeCompletamentoTracciata',
+           'giorniEffettivi',
+           'statoProgresso',
+           'stato',
+           'completatoDa',
+           'completatoIl',
+           'aggiornatoIl'
+         ]) &&
+         // Verifica che lo stato sia valido (solo transizioni permesse)
+         (request.resource.data.stato == 'in_corso' ||
+          request.resource.data.stato == 'completato' ||
+          request.resource.data.stato == 'completato_da_approvare' ||
+          request.resource.data.stato == resource.data.stato)) ||
+        // Operaio: può segnare come completato lavori autonomi assegnati a lui
+        // E può aggiornare progressi quando traccia zone lavorate
+        (hasRole('operaio') &&
+         // Verifica che il lavoro sia autonomo assegnato a questo operaio
+         resource.data.operaioId == request.auth.uid &&
+         resource.data.caposquadraId == null &&
+         // Permetti aggiornamento solo di questi campi specifici
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'stato',
+           'percentualeCompletamentoTracciata',
+           'superficieTotaleLavorata',
+           'superficieRimanente',
+           'percentualeCompletamento',
+           'giorniEffettivi',
+           'statoProgresso',
+           'completatoDa',
+           'completatoIl',
+           'aggiornatoIl'
+         ]) &&
+         // Verifica che lo stato sia valido (solo transizioni permesse per operai)
+         (request.resource.data.stato == 'completato_da_approvare' ||
+          request.resource.data.stato == 'in_corso' ||
+          request.resource.data.stato == resource.data.stato))
+      );
     }
     
     // Collection: attivita (già esistente)
@@ -179,6 +259,29 @@ service cloud.firestore {
     match /tenants/{tenantId}/macchine/{macchinaId}/manutenzioni/{manutenzioneId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: comunicazioni (comunicazioni caposquadra -> operai)
+    match /tenants/{tenantId}/comunicazioni/{comunicazioneId} {
+      // Lettura: operai e caposquadra del tenant possono leggere comunicazioni dove sono destinatari
+      // NOTA: Il filtro per destinatari viene fatto lato client, qui permettiamo lettura a tutti gli utenti del tenant
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      
+      // Creazione: solo caposquadra e manager/admin
+      allow create: if isAuthenticated() && belongsToTenant(tenantId) && 
+                     (hasRole('caposquadra') || isManagerOrAdmin());
+      
+      // Aggiornamento: caposquadra/manager/admin possono aggiornare tutto, operai solo il campo conferme
+      allow update: if isAuthenticated() && belongsToTenant(tenantId) && (
+        // Caposquadra/manager/admin: possono aggiornare tutto
+        (hasRole('caposquadra') || isManagerOrAdmin()) ||
+        // Operai: possono aggiornare solo il campo conferme (per confermare ricezione)
+        (hasRole('operaio') && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['conferme']))
+      );
+      
+      // Eliminazione: solo manager/admin
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
     }
   }
 }

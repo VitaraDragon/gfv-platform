@@ -705,6 +705,20 @@
             <!-- Tab Mappa -->
             <div id="tab-map" class="tab-content">
                 <div id="dettaglio-map-content">
+                    <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <h4 style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                            <span>🗓️ Filtro per Giorno</span>
+                        </h4>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                            <select id="filtro-data-zone" style="flex: 1; min-width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="tutte">📅 Tutte le date</option>
+                            </select>
+                            <button id="btn-mostra-tutte-zone" class="btn btn-secondary btn-sm" onclick="mostraTutteLeZone()" style="white-space: nowrap;">
+                                👁️ Mostra Tutte
+                            </button>
+                        </div>
+                        <div id="info-zone-filtrate" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
+                    </div>
                     <div class="map-container" id="dettaglio-map"></div>
                     <div id="zone-list-container">
                         <h4 style="margin-bottom: 10px;">Zone Lavorate</h4>
@@ -800,7 +814,7 @@
                 </div>
 
                 <div class="form-group" id="caposquadra-group">
-                    <label for="lavoro-caposquadra">Caposquadra *</label>
+                    <label for="lavoro-caposquadra" id="label-caposquadra">Caposquadra *</label>
                     <select id="lavoro-caposquadra">
                         <option value="">Seleziona caposquadra...</option>
                     </select>
@@ -808,7 +822,7 @@
                 </div>
 
                 <div class="form-group" id="operaio-group" style="display: none;">
-                    <label for="lavoro-operaio">Operaio Responsabile *</label>
+                    <label for="lavoro-operaio" id="label-operaio">Operaio Responsabile *</label>
                     <select id="lavoro-operaio">
                         <option value="">Seleziona operaio...</option>
                     </select>
@@ -1056,6 +1070,7 @@
         let attrezziList = [];
         let categorieAttrezziList = [];
         let hasParcoMacchineModule = false;
+        let hasManodoperaModule = false;
         let categorieLavoriPrincipali = [];
         let sottocategorieLavoriMap = new Map(); // parentId -> Array<sottocategorie>
         let tipiLavoroList = [];
@@ -1091,7 +1106,7 @@
                     }
 
                     // Verifica se modulo Manodopera è attivo
-                    let hasManodoperaModule = false;
+                    hasManodoperaModule = false;
                     if (currentTenantId) {
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
@@ -1111,14 +1126,8 @@
                         macchineSection.style.display = hasParcoMacchineModule ? 'block' : 'none';
                     }
 
-                    // Se modulo Manodopera non è attivo, mostra avviso e redirect
-                    if (!hasManodoperaModule) {
-                        showAlert('Questa pagina è disponibile solo con il modulo Manodopera attivo. Attiva il modulo dall\'abbonamento.', 'error');
-                        setTimeout(() => {
-                            window.location.href = '../dashboard-standalone.html';
-                        }, 3000);
-                        return;
-                    }
+                    // Nascondi/mostra funzionalità Manodopera in base al modulo attivo
+                    setupManodoperaVisibility(hasManodoperaModule);
 
                     // Migra prima categorie esistenti (se presenti)
                     await migraCategorieLavoriEsistenti();
@@ -1135,7 +1144,7 @@
                     const statoFromUrl = urlParams.get('stato');
                     console.log('🔍 Parametro URL stato:', statoFromUrl);
                     
-                    if (statoFromUrl) {
+                    if (statoFromUrl && hasManodoperaModule) {
                         const filterStatoEl = document.getElementById('filter-stato');
                         if (filterStatoEl) {
                             filterStatoEl.value = statoFromUrl;
@@ -1148,13 +1157,15 @@
                     // Carica dati iniziali
                     const loadPromises = [
                         loadTerreni(),
-                        loadCaposquadra(),
-                        loadOperai(),
-                        loadSquadre(),
                         loadCategorieLavori(),
                         loadTipiLavoro(), // Carica tutti i tipi (senza filtro categoria)
                         loadLavori()
                     ];
+                    
+                    // Carica dati Manodopera solo se modulo attivo
+                    if (hasManodoperaModule) {
+                        loadPromises.push(loadCaposquadra(), loadOperai(), loadSquadre());
+                    }
                     
                     // Carica macchine solo se modulo Parco Macchine attivo
                     if (hasParcoMacchineModule) {
@@ -1169,8 +1180,10 @@
                         applyFilters();
                     }
                     
-                    // Inizializza handler tipo assegnazione
-                    setupTipoAssegnazioneHandlers();
+                    // Inizializza handler tipo assegnazione solo se Manodopera attivo
+                    if (hasManodoperaModule) {
+                        setupTipoAssegnazioneHandlers();
+                    }
                     
                     // Inizializza handler categoria lavoro
                     setupCategoriaLavoroHandler();
@@ -1190,6 +1203,83 @@
                 showAlert('Errore caricamento dati', 'error');
             }
         });
+
+        // Configura visibilità elementi Manodopera
+        function setupManodoperaVisibility(hasManodoperaModule) {
+            // Statistica ore validate
+            const statOreValidate = document.getElementById('stat-ore-validate')?.closest('.stat-card');
+            if (statOreValidate) {
+                statOreValidate.style.display = hasManodoperaModule ? 'block' : 'none';
+            }
+            
+            // Filtro caposquadra
+            const filterCaposquadra = document.getElementById('filter-caposquadra')?.closest('.filter-group');
+            if (filterCaposquadra) {
+                filterCaposquadra.style.display = hasManodoperaModule ? 'flex' : 'none';
+            }
+            
+            // Tab Ore nel modal dettaglio
+            const tabOre = document.querySelector('button.modal-tab[onclick*="switchTab(\'ore\')"]');
+            if (tabOre) {
+                tabOre.style.display = hasManodoperaModule ? 'inline-block' : 'none';
+            }
+            const tabOreContent = document.getElementById('tab-ore');
+            if (tabOreContent) {
+                tabOreContent.style.display = hasManodoperaModule ? 'block' : 'none';
+            }
+            
+            // Sezione tipo assegnazione nel form
+            const tipoAssegnazioneGroup = document.querySelector('input[name="tipo-assegnazione"]')?.closest('.form-group');
+            if (tipoAssegnazioneGroup) {
+                tipoAssegnazioneGroup.style.display = hasManodoperaModule ? 'block' : 'none';
+            }
+
+            // Sezione stato lavoro
+            const statoGroup = document.getElementById('lavoro-stato')?.closest('.form-group');
+            if (statoGroup) {
+                statoGroup.style.display = hasManodoperaModule ? 'block' : 'none';
+            }
+            
+            // Campi caposquadra e operaio
+            const caposquadraGroup = document.getElementById('caposquadra-group');
+            if (caposquadraGroup) {
+                caposquadraGroup.style.display = hasManodoperaModule ? 'block' : 'none';
+            }
+            const operaioGroup = document.getElementById('operaio-group');
+            if (operaioGroup) {
+                operaioGroup.style.display = hasManodoperaModule ? 'block' : 'none';
+            }
+            
+            // Operatore macchina (solo se Manodopera attivo, altrimenti non ha senso)
+            const operatoreMacchinaGroup = document.getElementById('operatore-macchina-group');
+            if (operatoreMacchinaGroup) {
+                operatoreMacchinaGroup.style.display = hasManodoperaModule ? 'block' : 'none';
+            }
+            
+            // Rimuovi attributi required dai campi assegnazione quando Manodopera non è attivo
+            const caposquadraSelect = document.getElementById('lavoro-caposquadra');
+            const operaioSelect = document.getElementById('lavoro-operaio');
+            const statoSelect = document.getElementById('lavoro-stato');
+            if (caposquadraSelect) {
+                caposquadraSelect.required = hasManodoperaModule;
+            }
+            if (operaioSelect) {
+                operaioSelect.required = hasManodoperaModule;
+            }
+            if (statoSelect && !hasManodoperaModule) {
+                statoSelect.value = 'in_corso';
+            }
+            
+            // Rimuovi asterisco dai label quando Manodopera non è attivo
+            const labelCaposquadra = document.getElementById('label-caposquadra');
+            const labelOperaio = document.getElementById('label-operaio');
+            if (labelCaposquadra) {
+                labelCaposquadra.textContent = hasManodoperaModule ? 'Caposquadra *' : 'Caposquadra';
+            }
+            if (labelOperaio) {
+                labelOperaio.textContent = hasManodoperaModule ? 'Operaio Responsabile *' : 'Operaio Responsabile';
+            }
+        }
 
         // Carica lista terreni
         async function loadTerreni() {
@@ -2407,6 +2497,7 @@
         // Popola dropdown filtri caposquadra
         function populateCaposquadraFilter() {
             const select = document.getElementById('filter-caposquadra');
+            if (!select) return; // Se elemento non esiste (Manodopera non attivo), esci
             select.innerHTML = '<option value="">Tutti i caposquadra</option>';
             caposquadraList.forEach(capo => {
                 const option = document.createElement('option');
@@ -2529,6 +2620,16 @@
 
         // Gestisce cambio tipo assegnazione (radio button)
         function setupTipoAssegnazioneHandlers() {
+            // Se Manodopera non è attivo, non fare nulla (i campi sono già nascosti)
+            if (!hasManodoperaModule) {
+                // Assicurati che i campi non siano required
+                const caposquadraSelect = document.getElementById('lavoro-caposquadra');
+                const operaioSelect = document.getElementById('lavoro-operaio');
+                if (caposquadraSelect) caposquadraSelect.required = false;
+                if (operaioSelect) operaioSelect.required = false;
+                return;
+            }
+            
             const tipoSquadra = document.getElementById('tipo-squadra');
             const tipoAutonomo = document.getElementById('tipo-autonomo');
             const caposquadraGroup = document.getElementById('caposquadra-group');
@@ -2572,7 +2673,8 @@
         // Applica filtri
         window.applyFilters = function() {
             const statoFilter = document.getElementById('filter-stato').value;
-            const caposquadraFilter = document.getElementById('filter-caposquadra').value;
+            const caposquadraFilterEl = document.getElementById('filter-caposquadra');
+            const caposquadraFilter = caposquadraFilterEl ? caposquadraFilterEl.value : '';
             const terrenoFilter = document.getElementById('filter-terreno').value;
             const tipoFilter = document.getElementById('filter-tipo').value;
 
@@ -2586,7 +2688,8 @@
 
             filteredLavoriList = lavoriList.filter(lavoro => {
                 if (statoFilter && lavoro.stato !== statoFilter) return false;
-                if (caposquadraFilter && lavoro.caposquadraId !== caposquadraFilter) return false;
+                // Filtro caposquadra solo se Manodopera attivo e filtro selezionato
+                if (hasManodoperaModule && caposquadraFilter && lavoro.caposquadraId !== caposquadraFilter) return false;
                 if (terrenoFilter && lavoro.terrenoId !== terrenoFilter) return false;
                 if (tipoFilter === 'conto_terzi' && !lavoro.clienteId) return false;
                 if (tipoFilter === 'interno' && lavoro.clienteId) return false;
@@ -2612,7 +2715,10 @@
         window.clearFilters = function() {
             document.getElementById('filter-stato').value = '';
             document.getElementById('filter-progresso').value = '';
-            document.getElementById('filter-caposquadra').value = '';
+            const caposquadraFilterEl = document.getElementById('filter-caposquadra');
+            if (caposquadraFilterEl) {
+                caposquadraFilterEl.value = '';
+            }
             document.getElementById('filter-terreno').value = '';
             document.getElementById('filter-tipo').value = '';
             applyFilters();
@@ -2721,7 +2827,7 @@
                                 <tr>
                                     <th>Nome</th>
                                     <th>Terreno</th>
-                                    <th>Caposquadra</th>
+                                    ${hasManodoperaModule ? '<th>Caposquadra</th>' : ''}
                                     <th>Progressi Tracciati</th>
                                     <th>Azioni</th>
                                 </tr>
@@ -2750,7 +2856,7 @@
                         <tr class="${rowClass}" style="${rowStyle}">
                             <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong></td>
                             <td>${escapeHtml(terrenoNome)}</td>
-                            <td>${escapeHtml(caposquadraNome)}</td>
+                            ${hasManodoperaModule ? `<td>${escapeHtml(caposquadraNome)}</td>` : ''}
                             <td>
                                 <div class="progress-bar-inline">
                                     <div class="progress-fill-inline" style="width: ${Math.min(percentualeTracciata, 100)}%; background: #ffc107;">
@@ -2790,7 +2896,7 @@
                         <tr>
                             <th>Nome</th>
                             <th>Terreno</th>
-                            <th>Caposquadra</th>
+                            ${hasManodoperaModule ? '<th>Caposquadra</th>' : ''}
                             <th>Data Inizio</th>
                             <th>Durata</th>
                             <th>Progressi</th>
@@ -2870,7 +2976,7 @@
                     <tr class="${isContoTerzi ? 'lavoro-conto-terzi' : ''}">
                         <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong>${contoTerziBadge}${macchineInfo}</td>
                         <td>${escapeHtml(terrenoNome)}</td>
-                        <td>${escapeHtml(caposquadraNome)}</td>
+                        ${hasManodoperaModule ? `<td>${escapeHtml(caposquadraNome)}</td>` : ''}
                         <td>${dataInizioFormatted}</td>
                         <td>${durata}</td>
                         <td class="progress-cell">${progressBar}</td>
@@ -2925,11 +3031,7 @@
             document.getElementById('modal-title').textContent = 'Crea Nuovo Lavoro';
             document.getElementById('lavoro-form').reset();
             document.getElementById('lavoro-id').value = '';
-            document.getElementById('lavoro-stato').value = 'assegnato';
-            
-            // Imposta tipo assegnazione default a "squadra"
-            document.getElementById('tipo-squadra').checked = true;
-            document.getElementById('tipo-autonomo').checked = false;
+            document.getElementById('lavoro-stato').value = hasManodoperaModule ? 'assegnato' : 'in_corso';
             
             // Imposta data minima a oggi
             const today = new Date().toISOString().split('T')[0];
@@ -2937,12 +3039,19 @@
             // document.getElementById('lavoro-data-inizio').setAttribute('min', today);
             
             populateTerrenoDropdown();
-            populateCaposquadraDropdown();
-            populateOperaiDropdown();
             populateCategoriaLavoroDropdown();
             document.getElementById('lavoro-sottocategoria-group').style.display = 'none';
             document.getElementById('tipo-lavoro-group').style.display = 'none';
             document.getElementById('lavoro-tipo-lavoro').value = '';
+            
+            // Popola dropdown Manodopera solo se modulo attivo
+            if (hasManodoperaModule) {
+                populateCaposquadraDropdown();
+                populateOperaiDropdown();
+                // Imposta tipo assegnazione default a "squadra"
+                document.getElementById('tipo-squadra').checked = true;
+                document.getElementById('tipo-autonomo').checked = false;
+            }
             
             // Reset e popola campi macchine se modulo Parco Macchine attivo
             if (hasParcoMacchineModule) {
@@ -2954,8 +3063,10 @@
                 document.getElementById('operatore-macchina-group').style.display = 'none';
             }
             
-            // Aggiorna visibilità dropdown
-            setupTipoAssegnazioneHandlers();
+            // Aggiorna visibilità dropdown (solo se Manodopera attivo)
+            if (hasManodoperaModule) {
+                setupTipoAssegnazioneHandlers();
+            }
             
             document.getElementById('lavoro-modal').classList.add('active');
         };
@@ -2985,20 +3096,23 @@
                 document.getElementById('lavoro-data-inizio').value = dataInizio.toISOString().split('T')[0];
             }
             
-            // Determina tipo assegnazione in base ai dati del lavoro
-            if (lavoro.operaioId && !lavoro.caposquadraId) {
-                // Lavoro autonomo
-                document.getElementById('tipo-autonomo').checked = true;
-                document.getElementById('tipo-squadra').checked = false;
-            } else {
-                // Lavoro di squadra (default o se caposquadraId presente)
-                document.getElementById('tipo-squadra').checked = true;
-                document.getElementById('tipo-autonomo').checked = false;
+            // Determina tipo assegnazione in base ai dati del lavoro (solo se Manodopera attivo)
+            if (hasManodoperaModule) {
+                if (lavoro.operaioId && !lavoro.caposquadraId) {
+                    // Lavoro autonomo
+                    document.getElementById('tipo-autonomo').checked = true;
+                    document.getElementById('tipo-squadra').checked = false;
+                } else {
+                    // Lavoro di squadra (default o se caposquadraId presente)
+                    document.getElementById('tipo-squadra').checked = true;
+                    document.getElementById('tipo-autonomo').checked = false;
+                }
+                
+                populateCaposquadraDropdown(lavoro.caposquadraId || null);
+                populateOperaiDropdown(lavoro.operaioId || null);
             }
             
             populateTerrenoDropdown(lavoro.terrenoId);
-            populateCaposquadraDropdown(lavoro.caposquadraId || null);
-            populateOperaiDropdown(lavoro.operaioId || null);
             
             // Popola categoria e tipo lavoro (se struttura gerarchica disponibile)
             if (lavoro.tipoLavoro) {
@@ -3069,13 +3183,20 @@
             // Usa sottocategoria se selezionata, altrimenti categoria principale
             const categoriaLavoroId = sottocategoriaId || categoriaPrincipaleId;
             const durataPrevista = parseInt(document.getElementById('lavoro-durata').value);
-            const stato = document.getElementById('lavoro-stato').value;
+            const statoSelect = document.getElementById('lavoro-stato');
+            let stato = hasManodoperaModule ? (statoSelect?.value || 'assegnato') : 'in_corso';
             const note = document.getElementById('lavoro-note').value.trim();
             
-            // Determina tipo assegnazione
-            const tipoAssegnazione = document.querySelector('input[name="tipo-assegnazione"]:checked')?.value;
-            const caposquadraId = document.getElementById('lavoro-caposquadra').value;
-            const operaioId = document.getElementById('lavoro-operaio').value;
+            // Determina tipo assegnazione (solo se Manodopera attivo)
+            let tipoAssegnazione = null;
+            let caposquadraId = null;
+            let operaioId = null;
+            
+            if (hasManodoperaModule) {
+                tipoAssegnazione = document.querySelector('input[name="tipo-assegnazione"]:checked')?.value;
+                caposquadraId = document.getElementById('lavoro-caposquadra')?.value || null;
+                operaioId = document.getElementById('lavoro-operaio')?.value || null;
+            }
             
             if (!nome || nome.length < 3) {
                 showAlert('Il nome lavoro deve essere di almeno 3 caratteri', 'error');
@@ -3097,20 +3218,22 @@
                 return;
             }
             
-            // Validazione assegnazione
-            if (tipoAssegnazione === 'squadra') {
-                if (!caposquadraId) {
-                    showAlert('Seleziona un caposquadra per lavori di squadra', 'error');
+            // Validazione assegnazione (solo se Manodopera attivo)
+            if (hasManodoperaModule) {
+                if (tipoAssegnazione === 'squadra') {
+                    if (!caposquadraId) {
+                        showAlert('Seleziona un caposquadra per lavori di squadra', 'error');
+                        return;
+                    }
+                } else if (tipoAssegnazione === 'autonomo') {
+                    if (!operaioId) {
+                        showAlert('Seleziona un operaio per lavori autonomi', 'error');
+                        return;
+                    }
+                } else {
+                    showAlert('Seleziona un tipo di assegnazione', 'error');
                     return;
                 }
-            } else if (tipoAssegnazione === 'autonomo') {
-                if (!operaioId) {
-                    showAlert('Seleziona un operaio per lavori autonomi', 'error');
-                    return;
-                }
-            } else {
-                showAlert('Seleziona un tipo di assegnazione', 'error');
-                return;
             }
             
             if (!dataInizio) {
@@ -3128,13 +3251,17 @@
                 const lavoroOriginale = currentLavoroId ? lavoriList.find(l => l.id === currentLavoroId) : null;
                 const eraDaPianificare = lavoroOriginale?.stato === 'da_pianificare';
                 
-                // Verifica se la pianificazione è completa (ha caposquadra/operaio e terreno)
-                const pianificazioneCompleta = (tipoAssegnazione === 'squadra' && caposquadraId) || 
-                                               (tipoAssegnazione === 'autonomo' && operaioId);
+                // Verifica se la pianificazione è completa
+                // Se Manodopera attivo: richiede caposquadra/operaio e terreno
+                // Se Manodopera non attivo: richiede solo terreno
+                const pianificazioneCompleta = hasManodoperaModule 
+                    ? ((tipoAssegnazione === 'squadra' && caposquadraId) || (tipoAssegnazione === 'autonomo' && operaioId)) && terrenoId
+                    : terrenoId;
                 
-                // Se era da_pianificare e ora è completo, passa automaticamente a "assegnato"
-                let nuovoStato = stato;
-                if (eraDaPianificare && pianificazioneCompleta && terrenoId) {
+                // Se era da_pianificare e ora è completo, passa automaticamente a "assegnato" (solo con Manodopera)
+                // Senza Manodopera, stato forzato a in_corso per mostrarlo subito tra i lavori attivi
+                let nuovoStato = hasManodoperaModule ? stato : 'in_corso';
+                if (hasManodoperaModule && eraDaPianificare && pianificazioneCompleta && terrenoId) {
                     nuovoStato = 'assegnato';
                     showAlert('Pianificazione completata! Il lavoro è stato assegnato.', 'success');
                 }
@@ -3150,24 +3277,35 @@
                     aggiornatoIl: serverTimestamp()
                 };
                 
-                // Assegnazione flessibile: O caposquadra O operaio (non entrambi)
-                if (tipoAssegnazione === 'squadra') {
-                    lavoroData.caposquadraId = caposquadraId;
-                    lavoroData.operaioId = null;
+                // Assegnazione flessibile: O caposquadra O operaio (non entrambi) - solo se Manodopera attivo
+                if (hasManodoperaModule) {
+                    if (tipoAssegnazione === 'squadra') {
+                        lavoroData.caposquadraId = caposquadraId;
+                        lavoroData.operaioId = null;
+                    } else {
+                        lavoroData.operaioId = operaioId;
+                        lavoroData.caposquadraId = null;
+                    }
                 } else {
-                    lavoroData.operaioId = operaioId;
+                    // Senza Manodopera: nessuna assegnazione
                     lavoroData.caposquadraId = null;
+                    lavoroData.operaioId = null;
                 }
                 
                 // Campi macchine (solo se modulo Parco Macchine attivo)
                 if (hasParcoMacchineModule) {
                     const macchinaId = document.getElementById('lavoro-trattore')?.value || null;
                     const attrezzoId = document.getElementById('lavoro-attrezzo')?.value || null;
-                    let operatoreMacchinaId = document.getElementById('lavoro-operatore-macchina')?.value || null;
+                    let operatoreMacchinaId = null;
                     
-                    // Se operatore macchina non specificato ma c'è un operaio responsabile, usa quello
-                    if (!operatoreMacchinaId && tipoAssegnazione === 'autonomo' && operaioId) {
-                        operatoreMacchinaId = operaioId;
+                    // Operatore macchina solo se Manodopera attivo
+                    if (hasManodoperaModule) {
+                        operatoreMacchinaId = document.getElementById('lavoro-operatore-macchina')?.value || null;
+                        
+                        // Se operatore macchina non specificato ma c'è un operaio responsabile, usa quello
+                        if (!operatoreMacchinaId && tipoAssegnazione === 'autonomo' && operaioId) {
+                            operatoreMacchinaId = operaioId;
+                        }
                     }
                     
                     lavoroData.macchinaId = macchinaId || null;
@@ -3191,33 +3329,33 @@
                     
                     // Imposta macchine come in_uso se assegnate e lavoro non completato/annullato
                     const statiCompletati = ['completato', 'completato_da_approvare', 'annullato'];
-                    const lavoroNonCompletato = !statiCompletati.includes(stato);
+                    const lavoroNonCompletato = !statiCompletati.includes(nuovoStato);
                     
-                    console.log(`📊 Gestione macchine - Stato lavoro: ${stato}, Non completato: ${lavoroNonCompletato}`);
+                    console.log(`📊 Gestione macchine - Stato lavoro: ${nuovoStato}, Non completato: ${lavoroNonCompletato}`);
                     console.log(`📊 Macchine assegnate - Trattore: ${macchinaId}, Attrezzo: ${attrezzoId}`);
                     
                     if (macchinaId && lavoroNonCompletato) {
                         console.log(`🔧 Imposto trattore ${macchinaId} come in_uso per lavoro ${currentLavoroId || 'nuovo'}`);
                         await updateMacchinaStato(macchinaId, 'in_uso');
                     } else if (macchinaId && !lavoroNonCompletato) {
-                        console.log(`⏭️ Trattore ${macchinaId} NON impostato come in_uso perché lavoro è ${stato}`);
+                        console.log(`⏭️ Trattore ${macchinaId} NON impostato come in_uso perché lavoro è ${nuovoStato}`);
                     }
                     
                     if (attrezzoId && lavoroNonCompletato) {
                         console.log(`🔧 Imposto attrezzo ${attrezzoId} come in_uso per lavoro ${currentLavoroId || 'nuovo'}`);
                         await updateMacchinaStato(attrezzoId, 'in_uso');
                     } else if (attrezzoId && !lavoroNonCompletato) {
-                        console.log(`⏭️ Attrezzo ${attrezzoId} NON impostato come in_uso perché lavoro è ${stato}`);
+                        console.log(`⏭️ Attrezzo ${attrezzoId} NON impostato come in_uso perché lavoro è ${nuovoStato}`);
                     }
                     
                     // Libera macchine se lavoro completato/annullato
-                    if (statiCompletati.includes(stato)) {
+                    if (statiCompletati.includes(nuovoStato)) {
                         if (macchinaId) {
-                            console.log(`🔧 Libero trattore ${macchinaId} per lavoro ${stato}`);
+                            console.log(`🔧 Libero trattore ${macchinaId} per lavoro ${nuovoStato}`);
                             await updateMacchinaStato(macchinaId, 'disponibile');
                         }
                         if (attrezzoId) {
-                            console.log(`🔧 Libero attrezzo ${attrezzoId} per lavoro ${stato}`);
+                            console.log(`🔧 Libero attrezzo ${attrezzoId} per lavoro ${nuovoStato}`);
                             await updateMacchinaStato(attrezzoId, 'disponibile');
                         }
                     }
@@ -3239,6 +3377,14 @@
                 }
                 
                 closeLavoroModal();
+                
+                // Resetta filtro stato se Manodopera non è attivo, per mostrare subito i nuovi lavori
+                if (!hasManodoperaModule) {
+                    const filterStatoEl = document.getElementById('filter-stato');
+                    if (filterStatoEl) {
+                        filterStatoEl.value = '';
+                    }
+                }
                 
                 // Ricarica macchine se modulo Parco Macchine attivo (per aggiornare stati)
                 if (hasParcoMacchineModule) {
@@ -3660,11 +3806,32 @@
             }
         }
 
+        // Variabile globale per memorizzare tutte le zone lavorate (per filtro)
+        let allZoneLavorate = [];
+        let zonePerData = {}; // Raggruppamento zone per data
+        let dateDisponibili = []; // Lista date disponibili
+
+        // Colori diversi per ogni giorno (palette colori distinte)
+        const coloriGiorni = [
+            { stroke: '#00FF00', fill: '#00FF00' }, // Verde (giorno 1)
+            { stroke: '#0080FF', fill: '#0080FF' }, // Blu (giorno 2)
+            { stroke: '#FF8000', fill: '#FF8000' }, // Arancione (giorno 3)
+            { stroke: '#FF00FF', fill: '#FF00FF' }, // Magenta (giorno 4)
+            { stroke: '#00FFFF', fill: '#00FFFF' }, // Cyan (giorno 5)
+            { stroke: '#FFFF00', fill: '#FFFF00' }, // Giallo (giorno 6)
+            { stroke: '#FF0080', fill: '#FF0080' }, // Rosa (giorno 7)
+            { stroke: '#80FF00', fill: '#80FF00' }, // Verde chiaro (giorno 8)
+            { stroke: '#8000FF', fill: '#8000FF' }, // Viola (giorno 9)
+            { stroke: '#FF8080', fill: '#FF8080' }  // Salmone (giorno 10)
+        ];
+
         // Carica contenuto tab Mappa
         async function loadDettaglioMap(lavoroId) {
             const container = document.getElementById('dettaglio-map-content');
             const mapContainer = document.getElementById('dettaglio-map');
             const zoneListContainer = document.getElementById('zone-list');
+            const filtroDataSelect = document.getElementById('filtro-data-zone');
+            const infoZoneFiltrate = document.getElementById('info-zone-filtrate');
             
             try {
                 const lavoro = lavoriList.find(l => l.id === lavoroId);
@@ -3733,62 +3900,243 @@
                 const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
                 const zoneSnapshot = await getDocs(zoneRef);
                 
-                let zoneList = [];
+                allZoneLavorate = [];
+                zonePerData = {};
+                dateDisponibili = [];
+
                 zoneSnapshot.forEach(zonaDoc => {
                     const zonaData = zonaDoc.data();
-                    zoneList.push({ id: zonaDoc.id, ...zonaData });
+                    const zona = { id: zonaDoc.id, ...zonaData };
                     
-                    // Disegna zona lavorata sulla mappa
-                    if (zonaData.coordinate && zonaData.coordinate.length > 0) {
-                        const zonaCoords = zonaData.coordinate.map(c => ({
-                            lat: c.lat,
-                            lng: c.lng
-                        }));
-                        
-                        const zonaPolygon = new google.maps.Polygon({
-                            paths: zonaCoords,
-                            strokeColor: '#00FF00',
-                            strokeOpacity: 0.8,
-                            strokeWeight: 2,
-                            fillColor: '#00FF00',
-                            fillOpacity: 0.3
-                        });
-                        zonaPolygon.setMap(dettaglioMap);
-                        dettaglioMapPolygons.push(zonaPolygon);
+                    // Normalizza la data
+                    let dataZona;
+                    if (zonaData.data?.toDate) {
+                        dataZona = zonaData.data.toDate();
+                    } else if (zonaData.data) {
+                        dataZona = new Date(zonaData.data);
+                    } else {
+                        dataZona = new Date(); // Default a oggi se mancante
                     }
+                    
+                    // Normalizza data a mezzanotte per raggruppamento
+                    const dataKey = new Date(dataZona.getFullYear(), dataZona.getMonth(), dataZona.getDate());
+                    const dataKeyString = dataKey.toISOString().split('T')[0]; // YYYY-MM-DD
+                    
+                    zona.dataNormalizzata = dataKey;
+                    zona.dataKeyString = dataKeyString;
+                    
+                    allZoneLavorate.push(zona);
+                    
+                    // Raggruppa per data
+                    if (!zonePerData[dataKeyString]) {
+                        zonePerData[dataKeyString] = [];
+                        dateDisponibili.push(dataKeyString);
+                    }
+                    zonePerData[dataKeyString].push(zona);
                 });
 
-                // Ordina zone per data (più recenti prima)
-                zoneList.sort((a, b) => {
-                    const dateA = a.data?.toDate ? a.data.toDate() : new Date(a.data);
-                    const dateB = b.data?.toDate ? b.data.toDate() : new Date(b.data);
-                    return dateB - dateA;
+                // Ordina date (più recenti prima)
+                dateDisponibili.sort((a, b) => new Date(b) - new Date(a));
+
+                // Popola dropdown date
+                filtroDataSelect.innerHTML = '<option value="tutte">📅 Tutte le date</option>';
+                dateDisponibili.forEach((dataKey, index) => {
+                    const dataObj = new Date(dataKey);
+                    const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
+                        weekday: 'short', 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    const numZone = zonePerData[dataKey].length;
+                    const superficieTotale = zonePerData[dataKey].reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+                    
+                    filtroDataSelect.innerHTML += `
+                        <option value="${dataKey}">
+                            ${dataFormatted} (${numZone} ${numZone === 1 ? 'zona' : 'zone'}, ${superficieTotale.toFixed(2)} ha)
+                        </option>
+                    `;
                 });
 
-                // Renderizza lista zone
-                if (zoneList.length === 0) {
-                    zoneListContainer.innerHTML = '<div class="empty-state">Nessuna zona lavorata tracciata</div>';
-                } else {
-                    zoneListContainer.innerHTML = zoneList.map(zona => {
-                        const dataFormatted = zona.data?.toDate 
-                            ? zona.data.toDate().toLocaleDateString('it-IT')
-                            : new Date(zona.data).toLocaleDateString('it-IT');
-                        return `
-                            <div class="zone-item">
-                                <div class="zone-info">
-                                    <div class="zone-date">${dataFormatted}</div>
-                                    <div class="zone-surface">${(zona.superficieHa || 0).toFixed(2)} ha</div>
-                                </div>
-                                <div>${zona.tipo === 'poligono' ? '🔷 Poligono' : '📏 Segmento'}</div>
-                            </div>
-                        `;
-                    }).join('');
-                }
+                // Reset filtro a "tutte"
+                filtroDataSelect.value = 'tutte';
+                
+                // Aggiungi listener per cambio filtro
+                filtroDataSelect.onchange = function() {
+                    filtraZonePerData(filtroDataSelect.value);
+                };
+
+                // Mostra tutte le zone inizialmente
+                mostraZoneSullaMappa(allZoneLavorate);
+                aggiornaListaZone(allZoneLavorate);
+                aggiornaInfoZone('tutte');
             } catch (error) {
                 console.error('Errore caricamento mappa:', error);
                 mapContainer.innerHTML = '<div class="empty-state">Errore caricamento mappa</div>';
             }
         }
+
+        // Funzione per filtrare zone per data
+        function filtraZonePerData(dataSelezionata) {
+            const infoZoneFiltrate = document.getElementById('info-zone-filtrate');
+            
+            if (dataSelezionata === 'tutte') {
+                mostraZoneSullaMappa(allZoneLavorate);
+                aggiornaListaZone(allZoneLavorate);
+                aggiornaInfoZone('tutte');
+            } else {
+                const zoneFiltrate = zonePerData[dataSelezionata] || [];
+                mostraZoneSullaMappa(zoneFiltrate, dataSelezionata);
+                aggiornaListaZone(zoneFiltrate);
+                aggiornaInfoZone(dataSelezionata, zoneFiltrate);
+            }
+        }
+
+        // Funzione per mostrare zone sulla mappa
+        function mostraZoneSullaMappa(zone, dataSelezionata = null) {
+            // Rimuovi solo i poligoni delle zone (non il terreno)
+            dettaglioMapPolygons.forEach((polygon, index) => {
+                if (index > 0) { // Salta il primo (terreno)
+                    polygon.setMap(null);
+                }
+            });
+            dettaglioMapPolygons = dettaglioMapPolygons.slice(0, 1); // Mantieni solo il terreno
+
+            if (!dettaglioMap) return;
+
+            // Determina l'indice del colore in base alla data
+            let colorIndex = 0;
+            if (dataSelezionata && dateDisponibili.includes(dataSelezionata)) {
+                colorIndex = dateDisponibili.indexOf(dataSelezionata);
+            }
+
+            // Disegna zone sulla mappa
+            zone.forEach((zona, index) => {
+                if (zona.coordinate && zona.coordinate.length > 0) {
+                    const zonaCoords = zona.coordinate.map(c => ({
+                        lat: c.lat,
+                        lng: c.lng
+                    }));
+                    
+                    // Seleziona colore: se mostra tutte, usa colore in base alla data della zona
+                    let colore;
+                    if (dataSelezionata === null || dataSelezionata === 'tutte') {
+                        // Mostra tutte: usa colore in base alla data della zona
+                        const zonaDataIndex = dateDisponibili.indexOf(zona.dataKeyString);
+                        colore = coloriGiorni[zonaDataIndex % coloriGiorni.length];
+                    } else {
+                        // Mostra solo una data: usa il colore di quella data
+                        colore = coloriGiorni[colorIndex % coloriGiorni.length];
+                    }
+                    
+                    const zonaPolygon = new google.maps.Polygon({
+                        paths: zonaCoords,
+                        strokeColor: colore.stroke,
+                        strokeOpacity: 0.9,
+                        strokeWeight: 2,
+                        fillColor: colore.fill,
+                        fillOpacity: 0.4
+                    });
+                    zonaPolygon.setMap(dettaglioMap);
+                    dettaglioMapPolygons.push(zonaPolygon);
+                }
+            });
+        }
+
+        // Funzione per aggiornare lista zone
+        function aggiornaListaZone(zone) {
+            const zoneListContainer = document.getElementById('zone-list');
+            
+            if (zone.length === 0) {
+                zoneListContainer.innerHTML = '<div class="empty-state">Nessuna zona lavorata tracciata</div>';
+                return;
+            }
+
+            // Raggruppa per data per la visualizzazione
+            const zonePerDataLista = {};
+            zone.forEach(zona => {
+                const dataKey = zona.dataKeyString;
+                if (!zonePerDataLista[dataKey]) {
+                    zonePerDataLista[dataKey] = [];
+                }
+                zonePerDataLista[dataKey].push(zona);
+            });
+
+            // Ordina date (più recenti prima)
+            const dateOrdinate = Object.keys(zonePerDataLista).sort((a, b) => new Date(b) - new Date(a));
+
+            zoneListContainer.innerHTML = dateOrdinate.map(dataKey => {
+                const zoneGiorno = zonePerDataLista[dataKey];
+                const dataObj = new Date(dataKey);
+                const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                const superficieTotale = zoneGiorno.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+                const colorIndex = dateDisponibili.indexOf(dataKey);
+                const colore = coloriGiorni[colorIndex % coloriGiorni.length];
+                
+                return `
+                    <div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${colore.stroke};">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: #333;">
+                            📅 ${dataFormatted}
+                            <span style="font-size: 12px; font-weight: normal; color: #666; margin-left: 10px;">
+                                (${zoneGiorno.length} ${zoneGiorno.length === 1 ? 'zona' : 'zone'}, ${superficieTotale.toFixed(2)} ha)
+                            </span>
+                        </div>
+                        ${zoneGiorno.map(zona => {
+                            const dataZonaFormatted = zona.dataNormalizzata.toLocaleDateString('it-IT');
+                            return `
+                                <div class="zone-item" style="margin-left: 10px; margin-bottom: 5px;">
+                                    <div class="zone-info">
+                                        <div class="zone-surface" style="font-weight: 500;">${(zona.superficieHa || 0).toFixed(2)} ha</div>
+                                    </div>
+                                    <div style="font-size: 12px; color: #666;">${zona.tipo === 'poligono' ? '🔷 Poligono' : '📏 Segmento'}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Funzione per aggiornare info zone filtrate
+        function aggiornaInfoZone(dataSelezionata, zoneFiltrate = null) {
+            const infoZoneFiltrate = document.getElementById('info-zone-filtrate');
+            
+            if (dataSelezionata === 'tutte') {
+                const totaleZone = allZoneLavorate.length;
+                const totaleSuperficie = allZoneLavorate.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+                const numGiorni = dateDisponibili.length;
+                infoZoneFiltrate.innerHTML = `
+                    <span style="color: #2E7D32;">✅ Visualizzate <strong>${totaleZone}</strong> zone lavorate in <strong>${numGiorni}</strong> giorno${numGiorni !== 1 ? 'i' : ''} 
+                    (totale: <strong>${totaleSuperficie.toFixed(2)} ha</strong>)</span>
+                `;
+            } else {
+                const zone = zoneFiltrate || zonePerData[dataSelezionata] || [];
+                const superficie = zone.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+                const dataObj = new Date(dataSelezionata);
+                const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                infoZoneFiltrate.innerHTML = `
+                    <span style="color: #1976D2;">🔍 Visualizzate <strong>${zone.length}</strong> ${zone.length === 1 ? 'zona' : 'zone'} del <strong>${dataFormatted}</strong> 
+                    (totale: <strong>${superficie.toFixed(2)} ha</strong>)</span>
+                `;
+            }
+        }
+
+        // Funzione per mostrare tutte le zone (pulsante)
+        window.mostraTutteLeZone = function() {
+            const filtroDataSelect = document.getElementById('filtro-data-zone');
+            filtroDataSelect.value = 'tutte';
+            filtraZonePerData('tutte');
+        };
 
         // Carica contenuto tab Ore
         async function loadDettaglioOre(lavoroId) {

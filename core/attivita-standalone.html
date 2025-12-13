@@ -289,6 +289,38 @@
             align-items: center;
         }
 
+        .lavoro-rapido-card {
+            transition: all 0.3s ease;
+        }
+        
+        .lavoro-rapido-card:hover {
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+        }
+        
+        .form-rapido-lavoro input,
+        .form-rapido-lavoro select,
+        .form-rapido-lavoro textarea {
+            font-size: 14px;
+        }
+        
+        .form-rapido-lavoro input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: #1976D2;
+        }
+        
+        .form-rapido-lavoro label {
+            font-weight: 500;
+        }
+        
+        .lavoro-completato-card {
+            transition: all 0.3s ease;
+        }
+        
+        .lavoro-completato-card:hover {
+            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+            background-color: #F5F9FF !important;
+        }
+
         .btn-edit-small, .btn-delete-small {
             padding: 6px 12px;
             border: none;
@@ -589,14 +621,115 @@
             }
         }
     </style>
+    <script>
+        // Applica modifiche CSS immediatamente per evitare flash iniziale
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isContoTerzi = urlParams.get('contoTerzi') === 'true';
+            const statoFiltro = urlParams.get('stato');
+            
+            if (isContoTerzi) {
+                // Applica gradiente blu immediatamente (controlla se body esiste)
+                if (document.body) {
+                    document.body.style.background = 'linear-gradient(180deg, #E3F2FD 0%, #1976D2 100%)';
+                } else {
+                    // Se body non esiste ancora, aspetta che il DOM sia caricato
+                    document.addEventListener('DOMContentLoaded', function() {
+                        if (document.body) {
+                            document.body.style.background = 'linear-gradient(180deg, #E3F2FD 0%, #1976D2 100%)';
+                        }
+                    });
+                }
+                
+                // Funzione per applicare modifiche
+                function applyContoTerziStyles() {
+                    const header = document.getElementById('main-header') || document.querySelector('.header');
+                    if (header) {
+                        header.style.background = 'linear-gradient(180deg, #1976D2 0%, #1565C0 100%)';
+                    }
+                    
+                    const headerTitle = document.querySelector('.header h1');
+                    if (headerTitle) {
+                        if (statoFiltro === 'completato') {
+                            headerTitle.textContent = '✅ Lavori Completati - Conto Terzi';
+                        } else {
+                            headerTitle.textContent = 'Diario Attività - Conto Terzi';
+                        }
+                    }
+                    
+                    const filterClienteGroup = document.getElementById('filter-cliente-group');
+                    if (filterClienteGroup) {
+                        filterClienteGroup.style.display = 'block';
+                    }
+                    
+                    // Imposta link dashboard (percorso relativo da core/ a modules/)
+                    const dashboardLink = document.getElementById('dashboard-link');
+                    if (dashboardLink) {
+                        dashboardLink.href = '../modules/conto-terzi/views/conto-terzi-home-standalone.html';
+                    }
+                }
+                
+                // Nascondi header e container finché non sono pronti
+                function hideAndApply() {
+                    const header = document.getElementById('main-header') || document.querySelector('.header');
+                    const container = document.getElementById('attivita-container');
+                    
+                    if (header) {
+                        // Nascondi header temporaneamente
+                        header.style.visibility = 'hidden';
+                        // Applica modifiche
+                        applyContoTerziStyles();
+                        // Mostra header dopo aver applicato le modifiche (dopo un delay maggiore per permettere al callback principale di eseguire)
+                        setTimeout(() => {
+                            if (header) header.style.visibility = 'visible';
+                        }, 200);
+                    }
+                    if (container) {
+                        container.style.visibility = 'hidden';
+                    }
+                }
+                
+                // Esegui immediatamente se DOM è pronto, altrimenti aspetta
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', hideAndApply);
+                } else {
+                    // DOM già pronto, esegui immediatamente
+                    setTimeout(hideAndApply, 0);
+                }
+            }
+        })();
+    </script>
 </head>
 <body>
+    <script>
+        // Script immediato per nascondere tutto prima del rendering
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isContoTerzi = urlParams.get('contoTerzi') === 'true';
+            
+            if (isContoTerzi) {
+                // Applica gradiente blu immediatamente (controlla se body esiste)
+                if (document.body) {
+                    document.body.style.background = 'linear-gradient(180deg, #E3F2FD 0%, #1976D2 100%)';
+                } else {
+                    // Se body non esiste ancora, aspetta che il DOM sia caricato
+                    document.addEventListener('DOMContentLoaded', function() {
+                        if (document.body) {
+                            document.body.style.background = 'linear-gradient(180deg, #E3F2FD 0%, #1976D2 100%)';
+                        }
+                    });
+                }
+                // Nascondi tutto finché non è pronto
+                document.body.style.visibility = 'hidden';
+            }
+        })();
+    </script>
     <div class="container">
-        <div class="header">
+        <div class="header" id="main-header">
             <h1>📅 Diario Attività</h1>
             <p>Registra e gestisci le attività lavorative</p>
             <div class="header-actions">
-                <a href="dashboard-standalone.html" class="btn btn-secondary" style="text-decoration: none;">← Dashboard</a>
+                <a href="#" id="dashboard-link" class="btn btn-secondary" style="text-decoration: none;">← Dashboard</a>
             </div>
             <div class="user-info">
                 <span id="user-info">Caricamento...</span>
@@ -618,6 +751,13 @@
                             <span class="filter-range-text">a</span>
                             <input type="date" id="filter-data-a" placeholder="A data">
                         </div>
+                    </div>
+                    
+                    <div class="filter-group" id="filter-cliente-group" style="display: none;">
+                        <label>Cliente</label>
+                        <select id="filter-cliente">
+                            <option value="">Tutti i clienti</option>
+                        </select>
                     </div>
                     
                     <div class="filter-group">
@@ -657,7 +797,7 @@
                 <h2>Le Tue Attività</h2>
             </div>
 
-            <div id="attivita-container">
+            <div id="attivita-container" style="display: none;">
                 <div class="empty-state">
                     <div class="empty-state-icon">⏳</div>
                     <h3>Caricamento attività...</h3>
@@ -667,6 +807,20 @@
     </div>
 
     <!-- Modal Attività -->
+    <!-- Modal Mappa Zone Lavorate -->
+    <div id="mappa-zone-modal" class="modal">
+        <div class="modal-content" style="max-width: 90vw; width: 1200px;">
+            <div class="modal-header">
+                <h2 id="mappa-zone-title">Zone Lavorate</h2>
+                <button class="close-modal" onclick="closeMappaZoneModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="mappa-zone-container" style="width: 100%; height: 600px; border-radius: 8px; overflow: hidden; margin-bottom: 15px;"></div>
+                <div id="mappa-zone-info" style="padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 14px; color: #666;"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="attivita-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -685,6 +839,32 @@
                         <select id="attivita-terreno" required>
                             <option value="">-- Seleziona terreno --</option>
                         </select>
+                    </div>
+
+                    <!-- Sezione Conto Terzi (solo se modalità Conto Terzi) -->
+                    <div id="attivita-conto-terzi-section" style="display: none; border-top: 2px solid #e9ecef; padding-top: 20px; margin-top: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #1976D2; font-size: 18px;">💼 Conto Terzi</h3>
+                        
+                        <div class="form-group">
+                            <label for="attivita-cliente">Cliente *</label>
+                            <select id="attivita-cliente" required>
+                                <option value="">-- Seleziona cliente --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="attivita-lavoro">Lavoro *</label>
+                            <select id="attivita-lavoro" required>
+                                <option value="">-- Seleziona lavoro --</option>
+                            </select>
+                            <small style="color: #666; font-size: 12px;">Il terreno verrà precompilato automaticamente dal lavoro selezionato</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="attivita-ore-manuali">Ore Lavorate *</label>
+                            <input type="number" id="attivita-ore-manuali" step="0.1" min="0" required placeholder="Es: 8.5">
+                            <small style="color: #666; font-size: 12px;">Inserisci manualmente le ore lavorate (senza validazione)</small>
+                        </div>
                     </div>
 
                     <!-- Struttura gerarchica (quando Macchine o Manodopera attivo) -->
@@ -886,6 +1066,132 @@
         </div>
     </div>
 
+    <!-- Load Google Maps config -->
+    <script>
+        function loadMapsConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.googleMapsConfig !== 'undefined') {
+                    resolve();
+                    return;
+                }
+
+                const mapsConfigScript = document.createElement('script');
+                // Prova prima il file in core/config/, poi quello in core/
+                mapsConfigScript.src = 'config/google-maps-config.js';
+                
+                mapsConfigScript.onload = function() {
+                    setTimeout(() => {
+                        // Verifica se la config è stata caricata (può essere window.googleMapsConfig o window.GOOGLE_MAPS_API_KEY)
+                        if (typeof window.googleMapsConfig !== 'undefined' || typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                            // Se abbiamo solo GOOGLE_MAPS_API_KEY, crea googleMapsConfig
+                            if (typeof window.googleMapsConfig === 'undefined' && typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                                window.googleMapsConfig = { apiKey: window.GOOGLE_MAPS_API_KEY };
+                            }
+                            resolve();
+                        } else {
+                            loadFallbackMapsConfig().then(resolve).catch(reject);
+                        }
+                    }, 100);
+                };
+                
+                mapsConfigScript.onerror = function() {
+                    // Prova anche il file nella root di core/
+                    const altScript = document.createElement('script');
+                    altScript.src = 'google-maps-config.js';
+                    altScript.onload = function() {
+                        setTimeout(() => {
+                            if (typeof window.googleMapsConfig !== 'undefined' || typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                                if (typeof window.googleMapsConfig === 'undefined' && typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                                    window.googleMapsConfig = { apiKey: window.GOOGLE_MAPS_API_KEY };
+                                }
+                                resolve();
+                            } else {
+                                loadFallbackMapsConfig().then(resolve).catch(reject);
+                            }
+                        }, 100);
+                    };
+                    altScript.onerror = function() {
+                        loadFallbackMapsConfig().then(resolve).catch(reject);
+                    };
+                    document.head.appendChild(altScript);
+                };
+                
+                document.head.appendChild(mapsConfigScript);
+            });
+        }
+
+        function loadFallbackMapsConfig() {
+            return new Promise((resolve, reject) => {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+                
+                fallbackScript.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window.googleMapsConfig !== 'undefined') {
+                            resolve();
+                        } else {
+                            reject(new Error('Google Maps config not found'));
+                        }
+                    }, 100);
+                };
+                
+                fallbackScript.onerror = function() {
+                    reject(new Error('Failed to load Google Maps config'));
+                };
+                
+                document.head.appendChild(fallbackScript);
+            });
+        }
+
+        let mapsApiLoaded = false;
+        
+        function loadGoogleMapsAPI() {
+            if (mapsApiLoaded || typeof google !== 'undefined') {
+                return Promise.resolve();
+            }
+            
+            return loadMapsConfig().then(() => {
+                // Gestisci entrambi i formati: window.googleMapsConfig o window.GOOGLE_MAPS_API_KEY
+                let apiKey = null;
+                if (window.googleMapsConfig && window.googleMapsConfig.apiKey) {
+                    apiKey = window.googleMapsConfig.apiKey;
+                } else if (window.GOOGLE_MAPS_API_KEY) {
+                    apiKey = window.GOOGLE_MAPS_API_KEY;
+                    // Crea googleMapsConfig per compatibilità
+                    window.googleMapsConfig = { apiKey: apiKey };
+                }
+                
+                if (!apiKey) {
+                    console.warn('Google Maps API key non configurata');
+                    return Promise.resolve();
+                }
+                
+                console.log('🔑 Caricamento Google Maps API con chiave:', apiKey.substring(0, 10) + '...');
+                
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
+                    script.async = true;
+                    script.defer = true;
+                    script.onload = () => {
+                        mapsApiLoaded = true;
+                        console.log('✅ Google Maps API caricata con successo');
+                        resolve();
+                    };
+                    script.onerror = () => {
+                        console.error('❌ Errore caricamento Google Maps API');
+                        reject(new Error('Failed to load Google Maps API'));
+                    };
+                    document.head.appendChild(script);
+                });
+            }).catch(error => {
+                console.warn('⚠️ Google Maps config non disponibile, continuo senza mappa:', error);
+                // Non bloccare l'applicazione se Google Maps non è disponibile
+                return Promise.resolve();
+            });
+        }
+    </script>
+
     <!-- Load Firebase config from external file -->
     <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
     <script>
@@ -1037,6 +1343,9 @@
         let macchineList = [];
         let hasParcoMacchineModule = false;
         let hasManodoperaModule = false;
+        let isContoTerziMode = false; // Modalità Conto Terzi (filtro su lavori conto terzi)
+        let lavoriList = []; // Lista lavori per filtrare in modalità Conto Terzi
+        let clientiList = []; // Lista clienti per dropdown
         
         // Variabili per struttura gerarchica (quando Macchine o Manodopera attivo)
         let categorieLavoriPrincipali = [];
@@ -1210,6 +1519,61 @@
                 return;
             }
 
+            // Rileva parametri URL per modalità Conto Terzi
+            const urlParams = new URLSearchParams(window.location.search);
+            isContoTerziMode = urlParams.get('contoTerzi') === 'true';
+            const statoFiltro = urlParams.get('stato'); // es: in_corso
+
+            // Applica gradiente blu se modalità Conto Terzi (sempre blu per coerenza)
+            if (isContoTerziMode) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const statoFiltro = urlParams.get('stato');
+                
+                // Sempre gradiente blu per coerenza con modulo conto terzi
+                document.body.style.background = 'linear-gradient(180deg, #E3F2FD 0%, #1976D2 100%)';
+                
+                const header = document.getElementById('main-header') || document.querySelector('.header');
+                if (header) {
+                    // Sempre gradiente blu per coerenza con modulo conto terzi
+                    header.style.background = 'linear-gradient(180deg, #1976D2 0%, #1565C0 100%)';
+                    // Assicurati che l'header sia visibile
+                    header.style.visibility = 'visible';
+                }
+                
+                // Modifica titolo header
+                const headerTitle = document.querySelector('.header h1');
+                if (headerTitle) {
+                    if (statoFiltro === 'completato') {
+                        headerTitle.textContent = '✅ Lavori Completati - Conto Terzi';
+                    } else {
+                        headerTitle.textContent = 'Diario Attività - Conto Terzi';
+                    }
+                }
+                
+                // Mostra filtro cliente se modalità conto terzi
+                const filterClienteGroup = document.getElementById('filter-cliente-group');
+                if (filterClienteGroup) {
+                    filterClienteGroup.style.display = 'block';
+                }
+                
+                // Imposta link dashboard corretto (percorso relativo da core/ a modules/)
+                const dashboardLink = document.getElementById('dashboard-link');
+                if (dashboardLink) {
+                    dashboardLink.href = '../modules/conto-terzi/views/conto-terzi-home-standalone.html';
+                }
+            } else {
+                // Modalità normale, nascondi filtro cliente e link alla dashboard principale
+                const filterClienteGroup = document.getElementById('filter-cliente-group');
+                if (filterClienteGroup) {
+                    filterClienteGroup.style.display = 'none';
+                }
+                
+                const dashboardLink = document.getElementById('dashboard-link');
+                if (dashboardLink) {
+                    dashboardLink.href = 'dashboard-standalone.html';
+                }
+            }
+
             try {
                 // Carica dati utente e tenant
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -1308,7 +1672,103 @@
             if (hasParcoMacchineModule) {
                 loadPromises.push(loadMacchine());
             }
+            
+            // Se modalità Conto Terzi, carica lavori e clienti
+            if (isContoTerziMode) {
+                loadPromises.push(loadLavoriContoTerzi(), loadClienti());
+            }
+            
             await Promise.all(loadPromises);
+            
+            // Mostra/nascondi sezione Conto Terzi e orari
+            const contoTerziSection = document.getElementById('attivita-conto-terzi-section');
+            const orariSection = document.querySelector('.form-row:has(#attivita-orario-inizio)');
+            const pauseSection = document.querySelector('.form-group:has(#attivita-pause)');
+            const oreNetteDisplay = document.querySelector('.ore-nette-display');
+            
+            if (isContoTerziMode) {
+                // Mostra sezione Conto Terzi
+                if (contoTerziSection) {
+                    contoTerziSection.style.display = 'block';
+                }
+                // Nascondi orari e pause (usiamo ore manuali)
+                if (orariSection) {
+                    orariSection.style.display = 'none';
+                }
+                if (pauseSection) {
+                    pauseSection.style.display = 'none';
+                }
+                if (oreNetteDisplay) {
+                    oreNetteDisplay.style.display = 'none';
+                }
+                // Rimuovi required da orario inizio
+                const orarioInizio = document.getElementById('attivita-orario-inizio');
+                if (orarioInizio) {
+                    orarioInizio.removeAttribute('required');
+                }
+            } else {
+                // Nascondi sezione Conto Terzi
+                if (contoTerziSection) {
+                    contoTerziSection.style.display = 'none';
+                }
+                // Mostra orari e pause
+                if (orariSection) {
+                    orariSection.style.display = 'flex';
+                }
+                if (pauseSection) {
+                    pauseSection.style.display = 'block';
+                }
+                if (oreNetteDisplay) {
+                    oreNetteDisplay.style.display = 'block';
+                }
+            }
+
+            // Nascondi container inizialmente se modalità conto terzi per evitare flash
+            if (isContoTerziMode) {
+                const container = document.getElementById('attivita-container');
+                if (container) {
+                    container.style.display = 'none';
+                }
+            }
+            
+            // Applica filtro automatico su lavori conto terzi se specificato
+            if (isContoTerziMode && statoFiltro) {
+                // Filtra automaticamente le attività per lavori conto terzi con stato specificato
+                setTimeout(() => {
+                    applyContoTerziFilter(statoFiltro);
+                    // Mostra container dopo aver applicato il filtro
+                    const container = document.getElementById('attivita-container');
+                    if (container) {
+                        container.style.display = 'block';
+                        container.style.visibility = 'visible';
+                    }
+                    // Assicurati che l'header sia visibile
+                    const header = document.getElementById('main-header') || document.querySelector('.header');
+                    if (header) {
+                        header.style.visibility = 'visible';
+                    }
+                    // Mostra il body solo quando tutto è pronto
+                    document.body.style.visibility = 'visible';
+                }, 150);
+            } else if (isContoTerziMode) {
+                // Se modalità conto terzi ma senza stato filtro, mostra solo attività conto terzi
+                filteredAttivita = attivita.filter(a => a.clienteId != null && a.clienteId !== '');
+                renderAttivita();
+                const container = document.getElementById('attivita-container');
+                if (container) {
+                    container.style.display = 'block';
+                    container.style.visibility = 'visible';
+                }
+                // Mostra il body quando tutto è pronto
+                document.body.style.visibility = 'visible';
+            } else {
+                // Modalità normale, mostra container
+                const container = document.getElementById('attivita-container');
+                if (container) {
+                    container.style.display = 'block';
+                    container.style.visibility = 'visible';
+                }
+            }
             
             // Libera macchine di attività del giorno precedente senza orario fine
             if (hasParcoMacchineModule) {
@@ -1467,8 +1927,8 @@
                 if (!currentTenantId) return;
 
                 const terreniCollection = getTerreniCollection(currentTenantId);
-                const q = query(terreniCollection, orderBy('nome', 'asc'));
-                const querySnapshot = await getDocs(q);
+                // Carica tutti i terreni (sia interni che clienti)
+                const querySnapshot = await getDocs(terreniCollection);
                 
                 terreni = [];
                 querySnapshot.forEach((docSnap) => {
@@ -1476,8 +1936,19 @@
                     terreni.push({
                         id: docSnap.id,
                         nome: data.nome || '',
-                        coltura: data.coltura || null
+                        coltura: data.coltura || null,
+                        clienteId: data.clienteId || null, // Include anche terreni clienti
+                        superficie: data.superficie || 0,
+                        coordinate: data.coordinate || null, // Coordinate centro terreno
+                        polygonCoords: data.polygonCoords || null // Confini terreno per mappa
                     });
+                });
+                
+                // Ordina client-side per nome
+                terreni.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
                 });
 
                 // Popola dropdown terreni
@@ -1487,7 +1958,14 @@
                 terrenoSelect.innerHTML = '<option value="">-- Seleziona terreno --</option>';
                 filterTerrenoSelect.innerHTML = '<option value="">Tutti i terreni</option>';
                 
-                terreni.forEach(terreno => {
+                // Filtra terreni in base alla modalità
+                let terreniDaMostrare = terreni;
+                if (isContoTerziMode) {
+                    // In modalità conto terzi, mostra solo terreni clienti (con clienteId)
+                    terreniDaMostrare = terreni.filter(t => t.clienteId != null && t.clienteId !== '');
+                }
+                
+                terreniDaMostrare.forEach(terreno => {
                     const option1 = document.createElement('option');
                     option1.value = terreno.id;
                     option1.textContent = terreno.nome;
@@ -1504,6 +1982,133 @@
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
             }
+        }
+        
+        // Carica lavori conto terzi (solo se modalità Conto Terzi)
+        async function loadLavoriContoTerzi() {
+            try {
+                if (!currentTenantId || !isContoTerziMode) return;
+
+                // Carica tutti i lavori e filtra client-side per evitare indice composto
+                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
+                const snapshot = await getDocs(lavoriRef);
+                
+                lavoriList = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Filtra solo lavori con clienteId (conto terzi)
+                    if (data.clienteId != null && data.clienteId !== '') {
+                        lavoriList.push({
+                            id: doc.id,
+                            ...data,
+                            terrenoId: data.terrenoId || null,
+                            clienteId: data.clienteId || null
+                        });
+                    }
+                });
+                
+                // Ordina client-side per nome
+                lavoriList.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+
+                // Popola dropdown lavori nel form (solo lavori in corso se statoFiltro specificato)
+                populateLavoriDropdown();
+            } catch (error) {
+                console.error('Errore caricamento lavori conto terzi:', error);
+                lavoriList = [];
+            }
+        }
+
+        // Carica clienti (solo se modalità Conto Terzi)
+        async function loadClienti() {
+            try {
+                if (!currentTenantId || !isContoTerziMode) return;
+
+                const clientiRef = collection(db, 'tenants', currentTenantId, 'clienti');
+                const q = query(clientiRef, orderBy('ragioneSociale', 'asc'));
+                const snapshot = await getDocs(q);
+                
+                clientiList = [];
+                snapshot.forEach(doc => {
+                    clientiList.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // Popola dropdown clienti nel form
+                populateClientiDropdown();
+            } catch (error) {
+                console.error('Errore caricamento clienti:', error);
+                clientiList = [];
+            }
+        }
+
+        // Popola dropdown lavori nel form (solo lavori conto terzi in corso)
+        function populateLavoriDropdown() {
+            const select = document.getElementById('attivita-lavoro');
+            if (!select) return;
+
+            // Filtra solo lavori in corso se statoFiltro specificato
+            const urlParams = new URLSearchParams(window.location.search);
+            const statoFiltro = urlParams.get('stato');
+            const lavoriFiltrati = statoFiltro 
+                ? lavoriList.filter(l => l.stato === statoFiltro)
+                : lavoriList.filter(l => l.stato === 'in_corso'); // Default: solo in corso
+
+            select.innerHTML = '<option value="">-- Seleziona lavoro --</option>';
+            lavoriFiltrati.forEach(lavoro => {
+                const option = document.createElement('option');
+                option.value = lavoro.id;
+                option.textContent = lavoro.nome || 'Lavoro senza nome';
+                option.dataset.terrenoId = lavoro.terrenoId || '';
+                option.dataset.clienteId = lavoro.clienteId || '';
+                select.appendChild(option);
+            });
+        }
+
+        // Popola dropdown clienti nel form
+        function populateClientiDropdown() {
+            const select = document.getElementById('attivita-cliente');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">-- Seleziona cliente --</option>';
+            clientiList.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = cliente.ragioneSociale || cliente.nome || 'Cliente senza nome';
+                select.appendChild(option);
+            });
+            
+            // Popola anche il filtro clienti se esiste
+            const filterClienteSelect = document.getElementById('filter-cliente');
+            if (filterClienteSelect) {
+                filterClienteSelect.innerHTML = '<option value="">Tutti i clienti</option>';
+                clientiList.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.id;
+                    option.textContent = cliente.ragioneSociale || cliente.nome || 'Cliente senza nome';
+                    filterClienteSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Applica filtro automatico su attività per lavori conto terzi
+        function applyContoTerziFilter(statoFiltro) {
+            // Filtra le attività mostrate per lavori conto terzi con stato specificato
+            const lavoriFiltrati = lavoriList.filter(l => l.stato === statoFiltro);
+            const lavoriIds = lavoriFiltrati.map(l => l.id);
+            
+            // Filtra attività per lavoriId (solo attività conto terzi)
+            filteredAttivita = attivita.filter(a => {
+                // Deve essere un'attività conto terzi (ha clienteId) e appartenere a un lavoro con lo stato specificato
+                return a.clienteId != null && a.clienteId !== '' && a.lavoroId && lavoriIds.includes(a.lavoroId);
+            });
+            
+            renderAttivita();
         }
         
         // Popola dropdown colture estraendole dai terreni esistenti
@@ -2099,6 +2704,10 @@
                         pauseMinuti: data.pauseMinuti || 0,
                         oreNette: data.oreNette || 0,
                         note: data.note || '',
+                        // Campi conto terzi (opzionali)
+                        clienteId: data.clienteId || null,
+                        clienteNome: data.clienteNome || null,
+                        lavoroId: data.lavoroId || null,
                         // Campi macchina (opzionali)
                         macchinaId: data.macchinaId || null,
                         attrezzoId: data.attrezzoId || null,
@@ -2173,19 +2782,274 @@
         }
 
         // Render attività
-        function renderAttivita() {
+        async function renderAttivita() {
+            console.log('🎨 renderAttivita chiamata');
             const container = document.getElementById('attivita-container');
             
-            if (filteredAttivita.length === 0) {
-                container.innerHTML = `
+            // Determina se è modalità completati
+            const urlParams = new URLSearchParams(window.location.search);
+            const statoFiltro = urlParams.get('stato');
+            const isModalitaCompletati = isContoTerziMode && statoFiltro === 'completato';
+            
+            console.log('📊 Stato renderAttivita:', {
+                isContoTerziMode,
+                statoFiltro,
+                isModalitaCompletati,
+                lavoriListLength: lavoriList.length
+            });
+            
+            let html = '';
+            
+            // Se modalità Conto Terzi, mostra prima i lavori (in corso o completati) con form rapido o solo consultazione
+            if (isContoTerziMode && lavoriList.length > 0) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const statoFiltro = urlParams.get('stato');
+                
+                // Se filtro è "completato", mostra lavori completati (solo consultazione)
+                if (statoFiltro === 'completato') {
+                    // Applica filtri anche ai lavori
+                    const clienteId = document.getElementById('filter-cliente') ? document.getElementById('filter-cliente').value : '';
+                    const terrenoId = document.getElementById('filter-terreno') ? document.getElementById('filter-terreno').value : '';
+                    
+                    let lavoriCompletati = lavoriList.filter(l => l.stato === 'completato');
+                    
+                    // Filtra per cliente se specificato
+                    if (clienteId) {
+                        lavoriCompletati = lavoriCompletati.filter(l => l.clienteId === clienteId);
+                    }
+                    
+                    // Filtra per terreno se specificato
+                    if (terrenoId) {
+                        lavoriCompletati = lavoriCompletati.filter(l => l.terrenoId === terrenoId);
+                    }
+                    
+                    if (lavoriCompletati.length > 0) {
+                        html += `
+                            <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #1976D2;">
+                                <h2 style="color: #1976D2; margin-bottom: 20px; font-size: 20px;">✅ Lavori Completati</h2>
+                                <div style="display: grid; gap: 15px;" id="lavori-completati-container">
+                                    <div style="text-align: center; padding: 20px; color: #666;">Caricamento dettagli...</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #1976D2;">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">✅</div>
+                                    <h3 style="color: #1976D2;">Nessun lavoro completato</h3>
+                                    <p>Non ci sono ancora lavori conto terzi completati.</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Mostra lavori in corso con form rapido
+                    const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+                    
+                    if (lavoriInCorso.length > 0) {
+                    html += `
+                        <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #1976D2;">
+                            <h2 style="color: #1976D2; margin-bottom: 20px; font-size: 20px;">💼 Lavori in Corso - Aggiungi Attività</h2>
+                            <div style="display: grid; gap: 15px;">
+                    `;
+                    
+                    lavoriInCorso.forEach(lavoro => {
+                        const cliente = clientiList.find(c => c.id === lavoro.clienteId);
+                        const terreno = terreni.find(t => t.id === lavoro.terrenoId);
+                        const clienteNome = cliente ? (cliente.ragioneSociale || cliente.nome || 'Cliente sconosciuto') : 'Cliente sconosciuto';
+                        const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+                        
+                        html += `
+                            <div class="lavoro-rapido-card" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                                    <div>
+                                        <h3 style="color: #1976D2; margin: 0 0 5px 0; font-size: 16px;">${escapeHtml(lavoro.nome || 'Lavoro senza nome')}</h3>
+                                        <div style="font-size: 13px; color: #666;">
+                                            <strong>Cliente:</strong> ${escapeHtml(clienteNome)} | 
+                                            <strong>Terreno:</strong> ${escapeHtml(terrenoNome)} | 
+                                            <strong>Tipo:</strong> ${escapeHtml(lavoro.tipoLavoro || '-')}
+                                        </div>
+                                    </div>
+                                    <button onclick="toggleFormRapido('${lavoro.id}')" class="btn btn-primary btn-sm" id="btn-toggle-${lavoro.id}">
+                                        ➕ Aggiungi Attività
+                                    </button>
+                                </div>
+                                
+                                <form id="form-rapido-${lavoro.id}" class="form-rapido-lavoro" style="display: none; padding-top: 15px; border-top: 1px solid #E0E0E0;">
+                                    <input type="hidden" id="rapido-cliente-${lavoro.id}" value="${lavoro.clienteId}">
+                                    <input type="hidden" id="rapido-lavoro-${lavoro.id}" value="${lavoro.id}">
+                                    <input type="hidden" id="rapido-terreno-${lavoro.id}" value="${lavoro.terrenoId}">
+                                    <input type="hidden" id="rapido-tipo-lavoro-${lavoro.id}" value="${escapeHtml(lavoro.tipoLavoro || '')}">
+                                    
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                        <div>
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Data *</label>
+                                            <input type="date" id="rapido-data-${lavoro.id}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Ore Lavorate *</label>
+                                            <input type="number" id="rapido-ore-${lavoro.id}" step="0.1" min="0" required placeholder="Es: 8.5" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </div>
+                                        ${hasParcoMacchineModule ? `
+                                        <div>
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Trattore</label>
+                                            <select id="rapido-trattore-${lavoro.id}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                                <option value="">-- Nessun trattore --</option>
+                                            </select>
+                                        </div>
+                                        <div id="rapido-attrezzo-group-${lavoro.id}" style="display: none;">
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Attrezzo</label>
+                                            <select id="rapido-attrezzo-${lavoro.id}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                                <option value="">-- Nessun attrezzo --</option>
+                                            </select>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    
+                                    <div style="margin-top: 15px;">
+                                        <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Note</label>
+                                        <textarea id="rapido-note-${lavoro.id}" placeholder="Note aggiuntive..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 60px; resize: vertical;"></textarea>
+                                    </div>
+                                    
+                                    <div style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #E0E0E0;">
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #333;">
+                                            <input type="checkbox" id="rapido-lavoro-terminato-${lavoro.id}" style="width: 18px; height: 18px; cursor: pointer;">
+                                            <strong style="color: #1976D2;">✅ Segna lavoro come completato</strong>
+                                        </label>
+                                        <small style="display: block; margin-top: 5px; margin-left: 26px; color: #666; font-size: 12px;">
+                                            Se selezionato, il lavoro passerà automaticamente da "In corso" a "Completato"
+                                        </small>
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                        <button type="button" onclick="salvaAttivitaRapida('${lavoro.id}')" class="btn btn-success" style="flex: 1;">💾 Salva Attività</button>
+                                        <button type="button" onclick="toggleFormRapido('${lavoro.id}')" class="btn btn-secondary">Annulla</button>
+                                    </div>
+                                </form>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                    } else {
+                        // Nessun lavoro in corso
+                        html += `
+                            <div style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); padding: 20px; border-radius: 12px; margin-bottom: 30px; border: 2px solid #1976D2;">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">✅</div>
+                                    <h3 style="color: #1976D2;">Nessun lavoro in corso</h3>
+                                    <p>Tutti i lavori conto terzi sono stati completati o non ci sono lavori da pianificare.</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+            
+            // Sezione attività esistenti
+            if (filteredAttivita.length === 0 && !isContoTerziMode) {
+                html += `
                     <div class="empty-state">
                         <div class="empty-state-icon">📝</div>
                         <h3>Nessuna attività trovata</h3>
                         <p>Aggiungi la prima attività utilizzando il pulsante "Aggiungi Attività".</p>
                     </div>
                 `;
+                container.innerHTML = html;
                 return;
             }
+            
+            // Se modalità conto terzi e non è modalità completati
+            if (isContoTerziMode && !isModalitaCompletati) {
+                const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+                if (lavoriInCorso.length === 0) {
+                    // Non ci sono lavori in corso, mostra solo messaggio
+                    html += `
+                        <div style="margin-top: 20px;">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">✅</div>
+                                <h3>Nessun lavoro in corso</h3>
+                                <p>Tutti i lavori conto terzi sono stati completati o non ci sono lavori da pianificare.</p>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML = html;
+                    return;
+                }
+                
+                // Se ci sono lavori in corso ma nessuna attività, mostra messaggio
+                if (filteredAttivita.length === 0) {
+                    html += `
+                        <div style="margin-top: 20px;">
+                            <h3 style="color: #1976D2; margin-bottom: 15px;">📋 Attività Registrate</h3>
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📝</div>
+                                <h3>Nessuna attività registrata</h3>
+                                <p>Usa i form rapidi sopra per aggiungere attività ai lavori in corso.</p>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML = html;
+                    return;
+                }
+            }
+            
+            // Se modalità completati, non mostrare la sezione attività esistenti (già mostrate nei lavori)
+            if (isModalitaCompletati) {
+                container.innerHTML = html;
+                console.log('✅ HTML aggiunto al container (modalità completati)');
+                
+                // Carica dettagli lavori completati dopo che l'HTML è stato aggiunto
+                const clienteId = document.getElementById('filter-cliente') ? document.getElementById('filter-cliente').value : '';
+                const terrenoId = document.getElementById('filter-terreno') ? document.getElementById('filter-terreno').value : '';
+                
+                let lavoriCompletati = lavoriList.filter(l => l.stato === 'completato');
+                
+                if (clienteId) {
+                    lavoriCompletati = lavoriCompletati.filter(l => l.clienteId === clienteId);
+                }
+                
+                if (terrenoId) {
+                    lavoriCompletati = lavoriCompletati.filter(l => l.terrenoId === terrenoId);
+                }
+                
+                if (lavoriCompletati.length > 0) {
+                    console.log('📋 Trovati', lavoriCompletati.length, 'lavori completati, avvio caricamento dettagli...');
+                    // Chiama la funzione dopo che il DOM è stato aggiornato
+                    setTimeout(() => {
+                        const containerCheck = document.getElementById('lavori-completati-container');
+                        if (!containerCheck) {
+                            console.error('❌ Container non trovato dopo timeout');
+                            return;
+                        }
+                        console.log('✅ Container trovato, chiamo caricaDettagliLavoriCompletati');
+                        caricaDettagliLavoriCompletati(lavoriCompletati).catch(error => {
+                            console.error('❌ Errore caricamento dettagli lavori completati:', error);
+                            console.error('Stack:', error.stack);
+                            const dettagliContainer = document.getElementById('lavori-completati-container');
+                            if (dettagliContainer) {
+                                dettagliContainer.innerHTML = `<div style="color: #d32f2f; padding: 20px; text-align: center;">
+                                    <strong>Errore caricamento dettagli:</strong><br>
+                                    ${error.message}<br>
+                                    <small style="color: #999; margin-top: 10px; display: block;">Controlla la console per maggiori dettagli</small>
+                                </div>`;
+                            }
+                        });
+                    }, 100);
+                }
+                
+                return;
+            }
+            
+            // Mostra attività esistenti
+            html += `
+                <div style="margin-top: 20px;">
+                    <h3 style="color: ${isContoTerziMode ? '#1976D2' : '#2E8B57'}; margin-bottom: 15px;">📋 Attività Registrate</h3>
+            `;
 
             // Crea mappa macchine per visualizzazione
             let macchineMap = {};
@@ -2199,16 +3063,17 @@
                 }
             }
 
-            container.innerHTML = `
+            html += `
                 <div class="attivita-table">
                     <div class="attivita-header">
                         <div class="col-data">Data</div>
+                        ${isContoTerziMode ? '<div class="col-cliente">Cliente</div>' : ''}
                         <div class="col-terreno">Terreno</div>
                         <div class="col-tipo-lavoro">Tipo Lavoro</div>
-                        <div class="col-coltura">Coltura</div>
-                        <div class="col-orari">Inizio</div>
-                        <div class="col-orari">Fine</div>
-                        <div class="col-orari">Pause</div>
+                        ${!isContoTerziMode ? '<div class="col-coltura">Coltura</div>' : ''}
+                        ${!isContoTerziMode ? '<div class="col-orari">Inizio</div>' : ''}
+                        ${!isContoTerziMode ? '<div class="col-orari">Fine</div>' : ''}
+                        ${!isContoTerziMode ? '<div class="col-orari">Pause</div>' : ''}
                         <div class="col-ore">Ore Nette</div>
                         ${hasParcoMacchineModule ? '<div class="col-macchina">Macchina</div>' : ''}
                         <div class="col-azioni">Azioni</div>
@@ -2218,17 +3083,28 @@
                         const pauseFormatted = `${att.pauseMinuti} min`;
                         const oreFormatted = formatOreNette(att.oreNette || 0);
                         
+                        // Badge Conto Terzi se presente (sempre se ha clienteId)
+                        const isContoTerzi = att.clienteId != null && att.clienteId !== '';
+                        const contoTerziBadge = isContoTerzi ? '<span class="badge" style="background: #1976D2; color: white; margin-left: 5px; font-size: 10px; padding: 2px 6px; border-radius: 3px;">💼 Conto Terzi</span>' : '';
+                        const contoTerziStyle = isContoTerzi ? 'style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); border-left: 4px solid #1976D2;"' : '';
+                        
                         return `
-                        <div class="attivita-row">
+                        <div class="attivita-row" ${contoTerziStyle}>
                             <div class="col-data" data-label="Data">
                                 ${escapeHtml(dataFormatted)}
                             </div>
+                            ${isContoTerziMode ? `
+                            <div class="col-cliente" data-label="Cliente">
+                                ${escapeHtml(att.clienteNome || '-')}${contoTerziBadge}
+                            </div>
+                            ` : ''}
                             <div class="col-terreno" data-label="Terreno">
                                 ${escapeHtml(att.terrenoNome || '-')}
                             </div>
                             <div class="col-tipo-lavoro" data-label="Tipo Lavoro">
                                 ${escapeHtml(att.tipoLavoro || '-')}
                             </div>
+                            ${!isContoTerziMode ? `
                             <div class="col-coltura" data-label="Coltura">
                                 ${escapeHtml(att.coltura || '-')}
                             </div>
@@ -2241,6 +3117,7 @@
                             <div class="col-orari" data-label="Pause">
                                 ${pauseFormatted}
                             </div>
+                            ` : ''}
                             <div class="col-ore" data-label="Ore Nette">
                                 ${oreFormatted}
                             </div>
@@ -2277,6 +3154,649 @@
                     }).join('')}
                 </div>
             `;
+            
+            html += `</div>`;
+            container.innerHTML = html;
+            console.log('✅ HTML aggiunto al container');
+            
+            // Se ci sono lavori completati, carica i dettagli dopo che l'HTML è stato aggiunto al DOM
+            const urlParamsCheck = new URLSearchParams(window.location.search);
+            const statoFiltroCheck = urlParamsCheck.get('stato');
+            const isModalitaCompletatiCheck = isContoTerziMode && statoFiltroCheck === 'completato';
+            
+            console.log('🔍 Verifica condizioni per caricamento dettagli:', {
+                isContoTerziMode,
+                isModalitaCompletatiCheck,
+                lavoriListLength: lavoriList.length,
+                statoFiltroCheck
+            });
+            
+            if (isContoTerziMode && isModalitaCompletatiCheck && lavoriList.length > 0) {
+                console.log('✅ Condizioni soddisfatte, procedo con caricamento dettagli');
+                const clienteId = document.getElementById('filter-cliente') ? document.getElementById('filter-cliente').value : '';
+                const terrenoId = document.getElementById('filter-terreno') ? document.getElementById('filter-terreno').value : '';
+                
+                let lavoriCompletati = lavoriList.filter(l => l.stato === 'completato');
+                
+                if (clienteId) {
+                    lavoriCompletati = lavoriCompletati.filter(l => l.clienteId === clienteId);
+                }
+                
+                if (terrenoId) {
+                    lavoriCompletati = lavoriCompletati.filter(l => l.terrenoId === terrenoId);
+                }
+                
+                if (lavoriCompletati.length > 0) {
+                    console.log('📋 Trovati', lavoriCompletati.length, 'lavori completati, avvio caricamento dettagli...');
+                    // Chiama la funzione dopo che il DOM è stato aggiornato
+                    setTimeout(() => {
+                        const containerCheck = document.getElementById('lavori-completati-container');
+                        if (!containerCheck) {
+                            console.error('❌ Container non trovato dopo timeout');
+                            return;
+                        }
+                        console.log('✅ Container trovato, chiamo caricaDettagliLavoriCompletati');
+                        caricaDettagliLavoriCompletati(lavoriCompletati).catch(error => {
+                            console.error('❌ Errore caricamento dettagli lavori completati:', error);
+                            console.error('Stack:', error.stack);
+                            const dettagliContainer = document.getElementById('lavori-completati-container');
+                            if (dettagliContainer) {
+                                dettagliContainer.innerHTML = `<div style="color: #d32f2f; padding: 20px; text-align: center;">
+                                    <strong>Errore caricamento dettagli:</strong><br>
+                                    ${error.message}<br>
+                                    <small style="color: #999; margin-top: 10px; display: block;">Controlla la console per maggiori dettagli</small>
+                                </div>`;
+                            }
+                        });
+                    }, 100);
+                } else {
+                    console.log('⚠️ Nessun lavoro completato trovato dopo filtri');
+                }
+            }
+            
+            // Popola dropdown macchine per form rapidi se Parco Macchine attivo
+            if (isContoTerziMode && hasParcoMacchineModule && lavoriList.length > 0) {
+                const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+                lavoriInCorso.forEach(lavoro => {
+                    populateTrattoriRapido(lavoro.id);
+                });
+            }
+            
+            // Imposta data di default a oggi per tutti i form rapidi
+            const today = new Date().toISOString().split('T')[0];
+            const lavoriInCorso = isContoTerziMode ? lavoriList.filter(l => l.stato === 'in_corso') : [];
+            lavoriInCorso.forEach(lavoro => {
+                const dataInput = document.getElementById(`rapido-data-${lavoro.id}`);
+                if (dataInput) {
+                    dataInput.value = today;
+                    dataInput.max = today;
+                }
+            });
+        }
+
+        // Toggle dettagli lavoro completato
+        // Carica dettagli completi per lavori completati (zone lavorate e ore validate)
+        async function caricaDettagliLavoriCompletati(lavoriCompletati) {
+            const container = document.getElementById('lavori-completati-container');
+            if (!container) {
+                console.error('Container lavori-completati-container non trovato');
+                return;
+            }
+            
+            console.log('Caricamento dettagli per', lavoriCompletati.length, 'lavori completati');
+            
+            try {
+                // Le funzioni collection e getDocs sono già importate all'inizio del file
+                let html = '';
+                
+                if (!currentTenantId) {
+                    throw new Error('Tenant ID non disponibile');
+                }
+                
+                if (!db) {
+                    throw new Error('Database Firestore non inizializzato');
+                }
+                
+                for (const lavoro of lavoriCompletati) {
+                    const cliente = clientiList.find(c => c.id === lavoro.clienteId);
+                    const terreno = terreni.find(t => t.id === lavoro.terrenoId);
+                    const clienteNome = cliente ? (cliente.ragioneSociale || cliente.nome || 'Cliente sconosciuto') : 'Cliente sconosciuto';
+                    const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+                    
+                    // Trova attività per questo lavoro
+                    const attivitaLavoro = attivita.filter(a => a.lavoroId === lavoro.id);
+                    const totaleOreAttivita = attivitaLavoro.reduce((sum, a) => sum + (a.oreNette || 0), 0);
+                    
+                    // Carica zone lavorate
+                    const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'zoneLavorate');
+                    const zoneSnapshot = await getDocs(zoneRef);
+                    const zoneLavorate = [];
+                    let superficieTotaleLavorata = 0;
+                    const zonePerData = {};
+                    
+                    zoneSnapshot.forEach(zonaDoc => {
+                        const zonaData = zonaDoc.data();
+                        let dataZona;
+                        if (zonaData.data?.toDate) {
+                            dataZona = zonaData.data.toDate();
+                        } else if (zonaData.data) {
+                            dataZona = new Date(zonaData.data);
+                        } else {
+                            dataZona = new Date();
+                        }
+                        
+                        const dataKey = new Date(dataZona.getFullYear(), dataZona.getMonth(), dataZona.getDate());
+                        const dataKeyString = dataKey.toISOString().split('T')[0];
+                        
+                        const zona = {
+                            id: zonaDoc.id,
+                            ...zonaData,
+                            dataNormalizzata: dataKey,
+                            dataKeyString: dataKeyString
+                        };
+                        
+                        zoneLavorate.push(zona);
+                        superficieTotaleLavorata += zona.superficieHa || 0;
+                        
+                        if (!zonePerData[dataKeyString]) {
+                            zonePerData[dataKeyString] = [];
+                        }
+                        zonePerData[dataKeyString].push(zona);
+                    });
+                    
+                    // Carica ore validate e raggruppa per data
+                    const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'oreOperai');
+                    const oreSnapshot = await getDocs(oreRef);
+                    let totaleOreValidate = 0;
+                    let totaleOreDaValidare = 0;
+                    const orePerData = {}; // Raggruppa ore per data
+                    
+                    oreSnapshot.forEach(oraDoc => {
+                        const oraData = oraDoc.data();
+                        const oreNette = oraData.oreNette || 0;
+                        
+                        if (oraData.stato === 'validate') {
+                            totaleOreValidate += oreNette;
+                        } else if (oraData.stato === 'da_validare') {
+                            totaleOreDaValidare += oreNette;
+                        }
+                        
+                        // Raggruppa per data
+                        let dataOra;
+                        if (oraData.data?.toDate) {
+                            dataOra = oraData.data.toDate();
+                        } else if (oraData.data) {
+                            dataOra = new Date(oraData.data);
+                        } else {
+                            return; // Salta se non ha data
+                        }
+                        
+                        const dataKey = new Date(dataOra.getFullYear(), dataOra.getMonth(), dataOra.getDate());
+                        const dataKeyString = dataKey.toISOString().split('T')[0];
+                        
+                        if (!orePerData[dataKeyString]) {
+                            orePerData[dataKeyString] = {
+                                validate: 0,
+                                daValidare: 0,
+                                totale: 0
+                            };
+                        }
+                        
+                        if (oraData.stato === 'validate') {
+                            orePerData[dataKeyString].validate += oreNette;
+                        } else if (oraData.stato === 'da_validare') {
+                            orePerData[dataKeyString].daValidare += oreNette;
+                        }
+                        orePerData[dataKeyString].totale += oreNette;
+                    });
+                    
+                    // Usa superficie dal documento lavoro se disponibile, altrimenti calcolata
+                    const superficieLavorata = lavoro.superficieTotaleLavorata || superficieTotaleLavorata;
+                    const superficieTotale = terreno?.superficie || 0;
+                    const percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
+                    
+                    // Ordina date zone lavorate (più recenti prima)
+                    const dateZone = Object.keys(zonePerData).sort((a, b) => new Date(b) - new Date(a));
+                    
+                    html += `
+                        <div class="lavoro-completato-card" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #BBDEFB; cursor: pointer;" onclick="toggleDettagliLavoro('${lavoro.id}')">
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <h3 style="color: #1976D2; margin: 0 0 5px 0; font-size: 16px;">${escapeHtml(lavoro.nome || 'Lavoro senza nome')}</h3>
+                                        <div style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                                            <strong>Cliente:</strong> ${escapeHtml(clienteNome)} | 
+                                            <strong>Terreno:</strong> ${escapeHtml(terrenoNome)} | 
+                                            <strong>Tipo:</strong> ${escapeHtml(lavoro.tipoLavoro || '-')}
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                                            <div style="font-size: 13px; color: #1976D2;">
+                                                <strong>📊 Superficie:</strong> ${superficieLavorata.toFixed(2)} / ${superficieTotale.toFixed(2)} ha
+                                            </div>
+                                            <div style="font-size: 13px; color: #1976D2;">
+                                                <strong>✅ Completamento:</strong> ${percentuale}%
+                                            </div>
+                                            <div style="font-size: 13px; color: #1976D2;">
+                                                <strong>⏱️ Ore Validate:</strong> ${formatOreNette(totaleOreValidate)}
+                                            </div>
+                                            <div style="font-size: 13px; color: #1976D2;">
+                                                <strong>📝 Zone:</strong> ${zoneLavorate.length}
+                                            </div>
+                                        </div>
+                                        ${superficieTotale > 0 ? `
+                                        <div style="margin-top: 10px;">
+                                            <div style="background: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden;">
+                                                <div style="background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%); height: 100%; width: ${Math.min(percentuale, 100)}%; transition: width 0.3s;"></div>
+                                            </div>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    <div style="margin-left: 10px; color: #1976D2; font-size: 20px;" id="icon-toggle-${lavoro.id}">
+                                        ▼
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="dettagli-lavoro-${lavoro.id}" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #E0E0E0;" onclick="event.stopPropagation();">
+                                ${dateZone.length > 0 || Object.keys(orePerData).length > 0 ? `
+                                <h4 style="color: #1976D2; font-size: 14px; margin-bottom: 10px;">📅 Dettagli Giornalieri (Zone e Ore):</h4>
+                                <div style="display: grid; gap: 10px; margin-bottom: 15px;">
+                                    ${dateZone.map(dataKey => {
+                                        const zoneGiorno = zonePerData[dataKey] || [];
+                                        const oreGiorno = orePerData[dataKey] || { validate: 0, daValidare: 0, totale: 0 };
+                                        const dataObj = new Date(dataKey);
+                                        const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
+                                            weekday: 'long', 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric' 
+                                        });
+                                        const superficieGiorno = zoneGiorno.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+                                        
+                                        return `
+                                            <div style="background: #E3F2FD; padding: 12px; border-radius: 6px; border-left: 4px solid #1976D2;">
+                                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                                    <div style="flex: 1;">
+                                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;">
+                                                            <strong style="color: #1976D2;">📅 ${escapeHtml(dataFormatted)}</strong>
+                                                            ${zoneGiorno.length > 0 ? `
+                                                                <span style="color: #666; font-size: 12px;">
+                                                                    🗺️ ${zoneGiorno.length} ${zoneGiorno.length === 1 ? 'zona' : 'zone'}, ${superficieGiorno.toFixed(2)} ha
+                                                                </span>
+                                                            ` : ''}
+                                                            ${oreGiorno.totale > 0 ? `
+                                                                <span style="color: #1976D2; font-size: 12px; font-weight: bold;">
+                                                                    ⏱️ ${formatOreNette(oreGiorno.totale)}
+                                                                    ${oreGiorno.validate > 0 ? `<span style="color: #4CAF50;">(${formatOreNette(oreGiorno.validate)} validate)</span>` : ''}
+                                                                    ${oreGiorno.daValidare > 0 ? `<span style="color: #FF9800;">(${formatOreNette(oreGiorno.daValidare)} da validare)</span>` : ''}
+                                                                </span>
+                                                            ` : ''}
+                                                        </div>
+                                                        ${zoneGiorno.length === 0 && oreGiorno.totale === 0 ? `
+                                                            <span style="color: #999; font-size: 12px; font-style: italic;">Nessun dato disponibile per questo giorno</span>
+                                                        ` : ''}
+                                                    </div>
+                                                    ${zoneGiorno.length > 0 ? `
+                                                        <button onclick="mostraMappaZonaLavorata('${lavoro.id}', '${dataKey}', '${escapeHtml(dataFormatted)}')" 
+                                                                style="background: #1976D2; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap;"
+                                                                onmouseover="this.style.background='#1565C0'" 
+                                                                onmouseout="this.style.background='#1976D2'"
+                                                                title="Visualizza zone lavorate di questo giorno">
+                                                            🗺️ Mappa
+                                                        </button>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                    
+                                    ${Object.keys(orePerData).filter(dataKey => !dateZone.includes(dataKey)).map(dataKey => {
+                                        const oreGiorno = orePerData[dataKey];
+                                        const dataObj = new Date(dataKey);
+                                        const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
+                                            weekday: 'long', 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric' 
+                                        });
+                                        
+                                        return `
+                                            <div style="background: #E3F2FD; padding: 12px; border-radius: 6px; border-left: 4px solid #1976D2;">
+                                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                                    <div style="flex: 1;">
+                                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                                            <strong style="color: #1976D2;">📅 ${escapeHtml(dataFormatted)}</strong>
+                                                            ${oreGiorno.totale > 0 ? `
+                                                                <span style="color: #1976D2; font-size: 12px; font-weight: bold;">
+                                                                    ⏱️ ${formatOreNette(oreGiorno.totale)}
+                                                                    ${oreGiorno.validate > 0 ? `<span style="color: #4CAF50;">(${formatOreNette(oreGiorno.validate)} validate)</span>` : ''}
+                                                                    ${oreGiorno.daValidare > 0 ? `<span style="color: #FF9800;">(${formatOreNette(oreGiorno.daValidare)} da validare)</span>` : ''}
+                                                                </span>
+                                                            ` : ''}
+                                                        </div>
+                                                        <span style="color: #999; font-size: 12px; font-style: italic; margin-top: 4px; display: block;">Nessuna zona tracciata per questo giorno</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                                ` : ''}
+                                
+                                ${attivitaLavoro.length > 0 ? `
+                                <h4 style="color: #1976D2; font-size: 14px; margin-bottom: 10px;">📝 Attività registrate:</h4>
+                                <div style="display: grid; gap: 8px;">
+                                    ${attivitaLavoro
+                                        .filter(att => {
+                                            if (filteredAttivita.length === 0 && attivita.length > 0) {
+                                                return false;
+                                            }
+                                            if (filteredAttivita.length > 0) {
+                                                return filteredAttivita.some(fa => fa.id === att.id);
+                                            }
+                                            return true;
+                                        })
+                                        .map(att => {
+                                            const dataFormatted = att.data ? new Date(att.data + 'T00:00:00').toLocaleDateString('it-IT') : '';
+                                            const oreFormatted = formatOreNette(att.oreNette || 0);
+                                            return `
+                                                <div style="background: #F5F5F5; padding: 10px; border-radius: 6px; border-left: 3px solid #1976D2;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div style="flex: 1;">
+                                                            <strong style="color: #1976D2;">${escapeHtml(dataFormatted)}</strong>
+                                                            <span style="color: #666; margin-left: 10px;">${escapeHtml(oreFormatted)}</span>
+                                                            ${att.note ? `<div style="color: #666; font-size: 12px; margin-top: 4px;">${escapeHtml(att.note)}</div>` : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                </div>
+                                ` : '<div style="color: #999; font-size: 13px; font-style: italic;">Nessuna attività registrata</div>'}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = html;
+                console.log('✅ Dettagli lavori completati caricati con successo:', lavoriCompletati.length, 'lavori');
+            } catch (error) {
+                console.error('❌ Errore caricamento dettagli lavori completati:', error);
+                console.error('Stack trace:', error.stack);
+                if (container) {
+                    container.innerHTML = `<div style="color: #d32f2f; padding: 20px; text-align: center;">
+                        <strong>Errore caricamento dettagli:</strong><br>
+                        ${error.message}<br>
+                        <small style="color: #999; margin-top: 10px; display: block;">Controlla la console per maggiori dettagli</small>
+                    </div>`;
+                }
+            }
+        }
+
+        window.toggleDettagliLavoro = function(lavoroId) {
+            const dettagli = document.getElementById(`dettagli-lavoro-${lavoroId}`);
+            const icon = document.getElementById(`icon-toggle-${lavoroId}`);
+            
+            if (dettagli && icon) {
+                if (dettagli.style.display === 'none' || !dettagli.style.display) {
+                    dettagli.style.display = 'block';
+                    icon.textContent = '▲';
+                } else {
+                    dettagli.style.display = 'none';
+                    icon.textContent = '▼';
+                }
+            }
+        }
+
+        // Toggle form rapido per lavoro
+        window.toggleFormRapido = function(lavoroId) {
+            const form = document.getElementById(`form-rapido-${lavoroId}`);
+            const btn = document.getElementById(`btn-toggle-${lavoroId}`);
+            
+            if (form && btn) {
+                if (form.style.display === 'none' || !form.style.display) {
+                    form.style.display = 'block';
+                    btn.textContent = '❌ Annulla';
+                } else {
+                    form.style.display = 'none';
+                    btn.textContent = '➕ Aggiungi Attività';
+                    // Reset form
+                    form.reset();
+                    const today = new Date().toISOString().split('T')[0];
+                    const dataInput = document.getElementById(`rapido-data-${lavoroId}`);
+                    if (dataInput) {
+                        dataInput.value = today;
+                    }
+                }
+            }
+        }
+
+        // Popola dropdown trattori per form rapido
+        function populateTrattoriRapido(lavoroId) {
+            const select = document.getElementById(`rapido-trattore-${lavoroId}`);
+            if (!select) return;
+            
+            select.innerHTML = '<option value="">-- Nessun trattore --</option>';
+            
+            if (!macchineList || macchineList.length === 0) return;
+            
+            const trattori = macchineList
+                .filter(m => {
+                    const tipo = m.tipoMacchina || m.tipo;
+                    return tipo === 'trattore' && m.stato !== 'dismesso';
+                })
+                .sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+            
+            trattori.forEach(trattore => {
+                const option = document.createElement('option');
+                option.value = trattore.id;
+                const nome = trattore.nome || 'Trattore senza nome';
+                const cavalli = trattore.cavalli ? ` (${trattore.cavalli} CV)` : '';
+                const stato = trattore.stato === 'disponibile' ? '✅' : 
+                             trattore.stato === 'in_uso' ? '🔄' : 
+                             trattore.stato === 'in_manutenzione' ? '🔧' : 
+                             trattore.stato === 'guasto' ? '❌' : '';
+                option.textContent = `${stato} ${nome}${cavalli}`;
+                select.appendChild(option);
+            });
+            
+            // Listener per attrezzi compatibili
+            select.addEventListener('change', function() {
+                populateAttrezziRapido(lavoroId, this.value);
+            });
+        }
+
+        // Popola dropdown attrezzi compatibili per form rapido
+        function populateAttrezziRapido(lavoroId, trattoreId) {
+            const select = document.getElementById(`rapido-attrezzo-${lavoroId}`);
+            const group = document.getElementById(`rapido-attrezzo-group-${lavoroId}`);
+            if (!select || !group) return;
+            
+            select.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
+            
+            if (!trattoreId) {
+                group.style.display = 'none';
+                return;
+            }
+            
+            const trattore = macchineList.find(m => m.id === trattoreId);
+            if (!trattore || !trattore.cavalli) {
+                group.style.display = 'none';
+                return;
+            }
+            
+            group.style.display = 'block';
+            
+            const attrezziCompatibili = macchineList
+                .filter(m => {
+                    const tipo = m.tipoMacchina || m.tipo;
+                    if (tipo !== 'attrezzo' || m.stato === 'dismesso') return false;
+                    const cavalliMinimi = m.cavalliMinimiRichiesti || 0;
+                    return trattore.cavalli >= cavalliMinimi;
+                })
+                .sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+            
+            attrezziCompatibili.forEach(attrezzo => {
+                const option = document.createElement('option');
+                option.value = attrezzo.id;
+                option.textContent = attrezzo.nome || 'Attrezzo senza nome';
+                select.appendChild(option);
+            });
+        }
+
+        // Salva attività rapida da form lavoro
+        window.salvaAttivitaRapida = async function(lavoroId) {
+            try {
+                if (!currentTenantId) {
+                    showAlert('Errore: Tenant ID non disponibile', 'error');
+                    return;
+                }
+                
+                const clienteId = document.getElementById(`rapido-cliente-${lavoroId}`).value;
+                const lavoroIdValue = document.getElementById(`rapido-lavoro-${lavoroId}`).value;
+                const terrenoId = document.getElementById(`rapido-terreno-${lavoroId}`).value;
+                const tipoLavoro = document.getElementById(`rapido-tipo-lavoro-${lavoroId}`).value;
+                const data = document.getElementById(`rapido-data-${lavoroId}`).value;
+                const ore = parseFloat(document.getElementById(`rapido-ore-${lavoroId}`).value);
+                const note = document.getElementById(`rapido-note-${lavoroId}`).value.trim();
+                const lavoroTerminato = document.getElementById(`rapido-lavoro-terminato-${lavoroId}`).checked;
+                
+                // Validazioni
+                if (!data) {
+                    showAlert('La data è obbligatoria', 'error');
+                    return;
+                }
+                
+                const oggi = new Date();
+                const oggiString = oggi.getFullYear() + '-' + 
+                                  String(oggi.getMonth() + 1).padStart(2, '0') + '-' + 
+                                  String(oggi.getDate()).padStart(2, '0');
+                if (data > oggiString) {
+                    showAlert('La data non può essere futura', 'error');
+                    return;
+                }
+                
+                if (!ore || ore <= 0) {
+                    showAlert('Le ore devono essere maggiori di 0', 'error');
+                    return;
+                }
+                
+                // Trova terreno e cliente
+                const terreno = terreni.find(t => t.id === terrenoId);
+                if (!terreno) {
+                    showAlert('Terreno non trovato', 'error');
+                    return;
+                }
+                
+                const cliente = clientiList.find(c => c.id === clienteId);
+                const clienteNome = cliente ? (cliente.ragioneSociale || cliente.nome || 'Cliente sconosciuto') : 'Cliente sconosciuto';
+                
+                // Campi macchina (solo se modulo attivo)
+                let macchinaId = null;
+                let attrezzoId = null;
+                if (hasParcoMacchineModule) {
+                    macchinaId = document.getElementById(`rapido-trattore-${lavoroId}`).value || null;
+                    attrezzoId = document.getElementById(`rapido-attrezzo-${lavoroId}`).value || null;
+                }
+                
+                // Prepara dati attività
+                const attivitaData = {
+                    data: data,
+                    terrenoId: terrenoId,
+                    terrenoNome: terreno.nome,
+                    tipoLavoro: tipoLavoro,
+                    coltura: null,
+                    orarioInizio: null,
+                    orarioFine: null,
+                    pauseMinuti: 0,
+                    oreNette: ore,
+                    note: note || null,
+                    clienteId: clienteId,
+                    lavoroId: lavoroIdValue,
+                    clienteNome: clienteNome,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+                
+                // Aggiungi campi macchina se presenti
+                if (macchinaId) attivitaData.macchinaId = macchinaId;
+                if (attrezzoId) attivitaData.attrezzoId = attrezzoId;
+                
+                // Salva attività
+                const attivitaCollection = getAttivitaCollection(currentTenantId);
+                await addDoc(attivitaCollection, attivitaData);
+                
+                // Se checkbox "lavoro terminato" è selezionato, aggiorna stato lavoro
+                if (lavoroTerminato) {
+                    try {
+                        const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroIdValue);
+                        const lavoroData = {
+                            stato: 'completato',
+                            aggiornatoIl: serverTimestamp()
+                        };
+                        await updateDoc(lavoroRef, lavoroData);
+                        
+                        // Se Parco Macchine attivo, libera macchine assegnate al lavoro
+                        if (hasParcoMacchineModule) {
+                            const lavoro = lavoriList.find(l => l.id === lavoroIdValue);
+                            if (lavoro) {
+                                if (lavoro.macchinaId) {
+                                    await updateMacchinaStato(lavoro.macchinaId, 'disponibile');
+                                }
+                                if (lavoro.attrezzoId) {
+                                    await updateMacchinaStato(lavoro.attrezzoId, 'disponibile');
+                                }
+                            }
+                        }
+                        
+                        showAlert('Attività creata e lavoro segnato come completato!', 'success');
+                        
+                        // Ricarica lavori per aggiornare lista
+                        await loadLavoriContoTerzi();
+                    } catch (error) {
+                        console.error('Errore aggiornamento stato lavoro:', error);
+                        showAlert('Attività creata, ma errore nell\'aggiornamento stato lavoro', 'warning');
+                    }
+                } else {
+                    showAlert('Attività creata con successo!', 'success');
+                }
+                
+                // Reset form
+                document.getElementById(`form-rapido-${lavoroId}`).reset();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById(`rapido-data-${lavoroId}`).value = today;
+                toggleFormRapido(lavoroId); // Chiudi form
+                
+                // Ricarica attività e lavori
+                await loadAttivita();
+                if (isContoTerziMode) {
+                    await loadLavoriContoTerzi();
+                    // Se c'è un filtro stato, riapplica
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const statoFiltro = urlParams.get('stato');
+                    if (statoFiltro) {
+                        applyContoTerziFilter(statoFiltro);
+                    } else {
+                        // Filtra solo attività conto terzi
+                        filteredAttivita = attivita.filter(a => a.clienteId != null && a.clienteId !== '');
+                        renderAttivita();
+                    }
+                } else {
+                    renderAttivita();
+                }
+                
+            } catch (error) {
+                console.error('Errore salvataggio attività rapida:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
         }
 
         // Apri modal attività
@@ -2527,6 +4047,36 @@
         }
 
 
+        // Listener per precompilare terreno quando si seleziona un lavoro (modalità Conto Terzi)
+        const lavoroSelect = document.getElementById('attivita-lavoro');
+        if (lavoroSelect) {
+            lavoroSelect.addEventListener('change', function() {
+                if (!isContoTerziMode) return;
+                
+                const lavoroId = this.value;
+                if (lavoroId) {
+                    const lavoro = lavoriList.find(l => l.id === lavoroId);
+                    if (lavoro && lavoro.terrenoId) {
+                        // Precompila terreno
+                        const terrenoSelect = document.getElementById('attivita-terreno');
+                        if (terrenoSelect) {
+                            terrenoSelect.value = lavoro.terrenoId;
+                            terrenoSelect.disabled = true; // Disabilita perché viene dal lavoro
+                            // Trigger change per precompilare coltura se necessario
+                            terrenoSelect.dispatchEvent(new Event('change'));
+                        }
+                    }
+                } else {
+                    // Se lavoro deselezionato, abilita terreno e resetta
+                    const terrenoSelect = document.getElementById('attivita-terreno');
+                    if (terrenoSelect) {
+                        terrenoSelect.disabled = false;
+                        terrenoSelect.value = '';
+                    }
+                }
+            });
+        }
+
         // Listener per precompilare coltura quando si seleziona un terreno
         document.getElementById('attivita-terreno').addEventListener('change', function() {
             const terrenoId = this.value;
@@ -2617,17 +4167,44 @@
             }
             
             const data = document.getElementById('attivita-data').value;
-            const terrenoId = document.getElementById('attivita-terreno').value;
+            
+            // Se modalità Conto Terzi, usa campi specifici
+            let terrenoId, tipoLavoro, coltura, orarioInizio, orarioFine, pauseMinuti;
+            let clienteId = null;
+            let lavoroId = null;
+            let oreManuali = null;
+            
+            if (isContoTerziMode) {
+                clienteId = document.getElementById('attivita-cliente').value;
+                lavoroId = document.getElementById('attivita-lavoro').value;
+                oreManuali = parseFloat(document.getElementById('attivita-ore-manuali').value) || 0;
+                
+                // Trova lavoro per ottenere terreno e tipo lavoro
+                const lavoro = lavoriList.find(l => l.id === lavoroId);
+                if (!lavoro) {
+                    showAlert('Lavoro non trovato', 'error');
+                    return;
+                }
+                terrenoId = lavoro.terrenoId;
+                tipoLavoro = lavoro.tipoLavoro || '';
+                coltura = ''; // Non obbligatorio in modalità Conto Terzi
+                orarioInizio = null;
+                orarioFine = null;
+                pauseMinuti = 0;
+            } else {
+                terrenoId = document.getElementById('attivita-terreno').value;
             const usaStrutturaGerarchica = hasParcoMacchineModule || hasManodoperaModule;
-            const tipoLavoro = usaStrutturaGerarchica 
+                tipoLavoro = usaStrutturaGerarchica 
                 ? document.getElementById('attivita-tipo-lavoro-gerarchico').value 
                 : document.getElementById('attivita-tipo-lavoro').value;
-            const coltura = usaStrutturaGerarchica
+                coltura = usaStrutturaGerarchica
                 ? document.getElementById('attivita-coltura-gerarchica').value
                 : document.getElementById('attivita-coltura').value;
-            const orarioInizio = document.getElementById('attivita-orario-inizio').value;
-            const orarioFine = document.getElementById('attivita-orario-fine').value;
-            const pauseMinuti = parseInt(document.getElementById('attivita-pause').value) || 0;
+                orarioInizio = document.getElementById('attivita-orario-inizio').value;
+                orarioFine = document.getElementById('attivita-orario-fine').value;
+                pauseMinuti = parseInt(document.getElementById('attivita-pause').value) || 0;
+            }
+            
             const note = document.getElementById('attivita-note').value.trim();
             
             // Validazioni
@@ -2653,6 +4230,22 @@
                 return;
             }
             
+            // Validazioni specifiche per modalità Conto Terzi
+            if (isContoTerziMode) {
+                if (!clienteId) {
+                    showAlert('Il cliente è obbligatorio', 'error');
+                    return;
+                }
+                if (!lavoroId) {
+                    showAlert('Il lavoro è obbligatorio', 'error');
+                    return;
+                }
+                if (!oreManuali || oreManuali <= 0) {
+                    showAlert('Le ore lavorate devono essere maggiori di 0', 'error');
+                    return;
+                }
+            } else {
+                // Validazioni standard
             if (!tipoLavoro) {
                 showAlert('Il tipo lavoro è obbligatorio', 'error');
                 return;
@@ -2666,10 +4259,11 @@
             if (!orarioInizio) {
                 showAlert('L\'orario inizio è obbligatorio', 'error');
                 return;
+                }
             }
             
-            // Se c'è orario fine, valida che sia maggiore di inizio
-            if (orarioFine) {
+            // Se c'è orario fine, valida che sia maggiore di inizio (solo se non modalità Conto Terzi)
+            if (!isContoTerziMode && orarioFine) {
                 const [inizioOre, inizioMinuti] = orarioInizio.split(':').map(Number);
                 const [fineOre, fineMinuti] = orarioFine.split(':').map(Number);
                 const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
@@ -2689,8 +4283,8 @@
                     showAlert('Le pause non possono essere maggiori o uguali al tempo di lavoro', 'error');
                     return;
                 }
-            } else {
-                // Se non c'è orario fine, valida solo che le pause non siano negative
+            } else if (!isContoTerziMode) {
+                // Se non c'è orario fine, valida solo che le pause non siano negative (solo se non modalità Conto Terzi)
                 if (pauseMinuti < 0) {
                     showAlert('Le pause non possono essere negative', 'error');
                     return;
@@ -2726,8 +4320,8 @@
             }
             
             // Calcola ore nette (in formato decimale per salvataggio)
-            const oreNetteResult = calculateOreNette();
-            const oreNette = oreNetteResult.decimali;
+            // Se modalità Conto Terzi, usa ore manuali
+            const oreNette = isContoTerziMode ? oreManuali : calculateOreNette().decimali;
             
             const oreMacchinaInput = hasParcoMacchineModule ? document.getElementById('attivita-ore-macchina').value : null;
             const oreMacchina = oreMacchinaInput ? parseFloat(oreMacchinaInput) : (oreNette || null); // Default = ore nette se non specificato
@@ -2738,14 +4332,25 @@
                 terrenoId: terrenoId,
                 terrenoNome: terreno.nome,
                 tipoLavoro: tipoLavoro,
-                coltura: coltura,
-                orarioInizio: orarioInizio,
-                orarioFine: orarioFine,
+                coltura: coltura || null,
+                orarioInizio: orarioInizio || null,
+                orarioFine: orarioFine || null,
                 pauseMinuti: pauseMinuti,
                 oreNette: oreNette,
                 note: note || null,
                 updatedAt: serverTimestamp()
             };
+            
+            // Aggiungi campi Conto Terzi se modalità attiva
+            if (isContoTerziMode) {
+                attivitaData.clienteId = clienteId;
+                attivitaData.lavoroId = lavoroId;
+                // Trova nome cliente
+                const cliente = clientiList.find(c => c.id === clienteId);
+                if (cliente) {
+                    attivitaData.clienteNome = cliente.ragioneSociale || cliente.nome || 'Cliente senza nome';
+                }
+            }
             
             // Aggiungi campi macchina solo se modulo attivo e se presenti
             if (hasParcoMacchineModule) {
@@ -2902,22 +4507,62 @@
         document.getElementById('filter-ricerca').addEventListener('input', applyFilters);
 
         function applyFilters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const statoFiltro = urlParams.get('stato');
+            const isModalitaCompletati = isContoTerziMode && statoFiltro === 'completato';
+            
             const dataDa = document.getElementById('filter-data-da').value;
             const dataA = document.getElementById('filter-data-a').value;
+            const clienteId = document.getElementById('filter-cliente') ? document.getElementById('filter-cliente').value : '';
             const terrenoId = document.getElementById('filter-terreno').value;
             const tipoLavoro = document.getElementById('filter-tipo-lavoro').value;
             const coltura = document.getElementById('filter-coltura').value;
             const ricerca = document.getElementById('filter-ricerca').value.toLowerCase();
             
+            // Se modalità completati, applica filtri base e poi filtra per lavori completati
+            if (isModalitaCompletati) {
+                // Filtra attività base
+                let attivitaFiltrate = attivita.filter(att => {
+                    if (dataDa && att.data < dataDa) return false;
+                    if (dataA && att.data > dataA) return false;
+                    if (clienteId && att.clienteId !== clienteId) return false;
+                    if (terrenoId && att.terrenoId !== terrenoId) return false;
+                    if (tipoLavoro && att.tipoLavoro !== tipoLavoro) return false;
+                    if (coltura && att.coltura !== coltura) return false;
+                    if (ricerca && att.note && !att.note.toLowerCase().includes(ricerca)) return false;
+                    return true;
+                });
+                
+                // Filtra per lavori completati
+                let lavoriCompletati = lavoriList.filter(l => l.stato === 'completato');
+                
+                // Se c'è filtro cliente, filtra anche i lavori
+                if (clienteId) {
+                    lavoriCompletati = lavoriCompletati.filter(l => l.clienteId === clienteId);
+                }
+                
+                // Se c'è filtro terreno, filtra anche i lavori
+                if (terrenoId) {
+                    lavoriCompletati = lavoriCompletati.filter(l => l.terrenoId === terrenoId);
+                }
+                
+                const lavoriIds = lavoriCompletati.map(l => l.id);
+                filteredAttivita = attivitaFiltrate.filter(a => {
+                    return a.clienteId != null && a.clienteId !== '' && a.lavoroId && lavoriIds.includes(a.lavoroId);
+                });
+            } else {
+                // Filtri normali
             filteredAttivita = attivita.filter(att => {
                 if (dataDa && att.data < dataDa) return false;
                 if (dataA && att.data > dataA) return false;
+                    if (clienteId && att.clienteId !== clienteId) return false;
                 if (terrenoId && att.terrenoId !== terrenoId) return false;
                 if (tipoLavoro && att.tipoLavoro !== tipoLavoro) return false;
                 if (coltura && att.coltura !== coltura) return false;
-                if (ricerca && !att.note.toLowerCase().includes(ricerca)) return false;
+                    if (ricerca && att.note && !att.note.toLowerCase().includes(ricerca)) return false;
                 return true;
             });
+            }
             
             renderAttivita();
         }
@@ -2926,12 +4571,24 @@
         window.clearFilters = function() {
             document.getElementById('filter-data-da').value = '';
             document.getElementById('filter-data-a').value = '';
+            const filterCliente = document.getElementById('filter-cliente');
+            if (filterCliente) {
+                filterCliente.value = '';
+            }
             document.getElementById('filter-terreno').value = '';
             document.getElementById('filter-tipo-lavoro').value = '';
             document.getElementById('filter-coltura').value = '';
             document.getElementById('filter-ricerca').value = '';
+            
+            // Se modalità completati, riapplica filtro base
+            const urlParams = new URLSearchParams(window.location.search);
+            const statoFiltro = urlParams.get('stato');
+            if (isContoTerziMode && statoFiltro === 'completato') {
+                applyContoTerziFilter(statoFiltro);
+            } else {
             filteredAttivita = [...attivita];
             renderAttivita();
+            }
         };
 
         // Mostra alert
@@ -2959,6 +4616,216 @@
             };
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
+
+        // Variabili globali per la mappa
+        let mappaZoneMap = null;
+        let mappaZonePolygons = [];
+
+        // Funzione per mostrare mappa zone lavorate
+        window.mostraMappaZonaLavorata = async function(lavoroId, dataAttivita, dataFormatted) {
+            try {
+                console.log('🗺️ Apertura mappa per lavoro:', lavoroId, 'data:', dataAttivita);
+                
+                // Apri modal prima di caricare la mappa
+                document.getElementById('mappa-zone-title').textContent = `Zone Lavorate - ${dataFormatted}`;
+                document.getElementById('mappa-zone-modal').classList.add('active');
+                
+                const mapContainer = document.getElementById('mappa-zone-container');
+                const infoContainer = document.getElementById('mappa-zone-info');
+                
+                // Mostra loading
+                mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Caricamento mappa...</div>';
+                infoContainer.innerHTML = 'Caricamento zone lavorate...';
+                
+                // Carica Google Maps API se non già caricato
+                await loadGoogleMapsAPI();
+                
+                if (typeof google === 'undefined' || !google.maps) {
+                    console.error('❌ Google Maps non disponibile');
+                    showAlert('Google Maps non disponibile. Verifica che il file config/google-maps-config.js sia presente e configurato correttamente.', 'error');
+                    mapContainer.innerHTML = 
+                        '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f; text-align: center; padding: 20px;">Google Maps non disponibile.<br>Verifica la configurazione.</div>';
+                    infoContainer.innerHTML = 
+                        '<div style="color: #d32f2f;">Errore: Google Maps non disponibile</div>';
+                    return;
+                }
+                
+                console.log('✅ Google Maps caricato correttamente');
+
+                // Trova lavoro e terreno
+                const lavoro = lavoriList.find(l => l.id === lavoroId);
+                if (!lavoro) {
+                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Lavoro non trovato</div>';
+                    infoContainer.innerHTML = 'Errore: Lavoro non trovato';
+                    return;
+                }
+
+                let terreno = terreni.find(t => t.id === lavoro.terrenoId);
+                
+                // Se il terreno non ha polygonCoords, caricalo dal database
+                if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) {
+                    console.log('⚠️ Terreno non ha polygonCoords in cache, carico dal database...');
+                    try {
+                        const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
+                        if (terrenoDoc.exists()) {
+                            const terrenoData = terrenoDoc.data();
+                            terreno = {
+                                id: terrenoDoc.id,
+                                nome: terrenoData.nome || '',
+                                superficie: terrenoData.superficie || 0,
+                                coordinate: terrenoData.coordinate || null,
+                                polygonCoords: terrenoData.polygonCoords || null
+                            };
+                            // Aggiorna anche nella lista cache
+                            const terrenoIndex = terreni.findIndex(t => t.id === lavoro.terrenoId);
+                            if (terrenoIndex >= 0) {
+                                terreni[terrenoIndex] = terreno;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Errore caricamento terreno:', error);
+                    }
+                }
+                
+                if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) {
+                    console.error('❌ Terreno senza confini mappa:', terreno);
+                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Terreno senza confini mappa</div>';
+                    infoContainer.innerHTML = 'Errore: Terreno senza confini mappa. Verifica che il terreno abbia i confini tracciati.';
+                    return;
+                }
+                
+                console.log('✅ Terreno trovato con confini:', terreno.nome, 'coordinate:', terreno.polygonCoords.length);
+
+                // Inizializza mappa
+                const center = terreno.coordinate || { lat: 45.0, lng: 9.0 };
+                mappaZoneMap = new google.maps.Map(mapContainer, {
+                    zoom: 15,
+                    center: center,
+                    mapTypeId: 'satellite'
+                });
+
+                // Pulisci poligoni precedenti
+                mappaZonePolygons.forEach(p => p.setMap(null));
+                mappaZonePolygons = [];
+
+                // Disegna confini terreno
+                const terrenoCoords = terreno.polygonCoords.map(c => {
+                    if (typeof c === 'object' && c !== null) {
+                        return {
+                            lat: c.lat !== undefined ? c.lat : (Array.isArray(c) ? c[0] : 45.0),
+                            lng: c.lng !== undefined ? c.lng : (Array.isArray(c) ? c[1] : 9.0)
+                        };
+                    } else if (Array.isArray(c)) {
+                        return { lat: c[0] || 45.0, lng: c[1] || 9.0 };
+                    }
+                    return { lat: 45.0, lng: 9.0 };
+                });
+                
+                const terrenoPolygon = new google.maps.Polygon({
+                    paths: terrenoCoords,
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 3,
+                    fillColor: '#FF0000',
+                    fillOpacity: 0.1
+                });
+                terrenoPolygon.setMap(mappaZoneMap);
+                mappaZonePolygons.push(terrenoPolygon);
+
+                // Aggiusta zoom per includere tutto il terreno
+                const bounds = new google.maps.LatLngBounds();
+                terrenoCoords.forEach(coord => bounds.extend(coord));
+                mappaZoneMap.fitBounds(bounds);
+
+                // Carica zone lavorate per questa data specifica
+                // collection e getDocs sono già importate all'inizio del file
+                const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const zoneSnapshot = await getDocs(zoneRef);
+                
+                // Normalizza data attività per confronto (YYYY-MM-DD)
+                const dataAttivitaObj = new Date(dataAttivita + 'T00:00:00');
+                const dataAttivitaKey = dataAttivitaObj.toISOString().split('T')[0];
+                
+                let zoneTrovate = [];
+                let superficieTotale = 0;
+
+                zoneSnapshot.forEach(zonaDoc => {
+                    const zonaData = zonaDoc.data();
+                    
+                    // Normalizza data zona
+                    let dataZona;
+                    if (zonaData.data?.toDate) {
+                        dataZona = zonaData.data.toDate();
+                    } else if (zonaData.data) {
+                        dataZona = new Date(zonaData.data);
+                    } else {
+                        return; // Salta se non ha data
+                    }
+                    
+                    const dataZonaKey = new Date(dataZona.getFullYear(), dataZona.getMonth(), dataZona.getDate()).toISOString().split('T')[0];
+                    
+                    // Filtra per data specifica
+                    if (dataZonaKey === dataAttivitaKey) {
+                        const zona = { id: zonaDoc.id, ...zonaData };
+                        zoneTrovate.push(zona);
+                        superficieTotale += zona.superficieHa || 0;
+                        
+                        // Disegna zona lavorata sulla mappa
+                        if (zona.coordinate && zona.coordinate.length > 0) {
+                            const zonaCoords = zona.coordinate.map(c => ({
+                                lat: c.lat,
+                                lng: c.lng
+                            }));
+                            
+                            const zonaPolygon = new google.maps.Polygon({
+                                paths: zonaCoords,
+                                strokeColor: '#00FF00',
+                                strokeOpacity: 0.9,
+                                strokeWeight: 2,
+                                fillColor: '#00FF00',
+                                fillOpacity: 0.4
+                            });
+                            zonaPolygon.setMap(mappaZoneMap);
+                            mappaZonePolygons.push(zonaPolygon);
+                        }
+                    }
+                });
+
+                // Aggiorna info
+                if (zoneTrovate.length === 0) {
+                    infoContainer.innerHTML = `
+                        <div style="color: #d32f2f;">
+                            ⚠️ Nessuna zona lavorata tracciata per il ${dataFormatted}
+                        </div>
+                    `;
+                } else {
+                    infoContainer.innerHTML = `
+                        <div style="color: #2E7D32;">
+                            ✅ <strong>${zoneTrovate.length}</strong> ${zoneTrovate.length === 1 ? 'zona' : 'zone'} lavorata${zoneTrovate.length === 1 ? '' : 'e'} 
+                            per un totale di <strong>${superficieTotale.toFixed(2)} ha</strong>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Errore caricamento mappa zone:', error);
+                document.getElementById('mappa-zone-container').innerHTML = 
+                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Errore caricamento mappa</div>';
+                document.getElementById('mappa-zone-info').innerHTML = 
+                    `<div style="color: #d32f2f;">Errore: ${error.message}</div>`;
+            }
+        };
+
+        // Funzione per chiudere modal mappa
+        window.closeMappaZoneModal = function() {
+            document.getElementById('mappa-zone-modal').classList.remove('active');
+            
+            // Pulisci mappa
+            if (mappaZoneMap) {
+                mappaZonePolygons.forEach(p => p.setMap(null));
+                mappaZonePolygons = [];
+                mappaZoneMap = null;
+            }
+        };
     </script>
     
     <!-- Service Worker Registration for PWA -->
