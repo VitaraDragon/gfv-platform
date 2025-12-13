@@ -38,6 +38,35 @@
             flex-wrap: wrap;
             gap: 20px;
         }
+        
+        /* Stili Conto Terzi - applicati immediatamente se rilevati */
+        body.conto-terzi-mode .header {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+        }
+        
+        body.conto-terzi-mode .modal .btn-primary {
+            background: #1976D2 !important;
+        }
+        
+        body.conto-terzi-mode .stat-card:not(.secondary):not(.warning):not(.danger):not(.stat-card-ritardo):not(.stat-card-tempo):not(.stat-card-anticipo) {
+            background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important;
+        }
+        
+        /* Stili specifici per card statistiche progresso */
+        .stat-card-ritardo {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+            color: white !important;
+        }
+        
+        .stat-card-tempo {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%) !important;
+            color: white !important;
+        }
+        
+        .stat-card-anticipo {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+            color: white !important;
+        }
 
         .header h1 {
             font-size: 28px;
@@ -573,6 +602,42 @@
             }
         }
     </style>
+    <script>
+        // Rileva immediatamente modalità Conto Terzi per evitare flash verde
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const statoFromUrl = urlParams.get('stato');
+            const contoTerziFromUrl = urlParams.get('contoTerzi');
+            
+            // Se c'è il parametro contoTerzi=true o stato=da_pianificare, applica subito gli stili
+            // Nota: hasContoTerziModule non è ancora disponibile qui, quindi controlliamo solo i parametri URL
+            if (contoTerziFromUrl === 'true' || statoFromUrl === 'da_pianificare') {
+                // Aggiungi classe al body immediatamente
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.body.classList.add('conto-terzi-mode');
+                    
+                    // Aggiorna link dashboard immediatamente
+                    const dashboardLink = document.getElementById('dashboard-link');
+                    if (dashboardLink) {
+                        dashboardLink.href = '../../modules/conto-terzi/views/conto-terzi-home-standalone.html';
+                    }
+                    
+                    // Aggiorna titolo header
+                    const headerTitle = document.querySelector('.header h1');
+                    if (headerTitle && headerTitle.textContent.includes('Gestione Lavori')) {
+                        headerTitle.textContent = '📋 Lavori da Pianificare - Conto Terzi';
+                    }
+                });
+                
+                // Applica anche prima che DOM sia caricato usando inline style
+                const style = document.createElement('style');
+                style.textContent = `
+                    .header { background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%) !important; }
+                `;
+                document.head.appendChild(style);
+            }
+        })();
+    </script>
 </head>
 <body>
     <div class="container">
@@ -584,7 +649,7 @@
             <div class="header-actions">
                 <button class="btn btn-primary" id="lavori-tour-button" type="button">🧭 Tour</button>
                 <button class="btn btn-primary" id="crea-lavoro-button" onclick="openCreaModal()">➕ Crea Nuovo Lavoro</button>
-                <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <a href="../dashboard-standalone.html" id="dashboard-link" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
 
@@ -609,15 +674,15 @@
                     <div class="stat-value" id="stat-superficie-lavorata">0 ha</div>
                     <div class="stat-label">Superficie Lavorata</div>
                 </div>
-                <div class="stat-card" style="background: #f8d7da; color: #721c24;">
+                <div class="stat-card stat-card-ritardo">
                     <div class="stat-value" id="stat-lavori-ritardo">0</div>
                     <div class="stat-label">🔴 In Ritardo</div>
                 </div>
-                <div class="stat-card" style="background: #d4edda; color: #155724;">
+                <div class="stat-card stat-card-tempo">
                     <div class="stat-value" id="stat-lavori-tempo">0</div>
                     <div class="stat-label">🟢 In Tempo</div>
                 </div>
-                <div class="stat-card" style="background: #d1ecf1; color: #0c5460;">
+                <div class="stat-card stat-card-anticipo">
                     <div class="stat-value" id="stat-lavori-anticipo">0</div>
                     <div class="stat-label">🚀 In Anticipo</div>
                 </div>
@@ -1071,6 +1136,7 @@
         let categorieAttrezziList = [];
         let hasParcoMacchineModule = false;
         let hasManodoperaModule = false;
+        let hasContoTerziModule = false;
         let categorieLavoriPrincipali = [];
         let sottocategorieLavoriMap = new Map(); // parentId -> Array<sottocategorie>
         let tipiLavoroList = [];
@@ -1105,8 +1171,9 @@
                         return;
                     }
 
-                    // Verifica se modulo Manodopera è attivo
+                    // Verifica moduli attivi
                     hasManodoperaModule = false;
+                    hasContoTerziModule = false;
                     if (currentTenantId) {
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
@@ -1114,6 +1181,7 @@
                                 const tenantData = tenantDoc.data();
                                 hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
                                 hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                                hasContoTerziModule = tenantData.modules && tenantData.modules.includes('contoTerzi');
                             }
                         } catch (error) {
                             console.warn('Errore verifica moduli:', error);
@@ -1142,7 +1210,21 @@
                     // Leggi parametro URL per filtro stato (es: ?stato=da_pianificare)
                     const urlParams = new URLSearchParams(window.location.search);
                     const statoFromUrl = urlParams.get('stato');
+                    const contoTerziFromUrl = urlParams.get('contoTerzi');
                     console.log('🔍 Parametro URL stato:', statoFromUrl);
+                    console.log('🔍 Parametro URL contoTerzi:', contoTerziFromUrl);
+                    
+                    // Rileva se siamo in modalità conto terzi
+                    const isContoTerziMode = contoTerziFromUrl === 'true' || 
+                                            (statoFromUrl === 'da_pianificare' && hasContoTerziModule);
+                    
+                    if (isContoTerziMode) {
+                        console.log('💼 Modalità Conto Terzi rilevata - applico stili blu');
+                        // La classe è già stata aggiunta nello script nell'head, ma verifichiamo
+                        document.body.classList.add('conto-terzi-mode');
+                        applyContoTerziStyles();
+                        updateDashboardLink();
+                    }
                     
                     if (statoFromUrl && hasManodoperaModule) {
                         const filterStatoEl = document.getElementById('filter-stato');
@@ -1151,6 +1233,15 @@
                             console.log('✅ Filtro stato impostato dal URL:', statoFromUrl);
                         } else {
                             console.warn('⚠️ Elemento filter-stato non trovato');
+                        }
+                    }
+                    
+                    // Se stato=da_pianificare e modulo conto terzi attivo, imposta filtro anche senza Manodopera
+                    if (statoFromUrl === 'da_pianificare' && hasContoTerziModule && !hasManodoperaModule) {
+                        const filterStatoEl = document.getElementById('filter-stato');
+                        if (filterStatoEl) {
+                            filterStatoEl.value = statoFromUrl;
+                            console.log('✅ Filtro stato impostato dal URL (Conto Terzi):', statoFromUrl);
                         }
                     }
                     
@@ -3361,8 +3452,14 @@
                     }
                 }
                 
+                let nuovoLavoroId = currentLavoroId;
+                let lavoroEraCompletato = false;
+                
                 if (currentLavoroId) {
                     // Modifica lavoro esistente
+                    const lavoroOriginale = lavoriList.find(l => l.id === currentLavoroId);
+                    lavoroEraCompletato = lavoroOriginale?.stato === 'completato';
+                    
                     lavoroData.aggiornatoIl = serverTimestamp();
                     
                     await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', currentLavoroId), lavoroData);
@@ -3372,8 +3469,20 @@
                     lavoroData.creatoDa = currentUserData.id;
                     lavoroData.creatoIl = serverTimestamp();
                     
-                    await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
+                    const nuovoLavoroRef = await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
+                    nuovoLavoroId = nuovoLavoroRef.id;
                     showAlert('Lavoro creato con successo!', 'success');
+                }
+                
+                // Genera voce diario automatica se lavoro conto terzi completato
+                const lavoroCompletatoOra = nuovoStato === 'completato';
+                if (lavoroCompletatoOra && !lavoroEraCompletato && lavoroData.clienteId) {
+                    // Carica dati completi del lavoro appena salvato
+                    const lavoroCompletatoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', nuovoLavoroId));
+                    if (lavoroCompletatoDoc.exists()) {
+                        const lavoroCompletatoData = { id: nuovoLavoroId, ...lavoroCompletatoDoc.data() };
+                        await generaVoceDiarioContoTerzi(nuovoLavoroId, lavoroCompletatoData);
+                    }
                 }
                 
                 closeLavoroModal();
@@ -3441,6 +3550,96 @@
             }
         };
 
+        /**
+         * Genera automaticamente una voce diario quando un lavoro conto terzi viene completato
+         * @param {string} lavoroId - ID del lavoro completato
+         * @param {Object} lavoroData - Dati del lavoro completato
+         * @param {Object} orariOpzionali - Orari opzionali dalla attività appena salvata {orarioInizio, orarioFine, pauseMinuti, oreNette}
+         */
+        async function generaVoceDiarioContoTerzi(lavoroId, lavoroData, orariOpzionali = null) {
+            // Verifica se modulo Conto Terzi è attivo e se lavoro è conto terzi
+            if (!hasContoTerziModule || !lavoroData.clienteId) {
+                return; // Non è un lavoro conto terzi o modulo non attivo
+            }
+
+            // Verifica se già esiste una voce diario per questo lavoro
+            try {
+                const attivitaQuery = query(
+                    collection(db, 'tenants', currentTenantId, 'attivita'),
+                    where('lavoroId', '==', lavoroId)
+                );
+                const attivitaSnapshot = await getDocs(attivitaQuery);
+                
+                if (!attivitaSnapshot.empty) {
+                    console.log('📋 Voce diario già esistente per lavoro conto terzi:', lavoroId);
+                    return; // Già esiste una voce diario
+                }
+            } catch (error) {
+                console.warn('Errore verifica voce diario esistente:', error);
+            }
+
+            try {
+                // Carica dati terreno
+                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoroData.terrenoId));
+                if (!terrenoDoc.exists()) {
+                    console.warn('Terreno non trovato per lavoro conto terzi:', lavoroData.terrenoId);
+                    return;
+                }
+                const terreno = terrenoDoc.data();
+
+                // Carica dati cliente
+                let clienteNome = 'Cliente';
+                if (lavoroData.clienteId) {
+                    try {
+                        const clienteDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'clienti', lavoroData.clienteId));
+                        if (clienteDoc.exists()) {
+                            clienteNome = clienteDoc.data().ragioneSociale || 'Cliente';
+                        }
+                    } catch (error) {
+                        console.warn('Errore caricamento cliente:', error);
+                    }
+                }
+
+                // Calcola data completamento (usa data approvazione se presente, altrimenti oggi)
+                const dataCompletamento = lavoroData.approvatoIl?.toDate 
+                    ? lavoroData.approvatoIl.toDate() 
+                    : new Date();
+                const dataAttivita = dataCompletamento.toISOString().split('T')[0];
+
+                // Usa orari dalla attività se disponibili, altrimenti default
+                const orarioInizio = orariOpzionali?.orarioInizio || '08:00';
+                const orarioFine = orariOpzionali?.orarioFine || '17:00';
+                const pauseMinuti = orariOpzionali?.pauseMinuti !== undefined ? orariOpzionali.pauseMinuti : 60;
+                const oreNette = orariOpzionali?.oreNette !== undefined ? orariOpzionali.oreNette : 8.0;
+
+                // Crea voce diario precompilata
+                const attivitaData = {
+                    data: dataAttivita,
+                    terrenoId: lavoroData.terrenoId,
+                    terrenoNome: terreno.nome || 'Terreno Cliente',
+                    tipoLavoro: lavoroData.tipoLavoro || 'Lavoro Conto Terzi',
+                    coltura: terreno.coltura || lavoroData.coltura || '',
+                    orarioInizio: orarioInizio,
+                    orarioFine: orarioFine,
+                    pauseMinuti: pauseMinuti,
+                    oreNette: oreNette,
+                    note: `Lavoro conto terzi completato: ${lavoroData.nome || ''}\nCliente: ${clienteNome}\n${lavoroData.note || ''}`.trim(),
+                    clienteId: lavoroData.clienteId,
+                    lavoroId: lavoroId,
+                    creatoDa: currentUserData.id,
+                    creatoIl: serverTimestamp(),
+                    aggiornatoIl: serverTimestamp()
+                };
+
+                // Salva voce diario
+                await addDoc(collection(db, 'tenants', currentTenantId, 'attivita'), attivitaData);
+                console.log('✅ Voce diario generata automaticamente per lavoro conto terzi:', lavoroId);
+            } catch (error) {
+                console.error('Errore generazione voce diario conto terzi:', error);
+                // Non bloccare il flusso se la generazione fallisce
+            }
+        }
+
         // Mostra alert
         function showAlert(message, type = 'info') {
             const container = document.getElementById('alert-container');
@@ -3478,7 +3677,7 @@
                 const superficieTotale = terreno?.superficie || 0;
                 
                 // Aggiorna stato a "completato" e forza percentuale a 100%
-                await updateDoc(lavoroRef, {
+                const lavoroCompletatoData = {
                     stato: 'completato',
                     superficieTotaleLavorata: superficieTotale, // Forza a superficie totale
                     superficieRimanente: 0,
@@ -3486,7 +3685,12 @@
                     approvatoDa: currentUserData.id,
                     approvatoIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
-                });
+                };
+                await updateDoc(lavoroRef, lavoroCompletatoData);
+                
+                // Genera voce diario automatica se lavoro conto terzi completato
+                const lavoroAggiornato = { ...lavoro, ...lavoroCompletatoData };
+                await generaVoceDiarioContoTerzi(lavoroId, lavoroAggiornato);
                 
                 // Libera macchine se modulo Parco Macchine attivo
                 if (hasParcoMacchineModule) {
@@ -4911,6 +5115,57 @@
             }
 
             return steps;
+        }
+        
+        // Applica stili Conto Terzi
+        function applyContoTerziStyles() {
+            const header = document.querySelector('.header');
+            if (header) {
+                header.classList.add('conto-terzi-mode');
+                header.style.background = 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)';
+            }
+            
+            const container = document.querySelector('.container');
+            if (container) {
+                container.classList.add('conto-terzi-mode');
+            }
+            
+            // Aggiorna titolo se necessario
+            const headerTitle = header?.querySelector('h1');
+            if (headerTitle && headerTitle.textContent.includes('Gestione Lavori')) {
+                headerTitle.textContent = '📋 Lavori da Pianificare - Conto Terzi';
+            }
+            
+            // Aggiorna stili bottoni primari
+            const primaryButtons = document.querySelectorAll('.btn-primary');
+            primaryButtons.forEach(btn => {
+                if (!btn.closest('.modal')) {
+                    btn.style.background = 'rgba(255,255,255,0.2)';
+                }
+            });
+            
+            // Aggiorna stili modal
+            const modalPrimaryButtons = document.querySelectorAll('.modal .btn-primary');
+            modalPrimaryButtons.forEach(btn => {
+                btn.style.background = '#1976D2';
+            });
+            
+            // Aggiorna stat cards principali
+            const statCards = document.querySelectorAll('.stat-card:not(.secondary):not(.warning):not(.danger)');
+            statCards.forEach(card => {
+                if (!card.closest('.stats-header')) {
+                    card.style.background = 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)';
+                }
+            });
+        }
+        
+        // Aggiorna link dashboard per modalità Conto Terzi
+        function updateDashboardLink() {
+            const dashboardLink = document.getElementById('dashboard-link');
+            if (dashboardLink) {
+                dashboardLink.href = '../../modules/conto-terzi/views/conto-terzi-home-standalone.html';
+                console.log('✅ Link dashboard aggiornato per modalità Conto Terzi');
+            }
         }
     </script>
 </body>

@@ -1,7 +1,7 @@
 # 📊 Stato Dettagliato Progetto - GFV Platform
 
-**Data aggiornamento**: 2025-12-10  
-**Versione**: 1.2  
+**Data aggiornamento**: 2025-12-13  
+**Versione**: 1.3  
 **Stato generale**: ✅ **IN SVILUPPO ATTIVO - FUNZIONANTE**
 
 ---
@@ -17,7 +17,38 @@
 
 ---
 
-## 🆕 Ultime Modifiche (2025-12-10)
+## 🆕 Ultime Modifiche (2025-12-13)
+
+### Miglioramenti Registrazione Ore Conto Terzi ✅
+- ✅ **Form rapido attività**: Sostituito campo singolo "Ore Lavorate" con sistema ora inizio/fine/pause
+- ✅ **Calcolo automatico ore nette**: Implementato in form rapido e modal principale attività
+- ✅ **Riutilizzo orari**: Le ore inserite vengono automaticamente riutilizzate nella voce diario generata
+- ✅ **Validazione completa**: Controllo ora fine > ora inizio, ore nette > 0
+
+### Visualizzazione Lavori Completati Conto Terzi ✅
+- ✅ **Ore visualizzate correttamente**: Usa ore dalle attività del diario quando Manodopera non attivo
+- ✅ **Percentuale completamento**: Mostra 100% quando lavoro completato senza zone tracciate
+- ✅ **Dettagli giornalieri**: Unisce ore attività con ore validate per visualizzazione completa
+
+### UI Pagina "Lavori da Pianificare" ✅
+- ✅ **Gradiente blu**: Applicato immediatamente nell'head per evitare flash verde
+- ✅ **Link dashboard corretto**: Torna alla dashboard conto terzi invece che principale
+- ✅ **Titolo aggiornato**: "Lavori da Pianificare - Conto Terzi"
+- ✅ **Rilevamento automatico**: Modalità conto terzi rilevata da parametri URL
+
+### Card Statistiche Colorate ✅
+- ✅ **In Ritardo**: Gradiente rosso per evidenziare lavori in ritardo
+- ✅ **In Tempo**: Gradiente verde per lavori in tempo
+- ✅ **In Anticipo**: Gradiente blu chiaro per lavori in anticipo
+- ✅ **Visibilità migliorata**: Colori distintivi anche in modalità conto terzi
+
+### Pianificazione Lavori Conto Terzi senza Manodopera ✅ COMPLETATO
+- ✅ **Modalità semplificata**: Pianificazione base senza assegnazione operai
+- ✅ **Supporto Parco Macchine**: Assegnazione macchine ai lavori
+- ✅ **Stato automatico**: Passa da "da_pianificare" a "in_corso" quando completato
+- ✅ **Funziona con**: Core Base + Conto Terzi, Core Base + Parco Macchine + Conto Terzi
+
+## 🆕 Modifiche Precedenti (2025-12-10)
 
 ### Evidenziazione Visiva Lavori Conto Terzi ✅
 - ✅ Filtro "Tipo Lavoro" in Gestione Lavori (Interni/Conto Terzi)
@@ -25,12 +56,6 @@
 - ✅ Badge "💼 Conto Terzi" accanto al nome lavoro
 - ✅ Evidenziazione nel Diario da Lavori della dashboard
 - ✅ Stile coerente con sezione Conto Terzi
-
-### Pianificazione Lavori Conto Terzi senza Manodopera 📝
-- 📝 **Pianificato**: Rendere "Gestione Lavori" accessibile anche senza Manodopera
-- 📝 Modalità semplificata: solo pianificazione base (nome, terreno, tipo, data, durata, note, stato)
-- 📝 Supporto Parco Macchine: assegnazione macchine ai lavori
-- 📝 Funziona con: Core Base + Conto Terzi, Core Base + Parco Macchine + Conto Terzi
 
 ---
 
@@ -48,6 +73,9 @@
 - ✅ **Evidenziazione Visiva Lavori Conto Terzi** - Gradiente blu/azzurro distintivo
 - ✅ **Filtro Lavori Conto Terzi** - Separazione visiva e funzionale lavori interni/conto terzi
 - ✅ **Integrazione Dashboard** - Card dedicata, evidenziazione nel Diario da Lavori
+- ✅ **Registrazione Ore Unificata** - Sistema ora inizio/fine/pause con calcolo automatico ore nette (2025-12-13)
+- ✅ **Visualizzazione Lavori Completati** - Ore e percentuale correttamente visualizzate (2025-12-13)
+- ✅ **UI Coerente Conto Terzi** - Stili blu in tutte le pagine, card statistiche colorate (2025-12-13)
 
 #### Pagine Modulo
 - ✅ **Dashboard Conto Terzi** (`modules/conto-terzi/views/conto-terzi-home-standalone.html`)
@@ -441,8 +469,8 @@ Il progetto è **molto avanzato** e **funzionante**. I moduli Core Base, Manodop
 
 ---
 
-**Ultimo aggiornamento**: 2025-12-10  
-**Versione documento**: 1.3  
-**Ultima funzionalità**: Evidenziazione Visiva Lavori Conto Terzi + Pianificazione Lavori Conto Terzi (pianificato)  
+**Ultimo aggiornamento**: 2025-12-13  
+**Versione documento**: 1.4  
+**Ultima funzionalità**: Miglioramenti Registrazione Ore Conto Terzi + UI Coerente + Card Statistiche Colorate (2025-12-13)  
 **Stato**: ✅ Progetto attivo e funzionante
 

@@ -860,10 +860,24 @@
                             <small style="color: #666; font-size: 12px;">Il terreno verrà precompilato automaticamente dal lavoro selezionato</small>
                         </div>
 
-                        <div class="form-group">
-                            <label for="attivita-ore-manuali">Ore Lavorate *</label>
-                            <input type="number" id="attivita-ore-manuali" step="0.1" min="0" required placeholder="Es: 8.5">
-                            <small style="color: #666; font-size: 12px;">Inserisci manualmente le ore lavorate (senza validazione)</small>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="attivita-ora-inizio-ct">Ora Inizio *</label>
+                                <input type="time" id="attivita-ora-inizio-ct" required value="08:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="attivita-ora-fine-ct">Ora Fine *</label>
+                                <input type="time" id="attivita-ora-fine-ct" required value="17:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="attivita-pause-ct">Pause (minuti)</label>
+                                <input type="number" id="attivita-pause-ct" min="0" value="60" placeholder="60">
+                            </div>
+                            <div class="form-group">
+                                <label for="attivita-ore-nette-ct">Ore Nette</label>
+                                <input type="text" id="attivita-ore-nette-ct" readonly value="8.0" style="background: #f5f5f5; cursor: not-allowed;">
+                                <small style="color: #666; font-size: 12px;">Calcolate automaticamente</small>
+                            </div>
                         </div>
                     </div>
 
@@ -1343,6 +1357,7 @@
         let macchineList = [];
         let hasParcoMacchineModule = false;
         let hasManodoperaModule = false;
+        let hasContoTerziModule = false;
         let isContoTerziMode = false; // Modalità Conto Terzi (filtro su lavori conto terzi)
         let lavoriList = []; // Lista lavori per filtrare in modalità Conto Terzi
         let clientiList = []; // Lista clienti per dropdown
@@ -1378,6 +1393,96 @@
         function getTerreniCollection(tenantId) {
             if (!tenantId) throw new Error('Tenant ID non disponibile');
             return collection(db, `tenants/${tenantId}/terreni`);
+        }
+
+        /**
+         * Genera automaticamente una voce diario quando un lavoro conto terzi viene completato
+         * @param {string} lavoroId - ID del lavoro completato
+         * @param {Object} lavoroData - Dati del lavoro completato
+         * @param {Object} orariOpzionali - Orari opzionali dalla attività appena salvata {orarioInizio, orarioFine, pauseMinuti, oreNette}
+         */
+        async function generaVoceDiarioContoTerzi(lavoroId, lavoroData, orariOpzionali = null) {
+            // Verifica se modulo Conto Terzi è attivo e se lavoro è conto terzi
+            if (!hasContoTerziModule || !lavoroData.clienteId) {
+                return; // Non è un lavoro conto terzi o modulo non attivo
+            }
+
+            // Verifica se già esiste una voce diario per questo lavoro
+            try {
+                const attivitaQuery = query(
+                    collection(db, 'tenants', currentTenantId, 'attivita'),
+                    where('lavoroId', '==', lavoroId)
+                );
+                const attivitaSnapshot = await getDocs(attivitaQuery);
+                
+                if (!attivitaSnapshot.empty) {
+                    console.log('📋 Voce diario già esistente per lavoro conto terzi:', lavoroId);
+                    return; // Già esiste una voce diario
+                }
+            } catch (error) {
+                console.warn('Errore verifica voce diario esistente:', error);
+            }
+
+            try {
+                // Carica dati terreno
+                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoroData.terrenoId));
+                if (!terrenoDoc.exists()) {
+                    console.warn('Terreno non trovato per lavoro conto terzi:', lavoroData.terrenoId);
+                    return;
+                }
+                const terreno = terrenoDoc.data();
+
+                // Carica dati cliente
+                let clienteNome = 'Cliente';
+                if (lavoroData.clienteId) {
+                    try {
+                        const clienteDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'clienti', lavoroData.clienteId));
+                        if (clienteDoc.exists()) {
+                            clienteNome = clienteDoc.data().ragioneSociale || 'Cliente';
+                        }
+                    } catch (error) {
+                        console.warn('Errore caricamento cliente:', error);
+                    }
+                }
+
+                // Calcola data completamento (usa data approvazione se presente, altrimenti oggi)
+                const dataCompletamento = lavoroData.approvatoIl?.toDate 
+                    ? lavoroData.approvatoIl.toDate() 
+                    : new Date();
+                const dataAttivita = dataCompletamento.toISOString().split('T')[0];
+
+                // Usa orari dalla attività se disponibili, altrimenti default
+                const orarioInizio = orariOpzionali?.orarioInizio || '08:00';
+                const orarioFine = orariOpzionali?.orarioFine || '17:00';
+                const pauseMinuti = orariOpzionali?.pauseMinuti !== undefined ? orariOpzionali.pauseMinuti : 60;
+                const oreNette = orariOpzionali?.oreNette !== undefined ? orariOpzionali.oreNette : 8.0;
+
+                // Crea voce diario precompilata
+                const attivitaData = {
+                    data: dataAttivita,
+                    terrenoId: lavoroData.terrenoId,
+                    terrenoNome: terreno.nome || 'Terreno Cliente',
+                    tipoLavoro: lavoroData.tipoLavoro || 'Lavoro Conto Terzi',
+                    coltura: terreno.coltura || lavoroData.coltura || '',
+                    orarioInizio: orarioInizio,
+                    orarioFine: orarioFine,
+                    pauseMinuti: pauseMinuti,
+                    oreNette: oreNette,
+                    note: `Lavoro conto terzi completato: ${lavoroData.nome || ''}\nCliente: ${clienteNome}\n${lavoroData.note || ''}`.trim(),
+                    clienteId: lavoroData.clienteId,
+                    lavoroId: lavoroId,
+                    creatoDa: currentUserData?.id || null,
+                    creatoIl: serverTimestamp(),
+                    aggiornatoIl: serverTimestamp()
+                };
+
+                // Salva voce diario
+                await addDoc(collection(db, 'tenants', currentTenantId, 'attivita'), attivitaData);
+                console.log('✅ Voce diario generata automaticamente per lavoro conto terzi:', lavoroId);
+            } catch (error) {
+                console.error('Errore generazione voce diario conto terzi:', error);
+                // Non bloccare il flusso se la generazione fallisce
+            }
         }
 
         // Aggiorna stato macchina (disponibile/in_uso)
@@ -1603,6 +1708,7 @@
                         const tenantData = tenantDoc.data();
                         hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
                         hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        hasContoTerziModule = tenantData.modules && tenantData.modules.includes('contoTerzi');
                         
                         // Mostra/nascondi sezione macchine
                         const macchineSection = document.getElementById('attivita-macchine-section');
@@ -1691,16 +1797,8 @@
                 if (contoTerziSection) {
                     contoTerziSection.style.display = 'block';
                 }
-                // Nascondi orari e pause (usiamo ore manuali)
-                if (orariSection) {
-                    orariSection.style.display = 'none';
-                }
-                if (pauseSection) {
-                    pauseSection.style.display = 'none';
-                }
-                if (oreNetteDisplay) {
-                    oreNetteDisplay.style.display = 'none';
-                }
+                // Mostra orari e pause (stesso sistema del diario normale)
+                // Gli orari sono nella sezione Conto Terzi con ID diversi
                 // Rimuovi required da orario inizio
                 const orarioInizio = document.getElementById('attivita-orario-inizio');
                 if (orarioInizio) {
@@ -1711,6 +1809,17 @@
                 if (contoTerziSection) {
                     contoTerziSection.style.display = 'none';
                 }
+                // Rimuovi required dai campi Conto Terzi quando nascosti
+                const clienteSelect = document.getElementById('attivita-cliente');
+                const lavoroSelect = document.getElementById('attivita-lavoro');
+                const oraInizioCT = document.getElementById('attivita-ora-inizio-ct');
+                const oraFineCT = document.getElementById('attivita-ora-fine-ct');
+                
+                if (clienteSelect) clienteSelect.removeAttribute('required');
+                if (lavoroSelect) lavoroSelect.removeAttribute('required');
+                if (oraInizioCT) oraInizioCT.removeAttribute('required');
+                if (oraFineCT) oraFineCT.removeAttribute('required');
+                
                 // Mostra orari e pause
                 if (orariSection) {
                     orariSection.style.display = 'flex';
@@ -1721,6 +1830,19 @@
                 if (oreNetteDisplay) {
                     oreNetteDisplay.style.display = 'block';
                 }
+            }
+            
+            // Se modalità Conto Terzi, riaggiungi required ai campi
+            if (isContoTerziMode) {
+                const clienteSelect = document.getElementById('attivita-cliente');
+                const lavoroSelect = document.getElementById('attivita-lavoro');
+                const oraInizioCT = document.getElementById('attivita-ora-inizio-ct');
+                const oraFineCT = document.getElementById('attivita-ora-fine-ct');
+                
+                if (clienteSelect) clienteSelect.setAttribute('required', 'required');
+                if (lavoroSelect) lavoroSelect.setAttribute('required', 'required');
+                if (oraInizioCT) oraInizioCT.setAttribute('required', 'required');
+                if (oraFineCT) oraFineCT.setAttribute('required', 'required');
             }
 
             // Nascondi container inizialmente se modalità conto terzi per evitare flash
@@ -2888,8 +3010,21 @@
                                             <input type="date" id="rapido-data-${lavoro.id}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                         </div>
                                         <div>
-                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Ore Lavorate *</label>
-                                            <input type="number" id="rapido-ore-${lavoro.id}" step="0.1" min="0" required placeholder="Es: 8.5" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Ora Inizio *</label>
+                                            <input type="time" id="rapido-ora-inizio-${lavoro.id}" required value="08:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Ora Fine *</label>
+                                            <input type="time" id="rapido-ora-fine-${lavoro.id}" required value="17:00" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Pause (minuti)</label>
+                                            <input type="number" id="rapido-pause-${lavoro.id}" min="0" value="60" placeholder="60" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </div>
+                                        <div>
+                                            <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Ore Nette</label>
+                                            <input type="text" id="rapido-ore-nette-${lavoro.id}" readonly value="8.0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; cursor: not-allowed;">
+                                            <small style="display: block; margin-top: 3px; font-size: 11px; color: #666;">Calcolate automaticamente</small>
                                         </div>
                                         ${hasParcoMacchineModule ? `
                                         <div>
@@ -3214,6 +3349,14 @@
                 }
             }
             
+            // Inizializza calcolo automatico ore nette per tutti i form rapidi
+            if (isContoTerziMode && lavoriList.length > 0) {
+                const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+                lavoriInCorso.forEach(lavoro => {
+                    setTimeout(() => initCalcoloOreNetteRapido(lavoro.id), 200);
+                });
+            }
+            
             // Popola dropdown macchine per form rapidi se Parco Macchine attivo
             if (isContoTerziMode && hasParcoMacchineModule && lavoriList.length > 0) {
                 const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
@@ -3266,6 +3409,26 @@
                     // Trova attività per questo lavoro
                     const attivitaLavoro = attivita.filter(a => a.lavoroId === lavoro.id);
                     const totaleOreAttivita = attivitaLavoro.reduce((sum, a) => sum + (a.oreNette || 0), 0);
+                    
+                    // Raggruppa ore attività per data (per dettagli giornalieri)
+                    const oreAttivitaPerData = {};
+                    attivitaLavoro.forEach(att => {
+                        if (!att.data) return;
+                        const dataKey = att.data instanceof Date 
+                            ? att.data.toISOString().split('T')[0]
+                            : (typeof att.data === 'string' ? att.data : new Date(att.data).toISOString().split('T')[0]);
+                        
+                        if (!oreAttivitaPerData[dataKey]) {
+                            oreAttivitaPerData[dataKey] = {
+                                validate: att.oreNette || 0,
+                                daValidare: 0,
+                                totale: att.oreNette || 0
+                            };
+                        } else {
+                            oreAttivitaPerData[dataKey].validate += att.oreNette || 0;
+                            oreAttivitaPerData[dataKey].totale += att.oreNette || 0;
+                        }
+                    });
                     
                     // Carica zone lavorate
                     const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'zoneLavorate');
@@ -3353,7 +3516,31 @@
                     // Usa superficie dal documento lavoro se disponibile, altrimenti calcolata
                     const superficieLavorata = lavoro.superficieTotaleLavorata || superficieTotaleLavorata;
                     const superficieTotale = terreno?.superficie || 0;
-                    const percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
+                    
+                    // Calcola percentuale: se lavoro è completato e non ci sono zone tracciate, considera 100%
+                    let percentuale;
+                    if (lavoro.stato === 'completato' && zoneLavorate.length === 0 && superficieLavorata === 0) {
+                        // Lavoro completato senza zone tracciate (solo Core+Conto Terzi) → 100%
+                        percentuale = 100;
+                    } else {
+                        percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
+                    }
+                    
+                    // Determina quale totale ore usare: se Manodopera attivo usa ore validate, altrimenti ore attività
+                    const oreDaMostrare = hasManodoperaModule && totaleOreValidate > 0 
+                        ? totaleOreValidate 
+                        : totaleOreAttivita;
+                    
+                    // Unisci orePerData con oreAttivitaPerData (priorità a orePerData se esistono)
+                    Object.keys(oreAttivitaPerData).forEach(dataKey => {
+                        if (!orePerData[dataKey]) {
+                            orePerData[dataKey] = oreAttivitaPerData[dataKey];
+                        } else {
+                            // Se esistono già dati per questa data, aggiungi le ore attività
+                            orePerData[dataKey].totale += oreAttivitaPerData[dataKey].totale;
+                            orePerData[dataKey].validate += oreAttivitaPerData[dataKey].validate;
+                        }
+                    });
                     
                     // Ordina date zone lavorate (più recenti prima)
                     const dateZone = Object.keys(zonePerData).sort((a, b) => new Date(b) - new Date(a));
@@ -3370,18 +3557,22 @@
                                             <strong>Tipo:</strong> ${escapeHtml(lavoro.tipoLavoro || '-')}
                                         </div>
                                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                                            ${superficieTotale > 0 ? `
                                             <div style="font-size: 13px; color: #1976D2;">
-                                                <strong>📊 Superficie:</strong> ${superficieLavorata.toFixed(2)} / ${superficieTotale.toFixed(2)} ha
+                                                <strong>📊 Superficie:</strong> ${superficieLavorata > 0 ? `${superficieLavorata.toFixed(2)} / ${superficieTotale.toFixed(2)} ha` : `${superficieTotale.toFixed(2)} ha`}
                                             </div>
+                                            ` : ''}
                                             <div style="font-size: 13px; color: #1976D2;">
                                                 <strong>✅ Completamento:</strong> ${percentuale}%
                                             </div>
                                             <div style="font-size: 13px; color: #1976D2;">
-                                                <strong>⏱️ Ore Validate:</strong> ${formatOreNette(totaleOreValidate)}
+                                                <strong>⏱️ Ore ${hasManodoperaModule && totaleOreValidate > 0 ? 'Validate' : 'Lavorate'}:</strong> ${formatOreNette(oreDaMostrare)}
                                             </div>
+                                            ${hasManodoperaModule ? `
                                             <div style="font-size: 13px; color: #1976D2;">
                                                 <strong>📝 Zone:</strong> ${zoneLavorate.length}
                                             </div>
+                                            ` : ''}
                                         </div>
                                         ${superficieTotale > 0 ? `
                                         <div style="margin-top: 10px;">
@@ -3557,6 +3748,8 @@
                 if (form.style.display === 'none' || !form.style.display) {
                     form.style.display = 'block';
                     btn.textContent = '❌ Annulla';
+                    // Inizializza calcolo ore nette quando il form viene aperto
+                    setTimeout(() => initCalcoloOreNetteRapido(lavoroId), 100);
                 } else {
                     form.style.display = 'none';
                     btn.textContent = '➕ Aggiungi Attività';
@@ -3569,6 +3762,58 @@
                     }
                 }
             }
+        }
+
+        // Inizializza calcolo automatico ore nette per form rapido
+        function initCalcoloOreNetteRapido(lavoroId) {
+            const oraInizioEl = document.getElementById(`rapido-ora-inizio-${lavoroId}`);
+            const oraFineEl = document.getElementById(`rapido-ora-fine-${lavoroId}`);
+            const pauseEl = document.getElementById(`rapido-pause-${lavoroId}`);
+            const oreNetteEl = document.getElementById(`rapido-ore-nette-${lavoroId}`);
+            
+            if (!oraInizioEl || !oraFineEl || !pauseEl || !oreNetteEl) return;
+            
+            function calcolaOreNette() {
+                const oraInizio = oraInizioEl.value;
+                const oraFine = oraFineEl.value;
+                const pauseMinuti = parseInt(pauseEl.value) || 0;
+                
+                if (!oraInizio || !oraFine) {
+                    oreNetteEl.value = '0.0';
+                    return;
+                }
+                
+                try {
+                    const [inizioOre, inizioMinuti] = oraInizio.split(':').map(Number);
+                    const [fineOre, fineMinuti] = oraFine.split(':').map(Number);
+                    
+                    const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+                    const fineMinutiTotali = fineOre * 60 + fineMinuti;
+                    
+                    if (fineMinutiTotali <= inizioMinutiTotali) {
+                        oreNetteEl.value = '0.0';
+                        return;
+                    }
+                    
+                    let minutiTotali = fineMinutiTotali - inizioMinutiTotali - pauseMinuti;
+                    if (minutiTotali < 0) minutiTotali = 0;
+                    
+                    const oreNette = (minutiTotali / 60).toFixed(2);
+                    oreNetteEl.value = oreNette;
+                } catch (error) {
+                    oreNetteEl.value = '0.0';
+                }
+            }
+            
+            oraInizioEl.addEventListener('change', calcolaOreNette);
+            oraInizioEl.addEventListener('input', calcolaOreNette);
+            oraFineEl.addEventListener('change', calcolaOreNette);
+            oraFineEl.addEventListener('input', calcolaOreNette);
+            pauseEl.addEventListener('change', calcolaOreNette);
+            pauseEl.addEventListener('input', calcolaOreNette);
+            
+            // Calcola iniziale
+            setTimeout(calcolaOreNette, 100);
         }
 
         // Popola dropdown trattori per form rapido
@@ -3665,7 +3910,9 @@
                 const terrenoId = document.getElementById(`rapido-terreno-${lavoroId}`).value;
                 const tipoLavoro = document.getElementById(`rapido-tipo-lavoro-${lavoroId}`).value;
                 const data = document.getElementById(`rapido-data-${lavoroId}`).value;
-                const ore = parseFloat(document.getElementById(`rapido-ore-${lavoroId}`).value);
+                const orarioInizio = document.getElementById(`rapido-ora-inizio-${lavoroId}`).value;
+                const orarioFine = document.getElementById(`rapido-ora-fine-${lavoroId}`).value;
+                const pauseMinuti = parseInt(document.getElementById(`rapido-pause-${lavoroId}`).value) || 0;
                 const note = document.getElementById(`rapido-note-${lavoroId}`).value.trim();
                 const lavoroTerminato = document.getElementById(`rapido-lavoro-terminato-${lavoroId}`).checked;
                 
@@ -3684,8 +3931,29 @@
                     return;
                 }
                 
-                if (!ore || ore <= 0) {
-                    showAlert('Le ore devono essere maggiori di 0', 'error');
+                if (!orarioInizio || !orarioFine) {
+                    showAlert('Ora inizio e ora fine sono obbligatorie', 'error');
+                    return;
+                }
+                
+                // Validazione logica orari
+                const [inizioOre, inizioMinuti] = orarioInizio.split(':').map(Number);
+                const [fineOre, fineMinuti] = orarioFine.split(':').map(Number);
+                const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+                const fineMinutiTotali = fineOre * 60 + fineMinuti;
+                
+                if (fineMinutiTotali <= inizioMinutiTotali) {
+                    showAlert('L\'ora fine deve essere maggiore dell\'ora inizio', 'error');
+                    return;
+                }
+                
+                // Calcola ore nette
+                let minutiTotali = fineMinutiTotali - inizioMinutiTotali - pauseMinuti;
+                if (minutiTotali < 0) minutiTotali = 0;
+                const oreNette = parseFloat((minutiTotali / 60).toFixed(2));
+                
+                if (oreNette <= 0) {
+                    showAlert('Le ore nette devono essere maggiori di 0', 'error');
                     return;
                 }
                 
@@ -3713,11 +3981,11 @@
                     terrenoId: terrenoId,
                     terrenoNome: terreno.nome,
                     tipoLavoro: tipoLavoro,
-                    coltura: null,
-                    orarioInizio: null,
-                    orarioFine: null,
-                    pauseMinuti: 0,
-                    oreNette: ore,
+                    coltura: terreno.coltura || null,
+                    orarioInizio: orarioInizio,
+                    orarioFine: orarioFine,
+                    pauseMinuti: pauseMinuti,
+                    oreNette: oreNette,
                     note: note || null,
                     clienteId: clienteId,
                     lavoroId: lavoroIdValue,
@@ -3738,11 +4006,29 @@
                 if (lavoroTerminato) {
                     try {
                         const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroIdValue);
+                        const lavoroOriginale = lavoriList.find(l => l.id === lavoroIdValue);
+                        const lavoroEraCompletato = lavoroOriginale?.stato === 'completato';
+                        
                         const lavoroData = {
                             stato: 'completato',
                             aggiornatoIl: serverTimestamp()
                         };
                         await updateDoc(lavoroRef, lavoroData);
+                        
+                        // Genera voce diario automatica se lavoro conto terzi completato
+                        if (!lavoroEraCompletato && lavoroOriginale?.clienteId && hasContoTerziModule) {
+                            const lavoroCompletatoDoc = await getDoc(lavoroRef);
+                            if (lavoroCompletatoDoc.exists()) {
+                                const lavoroCompletatoData = { id: lavoroIdValue, ...lavoroCompletatoDoc.data() };
+                                // Passa orari dalla attività appena salvata
+                                await generaVoceDiarioContoTerzi(lavoroIdValue, lavoroCompletatoData, {
+                                    orarioInizio: orarioInizio,
+                                    orarioFine: orarioFine,
+                                    pauseMinuti: pauseMinuti,
+                                    oreNette: oreNette
+                                });
+                            }
+                        }
                         
                         // Se Parco Macchine attivo, libera macchine assegnate al lavoro
                         if (hasParcoMacchineModule) {
@@ -4143,7 +4429,7 @@
             }
         }
 
-        // Aggiorna display quando cambiano orari
+        // Aggiorna display quando cambiano orari (modalità normale)
         document.getElementById('attivita-orario-inizio')?.addEventListener('input', function() {
             updateOreNette();
             updateOreMacchinaDisplay();
@@ -4156,6 +4442,54 @@
             updateOreNette();
             updateOreMacchinaDisplay();
         });
+        
+        // Calcolo automatico ore nette per modalità Conto Terzi
+        function updateOreNetteContoTerzi() {
+            const oraInizioEl = document.getElementById('attivita-ora-inizio-ct');
+            const oraFineEl = document.getElementById('attivita-ora-fine-ct');
+            const pauseEl = document.getElementById('attivita-pause-ct');
+            const oreNetteEl = document.getElementById('attivita-ore-nette-ct');
+            
+            if (!oraInizioEl || !oraFineEl || !pauseEl || !oreNetteEl) return;
+            
+            const oraInizio = oraInizioEl.value;
+            const oraFine = oraFineEl.value;
+            const pauseMinuti = parseInt(pauseEl.value) || 0;
+            
+            if (!oraInizio || !oraFine) {
+                oreNetteEl.value = '0.0';
+                return;
+            }
+            
+            try {
+                const [inizioOre, inizioMinuti] = oraInizio.split(':').map(Number);
+                const [fineOre, fineMinuti] = oraFine.split(':').map(Number);
+                
+                const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+                const fineMinutiTotali = fineOre * 60 + fineMinuti;
+                
+                if (fineMinutiTotali <= inizioMinutiTotali) {
+                    oreNetteEl.value = '0.0';
+                    return;
+                }
+                
+                let minutiTotali = fineMinutiTotali - inizioMinutiTotali - pauseMinuti;
+                if (minutiTotali < 0) minutiTotali = 0;
+                
+                const oreNette = (minutiTotali / 60).toFixed(2);
+                oreNetteEl.value = oreNette;
+            } catch (error) {
+                oreNetteEl.value = '0.0';
+            }
+        }
+        
+        // Event listeners per modalità Conto Terzi
+        document.getElementById('attivita-ora-inizio-ct')?.addEventListener('input', updateOreNetteContoTerzi);
+        document.getElementById('attivita-ora-inizio-ct')?.addEventListener('change', updateOreNetteContoTerzi);
+        document.getElementById('attivita-ora-fine-ct')?.addEventListener('input', updateOreNetteContoTerzi);
+        document.getElementById('attivita-ora-fine-ct')?.addEventListener('change', updateOreNetteContoTerzi);
+        document.getElementById('attivita-pause-ct')?.addEventListener('input', updateOreNetteContoTerzi);
+        document.getElementById('attivita-pause-ct')?.addEventListener('change', updateOreNetteContoTerzi);
 
         // Salva attività
         window.handleSaveAttivita = async function(e) {
@@ -4172,12 +4506,13 @@
             let terrenoId, tipoLavoro, coltura, orarioInizio, orarioFine, pauseMinuti;
             let clienteId = null;
             let lavoroId = null;
-            let oreManuali = null;
             
             if (isContoTerziMode) {
                 clienteId = document.getElementById('attivita-cliente').value;
                 lavoroId = document.getElementById('attivita-lavoro').value;
-                oreManuali = parseFloat(document.getElementById('attivita-ore-manuali').value) || 0;
+                orarioInizio = document.getElementById('attivita-ora-inizio-ct').value;
+                orarioFine = document.getElementById('attivita-ora-fine-ct').value;
+                pauseMinuti = parseInt(document.getElementById('attivita-pause-ct').value) || 0;
                 
                 // Trova lavoro per ottenere terreno e tipo lavoro
                 const lavoro = lavoriList.find(l => l.id === lavoroId);
@@ -4188,9 +4523,6 @@
                 terrenoId = lavoro.terrenoId;
                 tipoLavoro = lavoro.tipoLavoro || '';
                 coltura = ''; // Non obbligatorio in modalità Conto Terzi
-                orarioInizio = null;
-                orarioFine = null;
-                pauseMinuti = 0;
             } else {
                 terrenoId = document.getElementById('attivita-terreno').value;
             const usaStrutturaGerarchica = hasParcoMacchineModule || hasManodoperaModule;
@@ -4240,10 +4572,7 @@
                     showAlert('Il lavoro è obbligatorio', 'error');
                     return;
                 }
-                if (!oreManuali || oreManuali <= 0) {
-                    showAlert('Le ore lavorate devono essere maggiori di 0', 'error');
-                    return;
-                }
+                // Validazione orari già fatta sopra
             } else {
                 // Validazioni standard
             if (!tipoLavoro) {
@@ -4321,7 +4650,20 @@
             
             // Calcola ore nette (in formato decimale per salvataggio)
             // Se modalità Conto Terzi, usa ore manuali
-            const oreNette = isContoTerziMode ? oreManuali : calculateOreNette().decimali;
+            // Calcola ore nette
+            let oreNette;
+            if (isContoTerziMode) {
+                // Calcola ore nette da orari per modalità Conto Terzi
+                const [inizioOre, inizioMinuti] = orarioInizio.split(':').map(Number);
+                const [fineOre, fineMinuti] = orarioFine.split(':').map(Number);
+                const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
+                const fineMinutiTotali = fineOre * 60 + fineMinuti;
+                let minutiTotali = fineMinutiTotali - inizioMinutiTotali - pauseMinuti;
+                if (minutiTotali < 0) minutiTotali = 0;
+                oreNette = parseFloat((minutiTotali / 60).toFixed(2));
+            } else {
+                oreNette = calculateOreNette().decimali;
+            }
             
             const oreMacchinaInput = hasParcoMacchineModule ? document.getElementById('attivita-ore-macchina').value : null;
             const oreMacchina = oreMacchinaInput ? parseFloat(oreMacchinaInput) : (oreNette || null); // Default = ore nette se non specificato

@@ -94,6 +94,67 @@ gfv-platform/
 
 ---
 
+## ✅ Miglioramenti Modulo Conto Terzi - Registrazione Ore e UI (2025-12-13)
+
+### Modifiche Form Rapido Conto Terzi
+- ✅ **Sostituito campo singolo "Ore Lavorate"** con sistema completo ora inizio/fine/pause
+- ✅ **Aggiunto calcolo automatico ore nette** nel form rapido attività conto terzi
+- ✅ **Modificato `salvaAttivitaRapida`** per leggere orari invece di ore singole
+- ✅ **Validazione completa orari** (ora fine > ora inizio, ore nette > 0)
+- ✅ **Event listeners** per calcolo automatico in tempo reale
+
+### Modifiche Modal Principale Attività Conto Terzi
+- ✅ **Sostituito campo "Ore Lavorate"** con sistema ora inizio/fine/pause
+- ✅ **Aggiunto calcolo automatico ore nette** anche nel modal principale
+- ✅ **Funzione `updateOreNetteContoTerzi`** per aggiornamento automatico
+- ✅ **Modificato `handleSaveAttivita`** per calcolare ore nette da orari
+
+### Miglioramenti Funzione `generaVoceDiarioContoTerzi`
+- ✅ **Aggiunto parametro opzionale `orariOpzionali`** per passare orari dalla attività salvata
+- ✅ **Riutilizzo orari** invece di default quando disponibili
+- ✅ **Implementato in entrambi i file**: `attivita-standalone.html` e `gestione-lavori-standalone.html`
+
+### Correzione Visualizzazione Lavori Completati Conto Terzi
+- ✅ **Ore visualizzate correttamente**: usa `totaleOreAttivita` quando Manodopera non attivo
+- ✅ **Percentuale completamento**: 100% quando lavoro completato senza zone tracciate
+- ✅ **Raggruppamento ore per data**: unisce ore attività con ore validate per dettagli giornalieri
+- ✅ **Visualizzazione superficie**: mostra solo superficie totale quando non ci sono zone tracciate
+
+### Correzione UI Pagina "Lavori da Pianificare"
+- ✅ **Gradiente blu invece di verde** quando aperta da dashboard conto terzi
+- ✅ **Rilevamento automatico modalità conto terzi** da parametri URL
+- ✅ **Script nell'head** per applicare stili immediatamente (evita flash verde)
+- ✅ **Link dashboard corretto**: torna alla dashboard conto terzi invece che principale
+- ✅ **Titolo aggiornato**: "Lavori da Pianificare - Conto Terzi"
+
+### Miglioramenti Card Statistiche
+- ✅ **Colori distintivi per card progresso**:
+  - In Ritardo: gradiente rosso (`#dc3545` → `#c82333`)
+  - In Tempo: gradiente verde (`#28a745` → `#218838`)
+  - In Anticipo: gradiente blu chiaro (`#17a2b8` → `#138496`)
+- ✅ **Esclusione dalla regola generale** che applica blu a tutte le card
+- ✅ **Testo bianco** per buon contrasto su sfondi colorati
+
+### Correzioni Tecniche
+- ✅ **Rimosso script inline** dal template literal per evitare errori di sintassi
+- ✅ **Funzione `initCalcoloOreNetteRapido`** separata per inizializzazione form rapidi
+- ✅ **Rimozione attributo `required`** dai campi Conto Terzi quando sezione nascosta
+- ✅ **Rilevamento modalità conto terzi** migliorato con controllo parametri URL
+
+### File Modificati
+- `core/attivita-standalone.html` - Form rapido, modal principale, visualizzazione lavori completati
+- `core/admin/gestione-lavori-standalone.html` - Stili UI, link dashboard, card statistiche
+- `core/models/Attivita.js` - Già aggiornato in precedenza con `clienteId` e `lavoroId`
+
+### Risultato
+- ✅ Nessuna duplicazione inserimento ore: sistema unificato ora inizio/fine/pause
+- ✅ Calcolo automatico ore nette in tutti i form
+- ✅ UI coerente con tema Conto Terzi (blu) invece di verde
+- ✅ Statistiche ben visibili con colori distintivi
+- ✅ Navigazione corretta tra dashboard e pagine
+
+---
+
 ## ✅ Uniformazione Stile Statistiche Colorato (2025-01-26)
 
 ### Obiettivo
