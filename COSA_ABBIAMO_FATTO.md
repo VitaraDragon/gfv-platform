@@ -1197,4 +1197,88 @@ Piccolo proprietario che:
 **File da modificare**:
 - `core/admin/gestione-lavori-standalone.html` - Rimuovere blocco Manodopera, aggiungere modalità semplificata
 
+---
+
+## 🆕 Modifiche 2025-12-14
+
+### Branding Email Preventivi con Logo Aziendale ✅ COMPLETATO
+
+#### Configurazione Firebase Storage CORS
+- ✅ **Installato Google Cloud SDK**: Installato Google Cloud SDK su Windows per accesso a `gsutil`
+- ✅ **Configurato CORS Storage**: Configurato CORS sul bucket Firebase Storage (`gfv-platform.firebasestorage.app`) per permettere richieste da:
+  - `https://vitaradragon.github.io` (GitHub Pages)
+  - `http://localhost:*` (sviluppo locale)
+  - `http://127.0.0.1:*` (sviluppo locale)
+- ✅ **File creati**:
+  - `cors.json`: Configurazione CORS per bucket Storage
+  - `CONFIGURA_CORS_STORAGE.md`: Guida dettagliata per configurazione CORS
+- ✅ **Comandi eseguiti**:
+  ```bash
+  gcloud init  # Configurazione progetto gfv-platform
+  gsutil cors set cors.json gs://gfv-platform.firebasestorage.app
+  gsutil cors get gs://gfv-platform.firebasestorage.app  # Verifica
+  ```
+
+#### Caricamento Logo Aziendale
+- ✅ **Upload logo**: Implementata funzionalità completa per caricare logo aziendale nelle Impostazioni
+  - File: `core/admin/impostazioni-standalone.html`
+  - Input file con preview
+  - Validazione file (solo immagini, max 2MB)
+  - Normalizzazione tenant ID per percorsi Storage
+  - Upload su Firebase Storage con metadata
+  - Salvataggio `logoUrl` in Firestore tenant document
+- ✅ **Eliminazione logo**: Implementata funzionalità per rimuovere logo esistente
+  - Eliminazione da Firebase Storage
+  - Rimozione `logoUrl` da Firestore
+- ✅ **Visualizzazione logo**: Logo mostrato nell'anteprima e nelle email preventivi
+- ✅ **Gestione errori**: Messaggi specifici per:
+  - CORS errors
+  - Permission errors
+  - Network errors
+  - Bucket not found
+  - File protocol (file://) warnings
+
+#### Regole Firebase Storage
+- ✅ **File creato**: `storage.rules`
+- ✅ **Regole implementate**:
+  - Solo utenti autenticati del tenant possono upload/delete loghi
+  - Validazione dimensione file (max 2MB)
+  - Validazione content type (solo immagini)
+  - Percorso: `tenants/{tenantId}/logo_*.{ext}`
+- ✅ **Firebase.json aggiornato**: Aggiunta sezione `storage` con riferimento a `storage.rules`
+
+#### Template Email Preventivi
+- ✅ **Template EmailJS aggiornato**: Template completo con branding aziendale
+  - Header più alto (40px padding, min-height 120px) per spazio logo
+  - Logo aziendale nell'header (se presente)
+  - Nome azienda ben formattato (bianco, 36px, bold, text-shadow)
+  - Footer con dati azienda completi (nome, indirizzo, telefono, email, P.IVA)
+- ✅ **Variabili EmailJS**:
+  - `logo_url`: URL del logo (solo URL, non HTML)
+  - `nome_azienda`: Nome azienda per header
+  - `nome_azienda_footer`: Nome azienda per footer
+  - `indirizzo_azienda`, `telefono_azienda`, `email_azienda`, `piva_azienda`: Dati azienda
+- ✅ **File modificato**: `modules/conto-terzi/views/preventivi-standalone.html`
+  - Preparazione variabili azienda per template email
+  - Invio `logo_url` invece di HTML per evitare problemi EmailJS
+  - Debug logging per verifica dati inviati
+
+#### Risoluzione Problemi EmailJS
+- ✅ **Problema "corrupted variables"**: Risolto usando solo URL per logo invece di HTML nelle variabili
+- ✅ **Template HTML**: Template configurato correttamente per HTML con variabili semplici
+- ✅ **Rendering logo**: Logo renderizzato correttamente usando `{{logo_url}}` direttamente nel tag `<img>`
+
+#### Documentazione
+- ✅ **File aggiornati**:
+  - `GUIDA_CONFIGURAZIONE_FIREBASE.md`: Aggiunta sezione "STEP 9: Configura Firebase Storage"
+  - `CONFIGURA_CORS_STORAGE.md`: Guida completa per configurazione CORS
+  - `ISTRUZIONI_TEMPLATE_EMAIL_PREVENTIVO.md`: Aggiornate variabili EmailJS con dati azienda
+
+### Risultato Finale
+- ✅ Logo aziendale visibile nelle email preventivi
+- ✅ Nome azienda ben formattato e leggibile nell'header email
+- ✅ Dati azienda completi nel footer email
+- ✅ Email funzionanti senza errori
+- ✅ Branding aziendale invece di "GFV Platform" nelle email preventivi
+
 

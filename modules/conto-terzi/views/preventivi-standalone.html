@@ -715,23 +715,24 @@
                 }
 
                 // Prepara variabili azienda per template email
-                // EmailJS non supporta {{#if}}, quindi prepariamo HTML già formattato
-                let logoAziendaHtml = '';
-                if (datiAzienda.logoUrl) {
-                    logoAziendaHtml = `<img src="${datiAzienda.logoUrl}" alt="${datiAzienda.nome || 'Azienda'}" style="max-width: 200px; max-height: 100px; height: auto; margin-bottom: 15px;">`;
+                // Logo URL (solo URL, non HTML - il template EmailJS userà l'URL per creare l'immagine)
+                let logoUrl = '';
+                if (datiAzienda.logoUrl && datiAzienda.logoUrl.startsWith('http')) {
+                    logoUrl = datiAzienda.logoUrl; // Solo URL, non HTML
                 }
                 
-                // Nome azienda nell'header: solo se NON c'è logo
-                let nomeAziendaHeaderHtml = '';
-                if (datiAzienda.nome && !datiAzienda.logoUrl) {
-                    nomeAziendaHeaderHtml = `<h1 style="color: white; margin: 0 0 15px 0; font-size: 28px; font-weight: bold;">${datiAzienda.nome}</h1>`;
-                }
+                // Nome azienda nell'header: solo testo semplice, il template EmailJS lo formatterà
+                let nomeAziendaHeader = datiAzienda.nome || ''; // Assicurati che sia sempre una stringa
                 
-                // Nome azienda nel footer: sempre presente se c'è il nome
-                let nomeAziendaFooterHtml = '';
-                if (datiAzienda.nome) {
-                    nomeAziendaFooterHtml = `<p style="margin: 0 0 10px 0; color: #333; font-size: 14px; font-weight: bold;">${datiAzienda.nome}</p>`;
-                }
+                // Nome azienda nel footer: testo semplice
+                let nomeAziendaFooter = datiAzienda.nome || ''; // Assicurati che sia sempre una stringa
+                
+                // Debug: verifica che i dati siano caricati
+                console.log('📧 Dati azienda per email:', {
+                    nome: datiAzienda.nome,
+                    logoUrl: logoUrl,
+                    nomeAziendaHeader: nomeAziendaHeader
+                });
                 
                 // Formatta indirizzo completo
                 let indirizzoCompleto = '';
@@ -772,40 +773,44 @@
                         throw new Error('EmailJS non caricato');
                     }
 
+                    // Prepara oggetto variabili per EmailJS
+                    // Includiamo tutte le variabili azienda (anche se vuote) per compatibilità con template completo
+                    const emailParams = {
+                        email: cliente.email,  // Indirizzo email destinatario (richiesto da EmailJS)
+                        ragione_sociale: cliente.ragioneSociale || 'Cliente',
+                        numero_preventivo: preventivo.numero || '',
+                        tipo_lavoro: preventivo.tipoLavoro || '',
+                        coltura: preventivo.coltura || '',
+                        tipo_campo: preventivo.tipoCampo === 'pianura' ? 'Pianura' : 
+                                   preventivo.tipoCampo === 'collina' ? 'Collina' : 
+                                   preventivo.tipoCampo === 'montagna' ? 'Montagna' : preventivo.tipoCampo || '',
+                        superficie: superficieFormattata,
+                        terreno_nome: terrenoNome,
+                        totale_imponibile: totaleImponibile,
+                        iva_percentuale: ivaPercentuale,
+                        totale_iva: totaleIva,
+                        totale_con_iva: totaleConIva,
+                        scadenza: scadenzaFormattata,
+                        link_accettazione: accettazioneUrl,
+                        link_rifiuto: rifiutoUrl,
+                        note: preventivo.note || '',
+                        // Dati azienda per branding
+                        logo_url: logoUrl || '', // Solo URL del logo (non HTML)
+                        nome_azienda: nomeAziendaHeader || '', // Solo testo, il template lo formatterà
+                        nome_azienda_footer: nomeAziendaFooter || '',
+                        indirizzo_azienda: datiAzienda.indirizzo || '',
+                        citta_azienda: datiAzienda.citta || '',
+                        cap_azienda: datiAzienda.cap || '',
+                        telefono_azienda: datiAzienda.telefono || '',
+                        email_azienda: datiAzienda.email || '',
+                        piva_azienda: datiAzienda.piva || ''
+                    };
+
                     // Template EmailJS per preventivi
                     await emailjs.send(
                         'service_f4to9qr',  // Service ID
                         'template_l29wzy8',  // Template ID - Template preventivo
-                        {
-                            email: cliente.email,  // Indirizzo email destinatario (richiesto da EmailJS)
-                            ragione_sociale: cliente.ragioneSociale || 'Cliente',
-                            numero_preventivo: preventivo.numero || '',
-                            tipo_lavoro: preventivo.tipoLavoro || '',
-                            coltura: preventivo.coltura || '',
-                            tipo_campo: preventivo.tipoCampo === 'pianura' ? 'Pianura' : 
-                                       preventivo.tipoCampo === 'collina' ? 'Collina' : 
-                                       preventivo.tipoCampo === 'montagna' ? 'Montagna' : preventivo.tipoCampo || '',
-                            superficie: superficieFormattata,
-                            terreno_nome: terrenoNome,
-                            totale_imponibile: totaleImponibile,
-                            iva_percentuale: ivaPercentuale,
-                            totale_iva: totaleIva,
-                            totale_con_iva: totaleConIva,
-                            scadenza: scadenzaFormattata,
-                            link_accettazione: accettazioneUrl,
-                            link_rifiuto: rifiutoUrl,
-                            note: preventivo.note || '',
-                            // Dati azienda per branding
-                            logo_azienda: logoAziendaHtml,
-                            nome_azienda: nomeAziendaHeaderHtml || nomeAziendaFooterHtml || '',
-                            nome_azienda_footer: nomeAziendaFooterHtml,
-                            indirizzo_azienda: indirizzoAziendaHtml,
-                            citta_azienda: datiAzienda.citta || '',
-                            cap_azienda: datiAzienda.cap || '',
-                            telefono_azienda: telefonoAziendaHtml,
-                            email_azienda: emailAziendaHtml,
-                            piva_azienda: pivaAziendaHtml
-                        }
+                        emailParams
                     );
                     console.log('✅ Email inviata con successo');
                     emailInviata = true;

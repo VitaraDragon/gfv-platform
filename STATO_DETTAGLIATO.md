@@ -1,7 +1,7 @@
 # 📊 Stato Dettagliato Progetto - GFV Platform
 
-**Data aggiornamento**: 2025-12-13  
-**Versione**: 1.3  
+**Data aggiornamento**: 2025-12-14  
+**Versione**: 1.4  
 **Stato generale**: ✅ **IN SVILUPPO ATTIVO - FUNZIONANTE**
 
 ---
@@ -14,6 +14,24 @@
 - **URL principale**: https://vitaradragon.github.io/gfv-platform/
 - **Stato deploy**: ✅ Online e funzionante
 - **PWA**: ✅ Installabile come Progressive Web App
+
+---
+
+## 🆕 Ultime Modifiche (2025-12-14)
+
+### Branding Email Preventivi con Logo Aziendale ✅ COMPLETATO
+- ✅ **Configurazione CORS Firebase Storage**: Installato Google Cloud SDK e configurato CORS sul bucket Storage per permettere caricamento logo da GitHub Pages
+- ✅ **Caricamento logo aziendale**: Implementata funzionalità completa per upload/eliminazione loghi nelle Impostazioni Azienda
+- ✅ **Template email preventivi**: Aggiornato template EmailJS per mostrare logo e dati azienda cliente invece di "GFV Platform"
+- ✅ **Header email migliorato**: Header più alto con spazio per logo, nome azienda ben formattato e visibile (bianco, grande, bold)
+- ✅ **Footer email**: Aggiunti dati azienda completi (nome, indirizzo, telefono, email, P.IVA) nel footer email
+- ✅ **Risolti problemi EmailJS**: Corretto gestione variabili per evitare errori "corrupted variables", uso di `logo_url` invece di HTML nelle variabili
+
+### Configurazione Firebase Storage ✅ COMPLETATO
+- ✅ **Regole Storage**: Configurate regole di sicurezza per upload/delete loghi aziendali (solo utenti autenticati del tenant)
+- ✅ **CORS Storage**: Configurato CORS per permettere richieste da GitHub Pages e localhost
+- ✅ **Normalizzazione tenant ID**: Implementata normalizzazione tenant ID per percorsi Storage (rimuove spazi e caratteri speciali)
+- ✅ **Gestione errori**: Migliorata gestione errori upload con messaggi specifici per CORS, permessi, rete, bucket non trovato
 
 ---
 
@@ -469,8 +487,8 @@ Il progetto è **molto avanzato** e **funzionante**. I moduli Core Base, Manodop
 
 ---
 
-**Ultimo aggiornamento**: 2025-12-13  
-**Versione documento**: 1.4  
-**Ultima funzionalità**: Miglioramenti Registrazione Ore Conto Terzi + UI Coerente + Card Statistiche Colorate (2025-12-13)  
+**Ultimo aggiornamento**: 2025-12-14  
+**Versione documento**: 1.5  
+**Ultima funzionalità**: Branding Email Preventivi con Logo Aziendale + Configurazione Firebase Storage CORS (2025-12-14)  
 **Stato**: ✅ Progetto attivo e funzionante
 
