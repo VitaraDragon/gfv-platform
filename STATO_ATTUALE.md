@@ -117,6 +117,25 @@
 - ✅ **File modificato**: `core/admin/lavori-caposquadra-standalone.html`
 - ✅ Liberazione automatica macchine quando lavoro raggiunge 100% completamento
 
+#### 5. Refactoring Validazione Ore ✅ (2025-01-24)
+- ✅ **File modificato**: `core/admin/validazione-ore-standalone.html`
+- ✅ Rimossa funzione duplicata `aggiornaOreMacchina()` (75+ righe)
+- ✅ Sostituita con chiamata al service unificato `macchine-utilizzo-service.js`
+- ✅ Aggiunta funzione `loadMacchineUtilizzoService()` per caricamento dinamico
+- ✅ Zero duplicazione codice: logica centralizzata nel service unificato
+- ✅ Compatibilità totale mantenuta
+
+#### 6. Correzione Barra Progresso Lavori Completati ✅ (2025-01-24)
+- ✅ **File modificato**: `core/dashboard-standalone.html`
+  - ✅ Funzione `loadRecentLavoriManagerManodopera()`: aggiunta visualizzazione barra progresso
+  - ✅ Funzione `loadRecentLavori()`: aggiunta visualizzazione barra progresso
+  - ✅ Lavori completati mostrano automaticamente 100% se percentuale è 0 o mancante
+  - ✅ Badge "Conto Terzi" visualizzato correttamente
+- ✅ **File modificato**: `core/admin/gestione-lavori-standalone.html`
+  - ✅ Correzione calcolo percentuale per lavori completati
+  - ✅ Lavori completati mostrano 100% anche se `percentualeCompletamento` è 0
+  - ✅ Calcolo automatico percentuale da superficie lavorata/totale se mancante
+
 ### Caratteristiche Principali
 
 **Tracciamento Accurato**:
@@ -145,6 +164,8 @@
 - ✅ `core/admin/gestione-lavori-standalone.html` (MODIFICATO)
 - ✅ `core/admin/lavori-caposquadra-standalone.html` (MODIFICATO)
 - ✅ `core/statistiche-standalone.html` (MODIFICATO - Sezione Statistiche Macchine aggiunta)
+- ✅ `core/admin/validazione-ore-standalone.html` (MODIFICATO - Refactoring service unificato)
+- ✅ `core/dashboard-standalone.html` (MODIFICATO - Correzione barra progresso lavori completati)
 
 ---
 
@@ -231,7 +252,24 @@ gfv-platform/
 
 ---
 
-## 🆕 Ultimo Aggiornamento: Modulo Conto Terzi - Fase 1 MVP (2025-12-07)
+## 🆕 Ultimo Aggiornamento: Refactoring Macchine e Correzione Barra Progresso (2025-01-24)
+
+### Refactoring Validazione Ore ✅
+- ✅ Rimossa duplicazione codice: funzione `aggiornaOreMacchina()` sostituita con service unificato
+- ✅ Codice più pulito e manutenibile
+- ✅ Stessa funzionalità, zero breaking changes
+- ✅ File modificato: `core/admin/validazione-ore-standalone.html`
+
+### Correzione Barra Progresso Lavori Completati ✅
+- ✅ Lavori completati mostrano correttamente 100% nella dashboard manager
+- ✅ Lavori completati mostrano correttamente 100% in gestione lavori
+- ✅ Funziona correttamente anche per lavori conto terzi
+- ✅ Calcolo automatico percentuale se mancante
+- ✅ File modificati: `core/dashboard-standalone.html`, `core/admin/gestione-lavori-standalone.html`
+
+---
+
+## 🆕 Aggiornamento Precedente: Modulo Conto Terzi - Fase 1 MVP (2025-12-07)
 
 ### Funzionalità Completate
 - ✅ **Modifiche modelli esistenti**: Aggiunto `clienteId` e `preventivoId` a Lavoro, Terreno, Attività

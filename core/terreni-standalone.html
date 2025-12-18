@@ -599,9 +599,17 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="terreno-coltura-categoria">Categoria Coltura</label>
+                    <select id="terreno-coltura-categoria" onchange="updateColtureDropdownTerreni()">
+                        <option value="">-- Seleziona categoria --</option>
+                    </select>
+                    <small>Seleziona prima la categoria (es: Frutteto, Seminativo, Ortive)</small>
+                </div>
+                
+                <div class="form-group">
                     <label for="terreno-coltura">Coltura</label>
                     <select id="terreno-coltura">
-                        <option value="">-- Seleziona coltura --</option>
+                        <option value="">-- Seleziona prima la categoria --</option>
                     </select>
                     <small>Seleziona la coltura principale del terreno</small>
                 </div>
@@ -871,6 +879,14 @@
                     
                     // Salva tenant ID
                     currentTenantId = userData.tenantId;
+                    
+                    // Imposta tenantId nel tenant-service per i servizi
+                    try {
+                        const { setCurrentTenantId } = await import('./services/tenant-service.js');
+                        setCurrentTenantId(currentTenantId);
+                    } catch (error) {
+                        console.warn('Impossibile impostare tenantId nel servizio:', error);
+                    }
                 }
             } catch (error) {
                 console.error('Errore caricamento utente:', error);
@@ -880,6 +896,9 @@
             await loadColture();
             await loadPoderi();
             await loadTerreni();
+            
+            // Setup listener per aggiornare colore poligono quando cambia coltura
+            setupColturaColorListener();
         });
 
         // Logout
@@ -933,19 +952,301 @@
             });
         }
         
-        // Carica colture disponibili
-        async function loadColture() {
+        // Variabili globali per categorie e colture
+        let categorieColtureTerreni = [];
+        let colturePerCategoriaTerreni = {};
+
+        // Inizializza colture predefinite se non presenti (fallback per ambiente file://)
+        async function initializeColturePredefiniteTerreni() {
             try {
-                if (!currentTenantId) {
-                    const user = auth.currentUser;
-                    if (user) {
-                        currentTenantId = await getTenantId(user.uid);
+                if (!currentTenantId) return;
+
+                // Carica categorie per ottenere gli ID
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const categorieSnapshot = await getDocs(categorieRef);
+                const categorieMap = new Map(); // codice -> id
+                categorieSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.applicabileA === 'colture' && data.codice) {
+                        categorieMap.set(data.codice.toLowerCase(), doc.id);
+                    }
+                });
+
+                // Carica colture esistenti
+                const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                const coltureSnapshot = await getDocs(coltureRef);
+                const nomiEsistenti = new Set();
+                coltureSnapshot.forEach(doc => {
+                    const nome = doc.data().nome;
+                    if (nome) nomiEsistenti.add(nome.toLowerCase());
+                });
+
+                // Colture predefinite
+                const COLTURE_PREDEFINITE = [
+                    // Frutteto
+                    { nome: 'Pesco', categoriaCodice: 'frutteto' }, { nome: 'Melo', categoriaCodice: 'frutteto' },
+                    { nome: 'Pero', categoriaCodice: 'frutteto' }, { nome: 'Albicocche', categoriaCodice: 'frutteto' },
+                    { nome: 'Prugne', categoriaCodice: 'frutteto' }, { nome: 'Ciliegio', categoriaCodice: 'frutteto' },
+                    { nome: 'Susino', categoriaCodice: 'frutteto' }, { nome: 'Fico', categoriaCodice: 'frutteto' },
+                    { nome: 'Nocciolo', categoriaCodice: 'frutteto' }, { nome: 'Mandorlo', categoriaCodice: 'frutteto' },
+                    { nome: 'Castagno', categoriaCodice: 'frutteto' }, { nome: 'Cotogno', categoriaCodice: 'frutteto' },
+                    { nome: 'Sorbo', categoriaCodice: 'frutteto' }, { nome: 'Nespolo', categoriaCodice: 'frutteto' },
+                    { nome: 'Giuggiolo', categoriaCodice: 'frutteto' }, { nome: 'Corbezzolo', categoriaCodice: 'frutteto' },
+                    { nome: 'Gelso', categoriaCodice: 'frutteto' }, { nome: 'Mora', categoriaCodice: 'frutteto' },
+                    { nome: 'Lampone', categoriaCodice: 'frutteto' }, { nome: 'Mirtillo', categoriaCodice: 'frutteto' },
+                    { nome: 'Ribes', categoriaCodice: 'frutteto' }, { nome: 'Uva Spina', categoriaCodice: 'frutteto' },
+                    { nome: 'Kiwi', categoriaCodice: 'frutteto' }, { nome: 'Melograno', categoriaCodice: 'frutteto' },
+                    { nome: 'Fico d\'India', categoriaCodice: 'frutteto' }, { nome: 'Kaki', categoriaCodice: 'frutteto' },
+                    { nome: 'Noce', categoriaCodice: 'frutteto' }, { nome: 'Pistacchio', categoriaCodice: 'frutteto' },
+                    // Seminativo
+                    { nome: 'Grano', categoriaCodice: 'seminativo' }, { nome: 'Mais', categoriaCodice: 'seminativo' },
+                    { nome: 'Orzo', categoriaCodice: 'seminativo' }, { nome: 'Favino', categoriaCodice: 'seminativo' },
+                    { nome: 'Girasole', categoriaCodice: 'seminativo' }, { nome: 'Soia', categoriaCodice: 'seminativo' },
+                    { nome: 'Colza', categoriaCodice: 'seminativo' }, { nome: 'Avena', categoriaCodice: 'seminativo' },
+                    { nome: 'Segale', categoriaCodice: 'seminativo' }, { nome: 'Fava', categoriaCodice: 'seminativo' },
+                    { nome: 'Lenticchia', categoriaCodice: 'seminativo' }, { nome: 'Cece', categoriaCodice: 'seminativo' },
+                    { nome: 'Lupino', categoriaCodice: 'seminativo' }, { nome: 'Cicerchia', categoriaCodice: 'seminativo' },
+                    { nome: 'Riso', categoriaCodice: 'seminativo' }, { nome: 'Grano Saraceno', categoriaCodice: 'seminativo' },
+                    { nome: 'Amaranto', categoriaCodice: 'seminativo' }, { nome: 'Quinoa', categoriaCodice: 'seminativo' },
+                    { nome: 'Canapa', categoriaCodice: 'seminativo' }, { nome: 'Lino', categoriaCodice: 'seminativo' },
+                    { nome: 'Carthamo', categoriaCodice: 'seminativo' }, { nome: 'Erba Medica', categoriaCodice: 'seminativo' },
+                    { nome: 'Trifoglio', categoriaCodice: 'seminativo' }, { nome: 'Veccia', categoriaCodice: 'seminativo' },
+                    { nome: 'Lupinella', categoriaCodice: 'seminativo' }, { nome: 'Sulla', categoriaCodice: 'seminativo' },
+                    { nome: 'Sorgo', categoriaCodice: 'seminativo' }, { nome: 'Miglio', categoriaCodice: 'seminativo' },
+                    { nome: 'Panico', categoriaCodice: 'seminativo' },
+                    // Vite
+                    { nome: 'Vite', categoriaCodice: 'vite' },
+                    { nome: 'Vite da Tavola', categoriaCodice: 'vite' },
+                    { nome: 'Vite da Vino', categoriaCodice: 'vite' },
+                    // Ortive
+                    { nome: 'Pomodoro', categoriaCodice: 'ortive' }, { nome: 'Zucchine', categoriaCodice: 'ortive' },
+                    { nome: 'Melanzane', categoriaCodice: 'ortive' }, { nome: 'Peperoni', categoriaCodice: 'ortive' },
+                    { nome: 'Insalata', categoriaCodice: 'ortive' }, { nome: 'Carote', categoriaCodice: 'ortive' },
+                    { nome: 'Patate', categoriaCodice: 'ortive' }, { nome: 'Bietole', categoriaCodice: 'ortive' },
+                    { nome: 'Fragole', categoriaCodice: 'ortive' }, { nome: 'Cipolle', categoriaCodice: 'ortive' },
+                    { nome: 'Aglio', categoriaCodice: 'ortive' }, { nome: 'Fagioli', categoriaCodice: 'ortive' },
+                    { nome: 'Fagiolini', categoriaCodice: 'ortive' }, { nome: 'Piselli', categoriaCodice: 'ortive' },
+                    { nome: 'Cavolo', categoriaCodice: 'ortive' }, { nome: 'Broccoli', categoriaCodice: 'ortive' },
+                    { nome: 'Cavolfiore', categoriaCodice: 'ortive' }, { nome: 'Spinaci', categoriaCodice: 'ortive' },
+                    { nome: 'Lattuga', categoriaCodice: 'ortive' }, { nome: 'Radicchio', categoriaCodice: 'ortive' },
+                    { nome: 'Finocchi', categoriaCodice: 'ortive' }, { nome: 'Sedano', categoriaCodice: 'ortive' },
+                    { nome: 'Cetrioli', categoriaCodice: 'ortive' }, { nome: 'Angurie', categoriaCodice: 'ortive' },
+                    { nome: 'Meloni', categoriaCodice: 'ortive' },
+                    // Prato
+                    { nome: 'Prato', categoriaCodice: 'prato' }, { nome: 'Prato Stabile', categoriaCodice: 'prato' },
+                    { nome: 'Pascolo', categoriaCodice: 'prato' },
+                    // Olivo
+                    { nome: 'Olivo', categoriaCodice: 'olivo' },
+                    // Agrumeto
+                    { nome: 'Arancio', categoriaCodice: 'agrumeto' }, { nome: 'Limone', categoriaCodice: 'agrumeto' },
+                    { nome: 'Mandarino', categoriaCodice: 'agrumeto' }, { nome: 'Clementine', categoriaCodice: 'agrumeto' },
+                    { nome: 'Pompelmo', categoriaCodice: 'agrumeto' }, { nome: 'Bergamotto', categoriaCodice: 'agrumeto' },
+                    { nome: 'Cedro', categoriaCodice: 'agrumeto' }, { nome: 'Lime', categoriaCodice: 'agrumeto' },
+                    { nome: 'Kumquat', categoriaCodice: 'agrumeto' },
+                    // Bosco
+                    { nome: 'Bosco', categoriaCodice: 'bosco' }
+                ];
+
+                // Crea colture predefinite mancanti
+                let createCount = 0;
+                for (const colturaData of COLTURE_PREDEFINITE) {
+                    if (!nomiEsistenti.has(colturaData.nome.toLowerCase())) {
+                        const categoriaId = categorieMap.get(colturaData.categoriaCodice);
+                        if (categoriaId) {
+                            await addDoc(coltureRef, {
+                                nome: colturaData.nome,
+                                categoriaId: categoriaId,
+                                descrizione: null,
+                                predefinito: true,
+                                creatoDa: 'system',
+                                createdAt: serverTimestamp(),
+                                updatedAt: serverTimestamp()
+                            });
+                            nomiEsistenti.add(colturaData.nome.toLowerCase());
+                            createCount++;
+                        }
                     }
                 }
-                
+
+                if (createCount > 0) {
+                    console.log(`✅ Inizializzate ${createCount} colture predefinite`);
+                }
+            } catch (error) {
+                console.error('Errore inizializzazione colture predefinite:', error);
+            }
+        }
+
+        // Carica categorie per colture usando categorie-service.js
+        async function loadCategorieColtureTerreni() {
+            try {
                 if (!currentTenantId) return;
+
+                // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
+                const isFileProtocol = window.location.protocol === 'file:';
                 
-                // Carica liste personalizzate
+                if (isFileProtocol) {
+                    // Fallback: carica direttamente da Firestore
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const categorieSnapshot = await getDocs(categorieRef);
+                    
+                    categorieColtureTerreni = [];
+                    categorieSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.applicabileA === 'colture') {
+                            categorieColtureTerreni.push({ id: doc.id, ...data });
+                        }
+                    });
+                    
+                    categorieColtureTerreni.sort((a, b) => {
+                        const ordineA = a.ordine || 999;
+                        const ordineB = b.ordine || 999;
+                        return ordineA - ordineB;
+                    });
+                } else {
+                    // Usa categorie-service.js invece di caricamento diretto
+                    // Assicura che Firebase sia inizializzato nel servizio
+                    const { setFirebaseInstances } = await import('./services/firebase-service.js');
+                    setFirebaseInstances({ app, db, auth });
+                    
+                    // Assicura che il tenantId sia impostato nel servizio
+                    const { setCurrentTenantId } = await import('./services/tenant-service.js');
+                    if (currentTenantId) {
+                        setCurrentTenantId(currentTenantId);
+                    }
+                    
+                    const { getAllCategorie } = await import('./services/categorie-service.js');
+                    const categorie = await getAllCategorie({
+                        applicabileA: 'colture',
+                        orderBy: 'ordine',
+                        orderDirection: 'asc'
+                    });
+
+                    categorieColtureTerreni = categorie;
+                }
+
+                // Popola dropdown categoria (se esiste)
+                const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+                if (categoriaSelect) {
+                    categoriaSelect.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+                    categorieColtureTerreni.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.nome;
+                        categoriaSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Errore caricamento categorie colture:', error);
+            }
+        }
+
+        // Carica colture organizzate per categoria usando colture-service.js
+        async function loadColturePerCategoriaTerreni() {
+            try {
+                if (!currentTenantId) return;
+
+                // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
+                const isFileProtocol = window.location.protocol === 'file:';
+                
+                if (isFileProtocol) {
+                    // Fallback: carica direttamente da Firestore
+                    const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                    let coltureSnapshot = await getDocs(coltureRef);
+                    
+                    // Se ci sono poche colture (meno di 20), inizializza quelle predefinite
+                    if (coltureSnapshot.size < 20) {
+                        await initializeColturePredefiniteTerreni();
+                        coltureSnapshot = await getDocs(coltureRef);
+                    }
+                    
+                    colturePerCategoriaTerreni = {};
+                    const coltureArray = [];
+                    coltureSnapshot.forEach(doc => {
+                        coltureArray.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    coltureArray.sort((a, b) => {
+                        const nomeA = (a.nome || '').toLowerCase();
+                        const nomeB = (b.nome || '').toLowerCase();
+                        return nomeA.localeCompare(nomeB);
+                    });
+                    
+                    // Carica categorie valide per filtrare
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const categorieSnapshot = await getDocs(categorieRef);
+                    const categorieValideSet = new Set();
+                    categorieSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.applicabileA === 'colture') {
+                            categorieValideSet.add(doc.id);
+                        }
+                    });
+                    
+                    // Organizza per categoria
+                    coltureArray.forEach(coltura => {
+                        const categoriaId = coltura.categoriaId || 'senza_categoria';
+                        
+                        if (categoriaId !== 'senza_categoria' && !categorieValideSet.has(categoriaId)) {
+                            const categoriaIdCorretto = 'senza_categoria';
+                            if (!colturePerCategoriaTerreni[categoriaIdCorretto]) {
+                                colturePerCategoriaTerreni[categoriaIdCorretto] = [];
+                            }
+                            colturePerCategoriaTerreni[categoriaIdCorretto].push(coltura);
+                            return;
+                        }
+                        
+                        if (!colturePerCategoriaTerreni[categoriaId]) {
+                            colturePerCategoriaTerreni[categoriaId] = [];
+                        }
+                        colturePerCategoriaTerreni[categoriaId].push(coltura);
+                    });
+                    
+                    console.log('✅ Colture caricate e organizzate per categoria:');
+                    console.log('   Totale colture:', coltureArray.length);
+                    console.log('   Categorie con colture:', Object.keys(colturePerCategoriaTerreni));
+                    Object.keys(colturePerCategoriaTerreni).forEach(catId => {
+                        console.log(`   - Categoria ${catId}: ${colturePerCategoriaTerreni[catId].length} colture`);
+                    });
+                } else {
+                    // Assicura che Firebase sia inizializzato nel servizio
+                    const { setFirebaseInstances } = await import('./services/firebase-service.js');
+                    setFirebaseInstances({ app, db, auth });
+                    
+                    // Assicura che il tenantId sia impostato nel servizio
+                    const { setCurrentTenantId } = await import('./services/tenant-service.js');
+                    if (currentTenantId) {
+                        setCurrentTenantId(currentTenantId);
+                    }
+                    
+                    // Assicura che le colture predefinite siano inizializzate
+                    const { initializeColturePredefinite, getColturePerCategoria, getAllColture } = await import('./services/colture-service.js');
+                    
+                    // Verifica se ci sono poche colture e inizializza se necessario
+                    const coltureEsistenti = await getAllColture();
+                    if (coltureEsistenti.length < 20) {
+                        await initializeColturePredefinite();
+                    }
+
+                    // Usa colture-service.js invece di caricamento diretto
+                    colturePerCategoriaTerreni = await getColturePerCategoria();
+                }
+
+                // Estrai tutte le colture per retrocompatibilità
+                colture = [];
+                Object.values(colturePerCategoriaTerreni).forEach(coltureList => {
+                    coltureList.forEach(c => colture.push(c.nome));
+                });
+
+                // Non popolare direttamente il dropdown, sarà popolato quando si seleziona una categoria
+                // Aggiorna il dropdown se c'è già una categoria selezionata
+                const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+                if (categoriaSelect && categoriaSelect.value) {
+                    updateColtureDropdownTerreni();
+                }
+            } catch (error) {
+                console.error('Errore caricamento colture:', error);
+                // Fallback: usa ListePersonalizzate se colture non disponibile
+                console.warn('Impossibile caricare da colture, uso ListePersonalizzate:', error.message);
                 const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
                 const listeSnap = await getDoc(listeRef);
                 
@@ -957,25 +1258,91 @@
                     colture = ['Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco'];
                 }
                 
-                // Popola dropdown colture
-                const colturaSelect = document.getElementById('terreno-coltura');
-                if (colturaSelect) {
-                    // Mantieni opzione vuota
-                    colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
-                    
-                    // Aggiungi colture
-                    colture.forEach(coltura => {
-                        const option = document.createElement('option');
-                        option.value = coltura;
-                        option.textContent = coltura;
-                        colturaSelect.appendChild(option);
-                    });
+                // Non popolare direttamente il dropdown, sarà popolato quando si seleziona una categoria
+                const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+                if (categoriaSelect && categoriaSelect.value) {
+                    updateColtureDropdownTerreni();
                 }
-            } catch (error) {
-                console.error('Errore caricamento colture:', error);
-                // Fallback a predefinite
-                colture = ['Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco'];
             }
+        }
+
+
+        // Aggiorna dropdown colture in base alla categoria selezionata
+        function updateColtureDropdownTerreni() {
+            const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+            const colturaSelect = document.getElementById('terreno-coltura');
+            
+            // Aggiorna colore poligono se sta tracciando
+            if (polygon && isDrawing) {
+                const colors = getColturaColor();
+                polygon.setOptions({
+                    fillColor: colors.fill + '80',
+                    strokeColor: colors.stroke
+                });
+            }
+            
+            if (!categoriaSelect || !colturaSelect) {
+                console.warn('⚠️ updateColtureDropdownTerreni: dropdown non trovati');
+                return;
+            }
+            
+            const categoriaId = categoriaSelect.value;
+            
+            // Reset dropdown colture
+            colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
+            
+            if (!categoriaId) {
+                colturaSelect.innerHTML = '<option value="">-- Seleziona prima la categoria --</option>';
+                return;
+            }
+            
+            // Popola con le colture della categoria selezionata
+            const coltureCategoria = colturePerCategoriaTerreni[categoriaId] || [];
+            
+            if (coltureCategoria.length === 0) {
+                colturaSelect.innerHTML = '<option value="">-- Nessuna coltura disponibile per questa categoria --</option>';
+                return;
+            }
+            
+            // Ordina per nome
+            coltureCategoria.sort((a, b) => {
+                const nomeA = (a.nome || '').toLowerCase();
+                const nomeB = (b.nome || '').toLowerCase();
+                return nomeA.localeCompare(nomeB);
+            });
+            
+            coltureCategoria.forEach((coltura) => {
+                const nomeColtura = coltura.nome || coltura;
+                const option = document.createElement('option');
+                option.value = nomeColtura;
+                option.textContent = nomeColtura;
+                colturaSelect.appendChild(option);
+            });
+        }
+        
+        // Esponi funzione globalmente per accesso da attributi HTML
+        window.updateColtureDropdownTerreni = updateColtureDropdownTerreni;
+        
+        // Aggiorna colore poligono quando cambia la coltura selezionata
+        function setupColturaColorListener() {
+            const colturaSelect = document.getElementById('terreno-coltura');
+            if (colturaSelect) {
+                colturaSelect.addEventListener('change', function() {
+                    if (polygon && isDrawing) {
+                        const colors = getColturaColor();
+                        polygon.setOptions({
+                            fillColor: colors.fill + '80',
+                            strokeColor: colors.stroke
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Carica colture (wrapper per retrocompatibilità)
+        async function loadColture() {
+            await loadCategorieColtureTerreni();
+            await loadColturePerCategoriaTerreni();
         }
 
         // Carica terreni
@@ -999,6 +1366,11 @@
                 terreni = [];
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
+                    
+                    // Escludi terreni dei clienti (solo terreni aziendali)
+                    if (data.clienteId && data.clienteId !== '') {
+                        return; // Salta questo terreno
+                    }
                     
                     // Calcola superficie dalla mappa se presente e superficie non salvata o zero
                     let superficie = data.superficie || null;
@@ -1989,13 +2361,15 @@
         }
 
         // Apri modal terreno
-        window.openTerrenoModal = function(terrenoId = null) {
+        window.openTerrenoModal = async function(terrenoId = null) {
             currentTerrenoId = terrenoId;
             const modal = document.getElementById('terreno-modal');
             const form = document.getElementById('terreno-form');
             const title = document.getElementById('modal-title');
             
-            // IMPORTANTE: Popola il dropdown PRIMA di impostare i valori
+            // IMPORTANTE: Carica colture e popola dropdown PRIMA di impostare i valori
+            // Ricarica colture per assicurarsi che siano aggiornate
+            await loadColture();
             populatePoderiDropdown();
             
             if (terrenoId) {
@@ -2005,7 +2379,34 @@
                 if (terreno) {
                     document.getElementById('terreno-nome').value = terreno.nome || '';
                     document.getElementById('terreno-superficie').value = terreno.superficie || '';
-                    document.getElementById('terreno-coltura').value = terreno.coltura || '';
+                    
+                    // Trova la categoria della coltura selezionata
+                    const colturaNome = terreno.coltura || '';
+                    if (colturaNome) {
+                        // Cerca la coltura nelle categorie caricate
+                        let categoriaIdTrovata = null;
+                        for (const [catId, coltureList] of Object.entries(colturePerCategoriaTerreni)) {
+                            const colturaTrovata = coltureList.find(c => c.nome === colturaNome);
+                            if (colturaTrovata) {
+                                categoriaIdTrovata = catId;
+                                break;
+                            }
+                        }
+                        
+                        // Imposta la categoria se trovata
+                        const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+                        if (categoriaSelect && categoriaIdTrovata) {
+                            categoriaSelect.value = categoriaIdTrovata;
+                            // Aggiorna il dropdown delle colture
+                            updateColtureDropdownTerreni();
+                        }
+                        
+                        // Imposta la coltura dopo aver aggiornato il dropdown
+                        setTimeout(() => {
+                            document.getElementById('terreno-coltura').value = colturaNome;
+                        }, 100);
+                    }
+                    
                     const podereValue = terreno.podere || '';
                     // Imposta il valore DOPO che il dropdown è stato popolato
                     document.getElementById('terreno-podere').value = podereValue;
@@ -2049,7 +2450,13 @@
             } else {
                 title.textContent = 'Aggiungi Terreno';
                 form.reset();
-                document.getElementById('terreno-coltura').value = '';
+                // Reset dropdown categoria colture
+                document.getElementById('terreno-coltura-categoria').value = '';
+                // Reset dropdown colture mantenendo solo l'opzione iniziale
+                const colturaSelect = document.getElementById('terreno-coltura');
+                if (colturaSelect) {
+                    colturaSelect.innerHTML = '<option value="">-- Seleziona prima la categoria --</option>';
+                }
                 document.getElementById('terreno-podere').value = '';
                 document.getElementById('terreno-tipo-possesso').value = 'proprieta';
                 toggleDataScadenzaAffitto(); // Nascondi campi affitto
@@ -2062,21 +2469,7 @@
                 }
             }
             
-            // Assicura che le colture siano caricate nel dropdown
-            if (colture.length > 0) {
-                const colturaSelect = document.getElementById('terreno-coltura');
-                if (colturaSelect && colturaSelect.options.length <= 1) {
-                    // Ricarica colture se dropdown vuoto
-                    colture.forEach(coltura => {
-                        if (!Array.from(colturaSelect.options).some(opt => opt.value === coltura)) {
-                            const option = document.createElement('option');
-                            option.value = coltura;
-                            option.textContent = coltura;
-                            colturaSelect.appendChild(option);
-                        }
-                    });
-                }
-            }
+            // Le colture vengono caricate automaticamente quando si seleziona una categoria
             
             modal.classList.add('active');
         };
@@ -2362,6 +2755,125 @@
 
         // ========== Google Maps Functions ==========
         
+        // Colori per colture (palette colori ottimizzata per visibilità)
+        const colturaColors = {
+            'Vite': { fill: '#DC143C', stroke: '#8B0000' },      // Rosso scuro brillante
+            'Frutteto': { fill: '#FF6600', stroke: '#CC5500' },  // Arancione brillante
+            'Seminativo': { fill: '#FFD700', stroke: '#B8860B' }, // Giallo oro
+            'Orto': { fill: '#00FF00', stroke: '#00AA00' },      // Verde lime brillante
+            'Ortive': { fill: '#00FF00', stroke: '#00AA00' },    // Alias per Ortive
+            'Prato': { fill: '#90EE90', stroke: '#228B22' },    // Verde chiaro
+            'Olivo': { fill: '#9370DB', stroke: '#6A5ACD' },    // Viola medio
+            'Agrumeto': { fill: '#FFA500', stroke: '#FF8C00' },  // Arancione
+            'Bosco': { fill: '#8B4513', stroke: '#654321' },    // Marrone sella
+            'Default': { fill: '#1E90FF', stroke: '#0066CC' }   // Blu dodger (invece di verde)
+        };
+        
+        // Funzione per mappare nome coltura specifico a categoria generica
+        function mapColturaToColorCategory(colturaNome, colturaCategoria) {
+            if (!colturaNome) return 'Default';
+            
+            const nomeLower = colturaNome.toLowerCase();
+            
+            // Match esatto nella palette
+            if (colturaColors[colturaNome]) {
+                return colturaNome;
+            }
+            
+            // Mapping per Vite (tutte le varianti)
+            if (nomeLower.includes('vite') || colturaCategoria?.toLowerCase() === 'vite') {
+                return 'Vite';
+            }
+            
+            // Mapping per Frutteto (tutte le varianti)
+            if (nomeLower.includes('albicocch') || nomeLower.includes('pesco') || 
+                nomeLower.includes('melo') || nomeLower.includes('pero') ||
+                nomeLower.includes('ciliegio') || nomeLower.includes('susino') ||
+                nomeLower.includes('fico') || nomeLower.includes('nocciolo') ||
+                nomeLower.includes('mandorlo') || nomeLower.includes('castagno') ||
+                nomeLower.includes('kiwi') || nomeLower.includes('mirtillo') ||
+                nomeLower.includes('lampone') || nomeLower.includes('ribes') ||
+                nomeLower.includes('mora') || nomeLower.includes('melograno') ||
+                nomeLower.includes('noce') || nomeLower.includes('pistacchio') ||
+                colturaCategoria?.toLowerCase() === 'frutteto') {
+                return 'Frutteto';
+            }
+            
+            // Mapping per Seminativo
+            if (nomeLower.includes('grano') || nomeLower.includes('mais') ||
+                nomeLower.includes('orzo') || nomeLower.includes('favino') ||
+                nomeLower.includes('girasole') || nomeLower.includes('soia') ||
+                nomeLower.includes('colza') || nomeLower.includes('avena') ||
+                nomeLower.includes('segale') || nomeLower.includes('fava') ||
+                nomeLower.includes('lenticchia') || nomeLower.includes('cece') ||
+                nomeLower.includes('riso') || nomeLower.includes('quinoa') ||
+                nomeLower.includes('canapa') || nomeLower.includes('lino') ||
+                nomeLower.includes('erba medica') || nomeLower.includes('trifoglio') ||
+                colturaCategoria?.toLowerCase() === 'seminativo') {
+                return 'Seminativo';
+            }
+            
+            // Mapping per Ortive/Orto
+            if (nomeLower.includes('pomodoro') || nomeLower.includes('zucchin') ||
+                nomeLower.includes('melanzan') || nomeLower.includes('peperon') ||
+                nomeLower.includes('insalata') || nomeLower.includes('carot') ||
+                nomeLower.includes('patat') || nomeLower.includes('bietol') ||
+                nomeLower.includes('fragol') || nomeLower.includes('cipoll') ||
+                nomeLower.includes('aglio') || nomeLower.includes('fagiol') ||
+                nomeLower.includes('pisell') || nomeLower.includes('cavolo') ||
+                nomeLower.includes('broccoli') || nomeLower.includes('spinaci') ||
+                nomeLower.includes('lattuga') || nomeLower.includes('radicchio') ||
+                nomeLower.includes('finocchi') || nomeLower.includes('sedano') ||
+                nomeLower.includes('cetriol') || nomeLower.includes('anguria') ||
+                nomeLower.includes('melon') || colturaCategoria?.toLowerCase() === 'ortive' ||
+                colturaCategoria?.toLowerCase() === 'orto') {
+                return 'Orto';
+            }
+            
+            // Mapping per Prato
+            if (nomeLower.includes('prato') || nomeLower.includes('pascolo') ||
+                colturaCategoria?.toLowerCase() === 'prato') {
+                return 'Prato';
+            }
+            
+            // Mapping per Olivo
+            if (nomeLower.includes('olivo') || nomeLower.includes('oliveto') ||
+                colturaCategoria?.toLowerCase() === 'olivo') {
+                return 'Olivo';
+            }
+            
+            // Mapping per Agrumeto
+            if (nomeLower.includes('arancio') || nomeLower.includes('limone') ||
+                nomeLower.includes('mandarino') || nomeLower.includes('clementin') ||
+                nomeLower.includes('pompelmo') || nomeLower.includes('bergamotto') ||
+                nomeLower.includes('cedro') || nomeLower.includes('lime') ||
+                nomeLower.includes('kumquat') || colturaCategoria?.toLowerCase() === 'agrumeto') {
+                return 'Agrumeto';
+            }
+            
+            // Mapping per Bosco
+            if (nomeLower.includes('bosco') || nomeLower.includes('foresta') ||
+                colturaCategoria?.toLowerCase() === 'bosco') {
+                return 'Bosco';
+            }
+            
+            return 'Default';
+        }
+        
+        // Funzione per ottenere colore coltura selezionata
+        function getColturaColor() {
+            const colturaSelect = document.getElementById('terreno-coltura');
+            const colturaCategoriaSelect = document.getElementById('terreno-coltura-categoria');
+            const colturaNome = colturaSelect ? colturaSelect.value : null;
+            const colturaCategoria = colturaCategoriaSelect ? colturaCategoriaSelect.options[colturaCategoriaSelect.selectedIndex]?.text : null;
+            const colorCategory = mapColturaToColorCategory(colturaNome, colturaCategoria);
+            const colorData = colturaColors[colorCategory] || colturaColors['Default'];
+            return {
+                fill: colorData.fill,
+                stroke: colorData.stroke
+            };
+        }
+        
         // Inizializza mappa
         window.initMap = function() {
             if (!window.googleMapsReady || !google || !google.maps) {
@@ -2392,12 +2904,14 @@
                 map.addListener('click', function(event) {
                     if (isDrawing) {
                         if (!polygon) {
+                            const colors = getColturaColor();
                             polygon = new google.maps.Polygon({
                                 paths: [event.latLng],
-                                fillColor: '#28a745',
-                                fillOpacity: 0.3,
-                                strokeColor: '#28a745',
-                                strokeWeight: 2,
+                                fillColor: colors.fill + '80', // Aggiungi trasparenza
+                                fillOpacity: 0.35,
+                                strokeColor: colors.stroke,    // Usa versione scura per perimetro
+                                strokeWeight: 3,               // Aumentato per maggiore visibilità
+                                strokeOpacity: 1.0,            // Massima visibilità
                                 clickable: false,
                                 editable: true,
                                 draggable: true
@@ -2526,12 +3040,14 @@
                 return coord;
             });
             
+            const colors = getColturaColor();
             polygon = new google.maps.Polygon({
                 paths: coords,
-                fillColor: '#28a745',
-                fillOpacity: 0.3,
-                strokeColor: '#28a745',
-                strokeWeight: 2,
+                fillColor: colors.fill + '80', // Aggiungi trasparenza
+                fillOpacity: 0.35,
+                strokeColor: colors.stroke,    // Usa versione scura per perimetro
+                strokeWeight: 3,               // Aumentato per maggiore visibilità
+                strokeOpacity: 1.0,            // Massima visibilità
                 editable: true,
                 draggable: true
             });

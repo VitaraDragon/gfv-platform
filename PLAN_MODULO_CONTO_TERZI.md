@@ -1,8 +1,8 @@
 # 📋 Piano Sviluppo: Modulo Conto Terzi
 
 **Data creazione**: 2025-01-24  
-**Ultimo aggiornamento**: 2025-12-07  
-**Stato**: ✅ FASE 1 MVP COMPLETATA  
+**Ultimo aggiornamento**: 2025-12-18  
+**Stato**: ✅ FASE 1 MVP COMPLETATA - ✅ FASE 2 COMPLETATA  
 **Priorità**: Alta
 
 ---
@@ -694,14 +694,17 @@ tenants/{tenantId}/preventivi/{preventivoId}
 - [x] Fix CORS e percorsi (compatibile file://)
 - [x] Sistema navigazione gerarchico
 
-### Fase 2: Preventivi
-- [ ] Modello Preventivo
-- [ ] Service preventivi
-- [ ] Pagina gestione preventivi
-- [ ] Logica creazione lavoro da preventivo
-- [ ] Pagina lavori da pianificare
-- [ ] Form completamento pianificazione
-- [ ] Pagine lavori in corso/completati
+### Fase 2: Preventivi e Pianificazione ✅ COMPLETATA (2025-12-10)
+- [x] Modello Preventivo
+- [x] Service preventivi
+- [x] Pagina gestione preventivi
+- [x] Logica creazione lavoro da preventivo
+- [x] Pagina lavori da pianificare (integrazione in Gestione Lavori)
+- [x] Form completamento pianificazione (modalità semplificata senza Manodopera)
+- [x] Pagine lavori in corso/completati (integrazione in Gestione Lavori)
+- [x] Pianificazione lavori conto terzi senza Manodopera
+- [x] Supporto Parco Macchine per lavori conto terzi
+- [x] Generazione automatica voce diario quando lavoro completato
 
 ### Fase 3: Integrazione
 - [ ] Filtri Manodopera per conto terzi

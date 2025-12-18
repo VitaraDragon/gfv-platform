@@ -22,9 +22,9 @@ import {
   setDoc,
   Timestamp,
   serverTimestamp
-} from "firebase/firestore";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { initializeApp } from "firebase/app";
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
 // Configurazione Firebase (da centralizzare)
 let firebaseConfig = null;
@@ -48,6 +48,19 @@ export function initializeFirebase(config) {
   auth = getAuth(app);
   
   return { app, db, auth };
+}
+
+/**
+ * Registra istanze Firebase già inizializzate (per compatibilità con codice esistente)
+ * @param {Object} instances - Istanze Firebase
+ * @param {Object} instances.app - App Firebase
+ * @param {Object} instances.db - Firestore instance
+ * @param {Object} instances.auth - Auth instance
+ */
+export function setFirebaseInstances(instances) {
+  if (instances.app) app = instances.app;
+  if (instances.db) db = instances.db;
+  if (instances.auth) auth = instances.auth;
 }
 
 /**
@@ -247,6 +260,11 @@ export async function getCollectionData(collectionName, options = {}) {
     
     return documents;
   } catch (error) {
+    // Se è un errore di indice, sarà gestito dal fallback nei servizi
+    // Non loggare come errore per non spaventare l'utente
+    if (error.message && error.message.includes('index')) {
+      throw error; // Rilancia per gestione nel servizio
+    }
     console.error(`Errore lettura collection ${collectionName}:`, error);
     throw new Error(`Errore lettura collection: ${error.message}`);
   }

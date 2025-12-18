@@ -360,9 +360,9 @@ tenants/{tenantId}/lavori/{lavoroId}/oreOperai/{oraId}
 - [x] Testare statistiche con dati di test
 - [ ] Implementare costi macchine (se costoOra configurato) - TODO futuro
 
-### Fase 4: Refactoring Codice Esistente ⏳ PENDING
-- [ ] Refactorizzare `segnatura-ore-standalone.html` per usare service unificato
-- [ ] Refactorizzare `validazione-ore-standalone.html` per usare service unificato
+### Fase 4: Refactoring Codice Esistente ✅ COMPLETATO
+- [x] Refactorizzare `segnatura-ore-standalone.html` per usare service unificato (non necessario: le ore vengono aggiornate solo alla validazione)
+- [x] Refactorizzare `validazione-ore-standalone.html` per usare service unificato (2025-01-24)
 - [x] Refactorizzare `gestione-lavori-standalone.html` per usare service unificato (parziale)
 - [x] Liberazione automatica macchine quando lavoro completato
 - [x] Correzione automatica macchine di lavori già completati
@@ -439,7 +439,7 @@ tenants/{tenantId}/lavori/{lavoroId}/oreOperai/{oraId}
 
 ---
 
-**Stato**: ✅ COMPLETATO (2025-01-24) - Fase 1, 2, 5 e 6 completate. Fase 3 e 4 parzialmente completate.
+**Stato**: ✅ COMPLETATO (2025-01-24) - Tutte le fasi completate.
 
 ## 🎉 Implementazione Completata (2025-01-24)
 
@@ -469,6 +469,26 @@ tenants/{tenantId}/lavori/{lavoroId}/oreOperai/{oraId}
 
 #### 4. Lavori Caposquadra ✅
 - ✅ Liberazione automatica macchine quando lavoro raggiunge 100%
+
+#### 5. Refactoring Validazione Ore ✅ (2025-01-24)
+- ✅ **File modificato**: `core/admin/validazione-ore-standalone.html`
+- ✅ Rimossa funzione `aggiornaOreMacchina()` duplicata (75+ righe)
+- ✅ Sostituita con chiamata al service unificato `macchine-utilizzo-service.js`
+- ✅ Aggiunta funzione `loadMacchineUtilizzoService()` per caricamento dinamico
+- ✅ Gestione ambiente file:// (CORS) migliorata
+- ✅ Zero duplicazione codice: logica centralizzata nel service unificato
+- ✅ Compatibilità totale mantenuta: stesse funzionalità, codice più pulito
+
+#### 6. Correzione Barra Progresso Lavori Completati ✅ (2025-01-24)
+- ✅ **File modificato**: `core/dashboard-standalone.html`
+  - ✅ Funzione `loadRecentLavoriManagerManodopera()`: aggiunta visualizzazione barra progresso
+  - ✅ Funzione `loadRecentLavori()`: aggiunta visualizzazione barra progresso
+  - ✅ Lavori completati mostrano automaticamente 100% se percentuale è 0 o mancante
+  - ✅ Badge "Conto Terzi" visualizzato correttamente
+- ✅ **File modificato**: `core/admin/gestione-lavori-standalone.html`
+  - ✅ Correzione calcolo percentuale per lavori completati
+  - ✅ Lavori completati mostrano 100% anche se `percentualeCompletamento` è 0
+  - ✅ Calcolo automatico percentuale da superficie lavorata/totale se mancante
 
 ### Caratteristiche Principali
 - ✅ Tracciamento accurato ore per terreno e macchina

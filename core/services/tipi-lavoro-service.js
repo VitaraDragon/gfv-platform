@@ -17,47 +17,94 @@ import { TipoLavoro } from '../models/TipoLavoro.js';
 
 const COLLECTION_NAME = 'tipiLavoro';
 
-// Tipi lavoro predefiniti organizzati per categoria
-const TIPI_LAVORO_PREDEFINITI = {
-  'lavorazione_terreno': [
-    { nome: 'Aratura', descrizione: 'Lavorazione profonda del terreno' },
-    { nome: 'Erpicatura', descrizione: 'Lavorazione superficiale del terreno' },
-    { nome: 'Fresatura', descrizione: 'Frantumazione e rimescolamento del terreno' },
-    { nome: 'Vangatura', descrizione: 'Lavorazione manuale o meccanica del terreno' }
-  ],
-  'trattamenti': [
-    { nome: 'Trattamento Fitofarmaci', descrizione: 'Trattamento con prodotti fitosanitari' },
-    { nome: 'Concimazione', descrizione: 'Distribuzione di concimi' },
-    { nome: 'Irrigazione', descrizione: 'Somministrazione di acqua alle colture' }
-  ],
-  'potatura': [
-    { nome: 'Potatura Manuale', descrizione: 'Potatura eseguita manualmente' },
-    { nome: 'Potatura Meccanica', descrizione: 'Potatura eseguita con macchine' },
-    { nome: 'Cimatura', descrizione: 'Taglio delle cime delle piante' }
-  ],
-  'raccolta': [
-    { nome: 'Raccolta Frutta', descrizione: 'Raccolta di frutti' },
-    { nome: 'Raccolta Verdura', descrizione: 'Raccolta di verdure' },
-    { nome: 'Vendemmia', descrizione: 'Raccolta dell\'uva' }
-  ],
-  'gestione_verde': [
-    { nome: 'Falciatura', descrizione: 'Taglio dell\'erba' },
-    { nome: 'Diserbo', descrizione: 'Eliminazione delle erbe infestanti' },
-    { nome: 'Taglio Erba', descrizione: 'Taglio dell\'erba con macchine' }
-  ],
-  'semina_piantagione': [
-    { nome: 'Semina', descrizione: 'Semina di semi' },
-    { nome: 'Trapianto', descrizione: 'Trapianto di piantine' },
-    { nome: 'Piantagione', descrizione: 'Piantagione di piante' }
-  ],
-  'manutenzione': [
-    { nome: 'Riparazioni', descrizione: 'Riparazioni di attrezzature o impianti' },
-    { nome: 'Manutenzione Impianti', descrizione: 'Manutenzione di impianti irrigui o altri' }
-  ],
-  'altro': [
-    { nome: 'Altro', descrizione: 'Altri tipi di lavoro' }
-  ]
-};
+// Tipi lavoro predefiniti organizzati per sottocategoria
+// Struttura: { nome, sottocategoriaCodice, descrizione }
+const TIPI_LAVORO_PREDEFINITI = [
+  // Lavorazione del Terreno - Generale
+  { nome: 'Aratura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione profonda del terreno' },
+  { nome: 'Erpicatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione superficiale del terreno' },
+  { nome: 'Fresatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Frantumazione e rimescolamento del terreno' },
+  { nome: 'Vangatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione manuale o meccanica del terreno' },
+  { nome: 'Ripuntatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione profonda senza rivoltamento' },
+  { nome: 'Estirpatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione con estirpatore' },
+  { nome: 'Rullatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Compattazione del terreno' },
+  // Lavorazione del Terreno - Tra le File
+  { nome: 'Fresatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file', descrizione: 'Fresatura tra le file di frutteti/vigneti' },
+  { nome: 'Erpicatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file', descrizione: 'Erpicatura tra le file' },
+  { nome: 'Ripasso Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file', descrizione: 'Ripasso lavorazione tra le file' },
+  // Lavorazione del Terreno - Sulla Fila
+  { nome: 'Vangatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila', descrizione: 'Vangatura sulla fila di frutteti/vigneti' },
+  { nome: 'Zappatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila', descrizione: 'Zappatura sulla fila' },
+  { nome: 'Diserbo Meccanico Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila', descrizione: 'Diserbo meccanico sulla fila' },
+  // Trattamenti - Manuale
+  { nome: 'Trattamento Manuale', sottocategoriaCodice: 'trattamenti_manuale', descrizione: 'Trattamento eseguito manualmente' },
+  { nome: 'Trattamento Anticrittogamico Manuale', sottocategoriaCodice: 'trattamenti_manuale', descrizione: 'Trattamento contro malattie fungine eseguito manualmente' },
+  { nome: 'Trattamento Insetticida Manuale', sottocategoriaCodice: 'trattamenti_manuale', descrizione: 'Trattamento contro insetti eseguito manualmente' },
+  // Trattamenti - Meccanico
+  { nome: 'Trattamento Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento eseguito con macchine' },
+  { nome: 'Trattamento Anticrittogamico Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento contro malattie fungine con macchine' },
+  { nome: 'Trattamento Insetticida Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento contro insetti con macchine' },
+  // Potatura - Manuale
+  { nome: 'Potatura', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura eseguita manualmente' },
+  { nome: 'Potatura di Formazione', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura di formazione per giovani piante' },
+  { nome: 'Potatura di Produzione', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura di produzione per piante adulte' },
+  { nome: 'Potatura di Rinnovamento', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura di rinnovamento per piante vecchie' },
+  { nome: 'Innesto', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Innesto di piante' },
+  // Potatura - Meccanico
+  { nome: 'Pre-potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico', descrizione: 'Pre-potatura eseguita con macchine' },
+  { nome: 'Potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico', descrizione: 'Potatura eseguita con macchine' },
+  // Raccolta - Manuale
+  { nome: 'Raccolta Manuale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta eseguita manualmente' },
+  { nome: 'Raccolta con Cestini', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta manuale con cestini' },
+  { nome: 'Raccolta con Scale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta manuale con scale' },
+  // Raccolta - Meccanica
+  { nome: 'Raccolta Meccanica', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta eseguita con macchine' },
+  { nome: 'Raccolta con Scuotitore', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta meccanica con scuotitore' },
+  { nome: 'Raccolta con Raccoglitrici', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta con macchine raccoglitrici' },
+  // Gestione del Verde - Manuale
+  { nome: 'Falciatura Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Taglio manuale dell\'erba' },
+  { nome: 'Diserbo Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Eliminazione manuale delle erbe infestanti' },
+  { nome: 'Taglio Siepi Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Taglio manuale delle siepi' },
+  { nome: 'Manutenzione Verde Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Manutenzione estetica del verde eseguita manualmente' },
+  { nome: 'Scacchiatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Rimozione manuale dei germogli superflui' },
+  { nome: 'Spollonatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Rimozione manuale dei polloni' },
+  { nome: 'Sfemminellatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Rimozione manuale dei germogli femminili' },
+  { nome: 'Pettinatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Pettinatura manuale del verde' },
+  // Gestione del Verde - Meccanico
+  { nome: 'Potatura a Verde Meccanica', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Potatura a verde eseguita con macchine' },
+  { nome: 'Legatura', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Legatura meccanica' },
+  { nome: 'Defogliatura', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Defogliatura meccanica' },
+  { nome: 'Taglio Siepi Meccanico', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Taglio delle siepi con macchine' },
+  // Semina e Piantagione - Manuale
+  { nome: 'Semina Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Semina di semi eseguita manualmente' },
+  { nome: 'Semina Diretta Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Semina diretta in campo eseguita manualmente' },
+  { nome: 'Semina in Semenzaio', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Semina in semenzaio' },
+  { nome: 'Trapianto Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Trapianto di piantine eseguito manualmente' },
+  { nome: 'Trapianto Ortaggi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Trapianto di ortaggi eseguito manualmente' },
+  { nome: 'Piantagione Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Piantagione di piante eseguita manualmente' },
+  { nome: 'Piantagione Alberi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Piantagione di alberi eseguita manualmente' },
+  { nome: 'Piantagione Viti Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Piantagione di viti eseguita manualmente' },
+  // Semina e Piantagione - Meccanico
+  { nome: 'Semina Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Semina di semi eseguita con macchine' },
+  { nome: 'Semina Diretta Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Semina diretta in campo eseguita con macchine' },
+  { nome: 'Trapianto Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Trapianto di piantine eseguito con macchine' },
+  { nome: 'Trapianto Ortaggi Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Trapianto di ortaggi eseguito con macchine' },
+  { nome: 'Piantagione Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di piante eseguita con macchine' },
+  { nome: 'Piantagione Alberi Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di alberi eseguita con macchine' },
+  { nome: 'Piantagione Viti Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di viti eseguita con macchine' },
+  // Diserbo - Manuale
+  { nome: 'Diserbo Manuale', sottocategoriaCodice: 'diserbo_manuale', descrizione: 'Diserbo eseguito manualmente' },
+  { nome: 'Diserbo Localizzato', sottocategoriaCodice: 'diserbo_manuale', descrizione: 'Diserbo localizzato manuale' },
+  // Diserbo - Meccanico
+  { nome: 'Diserbo a Pieno Campo', sottocategoriaCodice: 'diserbo_meccanico', descrizione: 'Diserbo meccanico a pieno campo' },
+  { nome: 'Diserbo sulla Fila', sottocategoriaCodice: 'diserbo_meccanico', descrizione: 'Diserbo meccanico sulla fila' },
+  { nome: 'Diserbo Meccanico', sottocategoriaCodice: 'diserbo_meccanico', descrizione: 'Diserbo eseguito con macchine' },
+  // Manutenzione
+  { nome: 'Riparazioni', categoriaCodice: 'manutenzione', descrizione: 'Riparazioni di attrezzature o impianti' },
+  { nome: 'Manutenzione Impianti', categoriaCodice: 'manutenzione', descrizione: 'Manutenzione di impianti irrigui o altri' },
+  // Altro
+  { nome: 'Altro', categoriaCodice: 'altro', descrizione: 'Altri tipi di lavoro' }
+];
 
 /**
  * Inizializza tipi lavoro predefiniti per il tenant corrente
@@ -70,37 +117,74 @@ export async function initializeTipiLavoroPredefiniti() {
       throw new Error('Nessun tenant corrente disponibile');
     }
     
-    // Importa servizio categorie per ottenere ID categorie
-    const { getCategoriaByCodice } = await import('./categorie-lavori-service.js');
+    // Importa servizio categorie per ottenere ID categorie e sottocategorie
+    const { getCategoriaByCodice, getAllCategorie } = await import('./categorie-service.js');
+    
+    // Carica tutte le categorie e sottocategorie per creare mappa codice -> id
+    const tutteCategorie = await getAllCategorie();
+    const categorieMap = new Map(); // codice -> id
+    const sottocategorieMap = new Map(); // codice -> id
+    
+    tutteCategorie.forEach(cat => {
+      if (cat.codice) {
+        if (cat.parentId) {
+          // È una sottocategoria
+          sottocategorieMap.set(cat.codice.toLowerCase(), cat.id);
+        } else {
+          // È una categoria principale
+          categorieMap.set(cat.codice.toLowerCase(), cat.id);
+        }
+      }
+    });
     
     // Carica tutti i tipi lavoro esistenti
     const tipiEsistenti = await getAllTipiLavoro();
     const nomiEsistenti = new Set(tipiEsistenti.map(t => t.nome.toLowerCase()));
     
-    // Per ogni categoria, crea i tipi predefiniti
-    for (const [codiceCategoria, tipi] of Object.entries(TIPI_LAVORO_PREDEFINITI)) {
-      const categoria = await getCategoriaByCodice(codiceCategoria);
-      if (!categoria) {
-        console.warn(`Categoria ${codiceCategoria} non trovata, salto tipi predefiniti`);
+    // Per ogni tipo lavoro predefinito, crea se non esiste
+    for (const tipoData of TIPI_LAVORO_PREDEFINITI) {
+      // Crea solo se non esiste già (controllo per nome, case-insensitive)
+      if (nomiEsistenti.has(tipoData.nome.toLowerCase())) {
         continue;
       }
       
-      for (const tipoData of tipi) {
-        // Crea solo se non esiste già (controllo per nome, case-insensitive)
-        if (!nomiEsistenti.has(tipoData.nome.toLowerCase())) {
-          const tipo = new TipoLavoro({
-            ...tipoData,
-            categoriaId: categoria.id,
-            predefinito: true,
-            creatoDa: 'system'
-          });
-          
-          const validation = tipo.validate();
-          if (validation.valid) {
-            await createDocument(COLLECTION_NAME, tipo.toFirestore(), tenantId);
-            nomiEsistenti.add(tipoData.nome.toLowerCase());
+      let categoriaId = null;
+      let sottocategoriaId = null;
+      
+      // Determina categoria e sottocategoria
+      if (tipoData.sottocategoriaCodice) {
+        // Ha una sottocategoria
+        sottocategoriaId = sottocategorieMap.get(tipoData.sottocategoriaCodice.toLowerCase());
+        if (sottocategoriaId) {
+          // Trova la categoria padre dalla sottocategoria
+          const sottocategoria = tutteCategorie.find(c => c.id === sottocategoriaId);
+          if (sottocategoria && sottocategoria.parentId) {
+            categoriaId = sottocategoria.parentId;
           }
         }
+      } else if (tipoData.categoriaCodice) {
+        // Ha solo una categoria (senza sottocategoria)
+        categoriaId = categorieMap.get(tipoData.categoriaCodice.toLowerCase());
+      }
+      
+      if (!categoriaId) {
+        console.warn(`Categoria non trovata per tipo ${tipoData.nome}, salto`);
+        continue;
+      }
+      
+      const tipo = new TipoLavoro({
+        nome: tipoData.nome,
+        categoriaId: categoriaId,
+        sottocategoriaId: sottocategoriaId,
+        descrizione: tipoData.descrizione || null,
+        predefinito: true,
+        creatoDa: 'system'
+      });
+      
+      const validation = tipo.validate();
+      if (validation.valid) {
+        await createDocument(COLLECTION_NAME, tipo.toFirestore(), tenantId);
+        nomiEsistenti.add(tipoData.nome.toLowerCase());
       }
     }
   } catch (error) {
@@ -115,6 +199,7 @@ export async function initializeTipiLavoroPredefiniti() {
  * @param {string} options.orderBy - Campo per ordinamento (default: 'nome')
  * @param {string} options.orderDirection - Direzione ordinamento ('asc' | 'desc')
  * @param {string} options.categoriaId - Filtra per categoria (opzionale)
+ * @param {string} options.sottocategoriaId - Filtra per sottocategoria (opzionale)
  * @param {boolean} options.soloPredefiniti - Se true, mostra solo tipi predefiniti
  * @returns {Promise<Array<TipoLavoro>>} Array di tipi lavoro
  */
@@ -129,6 +214,7 @@ export async function getAllTipiLavoro(options = {}) {
       orderBy = 'nome', 
       orderDirection = 'asc',
       categoriaId = null,
+      sottocategoriaId = null,
       soloPredefiniti = false
     } = options;
     
@@ -136,6 +222,10 @@ export async function getAllTipiLavoro(options = {}) {
     
     if (categoriaId) {
       whereConditions.push(['categoriaId', '==', categoriaId]);
+    }
+    
+    if (sottocategoriaId) {
+      whereConditions.push(['sottocategoriaId', '==', sottocategoriaId]);
     }
     
     if (soloPredefiniti) {
@@ -153,6 +243,37 @@ export async function getAllTipiLavoro(options = {}) {
   } catch (error) {
     console.error('Errore recupero tipi lavoro:', error);
     throw new Error(`Errore recupero tipi lavoro: ${error.message}`);
+  }
+}
+
+/**
+ * Ottieni tipi lavoro organizzati per categoria e sottocategoria
+ * @returns {Promise<Object>} Oggetto con struttura { categoriaId: { sottocategoriaId: [tipi] } }
+ */
+export async function getTipiLavoroGerarchici() {
+  try {
+    const tipi = await getAllTipiLavoro({ orderBy: 'nome', orderDirection: 'asc' });
+    const strutturaGerarchica = {};
+    
+    tipi.forEach(tipo => {
+      const categoriaId = tipo.categoriaId || 'senza_categoria';
+      const sottocategoriaId = tipo.sottocategoriaId || 'senza_sottocategoria';
+      
+      if (!strutturaGerarchica[categoriaId]) {
+        strutturaGerarchica[categoriaId] = {};
+      }
+      
+      if (!strutturaGerarchica[categoriaId][sottocategoriaId]) {
+        strutturaGerarchica[categoriaId][sottocategoriaId] = [];
+      }
+      
+      strutturaGerarchica[categoriaId][sottocategoriaId].push(tipo);
+    });
+    
+    return strutturaGerarchica;
+  } catch (error) {
+    console.error('Errore recupero tipi lavoro gerarchici:', error);
+    throw new Error(`Errore recupero tipi lavoro gerarchici: ${error.message}`);
   }
 }
 
@@ -241,17 +362,35 @@ export async function createTipoLavoro(tipoLavoroData, createdBy) {
     });
     
     // Verifica che la categoria esista
-    const { getCategoria } = await import('./categorie-lavori-service.js');
+    const { getCategoria } = await import('./categorie-service.js');
     const categoria = await getCategoria(tipoLavoroData.categoriaId);
     if (!categoria) {
       throw new Error('Categoria lavoro non trovata');
     }
     
-    // Verifica che non esista già un tipo con lo stesso nome nella stessa categoria
-    const tipiEsistenti = await getAllTipiLavoro({ categoriaId: tipoLavoroData.categoriaId });
+    // Se ha una sottocategoria, verifica che esista e che appartenga alla categoria
+    if (tipoLavoroData.sottocategoriaId) {
+      const { getCategoria: getSottocategoria } = await import('./categorie-service.js');
+      const sottocategoria = await getSottocategoria(tipoLavoroData.sottocategoriaId);
+      if (!sottocategoria) {
+        throw new Error('Sottocategoria lavoro non trovata');
+      }
+      if (sottocategoria.parentId !== tipoLavoroData.categoriaId) {
+        throw new Error('La sottocategoria non appartiene alla categoria selezionata');
+      }
+    }
+    
+    // Verifica che non esista già un tipo con lo stesso nome nella stessa categoria/sottocategoria
+    const filtro = { categoriaId: tipoLavoroData.categoriaId };
+    if (tipoLavoroData.sottocategoriaId) {
+      filtro.sottocategoriaId = tipoLavoroData.sottocategoriaId;
+    }
+    const tipiEsistenti = await getAllTipiLavoro(filtro);
     const tipoEsistente = tipiEsistenti.find(t => t.nome.toLowerCase() === tipo.nome.toLowerCase());
     if (tipoEsistente) {
-      throw new Error(`Un tipo lavoro con nome "${tipo.nome}" esiste già nella categoria "${categoria.nome}"`);
+      const categoriaNome = categoria.nome;
+      const sottocategoriaNome = tipoLavoroData.sottocategoriaId ? ` (sottocategoria: ${sottocategoria?.nome || 'N/A'})` : '';
+      throw new Error(`Un tipo lavoro con nome "${tipo.nome}" esiste già nella categoria "${categoriaNome}"${sottocategoriaNome}`);
     }
     
     // Valida
@@ -300,22 +439,44 @@ export async function updateTipoLavoro(tipoLavoroId, updates) {
     
     // Se categoria modificata, verifica che esista
     if (updates.categoriaId && updates.categoriaId !== tipoEsistente.categoriaId) {
-      const { getCategoria } = await import('./categorie-lavori-service.js');
+      const { getCategoria } = await import('./categorie-service.js');
       const categoria = await getCategoria(updates.categoriaId);
       if (!categoria) {
         throw new Error('Categoria lavoro non trovata');
       }
     }
     
-    // Se nome modificato, verifica unicità nella categoria
+    // Se sottocategoria modificata, verifica che esista e appartenga alla categoria
+    if (updates.sottocategoriaId !== undefined) {
+      const categoriaId = updates.categoriaId || tipoEsistente.categoriaId;
+      if (updates.sottocategoriaId) {
+        const { getCategoria: getSottocategoria } = await import('./categorie-service.js');
+        const sottocategoria = await getSottocategoria(updates.sottocategoriaId);
+        if (!sottocategoria) {
+          throw new Error('Sottocategoria lavoro non trovata');
+        }
+        if (sottocategoria.parentId !== categoriaId) {
+          throw new Error('La sottocategoria non appartiene alla categoria selezionata');
+        }
+      }
+    }
+    
+    // Se nome modificato, verifica unicità nella categoria/sottocategoria
     if (updates.nome && updates.nome !== tipoEsistente.nome) {
       const categoriaId = updates.categoriaId || tipoEsistente.categoriaId;
-      const tipiEsistenti = await getAllTipiLavoro({ categoriaId });
+      const sottocategoriaId = updates.sottocategoriaId !== undefined ? updates.sottocategoriaId : tipoEsistente.sottocategoriaId;
+      
+      const filtro = { categoriaId };
+      if (sottocategoriaId) {
+        filtro.sottocategoriaId = sottocategoriaId;
+      }
+      
+      const tipiEsistenti = await getAllTipiLavoro(filtro);
       const tipoConNome = tipiEsistenti.find(t => 
         t.id !== tipoLavoroId && t.nome.toLowerCase() === updates.nome.toLowerCase()
       );
       if (tipoConNome) {
-        throw new Error(`Un tipo lavoro con nome "${updates.nome}" esiste già in questa categoria`);
+        throw new Error(`Un tipo lavoro con nome "${updates.nome}" esiste già in questa categoria${sottocategoriaId ? '/sottocategoria' : ''}`);
       }
     }
     
@@ -423,7 +584,7 @@ export async function migraListaPiatta(listaPiatta, createdBy) {
       throw new Error('Nessun tenant corrente disponibile');
     }
     
-    const { getCategoriaByCodice } = await import('./categorie-lavori-service.js');
+    const { getCategoriaByCodice } = await import('./categorie-service.js');
     const tipiCreati = [];
     
     // Mappa tipi predefiniti alle categorie
@@ -493,6 +654,7 @@ export default {
   deleteTipoLavoro,
   getNumeroLavoriTipoLavoro,
   migraListaPiatta,
+  getTipiLavoroGerarchici,
   TIPI_LAVORO_PREDEFINITI
 };
 

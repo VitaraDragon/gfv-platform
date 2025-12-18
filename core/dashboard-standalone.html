@@ -1552,13 +1552,17 @@
                     return;
                 }
 
-                // Carica terreni
+                // Carica terreni (solo terreni aziendali, escludi terreni clienti)
                 const terreniCollection = collection(db, `tenants/${userData.tenantId}/terreni`);
                 const terreniSnapshot = await getDocs(terreniCollection);
                 
                 const terreni = [];
                 terreniSnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
+                    // Escludi terreni dei clienti (solo terreni aziendali)
+                    if (data.clienteId && data.clienteId !== '') {
+                        return; // Salta questo terreno
+                    }
                     if (data.polygonCoords && Array.isArray(data.polygonCoords) && data.polygonCoords.length >= 3) {
                         terreni.push({
                             id: docSnap.id,
@@ -1743,18 +1747,110 @@
                     }, 250);
                 });
 
-                // Colori per colture (palette colori)
+                // Colori per colture (palette colori ottimizzata per visibilità)
                 const colturaColors = {
-                    'Vite': '#8B4513', // Marrone
-                    'Frutteto': '#FFD700', // Oro
-                    'Seminativo': '#90EE90', // Verde chiaro
-                    'Orto': '#32CD32', // Verde lime
-                    'Prato': '#228B22', // Verde foresta
-                    'Olivo': '#556B2F', // Oliva scuro
-                    'Agrumeto': '#FFA500', // Arancione
-                    'Bosco': '#2F4F2F', // Verde scuro
-                    'Default': '#2E8B57' // Verde GFV
+                    'Vite': { fill: '#DC143C', stroke: '#8B0000' },      // Rosso scuro brillante
+                    'Frutteto': { fill: '#FF6600', stroke: '#CC5500' },  // Arancione brillante
+                    'Seminativo': { fill: '#FFD700', stroke: '#B8860B' }, // Giallo oro
+                    'Orto': { fill: '#00FF00', stroke: '#00AA00' },      // Verde lime brillante
+                    'Ortive': { fill: '#00FF00', stroke: '#00AA00' },    // Alias per Ortive
+                    'Prato': { fill: '#90EE90', stroke: '#228B22' },    // Verde chiaro
+                    'Olivo': { fill: '#9370DB', stroke: '#6A5ACD' },    // Viola medio
+                    'Agrumeto': { fill: '#FFA500', stroke: '#FF8C00' },  // Arancione
+                    'Bosco': { fill: '#8B4513', stroke: '#654321' },    // Marrone sella
+                    'Default': { fill: '#1E90FF', stroke: '#0066CC' }   // Blu dodger (invece di verde)
                 };
+                
+                // Funzione per mappare nome coltura specifico a categoria generica
+                function mapColturaToColorCategory(colturaNome, colturaCategoria) {
+                    if (!colturaNome) return 'Default';
+                    
+                    const nomeLower = colturaNome.toLowerCase();
+                    
+                    // Match esatto nella palette
+                    if (colturaColors[colturaNome]) {
+                        return colturaNome;
+                    }
+                    
+                    // Mapping per Vite (tutte le varianti)
+                    if (nomeLower.includes('vite') || colturaCategoria?.toLowerCase() === 'vite') {
+                        return 'Vite';
+                    }
+                    
+                    // Mapping per Frutteto (tutte le varianti)
+                    if (nomeLower.includes('albicocch') || nomeLower.includes('pesco') || 
+                        nomeLower.includes('melo') || nomeLower.includes('pero') ||
+                        nomeLower.includes('ciliegio') || nomeLower.includes('susino') ||
+                        nomeLower.includes('fico') || nomeLower.includes('nocciolo') ||
+                        nomeLower.includes('mandorlo') || nomeLower.includes('castagno') ||
+                        nomeLower.includes('kiwi') || nomeLower.includes('mirtillo') ||
+                        nomeLower.includes('lampone') || nomeLower.includes('ribes') ||
+                        nomeLower.includes('mora') || nomeLower.includes('melograno') ||
+                        nomeLower.includes('noce') || nomeLower.includes('pistacchio') ||
+                        colturaCategoria?.toLowerCase() === 'frutteto') {
+                        return 'Frutteto';
+                    }
+                    
+                    // Mapping per Seminativo
+                    if (nomeLower.includes('grano') || nomeLower.includes('mais') ||
+                        nomeLower.includes('orzo') || nomeLower.includes('favino') ||
+                        nomeLower.includes('girasole') || nomeLower.includes('soia') ||
+                        nomeLower.includes('colza') || nomeLower.includes('avena') ||
+                        nomeLower.includes('segale') || nomeLower.includes('fava') ||
+                        nomeLower.includes('lenticchia') || nomeLower.includes('cece') ||
+                        nomeLower.includes('riso') || nomeLower.includes('quinoa') ||
+                        nomeLower.includes('canapa') || nomeLower.includes('lino') ||
+                        nomeLower.includes('erba medica') || nomeLower.includes('trifoglio') ||
+                        colturaCategoria?.toLowerCase() === 'seminativo') {
+                        return 'Seminativo';
+                    }
+                    
+                    // Mapping per Ortive/Orto
+                    if (nomeLower.includes('pomodoro') || nomeLower.includes('zucchin') ||
+                        nomeLower.includes('melanzan') || nomeLower.includes('peperon') ||
+                        nomeLower.includes('insalata') || nomeLower.includes('carot') ||
+                        nomeLower.includes('patat') || nomeLower.includes('bietol') ||
+                        nomeLower.includes('fragol') || nomeLower.includes('cipoll') ||
+                        nomeLower.includes('aglio') || nomeLower.includes('fagiol') ||
+                        nomeLower.includes('pisell') || nomeLower.includes('cavolo') ||
+                        nomeLower.includes('broccoli') || nomeLower.includes('spinaci') ||
+                        nomeLower.includes('lattuga') || nomeLower.includes('radicchio') ||
+                        nomeLower.includes('finocchi') || nomeLower.includes('sedano') ||
+                        nomeLower.includes('cetriol') || nomeLower.includes('anguria') ||
+                        nomeLower.includes('melon') || colturaCategoria?.toLowerCase() === 'ortive' ||
+                        colturaCategoria?.toLowerCase() === 'orto') {
+                        return 'Orto';
+                    }
+                    
+                    // Mapping per Prato
+                    if (nomeLower.includes('prato') || nomeLower.includes('pascolo') ||
+                        colturaCategoria?.toLowerCase() === 'prato') {
+                        return 'Prato';
+                    }
+                    
+                    // Mapping per Olivo
+                    if (nomeLower.includes('olivo') || nomeLower.includes('oliveto') ||
+                        colturaCategoria?.toLowerCase() === 'olivo') {
+                        return 'Olivo';
+                    }
+                    
+                    // Mapping per Agrumeto
+                    if (nomeLower.includes('arancio') || nomeLower.includes('limone') ||
+                        nomeLower.includes('mandarino') || nomeLower.includes('clementin') ||
+                        nomeLower.includes('pompelmo') || nomeLower.includes('bergamotto') ||
+                        nomeLower.includes('cedro') || nomeLower.includes('lime') ||
+                        nomeLower.includes('kumquat') || colturaCategoria?.toLowerCase() === 'agrumeto') {
+                        return 'Agrumeto';
+                    }
+                    
+                    // Mapping per Bosco
+                    if (nomeLower.includes('bosco') || nomeLower.includes('foresta') ||
+                        colturaCategoria?.toLowerCase() === 'bosco') {
+                        return 'Bosco';
+                    }
+                    
+                    return 'Default';
+                }
 
                 // Estrai poderi e colture uniche per i filtri - SOLO se Manodopera è attivo
                 const poderiUnici = [...new Set(terreni.map(t => t.podere).filter(p => p))].sort();
@@ -1792,17 +1888,19 @@
                         new google.maps.LatLng(c.lat, c.lng)
                     );
 
-                    const coltura = terreno.coltura || 'Default';
-                    const color = colturaColors[coltura] || colturaColors['Default'];
-                    const fillColor = color + '80'; // Aggiungi trasparenza
-                    const strokeColor = color;
+                    const colturaNome = terreno.coltura || null;
+                    const colturaCategoria = terreno.colturaCategoria || null;
+                    const colorCategory = mapColturaToColorCategory(colturaNome, colturaCategoria);
+                    const colorData = colturaColors[colorCategory] || colturaColors['Default'];
+                    const fillColor = colorData.fill + '80'; // Aggiungi trasparenza
+                    const strokeColor = colorData.stroke; // Usa versione scura per perimetro
 
                     // Crea poligono
                     const polygon = new google.maps.Polygon({
                         paths: coords,
                         strokeColor: strokeColor,
-                        strokeOpacity: 0.8,
-                        strokeWeight: 2,
+                        strokeOpacity: 1.0,  // Massima visibilità
+                        strokeWeight: 3,     // Aumentato per maggiore visibilità
                         fillColor: fillColor,
                         fillOpacity: 0.35,
                         map: map,
@@ -1810,7 +1908,7 @@
                             id: terreno.id,
                             nome: terreno.nome,
                             superficie: terreno.superficie,
-                            coltura: terreno.coltura,
+                            coltura: colturaNome || 'Default',
                             podere: terreno.podere,
                             note: terreno.note
                         }
@@ -2275,12 +2373,16 @@
                             ${coltureVisibili.length > 0 ? `
                                 <div style="margin-bottom: 15px;">
                                     <strong style="font-size: 11px; color: #666;">Colture:</strong>
-                                    ${coltureVisibili.map(coltura => {
-                                        const color = colturaColors[coltura] || colturaColors['Default'];
+                                    ${coltureVisibili.map(colturaNome => {
+                                        const terrenoEsempio = terreni.find(t => t.coltura === colturaNome);
+                                        const colturaCategoria = terrenoEsempio?.colturaCategoria || null;
+                                        const colorCategory = mapColturaToColorCategory(colturaNome, colturaCategoria);
+                                        const colorData = colturaColors[colorCategory] || colturaColors['Default'];
+                                        const color = colorData.fill || colorData; // Supporta sia nuovo formato che vecchio
                                         return `
                                             <div class="mappa-legenda-item">
                                                 <div class="mappa-legenda-color" style="background-color: ${color};"></div>
-                                                <span>${escapeHtml(coltura)}</span>
+                                                <span>${escapeHtml(colturaNome)}</span>
                                             </div>
                                         `;
                                     }).join('')}
@@ -2294,7 +2396,7 @@
                                         }
                                     }) ? `
                                         <div class="mappa-legenda-item">
-                                            <div class="mappa-legenda-color" style="background-color: ${colturaColors['Default']};"></div>
+                                            <div class="mappa-legenda-color" style="background-color: ${colturaColors['Default'].fill || colturaColors['Default']};"></div>
                                             <span>Non specificato</span>
                                         </div>
                                     ` : ''}
@@ -3246,6 +3348,14 @@
                     return;
                 }
                 
+                // Carica terreni per calcolare percentuale
+                const terreniRef = collection(db, `tenants/${tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniRef);
+                const terreniMap = new Map();
+                terreniSnapshot.forEach(doc => {
+                    terreniMap.set(doc.id, doc.data());
+                });
+                
                 let html = '';
                 lavoriSnapshot.forEach(doc => {
                     const lavoro = doc.data();
@@ -3259,11 +3369,45 @@
                     };
                     const statoLabel = statoLabels[stato] || stato;
                     
+                    // Calcola percentuale completamento
+                    let percentuale = lavoro.percentualeCompletamento || 0;
+                    const terreno = terreniMap.get(lavoro.terrenoId);
+                    
+                    // Se lavoro è completato e percentuale è 0 o mancante, imposta a 100%
+                    if (stato === 'completato' && (!percentuale || percentuale === 0)) {
+                        percentuale = 100;
+                    } else if (!percentuale && terreno) {
+                        // Calcola percentuale da superficie lavorata / superficie totale
+                        const superficieTotale = terreno.superficie || 0;
+                        const superficieLavorata = lavoro.superficieTotaleLavorata || 0;
+                        if (superficieTotale > 0) {
+                            percentuale = Math.round((superficieLavorata / superficieTotale) * 100);
+                        }
+                    }
+                    
+                    // Badge conto terzi
+                    const isContoTerzi = !!lavoro.clienteId;
+                    const contoTerziBadge = isContoTerzi ? '<span style="background: #1976D2; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; font-weight: 500;">💼 Conto Terzi</span>' : '';
+                    
+                    // Barra del progresso
+                    const progressBar = percentuale > 0 ? `
+                        <div style="margin-top: 8px;">
+                            <div style="background: #e0e0e0; border-radius: 4px; height: 20px; overflow: hidden; position: relative;">
+                                <div style="background: ${stato === 'completato' ? '#4CAF50' : '#2E8B57'}; height: 100%; width: ${Math.min(percentuale, 100)}%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; transition: width 0.3s;">
+                                    ${percentuale}%
+                                </div>
+                            </div>
+                        </div>
+                    ` : '';
+                    
                     html += `
                         <li class="recent-item">
-                            <div>
-                                <div class="recent-item-title">${escapeHtml(nome)}</div>
+                            <div style="width: 100%;">
+                                <div class="recent-item-title">
+                                    ${escapeHtml(nome)}${contoTerziBadge}
+                                </div>
                                 <div class="recent-item-meta">${statoLabel}</div>
+                                ${progressBar}
                             </div>
                         </li>
                     `;
@@ -3398,6 +3542,14 @@
                     return;
                 }
                 
+                // Carica terreni per calcolare percentuale
+                const terreniRef = collection(db, `tenants/${tenantId}/terreni`);
+                const terreniSnapshot = await getDocs(terreniRef);
+                const terreniMap = new Map();
+                terreniSnapshot.forEach(doc => {
+                    terreniMap.set(doc.id, doc.data());
+                });
+                
                 let html = '';
                 lavoriSnapshot.forEach(doc => {
                     const lavoro = doc.data();
@@ -3411,11 +3563,45 @@
                     };
                     const statoLabel = statoLabels[stato] || stato;
                     
+                    // Calcola percentuale completamento
+                    let percentuale = lavoro.percentualeCompletamento || 0;
+                    const terreno = terreniMap.get(lavoro.terrenoId);
+                    
+                    // Se lavoro è completato e percentuale è 0 o mancante, imposta a 100%
+                    if (stato === 'completato' && (!percentuale || percentuale === 0)) {
+                        percentuale = 100;
+                    } else if (!percentuale && terreno) {
+                        // Calcola percentuale da superficie lavorata / superficie totale
+                        const superficieTotale = terreno.superficie || 0;
+                        const superficieLavorata = lavoro.superficieTotaleLavorata || 0;
+                        if (superficieTotale > 0) {
+                            percentuale = Math.round((superficieLavorata / superficieTotale) * 100);
+                        }
+                    }
+                    
+                    // Badge conto terzi
+                    const isContoTerzi = !!lavoro.clienteId;
+                    const contoTerziBadge = isContoTerzi ? '<span style="background: #1976D2; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; font-weight: 500;">💼 Conto Terzi</span>' : '';
+                    
+                    // Barra del progresso
+                    const progressBar = percentuale > 0 ? `
+                        <div style="margin-top: 8px;">
+                            <div style="background: #e0e0e0; border-radius: 4px; height: 20px; overflow: hidden; position: relative;">
+                                <div style="background: ${stato === 'completato' ? '#4CAF50' : '#2E8B57'}; height: 100%; width: ${Math.min(percentuale, 100)}%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; transition: width 0.3s;">
+                                    ${percentuale}%
+                                </div>
+                            </div>
+                        </div>
+                    ` : '';
+                    
                     html += `
                         <li class="recent-item">
-                            <div>
-                                <div class="recent-item-title">${escapeHtml(nome)}</div>
+                            <div style="width: 100%;">
+                                <div class="recent-item-title">
+                                    ${escapeHtml(nome)}${contoTerziBadge}
+                                </div>
                                 <div class="recent-item-meta">${statoLabel}</div>
+                                ${progressBar}
                             </div>
                         </li>
                     `;

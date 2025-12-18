@@ -660,6 +660,22 @@
                     
                     currentTenantId = userData.tenantId;
                     
+                    // Imposta tenantId nel tenant-service per i servizi
+                    try {
+                        const { setCurrentTenantId } = await import('./services/tenant-service.js');
+                        setCurrentTenantId(currentTenantId);
+                    } catch (error) {
+                        console.warn('Impossibile impostare tenantId nel servizio:', error);
+                    }
+                    
+                    // Assicura che Firebase sia inizializzato nei servizi
+                    try {
+                        const { setFirebaseInstances } = await import('./services/firebase-service.js');
+                        setFirebaseInstances({ app, db, auth });
+                    } catch (error) {
+                        console.warn('Impossibile impostare Firebase instances nel servizio:', error);
+                    }
+                    
                     // Verifica modulo Parco Macchine
                     try {
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
@@ -707,7 +723,13 @@
             try {
                 const q = query(getTerreniCollection(currentTenantId));
                 const snapshot = await getDocs(q);
-                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Filtra solo terreni aziendali (escludi terreni clienti)
+                return snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(terreno => {
+                        // Escludi terreni dei clienti (solo terreni aziendali)
+                        return !terreno.clienteId || terreno.clienteId === '';
+                    });
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
                 return [];
@@ -753,6 +775,12 @@
                 const snapshot = await getDocs(q);
                 let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
+                // Filtra solo attività aziendali (escludi attività terreni clienti)
+                results = results.filter(attivita => {
+                    // Escludi attività dei clienti (solo attività aziendali)
+                    return !attivita.clienteId || attivita.clienteId === '';
+                });
+                
                 // Se la query fallisce per mancanza di indice, prova senza orderBy e ordina in memoria
                 return results;
             } catch (error) {
@@ -769,6 +797,12 @@
                         
                         const snapshot = await getDocs(q);
                         let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        
+                        // Filtra solo attività aziendali (escludi attività terreni clienti)
+                        results = results.filter(attivita => {
+                            // Escludi attività dei clienti (solo attività aziendali)
+                            return !attivita.clienteId || attivita.clienteId === '';
+                        });
                         
                         // Ordina in memoria per data
                         results.sort((a, b) => {
@@ -2175,41 +2209,78 @@
                     selectTerreno.appendChild(option);
                 });
 
-                // Carica tipi lavoro dalle liste personalizzate
+                // Carica tipi lavoro usando liste-service.js (fonte unica di verità)
                 try {
-                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                    const listeSnap = await getDoc(listeRef);
-                    
+                    const isFileProtocol = window.location.protocol === 'file:';
                     let tipiLavoro = [];
-                    if (listeSnap.exists()) {
-                        const data = listeSnap.data();
-                        tipiLavoro = data.tipiLavoro || [];
+                    
+                    if (isFileProtocol) {
+                        // Fallback per ambiente file://: carica direttamente da Firestore
+                        console.warn('Ambiente file:// rilevato, uso fallback diretto da Firestore');
+                        const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                        const listeSnap = await getDoc(listeRef);
+                        
+                        if (listeSnap.exists()) {
+                            const data = listeSnap.data();
+                            tipiLavoro = data.tipiLavoro || [];
+                        } else {
+                            // Predefiniti
+                            tipiLavoro = ['Potatura', 'Raccolta', 'Trattamento', 'Semina', 'Aratura', 'Irrigazione', 'Concimazione', 'Diserbo', 'Raccolta frutta', 'Raccolta verdura'];
+                        }
                     } else {
-                        // Predefiniti
-                        tipiLavoro = ['Potatura', 'Raccolta', 'Trattamento', 'Semina', 'Aratura', 'Irrigazione', 'Concimazione', 'Diserbo', 'Raccolta frutta', 'Raccolta verdura'];
+                        // Usa servizio centralizzato
+                        // Assicura che Firebase sia inizializzato nel servizio
+                        try {
+                            const { setFirebaseInstances } = await import('./services/firebase-service.js');
+                            setFirebaseInstances({ app, db, auth });
+                        } catch (error) {
+                            console.warn('Impossibile impostare Firebase instances nel servizio:', error);
+                        }
+                        
+                        // Assicura che il tenantId sia impostato nel servizio
+                        try {
+                            const { setCurrentTenantId } = await import('./services/tenant-service.js');
+                            if (currentTenantId) {
+                                setCurrentTenantId(currentTenantId);
+                            }
+                        } catch (error) {
+                            console.warn('Impossibile impostare tenantId nel servizio:', error);
+                        }
+                        
+                        // Usa liste-service per ottenere tipi lavoro sincronizzati
+                        const { getTipiLavoroNomi } = await import('./services/liste-service.js');
+                        tipiLavoro = await getTipiLavoroNomi();
                     }
                     
                     const selectTipoLavoro = document.getElementById('filter-tipo-lavoro');
-                    selectTipoLavoro.innerHTML = '<option value="">Tutti i tipi</option>';
-                    tipiLavoro.forEach(tipo => {
-                        const option = document.createElement('option');
-                        option.value = tipo;
-                        option.textContent = tipo;
-                        selectTipoLavoro.appendChild(option);
-                    });
+                    if (selectTipoLavoro) {
+                        selectTipoLavoro.innerHTML = '<option value="">Tutti i tipi</option>';
+                        tipiLavoro.forEach(tipo => {
+                            const option = document.createElement('option');
+                            option.value = tipo;
+                            option.textContent = tipo;
+                            selectTipoLavoro.appendChild(option);
+                        });
+                    }
                 } catch (error) {
                     console.error('Errore caricamento tipi lavoro:', error);
                     // Fallback: carica dalle attività
-                    const attivita = await getAllAttivita();
-                    const tipiLavoro = [...new Set(attivita.map(a => a.tipoLavoro).filter(Boolean))].sort();
-                    const selectTipoLavoro = document.getElementById('filter-tipo-lavoro');
-                    selectTipoLavoro.innerHTML = '<option value="">Tutti i tipi</option>';
-                    tipiLavoro.forEach(tipo => {
-                        const option = document.createElement('option');
-                        option.value = tipo;
-                        option.textContent = tipo;
-                        selectTipoLavoro.appendChild(option);
-                    });
+                    try {
+                        const attivita = await getAllAttivita();
+                        const tipiLavoro = [...new Set(attivita.map(a => a.tipoLavoro).filter(Boolean))].sort();
+                        const selectTipoLavoro = document.getElementById('filter-tipo-lavoro');
+                        if (selectTipoLavoro) {
+                            selectTipoLavoro.innerHTML = '<option value="">Tutti i tipi</option>';
+                            tipiLavoro.forEach(tipo => {
+                                const option = document.createElement('option');
+                                option.value = tipo;
+                                option.textContent = tipo;
+                                selectTipoLavoro.appendChild(option);
+                            });
+                        }
+                    } catch (fallbackError) {
+                        console.error('Errore fallback caricamento tipi lavoro:', fallbackError);
+                    }
                 }
             } catch (error) {
                 console.error('Errore caricamento filtri:', error);

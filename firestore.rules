@@ -142,6 +142,12 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
     }
 
+    // Collection: colture (colture unificate)
+    match /tenants/{tenantId}/colture/{colturaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
     // Collection: categorieLavori (vecchia collezione, per migrazione)
     match /tenants/{tenantId}/categorieLavori/{categoriaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);

@@ -5,8 +5,8 @@
  * @module core/services/tenant-service
  */
 
-import { getDocumentData, getCollectionData, createDocument, updateDocument } from './firebase-service.js';
-import { getAuthInstance, onAuthStateChanged } from 'firebase/auth';
+import { getDocumentData, getCollectionData, createDocument, updateDocument, getAuthInstance, getCollection } from './firebase-service.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 // Cache tenant corrente
 let currentTenantId = null;
@@ -105,8 +105,7 @@ export function getTenantCollection(collectionName) {
     throw new Error('Nessun tenant corrente disponibile. Utente non autenticato o senza tenant.');
   }
   
-  // Re-export da firebase-service con tenantId
-  const { getCollection } = await import('./firebase-service.js');
+  // Usa getCollection importato all'inizio del file
   return getCollection(collectionName, tenantId);
 }
 

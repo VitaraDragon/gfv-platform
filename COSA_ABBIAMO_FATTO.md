@@ -94,6 +94,115 @@ gfv-platform/
 
 ---
 
+## ✅ Badge Conto Terzi e Filtri per Categoria nel Diario Attività (2025-12-18) - COMPLETATO
+
+### Obiettivo
+Migliorare l'identificazione delle attività conto terzi nel diario attività e implementare filtri per categoria per Tipo Lavoro e Colture, raggruppando automaticamente tutte le varianti.
+
+### Implementazione
+
+#### Badge Conto Terzi
+- ✅ **Badge nella colonna Tipo Lavoro**: Aggiunto badge "💼 Conto Terzi" nella colonna "Tipo Lavoro" per tutte le attività conto terzi
+- ✅ **Visibilità sempre garantita**: Il badge è visibile anche quando la colonna "Cliente" non è presente (modalità core senza modulo conto terzi attivo)
+- ✅ **Coerenza con dashboard**: Stesso stile e comportamento del badge presente nella dashboard manager
+
+#### Filtri per Categoria
+
+##### Filtro Tipo Lavoro
+- ✅ **Dropdown con categorie**: Il filtro mostra le categorie principali (es. "Lavorazione del Terreno", "Potatura", "Trattamenti") invece dei tipi specifici
+- ✅ **Raggruppamento automatico**: Selezionando una categoria, vengono mostrate tutte le attività con tipi lavoro appartenenti a quella categoria
+- ✅ **Mapping intelligente**: Usa `categoriaId` dalla struttura gerarchica per mappare tipo lavoro → categoria
+- ✅ **Fallback**: Se le categorie non sono ancora caricate, usa categorie predefinite
+
+##### Filtro Colture
+- ✅ **Dropdown con categorie**: Il filtro mostra le categorie principali (Vite, Frutteto, Seminativo, Orto, Prato, Olivo, Agrumeto, Bosco) invece delle colture specifiche
+- ✅ **Raggruppamento automatico**: Selezionando una categoria (es. "Frutteto"), vengono mostrate tutte le attività con colture appartenenti a quella categoria (Albicocche, Pesche, Mele, Pere, ecc.)
+- ✅ **Mapping intelligente**: Usa funzione `mapColturaToCategoria()` per mappare coltura specifica → categoria generica
+- ✅ **Sempre disponibile**: Categorie hardcoded, sempre disponibili anche se le colture non sono ancora caricate
+
+#### Funzioni di Mapping
+- ✅ **`mapColturaToColorCategory()`**: Spostata in `shared/utils/map-colors.js` per riutilizzo in tutta l'applicazione
+- ✅ **`mapColturaToCategoria()`**: Funzione helper locale sincrona per uso nei filtri
+- ✅ **Mapping tipo lavoro**: Logica per trovare categoria tramite `categoriaId` in `tipiLavoroList`
+
+#### Popolamento Dropdown
+- ✅ **Funzioni dedicate**: Create `populateFiltroTipoLavoro()` e `populateFiltroColture()` per gestire il popolamento
+- ✅ **Chiamate multiple**: I filtri vengono popolati sia in `loadListePersonalizzate()` che dopo il caricamento completo dei dati
+- ✅ **Inizializzazione garantita**: `loadCategorieLavori()` viene sempre chiamata all'inizializzazione per assicurare che le categorie siano disponibili
+
+### File Modificati
+- `core/attivita-standalone.html` - Aggiunto badge conto terzi, implementati filtri per categoria, funzioni di mapping
+- `shared/utils/map-colors.js` - Aggiunta funzione `mapColturaToColorCategory()` e `getColturaCategories()`
+
+### Risultato
+- ✅ Attività conto terzi facilmente identificabili con badge visibile
+- ✅ Filtri più intuitivi e organizzati per categoria
+- ✅ Raggruppamento automatico di tutte le varianti (es. tutte le varietà di vite, tutti i frutti, ecc.)
+- ✅ Esperienza utente migliorata con filtri più semplici e logici
+
+---
+
+## ✅ Ottimizzazione Colori e Visibilità Mappe (2025-12-18) - COMPLETATO
+
+### Obiettivo
+Migliorare la visibilità dei perimetri delle mappe e implementare una palette colori più distinta e visibile per le diverse colture su tutte le mappe dell'applicazione.
+
+### Implementazione
+
+#### Palette Colori Ottimizzata
+- ✅ **Nuova palette colori visibile**: Implementata palette con colori fill e stroke distinti per ogni categoria coltura
+  - Vite: Rosso scuro brillante (#DC143C) / Rosso scuro perimetro (#8B0000)
+  - Frutteto: Arancione brillante (#FF6600) / Arancione scuro perimetro (#CC5500)
+  - Seminativo: Giallo oro (#FFD700) / Giallo scuro perimetro (#B8860B)
+  - Orto: Verde lime brillante (#00FF00) / Verde scuro perimetro (#00AA00)
+  - Prato: Verde chiaro (#90EE90) / Verde scuro perimetro (#228B22)
+  - Olivo: Viola medio (#9370DB) / Viola scuro perimetro (#6A5ACD)
+  - Agrumeto: Arancione (#FFA500) / Arancione scuro perimetro (#FF8C00)
+  - Bosco: Marrone sella (#8B4513) / Marrone scuro perimetro (#654321)
+  - Default: Blu dodger (#1E90FF) / Blu scuro perimetro (#0066CC) - invece di verde
+
+#### Miglioramento Visibilità Perimetri
+- ✅ **Stroke più spesso**: Aumentato `strokeWeight` da 2px a 3px
+- ✅ **Opacità massima**: Aumentato `strokeOpacity` da 0.8 a 1.0
+- ✅ **Colori stroke scuri**: Ogni categoria ha una versione scura del colore per il perimetro per massima visibilità
+
+#### Mapping Intelligente Colture
+- ✅ **Funzione `mapColturaToColorCategory()`**: Implementata funzione che mappa automaticamente colture specifiche a categorie generiche
+  - Esempi: "Vite da Vino" → "Vite", "Albicocche" → "Frutteto", "Pomodoro" → "Orto"
+  - Supporta mapping per tutte le varianti di colture (Vite da Tavola, Vite da Vino, tutte le varietà di frutti, ecc.)
+  - Usa anche la categoria se disponibile nel terreno per mapping più accurato
+
+#### Fix Bug Mappa Clienti
+- ✅ **Eliminato bagliore bianco**: Risolto problema del flash bianco durante il cambio cliente nella mappa clienti
+  - Implementata creazione anticipata dei nuovi poligoni prima della rimozione dei vecchi
+  - Eliminato gap temporale tra rimozione vecchi elementi e aggiunta nuovi
+  - Cambiato background container da grigio chiaro (#f0f0f0) a nero scuro (#1a1a1a)
+
+#### Coerenza tra Mappe
+- ✅ **Stessa palette su tutte le mappe**: Applicata la stessa palette colori e parametri a:
+  - Dashboard (`core/dashboard-standalone.html`)
+  - Gestione Terreni (`core/terreni-standalone.html`)
+  - Mappa Clienti (`modules/conto-terzi/views/mappa-clienti-standalone.html`)
+
+#### Tracciamento Confini Terreni
+- ✅ **Colore dinamico in base a coltura**: Il tracciamento confini in "Gestione Terreni" ora usa il colore della coltura selezionata invece di sempre verde
+- ✅ **Listener per cambio coltura**: Implementato listener che aggiorna il colore del poligono quando si cambia la coltura selezionata
+
+### File Modificati
+- `core/dashboard-standalone.html` - Aggiornata palette colori e parametri perimetri
+- `core/terreni-standalone.html` - Aggiunta palette colori, mapping colture, colore dinamico tracciamento
+- `modules/conto-terzi/views/mappa-clienti-standalone.html` - Aggiornata palette colori, fix bug cambio cliente
+- `shared/utils/map-colors.js` - Creato file centralizzato per palette colori (per uso futuro)
+
+### Risultato
+- ✅ Perimetri terreni molto più visibili su mappa satellitare
+- ✅ Colori distinti e riconoscibili per ogni categoria coltura
+- ✅ Nessun bagliore bianco durante cambio cliente nella mappa clienti
+- ✅ Coerenza visiva tra tutte le mappe dell'applicazione
+- ✅ Leggende aggiornate con i nuovi colori
+
+---
+
 ## ✅ Miglioramenti Modulo Conto Terzi - Registrazione Ore e UI (2025-12-13)
 
 ### Modifiche Form Rapido Conto Terzi
@@ -861,6 +970,30 @@ Integrare il modulo Parco Macchine nel Core Base per permettere tracciamento mac
 - **File modificato**: `core/admin/lavori-caposquadra-standalone.html`
 - Liberazione automatica macchine quando lavoro raggiunge 100% completamento
 
+#### 5. Refactoring Validazione Ore ✅ (2025-01-24)
+- **File modificato**: `core/admin/validazione-ore-standalone.html`
+- Rimossa funzione duplicata `aggiornaOreMacchina()` (75+ righe di codice duplicato)
+- Sostituita con chiamata al service unificato `macchine-utilizzo-service.js`
+- Aggiunta funzione `loadMacchineUtilizzoService()` per caricamento dinamico del service
+- Gestione ambiente file:// (CORS) migliorata
+- Zero duplicazione codice: logica centralizzata nel service unificato
+- Compatibilità totale mantenuta: stesse funzionalità, codice più pulito e manutenibile
+- Le ore macchina vengono aggiornate solo alla validazione (non alla segnatura)
+
+#### 6. Correzione Barra Progresso Lavori Completati ✅ (2025-01-24)
+- **Problema identificato**: Lavori completati (soprattutto conto terzi) mostravano barra progresso a 0% anche se completati
+- **File modificato**: `core/dashboard-standalone.html`
+  - Funzione `loadRecentLavoriManagerManodopera()`: aggiunta visualizzazione barra progresso
+  - Funzione `loadRecentLavori()`: aggiunta visualizzazione barra progresso
+  - Lavori completati mostrano automaticamente 100% se `percentualeCompletamento` è 0 o mancante
+  - Badge "Conto Terzi" visualizzato correttamente nella lista lavori recenti
+  - Caricamento terreni per calcolo percentuale se mancante
+- **File modificato**: `core/admin/gestione-lavori-standalone.html`
+  - Correzione calcolo percentuale per lavori completati nella tabella
+  - Lavori completati mostrano 100% anche se `percentualeCompletamento` è 0 o mancante
+  - Calcolo automatico percentuale da superficie lavorata/totale se mancante
+  - Logica: se `stato === 'completato'` e `percentuale === 0`, imposta `percentuale = 100`
+
 ### Caratteristiche Principali
 
 **Tracciamento Accurato**:
@@ -889,6 +1022,8 @@ Integrare il modulo Parco Macchine nel Core Base per permettere tracciamento mac
 - ✅ `core/admin/gestione-lavori-standalone.html` (MODIFICATO)
 - ✅ `core/admin/lavori-caposquadra-standalone.html` (MODIFICATO)
 - ✅ `core/statistiche-standalone.html` (MODIFICATO - Sezione Statistiche Macchine aggiunta)
+- ✅ `core/admin/validazione-ore-standalone.html` (MODIFICATO - Refactoring service unificato, 2025-01-24)
+- ✅ `core/dashboard-standalone.html` (MODIFICATO - Correzione barra progresso lavori completati, 2025-01-24)
 
 #### 5. Statistiche Macchine ✅
 - **File modificato**: `core/statistiche-standalone.html`
@@ -909,7 +1044,37 @@ Integrare il modulo Parco Macchine nel Core Base per permettere tracciamento mac
   - **Filtri applicati**: I filtri periodo/terreno/tipo lavoro si applicano anche alle statistiche macchine
   - **Compatibilità**: Funziona con e senza modulo Manodopera
 
-## 📝 Aggiornamenti Recenti (2025-01-24) - Correzione Tour Terreni
+## 📝 Aggiornamenti Recenti (2025-01-24)
+
+### Refactoring Macchine e Correzione Barra Progresso (2025-01-24)
+
+#### Refactoring Validazione Ore ✅
+- **File modificato**: `core/admin/validazione-ore-standalone.html`
+- Rimossa funzione duplicata `aggiornaOreMacchina()` (75+ righe di codice duplicato)
+- Sostituita con chiamata al service unificato `macchine-utilizzo-service.js`
+- Aggiunta funzione `loadMacchineUtilizzoService()` per caricamento dinamico del service
+- Gestione ambiente file:// (CORS) migliorata
+- Zero duplicazione codice: logica centralizzata nel service unificato
+- Compatibilità totale mantenuta: stesse funzionalità, codice più pulito e manutenibile
+- Le ore macchina vengono aggiornate solo alla validazione (non alla segnatura)
+
+#### Correzione Barra Progresso Lavori Completati ✅
+- **Problema identificato**: Lavori completati (soprattutto conto terzi) mostravano barra progresso a 0% anche se completati
+- **File modificato**: `core/dashboard-standalone.html`
+  - Funzione `loadRecentLavoriManagerManodopera()`: aggiunta visualizzazione barra progresso
+  - Funzione `loadRecentLavori()`: aggiunta visualizzazione barra progresso
+  - Lavori completati mostrano automaticamente 100% se `percentualeCompletamento` è 0 o mancante
+  - Badge "Conto Terzi" visualizzato correttamente nella lista lavori recenti
+  - Caricamento terreni per calcolo percentuale se mancante
+- **File modificato**: `core/admin/gestione-lavori-standalone.html`
+  - Correzione calcolo percentuale per lavori completati nella tabella
+  - Lavori completati mostrano 100% anche se `percentualeCompletamento` è 0 o mancante
+  - Calcolo automatico percentuale da superficie lavorata/totale se mancante
+  - Logica: se `stato === 'completato'` e `percentuale === 0`, imposta `percentuale = 100`
+
+---
+
+### Correzione Tour Terreni (2025-01-24)
 
 ### Problema Identificato
 Il tour della pagina terreni aveva problemi di posizionamento dei popup:
@@ -1144,10 +1309,10 @@ Rendere immediatamente riconoscibili i lavori conto terzi rispetto ai lavori int
 
 ---
 
-## 📝 Pianificazione Lavori Conto Terzi senza Manodopera (2025-12-10) - PIANIFICATO
+## ✅ Pianificazione Lavori Conto Terzi senza Manodopera (2025-12-10) - COMPLETATO
 
-### Problema Identificato
-Quando un utente ha solo **Core Base + Conto Terzi** (o **Core Base + Parco Macchine + Conto Terzi**), può creare lavori da preventivi accettati, ma non può pianificarli perché la pagina "Gestione Lavori" richiede obbligatoriamente il modulo Manodopera attivo.
+### Problema Risolto
+Quando un utente ha solo **Core Base + Conto Terzi** (o **Core Base + Parco Macchine + Conto Terzi**), può creare lavori da preventivi accettati e ora può anche pianificarli perché la pagina "Gestione Lavori" è accessibile anche senza il modulo Manodopera attivo.
 
 ### Scenario Realistico
 Piccolo proprietario che:
@@ -1156,9 +1321,9 @@ Piccolo proprietario che:
 - Lavora da solo o con pochi collaboratori
 - Non ha bisogno di gestione squadre/operai (Manodopera)
 
-### Soluzione Pianificata: Opzione 1 Rivista
+### Soluzione Implementata: Opzione 1 Rivista
 
-**Rendere "Gestione Lavori" accessibile anche senza Manodopera**, con modalità semplificata:
+**"Gestione Lavori" accessibile anche senza Manodopera**, con modalità semplificata:
 
 #### Quando Manodopera NON è attivo:
 - ✅ Mostra solo pianificazione base:
@@ -1176,9 +1341,18 @@ Piccolo proprietario che:
   - Tracciamento zone lavorate
   - Segnatura/validazione ore
 - ✅ Se lavoro ha `clienteId` (conto terzi): mostra anche dati cliente
+- ✅ Generazione automatica voce diario quando lavoro completato
 
 #### Quando Manodopera è attivo:
-- ✅ Mostra tutte le funzionalità complete (come ora)
+- ✅ Mostra tutte le funzionalità complete (come prima)
+
+### Implementazione Tecnica
+- ✅ Funzione `setupManodoperaVisibility()` nasconde/mostra elementi in base al modulo attivo
+- ✅ Validazione semplificata: richiede solo terreno quando Manodopera non attivo
+- ✅ Stato default `in_corso` quando Manodopera non attivo
+- ✅ Funzione `generaVoceDiarioContoTerzi()` crea attività automaticamente
+- ✅ Supporto completo Parco Macchine anche senza Manodopera
+- ✅ Filtro `da_pianificare` funziona anche senza Manodopera
 
 ### Vantaggi
 - ✅ Funziona in tutti gli scenari realistici
@@ -1191,8 +1365,11 @@ Piccolo proprietario che:
 - **Pianificazione lavori**: Diventa disponibile solo se crei lavori da preventivi o manualmente
 - **Non obbligatoria**: Puoi continuare a usare solo il diario attività
 
+### File Modificati
+- ✅ `core/admin/gestione-lavori-standalone.html` - Funzione `setupManodoperaVisibility()`, validazione semplificata, generazione voce diario
+
 ### Stato
-📝 **Pianificato** - Da implementare
+✅ **Completato** (2025-12-10)
 
 **File da modificare**:
 - `core/admin/gestione-lavori-standalone.html` - Rimuovere blocco Manodopera, aggiungere modalità semplificata

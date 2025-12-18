@@ -101,6 +101,82 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
   }
 ];
 
+// Categorie predefinite per colture
+const CATEGORIE_COLTURE_PREDEFINITE = [
+  {
+    nome: 'Frutteto',
+    codice: 'frutteto',
+    descrizione: 'Alberi da frutto',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 1
+  },
+  {
+    nome: 'Seminativo',
+    codice: 'seminativo',
+    descrizione: 'Colture erbacee da granella',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 2
+  },
+  {
+    nome: 'Vite',
+    codice: 'vite',
+    descrizione: 'Vigneto',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 3
+  },
+  {
+    nome: 'Ortive',
+    codice: 'ortive',
+    descrizione: 'Colture orticole',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 4
+  },
+  {
+    nome: 'Prato',
+    codice: 'prato',
+    descrizione: 'Prati e pascoli',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 5
+  },
+  {
+    nome: 'Olivo',
+    codice: 'olivo',
+    descrizione: 'Oliveto',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 6
+  },
+  {
+    nome: 'Agrumeto',
+    codice: 'agrumeto',
+    descrizione: 'Agrumi',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 7
+  },
+  {
+    nome: 'Bosco',
+    codice: 'bosco',
+    descrizione: 'Bosco e foresta',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 8
+  },
+  {
+    nome: 'Altro',
+    codice: 'altro_colture',
+    descrizione: 'Altre colture non categorizzabili',
+    applicabileA: 'colture',
+    predefinita: true,
+    ordine: 9
+  }
+];
+
 // Sottocategorie predefinite
 const SOTTOCATEGORIE_PREDEFINITE = [
   // Sottocategorie per Lavorazione del Terreno
@@ -131,22 +207,117 @@ const SOTTOCATEGORIE_PREDEFINITE = [
     predefinita: true,
     ordine: 3
   },
+  // Sottocategorie per Trattamenti
+  {
+    nome: 'Manuale',
+    codice: 'trattamenti_manuale',
+    parentCodice: 'trattamenti',
+    descrizione: 'Trattamenti eseguiti manualmente',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 1
+  },
+  {
+    nome: 'Meccanico',
+    codice: 'trattamenti_meccanico',
+    parentCodice: 'trattamenti',
+    descrizione: 'Trattamenti eseguiti con macchine',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 2
+  },
   // Sottocategorie per Potatura
   {
     nome: 'Manuale',
     codice: 'potatura_manuale',
     parentCodice: 'potatura',
     descrizione: 'Potatura eseguita manualmente',
-    applicabileA: 'lavori',
+    applicabileA: 'entrambi',
     predefinita: true,
     ordine: 1
   },
   {
-    nome: 'Meccanica',
-    codice: 'potatura_meccanica',
+    nome: 'Meccanico',
+    codice: 'potatura_meccanico',
     parentCodice: 'potatura',
     descrizione: 'Potatura eseguita con attrezzi meccanici',
-    applicabileA: 'attrezzi',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 2
+  },
+  // Sottocategorie per Raccolta
+  {
+    nome: 'Raccolta Manuale',
+    codice: 'raccolta_manuale',
+    parentCodice: 'raccolta',
+    descrizione: 'Raccolta eseguita manualmente',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 1
+  },
+  {
+    nome: 'Raccolta Meccanica',
+    codice: 'raccolta_meccanica',
+    parentCodice: 'raccolta',
+    descrizione: 'Raccolta eseguita con macchine',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 2
+  },
+  // Sottocategorie per Gestione del Verde
+  {
+    nome: 'Manuale',
+    codice: 'gestione_verde_manuale',
+    parentCodice: 'gestione_verde',
+    descrizione: 'Gestione del verde eseguita manualmente',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 1
+  },
+  {
+    nome: 'Meccanico',
+    codice: 'gestione_verde_meccanico',
+    parentCodice: 'gestione_verde',
+    descrizione: 'Gestione del verde eseguita con macchine',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 2
+  },
+  // Sottocategorie per Semina e Piantagione
+  {
+    nome: 'Manuale',
+    codice: 'semina_piantagione_manuale',
+    parentCodice: 'semina_piantagione',
+    descrizione: 'Semina e piantagione eseguite manualmente',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 1
+  },
+  {
+    nome: 'Meccanico',
+    codice: 'semina_piantagione_meccanico',
+    parentCodice: 'semina_piantagione',
+    descrizione: 'Semina e piantagione eseguite con macchine',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 2
+  },
+  // Sottocategorie per Diserbo
+  {
+    nome: 'Manuale',
+    codice: 'diserbo_manuale',
+    parentCodice: 'diserbo',
+    descrizione: 'Diserbo eseguito manualmente',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 1
+  },
+  {
+    nome: 'Meccanico',
+    codice: 'diserbo_meccanico',
+    parentCodice: 'diserbo',
+    descrizione: 'Diserbo eseguito con macchine',
+    applicabileA: 'entrambi',
     predefinita: true,
     ordine: 2
   }
@@ -189,6 +360,24 @@ export async function initializeCategoriePredefinite() {
       }
     }
     
+    // Rimuovi vecchie sottocategorie obsolete (es. "Meccanica" invece di "Meccanico")
+    const codiciObsoleti = ['potatura_meccanica']; // Vecchi codici da rimuovere
+    for (const codiceObsoleto of codiciObsoleti) {
+      const sottocategoriaObsoleta = categorieEsistenti.find(c => 
+        c.codice && c.codice.toLowerCase() === codiceObsoleto.toLowerCase()
+      );
+      if (sottocategoriaObsoleta) {
+        try {
+          await deleteDocument(COLLECTION_NAME, sottocategoriaObsoleta.id, tenantId);
+          console.log(`✅ Rimossa sottocategoria obsoleta: ${codiceObsoleto}`);
+          // Rimuovi anche dal set dei codici esistenti per permettere la creazione della nuova
+          codiciEsistenti.delete(codiceObsoleto.toLowerCase());
+        } catch (error) {
+          console.warn(`Impossibile rimuovere sottocategoria obsoleta ${codiceObsoleto}:`, error);
+        }
+      }
+    }
+    
     // Crea sottocategorie
     for (const sottocategoriaPredefinita of SOTTOCATEGORIE_PREDEFINITE) {
       if (!codiciEsistenti.has(sottocategoriaPredefinita.codice)) {
@@ -210,6 +399,28 @@ export async function initializeCategoriePredefinite() {
         const validation = sottocategoria.validate();
         if (validation.valid) {
           await createDocument(COLLECTION_NAME, sottocategoria.toFirestore(), tenantId);
+        }
+      }
+    }
+    
+    // Crea categorie per colture
+    for (const categoriaColturaPredefinita of CATEGORIE_COLTURE_PREDEFINITE) {
+      if (!codiciEsistenti.has(categoriaColturaPredefinita.codice)) {
+        const categoria = new Categoria({
+          ...categoriaColturaPredefinita,
+          creatoDa: 'system'
+        });
+        
+        const validation = categoria.validate();
+        if (validation.valid) {
+          const categoriaId = await createDocument(COLLECTION_NAME, categoria.toFirestore(), tenantId);
+          categorieMap.set(categoriaColturaPredefinita.codice, categoriaId);
+        }
+      } else {
+        // Trova ID esistente
+        const categoriaEsistente = categorieEsistenti.find(c => c.codice === categoriaColturaPredefinita.codice);
+        if (categoriaEsistente) {
+          categorieMap.set(categoriaColturaPredefinita.codice, categoriaEsistente.id);
         }
       }
     }
@@ -270,14 +481,71 @@ export async function getAllCategorie(options = {}) {
       whereConditions.push(['predefinita', '==', true]);
     }
     
-    const documents = await getCollectionData(COLLECTION_NAME, {
-      tenantId,
-      orderBy,
-      orderDirection,
-      where: whereConditions.length > 0 ? whereConditions : undefined
-    });
-    
-    return documents.map(doc => Categoria.fromData(doc));
+    try {
+      const documents = await getCollectionData(COLLECTION_NAME, {
+        tenantId,
+        orderBy,
+        orderDirection,
+        where: whereConditions.length > 0 ? whereConditions : undefined
+      });
+      
+      return documents.map(doc => Categoria.fromData(doc));
+    } catch (indexError) {
+      // Se l'errore è per indice mancante, fallback: carica tutto e filtra/ordina lato client
+      if (indexError.message && indexError.message.includes('index')) {
+        // Log solo in sviluppo, non in produzione
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          console.debug('Indice Firestore mancante, uso fallback lato client');
+        }
+        
+        // Carica tutte le categorie senza filtri/ordinamento
+        const allDocuments = await getCollectionData(COLLECTION_NAME, {
+          tenantId
+        });
+        
+        // Filtra lato client
+        let filtered = allDocuments;
+        
+        if (parentId !== undefined) {
+          if (parentId === null) {
+            filtered = filtered.filter(doc => !doc.parentId);
+          } else {
+            filtered = filtered.filter(doc => doc.parentId === parentId);
+          }
+        }
+        
+        if (applicabileA) {
+          if (applicabileA === 'attrezzi') {
+            filtered = filtered.filter(doc => doc.applicabileA === 'attrezzi' || doc.applicabileA === 'entrambi');
+          } else if (applicabileA === 'lavori') {
+            filtered = filtered.filter(doc => doc.applicabileA === 'lavori' || doc.applicabileA === 'entrambi');
+          } else {
+            filtered = filtered.filter(doc => doc.applicabileA === applicabileA);
+          }
+        }
+        
+        if (soloPredefinite) {
+          filtered = filtered.filter(doc => doc.predefinita === true);
+        }
+        
+        // Ordina lato client
+        filtered.sort((a, b) => {
+          const aValue = a[orderBy] ?? (orderBy === 'ordine' ? 999 : '');
+          const bValue = b[orderBy] ?? (orderBy === 'ordine' ? 999 : '');
+          
+          if (orderDirection === 'desc') {
+            return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+          } else {
+            return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+          }
+        });
+        
+        return filtered.map(doc => Categoria.fromData(doc));
+      }
+      
+      // Se non è un errore di indice, rilancia l'errore
+      throw indexError;
+    }
   } catch (error) {
     console.error('Errore recupero categorie:', error);
     throw new Error(`Errore recupero categorie: ${error.message}`);

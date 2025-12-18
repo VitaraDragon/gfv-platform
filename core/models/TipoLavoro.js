@@ -14,6 +14,7 @@ export class TipoLavoro extends Base {
    * @param {string} data.id - ID tipo lavoro
    * @param {string} data.nome - Nome tipo lavoro (es. "Aratura") - obbligatorio
    * @param {string} data.categoriaId - ID categoria lavoro (obbligatorio)
+   * @param {string} data.sottocategoriaId - ID sottocategoria lavoro (opzionale)
    * @param {string} data.descrizione - Descrizione tipo lavoro - opzionale
    * @param {boolean} data.predefinito - Se true, tipo predefinito del sistema - default: false
    * @param {string} data.creatoDa - ID utente che ha creato il tipo
@@ -25,6 +26,7 @@ export class TipoLavoro extends Base {
     
     this.nome = data.nome || '';
     this.categoriaId = data.categoriaId || null;
+    this.sottocategoriaId = data.sottocategoriaId || null;
     this.descrizione = data.descrizione || null;
     this.predefinito = data.predefinito !== undefined ? Boolean(data.predefinito) : false;
     this.creatoDa = data.creatoDa || null;

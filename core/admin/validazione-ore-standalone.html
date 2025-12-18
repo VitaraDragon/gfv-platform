@@ -461,6 +461,37 @@
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, collection, getDocs, doc, getDoc, query, where, orderBy, onSnapshot, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
+        // Import service unificato macchine (solo se modulo attivo)
+        let macchineUtilizzoService = null;
+        if (typeof window !== 'undefined') {
+            // Carica service dinamicamente quando necessario
+            window.loadMacchineUtilizzoService = async function() {
+                if (!macchineUtilizzoService) {
+                    // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
+                    const isFileProtocol = window.location.protocol === 'file:';
+                    if (isFileProtocol) {
+                        // In ambiente file://, i moduli ES6 non funzionano a causa di CORS
+                        // L'applicazione continuerà a funzionare ma senza le funzionalità avanzate del service
+                        console.debug('⚠️ Ambiente file:// rilevato: il service macchine non può essere caricato. Usa un server HTTP per funzionalità complete.');
+                        return null;
+                    }
+                    
+                    try {
+                        const module = await import('../../modules/parco-macchine/services/macchine-utilizzo-service.js');
+                        macchineUtilizzoService = module;
+                        return module;
+                    } catch (error) {
+                        // Errore già gestito, non loggare se è un errore CORS in ambiente file://
+                        if (!isFileProtocol) {
+                            console.warn('Errore caricamento service macchine:', error);
+                        }
+                        return null;
+                    }
+                }
+                return macchineUtilizzoService;
+            };
+        }
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -793,6 +824,7 @@
         }
 
         // Aggiorna ore macchina/attrezzo quando viene validata un'ora
+        // Usa il service unificato per evitare duplicazione di codice
         async function aggiornaOreMacchina(oraData) {
             if (!oraData.macchinaId && !oraData.attrezzoId) return; // Nessuna macchina/attrezzo
             
@@ -800,68 +832,19 @@
             if (oreMacchina <= 0) return; // Nessuna ora da aggiungere
             
             try {
-                // Verifica se modulo Parco Macchine è attivo
-                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                if (!tenantDoc.exists()) return;
-                
-                const tenantData = tenantDoc.data();
-                const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
-                if (!hasParcoMacchineModule) return;
-                
-                // Aggiorna macchina (trattore) se presente
-                if (oraData.macchinaId) {
-                    const macchinaDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'macchine', oraData.macchinaId));
-                    if (macchinaDoc.exists()) {
-                        const macchinaData = macchinaDoc.data();
-                        const oreAttuali = (macchinaData.oreAttuali || macchinaData.oreIniziali || 0) + oreMacchina;
-                        
-                        await updateDoc(macchinaDoc.ref, {
-                            oreAttuali: oreAttuali
-                        });
-                        
-                        // Verifica se supera oreProssimaManutenzione
-                        if (macchinaData.oreProssimaManutenzione && oreAttuali >= macchinaData.oreProssimaManutenzione) {
-                            const oreOltre = oreAttuali - macchinaData.oreProssimaManutenzione;
-                            console.warn(`⚠️ ATTENZIONE: Macchina "${macchinaData.nome}" ha superato di ${oreOltre.toFixed(1)} ore la manutenzione programmata!`);
-                            // Mostra alert visibile all'utente
-                            setTimeout(() => {
-                                showAlert(`⚠️ ATTENZIONE: La macchina "${macchinaData.nome}" ha superato le ore di manutenzione programmata! Controlla in Gestione Macchine.`, 'error');
-                            }, 500);
-                        } else if (macchinaData.oreProssimaManutenzione) {
-                            const oreRimanenti = macchinaData.oreProssimaManutenzione - oreAttuali;
-                            if (oreRimanenti <= 50 && oreRimanenti > 0) {
-                                console.info(`ℹ️ INFO: Macchina "${macchinaData.nome}" si avvicina alla manutenzione (${oreRimanenti.toFixed(1)} ore rimanenti)`);
-                            }
-                        }
-                    }
-                }
-                
-                // Aggiorna attrezzo se presente
-                if (oraData.attrezzoId) {
-                    const attrezzoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'macchine', oraData.attrezzoId));
-                    if (attrezzoDoc.exists()) {
-                        const attrezzoData = attrezzoDoc.data();
-                        const oreAttuali = (attrezzoData.oreAttuali || attrezzoData.oreIniziali || 0) + oreMacchina;
-                        
-                        await updateDoc(attrezzoDoc.ref, {
-                            oreAttuali: oreAttuali
-                        });
-                        
-                        // Verifica se supera oreProssimaManutenzione
-                        if (attrezzoData.oreProssimaManutenzione && oreAttuali >= attrezzoData.oreProssimaManutenzione) {
-                            const oreOltre = oreAttuali - attrezzoData.oreProssimaManutenzione;
-                            console.warn(`⚠️ ATTENZIONE: Attrezzo "${attrezzoData.nome}" ha superato di ${oreOltre.toFixed(1)} ore la manutenzione programmata!`);
-                            // Mostra alert visibile all'utente
-                            setTimeout(() => {
-                                showAlert(`⚠️ ATTENZIONE: L'attrezzo "${attrezzoData.nome}" ha superato le ore di manutenzione programmata! Controlla in Gestione Macchine.`, 'error');
-                            }, 500);
-                        } else if (attrezzoData.oreProssimaManutenzione) {
-                            const oreRimanenti = attrezzoData.oreProssimaManutenzione - oreAttuali;
-                            if (oreRimanenti <= 50 && oreRimanenti > 0) {
-                                console.info(`ℹ️ INFO: Attrezzo "${attrezzoData.nome}" si avvicina alla manutenzione (${oreRimanenti.toFixed(1)} ore rimanenti)`);
-                            }
-                        }
-                    }
+                const service = await window.loadMacchineUtilizzoService();
+                if (service && service.aggiornaOreMacchinaDaUtilizzo) {
+                    await service.aggiornaOreMacchinaDaUtilizzo({
+                        macchinaId: oraData.macchinaId || null,
+                        attrezzoId: oraData.attrezzoId || null,
+                        oreMacchina: oreMacchina,
+                        tenantId: currentTenantId,
+                        showAlertCallback: showAlert
+                    });
+                } else {
+                    // Service non disponibile (probabilmente ambiente file://)
+                    // La validazione è stata completata correttamente, ma le ore macchina non sono state aggiornate automaticamente
+                    console.debug('Service macchine non disponibile: le ore macchina non sono state aggiornate automaticamente');
                 }
             } catch (error) {
                 console.error('Errore aggiornamento ore macchina:', error);

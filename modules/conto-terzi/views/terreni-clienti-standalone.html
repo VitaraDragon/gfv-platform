@@ -753,6 +753,14 @@
                         const userData = userDoc.data();
                         currentTenantId = userData.tenantId;
 
+                        // Imposta tenantId nel tenant-service per i servizi
+                        try {
+                            const { setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+                            setCurrentTenantId(currentTenantId);
+                        } catch (error) {
+                            console.warn('Impossibile impostare tenantId nel servizio:', error);
+                        }
+
                         // Verifica permessi (solo Manager o Amministratore)
                         const ruoli = userData.ruoli || [];
                         const isManager = ruoli.some(r => {
@@ -955,15 +963,12 @@
                 if (terrenoObj.superficie) {
                     html += `<div class="info"><strong>Superficie:</strong> ${terrenoObj.superficie.toFixed(2)} ha</div>`;
                 }
-                // Mostra coltura (categoria e sottocategoria se presente)
-                if (terrenoObj.colturaCategoria) {
-                    let colturaText = escapeHtml(terrenoObj.colturaCategoria);
-                    if (terrenoObj.colturaSottocategoria) {
-                        colturaText += ` - ${escapeHtml(terrenoObj.colturaSottocategoria)}`;
-                    }
-                    html += `<div class="info"><strong>Coltura:</strong> ${colturaText}</div>`;
+                // Mostra coltura (solo nome, non ID categoria)
+                if (terrenoObj.colturaSottocategoria) {
+                    // Mostra solo il nome della coltura (sottocategoria contiene il nome)
+                    html += `<div class="info"><strong>Coltura:</strong> ${escapeHtml(terrenoObj.colturaSottocategoria)}</div>`;
                 } else if (terrenoObj.coltura) {
-                    // Retrocompatibilità
+                    // Retrocompatibilità: mostra coltura se presente
                     html += `<div class="info"><strong>Coltura:</strong> ${escapeHtml(terrenoObj.coltura)}</div>`;
                 }
                 if (terrenoObj.podere) {
@@ -1187,124 +1192,170 @@
             return div.innerHTML;
         }
 
-        // Colture predefinite gerarchiche
-        const COLTURE_PREDEFINITE = {
-            'Seminativo': ['Grano', 'Orzo', 'Mais', 'Girasole', 'Soia'],
-            'Frutteto': ['Melo', 'Pero', 'Pesco', 'Albicocco', 'Ciliegio'],
-            'Orticole': ['Fragole', 'Ravanelli', 'Insalata', 'Cocomero', 'Pomodoro', 'Zucchine'],
-            'Vite': [],
-            'Olivo': [],
-            'Agrumeto': ['Limone', 'Arancio', 'Mandarino'],
-            'Prato': [],
-            'Bosco': []
-        };
-
-        // Variabile per struttura colture gerarchica
+        // Variabile per struttura colture gerarchica (organizzata per categoria)
         let coltureGerarchiche = {};
+        let categorieColture = [];
 
-        // Carica colture gerarchiche
+        // Carica colture gerarchiche usando servizi centralizzati
         async function loadColture() {
             try {
                 if (!currentTenantId) return;
                 
-                // Carica liste personalizzate
-                const listeRef = doc(db, 'tenants', currentTenantId, 'liste', 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
+                // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
+                const isFileProtocol = window.location.protocol === 'file:';
                 
-                if (listeSnap.exists()) {
-                    const data = listeSnap.data();
-                    // Supporta sia struttura vecchia (array) che nuova (oggetto gerarchico)
-                    if (Array.isArray(data.colture)) {
-                        // Migra da array a struttura gerarchica
-                        coltureGerarchiche = { ...COLTURE_PREDEFINITE };
-                        data.colture.forEach(coltura => {
-                            if (!Object.keys(coltureGerarchiche).includes(coltura)) {
-                                coltureGerarchiche[coltura] = [];
-                            }
-                        });
-                    } else {
-                        coltureGerarchiche = data.colture || COLTURE_PREDEFINITE;
+                if (isFileProtocol) {
+                    // Fallback: carica direttamente da Firestore
+                    // Inizializza colture predefinite se necessario
+                    try {
+                        const { initializeColturePredefinite } = await import('../../../core/services/colture-service.js');
+                        await initializeColturePredefinite();
+                    } catch (initError) {
+                        console.warn('Errore inizializzazione colture predefinite:', initError);
                     }
+                    
+                    // Carica categorie per colture
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const categorieSnapshot = await getDocs(categorieRef);
+                    
+                    categorieColture = [];
+                    categorieSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.applicabileA === 'colture' || data.applicabileA === 'entrambi') {
+                            if (!data.parentId) { // Solo categorie principali, non sottocategorie
+                                categorieColture.push({ id: doc.id, ...data });
+                            }
+                        }
+                    });
+                    
+                    // Ordina categorie per ordine
+                    categorieColture.sort((a, b) => {
+                        const ordineA = a.ordine || 999;
+                        const ordineB = b.ordine || 999;
+                        return ordineA - ordineB;
+                    });
+                    
+                    // Carica tutte le colture
+                    const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                    const coltureSnapshot = await getDocs(coltureRef);
+                    
+                    coltureGerarchiche = {};
+                    const coltureArray = [];
+                    coltureSnapshot.forEach(doc => {
+                        coltureArray.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    // Ordina colture per nome
+                    coltureArray.sort((a, b) => {
+                        const nomeA = (a.nome || '').toLowerCase();
+                        const nomeB = (b.nome || '').toLowerCase();
+                        return nomeA.localeCompare(nomeB);
+                    });
+                    
+                    // Organizza colture per categoria
+                    coltureArray.forEach(coltura => {
+                        const categoriaId = coltura.categoriaId || 'senza_categoria';
+                        if (!coltureGerarchiche[categoriaId]) {
+                            coltureGerarchiche[categoriaId] = [];
+                        }
+                        coltureGerarchiche[categoriaId].push(coltura);
+                    });
                 } else {
-                    // Se non esistono, usa predefinite
-                    coltureGerarchiche = { ...COLTURE_PREDEFINITE };
-                }
-                
-                // Assicura che tutte le categorie predefinite siano presenti
-                Object.keys(COLTURE_PREDEFINITE).forEach(categoria => {
-                    if (!coltureGerarchiche[categoria]) {
-                        coltureGerarchiche[categoria] = [...COLTURE_PREDEFINITE[categoria]];
-                    } else {
-                        // Mantieni sottocategorie predefinite
-                        COLTURE_PREDEFINITE[categoria].forEach(sub => {
-                            if (!coltureGerarchiche[categoria].includes(sub)) {
-                                coltureGerarchiche[categoria].push(sub);
-                            }
-                        });
+                    // Usa servizi centralizzati
+                    // Assicura che Firebase sia inizializzato nel servizio
+                    const { setFirebaseInstances } = await import('../../../core/services/firebase-service.js');
+                    setFirebaseInstances({ app, db, auth });
+                    
+                    // Assicura che il tenantId sia impostato nel servizio
+                    const { setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+                    if (currentTenantId) {
+                        setCurrentTenantId(currentTenantId);
                     }
-                });
+                    
+                    // Carica categorie usando categorie-service.js
+                    const { getAllCategorie } = await import('../../../core/services/categorie-service.js');
+                    const categorie = await getAllCategorie({
+                        applicabileA: 'colture',
+                        orderBy: 'ordine',
+                        orderDirection: 'asc'
+                    });
+                    
+                    // Filtra solo categorie principali (senza parentId)
+                    categorieColture = categorie.filter(cat => !cat.parentId);
+                    
+                    // Assicura che le colture predefinite siano inizializzate
+                    const { initializeColturePredefinite, getColturePerCategoria, getAllColture } = await import('../../../core/services/colture-service.js');
+                    
+                    // Verifica se ci sono poche colture e inizializza se necessario
+                    const coltureEsistenti = await getAllColture();
+                    if (coltureEsistenti.length < 20) {
+                        await initializeColturePredefinite();
+                    }
+                    
+                    // Usa colture-service.js per ottenere colture organizzate per categoria
+                    coltureGerarchiche = await getColturePerCategoria();
+                }
                 
                 // Popola dropdown categorie
                 const selectCategoria = document.getElementById('terreno-coltura-categoria');
                 if (selectCategoria) {
                     selectCategoria.innerHTML = '<option value="">-- Seleziona categoria --</option>';
-                    Object.keys(coltureGerarchiche).sort().forEach(categoria => {
+                    categorieColture.forEach(categoria => {
                         const option = document.createElement('option');
-                        option.value = categoria;
-                        option.textContent = categoria;
+                        option.value = categoria.id;
+                        option.textContent = categoria.nome;
                         selectCategoria.appendChild(option);
                     });
                 }
             } catch (error) {
                 console.error('Errore caricamento colture:', error);
-                // Fallback a predefinite
-                coltureGerarchiche = { ...COLTURE_PREDEFINITE };
+                // Fallback: popola con categorie anche se non ci sono colture
                 const selectCategoria = document.getElementById('terreno-coltura-categoria');
-                if (selectCategoria) {
+                if (selectCategoria && categorieColture.length > 0) {
                     selectCategoria.innerHTML = '<option value="">-- Seleziona categoria --</option>';
-                    Object.keys(coltureGerarchiche).sort().forEach(categoria => {
+                    categorieColture.forEach(categoria => {
                         const option = document.createElement('option');
-                        option.value = categoria;
-                        option.textContent = categoria;
+                        option.value = categoria.id;
+                        option.textContent = categoria.nome;
                         selectCategoria.appendChild(option);
                     });
                 }
             }
         }
 
-        // Aggiorna sottocategorie in base alla categoria selezionata
+        // Aggiorna colture in base alla categoria selezionata
         window.updateColturaSottocategoria = function() {
             const categoriaSelect = document.getElementById('terreno-coltura-categoria');
             const sottocategoriaSelect = document.getElementById('terreno-coltura-sottocategoria');
             const sottocategoriaGroup = document.getElementById('coltura-sottocategoria-group');
             
-            const categoria = categoriaSelect.value;
+            const categoriaId = categoriaSelect.value;
             
-            if (!categoria) {
+            if (!categoriaId) {
                 sottocategoriaGroup.style.display = 'none';
                 sottocategoriaSelect.value = '';
                 return;
             }
             
-            // Mostra gruppo sottocategoria
+            // Mostra gruppo coltura (chiamato "sottocategoria" per retrocompatibilità)
             sottocategoriaGroup.style.display = 'block';
             
-            // Popola sottocategorie
-            sottocategoriaSelect.innerHTML = '<option value="">-- Seleziona sottocategoria --</option>';
+            // Popola colture per la categoria selezionata
+            sottocategoriaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
             
-            const sottocategorie = coltureGerarchiche[categoria] || [];
-            if (sottocategorie.length > 0) {
-                sottocategorie.forEach(sub => {
+            const colture = coltureGerarchiche[categoriaId] || [];
+            if (colture.length > 0) {
+                colture.forEach(coltura => {
                     const option = document.createElement('option');
-                    option.value = sub;
-                    option.textContent = sub;
+                    option.value = coltura.nome;
+                    option.textContent = coltura.nome;
                     sottocategoriaSelect.appendChild(option);
                 });
             } else {
-                // Se non ci sono sottocategorie, aggiungi opzione "Nessuna sottocategoria"
+                // Se non ci sono colture, aggiungi opzione informativa
                 const option = document.createElement('option');
                 option.value = '';
-                option.textContent = '-- Nessuna sottocategoria disponibile --';
+                option.textContent = '-- Nessuna coltura disponibile per questa categoria --';
                 option.disabled = true;
                 sottocategoriaSelect.appendChild(option);
             }

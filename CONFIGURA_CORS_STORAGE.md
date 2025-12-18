@@ -101,3 +101,7 @@ Per trovare il nome esatto del tuo bucket Storage:
 ---
 
 **Nota**: La configurazione CORS è separata dalle regole Storage. Entrambe devono essere configurate correttamente.
+
+
+
+

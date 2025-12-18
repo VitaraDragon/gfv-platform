@@ -72,3 +72,7 @@ Dopo aver pubblicato le regole, puoi testare usando il simulatore nella Firebase
 
 
 
+
+
+
+

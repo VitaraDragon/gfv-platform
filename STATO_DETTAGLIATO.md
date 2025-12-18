@@ -1,7 +1,7 @@
 # 📊 Stato Dettagliato Progetto - GFV Platform
 
-**Data aggiornamento**: 2025-12-14  
-**Versione**: 1.4  
+**Data aggiornamento**: 2025-12-18  
+**Versione**: 1.9  
 **Stato generale**: ✅ **IN SVILUPPO ATTIVO - FUNZIONANTE**
 
 ---
@@ -14,6 +14,30 @@
 - **URL principale**: https://vitaradragon.github.io/gfv-platform/
 - **Stato deploy**: ✅ Online e funzionante
 - **PWA**: ✅ Installabile come Progressive Web App
+
+---
+
+## 🆕 Ultime Modifiche (2025-12-18)
+
+### Badge Conto Terzi e Filtri per Categoria nel Diario Attività ✅ COMPLETATO
+- ✅ **Badge Conto Terzi visibile**: Aggiunto badge "💼 Conto Terzi" nella colonna "Tipo Lavoro" per tutte le attività conto terzi nel diario attività
+- ✅ **Badge sempre visibile**: Il badge è ora visibile anche quando la colonna "Cliente" non è presente (modalità core senza conto terzi)
+- ✅ **Filtro Tipo Lavoro per categoria**: Il filtro mostra ora le categorie (es. "Lavorazione del Terreno", "Potatura") invece dei tipi specifici, raggruppando automaticamente tutte le varianti
+- ✅ **Filtro Colture per categoria**: Il filtro mostra ora le categorie (es. "Vite", "Frutteto", "Seminativo") invece delle colture specifiche, raggruppando automaticamente tutte le varianti
+- ✅ **Mapping intelligente**: Implementata funzione `mapColturaToColorCategory()` in `shared/utils/map-colors.js` per mappare colture specifiche a categorie generiche
+- ✅ **Mapping tipo lavoro**: Implementata logica per mappare tipo lavoro a categoria usando `categoriaId` dalla struttura gerarchica
+- ✅ **Popolamento filtri**: I filtri vengono popolati correttamente all'inizializzazione con fallback per categorie non ancora caricate
+
+---
+
+### Ottimizzazione Colori e Visibilità Mappe ✅ COMPLETATO
+- ✅ **Palette colori ottimizzata**: Implementata nuova palette colori più visibile e distinta per tutte le mappe (Dashboard, Terreni, Mappa Clienti)
+- ✅ **Perimetri più visibili**: Aumentato `strokeWeight` da 2px a 3px e `strokeOpacity` da 0.8 a 1.0 per massima visibilità su mappa satellitare
+- ✅ **Mapping intelligente colture**: Implementata funzione `mapColturaToColorCategory()` che mappa automaticamente colture specifiche (es. "Vite da Vino", "Albicocche") a categorie generiche (es. "Vite", "Frutteto") per applicare i colori corretti
+- ✅ **Colori distinti per categoria**: Ogni categoria coltura ha ora colori fill e stroke distinti e visibili (Vite=Rosso, Frutteto=Arancione, Seminativo=Giallo, Orto=Verde lime, Prato=Verde chiaro, Olivo=Viola, Agrumeto=Arancione, Bosco=Marrone, Default=Blu)
+- ✅ **Fix bug cambio cliente mappa**: Risolto problema del bagliore bianco durante il cambio cliente nella mappa clienti (Conto Terzi) implementando creazione anticipata dei nuovi poligoni prima della rimozione dei vecchi
+- ✅ **Background container ottimizzato**: Cambiato background container mappa da grigio chiaro a nero scuro per evitare flash bianco durante le transizioni
+- ✅ **Coerenza tra tutte le mappe**: Stessa palette colori e stessi parametri di visibilità applicati a Dashboard, Terreni e Mappa Clienti
 
 ---
 
@@ -226,9 +250,9 @@
 
 ## 🚧 Moduli in Pianificazione
 
-### 1. Modulo Conto Terzi ✅ FASE 1 MVP COMPLETATA - 📝 FASE 2 IN SVILUPPO
+### 1. Modulo Conto Terzi ✅ FASE 1 MVP COMPLETATA - ✅ FASE 2 COMPLETATA
 
-**Stato**: ✅ **Fase 1 MVP Completata** - 📝 **Fase 2 in sviluppo**
+**Stato**: ✅ **Fase 1 MVP Completata** - ✅ **Fase 2 Completata**
 
 **Piano completo**: Vedi `PLAN_MODULO_CONTO_TERZI.md`
 
@@ -243,19 +267,23 @@
 - ✅ Filtro lavori conto terzi in Gestione Lavori
 - ✅ Evidenziazione lavori conto terzi nel Diario da Lavori dashboard
 
-#### Funzionalità in Pianificazione (Fase 2)
-- 📝 **Pianificazione lavori conto terzi senza Manodopera** (priorità alta)
-  - Rendere "Gestione Lavori" accessibile anche senza Manodopera
-  - Modalità semplificata: solo pianificazione base (nome, terreno, tipo, data, durata, note, stato)
-  - Supporto Parco Macchine: assegnazione macchine ai lavori
-  - Nascondere funzionalità Manodopera (caposquadra, operai, squadre, ore)
-  - Funziona con: Core Base + Conto Terzi, Core Base + Parco Macchine + Conto Terzi
+#### Funzionalità Completate (Fase 2 - Pianificazione)
+- ✅ **Pianificazione lavori conto terzi senza Manodopera** (completata)
+  - ✅ "Gestione Lavori" accessibile anche senza Manodopera
+  - ✅ Modalità semplificata: solo pianificazione base (nome, terreno, tipo, data, durata, note, stato)
+  - ✅ Supporto Parco Macchine: assegnazione macchine ai lavori
+  - ✅ Nascondere funzionalità Manodopera (caposquadra, operai, squadre, ore)
+  - ✅ Funziona con: Core Base + Conto Terzi, Core Base + Parco Macchine + Conto Terzi
+  - ✅ Generazione automatica voce diario quando lavoro completato
+  - ✅ Gestione lavori `da_pianificare` senza Manodopera
+
+#### Funzionalità in Pianificazione (Fase 3)
 - 📝 Calcolo costi e ore avanzato
 - 📝 Integrazione completa con moduli esistenti
 
 #### Priorità
 - **Fase 1 (MVP)**: ✅ Completata (2025-12-07)
-- **Fase 2 (Pianificazione)**: 📝 In sviluppo (2025-12-10)
+- **Fase 2 (Pianificazione)**: ✅ Completata (2025-12-10)
 - **Fase 3 (Integrazione)**: 📝 Pianificata
 
 ---
@@ -365,7 +393,7 @@
 - ✅ **Modulo Manodopera**: 100% completo
 - ✅ **Modulo Parco Macchine**: 100% completo
 - ✅ **Modulo Conto Terzi - Fase 1 (MVP)**: 100% completo
-- 📝 **Modulo Conto Terzi - Fase 2 (Pianificazione)**: 0% (pianificato)
+- ✅ **Modulo Conto Terzi - Fase 2 (Pianificazione)**: 100% completo
 
 ### Pagine Implementate
 
@@ -451,7 +479,7 @@
 - ✅ **Modulo Manodopera**: 100% completo
 - ✅ **Modulo Parco Macchine**: 100% completo
 - ✅ **Modulo Conto Terzi - Fase 1 (MVP)**: 100% completo
-- 📝 **Modulo Conto Terzi - Fase 2 (Pianificazione)**: 0% (pianificato)
+- ✅ **Modulo Conto Terzi - Fase 2 (Pianificazione)**: 100% completo
 
 ### Qualità
 - ✅ **PWA**: Installabile e funzionante
@@ -480,15 +508,15 @@ Il progetto è **molto avanzato** e **funzionante**. I moduli Core Base, Manodop
 - ✅ PWA installabile
 
 ### Aree di Miglioramento
-- 📝 Completare Modulo Conto Terzi - Fase 2 (Pianificazione lavori senza Manodopera)
+- 📝 Completare Modulo Conto Terzi - Fase 3 (Integrazione completa)
 - 📝 Fixare tour Gestione Lavori
 - 📝 Aggiungere sistema pagamenti
 - 📝 Migliorare sicurezza per produzione
 
 ---
 
-**Ultimo aggiornamento**: 2025-12-14  
-**Versione documento**: 1.5  
-**Ultima funzionalità**: Branding Email Preventivi con Logo Aziendale + Configurazione Firebase Storage CORS (2025-12-14)  
+**Ultimo aggiornamento**: 2025-12-18  
+**Versione documento**: 1.9  
+**Ultima funzionalità**: Badge Conto Terzi e filtri per categoria nel diario attività (2025-12-18)  
 **Stato**: ✅ Progetto attivo e funzionante
 

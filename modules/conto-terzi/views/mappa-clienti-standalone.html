@@ -114,7 +114,7 @@
             border-radius: 8px;
             overflow: hidden;
             border: 2px solid #1976D2;
-            background: #f0f0f0;
+            background: #1a1a1a; /* Sfondo scuro per evitare bagliore bianco */
         }
 
         .mappa-loading {
@@ -370,18 +370,110 @@
         let infoWindows = [];
         let terrenoPolygonsMap = new Map();
 
-        // Colori per colture
+        // Colori per colture (palette colori ottimizzata per visibilità)
         const colturaColors = {
-            'Vite': '#8B4513',
-            'Frutteto': '#FFD700',
-            'Seminativo': '#90EE90',
-            'Orto': '#32CD32',
-            'Prato': '#228B22',
-            'Olivo': '#556B2F',
-            'Agrumeto': '#FFA500',
-            'Bosco': '#2F4F2F',
-            'Default': '#2E8B57'
+            'Vite': { fill: '#DC143C', stroke: '#8B0000' },      // Rosso scuro brillante
+            'Frutteto': { fill: '#FF6600', stroke: '#CC5500' },  // Arancione brillante
+            'Seminativo': { fill: '#FFD700', stroke: '#B8860B' }, // Giallo oro
+            'Orto': { fill: '#00FF00', stroke: '#00AA00' },      // Verde lime brillante
+            'Ortive': { fill: '#00FF00', stroke: '#00AA00' },    // Alias per Ortive
+            'Prato': { fill: '#90EE90', stroke: '#228B22' },    // Verde chiaro
+            'Olivo': { fill: '#9370DB', stroke: '#6A5ACD' },    // Viola medio
+            'Agrumeto': { fill: '#FFA500', stroke: '#FF8C00' },  // Arancione
+            'Bosco': { fill: '#8B4513', stroke: '#654321' },    // Marrone sella
+            'Default': { fill: '#1E90FF', stroke: '#0066CC' }   // Blu dodger (invece di verde)
         };
+        
+        // Funzione per mappare nome coltura specifico a categoria generica
+        function mapColturaToColorCategory(colturaNome, colturaCategoria) {
+            if (!colturaNome) return 'Default';
+            
+            const nomeLower = colturaNome.toLowerCase();
+            
+            // Match esatto nella palette
+            if (colturaColors[colturaNome]) {
+                return colturaNome;
+            }
+            
+            // Mapping per Vite (tutte le varianti)
+            if (nomeLower.includes('vite') || colturaCategoria?.toLowerCase() === 'vite') {
+                return 'Vite';
+            }
+            
+            // Mapping per Frutteto (tutte le varianti)
+            if (nomeLower.includes('albicocch') || nomeLower.includes('pesco') || 
+                nomeLower.includes('melo') || nomeLower.includes('pero') ||
+                nomeLower.includes('ciliegio') || nomeLower.includes('susino') ||
+                nomeLower.includes('fico') || nomeLower.includes('nocciolo') ||
+                nomeLower.includes('mandorlo') || nomeLower.includes('castagno') ||
+                nomeLower.includes('kiwi') || nomeLower.includes('mirtillo') ||
+                nomeLower.includes('lampone') || nomeLower.includes('ribes') ||
+                nomeLower.includes('mora') || nomeLower.includes('melograno') ||
+                nomeLower.includes('noce') || nomeLower.includes('pistacchio') ||
+                colturaCategoria?.toLowerCase() === 'frutteto') {
+                return 'Frutteto';
+            }
+            
+            // Mapping per Seminativo
+            if (nomeLower.includes('grano') || nomeLower.includes('mais') ||
+                nomeLower.includes('orzo') || nomeLower.includes('favino') ||
+                nomeLower.includes('girasole') || nomeLower.includes('soia') ||
+                nomeLower.includes('colza') || nomeLower.includes('avena') ||
+                nomeLower.includes('segale') || nomeLower.includes('fava') ||
+                nomeLower.includes('lenticchia') || nomeLower.includes('cece') ||
+                nomeLower.includes('riso') || nomeLower.includes('quinoa') ||
+                nomeLower.includes('canapa') || nomeLower.includes('lino') ||
+                nomeLower.includes('erba medica') || nomeLower.includes('trifoglio') ||
+                colturaCategoria?.toLowerCase() === 'seminativo') {
+                return 'Seminativo';
+            }
+            
+            // Mapping per Ortive/Orto
+            if (nomeLower.includes('pomodoro') || nomeLower.includes('zucchin') ||
+                nomeLower.includes('melanzan') || nomeLower.includes('peperon') ||
+                nomeLower.includes('insalata') || nomeLower.includes('carot') ||
+                nomeLower.includes('patat') || nomeLower.includes('bietol') ||
+                nomeLower.includes('fragol') || nomeLower.includes('cipoll') ||
+                nomeLower.includes('aglio') || nomeLower.includes('fagiol') ||
+                nomeLower.includes('pisell') || nomeLower.includes('cavolo') ||
+                nomeLower.includes('broccoli') || nomeLower.includes('spinaci') ||
+                nomeLower.includes('lattuga') || nomeLower.includes('radicchio') ||
+                nomeLower.includes('finocchi') || nomeLower.includes('sedano') ||
+                nomeLower.includes('cetriol') || nomeLower.includes('anguria') ||
+                nomeLower.includes('melon') || colturaCategoria?.toLowerCase() === 'ortive' ||
+                colturaCategoria?.toLowerCase() === 'orto') {
+                return 'Orto';
+            }
+            
+            // Mapping per Prato
+            if (nomeLower.includes('prato') || nomeLower.includes('pascolo') ||
+                colturaCategoria?.toLowerCase() === 'prato') {
+                return 'Prato';
+            }
+            
+            // Mapping per Olivo
+            if (nomeLower.includes('olivo') || nomeLower.includes('oliveto') ||
+                colturaCategoria?.toLowerCase() === 'olivo') {
+                return 'Olivo';
+            }
+            
+            // Mapping per Agrumeto
+            if (nomeLower.includes('arancio') || nomeLower.includes('limone') ||
+                nomeLower.includes('mandarino') || nomeLower.includes('clementin') ||
+                nomeLower.includes('pompelmo') || nomeLower.includes('bergamotto') ||
+                nomeLower.includes('cedro') || nomeLower.includes('lime') ||
+                nomeLower.includes('kumquat') || colturaCategoria?.toLowerCase() === 'agrumeto') {
+                return 'Agrumeto';
+            }
+            
+            // Mapping per Bosco
+            if (nomeLower.includes('bosco') || nomeLower.includes('foresta') ||
+                colturaCategoria?.toLowerCase() === 'bosco') {
+                return 'Bosco';
+            }
+            
+            return 'Default';
+        }
 
         // Funzione escape HTML
         function escapeHtml(text) {
@@ -582,62 +674,85 @@
         async function drawMap(clienteId) {
             if (!map || !googleMapsLoaded) return;
             
-            // Pulisci mappa precedente
-            polygons.forEach(p => p.setMap(null));
-            poderiMarkers.forEach(m => m.setMap(null));
-            infoWindows.forEach(iw => iw.close());
-            polygons = [];
-            poderiMarkers = [];
-            infoWindows = [];
-            terrenoPolygonsMap.clear();
-            
-            // Carica dati
-            terreni = await loadTerreni(clienteId);
-            poderi = await loadPoderi(clienteId);
-            
-            if (terreni.length === 0 && poderi.length === 0) {
-                document.getElementById('mappa-container').innerHTML = '<div class="mappa-loading"><div class="no-data"><div class="no-data-icon">📍</div><p>Nessun terreno o podere trovato per questo cliente</p></div></div>';
-                return;
-            }
+            // Carica dati PRIMA di rimuovere i vecchi elementi
+            const nuoviTerreni = await loadTerreni(clienteId);
+            const nuoviPoderi = await loadPoderi(clienteId);
             
             // Re-inizializza mappa se necessario
             if (!map) {
                 initMap();
             }
             
+            // Rimuovi eventuale messaggio "nessun dato" esistente
+            const container = document.getElementById('mappa-container');
+            const existingMessage = container.querySelector('.no-data-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            if (nuoviTerreni.length === 0 && nuoviPoderi.length === 0) {
+                // Pulisci vecchi elementi
+                polygons.forEach(p => p.setMap(null));
+                poderiMarkers.forEach(m => m.setMap(null));
+                infoWindows.forEach(iw => iw.close());
+                polygons = [];
+                poderiMarkers = [];
+                infoWindows = [];
+                terrenoPolygonsMap.clear();
+                terreni = [];
+                poderi = [];
+                
+                // Mostra messaggio ma mantieni la mappa
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'no-data-message';
+                messageDiv.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; text-align: center;';
+                messageDiv.innerHTML = '<div class="no-data-icon" style="font-size: 48px; margin-bottom: 10px;">📍</div><p style="margin: 0; color: #666;">Nessun terreno o podere trovato per questo cliente</p>';
+                container.appendChild(messageDiv);
+                return;
+            }
+            
+            // Crea i nuovi poligoni e marker PRIMA di rimuovere i vecchi
+            // Questo elimina il gap temporale che causa il bagliore bianco
+            const nuoviPolygons = [];
+            const nuoviMarkers = [];
+            const nuoviInfoWindows = [];
+            const nuovoTerrenoPolygonsMap = new Map();
             const bounds = new google.maps.LatLngBounds();
             
-            // Disegna terreni
-            terreni.forEach(terreno => {
+            // Crea nuovi poligoni per terreni (senza aggiungerli ancora alla mappa)
+            nuoviTerreni.forEach(terreno => {
                 const coords = terreno.polygonCoords.map(c => 
                     new google.maps.LatLng(c.lat, c.lng)
                 );
                 
-                const coltura = terreno.coltura || terreno.colturaSottocategoria || terreno.colturaCategoria || 'Default';
-                const color = colturaColors[coltura] || colturaColors['Default'];
-                const fillColor = color + '80';
-                const strokeColor = color;
+                const colturaNome = terreno.coltura || terreno.colturaSottocategoria || terreno.colturaCategoria || null;
+                const colturaCategoria = terreno.colturaCategoria || null;
+                const colorCategory = mapColturaToColorCategory(colturaNome, colturaCategoria);
+                const colorData = colturaColors[colorCategory] || colturaColors['Default'];
+                const fillColor = colorData.fill + '80'; // Aggiungi trasparenza
+                const strokeColor = colorData.stroke; // Usa versione scura per perimetro
                 
                 const polygon = new google.maps.Polygon({
                     paths: coords,
                     strokeColor: strokeColor,
-                    strokeOpacity: 0.8,
-                    strokeWeight: 2,
+                    strokeOpacity: 1.0,  // Massima visibilità
+                    strokeWeight: 3,     // Aumentato per maggiore visibilità
                     fillColor: fillColor,
                     fillOpacity: 0.35,
-                    map: map,
+                    // NON aggiungere alla mappa ancora - lo faremo dopo
+                    map: null,
                     terrain: {
                         id: terreno.id,
                         nome: terreno.nome,
                         superficie: terreno.superficie,
-                        coltura: coltura,
+                        coltura: colturaNome || 'Default',
                         podere: terreno.podere,
                         note: terreno.note
                     }
                 });
                 
-                polygons.push(polygon);
-                terrenoPolygonsMap.set(terreno.id, polygon);
+                nuoviPolygons.push(polygon);
+                nuovoTerrenoPolygonsMap.set(terreno.id, polygon);
                 
                 // Estendi bounds
                 coords.forEach(coord => bounds.extend(coord));
@@ -647,7 +762,7 @@
                     <div class="mappa-info-window">
                         <h3>${escapeHtml(terreno.nome)}</h3>
                         ${terreno.podere ? `<p><strong>Podere:</strong> ${escapeHtml(terreno.podere)}</p>` : ''}
-                        ${coltura !== 'Default' ? `<p><strong>Coltura:</strong> ${escapeHtml(coltura)}</p>` : ''}
+                        ${colturaNome && colturaNome !== 'Default' ? `<p><strong>Coltura:</strong> ${escapeHtml(colturaNome)}</p>` : ''}
                         ${terreno.superficie ? `<p><strong>Superficie:</strong> ${terreno.superficie.toFixed(2)} ha</p>` : ''}
                         ${terreno.note ? `<p><strong>Note:</strong> ${escapeHtml(terreno.note)}</p>` : ''}
                     </div>
@@ -657,23 +772,24 @@
                     content: infoContent
                 });
                 
-                infoWindows.push(infoWindow);
+                nuoviInfoWindows.push(infoWindow);
                 
                 polygon.addListener('click', function(event) {
-                    infoWindows.forEach(iw => iw.close());
+                    nuoviInfoWindows.forEach(iw => iw.close());
                     infoWindow.setPosition(event.latLng);
                     infoWindow.open(map);
                 });
             });
             
-            // Disegna poderi come marker
-            poderi.forEach(podere => {
+            // Crea nuovi marker per poderi (senza aggiungerli ancora alla mappa)
+            nuoviPoderi.forEach(podere => {
                 if (podere.coordinate && podere.coordinate.lat && podere.coordinate.lng) {
                     const position = new google.maps.LatLng(podere.coordinate.lat, podere.coordinate.lng);
                     
                     const marker = new google.maps.Marker({
                         position: position,
-                        map: map,
+                        // NON aggiungere alla mappa ancora - lo faremo dopo
+                        map: null,
                         icon: {
                             path: google.maps.SymbolPath.CIRCLE,
                             scale: 10,
@@ -686,7 +802,7 @@
                         zIndex: 200
                     });
                     
-                    poderiMarkers.push(marker);
+                    nuoviMarkers.push(marker);
                     bounds.extend(position);
                     
                     // Info window
@@ -703,14 +819,32 @@
                         content: infoContent
                     });
                     
-                    infoWindows.push(infoWindow);
+                    nuoviInfoWindows.push(infoWindow);
                     
                     marker.addListener('click', function() {
-                        infoWindows.forEach(iw => iw.close());
+                        nuoviInfoWindows.forEach(iw => iw.close());
                         infoWindow.open(map, marker);
                     });
                 }
             });
+            
+            // ORA rimuovi i vecchi elementi e aggiungi immediatamente i nuovi
+            // Questo elimina il gap temporale che causa il bagliore bianco
+            polygons.forEach(p => p.setMap(null));
+            poderiMarkers.forEach(m => m.setMap(null));
+            infoWindows.forEach(iw => iw.close());
+            
+            // Aggiungi immediatamente i nuovi elementi alla mappa
+            nuoviPolygons.forEach(p => p.setMap(map));
+            nuoviMarkers.forEach(m => m.setMap(map));
+            
+            // Aggiorna le variabili globali
+            polygons = nuoviPolygons;
+            poderiMarkers = nuoviMarkers;
+            infoWindows = nuoviInfoWindows;
+            terrenoPolygonsMap = nuovoTerrenoPolygonsMap;
+            terreni = nuoviTerreni;
+            poderi = nuoviPoderi;
             
             // Aggiorna filtri
             updateFilters();
@@ -779,9 +913,9 @@
                 const polygon = terrenoPolygonsMap.get(terreno.id);
                 if (!polygon) return;
                 
-                const coltura = terreno.coltura || terreno.colturaSottocategoria || terreno.colturaCategoria || 'Default';
+                const colturaNome = terreno.coltura || terreno.colturaSottocategoria || terreno.colturaCategoria || null;
                 const matchPodere = !podereFiltro || terreno.podere === podereFiltro;
-                const matchColtura = !colturaFiltro || coltura === colturaFiltro;
+                const matchColtura = !colturaFiltro || colturaNome === colturaFiltro;
                 
                 if (matchPodere && matchColtura) {
                     polygon.setMap(map);
@@ -815,10 +949,11 @@
                     .filter(t => {
                         const coltura = t.coltura || t.colturaSottocategoria || t.colturaCategoria || 'Default';
                         const matchPodere = !podereFiltro || t.podere === podereFiltro;
-                        const matchColtura = !colturaFiltro || coltura === colturaFiltro;
+                        const matchColtura = !colturaFiltro || colturaNome === colturaFiltro;
                         return matchPodere && matchColtura;
                     })
-                    .map(t => t.coltura || t.colturaSottocategoria || t.colturaCategoria || 'Default')
+                    .map(t => t.coltura || t.colturaSottocategoria || t.colturaCategoria || null)
+                    .filter(c => c) // Rimuovi null
                     .filter(c => c)
             )];
             
@@ -830,12 +965,17 @@
                     ${coltureVisibili.length > 0 ? `
                         <div style="margin-bottom: 15px;">
                             <strong style="font-size: 11px; color: #666;">Colture:</strong>
-                            ${coltureVisibili.map(coltura => {
-                                const color = colturaColors[coltura] || colturaColors['Default'];
+                            ${coltureVisibili.map(colturaNome => {
+                                const colturaCategoria = terreni.find(t => 
+                                    (t.coltura || t.colturaSottocategoria || t.colturaCategoria) === colturaNome
+                                )?.colturaCategoria || null;
+                                const colorCategory = mapColturaToColorCategory(colturaNome, colturaCategoria);
+                                const colorData = colturaColors[colorCategory] || colturaColors['Default'];
+                                const color = colorData.fill || colorData; // Supporta sia nuovo formato che vecchio
                                 return `
                                     <div class="mappa-legenda-item">
                                         <div class="mappa-legenda-color" style="background-color: ${color};"></div>
-                                        <span>${escapeHtml(coltura)}</span>
+                                        <span>${escapeHtml(colturaNome)}</span>
                                     </div>
                                 `;
                             }).join('')}
@@ -859,13 +999,24 @@
         document.getElementById('select-cliente').addEventListener('change', async function() {
             const clienteId = this.value;
             if (!clienteId) {
+                // Pulisci tutto quando si deseleziona
+                polygons.forEach(p => p.setMap(null));
+                poderiMarkers.forEach(m => m.setMap(null));
+                infoWindows.forEach(iw => iw.close());
+                polygons = [];
+                poderiMarkers = [];
+                infoWindows = [];
+                terrenoPolygonsMap.clear();
+                terreni = [];
+                poderi = [];
+                
                 document.getElementById('mappa-container').innerHTML = '<div class="mappa-loading"><div>Seleziona un cliente per visualizzare la mappa</div></div>';
                 map = null;
+                currentClienteId = null;
                 return;
             }
             
             currentClienteId = clienteId;
-            document.getElementById('mappa-container').innerHTML = '<div class="mappa-loading"><div>Caricamento mappa...</div></div>';
             
             if (!googleMapsLoaded) {
                 await loadGoogleMapsAPI();
@@ -873,6 +1024,8 @@
             
             // Assicurati che la mappa sia inizializzata
             if (!map) {
+                // Se la mappa non esiste, mostra il messaggio di caricamento
+                document.getElementById('mappa-container').innerHTML = '<div class="mappa-loading"><div>Caricamento mappa...</div></div>';
                 initMap();
                 // Aspetta che la mappa sia completamente caricata
                 await new Promise(resolve => {
@@ -880,6 +1033,8 @@
                 });
             }
             
+            // Non pulire qui - la pulizia viene fatta in drawMap
+            // Questo evita il gap temporale che causa il bagliore bianco
             await drawMap(clienteId);
         });
 

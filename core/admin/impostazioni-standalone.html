@@ -528,13 +528,40 @@
                 <div style="margin-bottom: 40px;">
                     <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid #e9ecef; padding-bottom: 8px;">Tipi Lavoro</h3>
                     
-                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                        <input type="text" id="new-tipo-lavoro" placeholder="Aggiungi nuovo tipo lavoro..." style="flex: 1;">
-                        <button type="button" class="btn btn-primary" onclick="addTipoLavoro()">➕ Aggiungi</button>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="tipo-lavoro-categoria-select" style="display: block; margin-bottom: 5px; font-weight: 500;">Categoria *</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="tipo-lavoro-categoria-select" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateSottocategorieDropdown()">
+                                <option value="">-- Seleziona categoria --</option>
+                            </select>
+                            <button type="button" class="btn btn-primary" onclick="openAddCategoriaTipoLavoroModal()" style="padding: 8px 15px; white-space: nowrap;" title="Aggiungi nuova categoria">➕</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px; display: none;" id="tipo-lavoro-sottocategoria-group">
+                        <label for="tipo-lavoro-sottocategoria-select" style="display: block; margin-bottom: 5px; font-weight: 500;">Sottocategoria</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="tipo-lavoro-sottocategoria-select" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateTipiLavoroPredefinitiDropdown().catch(console.error)">
+                                <option value="">-- Seleziona sottocategoria (opzionale) --</option>
+                            </select>
+                            <button type="button" class="btn btn-primary" onclick="openAddSottocategoriaTipoLavoroModal()" style="padding: 8px 15px; white-space: nowrap;" title="Aggiungi nuova sottocategoria">➕</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Seleziona tipo lavoro predefinito o aggiungi personalizzato</label>
+                        <select id="new-tipo-lavoro-predeterminato" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;" onchange="onTipoLavoroPredeterminatoChange()">
+                            <option value="">-- Seleziona un tipo lavoro predefinito (opzionale) --</option>
+                        </select>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span style="color: #666; font-size: 14px;">oppure</span>
+                            <input type="text" id="new-tipo-lavoro" placeholder="Digita nome tipo lavoro personalizzato..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <button type="button" class="btn btn-primary" onclick="addTipoLavoro()">➕ Aggiungi</button>
+                        </div>
                     </div>
 
                     <div id="tipi-lavoro-list" class="list-container">
-                        <!-- Lista verrà popolata dinamicamente -->
+                        <!-- Lista verrà popolata dinamicamente (solo tipi custom) -->
                     </div>
                 </div>
 
@@ -542,16 +569,59 @@
                 <div>
                     <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid #e9ecef; padding-bottom: 8px;">Colture</h3>
                     
-                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 20px;">
-                        <input type="text" id="new-coltura" placeholder="Aggiungi nuova coltura..." style="flex: 1;">
-                        <button type="button" class="btn btn-primary" onclick="addColtura()">➕ Aggiungi</button>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="coltura-categoria-select" style="display: block; margin-bottom: 5px; font-weight: 500;">Categoria *</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="coltura-categoria-select" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="">-- Seleziona categoria --</option>
+                            </select>
+                            <button type="button" class="btn btn-primary" onclick="openAddCategoriaColturaModal()" style="padding: 8px 15px; white-space: nowrap;" title="Aggiungi nuova categoria">➕</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Seleziona coltura predefinita o aggiungi personalizzata</label>
+                        <select id="new-coltura-predeterminata" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;" onchange="onColturaPredeterminataChange()">
+                            <option value="">-- Seleziona una coltura predefinita (opzionale) --</option>
+                        </select>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span style="color: #666; font-size: 14px;">oppure</span>
+                            <input type="text" id="new-coltura" placeholder="Digita nome coltura personalizzata..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <button type="button" class="btn btn-primary" onclick="addColtura()">➕ Aggiungi</button>
+                        </div>
                     </div>
 
                     <div id="colture-list" class="list-container">
-                        <!-- Lista verrà popolata dinamicamente -->
+                        <!-- Lista verrà popolata dinamicamente per categoria -->
                     </div>
                 </div>
             </div>
+
+            <!-- Modal Aggiungi Categoria Coltura -->
+            <div id="categoria-coltura-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Aggiungi Nuova Categoria Coltura</h3>
+                        <button class="close-modal" onclick="closeAddCategoriaColturaModal()">&times;</button>
+                    </div>
+                    <form onsubmit="event.preventDefault(); addCategoriaColtura();">
+                        <div class="form-group">
+                            <label for="new-categoria-coltura-nome">Nome Categoria *</label>
+                            <input type="text" id="new-categoria-coltura-nome" required placeholder="Es: Leguminose, Cereali...">
+                            <small style="color: #666;">Il codice verrà generato automaticamente dal nome</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-categoria-coltura-descrizione">Descrizione</label>
+                            <textarea id="new-categoria-coltura-descrizione" rows="3" placeholder="Descrizione opzionale della categoria"></textarea>
+                        </div>
+                        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddCategoriaColturaModal()">Annulla</button>
+                            <button type="submit" class="btn btn-primary">Aggiungi Categoria</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
             <!-- Tariffe Operai (solo Manager/Amministratore) -->
             <div class="card" id="tariffe-section" style="display: none;">
@@ -751,6 +821,14 @@
 
                     // Salva tenant ID
                     currentTenantId = currentUserData.tenantId;
+                    
+                    // Imposta tenantId nel tenant-service per i servizi
+                    try {
+                        const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                        setCurrentTenantId(currentTenantId);
+                    } catch (error) {
+                        console.warn('Impossibile impostare tenantId nel servizio:', error);
+                    }
                     
                     // Controlla ruoli e mostra/nascondi sezioni
                     const ruoli = currentUserData.ruoli || [];
@@ -1181,79 +1259,1387 @@
             if (!currentTenantId) return;
             
             try {
-                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
-                
-                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
-                let colture = [...COLTURE_PREDEFINITE];
-                
-                if (listeSnap.exists()) {
-                    const data = listeSnap.data();
-                    tipiLavoro = data.tipiLavoro || tipiLavoro;
-                    colture = data.colture || colture;
+                // Carica tipi lavoro da tipiLavoro (fonte unica di verità)
+                // IMPORTANTE: Carica i documenti completi per avere il campo predefinito
+                let tipiLavoroDocs = [];
+                try {
+                    const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                    const snapshot = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
+                    tipiLavoroDocs = [];
+                    snapshot.forEach(doc => {
+                        tipiLavoroDocs.push({ id: doc.id, nome: doc.data().nome, predefinito: doc.data().predefinito || false });
+                    });
+                    
+                    // Se tipiLavoro è vuoto, prova migrazione automatica
+                    if (tipiLavoroDocs.length === 0) {
+                        console.log('ℹ️ tipiLavoro vuoto, provo migrazione da ListePersonalizzate...');
+                        await migraTipiLavoroAutomatica();
+                        // Ricarica dopo migrazione
+                        const snapshot2 = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
+                        snapshot2.forEach(doc => {
+                            tipiLavoroDocs.push({ id: doc.id, nome: doc.data().nome, predefinito: doc.data().predefinito || false });
+                        });
+                    }
+                    
+                    // Pulisci duplicati dalla collection (mantieni solo il primo per ogni nome)
+                    await pulisciDuplicatiTipiLavoro();
+                } catch (error) {
+                    console.warn('Impossibile caricare da tipiLavoro, uso ListePersonalizzate:', error.message);
+                    // Fallback: usa ListePersonalizzate (solo nomi, assumiamo non predefiniti)
+                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                    const listeSnap = await getDoc(listeRef);
+                    const nomiTipiLavoro = listeSnap.exists() 
+                        ? (listeSnap.data().tipiLavoro || [])
+                        : [...TIPI_LAVORO_PREDEFINITI];
+                    
+                    // Converti nomi in documenti (assumiamo predefiniti solo se nella lista predefinita)
+                    tipiLavoroDocs = nomiTipiLavoro.map(nome => ({
+                        id: null,
+                        nome: nome,
+                        predefinito: TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === nome.toLowerCase())
+                    }));
                 }
                 
-                renderTipiLavoro(tipiLavoro);
-                renderColture(colture);
+                // Rimuovi duplicati dall'array (case-insensitive, mantieni il primo)
+                const tipiLavoroUnici = [];
+                const tipiLavoroVisti = new Set();
+                tipiLavoroDocs.forEach(tipo => {
+                    const tipoLower = tipo.nome.toLowerCase();
+                    if (!tipiLavoroVisti.has(tipoLower)) {
+                        tipiLavoroVisti.add(tipoLower);
+                        tipiLavoroUnici.push(tipo);
+                    }
+                });
+                tipiLavoroDocs = tipiLavoroUnici;
+                
+                // Carica categorie per colture e colture organizzate per categoria
+                await loadCategorieColture();
+                await loadColturePerCategoria();
+                
+                // Carica categorie e sottocategorie per tipi lavoro
+                await loadCategorieTipiLavoro();
+                await loadTipiLavoroPerCategoria();
+                
+                renderTipiLavoro(tipiLavoroDocs);
             } catch (error) {
                 console.error('Errore caricamento liste:', error);
                 showAlert('Errore caricamento liste personalizzate', 'error');
             }
         }
-        
-        // Render tipi lavoro
-        function renderTipiLavoro(tipiLavoro) {
-            const container = document.getElementById('tipi-lavoro-list');
-            container.innerHTML = tipiLavoro.map(tipo => {
-                const isPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === tipo.toLowerCase());
-                return `
-                    <div class="list-item">
-                        <div class="list-item-name">
-                            <span>${escapeHtml(tipo)}</span>
-                            <span class="badge ${isPredefinito ? 'badge-predefinito' : 'badge-custom'}">
-                                ${isPredefinito ? 'Predefinito' : 'Custom'}
-                            </span>
-                        </div>
-                        ${!isPredefinito ? `
-                            <button class="btn btn-danger btn-small" onclick="removeTipoLavoro('${escapeHtml(tipo)}')" title="Elimina">
-                                🗑️ Elimina
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
+
+        // Pulisci duplicati dalla collection tipiLavoro
+        async function pulisciDuplicatiTipiLavoro() {
+            try {
+                if (!currentTenantId) return;
+                
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                const snapshot = await getDocs(tipiRef);
+                
+                // Raggruppa per nome (case-insensitive)
+                const tipiPerNome = new Map();
+                snapshot.forEach(doc => {
+                    const nome = doc.data().nome;
+                    const nomeLower = nome.toLowerCase();
+                    
+                    if (!tipiPerNome.has(nomeLower)) {
+                        tipiPerNome.set(nomeLower, []);
+                    }
+                    tipiPerNome.get(nomeLower).push({ id: doc.id, data: doc.data() });
+                });
+                
+                // Elimina duplicati (mantieni solo il primo di ogni gruppo)
+                let duplicatiEliminati = 0;
+                const deletePromises = [];
+                
+                tipiPerNome.forEach((docs, nomeLower) => {
+                    if (docs.length > 1) {
+                        // Ordina per createdAt (il più vecchio viene mantenuto) o per id
+                        docs.sort((a, b) => {
+                            const createdAtA = a.data.createdAt?.toMillis() || 0;
+                            const createdAtB = b.data.createdAt?.toMillis() || 0;
+                            if (createdAtA !== createdAtB) {
+                                return createdAtA - createdAtB;
+                            }
+                            return a.id.localeCompare(b.id);
+                        });
+                        
+                        // Mantieni il primo, elimina gli altri
+                        for (let i = 1; i < docs.length; i++) {
+                            // Non eliminare se è predefinito (mantieni sempre i predefiniti)
+                            if (!docs[i].data.predefinito) {
+                                deletePromises.push(deleteDoc(doc(db, `tenants/${currentTenantId}/tipiLavoro`, docs[i].id)));
+                                duplicatiEliminati++;
+                            } else if (!docs[0].data.predefinito) {
+                                // Se il primo non è predefinito ma questo sì, mantieni questo e elimina il primo
+                                deletePromises.push(deleteDoc(doc(db, `tenants/${currentTenantId}/tipiLavoro`, docs[0].id)));
+                                duplicatiEliminati++;
+                                // Rimuovi il primo dalla lista e mantieni questo
+                                docs.shift();
+                            }
+                        }
+                    }
+                });
+                
+                if (deletePromises.length > 0) {
+                    await Promise.all(deletePromises);
+                    console.log(`✅ Puliti ${duplicatiEliminati} duplicati di tipi lavoro`);
+                }
+            } catch (error) {
+                console.error('Errore pulizia duplicati tipi lavoro:', error);
+            }
         }
         
-        // Render colture
-        function renderColture(colture) {
+        // Migrazione automatica tipi lavoro da ListePersonalizzate a tipiLavoro
+        async function migraTipiLavoroAutomatica() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Verifica se ci sono già tipi in tipiLavoro
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                const snapshot = await getDocs(tipiRef);
+                if (!snapshot.empty) {
+                    return; // Già migrato
+                }
+                
+                // Leggi da ListePersonalizzate
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (!listeSnap.exists()) {
+                    return; // Nessuna lista da migrare
+                }
+                
+                const data = listeSnap.data();
+                const tipiLavoroDaMigrare = data.tipiLavoro || [];
+                
+                if (tipiLavoroDaMigrare.length === 0) {
+                    return; // Nessun tipo da migrare
+                }
+                
+                // Carica categorie per mappatura
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const categorieSnapshot = await getDocs(categorieRef);
+                const categorieMap = new Map();
+                categorieSnapshot.forEach(doc => {
+                    const cat = doc.data();
+                    if (cat.codice) {
+                        categorieMap.set(cat.codice, doc.id);
+                    }
+                });
+                
+                // Mappatura tipi predefiniti alle categorie
+                const mappaturaPredefiniti = {
+                    'Potatura': 'potatura',
+                    'Raccolta': 'raccolta',
+                    'Raccolta frutta': 'raccolta',
+                    'Raccolta verdura': 'raccolta',
+                    'Trattamento': 'trattamenti',
+                    'Semina': 'semina_piantagione',
+                    'Aratura': 'lavorazione_terreno',
+                    'Irrigazione': 'trattamenti',
+                    'Concimazione': 'trattamenti',
+                    'Diserbo': 'gestione_verde'
+                };
+                
+                // Crea tipi lavoro
+                for (const nomeTipo of tipiLavoroDaMigrare) {
+                    // Verifica se esiste già
+                    const tipiEsistenti = await getDocs(query(tipiRef, where('nome', '==', nomeTipo)));
+                    if (!tipiEsistenti.empty) {
+                        continue; // Già esiste
+                    }
+                    
+                    // Determina categoria
+                    const codiceCategoria = mappaturaPredefiniti[nomeTipo] || 'altro';
+                    const categoriaId = categorieMap.get(codiceCategoria) || categorieMap.get('altro');
+                    
+                    if (!categoriaId) {
+                        console.warn(`Categoria non trovata per tipo ${nomeTipo}, salto`);
+                        continue;
+                    }
+                    
+                    // Crea tipo lavoro
+                    await addDoc(tipiRef, {
+                        nome: nomeTipo,
+                        categoriaId: categoriaId,
+                        descrizione: 'Migrato da ListePersonalizzate',
+                        predefinito: TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === nomeTipo.toLowerCase()),
+                        creatoDa: currentUser?.uid || 'system',
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                }
+                
+                console.log('✅ Migrazione tipi lavoro completata');
+            } catch (error) {
+                console.error('Errore migrazione automatica tipi lavoro:', error);
+                // Non bloccare se migrazione fallisce
+            }
+        }
+
+        // Inizializza colture predefinite se non presenti (fallback per ambiente file://)
+        async function initializeColturePredefiniteImpostazioni() {
+            try {
+                if (!currentTenantId) return;
+
+                // Carica categorie per ottenere gli ID
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const categorieSnapshot = await getDocs(categorieRef);
+                const categorieMap = new Map(); // codice -> id
+                categorieSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.applicabileA === 'colture' && data.codice) {
+                        categorieMap.set(data.codice.toLowerCase(), doc.id);
+                    }
+                });
+
+                // Carica colture esistenti
+                const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                const coltureSnapshot = await getDocs(coltureRef);
+                const nomiEsistenti = new Set();
+                coltureSnapshot.forEach(doc => {
+                    const nome = doc.data().nome;
+                    if (nome) nomiEsistenti.add(nome.toLowerCase());
+                });
+
+                // Colture predefinite
+                const COLTURE_PREDEFINITE = [
+                    // Frutteto
+                    { nome: 'Pesco', categoriaCodice: 'frutteto' }, { nome: 'Melo', categoriaCodice: 'frutteto' },
+                    { nome: 'Pero', categoriaCodice: 'frutteto' }, { nome: 'Albicocche', categoriaCodice: 'frutteto' },
+                    { nome: 'Prugne', categoriaCodice: 'frutteto' }, { nome: 'Ciliegio', categoriaCodice: 'frutteto' },
+                    { nome: 'Susino', categoriaCodice: 'frutteto' }, { nome: 'Fico', categoriaCodice: 'frutteto' },
+                    { nome: 'Nocciolo', categoriaCodice: 'frutteto' }, { nome: 'Mandorlo', categoriaCodice: 'frutteto' },
+                    { nome: 'Castagno', categoriaCodice: 'frutteto' }, { nome: 'Cotogno', categoriaCodice: 'frutteto' },
+                    { nome: 'Sorbo', categoriaCodice: 'frutteto' }, { nome: 'Nespolo', categoriaCodice: 'frutteto' },
+                    { nome: 'Giuggiolo', categoriaCodice: 'frutteto' }, { nome: 'Corbezzolo', categoriaCodice: 'frutteto' },
+                    { nome: 'Gelso', categoriaCodice: 'frutteto' }, { nome: 'Mora', categoriaCodice: 'frutteto' },
+                    { nome: 'Lampone', categoriaCodice: 'frutteto' }, { nome: 'Mirtillo', categoriaCodice: 'frutteto' },
+                    { nome: 'Ribes', categoriaCodice: 'frutteto' }, { nome: 'Uva Spina', categoriaCodice: 'frutteto' },
+                    { nome: 'Kiwi', categoriaCodice: 'frutteto' }, { nome: 'Melograno', categoriaCodice: 'frutteto' },
+                    { nome: 'Fico d\'India', categoriaCodice: 'frutteto' }, { nome: 'Kaki', categoriaCodice: 'frutteto' },
+                    { nome: 'Noce', categoriaCodice: 'frutteto' }, { nome: 'Pistacchio', categoriaCodice: 'frutteto' },
+                    // Seminativo
+                    { nome: 'Grano', categoriaCodice: 'seminativo' }, { nome: 'Mais', categoriaCodice: 'seminativo' },
+                    { nome: 'Orzo', categoriaCodice: 'seminativo' }, { nome: 'Favino', categoriaCodice: 'seminativo' },
+                    { nome: 'Girasole', categoriaCodice: 'seminativo' }, { nome: 'Soia', categoriaCodice: 'seminativo' },
+                    { nome: 'Colza', categoriaCodice: 'seminativo' }, { nome: 'Avena', categoriaCodice: 'seminativo' },
+                    { nome: 'Segale', categoriaCodice: 'seminativo' }, { nome: 'Fava', categoriaCodice: 'seminativo' },
+                    { nome: 'Lenticchia', categoriaCodice: 'seminativo' }, { nome: 'Cece', categoriaCodice: 'seminativo' },
+                    { nome: 'Lupino', categoriaCodice: 'seminativo' }, { nome: 'Cicerchia', categoriaCodice: 'seminativo' },
+                    { nome: 'Riso', categoriaCodice: 'seminativo' }, { nome: 'Grano Saraceno', categoriaCodice: 'seminativo' },
+                    { nome: 'Amaranto', categoriaCodice: 'seminativo' }, { nome: 'Quinoa', categoriaCodice: 'seminativo' },
+                    { nome: 'Canapa', categoriaCodice: 'seminativo' }, { nome: 'Lino', categoriaCodice: 'seminativo' },
+                    { nome: 'Carthamo', categoriaCodice: 'seminativo' }, { nome: 'Erba Medica', categoriaCodice: 'seminativo' },
+                    { nome: 'Trifoglio', categoriaCodice: 'seminativo' }, { nome: 'Veccia', categoriaCodice: 'seminativo' },
+                    { nome: 'Lupinella', categoriaCodice: 'seminativo' }, { nome: 'Sulla', categoriaCodice: 'seminativo' },
+                    { nome: 'Sorgo', categoriaCodice: 'seminativo' }, { nome: 'Miglio', categoriaCodice: 'seminativo' },
+                    { nome: 'Panico', categoriaCodice: 'seminativo' },
+                    // Vite
+                    { nome: 'Vite', categoriaCodice: 'vite' },
+                    { nome: 'Vite da Tavola', categoriaCodice: 'vite' },
+                    { nome: 'Vite da Vino', categoriaCodice: 'vite' },
+                    // Ortive
+                    { nome: 'Pomodoro', categoriaCodice: 'ortive' }, { nome: 'Zucchine', categoriaCodice: 'ortive' },
+                    { nome: 'Melanzane', categoriaCodice: 'ortive' }, { nome: 'Peperoni', categoriaCodice: 'ortive' },
+                    { nome: 'Insalata', categoriaCodice: 'ortive' }, { nome: 'Carote', categoriaCodice: 'ortive' },
+                    { nome: 'Patate', categoriaCodice: 'ortive' }, { nome: 'Bietole', categoriaCodice: 'ortive' },
+                    { nome: 'Fragole', categoriaCodice: 'ortive' }, { nome: 'Cipolle', categoriaCodice: 'ortive' },
+                    { nome: 'Aglio', categoriaCodice: 'ortive' }, { nome: 'Fagioli', categoriaCodice: 'ortive' },
+                    { nome: 'Fagiolini', categoriaCodice: 'ortive' }, { nome: 'Piselli', categoriaCodice: 'ortive' },
+                    { nome: 'Cavolo', categoriaCodice: 'ortive' }, { nome: 'Broccoli', categoriaCodice: 'ortive' },
+                    { nome: 'Cavolfiore', categoriaCodice: 'ortive' }, { nome: 'Spinaci', categoriaCodice: 'ortive' },
+                    { nome: 'Lattuga', categoriaCodice: 'ortive' }, { nome: 'Radicchio', categoriaCodice: 'ortive' },
+                    { nome: 'Finocchi', categoriaCodice: 'ortive' }, { nome: 'Sedano', categoriaCodice: 'ortive' },
+                    { nome: 'Cetrioli', categoriaCodice: 'ortive' }, { nome: 'Angurie', categoriaCodice: 'ortive' },
+                    { nome: 'Meloni', categoriaCodice: 'ortive' },
+                    // Prato
+                    { nome: 'Prato', categoriaCodice: 'prato' }, { nome: 'Prato Stabile', categoriaCodice: 'prato' },
+                    { nome: 'Pascolo', categoriaCodice: 'prato' },
+                    // Olivo
+                    { nome: 'Olivo', categoriaCodice: 'olivo' },
+                    // Agrumeto
+                    { nome: 'Arancio', categoriaCodice: 'agrumeto' }, { nome: 'Limone', categoriaCodice: 'agrumeto' },
+                    { nome: 'Mandarino', categoriaCodice: 'agrumeto' }, { nome: 'Clementine', categoriaCodice: 'agrumeto' },
+                    { nome: 'Pompelmo', categoriaCodice: 'agrumeto' }, { nome: 'Bergamotto', categoriaCodice: 'agrumeto' },
+                    { nome: 'Cedro', categoriaCodice: 'agrumeto' }, { nome: 'Lime', categoriaCodice: 'agrumeto' },
+                    { nome: 'Kumquat', categoriaCodice: 'agrumeto' },
+                    // Bosco
+                    { nome: 'Bosco', categoriaCodice: 'bosco' }
+                ];
+
+                // Crea colture predefinite mancanti
+                let createCount = 0;
+                for (const colturaData of COLTURE_PREDEFINITE) {
+                    if (!nomiEsistenti.has(colturaData.nome.toLowerCase())) {
+                        const categoriaId = categorieMap.get(colturaData.categoriaCodice);
+                        if (categoriaId) {
+                            await addDoc(coltureRef, {
+                                nome: colturaData.nome,
+                                categoriaId: categoriaId,
+                                descrizione: null,
+                                predefinito: true,
+                                creatoDa: 'system',
+                                createdAt: serverTimestamp(),
+                                updatedAt: serverTimestamp()
+                            });
+                            nomiEsistenti.add(colturaData.nome.toLowerCase());
+                            createCount++;
+                        }
+                    }
+                }
+
+                if (createCount > 0) {
+                    console.log(`✅ Inizializzate ${createCount} colture predefinite`);
+                }
+            } catch (error) {
+                console.error('Errore inizializzazione colture predefinite:', error);
+            }
+        }
+
+        // Migrazione automatica colture da ListePersonalizzate a colture
+        async function migraColtureAutomatica() {
+            // Prevenire chiamate multiple simultanee o tentativi multipli
+            if (isMigratingColture || migrazioneTentata) {
+                console.log('⚠️ Migrazione già in corso o già tentata, salto...');
+                return;
+            }
+            
+            try {
+                if (!currentTenantId) return;
+                
+                isMigratingColture = true;
+                migrazioneTentata = true; // Marca come tentata per evitare loop
+                
+                // Verifica se ci sono già colture in collection colture
+                const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                const snapshot = await getDocs(coltureRef);
+                if (!snapshot.empty) {
+                    console.log('✅ Colture già presenti, migrazione non necessaria');
+                    isMigratingColture = false;
+                    return; // Già migrato
+                }
+                
+                // IMPORTANTE: Inizializza categorie PRIMA di migrare colture
+                console.log('ℹ️ Inizializzazione categorie predefinite per colture...');
+                try {
+                    // Categorie predefinite per colture
+                    const categorieColturePredefinite = [
+                        { nome: 'Frutteto', codice: 'frutteto', descrizione: 'Alberi da frutto', applicabileA: 'colture', predefinita: true, ordine: 1 },
+                        { nome: 'Seminativo', codice: 'seminativo', descrizione: 'Colture erbacee da granella', applicabileA: 'colture', predefinita: true, ordine: 2 },
+                        { nome: 'Vite', codice: 'vite', descrizione: 'Vigneto', applicabileA: 'colture', predefinita: true, ordine: 3 },
+                        { nome: 'Ortive', codice: 'ortive', descrizione: 'Colture orticole', applicabileA: 'colture', predefinita: true, ordine: 4 },
+                        { nome: 'Prato', codice: 'prato', descrizione: 'Prati e pascoli', applicabileA: 'colture', predefinita: true, ordine: 5 },
+                        { nome: 'Olivo', codice: 'olivo', descrizione: 'Oliveto', applicabileA: 'colture', predefinita: true, ordine: 6 },
+                        { nome: 'Agrumeto', codice: 'agrumeto', descrizione: 'Agrumi', applicabileA: 'colture', predefinita: true, ordine: 7 },
+                        { nome: 'Bosco', codice: 'bosco', descrizione: 'Bosco e foresta', applicabileA: 'colture', predefinita: true, ordine: 8 },
+                        { nome: 'Altro', codice: 'altro_colture', descrizione: 'Altre colture non categorizzabili', applicabileA: 'colture', predefinita: true, ordine: 9 }
+                    ];
+                    
+                    // Verifica categorie esistenti
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const categorieSnapshot = await getDocs(categorieRef);
+                    const codiciEsistenti = new Set();
+                    categorieSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.codice) {
+                            codiciEsistenti.add(data.codice.toLowerCase());
+                        }
+                    });
+                    
+                    // Crea categorie mancanti
+                    let categorieCreate = 0;
+                    for (const categoriaData of categorieColturePredefinite) {
+                        if (!codiciEsistenti.has(categoriaData.codice.toLowerCase())) {
+                            await addDoc(categorieRef, {
+                                ...categoriaData,
+                                codice: categoriaData.codice.toLowerCase(),
+                                creatoDa: 'system',
+                                createdAt: serverTimestamp(),
+                                updatedAt: serverTimestamp()
+                            });
+                            categorieCreate++;
+                            codiciEsistenti.add(categoriaData.codice.toLowerCase());
+                        }
+                    }
+                    
+                    console.log(`✅ Categorie inizializzate: ${categorieCreate} create, ${categorieColturePredefinite.length - categorieCreate} già esistenti`);
+                    // Attendi un momento per assicurarsi che le categorie siano disponibili
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (error) {
+                    console.error('Errore inizializzazione categorie:', error);
+                    isMigratingColture = false;
+                    return; // Non continuare se le categorie non possono essere inizializzate
+                }
+                
+                // Leggi da ListePersonalizzate
+                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                const listeSnap = await getDoc(listeRef);
+                
+                if (!listeSnap.exists()) {
+                    console.log('ℹ️ Nessuna lista personalizzata trovata');
+                    isMigratingColture = false;
+                    return; // Nessuna lista da migrare
+                }
+                
+                const data = listeSnap.data();
+                const coltureDaMigrare = data.colture || [];
+                
+                if (coltureDaMigrare.length === 0) {
+                    console.log('ℹ️ Nessuna coltura da migrare');
+                    isMigratingColture = false;
+                    return; // Nessuna coltura da migrare
+                }
+                
+                const currentUser = auth.currentUser;
+                
+                // Mappatura colture predefinite
+                const colturePredefiniteMap = {
+                    'Vite': { nome: 'Vite', descrizione: 'Vigneto' },
+                    'Frutteto': { nome: 'Frutteto', descrizione: 'Alberi da frutto' },
+                    'Seminativo': { nome: 'Seminativo', descrizione: 'Colture erbacee' },
+                    'Orto': { nome: 'Orto', descrizione: 'Orticoltura' },
+                    'Prato': { nome: 'Prato', descrizione: 'Prati e pascoli' },
+                    'Olivo': { nome: 'Olivo', descrizione: 'Oliveto' },
+                    'Agrumeto': { nome: 'Agrumeto', descrizione: 'Agrumi' },
+                    'Bosco': { nome: 'Bosco', descrizione: 'Bosco e foresta' }
+                };
+                
+                // Carica categorie (ora dovrebbero esistere dopo l'inizializzazione)
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                // Carica tutte le categorie e filtra client-side per evitare indice complesso
+                const categorieSnapshot = await getDocs(categorieRef);
+                
+                const categorieMap = new Map();
+                categorieSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    // IMPORTANTE: Solo categorie specifiche per colture, NON quelle per tipi lavoro
+                    if (data.applicabileA === 'colture') {
+                        categorieMap.set(data.codice.toLowerCase(), doc.id); // Usa lowercase per matching
+                    }
+                });
+                
+                // Se non ci sono categorie, non possiamo migrare
+                if (categorieMap.size === 0) {
+                    console.error('❌ Nessuna categoria trovata dopo inizializzazione, impossibile migrare colture');
+                    isMigratingColture = false;
+                    return;
+                }
+                
+                console.log(`✅ Trovate ${categorieMap.size} categorie per colture`);
+                
+                // Mappatura nomi colture piatti a categorie
+                const mappaturaColture = {
+                    'vite': 'vite',
+                    'frutteto': 'frutteto',
+                    'seminativo': 'seminativo',
+                    'orto': 'ortive',
+                    'prato': 'prato',
+                    'olivo': 'olivo',
+                    'agrumeto': 'agrumeto',
+                    'bosco': 'bosco'
+                };
+                
+                let coltureCreate = 0;
+                let coltureSkipped = 0;
+                
+                // Migra ogni coltura
+                for (const nomeColtura of coltureDaMigrare) {
+                    // Verifica se esiste già
+                    const q = query(coltureRef, where('nome', '==', nomeColtura));
+                    const existingSnapshot = await getDocs(q);
+                    if (!existingSnapshot.empty) {
+                        coltureSkipped++;
+                        continue; // Già esiste, salta
+                    }
+                    
+                    // Determina categoria
+                    let categoriaCodice = mappaturaColture[nomeColtura.toLowerCase()];
+                    if (!categoriaCodice) {
+                        categoriaCodice = 'altro_colture'; // Default
+                    }
+                    
+                    const categoriaId = categorieMap.get(categoriaCodice.toLowerCase());
+                    if (!categoriaId) {
+                        console.warn(`⚠️ Categoria "${categoriaCodice}" non trovata per coltura "${nomeColtura}", salto`);
+                        coltureSkipped++;
+                        continue;
+                    }
+                    
+                    // Determina se è predefinita
+                    const colturaPredefinita = colturePredefiniteMap[nomeColtura];
+                    const isPredefinita = !!colturaPredefinita;
+                    
+                    // Crea coltura
+                    await addDoc(coltureRef, {
+                        nome: nomeColtura,
+                        categoriaId: categoriaId,
+                        descrizione: colturaPredefinita?.descrizione || null,
+                        predefinito: isPredefinita,
+                        creatoDa: currentUser?.uid || 'system',
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                    coltureCreate++;
+                }
+                
+                console.log(`✅ Migrazione colture completata: ${coltureCreate} create, ${coltureSkipped} saltate`);
+                isMigratingColture = false;
+            } catch (error) {
+                console.error('❌ Errore migrazione automatica colture:', error);
+                isMigratingColture = false;
+                // Non bloccare se migrazione fallisce, ma marca come tentata per evitare loop
+            }
+        }
+        
+        // Variabili globali per tipi lavoro gerarchici
+        let categorieTipiLavoroMap = {};
+        let tipiLavoroPerCategoria = {};
+        
+        // Carica categorie per tipi lavoro
+        async function loadCategorieTipiLavoro() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Prima inizializza le categorie se necessario (inline per evitare CORS)
+                try {
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const categorieSnapshot = await getDocs(categorieRef);
+                    const codiciEsistenti = new Set();
+                    categorieSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.codice) {
+                            codiciEsistenti.add(data.codice.toLowerCase());
+                        }
+                    });
+                    
+                    // Categorie principali predefinite per lavori
+                    const categorieLavoriPredefinite = [
+                        { nome: 'Lavorazione del Terreno', codice: 'lavorazione_terreno', descrizione: 'Aratura, erpicatura, fresatura, vangatura, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Trattamenti', codice: 'trattamenti', descrizione: 'Fitofarmaci, concimazione, irrigazione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        { nome: 'Potatura', codice: 'potatura', descrizione: 'Potatura manuale e meccanica', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
+                        { nome: 'Raccolta', codice: 'raccolta', descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 4 },
+                        { nome: 'Gestione del Verde', codice: 'gestione_verde', descrizione: 'Falciatura, taglio erba, manutenzione estetica, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 5 },
+                        { nome: 'Diserbo', codice: 'diserbo', descrizione: 'Eliminazione delle erbe infestanti', applicabileA: 'entrambi', predefinita: true, ordine: 6 },
+                        { nome: 'Semina e Piantagione', codice: 'semina_piantagione', descrizione: 'Semina, trapianto, piantagione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 7 },
+                        { nome: 'Manutenzione', codice: 'manutenzione', descrizione: 'Riparazioni, manutenzione impianti, ecc.', applicabileA: 'lavori', predefinita: true, ordine: 9 },
+                        { nome: 'Altro', codice: 'altro', descrizione: 'Altri tipi non categorizzabili', applicabileA: 'entrambi', predefinita: true, ordine: 10 }
+                    ];
+                    
+                    // Crea categorie principali mancanti
+                    const categorieMap = new Map(); // codice -> id
+                    for (const categoriaData of categorieLavoriPredefinite) {
+                        if (!codiciEsistenti.has(categoriaData.codice.toLowerCase())) {
+                            const categoriaId = await addDoc(categorieRef, {
+                                ...categoriaData,
+                                codice: categoriaData.codice.toLowerCase(),
+                                creatoDa: 'system',
+                                createdAt: serverTimestamp(),
+                                updatedAt: serverTimestamp()
+                            });
+                            categorieMap.set(categoriaData.codice.toLowerCase(), categoriaId);
+                            codiciEsistenti.add(categoriaData.codice.toLowerCase());
+                        } else {
+                            // Trova ID esistente
+                            const categoriaEsistente = Array.from(categorieSnapshot.docs).find(doc => {
+                                const data = doc.data();
+                                return data.codice && data.codice.toLowerCase() === categoriaData.codice.toLowerCase();
+                            });
+                            if (categoriaEsistente) {
+                                categorieMap.set(categoriaData.codice.toLowerCase(), categoriaEsistente.id);
+                            }
+                        }
+                    }
+                    
+                    // Sottocategorie predefinite
+                    const sottocategoriePredefinite = [
+                        // Lavorazione del Terreno
+                        { nome: 'Generale', codice: 'lavorazione_terreno_generale', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione standard per campi aperti', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Tra le File', codice: 'lavorazione_terreno_tra_file', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione tra le file di frutteti/vigneti', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        { nome: 'Sulla Fila', codice: 'lavorazione_terreno_sulla_fila', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione sulla fila di frutteti/vigneti', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
+                        // Trattamenti
+                        { nome: 'Manuale', codice: 'trattamenti_manuale', parentCodice: 'trattamenti', descrizione: 'Trattamenti eseguiti manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Meccanico', codice: 'trattamenti_meccanico', parentCodice: 'trattamenti', descrizione: 'Trattamenti eseguiti con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        // Potatura
+                        { nome: 'Manuale', codice: 'potatura_manuale', parentCodice: 'potatura', descrizione: 'Potatura eseguita manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Meccanico', codice: 'potatura_meccanico', parentCodice: 'potatura', descrizione: 'Potatura eseguita con attrezzi meccanici', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        // Raccolta
+                        { nome: 'Raccolta Manuale', codice: 'raccolta_manuale', parentCodice: 'raccolta', descrizione: 'Raccolta eseguita manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Raccolta Meccanica', codice: 'raccolta_meccanica', parentCodice: 'raccolta', descrizione: 'Raccolta eseguita con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        // Gestione del Verde
+                        { nome: 'Manuale', codice: 'gestione_verde_manuale', parentCodice: 'gestione_verde', descrizione: 'Gestione del verde eseguita manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Meccanico', codice: 'gestione_verde_meccanico', parentCodice: 'gestione_verde', descrizione: 'Gestione del verde eseguita con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        // Semina e Piantagione
+                        { nome: 'Manuale', codice: 'semina_piantagione_manuale', parentCodice: 'semina_piantagione', descrizione: 'Semina e piantagione eseguite manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Meccanico', codice: 'semina_piantagione_meccanico', parentCodice: 'semina_piantagione', descrizione: 'Semina e piantagione eseguite con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        // Diserbo
+                        { nome: 'Manuale', codice: 'diserbo_manuale', parentCodice: 'diserbo', descrizione: 'Diserbo eseguito manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Meccanico', codice: 'diserbo_meccanico', parentCodice: 'diserbo', descrizione: 'Diserbo eseguito con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 }
+                    ];
+                    
+                    // Rimuovi vecchie sottocategorie obsolete (es. "Meccanica" invece di "Meccanico")
+                    const codiciObsoleti = ['potatura_meccanica']; // Vecchi codici da rimuovere
+                    for (const codiceObsoleto of codiciObsoleti) {
+                        const sottocategoriaObsoleta = Array.from(categorieSnapshot.docs).find(doc => {
+                            const data = doc.data();
+                            return data.codice && data.codice.toLowerCase() === codiceObsoleto.toLowerCase();
+                        });
+                        if (sottocategoriaObsoleta) {
+                            try {
+                                await deleteDoc(doc(categorieRef, sottocategoriaObsoleta.id));
+                                console.log(`✅ Rimossa sottocategoria obsoleta: ${codiceObsoleto}`);
+                            } catch (error) {
+                                console.warn(`Impossibile rimuovere sottocategoria obsoleta ${codiceObsoleto}:`, error);
+                            }
+                        }
+                    }
+                    
+                    // Crea sottocategorie mancanti
+                    for (const sottocategoriaData of sottocategoriePredefinite) {
+                        if (!codiciEsistenti.has(sottocategoriaData.codice.toLowerCase())) {
+                            const parentId = categorieMap.get(sottocategoriaData.parentCodice.toLowerCase());
+                            if (parentId) {
+                                await addDoc(categorieRef, {
+                                    nome: sottocategoriaData.nome,
+                                    codice: sottocategoriaData.codice.toLowerCase(),
+                                    descrizione: sottocategoriaData.descrizione,
+                                    parentId: parentId,
+                                    applicabileA: sottocategoriaData.applicabileA,
+                                    predefinita: true,
+                                    ordine: sottocategoriaData.ordine,
+                                    creatoDa: 'system',
+                                    createdAt: serverTimestamp(),
+                                    updatedAt: serverTimestamp()
+                                });
+                                codiciEsistenti.add(sottocategoriaData.codice.toLowerCase());
+                            }
+                        }
+                    }
+                    
+                    // Attendi un momento per assicurarsi che le categorie siano disponibili
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (error) {
+                    console.error('Errore inizializzazione categorie tipi lavoro:', error);
+                }
+                
+                // Ora carica le categorie
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const snapshot = await getDocs(categorieRef);
+                
+                categorieTipiLavoroMap = {};
+                const categorieArray = [];
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Solo categorie per lavori (applicabileA === 'lavori' o 'entrambi')
+                    if (data.applicabileA === 'lavori' || data.applicabileA === 'entrambi') {
+                        if (!data.parentId) { // Solo categorie principali, non sottocategorie
+                            categorieTipiLavoroMap[doc.id] = { id: doc.id, ...data };
+                            categorieArray.push({ id: doc.id, ...data });
+                        }
+                    }
+                });
+                
+                // Ordina per ordine o nome
+                categorieArray.sort((a, b) => {
+                    if (a.ordine !== undefined && b.ordine !== undefined) {
+                        return a.ordine - b.ordine;
+                    }
+                    return (a.nome || '').localeCompare(b.nome || '');
+                });
+                
+                // Popola dropdown categoria
+                const select = document.getElementById('tipo-lavoro-categoria-select');
+                if (select) {
+                    select.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+                    categorieArray.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.nome || cat.codice || cat.id;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Errore caricamento categorie tipi lavoro:', error);
+            }
+        }
+        
+        // Carica tipi lavoro organizzati per categoria e sottocategoria
+        async function loadTipiLavoroPerCategoria() {
+            try {
+                if (!currentTenantId) return;
+                
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                const snapshot = await getDocs(tipiRef);
+                
+                tipiLavoroPerCategoria = {};
+                const tipiArray = [];
+                
+                snapshot.forEach(doc => {
+                    tipiArray.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Ordina client-side per nome
+                tipiArray.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                // Organizza per categoria e sottocategoria
+                tipiArray.forEach(tipo => {
+                    const categoriaId = tipo.categoriaId || 'senza_categoria';
+                    const sottocategoriaId = tipo.sottocategoriaId || 'senza_sottocategoria';
+                    
+                    if (!tipiLavoroPerCategoria[categoriaId]) {
+                        tipiLavoroPerCategoria[categoriaId] = {};
+                    }
+                    if (!tipiLavoroPerCategoria[categoriaId][sottocategoriaId]) {
+                        tipiLavoroPerCategoria[categoriaId][sottocategoriaId] = [];
+                    }
+                    tipiLavoroPerCategoria[categoriaId][sottocategoriaId].push(tipo);
+                });
+            } catch (error) {
+                console.error('Errore caricamento tipi lavoro per categoria:', error);
+            }
+        }
+        
+        // Aggiorna dropdown sottocategorie quando cambia la categoria
+        async function updateSottocategorieDropdown() {
+            const categoriaSelect = document.getElementById('tipo-lavoro-categoria-select');
+            const sottocategoriaSelect = document.getElementById('tipo-lavoro-sottocategoria-select');
+            const sottocategoriaGroup = document.getElementById('tipo-lavoro-sottocategoria-group');
+            
+            if (!categoriaSelect || !sottocategoriaSelect || !sottocategoriaGroup) return;
+            
+            const categoriaId = categoriaSelect.value;
+            sottocategoriaSelect.innerHTML = '<option value="">-- Seleziona sottocategoria (opzionale) --</option>';
+            
+            if (!categoriaId) {
+                sottocategoriaGroup.style.display = 'none';
+                updateTipiLavoroPredefinitiDropdown();
+                return;
+            }
+            
+            sottocategoriaGroup.style.display = 'block';
+            
+            try {
+                // Carica sottocategorie per questa categoria
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const snapshot = await getDocs(categorieRef);
+                
+                const sottocategorie = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.parentId === categoriaId) {
+                        sottocategorie.push({ id: doc.id, ...data });
+                    }
+                });
+                
+                // Ordina per ordine o nome
+                sottocategorie.sort((a, b) => {
+                    if (a.ordine !== undefined && b.ordine !== undefined) {
+                        return a.ordine - b.ordine;
+                    }
+                    return (a.nome || '').localeCompare(b.nome || '');
+                });
+                
+                sottocategorie.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub.id;
+                    option.textContent = sub.nome || sub.codice || sub.id;
+                    sottocategoriaSelect.appendChild(option);
+                });
+                
+                await updateTipiLavoroPredefinitiDropdown();
+            } catch (error) {
+                console.error('Errore caricamento sottocategorie:', error);
+            }
+        }
+        
+        // Aggiorna dropdown tipi lavoro predefiniti
+        async function updateTipiLavoroPredefinitiDropdown() {
+            const categoriaSelect = document.getElementById('tipo-lavoro-categoria-select');
+            const sottocategoriaSelect = document.getElementById('tipo-lavoro-sottocategoria-select');
+            const predeterminatoSelect = document.getElementById('new-tipo-lavoro-predeterminato');
+            
+            if (!categoriaSelect || !predeterminatoSelect) return;
+            
+            const categoriaId = categoriaSelect.value;
+            const sottocategoriaId = sottocategoriaSelect ? sottocategoriaSelect.value : null;
+            
+            predeterminatoSelect.innerHTML = '<option value="">-- Seleziona un tipo lavoro predefinito (opzionale) --</option>';
+            
+            if (!categoriaId) return;
+            
+            // Carica tipi lavoro predefiniti esistenti per evitare duplicati
+            const tipiEsistenti = new Set();
+            if (tipiLavoroPerCategoria[categoriaId]) {
+                Object.values(tipiLavoroPerCategoria[categoriaId]).forEach(tipi => {
+                    tipi.forEach(tipo => {
+                        if (tipo.predefinito) {
+                            tipiEsistenti.add(tipo.nome.toLowerCase());
+                        }
+                    });
+                });
+            }
+            
+            // Lista tipi lavoro predefiniti (inlined per evitare CORS)
+            const TIPI_LAVORO_PREDEFINITI_LIST = [
+                // Lavorazione del Terreno - Generale
+                { nome: 'Aratura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
+                { nome: 'Erpicatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
+                { nome: 'Fresatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
+                { nome: 'Vangatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
+                { nome: 'Ripuntatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
+                { nome: 'Estirpatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
+                { nome: 'Rullatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
+                // Lavorazione del Terreno - Tra le File
+                { nome: 'Fresatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file' },
+                { nome: 'Erpicatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file' },
+                { nome: 'Ripasso Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file' },
+                // Lavorazione del Terreno - Sulla Fila
+                { nome: 'Vangatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila' },
+                { nome: 'Zappatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila' },
+                { nome: 'Diserbo Meccanico Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila' },
+                // Trattamenti - Manuale
+                { nome: 'Trattamento Manuale', sottocategoriaCodice: 'trattamenti_manuale' },
+                { nome: 'Trattamento Anticrittogamico Manuale', sottocategoriaCodice: 'trattamenti_manuale' },
+                { nome: 'Trattamento Insetticida Manuale', sottocategoriaCodice: 'trattamenti_manuale' },
+                // Trattamenti - Meccanico
+                { nome: 'Trattamento Meccanico', sottocategoriaCodice: 'trattamenti_meccanico' },
+                { nome: 'Trattamento Anticrittogamico Meccanico', sottocategoriaCodice: 'trattamenti_meccanico' },
+                { nome: 'Trattamento Insetticida Meccanico', sottocategoriaCodice: 'trattamenti_meccanico' },
+                // Potatura - Manuale
+                { nome: 'Potatura', sottocategoriaCodice: 'potatura_manuale' },
+                { nome: 'Potatura di Formazione', sottocategoriaCodice: 'potatura_manuale' },
+                { nome: 'Potatura di Produzione', sottocategoriaCodice: 'potatura_manuale' },
+                { nome: 'Potatura di Rinnovamento', sottocategoriaCodice: 'potatura_manuale' },
+                { nome: 'Innesto', sottocategoriaCodice: 'potatura_manuale' },
+                // Potatura - Meccanico
+                { nome: 'Pre-potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico' },
+                { nome: 'Potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico' },
+                // Raccolta - Manuale
+                { nome: 'Raccolta Manuale', sottocategoriaCodice: 'raccolta_manuale' },
+                { nome: 'Raccolta con Cestini', sottocategoriaCodice: 'raccolta_manuale' },
+                { nome: 'Raccolta con Scale', sottocategoriaCodice: 'raccolta_manuale' },
+                // Raccolta - Meccanica
+                { nome: 'Raccolta Meccanica', sottocategoriaCodice: 'raccolta_meccanica' },
+                { nome: 'Raccolta con Scuotitore', sottocategoriaCodice: 'raccolta_meccanica' },
+                { nome: 'Raccolta con Raccoglitrici', sottocategoriaCodice: 'raccolta_meccanica' },
+                // Gestione del Verde - Manuale
+                { nome: 'Falciatura Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
+                { nome: 'Diserbo Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
+                { nome: 'Taglio Siepi Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
+                { nome: 'Manutenzione Verde Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
+                { nome: 'Scacchiatura', sottocategoriaCodice: 'gestione_verde_manuale' },
+                { nome: 'Spollonatura', sottocategoriaCodice: 'gestione_verde_manuale' },
+                { nome: 'Sfemminellatura', sottocategoriaCodice: 'gestione_verde_manuale' },
+                { nome: 'Pettinatura', sottocategoriaCodice: 'gestione_verde_manuale' },
+                // Gestione del Verde - Meccanico
+                { nome: 'Potatura a Verde Meccanica', sottocategoriaCodice: 'gestione_verde_meccanico' },
+                { nome: 'Legatura', sottocategoriaCodice: 'gestione_verde_meccanico' },
+                { nome: 'Defogliatura', sottocategoriaCodice: 'gestione_verde_meccanico' },
+                { nome: 'Taglio Siepi Meccanico', sottocategoriaCodice: 'gestione_verde_meccanico' },
+                // Semina e Piantagione - Manuale
+                { nome: 'Semina Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                { nome: 'Semina Diretta Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                { nome: 'Semina in Semenzaio', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                { nome: 'Trapianto Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                { nome: 'Trapianto Ortaggi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                { nome: 'Piantagione Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                { nome: 'Piantagione Alberi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                { nome: 'Piantagione Viti Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
+                // Semina e Piantagione - Meccanico
+                { nome: 'Semina Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
+                { nome: 'Semina Diretta Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
+                { nome: 'Trapianto Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico' },
+                { nome: 'Trapianto Ortaggi Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico' },
+                { nome: 'Piantagione Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
+                { nome: 'Piantagione Alberi Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
+                { nome: 'Piantagione Viti Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
+                // Diserbo - Manuale
+                { nome: 'Diserbo Manuale', sottocategoriaCodice: 'diserbo_manuale' },
+                { nome: 'Diserbo Localizzato', sottocategoriaCodice: 'diserbo_manuale' },
+                // Diserbo - Meccanico
+                { nome: 'Diserbo a Pieno Campo', sottocategoriaCodice: 'diserbo_meccanico' },
+                { nome: 'Diserbo sulla Fila', sottocategoriaCodice: 'diserbo_meccanico' },
+                { nome: 'Diserbo Meccanico', sottocategoriaCodice: 'diserbo_meccanico' }
+            ];
+            
+            // Trova la categoria selezionata per ottenere il codice
+            const categoria = categorieTipiLavoroMap[categoriaId];
+            if (!categoria) return;
+            
+            // Carica sottocategorie per ottenere codice -> id
+            const sottocategorieMap = {};
+            let codiceSottocategoriaSelezionata = null;
+            
+            if (sottocategoriaId) {
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const snapshot = await getDocs(categorieRef);
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (doc.id === sottocategoriaId && data.codice) {
+                        codiceSottocategoriaSelezionata = data.codice.toLowerCase();
+                        sottocategorieMap[codiceSottocategoriaSelezionata] = doc.id;
+                    }
+                });
+            }
+            
+            // Filtra tipi predefiniti per categoria/sottocategoria
+            const tipiFiltrati = TIPI_LAVORO_PREDEFINITI_LIST.filter(tipo => {
+                // Se c'è una sottocategoria selezionata, mostra SOLO i tipi di quella sottocategoria
+                if (sottocategoriaId && codiceSottocategoriaSelezionata) {
+                    if (!tipo.sottocategoriaCodice) {
+                        return false; // Se il tipo non ha sottocategoria, non mostrarlo quando una sottocategoria è selezionata
+                    }
+                    return tipo.sottocategoriaCodice.toLowerCase() === codiceSottocategoriaSelezionata;
+                }
+                // Se non c'è sottocategoria selezionata, mostra solo i tipi senza sottocategoria specifica
+                // o tutti i tipi della categoria (per ora mostriamo tutti)
+                return true;
+            });
+            
+            // Rimuovi duplicati già presenti
+            tipiFiltrati.forEach(tipo => {
+                if (!tipiEsistenti.has(tipo.nome.toLowerCase())) {
+                    const option = document.createElement('option');
+                    option.value = tipo.nome;
+                    option.textContent = tipo.nome;
+                    predeterminatoSelect.appendChild(option);
+                }
+            });
+        }
+        
+        // Quando viene selezionato un tipo predefinito, popola il campo nome
+        function onTipoLavoroPredeterminatoChange() {
+            const predeterminatoSelect = document.getElementById('new-tipo-lavoro-predeterminato');
+            const nomeInput = document.getElementById('new-tipo-lavoro');
+            
+            if (predeterminatoSelect && nomeInput && predeterminatoSelect.value) {
+                nomeInput.value = predeterminatoSelect.value;
+            }
+        }
+        
+        // Render tipi lavoro (solo custom, organizzati per categoria/sottocategoria)
+        function renderTipiLavoro(tipiLavoroDocs) {
+            const container = document.getElementById('tipi-lavoro-list');
+            
+            // Filtra solo tipi custom (non predefiniti)
+            const tipiCustom = tipiLavoroDocs.filter(tipo => {
+                if (typeof tipo === 'string') return false; // Skip stringhe legacy
+                return tipo.predefinito !== true;
+            });
+            
+            if (tipiCustom.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nessun tipo lavoro personalizzato aggiunto. Usa i dropdown sopra per aggiungere tipi lavoro predefiniti o personalizzati.</div>';
+                return;
+            }
+            
+            // Organizza per categoria e sottocategoria
+            const tipiPerCategoria = {};
+            tipiCustom.forEach(tipo => {
+                const categoriaId = tipo.categoriaId || 'senza_categoria';
+                const sottocategoriaId = tipo.sottocategoriaId || 'senza_sottocategoria';
+                
+                if (!tipiPerCategoria[categoriaId]) {
+                    tipiPerCategoria[categoriaId] = {};
+                }
+                if (!tipiPerCategoria[categoriaId][sottocategoriaId]) {
+                    tipiPerCategoria[categoriaId][sottocategoriaId] = [];
+                }
+                tipiPerCategoria[categoriaId][sottocategoriaId].push(tipo);
+            });
+            
+            let html = '';
+            let hasTipiCustom = false;
+            
+            // Renderizza per categoria
+            Object.keys(tipiPerCategoria).sort().forEach(categoriaId => {
+                const categoria = categorieTipiLavoroMap[categoriaId];
+                const sottocategorie = tipiPerCategoria[categoriaId];
+                
+                // Conta se ci sono tipi custom in questa categoria
+                let hasTipiInCategoria = false;
+                Object.values(sottocategorie).forEach(tipi => {
+                    if (tipi.length > 0) hasTipiInCategoria = true;
+                });
+                
+                if (!hasTipiInCategoria) return;
+                
+                hasTipiCustom = true;
+                html += `<div style="margin-bottom: 25px;">`;
+                html += `<h4 style="color: #666; font-size: 16px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e9ecef;">${escapeHtml(categoria?.nome || 'Senza Categoria')}</h4>`;
+                
+                // Renderizza per sottocategoria
+                Object.keys(sottocategorie).sort().forEach(sottocategoriaId => {
+                    const tipi = sottocategorie[sottocategoriaId];
+                    if (tipi.length === 0) return;
+                    
+                    // Carica nome sottocategoria se disponibile
+                    let sottocategoriaNome = 'Senza Sottocategoria';
+                    if (sottocategoriaId !== 'senza_sottocategoria') {
+                        // Cerca nella mappa sottocategorie
+                        const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                        getDocs(categorieRef).then(snapshot => {
+                            snapshot.forEach(doc => {
+                                if (doc.id === sottocategoriaId) {
+                                    sottocategoriaNome = doc.data().nome || sottocategoriaNome;
+                                }
+                            });
+                        }).catch(() => {});
+                    }
+                    
+                    if (sottocategoriaId !== 'senza_sottocategoria') {
+                        html += `<h5 style="color: #888; font-size: 14px; margin: 10px 0 5px 15px;">${escapeHtml(sottocategoriaNome)}</h5>`;
+                    }
+                    
+                    tipi.forEach(tipo => {
+                        html += `
+                            <div class="list-item" style="margin-left: ${sottocategoriaId !== 'senza_sottocategoria' ? '30px' : '15px'};">
+                                <div class="list-item-name">
+                                    <span>${escapeHtml(tipo.nome)}</span>
+                                    <span class="badge badge-custom">Custom</span>
+                                </div>
+                                <button class="btn btn-danger btn-small" onclick="removeTipoLavoro('${escapeHtml(tipo.nome)}', '${tipo.id || ''}')" title="Elimina">
+                                    🗑️ Elimina
+                                </button>
+                            </div>
+                        `;
+                    });
+                });
+                
+                html += `</div>`;
+            });
+            
+            if (!hasTipiCustom) {
+                container.innerHTML = '<div class="empty-state">Nessun tipo lavoro personalizzato aggiunto. Usa i dropdown sopra per aggiungere tipi lavoro predefiniti o personalizzati.</div>';
+            } else {
+                container.innerHTML = html;
+            }
+        }
+        
+        // Variabili globali per categorie e colture
+        let categorieColture = [];
+        let colturePerCategoria = {};
+        let isMigratingColture = false; // Flag per prevenire loop infiniti
+        let migrazioneTentata = false; // Flag per evitare tentativi multipli di migrazione
+
+        // Carica categorie per colture usando categorie-service.js
+        async function loadCategorieColture() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
+                const isFileProtocol = window.location.protocol === 'file:';
+                
+                if (isFileProtocol) {
+                    // Fallback: carica direttamente da Firestore
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const categorieSnapshot = await getDocs(categorieRef);
+                    
+                    categorieColture = [];
+                    categorieSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.applicabileA === 'colture') {
+                            categorieColture.push({ id: doc.id, ...data });
+                        }
+                    });
+                    
+                    categorieColture.sort((a, b) => {
+                        const ordineA = a.ordine || 999;
+                        const ordineB = b.ordine || 999;
+                        return ordineA - ordineB;
+                    });
+                } else {
+                    // Usa categorie-service.js invece di caricamento diretto
+                    // Assicura che Firebase sia inizializzato nel servizio
+                    const { setFirebaseInstances } = await import('../services/firebase-service.js');
+                    setFirebaseInstances({ app, db, auth });
+                    
+                    // Assicura che il tenantId sia impostato nel servizio
+                    const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                    if (currentTenantId) {
+                        setCurrentTenantId(currentTenantId);
+                    }
+                    
+                    const { getAllCategorie } = await import('../services/categorie-service.js');
+                    const categorie = await getAllCategorie({
+                        applicabileA: 'colture',
+                        orderBy: 'ordine',
+                        orderDirection: 'asc'
+                    });
+
+                    categorieColture = categorie;
+                }
+                
+                // Popola dropdown categoria
+                const categoriaSelect = document.getElementById('coltura-categoria-select');
+                if (categoriaSelect) {
+                    categoriaSelect.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+                    categorieColture.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.nome;
+                        categoriaSelect.appendChild(option);
+                    });
+                    
+                    // Aggiungi listener per aggiornare dropdown colture predefinite
+                    categoriaSelect.addEventListener('change', updateColturePredefiniteDropdown);
+                }
+                
+                // Aggiorna dropdown colture predefinite solo se c'è una categoria selezionata
+                // (viene chiamata anche quando cambia la categoria)
+                if (categoriaSelect && categoriaSelect.value) {
+                    await updateColturePredefiniteDropdown();
+                }
+            } catch (error) {
+                console.error('Errore caricamento categorie colture:', error);
+            }
+        }
+
+        // Carica colture organizzate per categoria usando colture-service.js
+        async function loadColturePerCategoria() {
+            try {
+                if (!currentTenantId) return;
+                
+                // Prevenire chiamate multiple durante la migrazione
+                if (isMigratingColture) {
+                    console.log('⏳ Migrazione in corso, attendo...');
+                    return;
+                }
+                
+                // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
+                const isFileProtocol = window.location.protocol === 'file:';
+                
+                if (isFileProtocol) {
+                    // Fallback: carica direttamente da Firestore
+                    const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                    let coltureSnapshot = await getDocs(coltureRef);
+                    
+                    // Se ci sono poche colture (meno di 20), inizializza quelle predefinite
+                    if (coltureSnapshot.size < 20) {
+                        await initializeColturePredefiniteImpostazioni();
+                        coltureSnapshot = await getDocs(coltureRef);
+                    }
+                    
+                    colturePerCategoria = {};
+                    const coltureArray = [];
+                    coltureSnapshot.forEach(doc => {
+                        coltureArray.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    coltureArray.sort((a, b) => {
+                        const nomeA = (a.nome || '').toLowerCase();
+                        const nomeB = (b.nome || '').toLowerCase();
+                        return nomeA.localeCompare(nomeB);
+                    });
+                    
+                    // Carica categorie valide per filtrare
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const categorieSnapshot = await getDocs(categorieRef);
+                    const categorieValideSet = new Set();
+                    categorieSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.applicabileA === 'colture') {
+                            categorieValideSet.add(doc.id);
+                        }
+                    });
+                    
+                    // Organizza per categoria
+                    coltureArray.forEach(coltura => {
+                        const categoriaId = coltura.categoriaId || 'senza_categoria';
+                        
+                        if (categoriaId !== 'senza_categoria' && !categorieValideSet.has(categoriaId)) {
+                            const categoriaIdCorretto = 'senza_categoria';
+                            if (!colturePerCategoria[categoriaIdCorretto]) {
+                                colturePerCategoria[categoriaIdCorretto] = [];
+                            }
+                            colturePerCategoria[categoriaIdCorretto].push(coltura);
+                            return;
+                        }
+                        
+                        if (!colturePerCategoria[categoriaId]) {
+                            colturePerCategoria[categoriaId] = [];
+                        }
+                        colturePerCategoria[categoriaId].push(coltura);
+                    });
+                } else {
+                    // Assicura che Firebase sia inizializzato nel servizio
+                    const { setFirebaseInstances } = await import('../services/firebase-service.js');
+                    setFirebaseInstances({ app, db, auth });
+                    
+                    // Assicura che il tenantId sia impostato nel servizio
+                    const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                    if (currentTenantId) {
+                        setCurrentTenantId(currentTenantId);
+                    }
+                    
+                    // Assicura che le colture predefinite siano inizializzate
+                    const { initializeColturePredefinite, getColturePerCategoria, getAllColture } = await import('../services/colture-service.js');
+                    
+                    // Verifica se ci sono poche colture e inizializza se necessario
+                    const coltureEsistenti = await getAllColture();
+                    if (coltureEsistenti.length < 20) {
+                        await initializeColturePredefinite();
+                    }
+
+                    // Usa colture-service.js invece di caricamento diretto
+                    colturePerCategoria = await getColturePerCategoria();
+                    console.log('✅ Colture per categoria caricate:', Object.keys(colturePerCategoria).length, 'categorie');
+                }
+                
+                // Se colture è vuoto, prova migrazione automatica (solo se non già tentata)
+                if (Object.keys(colturePerCategoria).length === 0 && !migrazioneTentata) {
+                    console.log('ℹ️ colture vuoto, provo migrazione da ListePersonalizzate...');
+                    await migraColtureAutomatica();
+                    
+                    // Ricarica dopo migrazione (solo se non siamo già in un loop)
+                    if (!isMigratingColture) {
+                        colturePerCategoria = await getColturePerCategoria();
+                    }
+                }
+                
+                renderColture();
+            } catch (error) {
+                console.warn('Impossibile caricare da colture, uso ListePersonalizzate:', error.message);
+                // Fallback: usa ListePersonalizzate
+                try {
+                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                    const listeSnap = await getDoc(listeRef);
+                    if (listeSnap.exists()) {
+                        const data = listeSnap.data();
+                        const colture = data.colture || [];
+                        // Converti in formato gerarchico per retrocompatibilità
+                        colturePerCategoria = { 'senza_categoria': colture.map(nome => ({ nome, categoriaId: null })) };
+                        renderColture();
+                    }
+                } catch (e) {
+                    console.error('Errore fallback ListePersonalizzate:', e);
+                }
+            }
+        }
+
+        // Render colture organizzate per categoria (SOLO colture custom aggiunte dall'utente, non predefinite)
+        function renderColture() {
             const container = document.getElementById('colture-list');
-            container.innerHTML = colture.map(coltura => {
-                const isPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === coltura.toLowerCase());
-                return `
-                    <div class="list-item">
-                        <div class="list-item-name">
-                            <span>${escapeHtml(coltura)}</span>
-                            <span class="badge ${isPredefinita ? 'badge-predefinito' : 'badge-custom'}">
-                                ${isPredefinita ? 'Predefinito' : 'Custom'}
-                            </span>
+            if (!container) return;
+            
+            if (Object.keys(colturePerCategoria).length === 0) {
+                container.innerHTML = '<div class="empty-state">Nessuna coltura disponibile. Usa i dropdown sopra per aggiungere colture predefinite o personalizzate.</div>';
+                return;
+            }
+            
+            let html = '';
+            let hasColture = false;
+            
+            // Crea mappa delle categorie valide (solo quelle con applicabileA === 'colture')
+            const categorieValideMap = new Map();
+            categorieColture.forEach(cat => {
+                if (cat.applicabileA === 'colture') {
+                    categorieValideMap.set(cat.id, cat);
+                }
+            });
+            
+            // Renderizza SOLO le colture custom (non predefinite) per ogni categoria
+            categorieColture.forEach(categoria => {
+                if (categoria.applicabileA !== 'colture') return;
+                if (!categorieValideMap.has(categoria.id)) return;
+                
+                const colture = colturePerCategoria[categoria.id] || [];
+                
+                // Filtra solo le colture custom (non predefinite)
+                const coltureCustom = colture.filter(c => c.predefinito !== true);
+                
+                if (coltureCustom.length === 0) return;
+                
+                hasColture = true;
+                
+                html += `<div style="margin-bottom: 25px;">`;
+                html += `<h4 style="color: #2E8B57; font-size: 16px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e9ecef;">${escapeHtml(categoria.nome)}</h4>`;
+                
+                // Ordina per nome
+                coltureCustom.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                coltureCustom.forEach(coltura => {
+                    html += `
+                        <div class="list-item" style="margin-left: 15px;">
+                            <div class="list-item-name">
+                                <span>${escapeHtml(coltura.nome)}</span>
+                                <span class="badge badge-custom">Custom</span>
+                            </div>
+                            <button class="btn btn-danger btn-small" onclick="removeColtura('${escapeHtml(coltura.nome)}', '${coltura.id}')" title="Elimina">🗑️ Elimina</button>
                         </div>
-                        ${!isPredefinita ? `
-                            <button class="btn btn-danger btn-small" onclick="removeColtura('${escapeHtml(coltura)}')" title="Elimina">
-                                🗑️ Elimina
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            // Colture senza categoria (retrocompatibilità) - solo custom
+            if (colturePerCategoria['senza_categoria'] && colturePerCategoria['senza_categoria'].length > 0) {
+                const coltureSenzaCategoria = colturePerCategoria['senza_categoria'];
+                
+                // Filtra solo le colture custom (non predefinite)
+                const coltureCustomSenzaCategoria = coltureSenzaCategoria.filter(coltura => {
+                    if (typeof coltura === 'object') {
+                        return coltura.predefinito !== true;
+                    }
+                    // Se è una stringa, è probabilmente custom (vecchio formato)
+                    return true;
+                });
+                
+                if (coltureCustomSenzaCategoria.length > 0) {
+                    hasColture = true;
+                    html += `<div style="margin-bottom: 25px;">`;
+                    html += `<h4 style="color: #666; font-size: 16px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e9ecef;">Senza Categoria</h4>`;
+                    coltureCustomSenzaCategoria.forEach(coltura => {
+                        const nomeColtura = typeof coltura === 'object' ? coltura.nome : coltura;
+                        const colturaId = typeof coltura === 'object' ? coltura.id : '';
+                        
+                        html += `
+                            <div class="list-item" style="margin-left: 15px;">
+                                <div class="list-item-name">
+                                    <span>${escapeHtml(nomeColtura)}</span>
+                                    <span class="badge badge-custom">Custom</span>
+                                </div>
+                                <button class="btn btn-danger btn-small" onclick="removeColtura('${escapeHtml(nomeColtura)}', '${colturaId}')" title="Elimina">🗑️ Elimina</button>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+            }
+            
+            if (!hasColture) {
+                container.innerHTML = '<div class="empty-state">Nessuna coltura disponibile. Usa i dropdown sopra per aggiungere colture predefinite o personalizzate.</div>';
+            } else {
+                container.innerHTML = html;
+            }
         }
         
         // Aggiungi tipo lavoro
         async function addTipoLavoro() {
             const input = document.getElementById('new-tipo-lavoro');
+            const categoriaSelect = document.getElementById('tipo-lavoro-categoria-select');
+            const sottocategoriaSelect = document.getElementById('tipo-lavoro-sottocategoria-select');
+            
             const nome = input.value.trim();
+            const categoriaId = categoriaSelect ? categoriaSelect.value : null;
+            const sottocategoriaId = sottocategoriaSelect && sottocategoriaSelect.value ? sottocategoriaSelect.value : null;
             
             if (!nome) {
                 showAlert('Inserisci un nome per il tipo lavoro', 'error');
+                return;
+            }
+            
+            if (!categoriaId) {
+                showAlert('Seleziona una categoria', 'error');
                 return;
             }
             
@@ -1263,46 +2649,64 @@
             }
             
             try {
-                // Carica liste esistenti
-                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
+                // Verifica se esiste già in tipiLavoro nella stessa categoria/sottocategoria (case-insensitive)
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                const tipiEsistenti = await getDocs(tipiRef);
+                const nomeLower = nome.toLowerCase();
                 
-                let tipiLavoro = [...TIPI_LAVORO_PREDEFINITI];
-                if (listeSnap.exists()) {
-                    const data = listeSnap.data();
-                    tipiLavoro = data.tipiLavoro || tipiLavoro;
-                }
+                const duplicato = Array.from(tipiEsistenti.docs).find(doc => {
+                    const data = doc.data();
+                    return data.nome.toLowerCase() === nomeLower &&
+                           data.categoriaId === categoriaId &&
+                           (data.sottocategoriaId || null) === (sottocategoriaId || null);
+                });
                 
-                // Verifica duplicati (case-insensitive)
-                if (tipiLavoro.some(t => t.toLowerCase() === nome.toLowerCase())) {
-                    showAlert('Questo tipo lavoro è già presente', 'error');
+                if (duplicato) {
+                    showAlert('Questo tipo lavoro è già presente in questa categoria/sottocategoria', 'error');
                     return;
                 }
                 
-                // Aggiungi nuovo tipo lavoro
-                tipiLavoro.push(nome);
-                
-                // Ordina: prima predefiniti, poi custom
-                tipiLavoro.sort((a, b) => {
-                    const aIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === a.toLowerCase());
-                    const bIsPredefinito = TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === b.toLowerCase());
-                    if (aIsPredefinito && !bIsPredefinito) return -1;
-                    if (!aIsPredefinito && bIsPredefinito) return 1;
-                    return a.localeCompare(b);
+                // Crea tipo lavoro in tipiLavoro
+                await addDoc(tipiRef, {
+                    nome: nome,
+                    categoriaId: categoriaId,
+                    sottocategoriaId: sottocategoriaId || null,
+                    descrizione: null,
+                    predefinito: false,
+                    creatoDa: currentUser?.uid || 'system',
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
                 });
                 
-                // Salva
-                const listeData = {
-                    tipiLavoro: tipiLavoro,
-                    colture: listeSnap.exists() ? (listeSnap.data().colture || COLTURE_PREDEFINITE) : COLTURE_PREDEFINITE,
-                    updatedAt: serverTimestamp()
-                };
-                
-                if (!listeSnap.exists()) {
-                    listeData.createdAt = serverTimestamp();
+                // Sincronizza ListePersonalizzate (per retrocompatibilità)
+                try {
+                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                    const listeSnap = await getDoc(listeRef);
+                    let tipiLavoroList = [];
+                    
+                    if (listeSnap.exists()) {
+                        tipiLavoroList = listeSnap.data().tipiLavoro || [];
+                    }
+                    
+                    if (!tipiLavoroList.includes(nome)) {
+                        tipiLavoroList.push(nome);
+                        tipiLavoroList.sort();
+                        
+                        const listeData = {
+                            tipiLavoro: tipiLavoroList,
+                            colture: listeSnap.exists() ? (listeSnap.data().colture || COLTURE_PREDEFINITE) : COLTURE_PREDEFINITE,
+                            updatedAt: serverTimestamp()
+                        };
+                        
+                        if (!listeSnap.exists()) {
+                            listeData.createdAt = serverTimestamp();
+                        }
+                        
+                        await setDoc(listeRef, listeData);
+                    }
+                } catch (error) {
+                    console.warn('Impossibile sincronizzare ListePersonalizzate:', error);
                 }
-                
-                await setDoc(listeRef, listeData);
                 
                 input.value = '';
                 showAlert('Tipo lavoro aggiunto con successo', 'success');
@@ -1313,67 +2717,277 @@
             }
         }
         
-        // Rimuovi tipo lavoro
-        async function removeTipoLavoro(tipoLavoro) {
+        // Rimuovi tipo lavoro (ora elimina da tipiLavoro)
+        async function removeTipoLavoro(tipoLavoro, tipoLavoroId) {
             if (!currentTenantId) {
                 showAlert('Tenant ID non disponibile', 'error');
                 return;
             }
             
-            // Verifica se è predefinito
-            if (TIPI_LAVORO_PREDEFINITI.some(p => p.toLowerCase() === tipoLavoro.toLowerCase())) {
-                showAlert('Non è possibile eliminare un tipo lavoro predefinito', 'error');
-                return;
-            }
-            
-            // Verifica se usato in attività
             try {
-                const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
-                const q = query(attivitaCollection, where('tipoLavoro', '==', tipoLavoro));
-                const querySnapshot = await getDocs(q);
-                const numAttivita = querySnapshot.size;
+                const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
+                let tipoDoc = null;
                 
-                if (numAttivita > 0) {
-                    if (!confirm(`Questo tipo lavoro è usato in ${numAttivita} attività. Eliminare comunque?`)) {
-                        return;
+                // Se abbiamo l'ID, usa quello (più preciso)
+                if (tipoLavoroId) {
+                    const tipoRef = doc(tipiRef, tipoLavoroId);
+                    const tipoSnap = await getDoc(tipoRef);
+                    if (tipoSnap.exists()) {
+                        tipoDoc = { id: tipoSnap.id, data: tipoSnap.data() };
                     }
                 }
-            } catch (e) {
-                console.warn('Errore verifica attività:', e);
-            }
-            
-            try {
-                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
                 
-                if (!listeSnap.exists()) {
-                    showAlert('Liste non trovate', 'error');
+                // Altrimenti cerca per nome
+                if (!tipoDoc) {
+                    const tipiSnapshot = await getDocs(query(tipiRef, where('nome', '==', tipoLavoro)));
+                    if (!tipiSnapshot.empty) {
+                        // Prendi il primo non predefinito, o il primo se tutti sono predefiniti
+                        const tipoNonPredefinito = tipiSnapshot.docs.find(doc => doc.data().predefinito !== true);
+                        if (tipoNonPredefinito) {
+                            tipoDoc = { id: tipoNonPredefinito.id, data: tipoNonPredefinito.data() };
+                        } else {
+                            // Tutti sono predefiniti, prendi il primo
+                            tipoDoc = { id: tipiSnapshot.docs[0].id, data: tipiSnapshot.docs[0].data() };
+                        }
+                    }
+                }
+                
+                if (!tipoDoc) {
+                    showAlert('Tipo lavoro non trovato', 'error');
                     return;
                 }
                 
-                const data = listeSnap.data();
-                const tipiLavoro = (data.tipiLavoro || []).filter(t => t !== tipoLavoro);
+                // IMPORTANTE: Verifica SOLO il campo predefinito nel documento
+                if (tipoDoc.data.predefinito === true) {
+                    showAlert('Non è possibile eliminare un tipo lavoro predefinito', 'error');
+                    return;
+                }
                 
-                await updateDoc(listeRef, {
-                    tipiLavoro: tipiLavoro,
-                    updatedAt: serverTimestamp()
-                });
+                // Verifica se è usato
+                const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
+                const attivitaQuery = query(attivitaCollection, where('tipoLavoro', '==', tipoLavoro));
+                const attivitaSnapshot = await getDocs(attivitaQuery);
+                
+                const lavoriCollection = collection(db, `tenants/${currentTenantId}/lavori`);
+                const lavoriQuery = query(lavoriCollection, where('tipoLavoro', '==', tipoLavoro));
+                const lavoriSnapshot = await getDocs(lavoriQuery);
+                
+                const numAttivita = attivitaSnapshot.size;
+                const numLavori = lavoriSnapshot.size;
+                
+                if (numAttivita > 0 || numLavori > 0) {
+                    if (!confirm(`Questo tipo lavoro è usato in ${numAttivita} attività e ${numLavori} lavori. Eliminare comunque?`)) {
+                        return;
+                    }
+                }
+                
+                // Elimina il documento specifico
+                await deleteDoc(doc(tipiRef, tipoDoc.id));
+                
+                console.log(`✅ Eliminato tipo lavoro "${tipoLavoro}"`);
+                
+                // Sincronizza ListePersonalizzate (per retrocompatibilità)
+                try {
+                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                    const listeSnap = await getDoc(listeRef);
+                    
+                    if (listeSnap.exists()) {
+                        const data = listeSnap.data();
+                        const tipiLavoroList = (data.tipiLavoro || []).filter(t => t !== tipoLavoro);
+                        
+                        await updateDoc(listeRef, {
+                            tipiLavoro: tipiLavoroList,
+                            updatedAt: serverTimestamp()
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Impossibile sincronizzare ListePersonalizzate:', error);
+                }
+                
+                // Ricarica liste
+                await loadTipiLavoroPerCategoria();
+                await loadListe();
                 
                 showAlert('Tipo lavoro eliminato con successo', 'success');
-                await loadListe();
             } catch (error) {
-                console.error('Errore rimozione tipo lavoro:', error);
-                showAlert('Errore durante l\'eliminazione: ' + error.message, 'error');
+                console.error('Errore eliminazione tipo lavoro:', error);
+                showAlert('Errore eliminazione tipo lavoro: ' + error.message, 'error');
+            }
+        }
+        
+        // Aggiorna dropdown colture predefinite in base alla categoria selezionata
+        async function updateColturePredefiniteDropdown() {
+            const categoriaSelect = document.getElementById('coltura-categoria-select');
+            const colturaPredeterminataSelect = document.getElementById('new-coltura-predeterminata');
+            
+            if (!colturaPredeterminataSelect) {
+                console.warn('⚠️ Dropdown colture predefinite non trovato');
+                return;
+            }
+            
+            // Reset dropdown
+            colturaPredeterminataSelect.innerHTML = '<option value="">-- Seleziona una coltura predefinita (opzionale) --</option>';
+            
+            const categoriaId = categoriaSelect?.value;
+            if (!categoriaId) {
+                console.log('ℹ️ Nessuna categoria selezionata');
+                return;
+            }
+            
+            // Trova il codice della categoria
+            const categoria = categorieColture.find(c => c.id === categoriaId);
+            if (!categoria) {
+                return;
+            }
+            if (!categoria.codice) {
+                return;
+            }
+            
+            // Carica colture predefinite (definite direttamente per evitare problemi di import)
+            try {
+                // Colture predefinite organizzate per categoria
+                const COLTURE_PREDEFINITE = [
+                    // Frutteto
+                    { nome: 'Pesco', categoriaCodice: 'frutteto' }, { nome: 'Melo', categoriaCodice: 'frutteto' },
+                    { nome: 'Pero', categoriaCodice: 'frutteto' }, { nome: 'Albicocche', categoriaCodice: 'frutteto' },
+                    { nome: 'Prugne', categoriaCodice: 'frutteto' }, { nome: 'Ciliegio', categoriaCodice: 'frutteto' },
+                    { nome: 'Susino', categoriaCodice: 'frutteto' }, { nome: 'Fico', categoriaCodice: 'frutteto' },
+                    { nome: 'Nocciolo', categoriaCodice: 'frutteto' }, { nome: 'Mandorlo', categoriaCodice: 'frutteto' },
+                    { nome: 'Castagno', categoriaCodice: 'frutteto' }, { nome: 'Cotogno', categoriaCodice: 'frutteto' },
+                    { nome: 'Sorbo', categoriaCodice: 'frutteto' }, { nome: 'Nespolo', categoriaCodice: 'frutteto' },
+                    { nome: 'Giuggiolo', categoriaCodice: 'frutteto' }, { nome: 'Corbezzolo', categoriaCodice: 'frutteto' },
+                    { nome: 'Gelso', categoriaCodice: 'frutteto' }, { nome: 'Mora', categoriaCodice: 'frutteto' },
+                    { nome: 'Lampone', categoriaCodice: 'frutteto' }, { nome: 'Mirtillo', categoriaCodice: 'frutteto' },
+                    { nome: 'Ribes', categoriaCodice: 'frutteto' }, { nome: 'Uva Spina', categoriaCodice: 'frutteto' },
+                    { nome: 'Kiwi', categoriaCodice: 'frutteto' }, { nome: 'Melograno', categoriaCodice: 'frutteto' },
+                    { nome: 'Fico d\'India', categoriaCodice: 'frutteto' }, { nome: 'Kaki', categoriaCodice: 'frutteto' },
+                    { nome: 'Noce', categoriaCodice: 'frutteto' }, { nome: 'Pistacchio', categoriaCodice: 'frutteto' },
+                    // Seminativo
+                    { nome: 'Grano', categoriaCodice: 'seminativo' }, { nome: 'Mais', categoriaCodice: 'seminativo' },
+                    { nome: 'Orzo', categoriaCodice: 'seminativo' }, { nome: 'Favino', categoriaCodice: 'seminativo' },
+                    { nome: 'Girasole', categoriaCodice: 'seminativo' }, { nome: 'Soia', categoriaCodice: 'seminativo' },
+                    { nome: 'Colza', categoriaCodice: 'seminativo' }, { nome: 'Avena', categoriaCodice: 'seminativo' },
+                    { nome: 'Segale', categoriaCodice: 'seminativo' }, { nome: 'Fava', categoriaCodice: 'seminativo' },
+                    { nome: 'Lenticchia', categoriaCodice: 'seminativo' }, { nome: 'Cece', categoriaCodice: 'seminativo' },
+                    { nome: 'Lupino', categoriaCodice: 'seminativo' }, { nome: 'Cicerchia', categoriaCodice: 'seminativo' },
+                    { nome: 'Riso', categoriaCodice: 'seminativo' }, { nome: 'Grano Saraceno', categoriaCodice: 'seminativo' },
+                    { nome: 'Amaranto', categoriaCodice: 'seminativo' }, { nome: 'Quinoa', categoriaCodice: 'seminativo' },
+                    { nome: 'Canapa', categoriaCodice: 'seminativo' }, { nome: 'Lino', categoriaCodice: 'seminativo' },
+                    { nome: 'Carthamo', categoriaCodice: 'seminativo' }, { nome: 'Erba Medica', categoriaCodice: 'seminativo' },
+                    { nome: 'Trifoglio', categoriaCodice: 'seminativo' }, { nome: 'Veccia', categoriaCodice: 'seminativo' },
+                    { nome: 'Lupinella', categoriaCodice: 'seminativo' }, { nome: 'Sulla', categoriaCodice: 'seminativo' },
+                    { nome: 'Sorgo', categoriaCodice: 'seminativo' }, { nome: 'Miglio', categoriaCodice: 'seminativo' },
+                    { nome: 'Panico', categoriaCodice: 'seminativo' },
+                    // Vite
+                    { nome: 'Vite', categoriaCodice: 'vite' },
+                    { nome: 'Vite da Tavola', categoriaCodice: 'vite' },
+                    { nome: 'Vite da Vino', categoriaCodice: 'vite' },
+                    // Ortive
+                    { nome: 'Pomodoro', categoriaCodice: 'ortive' }, { nome: 'Zucchine', categoriaCodice: 'ortive' },
+                    { nome: 'Melanzane', categoriaCodice: 'ortive' }, { nome: 'Peperoni', categoriaCodice: 'ortive' },
+                    { nome: 'Insalata', categoriaCodice: 'ortive' }, { nome: 'Carote', categoriaCodice: 'ortive' },
+                    { nome: 'Patate', categoriaCodice: 'ortive' }, { nome: 'Bietole', categoriaCodice: 'ortive' },
+                    { nome: 'Fragole', categoriaCodice: 'ortive' }, { nome: 'Cipolle', categoriaCodice: 'ortive' },
+                    { nome: 'Aglio', categoriaCodice: 'ortive' }, { nome: 'Fagioli', categoriaCodice: 'ortive' },
+                    { nome: 'Fagiolini', categoriaCodice: 'ortive' }, { nome: 'Piselli', categoriaCodice: 'ortive' },
+                    { nome: 'Cavolo', categoriaCodice: 'ortive' }, { nome: 'Broccoli', categoriaCodice: 'ortive' },
+                    { nome: 'Cavolfiore', categoriaCodice: 'ortive' }, { nome: 'Spinaci', categoriaCodice: 'ortive' },
+                    { nome: 'Lattuga', categoriaCodice: 'ortive' }, { nome: 'Radicchio', categoriaCodice: 'ortive' },
+                    { nome: 'Finocchi', categoriaCodice: 'ortive' }, { nome: 'Sedano', categoriaCodice: 'ortive' },
+                    { nome: 'Cetrioli', categoriaCodice: 'ortive' }, { nome: 'Angurie', categoriaCodice: 'ortive' },
+                    { nome: 'Meloni', categoriaCodice: 'ortive' },
+                    // Prato
+                    { nome: 'Prato', categoriaCodice: 'prato' }, { nome: 'Prato Stabile', categoriaCodice: 'prato' },
+                    { nome: 'Pascolo', categoriaCodice: 'prato' },
+                    // Olivo
+                    { nome: 'Olivo', categoriaCodice: 'olivo' },
+                    // Agrumeto
+                    { nome: 'Arancio', categoriaCodice: 'agrumeto' }, { nome: 'Limone', categoriaCodice: 'agrumeto' },
+                    { nome: 'Mandarino', categoriaCodice: 'agrumeto' }, { nome: 'Clementine', categoriaCodice: 'agrumeto' },
+                    { nome: 'Pompelmo', categoriaCodice: 'agrumeto' }, { nome: 'Bergamotto', categoriaCodice: 'agrumeto' },
+                    { nome: 'Cedro', categoriaCodice: 'agrumeto' }, { nome: 'Lime', categoriaCodice: 'agrumeto' },
+                    { nome: 'Kumquat', categoriaCodice: 'agrumeto' }
+                ];
+                
+                // Filtra colture predefinite per questa categoria
+                const coltureCategoria = COLTURE_PREDEFINITE.filter(c => 
+                    c.categoriaCodice === categoria.codice.toLowerCase()
+                );
+                
+                
+                // Carica colture già esistenti per questa categoria
+                const coltureEsistenti = colturePerCategoria[categoriaId] || [];
+                const nomiEsistenti = new Set(coltureEsistenti.map(c => c.nome.toLowerCase()));
+                
+                // Se non ci sono colture esistenti e colturePerCategoria è vuoto, potrebbe non essere ancora caricato
+                if (Object.keys(colturePerCategoria).length === 0) {
+                    console.warn('⚠️ colturePerCategoria è vuoto, potrebbe non essere ancora caricato. Ricarica le colture.');
+                    // Prova a ricaricare le colture
+                    try {
+                        await loadColturePerCategoria();
+                        // Riprova dopo il caricamento
+                        const coltureEsistentiRicaricate = colturePerCategoria[categoriaId] || [];
+                        const nomiEsistentiRicaricate = new Set(coltureEsistentiRicaricate.map(c => c.nome.toLowerCase()));
+                        
+                        // Mostra tutte le colture predefinite, con indicazione per quelle già aggiunte
+                        coltureCategoria.forEach(coltura => {
+                            const option = document.createElement('option');
+                            option.value = coltura.nome;
+                            const isAggiunta = nomiEsistentiRicaricate.has(coltura.nome.toLowerCase());
+                            option.textContent = isAggiunta ? `${coltura.nome} (già aggiunta)` : coltura.nome;
+                            if (isAggiunta) {
+                                option.disabled = true;
+                                option.style.color = '#999';
+                            }
+                            colturaPredeterminataSelect.appendChild(option);
+                        });
+                        return;
+                    } catch (e) {
+                        console.error('Errore ricaricamento colture:', e);
+                    }
+                }
+                
+                // Mostra tutte le colture predefinite, con indicazione per quelle già aggiunte
+                coltureCategoria.forEach(coltura => {
+                    const option = document.createElement('option');
+                    option.value = coltura.nome;
+                    const isAggiunta = nomiEsistenti.has(coltura.nome.toLowerCase());
+                    option.textContent = isAggiunta ? `${coltura.nome} (già aggiunta)` : coltura.nome;
+                    if (isAggiunta) {
+                        option.disabled = true;
+                        option.style.color = '#999';
+                    }
+                    colturaPredeterminataSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.warn('Impossibile caricare colture predefinite:', error);
+            }
+        }
+        
+        // Gestisce cambio coltura predefinita
+        function onColturaPredeterminataChange() {
+            const colturaPredeterminataSelect = document.getElementById('new-coltura-predeterminata');
+            const input = document.getElementById('new-coltura');
+            
+            if (colturaPredeterminataSelect && colturaPredeterminataSelect.value) {
+                input.value = colturaPredeterminataSelect.value;
             }
         }
         
         // Aggiungi coltura
         async function addColtura() {
             const input = document.getElementById('new-coltura');
+            const categoriaSelect = document.getElementById('coltura-categoria-select');
             const nome = input.value.trim();
+            const categoriaId = categoriaSelect?.value;
             
             if (!nome) {
                 showAlert('Inserisci un nome per la coltura', 'error');
+                return;
+            }
+            
+            if (!categoriaId) {
+                showAlert('Seleziona una categoria', 'error');
                 return;
             }
             
@@ -1383,50 +2997,98 @@
             }
             
             try {
-                // Carica liste esistenti
-                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
-                
-                let colture = [...COLTURE_PREDEFINITE];
-                if (listeSnap.exists()) {
-                    const data = listeSnap.data();
-                    colture = data.colture || colture;
+                // Prova a creare in collection colture (fonte unica di verità)
+                try {
+                    const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                    
+                    // Verifica se esiste già nella stessa categoria
+                    const q = query(
+                        coltureRef, 
+                        where('nome', '==', nome),
+                        where('categoriaId', '==', categoriaId)
+                    );
+                    const existingSnapshot = await getDocs(q);
+                    if (!existingSnapshot.empty) {
+                        showAlert('Questa coltura è già presente in questa categoria', 'error');
+                        return;
+                    }
+                    
+                    // Crea nuova coltura
+                    const nuovaColtura = {
+                        nome: nome,
+                        categoriaId: categoriaId,
+                        descrizione: null,
+                        predefinito: false,
+                        creatoDa: auth.currentUser?.uid || 'system',
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    await addDoc(coltureRef, nuovaColtura);
+                    
+                    input.value = '';
+                    categoriaSelect.value = '';
+                    const colturaPredeterminataSelect = document.getElementById('new-coltura-predeterminata');
+                    if (colturaPredeterminataSelect) {
+                        colturaPredeterminataSelect.value = '';
+                    }
+                    showAlert('Coltura aggiunta con successo', 'success');
+                    await loadColturePerCategoria();
+                    await updateColturePredefiniteDropdown(); // Aggiorna dropdown predefinite
+                } catch (error) {
+                    // Fallback: se colture non disponibile, usa metodo vecchio
+                    console.warn('Impossibile creare in colture, uso ListePersonalizzate:', error.message);
+                    
+                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                    const listeSnap = await getDoc(listeRef);
+                    
+                    let colture = [...COLTURE_PREDEFINITE];
+                    if (listeSnap.exists()) {
+                        const data = listeSnap.data();
+                        colture = data.colture || colture;
+                    }
+                    
+                    // Verifica duplicati (case-insensitive)
+                    if (colture.some(c => c.toLowerCase() === nome.toLowerCase())) {
+                        showAlert('Questa coltura è già presente', 'error');
+                        return;
+                    }
+                    
+                    // Aggiungi nuova coltura
+                    colture.push(nome);
+                    
+                    // Ordina: prima predefinite, poi custom
+                    colture.sort((a, b) => {
+                        const aIsPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === a.toLowerCase());
+                        const bIsPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === b.toLowerCase());
+                        if (aIsPredefinita && !bIsPredefinita) return -1;
+                        if (!aIsPredefinita && bIsPredefinita) return 1;
+                        return a.localeCompare(b);
+                    });
+                    
+                    // Salva
+                    const listeData = {
+                        tipiLavoro: listeSnap.exists() ? (listeSnap.data().tipiLavoro || TIPI_LAVORO_PREDEFINITI) : TIPI_LAVORO_PREDEFINITI,
+                        colture: colture,
+                        updatedAt: serverTimestamp()
+                    };
+                    
+                    if (!listeSnap.exists()) {
+                        listeData.createdAt = serverTimestamp();
+                    }
+                    
+                    await setDoc(listeRef, listeData);
+                    
+                    input.value = '';
+                    categoriaSelect.value = '';
+                    const colturaPredeterminataSelect = document.getElementById('new-coltura-predeterminata');
+                    if (colturaPredeterminataSelect) {
+                        colturaPredeterminataSelect.value = '';
+                    }
+                    showAlert('Coltura aggiunta con successo', 'success');
+                    await loadColturePerCategoria();
+                    await updateColturePredefiniteDropdown(); // Aggiorna dropdown predefinite
                 }
-                
-                // Verifica duplicati (case-insensitive)
-                if (colture.some(c => c.toLowerCase() === nome.toLowerCase())) {
-                    showAlert('Questa coltura è già presente', 'error');
-                    return;
-                }
-                
-                // Aggiungi nuova coltura
-                colture.push(nome);
-                
-                // Ordina: prima predefinite, poi custom
-                colture.sort((a, b) => {
-                    const aIsPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === a.toLowerCase());
-                    const bIsPredefinita = COLTURE_PREDEFINITE.some(p => p.toLowerCase() === b.toLowerCase());
-                    if (aIsPredefinita && !bIsPredefinita) return -1;
-                    if (!aIsPredefinita && bIsPredefinita) return 1;
-                    return a.localeCompare(b);
-                });
-                
-                // Salva
-                const listeData = {
-                    tipiLavoro: listeSnap.exists() ? (listeSnap.data().tipiLavoro || TIPI_LAVORO_PREDEFINITI) : TIPI_LAVORO_PREDEFINITI,
-                    colture: colture,
-                    updatedAt: serverTimestamp()
-                };
-                
-                if (!listeSnap.exists()) {
-                    listeData.createdAt = serverTimestamp();
-                }
-                
-                await setDoc(listeRef, listeData);
-                
-                input.value = '';
-                showAlert('Coltura aggiunta con successo', 'success');
-                await loadListe();
             } catch (error) {
                 console.error('Errore aggiunta coltura:', error);
                 showAlert('Errore durante l\'aggiunta: ' + error.message, 'error');
@@ -1434,53 +3096,126 @@
         }
         
         // Rimuovi coltura
-        async function removeColtura(coltura) {
+        async function removeColtura(colturaNome, colturaId) {
             if (!currentTenantId) {
                 showAlert('Tenant ID non disponibile', 'error');
                 return;
             }
             
-            // Verifica se è predefinita
-            if (COLTURE_PREDEFINITE.some(p => p.toLowerCase() === coltura.toLowerCase())) {
-                showAlert('Non è possibile eliminare una coltura predefinita', 'error');
-                return;
-            }
-            
-            // Verifica se usata in attività
             try {
-                const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
-                const q = query(attivitaCollection, where('coltura', '==', coltura));
-                const querySnapshot = await getDocs(q);
-                const numAttivita = querySnapshot.size;
-                
-                if (numAttivita > 0) {
-                    if (!confirm(`Questa coltura è usata in ${numAttivita} attività. Eliminare comunque?`)) {
+                // Prova a rimuovere da collection colture (fonte unica di verità)
+                try {
+                    const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
+                    let colturaDoc = null;
+                    
+                    // Se abbiamo l'ID, usalo direttamente
+                    if (colturaId) {
+                        try {
+                            const colturaDocRef = doc(db, `tenants/${currentTenantId}/colture`, colturaId);
+                            const colturaSnap = await getDoc(colturaDocRef);
+                            if (colturaSnap.exists()) {
+                                colturaDoc = { id: colturaSnap.id, data: () => colturaSnap.data() };
+                            }
+                        } catch (e) {
+                            console.warn('Errore recupero coltura per ID:', e);
+                        }
+                    }
+                    
+                    // Se non trovata per ID, cerca per nome
+                    if (!colturaDoc) {
+                        const q = query(coltureRef, where('nome', '==', colturaNome));
+                        const snapshot = await getDocs(q);
+                        if (!snapshot.empty) {
+                            const doc = snapshot.docs[0];
+                            colturaDoc = { id: doc.id, data: () => doc.data() };
+                        }
+                    }
+                    
+                    if (!colturaDoc) {
+                        showAlert('Coltura non trovata', 'error');
                         return;
                     }
+                    
+                    const colturaData = colturaDoc.data();
+                    
+                    // Verifica se è predefinita
+                    if (colturaData.predefinito) {
+                        showAlert('Non è possibile eliminare una coltura predefinita', 'error');
+                        return;
+                    }
+                    
+                    // Verifica se usata in attività
+                    try {
+                        const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
+                        const qAttivita = query(attivitaCollection, where('coltura', '==', colturaNome));
+                        const querySnapshot = await getDocs(qAttivita);
+                        const numAttivita = querySnapshot.size;
+                        
+                        // Verifica anche in terreni
+                        const terreniCollection = collection(db, `tenants/${currentTenantId}/terreni`);
+                        const qTerreni = query(terreniCollection, where('coltura', '==', colturaNome));
+                        const terreniSnapshot = await getDocs(qTerreni);
+                        const numTerreni = terreniSnapshot.size;
+                        
+                        if (numAttivita > 0 || numTerreni > 0) {
+                            if (!confirm(`Questa coltura è usata in ${numAttivita} attività e ${numTerreni} terreni. Eliminare comunque?`)) {
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Errore verifica uso coltura:', e);
+                    }
+                    
+                    // Elimina da collection colture
+                    await deleteDoc(doc(db, `tenants/${currentTenantId}/colture`, colturaDoc.id));
+                    
+                    showAlert('Coltura eliminata con successo', 'success');
+                    await loadColturePerCategoria();
+                } catch (error) {
+                    // Fallback: se colture non disponibile, usa metodo vecchio
+                    console.warn('Impossibile rimuovere da colture, uso ListePersonalizzate:', error.message);
+                    
+                    // Verifica se è predefinita
+                    if (COLTURE_PREDEFINITE.some(p => p.toLowerCase() === coltura.toLowerCase())) {
+                        showAlert('Non è possibile eliminare una coltura predefinita', 'error');
+                        return;
+                    }
+                    
+                    // Verifica se usata in attività
+                    try {
+                        const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
+                        const q = query(attivitaCollection, where('coltura', '==', coltura));
+                        const querySnapshot = await getDocs(q);
+                        const numAttivita = querySnapshot.size;
+                        
+                        if (numAttivita > 0) {
+                            if (!confirm(`Questa coltura è usata in ${numAttivita} attività. Eliminare comunque?`)) {
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Errore verifica attività:', e);
+                    }
+                    
+                    const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
+                    const listeSnap = await getDoc(listeRef);
+                    
+                    if (!listeSnap.exists()) {
+                        showAlert('Liste non trovate', 'error');
+                        return;
+                    }
+                    
+                    const data = listeSnap.data();
+                    const colture = (data.colture || []).filter(c => c !== coltura);
+                    
+                    await updateDoc(listeRef, {
+                        colture: colture,
+                        updatedAt: serverTimestamp()
+                    });
+                    
+                    showAlert('Coltura eliminata con successo', 'success');
+                    await loadColturePerCategoria();
                 }
-            } catch (e) {
-                console.warn('Errore verifica attività:', e);
-            }
-            
-            try {
-                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
-                
-                if (!listeSnap.exists()) {
-                    showAlert('Liste non trovate', 'error');
-                    return;
-                }
-                
-                const data = listeSnap.data();
-                const colture = (data.colture || []).filter(c => c !== coltura);
-                
-                await updateDoc(listeRef, {
-                    colture: colture,
-                    updatedAt: serverTimestamp()
-                });
-                
-                showAlert('Coltura eliminata con successo', 'success');
-                await loadListe();
             } catch (error) {
                 console.error('Errore rimozione coltura:', error);
                 showAlert('Errore durante l\'eliminazione: ' + error.message, 'error');
@@ -2022,8 +3757,119 @@
         window.handleChangePassword = handleChangePassword;
         window.addTipoLavoro = addTipoLavoro;
         window.removeTipoLavoro = removeTipoLavoro;
+        window.updateSottocategorieDropdown = updateSottocategorieDropdown;
+        window.updateTipiLavoroPredefinitiDropdown = updateTipiLavoroPredefinitiDropdown;
+        window.onTipoLavoroPredeterminatoChange = onTipoLavoroPredeterminatoChange;
+        window.openAddCategoriaTipoLavoroModal = function() {
+            // TODO: Implementare modal per aggiungere categoria tipi lavoro
+            showAlert('Funzionalità in sviluppo', 'info');
+        };
+        window.openAddSottocategoriaTipoLavoroModal = function() {
+            // TODO: Implementare modal per aggiungere sottocategoria tipi lavoro
+            showAlert('Funzionalità in sviluppo', 'info');
+        };
+        // Modal per aggiungere nuova categoria coltura
+        function openAddCategoriaColturaModal() {
+            const modal = document.getElementById('categoria-coltura-modal');
+            if (modal) {
+                modal.classList.add('active');
+                document.getElementById('new-categoria-coltura-nome').value = '';
+                document.getElementById('new-categoria-coltura-descrizione').value = '';
+                document.getElementById('new-categoria-coltura-nome').focus();
+            }
+        }
+
+        function closeAddCategoriaColturaModal() {
+            const modal = document.getElementById('categoria-coltura-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
+        // Aggiungi nuova categoria coltura
+        async function addCategoriaColtura() {
+            const nomeInput = document.getElementById('new-categoria-coltura-nome');
+            const descrizioneInput = document.getElementById('new-categoria-coltura-descrizione');
+            const nome = nomeInput.value.trim();
+            const descrizione = descrizioneInput.value.trim();
+
+            if (!nome) {
+                showAlert('Inserisci un nome per la categoria', 'error');
+                return;
+            }
+
+            if (!currentTenantId) {
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+
+            try {
+                // Verifica se categoria esiste già (solo per colture)
+                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                const q = query(
+                    categorieRef,
+                    where('nome', '==', nome),
+                    where('applicabileA', '==', 'colture')
+                );
+                const existingSnapshot = await getDocs(q);
+                
+                if (!existingSnapshot.empty) {
+                    showAlert('Una categoria con questo nome esiste già', 'error');
+                    return;
+                }
+
+                // Genera codice dalla categoria
+                const codice = nome
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '');
+
+                // Verifica se codice esiste già
+                const qCodice = query(categorieRef, where('codice', '==', codice));
+                const codiceSnapshot = await getDocs(qCodice);
+                if (!codiceSnapshot.empty) {
+                    showAlert('Una categoria con codice simile esiste già. Prova con un nome diverso.', 'error');
+                    return;
+                }
+
+                // Crea nuova categoria
+                const nuovaCategoria = {
+                    nome: nome,
+                    codice: codice,
+                    descrizione: descrizione || null,
+                    applicabileA: 'colture',
+                    predefinita: false,
+                    ordine: 999, // Ultima posizione
+                    creatoDa: auth.currentUser?.uid || 'system',
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                };
+
+                await addDoc(categorieRef, nuovaCategoria);
+
+                nomeInput.value = '';
+                descrizioneInput.value = '';
+                closeAddCategoriaColturaModal();
+                showAlert('Categoria aggiunta con successo', 'success');
+                
+                // Ricarica categorie e colture
+                await loadCategorieColture();
+                await loadColturePerCategoria();
+            } catch (error) {
+                console.error('Errore aggiunta categoria coltura:', error);
+                showAlert('Errore durante l\'aggiunta: ' + error.message, 'error');
+            }
+        }
+
         window.addColtura = addColtura;
         window.removeColtura = removeColtura;
+        window.openAddCategoriaColturaModal = openAddCategoriaColturaModal;
+        window.closeAddCategoriaColturaModal = closeAddCategoriaColturaModal;
+        window.addCategoriaColtura = addCategoriaColtura;
+        window.updateColturePredefiniteDropdown = updateColturePredefiniteDropdown;
+        window.onColturaPredeterminataChange = onColturaPredeterminataChange;
         window.openPodereModal = openPodereModal;
         window.closePodereModal = closePodereModal;
         window.handleSavePodere = handleSavePodere;

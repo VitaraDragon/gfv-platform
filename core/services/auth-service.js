@@ -14,7 +14,7 @@ import {
   sendPasswordResetEmail,
   updatePassword,
   updateProfile
-} from "firebase/auth";
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getAuthInstance } from './firebase-service.js';
 import { getDocumentData, createDocument, updateDocument } from './firebase-service.js';
 import { getCurrentTenantId, setCurrentTenantId } from './tenant-service.js';
