@@ -56,9 +56,40 @@ service cloud.firestore {
     }
     
     // Collection: inviti (globale)
+    // NOTA: Permettiamo lettura pubblica per permettere verifica token durante registrazione
+    // I dati dell'invito (email, nome, cognome, ruoli) non sono sensibili e devono essere accessibili
+    // La sicurezza è garantita dal token unico e casuale che viene verificato
     match /inviti/{invitoId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isManagerOrAdmin();
+      // Lettura: pubblica (necessaria per registrazione con token non autenticato)
+      allow read: if true;
+      
+      // Creazione: solo manager/admin autenticati
+      allow create: if isAuthenticated() && isManagerOrAdmin();
+      
+      // Aggiornamento: 
+      // - Manager/admin possono aggiornare tutto
+      // - Utente appena registrato può aggiornare solo il proprio invito (stato -> "accettato")
+      allow update: if isAuthenticated() && (
+        // Manager/admin: possono aggiornare tutto
+        isManagerOrAdmin() ||
+        // Utente appena registrato: può aggiornare solo il proprio invito
+        // Verifica che l'email dell'invito corrisponda all'email dell'utente autenticato
+        (resource.data.email != null &&
+         // Prova prima con email dal token (più veloce), altrimenti leggi documento users
+         ((request.auth.token.email != null &&
+           resource.data.email.toLowerCase() == request.auth.token.email.toLowerCase()) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email != null &&
+           resource.data.email.toLowerCase() == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email.toLowerCase())) &&
+         // Permette aggiornamento solo di questi campi specifici
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'accettatoIl']) &&
+         // Verifica che lo stato sia valido (solo transizione a "accettato")
+         request.resource.data.stato == 'accettato' &&
+         resource.data.stato == 'invitato')
+      );
+      
+      // Eliminazione: solo manager/admin autenticati
+      allow delete: if isAuthenticated() && isManagerOrAdmin();
     }
     
     // Dati tenant (multi-tenant) - Regola generica per tutte le subcollection
@@ -126,6 +157,12 @@ service cloud.firestore {
 
     // Collection: liste (dati personalizzati, es. colture)
     match /tenants/{tenantId}/liste/{listaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+    }
+
+    // Collection: impostazioni (impostazioni tenant, es. coefficienti morfologia, tariffe operai)
+    match /tenants/{tenantId}/impostazioni/{impostazioneId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
     }

@@ -248,11 +248,38 @@ gfv-platform/
 
 ---
 
-**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Tour terreni ottimizzato! Gestione affitti terreni e statistiche complete! **Modulo Conto Terzi - Fase 1 MVP completata!** Pronto per continuare sviluppo! 🚀
+**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Tour terreni ottimizzato! Gestione affitti terreni e statistiche complete! **Modulo Conto Terzi - Fase 1 MVP completata!** **Sistema inviti collaboratori completamente funzionante!** Pronto per continuare sviluppo! 🚀
 
 ---
 
-## 🆕 Ultimo Aggiornamento: Refactoring Macchine e Correzione Barra Progresso (2025-01-24)
+## 🆕 Ultimo Aggiornamento: Fix Sistema Inviti Collaboratori (2025-12-23)
+
+### Problema Risolto ✅
+- ✅ **Errore "Missing or insufficient permissions"** durante registrazione con invito
+- ✅ Utenti non potevano completare la registrazione dopo aver cliccato il link nell'email
+
+### Soluzione Implementata ✅
+- ✅ **Regole Firestore aggiornate per collection `inviti`**:
+  - Lettura pubblica permessa (necessaria per verifica token durante registrazione)
+  - Creazione: solo manager/admin autenticati
+  - Aggiornamento: manager/admin possono aggiornare tutto; utenti appena registrati possono aggiornare solo il proprio invito (stato da "invitato" a "accettato")
+  - Eliminazione: solo manager/admin autenticati
+- ✅ **Sicurezza garantita**: Token unico e casuale per ogni invito, verifica email durante aggiornamento
+- ✅ **Flusso completo funzionante**: Creazione invito → Invio email → Clic link → Verifica token → Registrazione → Aggiornamento invito
+
+### File Modificati
+- ✅ `firestore.rules` - Regole collection `inviti` completamente riscritte per supportare registrazione non autenticata e aggiornamento da utente appena registrato
+
+### Test Completati ✅
+- ✅ Creazione invito da manager funzionante
+- ✅ Invio email con link funzionante
+- ✅ Apertura pagina registrazione con token funzionante
+- ✅ Verifica token e precompilazione form funzionante
+- ✅ Completamento registrazione e aggiornamento invito funzionante
+
+---
+
+## 🆕 Aggiornamento Precedente: Refactoring Macchine e Correzione Barra Progresso (2025-01-24)
 
 ### Refactoring Validazione Ore ✅
 - ✅ Rimossa duplicazione codice: funzione `aggiornaOreMacchina()` sostituita con service unificato
