@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -590,12 +590,12 @@
                 const usersSnapshot = await getDocs(usersQuery);
                 
                 // Log TUTTI gli utenti del tenant per trovare Pier Best
-                console.log('🔍 [REPORT ORE] TUTTI gli utenti del tenant (per trovare Pier Best):');
+
                 usersSnapshot.forEach(doc => {
                     const userData = doc.data();
                     const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
                     const ruoli = userData.ruoli || [];
-                    console.log(`  - ID: ${doc.id}, Nome: ${nomeCompleto || 'N/A'}, Ruoli: [${ruoli.join(', ')}], TenantId: ${userData.tenantId || 'N/A'}`);
+
                 });
                 
                 const operai = [];
@@ -621,18 +621,18 @@
                 });
                 
                 // Log dettagliato operai trovati
-                console.log('🔍 [REPORT ORE] Operai trovati (operaio o caposquadra):', operai.length);
+
                 operai.forEach(op => {
-                    console.log(`  - ID: ${op.id}, Nome: ${op.nomeCompleto}, Tipo: ${op.tipoOperaio}`);
+
                 });
                 
                 // Ordina per nome
                 operai.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto));
                 
                 // Log dettagliato per debug
-                console.log('🔍 [REPORT ORE] Operai trovati (id, nome, ruoli):', operai.length);
+
                 operai.forEach(op => {
-                    console.log(`  - ID: ${op.id}, Nome: ${op.nomeCompleto}, Tipo: ${op.tipoOperaio}`);
+
                 });
                 
                 // Popola dropdown
@@ -826,18 +826,14 @@
                 
                 // Carica dati operai
                 const currentUser = window.currentAuth.currentUser;
-                console.log('🔍 [REPORT ORE] Caricamento dati operai - INIZIO');
-                console.log('🔍 [REPORT ORE] Current user UID:', currentUser?.uid);
-                console.log('🔍 [REPORT ORE] TenantId:', tenantId);
-                console.log('🔍 [REPORT ORE] Numero operai da caricare:', Object.keys(orePerOperaio).length);
-                
-                // Carica prima il tenantId dell'utente corrente per verificare
+
+// Carica prima il tenantId dell'utente corrente per verificare
                 if (currentUser) {
                     try {
                         const currentUserDoc = await getDoc(doc(window.currentDb, 'users', currentUser.uid));
                         if (currentUserDoc.exists()) {
                             const currentUserData = currentUserDoc.data();
-                            console.log('🔍 [REPORT ORE] Current user tenantId:', currentUserData.tenantId);
+
                         }
                     } catch (err) {
                         console.error('🔍 [REPORT ORE] Errore lettura current user:', err);
@@ -846,14 +842,12 @@
                 
                 for (const operaioId of Object.keys(orePerOperaio)) {
                     try {
-                        console.log(`🔍 [REPORT ORE] Tentativo lettura operaio ID: ${operaioId}`);
+
                         const operaioDoc = await getDoc(doc(window.currentDb, 'users', operaioId));
                         if (operaioDoc.exists()) {
                             const operaioData = operaioDoc.data();
-                            console.log(`✅ [REPORT ORE] Operaio ${operaioId} letto con successo`);
-                            console.log(`🔍 [REPORT ORE] Operaio tenantId: ${operaioData.tenantId}`);
-                            console.log(`🔍 [REPORT ORE] TenantId match: ${operaioData.tenantId === tenantId}`);
-                            orePerOperaio[operaioId].nome = operaioData.nome || '';
+
+orePerOperaio[operaioId].nome = operaioData.nome || '';
                             orePerOperaio[operaioId].cognome = operaioData.cognome || '';
                             orePerOperaio[operaioId].tipoOperaio = operaioData.tipoOperaio || '';
                             orePerOperaio[operaioId].ruoli = operaioData.ruoli || [];
@@ -886,8 +880,7 @@
                         }
                     }
                 }
-                console.log('🔍 [REPORT ORE] Caricamento dati operai - FINE');
-                
+
                 // Converti giorni lavorati da Set a numero
                 Object.keys(orePerOperaio).forEach(operaioId => {
                     orePerOperaio[operaioId].giorniLavorati = orePerOperaio[operaioId].giorniLavorati.size;
@@ -1402,5 +1395,4 @@
     </script>
 </body>
 </html>
-
 

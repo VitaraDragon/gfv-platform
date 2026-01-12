@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Ore Service - Servizio per gestione ore lavorate
  * Gestisce CRUD ore lavorate come sub-collection di lavori
  * 
@@ -603,6 +603,4 @@ export default {
   validaOra,
   rifiutaOra
 };
-
-
 

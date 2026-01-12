@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Coltura Model - Modello dati coltura
  * Gestisce colture organizzate per categoria (struttura gerarchica)
  * 

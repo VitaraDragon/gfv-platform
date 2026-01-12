@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Squadra Model - Modello dati squadra
  * Gestisce dati squadra con caposquadra e operai
  * 
@@ -124,6 +124,4 @@ export class Squadra extends Base {
 }
 
 export default Squadra;
-
-
 

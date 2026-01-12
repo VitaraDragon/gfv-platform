@@ -1,36 +1,19 @@
 // Service Worker per PWA - GFV Platform
 const CACHE_NAME = 'gfv-platform-v1';
-// Usa path assoluti per compatibilità con GitHub Pages
-const urlsToCache = [
-  '/gfv-platform/',
-  '/gfv-platform/index.html',
-  '/gfv-platform/core/auth/login-standalone.html',
-  '/gfv-platform/core/dashboard-standalone.html',
-  '/gfv-platform/core/attivita-standalone.html',
-  '/gfv-platform/core/terreni-standalone.html',
-  '/gfv-platform/core/statistiche-standalone.html',
-  '/gfv-platform/core/segnatura-ore-standalone.html',
-  '/gfv-platform/icons/icon-192x192.png',
-  '/gfv-platform/icons/icon-512x512.png',
-  '/gfv-platform/core/styles/dashboard.css',
-  '/gfv-platform/core/js/config-loader.js',
-  '/gfv-platform/core/js/dashboard-utils.js',
-  '/gfv-platform/core/js/dashboard-sections.js'
-];
 
 // Installazione Service Worker
+// Non cachiamo file all'installazione - verranno cachati on-demand durante il fetch
+// Questo rende il service worker più flessibile e funziona in qualsiasi ambiente
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Service Worker: Cache aperto');
-        // Non bloccare l'installazione se alcuni file non vengono cachati
-        return cache.addAll(urlsToCache).catch((error) => {
-          console.warn('Service Worker: Alcuni file non sono stati cachati:', error);
-        });
+        console.log('Service Worker: Cache aperto e pronto');
+        // Non blocchiamo l'installazione - i file verranno cachati on-demand
+        return Promise.resolve();
       })
       .catch((error) => {
-        console.error('Service Worker: Errore durante il caching', error);
+        console.error('Service Worker: Errore durante l\'apertura cache', error);
       })
   );
   // Forza l'attivazione immediata del nuovo service worker
@@ -62,8 +45,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ignora richieste Firebase/Google APIs (devono sempre andare in rete)
   const url = new URL(event.request.url);
+  
+  // Ignora richieste con schemi non supportati (chrome-extension, chrome, etc.)
+  if (url.protocol === 'chrome-extension:' || 
+      url.protocol === 'chrome:' ||
+      url.protocol === 'moz-extension:' ||
+      url.protocol === 'edge:' ||
+      url.protocol === 'safari-extension:' ||
+      !url.protocol.startsWith('http')) {
+    return;
+  }
+
+  // Ignora richieste Firebase/Google APIs (devono sempre andare in rete)
   if (url.hostname.includes('firebase') || 
       url.hostname.includes('googleapis.com') || 
       url.hostname.includes('google.com') ||
@@ -71,34 +65,61 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Solo cache risposte valide
-        if (response.status === 200) {
-          // Clona la risposta per poterla usare e salvare nella cache
-          const responseToCache = response.clone();
+  // Gestisci solo richieste dello stesso origin (evita problemi con CORS)
+  try {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Solo cache risposte valide e con Content-Type supportato
+          if (response.status === 200 && response.type === 'basic') {
+            // Clona la risposta per poterla usare e salvare nella cache
+            const responseToCache = response.clone();
+            
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                // Verifica che la richiesta sia cachabile
+                try {
+                  cache.put(event.request, responseToCache).catch((error) => {
+                    // Ignora errori di cache per richieste non supportate
+                    // Non loggare errori per estensioni o richieste non standard
+                    if (!url.protocol.includes('extension') && !url.protocol.includes('chrome')) {
+                      console.warn('Service Worker: Impossibile cachare richiesta:', event.request.url);
+                    }
+                  });
+                } catch (error) {
+                  // Ignora errori di cache silenziosamente
+                }
+              })
+              .catch((error) => {
+                // Ignora errori di apertura cache silenziosamente
+              });
+          }
           
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-        }
-        
-        return response;
-      })
-      .catch(() => {
-        // Se la rete fallisce, prova a recuperare dalla cache
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Se non c'è in cache, restituisci una risposta di fallback per HTML
-          if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('/gfv-platform/index.html');
-          }
-        });
-      })
-  );
+          return response;
+        })
+        .catch((error) => {
+          // Se la rete fallisce, prova a recuperare dalla cache
+          return caches.match(event.request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Se non c'è in cache, restituisci una risposta di fallback per HTML
+            const acceptHeader = event.request.headers.get('accept');
+            if (acceptHeader && acceptHeader.includes('text/html')) {
+              // Prova prima con path assoluto, poi con path relativo
+              return caches.match('/gfv-platform/index.html')
+                .then(cached => cached || caches.match('/index.html'))
+                .then(cached => cached || caches.match('index.html'));
+            }
+            // Per altre richieste, lancia l'errore originale
+            throw error;
+          });
+        })
+    );
+  } catch (error) {
+    // Se c'è un errore nella gestione della richiesta, ignora silenziosamente
+    // Questo può accadere con estensioni del browser o richieste non standard
+    return;
+  }
 });
 

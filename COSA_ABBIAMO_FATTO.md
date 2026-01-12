@@ -1,5 +1,674 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
+## ✅ Fix Precompilazione Coltura nei Preventivi (2026-01-05) - COMPLETATO
+
+### Obiettivo
+Risolvere il problema del dropdown coltura che rimaneva vuoto quando si selezionava un terreno nel form di creazione preventivo, nonostante dovesse essere precompilato automaticamente con i dati del terreno.
+
+### Implementazione
+
+#### 1. Rendere Variabile Colture Globale ✅
+- **Problema**: `colturePerCategoriaPreventivo` era una variabile locale non sempre accessibile quando necessario
+- **Causa**: La variabile era dichiarata con `let` nello scope locale, causando problemi di accesso tra funzioni
+- **Soluzione**: 
+  - Resa la variabile globale come `window.colturePerCategoriaPreventivo` (allineata con `attivita-standalone.html`)
+  - Aggiornate tutte le funzioni per usare la variabile globale
+  - Mantenuta anche la variabile locale per retrocompatibilità
+- **File Modificati**:
+  - ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Resa variabile globale e aggiornate tutte le referenze
+
+#### 2. Migliorata Logica di Precompilazione Coltura ✅
+- **Problema**: La coltura del terreno non veniva trovata o precompilata correttamente
+- **Causa**: 
+  - Le colture potevano non essere ancora caricate quando si selezionava il terreno
+  - La ricerca della categoria non usava il servizio centralizzato
+  - Mismatch tra ID categoria del terreno e chiavi disponibili
+- **Soluzione**: 
+  - Aggiunto controllo per verificare che le colture siano caricate prima di procedere
+  - Implementato uso del servizio `getColturaByNome` per trovare la categoria (come in `attivita-standalone.html`)
+  - Aggiunto fallback per cercare la coltura in tutte le categorie disponibili
+  - Verifica che la categoria esista nel dropdown prima di usarla
+  - Meccanismo di polling per attendere che il dropdown sia popolato prima di selezionare la coltura
+- **File Modificati**:
+  - ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Migliorata funzione `onTerrenoChange()` con logica robusta
+
+#### 3. Migliorata Funzione updateColtureDropdownPreventivo ✅
+- **Problema**: Il dropdown colture non veniva popolato correttamente quando cambiava la categoria
+- **Causa**: 
+  - Mancava verifica che le colture fossero caricate
+  - Non gestiva correttamente il caso di categorie senza colture
+  - Non ordinava le colture per nome
+- **Soluzione**: 
+  - Aggiunta verifica che `colturePerCategoriaPreventivo` sia popolato
+  - Gestione caso categorie senza colture
+  - Ordinamento colture per nome
+  - Uso della variabile globale per accesso sicuro
+- **File Modificati**:
+  - ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Migliorata funzione `updateColtureDropdownPreventivo()`
+
+#### 4. Aggiunti Log Dettagliati per Debug ✅
+- **Obiettivo**: Facilitare il debug di problemi futuri
+- **Implementazione**: 
+  - Aggiunti log dettagliati in tutte le funzioni chiave:
+    - `onTerrenoChange()` - Log per tracciare selezione terreno e precompilazione
+    - `updateColtureDropdownPreventivo()` - Log per tracciare popolamento dropdown
+    - `loadColturePerCategoriaPreventivo()` - Log per tracciare caricamento colture
+    - `loadColture()` - Log per tracciare completamento caricamento
+  - Log con emoji per identificazione rapida (🔵, 🟢, 🟡, ✅, ⚠️, ❌)
+- **File Modificati**:
+  - ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Aggiunti log in tutte le funzioni chiave
+
+### Test Completati
+- ✅ **Precompilazione Superficie**: Funziona correttamente quando si seleziona un terreno
+- ✅ **Precompilazione Tipo Campo**: Funziona correttamente quando si seleziona un terreno
+- ✅ **Precompilazione Categoria Coltura**: La categoria viene selezionata automaticamente
+- ✅ **Precompilazione Coltura**: Il dropdown viene popolato e la coltura viene selezionata automaticamente
+- ✅ **Gestione Colture Non Caricate**: Se le colture non sono caricate, vengono caricate automaticamente
+- ✅ **Gestione Categoria Non Trovata**: Se la categoria non è trovata, viene cercata in tutte le categorie disponibili
+
+### File Modificati
+- ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html`
+  - Resa variabile `colturePerCategoriaPreventivo` globale
+  - Migliorata funzione `onTerrenoChange()` con logica robusta
+  - Migliorata funzione `updateColtureDropdownPreventivo()`
+  - Aggiunti log dettagliati per debug
+  - Aggiunto uso servizio `getColturaByNome` per trovare categoria
+  - Aggiunto meccanismo di polling per attendere popolamento dropdown
+
+### Note Tecniche
+- La soluzione è allineata con l'implementazione in `attivita-standalone.html` per coerenza
+- I log di debug sono stati mantenuti per facilitare troubleshooting futuro
+- La variabile globale garantisce accesso sicuro da tutte le funzioni
+
+---
+
+## ✅ Fix Caricamento Ore per Operaio e Duplicazioni in Dettaglio Lavori (2026-01-05) - COMPLETATO
+
+### Obiettivo
+Risolvere il problema della sezione "Ore per Operaio" che rimaneva in caricamento nella tab Panoramica dei dettagli lavoro, e correggere le duplicazioni delle statistiche quando si cambiava tab.
+
+### Implementazione
+
+#### 1. Aggiunta Sezione "Ore per Operaio" nella Panoramica ✅
+- **Problema**: La sezione "Ore per Operaio" nella tab Panoramica rimaneva in caricamento e non mostrava i dati
+- **Causa**: La funzione `loadDettaglioOverview` caricava solo i totali delle ore ma non raggruppava per operaio né caricava i nomi degli operai
+- **Soluzione**: 
+  - Aggiunta logica per raggruppare le ore per operaio (validate, da validare, rifiutate)
+  - Aggiunto caricamento dei nomi degli operai dal database
+  - Aggiunta sezione "Ore per Operaio" nell'HTML della Panoramica con lo stesso formato della tab "Ore"
+- **File Modificati**:
+  - ✅ `core/admin/js/gestione-lavori-controller.js` - Modificata `loadDettaglioOverview` per includere raggruppamento ore per operaio e caricamento nomi
+
+#### 2. Risolto Problema Duplicazione Statistiche ✅
+- **Problema**: Quando si apriva la tab "Ore" e poi si tornava alla "Panoramica", le statistiche venivano duplicate
+- **Causa**: `loadDettaglioOverview` veniva chiamata due volte: una da `switchTab` e una direttamente da `openDettaglioModal`
+- **Soluzione**: 
+  - Rimossa la chiamata ridondante in `openDettaglioModal` (switchTab già chiama loadDettaglioOverview)
+  - Aggiunto flag `isLoadingOverview` per evitare chiamate multiple simultanee
+  - Migliorata pulizia del container prima di ogni caricamento
+- **File Modificati**:
+  - ✅ `core/admin/js/gestione-lavori-events.js` - Rimossa chiamata ridondante in `openDettaglioModal`
+  - ✅ `core/admin/js/gestione-lavori-controller.js` - Aggiunto flag per evitare chiamate multiple
+
+#### 3. Risolto Problema Scritta "Caricamento statistiche ore..." ✅
+- **Problema**: La scritta "Caricamento statistiche ore..." rimaneva visibile anche dopo il caricamento
+- **Causa**: Problema con la visibilità dei tab e gestione del container
+- **Soluzione**: 
+  - Migliorata gestione della visibilità dei tab (display: none/block)
+  - Aggiunta pulizia completa del container prima di ogni caricamento
+  - Rimossa doppia chiamata che causava problemi di timing
+- **File Modificati**:
+  - ✅ `core/admin/js/gestione-lavori-events.js` - Migliorata gestione visibilità tab in `switchTab`
+  - ✅ `core/admin/js/gestione-lavori-controller.js` - Migliorata pulizia container
+
+#### 4. Rimozione Simbolo "Poligono" dalla Lista Zone ✅
+- **Problema**: Il simbolo "Poligono" nella lista delle zone lavorate era ridondante e confuso
+- **Soluzione**: Rimosso l'indicatore del tipo di zona (poligono/segmento) dalla lista
+- **File Modificati**:
+  - ✅ `core/admin/js/gestione-lavori-maps.js` - Rimossa riga che mostrava "🔷 Poligono" o "📏 Segmento"
+
+### Test Completati
+- ✅ **Sezione Ore per Operaio**: Si carica correttamente nella tab Panoramica
+- ✅ **Nessuna duplicazione**: Le statistiche non si duplicano più quando si cambia tab
+- ✅ **Scritta caricamento**: Non rimane più visibile dopo il caricamento
+- ✅ **Lista zone**: Più pulita senza simbolo "Poligono"
+
+### Risultato
+- ✅ **Problema caricamento risolto**: La sezione "Ore per Operaio" si carica correttamente nella Panoramica
+- ✅ **Problema duplicazione risolto**: Le statistiche non si duplicano più
+- ✅ **Problema scritta risolto**: La scritta di caricamento non rimane più visibile
+- ✅ **UI migliorata**: Lista zone più pulita senza simboli ridondanti
+- ✅ **Codice pulito**: Tutti i log di debug rimossi
+
+---
+
+## ✅ Fix Dropdown Attrezzi e Tipo Assegnazione in Gestione Lavori (2026-01-03) - COMPLETATO
+
+### Obiettivo
+Risolvere il problema del dropdown attrezzi che non compariva quando si selezionava un trattore nel modulo conto terzi, e correggere il problema del tipo di assegnazione dove il caposquadra rimaneva obbligatorio anche per lavori autonomi.
+
+### Implementazione
+
+#### 1. Fix Dropdown Attrezzi Non Visibile ✅
+- **Problema**: Quando si creava un lavoro nel modulo conto terzi e si selezionava un trattore, il dropdown degli attrezzi non compariva
+- **Causa**: `setupMacchineHandlers` non veniva chiamato quando il modal veniva aperto, quindi il listener sul cambio del trattore non era configurato
+- **Soluzione**: 
+  - Aggiunto `MutationObserver` che monitora quando il modal lavoro diventa attivo
+  - Quando il modal diventa attivo, vengono configurati automaticamente sia `setupTipoAssegnazioneHandlers` che `setupMacchineHandlers`
+  - Questo garantisce che gli handler siano sempre configurati, indipendentemente da come viene aperto il modal
+- **File Modificati**:
+  - ✅ `core/admin/gestione-lavori-standalone.html` - Aggiunto MutationObserver per configurare handler quando modal diventa attivo
+  - ✅ `core/admin/js/gestione-lavori-events.js` - Migliorato `setupMacchineHandlers` per gestire correttamente il cambio trattore
+
+#### 2. Fix Tipo Assegnazione (Caposquadra Obbligatorio) ✅
+- **Problema**: Quando si selezionava "Lavoro Autonomo", il caposquadra rimaneva obbligatorio invece di diventare opzionale
+- **Causa**: I listener sui radio button venivano persi quando gli elementi venivano clonati o ricreati
+- **Soluzione**: 
+  - Cambiato approccio da listener diretti sui radio button a event delegation sul form
+  - Event delegation funziona anche quando gli elementi vengono clonati o ricreati
+  - La funzione `updateVisibility()` riacquista i riferimenti ai radio button ogni volta per essere sicuri
+- **File Modificati**:
+  - ✅ `core/admin/js/gestione-lavori-events.js` - Modificato `setupTipoAssegnazioneHandlers` per usare event delegation sul form
+
+#### 3. Pulizia Log di Debug ✅
+- **Obiettivo**: Rimuovere tutti i log di debug aggiunti durante il troubleshooting
+- **File Modificati**:
+  - ✅ `core/admin/gestione-lavori-standalone.html` - Rimossi log da `loadAttrezziWrapper`, `populateTrattoriDropdownWrapper`, `populateAttrezziDropdownWrapper`, `setupMacchineHandlersWrapper`, `openCreaModalWrapper`, e MutationObserver
+  - ✅ `core/admin/js/gestione-lavori-events.js` - Rimossi log da `setupTipoAssegnazioneHandlers`, `setupMacchineHandlers`, e `openCreaModal`
+  - ✅ `core/admin/js/gestione-lavori-controller.js` - Rimossi log da `populateAttrezziDropdown` e `populateTrattoriDropdown`
+
+### Test Completati
+- ✅ **Dropdown attrezzi**: Compare correttamente quando si seleziona un trattore
+- ✅ **Tipo assegnazione squadra**: Caposquadra obbligatorio, operaio nascosto
+- ✅ **Tipo assegnazione autonomo**: Operaio obbligatorio, caposquadra non obbligatorio e nascosto
+- ✅ **Modal observer**: Handler configurati correttamente quando il modal diventa attivo
+- ✅ **Event delegation**: Funziona correttamente anche quando gli elementi vengono ricreati
+
+### Risultato
+- ✅ **Problema dropdown attrezzi risolto**: Il dropdown ora compare correttamente quando si seleziona un trattore
+- ✅ **Problema tipo assegnazione risolto**: Il caposquadra non è più obbligatorio per lavori autonomi
+- ✅ **Codice pulito**: Tutti i log di debug rimossi
+- ✅ **Robustezza migliorata**: Event delegation garantisce che gli handler funzionino anche quando gli elementi vengono ricreati
+
+---
+
+## ✅ Fix Dropdown Tipi Lavoro Multitenant e Pulizia Log (2026-01-03) - COMPLETATO
+
+### Obiettivo
+Risolvere il problema del dropdown tipi di lavoro vuoto durante il test multitenant e pulire i log di debug non necessari.
+
+### Implementazione
+
+#### 1. Fix Dropdown Tipi Lavoro Vuoto ✅
+- **Problema**: Il dropdown dei tipi di lavoro specifico rimaneva vuoto dopo aver selezionato categoria principale e sottocategoria
+- **Causa**: Il tenant "rosso" non aveva tipi di lavoro inizializzati nella collection `tenants/{tenantId}/tipiLavoro`
+- **Soluzione**: 
+  - Aggiunto controllo automatico in `loadTipiLavoro()`: se la collection è vuota, inizializza automaticamente i tipi predefiniti
+  - La funzione `initializeTipiLavoroPredefiniti()` viene chiamata automaticamente quando necessario
+  - Aggiunti log dettagliati per tracciare il flusso (poi rimossi dopo il fix)
+- **File Modificati**:
+  - ✅ `core/js/attivita-controller.js` - Aggiunto controllo e inizializzazione automatica in `loadTipiLavoro()`
+  - ✅ `core/services/tipi-lavoro-service.js` - Migliorati log in `initializeTipiLavoroPredefiniti()` e `getAllTipiLavoro()`
+  - ✅ `core/services/firebase-service.js` - Aggiunti log in `getCollectionData()` e `getCollection()` (poi rimossi)
+
+#### 2. Pulizia Log di Debug ✅
+- **Obiettivo**: Rimuovere tutti i log di debug non necessari per produzione
+- **File Modificati**:
+  - ✅ `core/js/attivita-controller.js` - Rimossi log da `loadTipiLavoro()` e `populateTipoLavoroDropdown()`
+  - ✅ `core/services/tipi-lavoro-service.js` - Rimossi log da `getAllTipiLavoro()` e `initializeTipiLavoroPredefiniti()`
+  - ✅ `core/services/firebase-service.js` - Rimossi log da `getCollectionData()` e `getCollection()`
+  - ✅ `core/js/terreni-events.js` - Rimossi log da `handleSaveTerreno()`
+  - ✅ `core/js/terreni-maps.js` - Rimossi log da `initMap()`, `toggleDrawing()`, click listener
+  - ✅ `core/js/terreni-tour.js` - Rimosso log da tooltip
+  - ✅ `core/terreni-standalone.html` - Rimossi log da `updateState()`, `initMapWrapper()`, `toggleDrawingWrapper()`
+  - ✅ `core/attivita-standalone.html` - Rimossi log da callback `populateTipoLavoroDropdownCallback`
+
+### Test Completati
+- ✅ **Inizializzazione automatica**: 66 tipi di lavoro creati automaticamente per il tenant "rosso"
+- ✅ **Dropdown popolato**: Dropdown funziona correttamente per tutte le categorie e sottocategorie
+- ✅ **Filtri categoria**: Filtro per categoria principale e sottocategoria funzionante
+- ✅ **Salvataggio attività**: Attività salvata con successo con tipo di lavoro selezionato
+
+### Risultato
+- ✅ **Problema risolto**: Il dropdown ora si popola correttamente dopo la selezione di categoria/sottocategoria
+- ✅ **Codice pulito**: Tutti i log di debug rimossi, mantenuti solo `console.error` per errori critici
+- ✅ **Inizializzazione automatica**: I tipi di lavoro vengono inizializzati automaticamente per nuovi tenant
+
+---
+
+## ✅ Test Multitenant e Fix Tracciamento Terreni (2026-01-03) - COMPLETATO
+
+### Obiettivo
+Testare il sistema multitenant con nuovo utente e risolvere problemi nel tracciamento e salvataggio dei confini dei terreni.
+
+### Implementazione
+
+#### 1. Fix Tracciamento Confini Terreno ✅
+- **Problema**: Click listener sulla mappa non rilevava correttamente lo stato `isDrawing`
+- **Causa**: Il listener usava `state.isDrawing` dalla closure invece dello state corrente
+- **Soluzione**: 
+  - Modificato `initMap()` per accettare parametro `getState` che legge sempre lo state corrente
+  - Click listener ora usa `getState()` invece di `state` dalla closure
+- **File Modificati**:
+  - ✅ `core/js/terreni-maps.js` - Aggiunto parametro `getState`, modificato click listener
+  - ✅ `core/terreni-standalone.html` - Modificato `initMapWrapper()` per passare `getState`, rimosso `window.toggleDrawing` duplicato
+
+#### 2. Fix Salvataggio Terreno - Async/Await ✅
+- **Problema**: Errore `Cannot use 'in' operator to search for '_delegate' in undefined` durante salvataggio
+- **Causa**: `getTerreniCollection()` è async ma veniva chiamata senza `await`, restituendo Promise invece di collection reference
+- **Soluzione**: 
+  - Aggiunto `await` a tutte le chiamate di `getTerreniCollectionCallback()`
+  - Aggiunto controllo per verificare che la collection non sia `null` o `undefined`
+- **File Modificati**:
+  - ✅ `core/js/terreni-events.js` - Aggiunto `await` in `handleSaveTerreno()` e `handleDeleteTerreno()`
+
+#### 3. Fix Conversione Coordinate Poligono ✅
+- **Problema**: Coordinate poligono non venivano salvate correttamente in Firestore
+- **Causa**: Oggetti `LatLng` di Google Maps non sono serializzabili direttamente
+- **Soluzione**: 
+  - Creata funzione helper `getLatLng()` che gestisce sia oggetti `LatLng` (con metodi) che oggetti semplici (con proprietà)
+  - Migliorata conversione coordinate per Firestore
+  - Aggiunta pulizia dati (rimozione `undefined` e `null`)
+- **File Modificati**:
+  - ✅ `core/js/terreni-events.js` - Aggiunta funzione `getLatLng()`, migliorata conversione coordinate
+
+#### 4. Aggiunta Log per Debugging ✅
+- **File Modificati**:
+  - ✅ `core/js/terreni-maps.js` - Log per inizializzazione mappa, click, toggle drawing
+  - ✅ `core/js/terreni-events.js` - Log per salvataggio, collection reference, dati
+  - ✅ `core/terreni-standalone.html` - Log per updateState, wrapper functions
+
+### Test Completati
+- ✅ **Registrazione nuovo utente**: Crea correttamente nuovo tenant con ruolo `amministratore`
+- ✅ **Tracciamento confini**: Funziona correttamente, poligono visualizzato sulla mappa
+- ✅ **Creazione terreno con poligono**: Terreno salvato correttamente in Firestore con coordinate
+- ✅ **Calcolo superficie**: Superficie calcolata automaticamente dal poligono
+- ✅ **Permessi Firestore**: Solo manager/admin possono creare terreni (verificato)
+
+### Risultati
+- ✅ **3 problemi critici risolti** (tracciamento, salvataggio, conversione coordinate)
+- ✅ **Sistema multitenant testato e funzionante**
+- ✅ **Log completi** per facilitare debugging futuro
+- ✅ **Codice più robusto** con gestione errori migliorata
+
+### Documentazione
+- ✅ Creato documento dedicato: `TEST_MULTITENANT_2026-01-03.md` con dettagli completi
+
+---
+
+## ✅ Completamento Standardizzazione Servizi (2026-01-03) - COMPLETATO
+
+### Obiettivo
+Completare la standardizzazione dei servizi centralizzati migrando tutti i file rimanenti a usare `service-helper.js` per macchine e terreni, risolvendo problemi di indici Firestore e garantendo che tutti i campi necessari siano disponibili.
+
+### Implementazione
+
+#### 1. Migrazione Segnatura Ore - Macchine ✅
+- **File**: `core/segnatura-ore-standalone.html`
+- **Modifica**: Sostituita funzione `loadMacchine()` (~70 righe) con versione che usa `loadMacchineViaService` (~15 righe)
+- **Risultato**: Codice semplificato, pattern standardizzato, fallback automatico per ambiente `file://`
+
+#### 2. Migrazione Attività - Terreni ✅
+- **File**: `core/js/attivita-controller.js`
+- **Modifica**: Migrato `loadTerreni()` a usare `loadTerreniViaService`
+- **Caratteristiche**:
+  - Supporto modalità Conto Terzi (carica terreni aziendali + clienti se necessario)
+  - Mantenuta logica di filtraggio lato client per compatibilità
+  - Aggiunti parametri `app` e `auth` alla funzione
+- **File Modificati**:
+  - ✅ `core/js/attivita-controller.js` - Funzione `loadTerreni()` migrata
+  - ✅ `core/attivita-standalone.html` - Wrapper aggiornato per passare `app` e `auth`
+
+#### 3. Migrazione Dashboard Maps - Terreni ✅
+- **File**: `core/js/dashboard-maps.js`
+- **Modifica**: Migrato caricamento terreni a usare `loadTerreniViaService`
+- **Fix**: Ripristinati `collection` e `getDocs` nelle dependencies (necessari per funzioni interne)
+- **File Modificati**:
+  - ✅ `core/js/dashboard-maps.js` - Caricamento terreni migrato, dependencies corrette
+  - ✅ `core/dashboard-standalone.html` - Aggiunto `app` alle dependencies
+
+#### 4. Migrazione Terreni Clienti - Terreni ✅
+- **File**: `modules/conto-terzi/views/terreni-clienti-standalone.html`
+- **Modifica**: Migrato `loadTerreni()` a usare `loadTerreniViaService` con filtro `clienteId`
+- **Fix**: Corretto percorso import da `../../../../` a `../../../`
+- **Risultato**: Codice semplificato (~30 righe → ~15 righe)
+
+#### 5. Fix Indice Composito Firestore ✅
+- **Problema**: Query con filtro `clienteId` + `orderBy` richiedono indice composito Firestore
+- **Soluzione**: 
+  - Modificato `terreni-service.js` per filtrare/ordinare lato client quando c'è `clienteId`
+  - Modificato `fallbackDirectFirestore` in `service-helper.js` per gestire stesso caso
+  - Evita necessità di creare indici compositi
+- **File Modificati**:
+  - ✅ `core/services/terreni-service.js` - Gestione filtro lato client per `clienteId`
+  - ✅ `core/services/service-helper.js` - Fallback intelligente per indice composito
+
+#### 6. Fix Campo Coltura - Precompilazione Diario Attività ✅
+- **Problema**: Campo `coltura` non disponibile nei terreni caricati, precompilazione non funzionava
+- **Causa**: Modello `Terreno` non includeva `coltura` nel costruttore
+- **Soluzione**:
+  - Aggiunto `coltura` al modello `Terreno` (costruttore e documentazione)
+  - Modificato `terreni-service.js` per salvare dati originali come `_originalData`
+  - Migliorato converter in `service-helper.js` per preferire dati originali
+- **File Modificati**:
+  - ✅ `core/models/Terreno.js` - Aggiunto campo `coltura`
+  - ✅ `core/services/terreni-service.js` - Salvataggio dati originali
+  - ✅ `core/services/service-helper.js` - Converter migliorato per preservare `coltura`
+
+### Risultati
+- ✅ **4 file migrati** a usare servizi centralizzati
+- ✅ **~150+ righe di codice** rimosse (duplicazione eliminata)
+- ✅ **Pattern standardizzato** in tutta l'applicazione
+- ✅ **Precompilazione coltura** funzionante nel diario attività
+- ✅ **Gestione indici** automatica (evita errori Firestore)
+- ✅ **Nessun errore linting**
+
+### Test Completati
+- ✅ `core/attivita-standalone.html` - Dropdown terreni e precompilazione coltura funzionanti
+- ✅ `core/dashboard-standalone.html` - Mappa aziendale con terreni funzionante
+- ✅ `modules/conto-terzi/views/terreni-clienti-standalone.html` - Caricamento terreni cliente funzionante
+- ✅ `core/segnatura-ore-standalone.html` - **Flusso completo testato e funzionante**:
+  - Creazione lavoro e assegnazione all'operaio ✅
+  - Segnatura ore da parte dell'operaio (trattorista) ✅
+  - Comunicazione ore al manager ✅
+  - Validazione ore da parte del manager ✅
+  - Tracciamento zona lavorata (visibile in dashboard) ✅
+  - Ore validate visibili dall'operaio dopo validazione ✅
+  - Alert superamento soglia ore manutenzione trattore/attrezzo ✅
+
+---
+
+## ✅ Fix Service Worker e Correzioni Moduli Attività (2026-01-03) - COMPLETATO
+
+### Obiettivo
+Risolvere errori nel service worker e correggere problemi nei moduli attività relativi a wrapper mancanti e filtri categorie.
+
+### Implementazione
+
+#### 1. Fix Service Worker - Errore "Failed to convert value to 'Response'" ✅
+- **Problema**: Service worker restituiva errori "Failed to convert value to 'Response'" per alcune richieste
+- **Causa**: Promise che poteva risolvere con `undefined` o errori non gestiti correttamente
+- **Soluzione**: 
+  - Riscritto handler fetch per garantire sempre una `Response` valida
+  - Aggiunto catch finale per gestire tutti i casi edge
+  - Verifiche esplicite che ogni risposta sia un'istanza valida di `Response`
+  - Gestione corretta fallback cache con risposte di errore valide
+- **File Modificati**:
+  - ✅ `service-worker.js` - Riscritto handler fetch con gestione errori robusta
+
+#### 2. Fix populateSottocategorieLavoro - Wrapper Mancante ✅
+- **Problema**: Errore `Cannot read properties of undefined (reading 'get')` quando si modifica un'attività
+- **Causa**: Alla riga 2538 veniva passato `populateSottocategorieLavoroModule` invece del wrapper `populateSottocategorieLavoro`
+- **Soluzione**: 
+  - Corretto passaggio del wrapper invece del modulo direttamente
+  - Il wrapper gestisce correttamente il passaggio di `sottocategorieLavoriMap` al modulo
+- **File Modificati**:
+  - ✅ `core/attivita-standalone.html` - Corretto passaggio wrapper alla riga 2538
+
+#### 3. Fix populateTrattoriDropdown - Wrapper Mancante ✅
+- **Problema**: Errore `macchineList.filter is not a function` quando si modifica un'attività
+- **Causa**: Alla riga 2542 veniva passato `populateTrattoriDropdownModule` invece del wrapper `populateTrattoriDropdown`
+- **Soluzione**: 
+  - Corretto passaggio del wrapper invece del modulo direttamente
+  - Il wrapper gestisce correttamente il caso in cui viene chiamato con solo l'ID trattore
+  - Corretto anche `populateAttrezziDropdown` per coerenza
+- **File Modificati**:
+  - ✅ `core/attivita-standalone.html` - Corretto passaggio wrapper alle righe 2542-2543
+
+#### 4. Filtro Categorie di Test - Esclusione "test categoria refactoring" ✅
+- **Problema**: Categoria di test "test categoria refactoring" appariva nei dropdown categorie lavori
+- **Causa**: Categoria presente nei dati Firestore e caricata senza filtri
+- **Soluzione**: 
+  - Aggiunto filtro per escludere categorie il cui nome contiene "test" (case-insensitive)
+  - Applicato in tutti i punti dove vengono caricate categorie lavori:
+    - Core: `attivita-controller.js` (2 posti: file:// e servizio)
+    - Admin: `gestione-lavori-controller.js`
+    - Conto Terzi: `nuovo-preventivo-standalone.html` (2 posti)
+    - Conto Terzi: `tariffe-standalone.html` (2 posti)
+- **File Modificati**:
+  - ✅ `core/js/attivita-controller.js` - Aggiunto filtro esclusione categorie test
+  - ✅ `core/admin/js/gestione-lavori-controller.js` - Aggiunto filtro esclusione categorie test
+  - ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Aggiunto filtro esclusione categorie test
+  - ✅ `modules/conto-terzi/views/tariffe-standalone.html` - Aggiunto filtro esclusione categorie test
+
+### Vantaggi
+- ✅ **Service Worker Stabile**: Nessun errore "Failed to convert value to 'Response'"
+- ✅ **Modifica Attività Funzionante**: Nessun errore quando si modifica un'attività
+- ✅ **Dropdown Puliti**: Categorie di test non appaiono più nei dropdown
+- ✅ **Coerenza**: Stesso comportamento in tutti i moduli (core, admin, conto terzi)
+
+### Stato
+✅ **COMPLETATO** (2026-01-03)
+
+Il service worker funziona correttamente senza errori, la modifica delle attività funziona senza problemi e le categorie di test sono filtrate in tutti i moduli.
+
+---
+
+## ✅ Fix Logout e Miglioramenti Comunicazione Rapida (2025-12-28) - COMPLETATO
+
+### Obiettivo
+Risolvere problemi di logout per account caposquadra e migliorare la funzionalità di comunicazione rapida con feedback all'utente e riepilogo nella dashboard.
+
+### Implementazione
+
+#### 1. Fix Logout Caposquadra ✅
+- **Problema**: Errore `ReferenceError: manutenzioniUnsubscribe is not defined` durante il logout
+- **Causa**: Variabili `manutenzioniUnsubscribe` e `guastiUnsubscribe` usate ma non dichiarate
+- **Soluzione**: 
+  - Dichiarate variabili all'inizio dello script module in `dashboard-standalone.html`
+  - Inizializzate a `null` per gestire correttamente la pulizia dei listener real-time
+- **File Modificati**:
+  - ✅ `core/dashboard-standalone.html` - Aggiunte dichiarazioni variabili
+
+#### 2. Miglioramento Comunicazione Rapida ✅
+- **Problema**: Comunicazione rapida non mostrava messaggi di errore o successo
+- **Soluzione**:
+  - Migliorato wrapper `handleSendComunicazioneRapida` con controlli completi
+  - Aggiunti messaggi di errore chiari per ogni caso:
+    - Utente non autenticato
+    - Dati utente non trovati
+    - Tenant non trovato
+    - Nessun lavoro attivo disponibile
+  - Aggiunto logging per debug
+  - Migliorata gestione errori nella funzione del modulo
+  - Aggiunto logging quando comunicazione viene inviata con successo
+- **File Modificati**:
+  - ✅ `core/dashboard-standalone.html` - Wrapper migliorato con controlli
+  - ✅ `core/js/dashboard-events.js` - Gestione errori migliorata, logging aggiunto
+
+#### 3. Riepilogo Comunicazioni Inviate nella Dashboard Caposquadra ✅
+- **Obiettivo**: Mostrare riepilogo comunicazioni inviate con statistiche conferme direttamente nella dashboard
+- **Implementazione**:
+  - Creata funzione `loadComunicazioniInviateCaposquadra` in `dashboard-data.js`
+  - Aggiunta sezione "Comunicazioni Inviate" nella dashboard caposquadra
+  - Mostra solo l'ultima comunicazione inviata con:
+    - Podere e terreno
+    - Data e orario formattati
+    - Statistiche conferme colorate (rosso <50%, giallo ≥50%, verde 100%)
+    - Badge stato (Attiva/Completata)
+    - Link Google Maps se coordinate disponibili
+  - Link "Vedi tutte →" per andare alle Impostazioni se ci sono più comunicazioni
+- **File Modificati**:
+  - ✅ `core/js/dashboard-data.js` - Funzione `loadComunicazioniInviateCaposquadra`
+  - ✅ `core/js/dashboard-sections.js` - Sezione HTML comunicazioni inviate
+  - ✅ `core/js/dashboard-controller.js` - Integrazione chiamata funzione
+  - ✅ `core/dashboard-standalone.html` - Import e callback aggiunti
+
+### Vantaggi
+- ✅ **Logout Funzionante**: Nessun errore durante logout per tutti i ruoli
+- ✅ **Feedback Utente**: Messaggi chiari durante invio comunicazione rapida
+- ✅ **Visibilità Conferme**: Caposquadra vede subito statistiche conferme nella dashboard
+- ✅ **UX Migliorata**: Informazioni importanti sempre visibili senza navigare
+
+### Stato
+✅ **COMPLETATO** (2025-12-28)
+
+Il logout funziona correttamente per tutti i ruoli e la comunicazione rapida fornisce feedback chiaro all'utente. Il caposquadra può vedere immediatamente le statistiche delle conferme nella dashboard.
+
+---
+
+## ✅ Link Impostazioni nell'Header (2025-12-24) - COMPLETATO
+
+### Obiettivo
+Aggiungere il link alle impostazioni nell'header delle pagine chiave per permettere accesso rapido senza dover tornare alla dashboard, migliorando la navigazione e l'usabilità.
+
+### Implementazione
+
+#### 1. Link Impostazioni nell'Header ✅
+- **Pagine Modificate**: 9 pagine selezionate dove è necessario configurare elementi (tipi lavoro, colture, poderi, categorie, ecc.)
+- **Stile**: Coerente con dashboard (icona ⚙️ + testo "Impostazioni")
+- **Posizionamento**: Nell'header-actions, prima del link Dashboard
+- **Visibilità**: Link nascosto di default, mostrato solo a Manager/Amministratore
+
+#### 2. Pagine Core Base ✅
+- **File**: `core/terreni-standalone.html`
+  - Link per aggiungere rapidamente poderi, colture
+- **File**: `core/attivita-standalone.html`
+  - Link per aggiungere rapidamente tipi lavoro, colture
+
+#### 3. Pagine Admin/Manodopera ✅
+- **File**: `core/admin/gestione-lavori-standalone.html`
+  - Link per aggiungere rapidamente tipi lavoro
+- **File**: `core/admin/gestione-macchine-standalone.html`
+  - Link per aggiungere rapidamente categorie attrezzi
+- **File**: `core/admin/gestisci-utenti-standalone.html`
+  - Link per configurare ruoli/permessi
+- **File**: `core/segnatura-ore-standalone.html`
+  - Link per aggiungere rapidamente tipi lavoro
+
+#### 4. Pagine Modulo Conto Terzi ✅
+- **File**: `modules/conto-terzi/views/preventivi-standalone.html`
+  - Link per aggiungere rapidamente tipi lavoro, colture
+- **File**: `modules/conto-terzi/views/nuovo-preventivo-standalone.html`
+  - Link per aggiungere rapidamente tipi lavoro, colture
+- **File**: `modules/conto-terzi/views/tariffe-standalone.html`
+  - Link per aggiungere rapidamente colture, tipi lavoro
+
+#### 5. Logica Permessi ✅
+- **Controllo Ruoli**: Verifica ruoli utente dopo caricamento dati
+- **Visibilità Condizionale**: Link mostrato solo se utente ha ruolo Manager o Amministratore
+- **Percorsi Relativi**: Percorsi corretti per ogni pagina (core, admin, moduli)
+
+### File Modificati
+- ✅ `core/terreni-standalone.html` - Aggiunto link + logica permessi
+- ✅ `core/attivita-standalone.html` - Aggiunto link + logica permessi
+- ✅ `core/admin/gestione-lavori-standalone.html` - Aggiunto link + logica permessi
+- ✅ `core/admin/gestione-macchine-standalone.html` - Aggiunto link + logica permessi
+- ✅ `core/admin/gestisci-utenti-standalone.html` - Aggiunto link + logica permessi
+- ✅ `core/segnatura-ore-standalone.html` - Aggiunto link + logica permessi
+- ✅ `modules/conto-terzi/views/preventivi-standalone.html` - Aggiunto link + logica permessi
+- ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Aggiunto link + logica permessi
+- ✅ `modules/conto-terzi/views/tariffe-standalone.html` - Aggiunto link + logica permessi
+
+### Vantaggi
+- ✅ **Navigazione Migliorata**: Accesso rapido alle impostazioni senza tornare alla dashboard
+- ✅ **UX Coerente**: Stesso stile e comportamento della dashboard in tutte le pagine
+- ✅ **Sicurezza**: Link visibile solo agli utenti autorizzati
+- ✅ **Produttività**: Risparmio di tempo quando serve configurare elementi mancanti
+
+### Stato
+✅ **COMPLETATO** (2025-12-24)
+
+Il link alle impostazioni è ora disponibile nelle pagine chiave dove è necessario configurare elementi, migliorando significativamente la navigazione e l'usabilità dell'applicazione.
+
+---
+
+## ✅ Segnalazione Guasti Generici e Mappa Interattiva (2025-12-24) - COMPLETATO
+
+### Obiettivo
+Aggiungere la possibilità di segnalare guasti "generici" non legati a macchine/attrezzature (frane, voragini, problemi infrastrutturali, ecc.) e implementare una mappa interattiva per la localizzazione precisa del problema.
+
+### Implementazione
+
+#### 1. Sistema Segnalazione Guasti Generici ✅
+- **File**: `core/admin/segnalazione-guasti-standalone.html`
+- **Modifiche**:
+  - Aggiunto radio button per scegliere tra "Guasto Macchina/Attrezzo" e "Segnalazione Generica"
+  - Sezione form dinamica che mostra campi diversi in base al tipo selezionato
+  - Campi specifici per guasti generici:
+    - `ubicazione`: Campo testo per indicare dove si trova il problema
+    - `tipoProblema`: Dropdown con opzioni (Frana, Voragine, Danno infrastruttura, ecc.)
+    - Pre-compilazione automatica ubicazione dal lavoro corrente (podere + terreno)
+  - Salvataggio dati: `tipoGuasto: 'generico'`, `ubicazione`, `tipoProblema`, `coordinateProblema` (se marker posizionato)
+
+#### 2. Mappa Interattiva con Marker ✅
+- **File**: `core/admin/segnalazione-guasti-standalone.html`
+- **Funzionalità**:
+  - Container mappa Google Maps (400px altezza) nella sezione generico
+  - Visualizzazione confini terreno (poligono rosso) se disponibili
+  - Click sulla mappa per posizionare marker rosso draggable
+  - Salvataggio coordinate precise del marker (`coordinateProblema: {lat, lng}`)
+  - Feedback visivo: status text che mostra coordinate in tempo reale
+  - Info window sul marker con coordinate precise
+  - Cursore crosshair sulla mappa per indicare interattività
+- **Caricamento API**:
+  - Caricamento diretto `google-maps-config.js` (come altri file)
+  - Gestione asincrona con callback per inizializzazione corretta
+  - Verifica completa che Google Maps sia caricato prima di usare API
+
+#### 3. Visualizzazione Guasti Generici ✅
+- **File**: `core/admin/gestione-guasti-standalone.html`
+- **Modifiche**:
+  - Filtro per tipo guasto (Macchina/Generico)
+  - Badge distintivo "🌍 Generico" per guasti generici
+  - Visualizzazione `ubicazione` e `tipoProblema` nei dettagli
+  - Link "Visualizza sulla mappa" per guasti con coordinate (apre Google Maps con marker)
+  - Gestione coordinate in diversi formati (oggetto, GeoPoint Firestore)
+- **File**: `core/dashboard-standalone.html`
+- **Modifiche**:
+  - Visualizzazione guasti generici nella dashboard manager
+  - Icona 🌍 per guasti generici
+  - Titolo formato: "Tipo Problema - Ubicazione"
+  - Sezione "Ultimi Risolti" aggiornata per gestire guasti generici
+
+#### 4. Fix Permessi Firestore Utenti ✅
+- **File**: `core/admin/gestione-guasti-standalone.html`
+- **Problema**: `loadUsers()` cercava di leggere tutti gli utenti senza filtri, violando regole Firestore
+- **Soluzione**: Aggiunto filtro per `tenantId` usando query:
+  ```javascript
+  const q = query(usersRef, where('tenantId', '==', currentTenantId));
+  ```
+- **Risultato**: Nomi operai ora visualizzati correttamente (non più "Operaio sconosciuto")
+
+#### 5. Link Visualizzazione Mappa Guasti ✅
+- **File**: `core/admin/gestione-guasti-standalone.html`
+- **Funzionalità**:
+  - Pulsante "🗺️ Visualizza sulla mappa" per guasti generici con coordinate
+  - Link diretto a Google Maps con zoom 18 sul punto esatto
+  - Visualizzazione coordinate testuali sotto il pulsante
+  - Gestione diversi formati coordinate (retrocompatibilità)
+
+#### 6. Filtri e Query Aggiornati ✅
+- **File**: `core/admin/gestione-macchine-standalone.html`
+- **Modifiche**:
+  - Query storico guasti filtra solo `tipoGuasto === 'macchina'`
+  - Guasti generici non appaiono nello storico macchine
+- **File**: `core/admin/gestione-guasti-standalone.html`
+- **Modifiche**:
+  - Filtro dropdown per tipo guasto
+  - Logica filtri aggiornata per includere tipo guasto
+
+### File Modificati
+- ✅ `core/admin/segnalazione-guasti-standalone.html` - Form con tipo guasto, mappa interattiva, pre-compilazione ubicazione
+- ✅ `core/admin/gestione-guasti-standalone.html` - Visualizzazione guasti generici, link mappa, fix permessi utenti
+- ✅ `core/dashboard-standalone.html` - Visualizzazione guasti generici in dashboard
+- ✅ `core/admin/gestione-macchine-standalone.html` - Filtro tipo guasto nello storico
+
+### Vantaggi
+- ✅ **Segnalazioni complete**: Possibilità di segnalare qualsiasi problema, non solo guasti macchine
+- ✅ **Localizzazione precisa**: Marker sulla mappa per indicare punto esatto del problema
+- ✅ **Visualizzazione confini**: Confini terreno visibili per contesto geografico
+- ✅ **Link diretto mappa**: Manager può aprire Google Maps con un click per vedere posizione precisa
+- ✅ **Dati operai corretti**: Nomi operai visualizzati correttamente grazie a fix permessi
+- ✅ **Retrocompatibilità**: Guasti esistenti senza `tipoGuasto` default a 'macchina'
+
+### Stato
+✅ **COMPLETATO** (2025-12-24)
+
+Il sistema ora supporta segnalazioni generiche con localizzazione precisa tramite mappa interattiva, migliorando significativamente la capacità di tracciare e gestire problemi sul campo.
+
+---
+
 ## 🎯 Distinzione Importante
 
 ### "Core" = Fondamenta Tecniche (Quello che abbiamo fatto)
@@ -91,6 +760,47 @@ gfv-platform/
 - **components/**: Widget riutilizzabili (bottoni, form, tabelle)
 - **utils/**: Funzioni utility (date, formattazione, validazione)
 - **styles/**: Stili globali, tema, design system
+
+---
+
+## ✅ Validazione Obbligatoria Dati Lavori e Finestra Recupero (2025-12-20) - COMPLETATO
+
+### Obiettivo
+Risolvere il problema per cui trattoristi e caposquadra potevano completare un lavoro prima di segnare le ore, perdendo la possibilità di inserirle. Implementare validazione obbligatoria e finestra temporale per recupero.
+
+### Problema Identificato
+- Trattoristi potevano tracciare zone lavorate e segnare come completato il lavoro come prima cosa
+- A quel punto non potevano più segnare le ore perché il lavoro non compariva più nella lista
+- Mancava un ordine temporale obbligatorio per garantire che tutti i dati fossero compilati
+
+### Implementazione
+
+#### Validazione Obbligatoria Dati
+- ✅ **Funzioni helper**: Aggiunte funzioni `verificaOreSegnate()` e `verificaZoneLavorate()` in dashboard-standalone.html
+- ✅ **Funzioni helper**: Aggiunte funzioni `verificaOreSegnateLavoro()` e `verificaZoneLavorateLavoro()` in lavori-caposquadra-standalone.html
+- ✅ **Blocco completamento**: Modificata `segnaLavoroCompletato()` in dashboard per validare ore e zone prima di completare
+- ✅ **Blocco completamento**: Modificata `segnaCompletato()` in lavori-caposquadra per validare ore e zone prima di completare
+- ✅ **Messaggi chiari**: Messaggi di errore specifici che indicano esattamente quali dati mancano
+- ✅ **Zone obbligatorie per trattoristi**: Zone lavorate ora obbligatorie anche per trattoristi (non più opzionali)
+
+#### Finestra Temporale Recupero
+- ✅ **Lavori completati recenti**: Modificata `loadLavori()` in segnatura-ore-standalone.html per includere lavori completati negli ultimi 7 giorni
+- ✅ **Sezione dedicata**: Lavori completati mostrati in sezione separata "Lavori Completati Recenti (ultimi 7 giorni)"
+- ✅ **Badge distintivo**: Badge giallo distintivo per lavori completati recenti
+- ✅ **Messaggio informativo**: Spiegazione che si possono ancora segnare ore per questi lavori
+- ✅ **Calcolo data limite**: Data limite calcolata come 7 giorni fa dalla data corrente
+
+### File Modificati
+- `core/dashboard-standalone.html` - Funzioni helper e validazione in `segnaLavoroCompletato()`
+- `core/admin/lavori-caposquadra-standalone.html` - Funzioni helper e validazione in `segnaCompletato()`
+- `core/segnatura-ore-standalone.html` - Modificata `loadLavori()` e `renderLavori()` per includere lavori completati recenti
+
+### Risultato
+- ✅ Nessun lavoro può essere completato senza dati obbligatori (ore e zone)
+- ✅ Ordine temporale garantito: zone → ore → completamento
+- ✅ Possibilità di recuperare ore anche dopo completamento (finestra 7 giorni)
+- ✅ Esperienza utente migliorata con validazioni chiare e messaggi informativi
+- ✅ Prevenzione errori dell'utente con blocchi mirati
 
 ---
 
@@ -1457,5 +2167,305 @@ Piccolo proprietario che:
 - ✅ Dati azienda completi nel footer email
 - ✅ Email funzionanti senza errori
 - ✅ Branding aziendale invece di "GFV Platform" nelle email preventivi
+
+---
+
+## ✅ Rimozione Log Debug Completa (2025-01-26)
+
+### Obiettivo
+Rimuovere tutti i log di debug (`console.log`, `console.debug`, `console.info`) dal codice per preparare l'applicazione alla produzione, mantenendo solo i log critici (`console.error`, `console.warn`).
+
+### Implementazione
+
+#### Metodo Utilizzato
+- ✅ **Script PowerShell automatico**: Creato script per rimozione batch di tutti i log
+- ✅ **Pattern matching intelligente**: Rimuove righe con `console.log/debug/info` mantenendo indentazione corretta
+- ✅ **Backup automatici**: Ogni file viene salvato con estensione `.backup` prima della modifica
+- ✅ **Gestione multilinea**: Pattern regex gestisce anche log complessi con template literals
+
+#### File Principali Processati
+- ✅ **dashboard-standalone.html**: 180 log → 0 log
+- ✅ **gestione-lavori-standalone.html**: 68 log → 0 log
+- ✅ **attivita-standalone.html**: 36 log → 0 log
+- ✅ **terreni-standalone.html**: 27 log → 0 log
+
+#### File Secondari Processati
+- ✅ **48 file HTML/JS** nella cartella `core/` processati automaticamente
+- ✅ **314 log rimossi** dai file secondari
+- ✅ File di autenticazione, admin, servizi, modelli tutti puliti
+
+### Risultati
+
+#### Statistiche Finali
+- ✅ **Totale log rimossi**: 625 log
+- ✅ **File processati**: 52 file (4 principali + 48 secondari)
+- ✅ **Log rimanenti**: Solo 2 log nei file di documentazione (.md) - parte della documentazione, non da rimuovere
+- ✅ **Tempo impiegato**: ~2 ore (incluso sviluppo script e verifica)
+
+#### Tipi di Log Rimossi
+- ✅ Log tour interattivi (`[TOUR DEBUG]`)
+- ✅ Log caricamento dati Firebase
+- ✅ Log inizializzazione Google Maps
+- ✅ Log autenticazione e gestione ruoli
+- ✅ Log tracciamento e validazione
+- ✅ Log migrazione dati
+- ✅ Log statistiche e calcoli
+
+#### Log Mantenuti
+- ✅ `console.error`: Per errori critici
+- ✅ `console.warn`: Per warning importanti
+- ✅ Log nei file di documentazione (.md): Parte della documentazione
+
+### Vantaggi
+- ✅ **Performance**: Nessun overhead da log inutili in produzione
+- ✅ **Sicurezza**: Nessun leak di informazioni sensibili nella console
+- ✅ **Professionalità**: Console pulita per utenti finali
+- ✅ **Manutenibilità**: Codice più pulito e leggibile
+- ✅ **Pronto per produzione**: Codice ottimizzato per deployment
+
+### File Modificati
+- ✅ Tutti i file HTML/JS nella cartella `core/` (52 file totali)
+- ✅ File di backup creati automaticamente (poi rimossi)
+
+### Stato
+✅ **COMPLETATO** (2025-01-26)
+
+Il codice è ora completamente pulito da log di debug e pronto per la produzione.
+
+---
+
+## 🔧 Miglioramento Sistema Guasti: Distinzione Trattore/Attrezzo (2025-01-26)
+
+### Problema Identificato
+Quando veniva segnalato un guasto per una combinazione "Trattore + Attrezzo", il sistema salvava entrambi gli ID ma non distingueva quale componente aveva effettivamente il guasto. Questo causava:
+- **Storico guasti errato**: Lo storico dell'attrezzo non mostrava i guasti perché la query cercava solo per `macchinaId`
+- **Tracciabilità imprecisa**: Impossibile sapere se un guasto era del trattore o dell'attrezzo
+- **Gestione manutenzione**: Difficile gestire correttamente la manutenzione dei singoli componenti
+
+### Soluzione Implementata
+
+#### 1. Campo `componenteGuasto` nel Form Segnalazione ✅
+- **File**: `core/admin/segnalazione-guasti-standalone.html`
+- **Modifica**: Aggiunto dropdown obbligatorio "Componente con guasto" sempre visibile
+- **Opzioni**: 
+  - `trattore` - Guasto del trattore
+  - `attrezzo` - Guasto dell'attrezzo
+  - `entrambi` - Guasto di entrambi i componenti
+- **Pre-selezione automatica**: Il dropdown si aggiorna automaticamente in base ai dropdown trattore/attrezzo selezionati
+- **Validazione**: Verifica coerenza tra componente selezionato e trattore/attrezzo scelti
+
+#### 2. Salvataggio e Gestione Stato ✅
+- **File**: `core/admin/segnalazione-guasti-standalone.html`
+- **Modifiche**:
+  - Campo `componenteGuasto` salvato nel documento guasto
+  - Aggiornamento stato macchina/attrezzo **solo** se il guasto riguarda quel componente specifico
+  - Risoluzione guasto: ripristino stato solo per il componente interessato
+
+#### 3. Query Storico Guasti Migliorata ✅
+- **File**: `core/admin/gestione-macchine-standalone.html`
+- **Modifiche**:
+  - **Per trattori**: Cerca guasti dove `macchinaId` corrisponde E `componenteGuasto` è `'trattore'` o `'entrambi'`
+  - **Per attrezzi**: Cerca guasti dove `attrezzoId` corrisponde E `componenteGuasto` è `'attrezzo'` o `'entrambi'`
+  - Filtraggio in memoria per maggiore flessibilità (evita problemi con indici Firestore)
+
+#### 4. Visualizzazione Migliorata ✅
+- **File**: `core/admin/gestione-macchine-standalone.html`
+- **Modifiche**:
+  - Badge colorato che indica il componente interessato (Trattore, Attrezzo, Entrambi)
+  - Visualizzazione aggiornata nella lista guasti per mostrare correttamente il componente
+
+#### 5. Retrocompatibilità ✅
+- Gestione di guasti esistenti senza campo `componenteGuasto` (default: `'trattore'`)
+- Nessun breaking change per dati legacy
+
+### Vantaggi
+- ✅ **Storico corretto**: Lo storico del trattore mostra solo guasti del trattore, quello dell'attrezzo solo guasti dell'attrezzo
+- ✅ **Tracciabilità precisa**: Chiaro quale componente ha avuto il guasto
+- ✅ **Gestione manutenzione migliorata**: Possibilità di gestire correttamente la manutenzione dei singoli componenti
+- ✅ **UX migliorata**: Pre-selezione automatica del componente riduce errori dell'utente
+- ✅ **Retrocompatibilità**: Funziona con dati esistenti
+
+### File Modificati
+- ✅ `core/admin/segnalazione-guasti-standalone.html` - Form segnalazione con dropdown componente
+- ✅ `core/admin/gestione-macchine-standalone.html` - Query e visualizzazione storico guasti migliorata
+
+### Stato
+✅ **COMPLETATO** (2025-01-26)
+
+Il sistema di segnalazione guasti ora distingue correttamente tra trattore e attrezzo, permettendo una gestione più precisa della manutenzione.
+
+## ✅ Ripristino Funzione Comunicazione Rapida Dashboard Caposquadra (2025-12-28) - COMPLETATO
+
+### Obiettivo
+Ripristinare la funzionalità di comunicazione rapida nella dashboard del caposquadra che era rimasta bloccata in "Caricamento lavori..." a causa della mancanza della funzione `renderComunicazioneRapidaForm`.
+
+### Problema Identificato
+- La sezione "Invia Comunicazione Rapida alla Squadra" nella dashboard del caposquadra rimaneva bloccata in "Caricamento lavori..."
+- La funzione `window.renderComunicazioneRapidaForm` non era definita nel codice
+- Durante un refactoring precedente, la funzione era stata rimossa dal file HTML ma non era stata ricreata in un modulo JavaScript
+- Il codice in `loadComunicazioneRapida` cercava di chiamare la funzione ma non la trovava, quindi il form non veniva mai renderizzato
+
+### Implementazione
+
+#### 1. Creazione Funzione `renderComunicazioneRapidaForm` ✅
+- **File**: `core/js/dashboard-data.js`
+- Funzione esportata che renderizza il form HTML per la comunicazione rapida
+- Legge i lavori attivi da `window.lavoriAttiviCaposquadra`
+- Pre-compila automaticamente podere, terreno e lavoro dal primo lavoro attivo
+- Mostra dropdown per selezionare lavoro se ce ne sono più di uno
+- Include escape HTML per sicurezza dei dati inseriti
+
+#### 2. Form HTML Renderizzato ✅
+- **Campi del form**:
+  - Dropdown selezione lavoro (se più lavori disponibili) o nome lavoro (se un solo lavoro)
+  - Podere (campo di sola lettura, pre-compilato)
+  - Campo/Terreno (campo di sola lettura, pre-compilato)
+  - Orario di ritrovo (input time, default 07:00, obbligatorio)
+  - Note (textarea opzionale)
+  - Area messaggi per feedback successo/errore
+  - Pulsante "Invia Comunicazione"
+
+#### 3. Integrazione nel File Dashboard ✅
+- **File**: `core/dashboard-standalone.html`
+- Aggiunto import della funzione `renderComunicazioneRapidaForm` dal modulo `dashboard-data.js`
+- Creato wrapper globale `window.renderComunicazioneRapidaForm` per compatibilità con attributi HTML `onchange`/`onsubmit`
+- La funzione è ora disponibile globalmente e viene chiamata correttamente da `loadComunicazioneRapida`
+
+#### 4. Event Handler Collegati ✅
+- `handleRapidaLavoroChange()` - Aggiorna podere/terreno quando cambia il lavoro selezionato
+- `handleSendComunicazioneRapida()` - Gestisce l'invio della comunicazione alla squadra
+- `showRapidaMessage()` - Mostra messaggi di successo/errore
+
+### Funzionalità Ripristinata
+- ✅ Form di comunicazione rapida si carica correttamente
+- ✅ Pre-compilazione automatica podere, terreno e lavoro
+- ✅ Dropdown per selezionare lavoro se più lavori attivi
+- ✅ Invio comunicazione rapida alla squadra con un click
+- ✅ Coordinate podere salvate automaticamente (se disponibili) per Google Maps
+- ✅ Link "Indicazioni" nella dashboard operai per raggiungere il punto di ritrovo
+
+### File Modificati
+- ✅ `core/js/dashboard-data.js` - Aggiunta funzione `renderComunicazioneRapidaForm` con escape HTML
+- ✅ `core/dashboard-standalone.html` - Aggiunto import e wrapper globale per la funzione
+
+### Note Tecniche
+- La funzione usa `window.lavoriAttiviCaposquadra` (popolato da `loadComunicazioneRapida`)
+- Escape HTML implementato per sicurezza (previene XSS)
+- La funzione è modulare e può essere facilmente estesa in futuro
+- Compatibilità mantenuta con event handler esistenti tramite wrapper globali
+
+### Stato
+✅ **COMPLETATO** (2025-12-28)
+
+La comunicazione rapida nella dashboard del caposquadra è ora completamente funzionante. Il form si carica correttamente e permette di inviare comunicazioni alla squadra con pre-compilazione automatica dei dati dal lavoro selezionato.
+
+---
+
+## ✅ Fix Sistema Multi-Tenant: Switch Tenant e Dashboard (2026-01-12) - COMPLETATO
+
+### Obiettivo
+Risolvere i problemi del sistema multi-tenant dopo l'implementazione iniziale:
+1. Lo switch tra tenant non funzionava correttamente
+2. La dashboard mostrava sempre i dati del tenant precedente invece di quello corrente
+3. I ruoli non venivano filtrati per il tenant corrente
+
+### Implementazione
+
+#### 1. Fix Switch Tenant - Problema getUserTenants() ✅
+- **Problema**: Quando `switchTenant()` chiamava `getUserTenants()`, la variabile locale `currentUser` era `null`, causando l'errore "Utente non ha accesso a questo tenant"
+- **Causa**: `getUserTenants()` dipendeva da `currentUser` locale che non era sempre sincronizzato con Firebase Auth
+- **Soluzione**: 
+  - Modificato `switchTenant()` per ottenere direttamente l'utente da Firebase Auth usando `getAuthInstance().currentUser`
+  - Passato esplicitamente l'`userId` a `getUserTenants(userId)` invece di fare affidamento su `currentUser` locale
+  - Aggiunto fallback in `getUserTenants()` per usare Firebase Auth direttamente se `currentUser` è `null`
+- **File Modificati**:
+  - ✅ `core/services/tenant-service.js` - Modificato `switchTenant()` e `getUserTenants()` per usare Firebase Auth come fonte affidabile
+
+#### 2. Fix Dashboard - Filtro Ruoli per Tenant Corrente ✅
+- **Problema**: La dashboard mostrava sempre la vista del tenant precedente perché usava `userData.ruoli` (tutti i ruoli dell'utente) invece dei ruoli filtrati per il tenant corrente
+- **Causa**: `renderDashboard()` riceveva `userDataNormalized` con tutti i ruoli dell'utente, non filtrati per il tenant corrente
+- **Soluzione**: 
+  - Modificato il caricamento dati utente nella dashboard per usare `getUserRolesForTenant(currentTenantId, user.uid)` invece di `userData.ruoli`
+  - Aggiunto fallback a `userData.ruoli` deprecato solo se non ci sono ruoli per il tenant corrente (retrocompatibilità)
+  - Aggiornato `userDataNormalized` per includere `tenantId: currentTenantId` invece del tenant deprecato
+- **File Modificati**:
+  - ✅ `core/dashboard-standalone.html` - Modificato caricamento dati utente per filtrare ruoli per tenant corrente
+
+#### 3. Fix Caricamento Dati - Uso getCurrentTenantId() invece di userData.tenantId ✅
+- **Problema**: Le funzioni di caricamento dati (mappa, statistiche, lavori) usavano `userData.tenantId` deprecato che conteneva sempre il tenant originale, causando il caricamento dei dati del tenant sbagliato
+- **Causa**: Tutte le funzioni `load*` usavano `userData.tenantId` invece di `getCurrentTenantId()` per ottenere il tenant corrente
+- **Soluzione**: 
+  - Modificato `loadManagerManodoperaStats()` per usare `getCurrentTenantId()` invece di `userData.tenantId`
+  - Modificato `loadMappaAziendale()` per usare `getCurrentTenantId()` invece di `userData.tenantId`
+  - Modificato `loadAndDrawZoneLavorate()` per usare `getCurrentTenantId()` invece di `userData.tenantId`
+  - Modificato `loadAndDrawIndicatoriLavori()` per usare `getCurrentTenantId()` invece di `userData.tenantId`
+  - Aggiunto fallback a `userData.tenantId` per retrocompatibilità
+- **File Modificati**:
+  - ✅ `core/js/dashboard-data.js` - Modificato `loadManagerManodoperaStats()` per usare tenant corrente
+  - ✅ `core/js/dashboard-maps.js` - Modificato `loadMappaAziendale()`, `loadAndDrawZoneLavorate()`, `loadAndDrawIndicatoriLavori()` per usare tenant corrente
+
+#### 4. Fix Caricamento Moduli Tenant Corrente ✅
+- **Problema**: I moduli disponibili venivano caricati dal tenant deprecato invece che dal tenant corrente
+- **Causa**: Il codice usava `userData.tenantId` per caricare i moduli dal documento tenant
+- **Soluzione**: 
+  - Modificato il caricamento moduli per usare `getCurrentTenantId()` invece di `userData.tenantId`
+  - Applicato sia nel flusso principale che nel flusso di creazione documento utente
+- **File Modificati**:
+  - ✅ `core/dashboard-standalone.html` - Modificato caricamento moduli per usare tenant corrente
+
+#### 5. Pulizia Log Debug ✅
+- **Obiettivo**: Rimuovere tutti i log di debug aggiunti durante il troubleshooting, mantenendo solo gli errori critici
+- **Implementazione**: 
+  - Rimossi tutti i log `console.error` con prefissi `[GET_USER_TENANTS]`, `[SWITCH_TENANT]`, `[DASHBOARD]`, `[LOAD_MAPPA]`, `[ACCEPT_INVITO]`, `[REGISTRAZIONE]`
+  - Mantenuti solo i log di errore critici (`console.error` per errori reali, `console.warn` per warning)
+  - Rimossi log informativi che non sono necessari in produzione
+- **File Modificati**:
+  - ✅ `core/services/tenant-service.js` - Rimossi log debug da `getUserTenants()`, `switchTenant()`, `clearUserTenantsCache()`
+  - ✅ `core/dashboard-standalone.html` - Rimossi log per tenant corrente, ruoli e moduli
+  - ✅ `core/js/dashboard-data.js` - Rimosso log warning in `loadManagerManodoperaStats()`
+  - ✅ `core/js/dashboard-maps.js` - Rimosso log warning in `loadAndDrawZoneLavorate()`
+  - ✅ `core/services/invito-service-standalone.js` - Rimossi log debug, mantenuti solo errori critici
+  - ✅ `core/auth/registrazione-invito-standalone.html` - Rimossi log debug, mantenuti solo errori critici
+
+### Test Completati
+- ✅ **Switch Tenant**: Funziona correttamente tra SABBIE GIALLE e ROSSO
+- ✅ **Ruoli Filtrati**: La dashboard mostra i ruoli corretti per ogni tenant (manager in SABBIE GIALLE, caposquadra in ROSSO)
+- ✅ **Dati Isolati**: I dati caricati (mappa, statistiche, lavori) appartengono al tenant corrente
+- ✅ **Moduli Corretti**: I moduli disponibili sono quelli del tenant corrente
+- ✅ **Vista Dashboard**: La dashboard mostra la vista corretta in base ai ruoli del tenant corrente
+
+### File Modificati
+- ✅ `core/services/tenant-service.js`
+  - Modificato `switchTenant()` per usare Firebase Auth direttamente
+  - Modificato `getUserTenants()` per aggiungere fallback a Firebase Auth
+  - Rimossi log debug
+- ✅ `core/dashboard-standalone.html`
+  - Modificato caricamento dati utente per filtrare ruoli per tenant corrente
+  - Modificato caricamento moduli per usare tenant corrente
+  - Rimossi log debug
+- ✅ `core/js/dashboard-data.js`
+  - Modificato `loadManagerManodoperaStats()` per usare `getCurrentTenantId()`
+  - Rimosso log warning
+- ✅ `core/js/dashboard-maps.js`
+  - Modificato `loadMappaAziendale()` per usare `getCurrentTenantId()`
+  - Modificato `loadAndDrawZoneLavorate()` per usare `getCurrentTenantId()`
+  - Modificato `loadAndDrawIndicatoriLavori()` per usare `getCurrentTenantId()`
+  - Rimosso log warning
+- ✅ `core/services/invito-service-standalone.js`
+  - Rimossi log debug, mantenuti solo errori critici
+- ✅ `core/auth/registrazione-invito-standalone.html`
+  - Rimossi log debug, mantenuti solo errori critici
+
+### Note Tecniche
+- Il sistema multi-tenant ora funziona correttamente con isolamento completo dei dati per tenant
+- I ruoli vengono filtrati correttamente per ogni tenant, permettendo a un utente di avere ruoli diversi in tenant diversi
+- La dashboard si aggiorna correttamente quando si cambia tenant, mostrando i dati e la vista corretti
+- Tutti i servizi ora usano `getCurrentTenantId()` invece di `userData.tenantId` deprecato per garantire coerenza
+- Il codice è pulito e pronto per la produzione senza log di debug
+
+### Stato
+✅ **COMPLETATO** (2026-01-12)
+
+Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono appartenere a più tenant con ruoli diversi, e lo switch tra tenant funziona correttamente con isolamento completo dei dati e delle viste dashboard.
 
 

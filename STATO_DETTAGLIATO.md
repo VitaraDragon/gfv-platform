@@ -1,7 +1,7 @@
 # 📊 Stato Dettagliato Progetto - GFV Platform
 
-**Data aggiornamento**: 2025-12-18  
-**Versione**: 1.9  
+**Data aggiornamento**: 2025-12-22  
+**Versione**: 1.12  
 **Stato generale**: ✅ **IN SVILUPPO ATTIVO - FUNZIONANTE**
 
 ---
@@ -14,6 +14,95 @@
 - **URL principale**: https://vitaradragon.github.io/gfv-platform/
 - **Stato deploy**: ✅ Online e funzionante
 - **PWA**: ✅ Installabile come Progressive Web App
+
+---
+
+## 🆕 Ultime Modifiche (2025-12-22)
+
+### Miglioramento Sezione Tariffe Conto Terzi ✅ COMPLETATO
+- ✅ **Unificazione modal tariffe**: Rimossi i due modal separati, ora c'è un solo modal unificato per creare/modificare tariffe
+- ✅ **Pulsante creazione multipla**: Aggiunto pulsante "✨ Crea per tutte le morfologie" nel modal principale per creare automaticamente 3 tariffe con un click
+- ✅ **Sezione coefficienti nelle impostazioni**: Aggiunta sezione dedicata "Coefficienti Morfologia Terreni" nelle Impostazioni per configurare i coefficienti standard (Pianura, Collina, Montagna)
+- ✅ **Coefficienti riutilizzabili**: I coefficienti vengono salvati una volta nelle impostazioni e riutilizzati automaticamente quando si creano tariffe per tutte le morfologie
+- ✅ **Logica migliorata**: La funzione `handleCreaMultipleTariffe()` e `duplicaPerAltreMorfologie()` ora caricano i coefficienti dalle impostazioni invece di richiederli ogni volta
+- ✅ **UI semplificata**: Campo "Tipo Campo" reso opzionale (vuoto = creazione multipla), campo "Coefficiente" mostrato solo per tariffe singole
+- ✅ **Regole Firestore**: Aggiunta regola per la collection `impostazioni` per permettere salvataggio coefficienti
+
+### File Modificati
+- `core/admin/impostazioni-standalone.html` - Aggiunta sezione coefficienti morfologia, funzioni load/save
+- `modules/conto-terzi/views/tariffe-standalone.html` - Unificato modal, rimossa logica duplicata, aggiunto pulsante creazione multipla
+- `firestore.rules` - Aggiunta regola per collection `impostazioni`
+
+### Risultato
+- ✅ Workflow più semplice: un solo modal invece di due
+- ✅ Meno duplicazione: coefficienti salvati una volta nelle impostazioni
+- ✅ Più veloce: creazione 3 tariffe con un click
+- ✅ Più flessibile: coefficienti modificabili nelle impostazioni quando necessario
+- ✅ Codice più pulito: rimossa logica duplicata e modal non necessario
+
+---
+
+## 🆕 Ultime Modifiche (2025-12-21)
+
+### Morfologia Terreni e Miglioramento Tariffe Conto Terzi ✅ COMPLETATO
+- ✅ **Campo morfologia terreni**: Aggiunto campo `tipoCampo` (pianura, collina, montagna) al modello Terreno per identificare la morfologia del terreno
+- ✅ **Dropdown morfologia nel modal terreni**: Aggiunto dropdown per selezionare la morfologia del terreno nel modal di aggiunta/modifica terreni clienti
+- ✅ **Salvataggio morfologia**: Implementato salvataggio e caricamento della morfologia quando si salva/modifica un terreno
+- ✅ **Precompilazione automatica preventivo**: Quando si seleziona un terreno nel preventivo, la morfologia viene precompilata automaticamente (come già avviene per le colture)
+- ✅ **Campo categoriaColturaId nelle tariffe**: Aggiunto campo `categoriaColturaId` al modello Tariffa per identificare la categoria quando la coltura è vuota (tariffe per tutta la categoria)
+- ✅ **Salvataggio categoria nelle tariffe**: Modificato salvataggio tariffe per salvare `categoriaColturaId` quando si crea una tariffa per tutta una categoria (senza coltura specifica)
+- ✅ **Fallback ricerca tariffe nel preventivo**: Implementato sistema di fallback nella ricerca tariffe: prima cerca tariffa specifica per coltura, se non trova cerca tariffa generica per categoria
+- ✅ **Visualizzazione migliorata lista tariffe**: Nella lista delle tariffe, quando una tariffa è per tutta una categoria, viene mostrato il nome della categoria (es: "Vite", "Frutteto") invece di "Tutte le colture"
+- ✅ **Filtri e messaggi aggiornati**: Aggiornati anche filtri e messaggi di conferma per usare il nome della categoria
+
+### File Modificati
+- `core/models/Terreno.js` - Aggiunto campo `tipoCampo` con validazione
+- `modules/conto-terzi/views/terreni-clienti-standalone.html` - Aggiunto dropdown morfologia, salvataggio e caricamento
+- `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Precompilazione automatica morfologia e fallback ricerca tariffe
+- `modules/conto-terzi/models/Tariffa.js` - Aggiunto campo `categoriaColturaId`
+- `modules/conto-terzi/views/tariffe-standalone.html` - Salvataggio categoriaColturaId, visualizzazione migliorata, filtri aggiornati
+
+### Risultato
+- ✅ Le tariffe per categoria funzionano correttamente nel preventivo (fallback automatico)
+- ✅ La morfologia del terreno viene salvata e utilizzata per precompilare automaticamente le tariffe
+- ✅ Visualizzazione più chiara e professionale delle tariffe nella lista
+- ✅ Sistema più robusto e user-friendly per la gestione tariffe conto terzi
+
+---
+
+## 🆕 Ultime Modifiche (2025-12-20)
+
+### Validazione Obbligatoria Dati Lavori ✅ COMPLETATO
+- ✅ **Blocco completamento senza dati**: Implementato sistema di validazione che impedisce di completare un lavoro senza dati obbligatori
+- ✅ **Ore segnate obbligatorie**: Trattoristi e caposquadra non possono completare un lavoro senza aver segnato le ore lavorate
+- ✅ **Zone lavorate obbligatorie**: Zone lavorate obbligatorie anche per trattoristi (non più opzionali)
+- ✅ **Messaggi di errore chiari**: Messaggi specifici che indicano esattamente quali dati mancano (ore segnate, zone lavorate tracciate)
+- ✅ **Validazione in dashboard**: Funzione `segnaLavoroCompletato()` in dashboard-standalone.html verifica dati prima di completare
+- ✅ **Validazione in lavori-caposquadra**: Funzione `segnaCompletato()` in lavori-caposquadra-standalone.html verifica dati prima di completare
+- ✅ **Funzioni helper**: Aggiunte funzioni `verificaOreSegnate()` e `verificaZoneLavorate()` per validazione centralizzata
+
+### Finestra Temporale Recupero Ore ✅ COMPLETATO
+- ✅ **Lavori completati recenti visibili**: Nella pagina "Segna Ore" vengono mostrati anche i lavori completati negli ultimi 7 giorni
+- ✅ **Sezione separata**: Lavori completati recenti mostrati in sezione dedicata "Lavori Completati Recenti (ultimi 7 giorni)"
+- ✅ **Badge distintivo**: Lavori completati hanno badge giallo distintivo per distinguerli dai lavori attivi
+- ✅ **Recupero ore**: Permette di segnare le ore anche per lavori già completati, risolvendo il problema di completamento prematuro
+- ✅ **Visualizzazione chiara**: Messaggio esplicativo che indica che si possono ancora segnare ore per questi lavori
+
+### Risoluzione Problema Ordine Temporale ✅ COMPLETATO
+- ✅ **Problema risolto**: Risolto il problema per cui un trattorista poteva completare un lavoro prima di segnare le ore, perdendo la possibilità di inserirle
+- ✅ **Ordine obbligatorio**: Ora l'ordine corretto è garantito: prima zone lavorate, poi ore segnate, infine completamento
+- ✅ **Prevenzione errori**: Il sistema previene errori dell'utente bloccando azioni non permesse
+
+### File Modificati
+- `core/dashboard-standalone.html` - Aggiunte funzioni helper e validazione in `segnaLavoroCompletato()`
+- `core/admin/lavori-caposquadra-standalone.html` - Aggiunte funzioni helper e validazione in `segnaCompletato()`
+- `core/segnatura-ore-standalone.html` - Modificata `loadLavori()` per includere lavori completati recenti (7 giorni)
+
+### Risultato
+- ✅ Nessun lavoro può essere completato senza dati obbligatori
+- ✅ Trattoristi e caposquadra guidati nel processo corretto
+- ✅ Possibilità di recuperare ore anche dopo completamento (finestra 7 giorni)
+- ✅ Esperienza utente migliorata con validazioni chiare e messaggi informativi
 
 ---
 
@@ -515,8 +604,8 @@ Il progetto è **molto avanzato** e **funzionante**. I moduli Core Base, Manodop
 
 ---
 
-**Ultimo aggiornamento**: 2025-12-18  
-**Versione documento**: 1.9  
-**Ultima funzionalità**: Badge Conto Terzi e filtri per categoria nel diario attività (2025-12-18)  
+**Ultimo aggiornamento**: 2025-12-20  
+**Versione documento**: 1.10  
+**Ultima funzionalità**: Validazione obbligatoria dati lavori e finestra recupero ore (2025-12-20)  
 **Stato**: ✅ Progetto attivo e funzionante
 

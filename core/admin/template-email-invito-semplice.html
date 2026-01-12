@@ -1,0 +1,85 @@
+<!-- 
+    COPIA SOLO IL CONTENUTO DI QUESTO FILE (dal <div> fino alla chiusura </div>)
+    e incollalo nell'editor EmailJS quando aggiorni il template degli inviti (template_9917fde)
+-->
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+    <!-- Header con logo e nome azienda -->
+    <div style="background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%); padding: 40px 30px; text-align: center; min-height: 120px;">
+        <img src="{{logo_url}}" alt="{{nome_azienda}}" style="max-width: 200px; max-height: 100px; height: auto; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;">
+        <h1 style="color: #ffffff; margin: 15px 0 10px 0; font-size: 36px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 1px;">{{nome_azienda}}</h1>
+        <h2 style="color: white; margin: 10px 0 0 0; font-size: 20px; font-weight: normal;">Invito Collaborazione</h2>
+    </div>
+
+    <!-- Contenuto principale -->
+    <div style="padding: 30px; background: #f8f9fa;">
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+            Gentile <strong>{{nome}} {{cognome}}</strong>,
+        </p>
+        
+        <p style="font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px;">
+            Sei stato invitato a collaborare con la nostra azienda. Ti sono stati assegnati i seguenti ruoli: <strong>{{ruoli}}</strong>
+        </p>
+
+        <p style="font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px;">
+            Per completare la registrazione e accedere alla piattaforma, clicca sul pulsante qui sotto:
+        </p>
+
+        <!-- Box invito -->
+        <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #1976D2; margin-top: 0; margin-bottom: 20px; font-size: 20px;">
+                Dettagli Invito
+            </h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px; width: 40%;">Nome:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{nome}} {{cognome}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">Email:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{email}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">Ruoli:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{ruoli}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; font-size: 14px;">Scade il:</td>
+                    <td style="padding: 8px 0; color: #333; font-size: 14px; font-weight: 600;">{{scadeIl}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Scadenza -->
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+                ⏰ <strong>Importante:</strong> Questo invito scade il {{scadeIl}}. Completa la registrazione prima di questa data.
+            </p>
+        </div>
+
+        <!-- Pulsante registrazione -->
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{linkRegistrazione}}" 
+               style="display: inline-block; background: #28a745; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                ✅ Accetta Invito e Registrati
+            </a>
+        </div>
+
+        <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
+            Oppure copia questo link nel browser:<br>
+            <a href="{{linkRegistrazione}}" style="color: #1976D2; word-break: break-all;">{{linkRegistrazione}}</a>
+        </p>
+    </div>
+
+    <!-- Footer con dati azienda -->
+    <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #dee2e6;">
+        <p style="margin: 0 0 5px 0; color: #333; font-size: 14px; font-weight: bold;">{{nome_azienda_footer}}</p>
+        <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">{{indirizzo_azienda}}</p>
+        <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">Tel: {{telefono_azienda}}</p>
+        <p style="margin: 0 0 5px 0; color: #666; font-size: 12px;">Email: {{email_azienda}}</p>
+        <p style="margin: 0 0 10px 0; color: #666; font-size: 12px;">P.IVA: {{piva_azienda}}</p>
+        <p style="margin: 10px 0 0 0; color: #999; font-size: 11px; border-top: 1px solid #dee2e6; padding-top: 10px;">
+            Invito generato tramite GFV Platform
+        </p>
+    </div>
+</div>

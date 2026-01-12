@@ -228,29 +228,29 @@ export async function getDocumentData(collectionName, documentId, tenantId = nul
 export async function getCollectionData(collectionName, options = {}) {
   try {
     const { tenantId, orderBy: orderByField, orderDirection = 'asc', where: whereFilters = [], limit: limitCount } = options;
-    
+
     let collectionRef = getCollection(collectionName, tenantId);
-    
+
     // Applica filtri where
     if (whereFilters.length > 0) {
       whereFilters.forEach(([field, operator, value]) => {
         collectionRef = query(collectionRef, where(field, operator, value));
       });
     }
-    
+
     // Applica ordinamento
     if (orderByField) {
       collectionRef = query(collectionRef, orderBy(orderByField, orderDirection));
     }
-    
+
     // Applica limite
     if (limitCount) {
       collectionRef = query(collectionRef, limit(limitCount));
     }
     
     const querySnapshot = await getDocs(collectionRef);
-    const documents = [];
     
+    const documents = [];
     querySnapshot.forEach((doc) => {
       documents.push({
         id: doc.id,

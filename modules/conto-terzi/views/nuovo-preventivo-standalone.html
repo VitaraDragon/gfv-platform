@@ -215,6 +215,10 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Crea un nuovo preventivo per un cliente</p>
             </div>
             <div class="header-actions">
+                <a href="../../../core/admin/impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
                 <a href="preventivi-standalone.html" class="btn btn-secondary">← Elenco Preventivi</a>
             </div>
         </div>
@@ -442,6 +446,12 @@
                             }, 2000);
                             return;
                         }
+                        
+                        // Mostra link impostazioni (solo Manager/Amministratore, già verificato sopra)
+                        const impostazioniLink = document.getElementById('impostazioni-link');
+                        if (impostazioniLink) {
+                            impostazioniLink.style.display = 'inline-flex';
+                        }
 
                         // Carica dati
                         await loadClienti();
@@ -519,6 +529,13 @@
                     
                     snapshot.forEach(doc => {
                         const catData = { id: doc.id, ...doc.data() };
+                        
+                        // Escludi categorie di test (contengono "test" nel nome)
+                        const nomeCategoria = (catData.nome || '').toLowerCase();
+                        if (nomeCategoria.includes('test')) {
+                            return; // Salta questa categoria
+                        }
+                        
                         if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
                             if (!catData.parentId) {
                                 categorieLavoriPrincipali.push(catData);
@@ -552,6 +569,12 @@
                         sottocategorieLavoriMap.clear();
                         
                         categorie.forEach(catData => {
+                            // Escludi categorie di test (contengono "test" nel nome)
+                            const nomeCategoria = (catData.nome || '').toLowerCase();
+                            if (nomeCategoria.includes('test')) {
+                                return; // Salta questa categoria
+                            }
+                            
                             if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
                                 if (!catData.parentId) {
                                     categorieLavoriPrincipali.push(catData);
@@ -819,7 +842,9 @@
 
         // Variabili globali per categorie e colture
         let categorieColturePreventivo = [];
-        let colturePerCategoriaPreventivo = {};
+        // Rendi globale per accesso da tutte le funzioni (come in attivita-standalone.html)
+        window.colturePerCategoriaPreventivo = {};
+        let colturePerCategoriaPreventivo = window.colturePerCategoriaPreventivo;
 
         // Carica categorie per colture
         async function loadCategorieColturePreventivo() {
@@ -893,19 +918,28 @@
 
         // Carica colture organizzate per categoria usando servizi centralizzati
         async function loadColturePerCategoriaPreventivo() {
+            console.log('🟡 [PREVENTIVO] loadColturePerCategoriaPreventivo chiamata');
             try {
-                if (!currentTenantId) return;
+                if (!currentTenantId) {
+                    console.error('❌ [PREVENTIVO] currentTenantId non disponibile');
+                    return;
+                }
 
                 // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
                 const isFileProtocol = window.location.protocol === 'file:';
+                console.log('🟡 [PREVENTIVO] isFileProtocol:', isFileProtocol);
                 
                 if (isFileProtocol) {
                     // Fallback: carica direttamente da Firestore
+                    console.log('🟡 [PREVENTIVO] Caricamento da Firestore (file://)');
                     const { collection, getDocs, query, orderBy, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                     const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
                     const coltureSnapshot = await getDocs(query(coltureRef, orderBy('nome', 'asc')));
 
-                    colturePerCategoriaPreventivo = {};
+                    window.colturePerCategoriaPreventivo = {};
+                    colturePerCategoriaPreventivo = window.colturePerCategoriaPreventivo;
+                    console.log('🟡 [PREVENTIVO] Colture caricate da Firestore:', coltureSnapshot.size);
+                    
                     coltureSnapshot.forEach(doc => {
                         const data = doc.data();
                         const categoriaId = data.categoriaId || 'senza_categoria';
@@ -913,19 +947,22 @@
                             colturePerCategoriaPreventivo[categoriaId] = [];
                         }
                         colturePerCategoriaPreventivo[categoriaId].push({ id: doc.id, nome: data.nome, ...data });
+                        console.log('🟡 [PREVENTIVO] Aggiunta coltura:', data.nome, 'in categoria:', categoriaId);
                     });
                     
                     // Se la collection è vuota, prova a inizializzare le colture predefinite
                     if (coltureSnapshot.size === 0) {
+                        console.warn('⚠️ [PREVENTIVO] Nessuna coltura trovata, inizializzo predefinite...');
                         try {
                             const { initializeColturePredefinite } = await import('../../../core/services/colture-service.js');
                             await initializeColturePredefinite();
                         } catch (initError) {
-                            console.warn('⚠️ Impossibile inizializzare colture predefinite:', initError.message);
+                            console.warn('⚠️ [PREVENTIVO] Impossibile inizializzare colture predefinite:', initError.message);
                         }
                     }
                 } else {
                     // Usa servizi centralizzati
+                    console.log('🟡 [PREVENTIVO] Caricamento da servizi centralizzati');
                     // Assicura che Firebase sia inizializzato nel servizio
                     const { setFirebaseInstances } = await import('../../../core/services/firebase-service.js');
                     setFirebaseInstances({ app, db, auth });
@@ -941,15 +978,21 @@
                     
                     // Verifica se ci sono poche colture e inizializza se necessario
                     const coltureEsistenti = await getAllColture();
+                    console.log('🟡 [PREVENTIVO] Colture esistenti:', coltureEsistenti.length);
+                    
                     if (coltureEsistenti.length < 20) {
+                        console.log('🟡 [PREVENTIVO] Inizializzo colture predefinite...');
                         await initializeColturePredefinite();
                     }
                     
                     // Usa colture-service.js per ottenere colture organizzate per categoria
+                    console.log('🟡 [PREVENTIVO] Chiamata getColturePerCategoria()...');
                     const colturePerCategoria = await getColturePerCategoria();
+                    console.log('🟡 [PREVENTIVO] Colture per categoria ricevute:', Object.keys(colturePerCategoria));
                     
                     // Converti in formato compatibile con la struttura esistente
-                    colturePerCategoriaPreventivo = {};
+                    window.colturePerCategoriaPreventivo = {};
+                    colturePerCategoriaPreventivo = window.colturePerCategoriaPreventivo;
                     Object.keys(colturePerCategoria).forEach(categoriaId => {
                         colturePerCategoriaPreventivo[categoriaId] = colturePerCategoria[categoriaId].map(c => ({
                             id: c.id || null,
@@ -957,11 +1000,16 @@
                             categoriaId: c.categoriaId || categoriaId,
                             ...c
                         }));
+                        console.log('🟡 [PREVENTIVO] Categoria', categoriaId, 'ha', colturePerCategoriaPreventivo[categoriaId].length, 'colture');
                     });
                 }
+                
+                console.log('✅ [PREVENTIVO] loadColturePerCategoriaPreventivo completata');
+                console.log('✅ [PREVENTIVO] Chiavi finali colturePerCategoriaPreventivo:', Object.keys(colturePerCategoriaPreventivo));
+                console.log('✅ [PREVENTIVO] Totale colture caricate:', Object.values(colturePerCategoriaPreventivo).reduce((sum, arr) => sum + arr.length, 0));
             } catch (error) {
-                console.error('Errore caricamento colture:', error);
-                console.warn('Impossibile caricare da colture, uso ListePersonalizzate:', error.message);
+                console.error('❌ [PREVENTIVO] Errore caricamento colture:', error);
+                console.warn('⚠️ [PREVENTIVO] Impossibile caricare da colture, uso ListePersonalizzate:', error.message);
                 // Fallback: usa ListePersonalizzate
                 try {
                     const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
@@ -971,41 +1019,101 @@
                         const data = listeSnap.data();
                         const colture = data.colture || [];
                         // Converti in formato gerarchico per retrocompatibilità
-                        colturePerCategoriaPreventivo = { 'senza_categoria': colture.map(nome => ({ nome, categoriaId: null })) };
+                        window.colturePerCategoriaPreventivo = { 'senza_categoria': colture.map(nome => ({ nome, categoriaId: null })) };
+                        colturePerCategoriaPreventivo = window.colturePerCategoriaPreventivo;
+                        console.log('🟡 [PREVENTIVO] Fallback ListePersonalizzate:', colture.length, 'colture');
                     }
                 } catch (e) {
-                    console.error('Errore fallback ListePersonalizzate:', e);
-                    colturePerCategoriaPreventivo = {};
+                    console.error('❌ [PREVENTIVO] Errore fallback ListePersonalizzate:', e);
+                    window.colturePerCategoriaPreventivo = {};
+                    colturePerCategoriaPreventivo = window.colturePerCategoriaPreventivo;
                 }
             }
         }
 
         // Aggiorna dropdown colture quando cambia categoria
         window.updateColtureDropdownPreventivo = function() {
+            console.log('🟢 [PREVENTIVO] updateColtureDropdownPreventivo chiamata');
             const categoriaSelect = document.getElementById('coltura-categoria');
             const colturaSelect = document.getElementById('coltura');
 
-            if (!categoriaSelect || !colturaSelect) return;
+            if (!categoriaSelect || !colturaSelect) {
+                console.error('❌ [PREVENTIVO] updateColtureDropdownPreventivo: dropdown non trovati');
+                return;
+            }
 
             const categoriaId = categoriaSelect.value;
             const currentValue = colturaSelect.value;
+            
+            console.log('🟢 [PREVENTIVO] categoriaId selezionata:', categoriaId);
+            console.log('🟢 [PREVENTIVO] currentValue coltura:', currentValue);
 
             colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
 
-            if (categoriaId && colturePerCategoriaPreventivo[categoriaId]) {
-                colturePerCategoriaPreventivo[categoriaId].forEach(coltura => {
-                    const option = document.createElement('option');
-                    option.value = coltura.nome;
-                    option.textContent = coltura.nome;
-                    colturaSelect.appendChild(option);
+            // Usa variabile globale (come in attivita-standalone.html)
+            const colturePerCategoria = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
+            
+            // Verifica che le colture siano caricate
+            console.log('🟢 [PREVENTIVO] Verifica colturePerCategoriaPreventivo...');
+            console.log('🟢 [PREVENTIVO] window.colturePerCategoriaPreventivo esiste?', !!window.colturePerCategoriaPreventivo);
+            console.log('🟢 [PREVENTIVO] colturePerCategoriaPreventivo locale esiste?', !!colturePerCategoriaPreventivo);
+            console.log('🟢 [PREVENTIVO] colturePerCategoria (usata) esiste?', !!colturePerCategoria);
+            console.log('🟢 [PREVENTIVO] Chiavi colturePerCategoria:', Object.keys(colturePerCategoria));
+            console.log('🟢 [PREVENTIVO] Opzioni categoria disponibili:', Array.from(categoriaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
+            
+            if (!colturePerCategoria || Object.keys(colturePerCategoria).length === 0) {
+                colturaSelect.innerHTML = '<option value="">-- Caricamento colture in corso... --</option>';
+                console.error('❌ [PREVENTIVO] Colture non ancora caricate, dropdown non popolato');
+                return;
+            }
+
+            if (categoriaId && colturePerCategoria[categoriaId]) {
+                const coltureCategoria = colturePerCategoria[categoriaId];
+                console.log('🟢 [PREVENTIVO] Colture per categoria ' + categoriaId + ':', coltureCategoria);
+                
+                if (coltureCategoria.length === 0) {
+                    colturaSelect.innerHTML = '<option value="">-- Nessuna coltura disponibile per questa categoria --</option>';
+                    console.warn('⚠️ [PREVENTIVO] Nessuna coltura per categoria:', categoriaId);
+                    return;
+                }
+                
+                // Ordina le colture per nome
+                const coltureOrdinate = [...coltureCategoria].sort((a, b) => {
+                    const nomeA = (a.nome || a || '').toLowerCase();
+                    const nomeB = (b.nome || b || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
                 });
+                
+                console.log('🟢 [PREVENTIVO] Colture ordinate:', coltureOrdinate.map(c => c.nome || c));
+                
+                coltureOrdinate.forEach(coltura => {
+                    const option = document.createElement('option');
+                    const nomeColtura = coltura.nome || coltura;
+                    option.value = nomeColtura;
+                    option.textContent = nomeColtura;
+                    colturaSelect.appendChild(option);
+                    console.log('🟢 [PREVENTIVO] Aggiunta opzione coltura:', nomeColtura);
+                });
+                
+                console.log('✅ [PREVENTIVO] Dropdown popolato con', colturaSelect.options.length, 'opzioni');
+            } else if (categoriaId) {
+                colturaSelect.innerHTML = '<option value="">-- Nessuna coltura disponibile per questa categoria --</option>';
+                console.error('❌ [PREVENTIVO] Categoria non trovata in colturePerCategoria:', categoriaId);
+                console.error('❌ [PREVENTIVO] Categorie disponibili in colturePerCategoria:', Object.keys(colturePerCategoria));
+                console.error('❌ [PREVENTIVO] Opzioni categoria nel dropdown:', Array.from(categoriaSelect.options).map(opt => opt.value));
+            } else {
+                console.warn('⚠️ [PREVENTIVO] Nessuna categoria selezionata');
             }
 
             // Ripristina valore selezionato se ancora valido
             if (currentValue) {
                 const optionExists = Array.from(colturaSelect.options).some(opt => opt.value === currentValue);
+                console.log('🟢 [PREVENTIVO] Tentativo ripristino valore:', currentValue, 'trovato?', optionExists);
                 if (optionExists) {
                     colturaSelect.value = currentValue;
+                    console.log('✅ [PREVENTIVO] Valore ripristinato:', currentValue);
+                } else {
+                    console.warn('⚠️ [PREVENTIVO] Valore non più valido:', currentValue);
                 }
             }
             
@@ -1017,17 +1125,25 @@
 
         // Carica colture (wrapper per retrocompatibilità)
         async function loadColture() {
+            console.log('🟡 [PREVENTIVO] loadColture chiamata');
             await loadCategorieColturePreventivo();
+            console.log('🟡 [PREVENTIVO] loadCategorieColturePreventivo completata');
             await loadColturePerCategoriaPreventivo();
+            console.log('🟡 [PREVENTIVO] loadColturePerCategoriaPreventivo completata');
             
             // Aggiungi event listener al dropdown categoria dopo che è stato popolato
             const categoriaSelect = document.getElementById('coltura-categoria');
             if (categoriaSelect) {
                 categoriaSelect.onchange = null; // Rimuovi listener precedenti
                 categoriaSelect.addEventListener('change', function() {
+                    console.log('🟡 [PREVENTIVO] Cambio categoria rilevato, aggiorno dropdown colture');
                     updateColtureDropdownPreventivo();
                 });
+                console.log('✅ [PREVENTIVO] Event listener aggiunto al dropdown categoria');
+            } else {
+                console.warn('⚠️ [PREVENTIVO] Dropdown categoria non trovato per aggiungere listener');
             }
+            console.log('✅ [PREVENTIVO] loadColture completata');
         }
 
         // Mostra input personalizzato (solo per tipo lavoro ora, coltura gestita da struttura gerarchica)
@@ -1113,85 +1229,213 @@
         };
 
         // Quando cambia terreno - rendi globale per accesso da HTML
-        window.onTerrenoChange = function() {
+        window.onTerrenoChange = async function() {
+            console.log('🔵 [PREVENTIVO] onTerrenoChange chiamato');
             const terrenoId = document.getElementById('terreno-id').value;
+            console.log('🔵 [PREVENTIVO] terrenoId selezionato:', terrenoId);
+            
             if (terrenoId) {
                 const terreno = terreni.find(t => t.id === terrenoId);
+                console.log('🔵 [PREVENTIVO] terreno trovato:', terreno);
+                
                 if (terreno) {
                     // Precompila superficie se disponibile
                     if (terreno.superficie) {
                         document.getElementById('superficie').value = terreno.superficie;
+                        console.log('🔵 [PREVENTIVO] Superficie precompilata:', terreno.superficie);
+                    }
+                    
+                    // Precompila morfologia (tipoCampo) se disponibile
+                    if (terreno.tipoCampo) {
+                        const tipoCampoSelect = document.getElementById('tipo-campo');
+                        if (tipoCampoSelect) {
+                            tipoCampoSelect.value = terreno.tipoCampo;
+                            console.log('🔵 [PREVENTIVO] Tipo campo precompilato:', terreno.tipoCampo);
+                        }
                     }
                     
                     // Precompila categoria e coltura se disponibili
-                    if (terreno.colturaSottocategoria || terreno.coltura) {
-                        const colturaNome = terreno.colturaSottocategoria || terreno.coltura;
+                    const colturaNome = terreno.colturaSottocategoria || terreno.coltura;
+                    console.log('🔵 [PREVENTIVO] Coltura del terreno:', colturaNome);
+                    console.log('🔵 [PREVENTIVO] terreno.colturaCategoria:', terreno.colturaCategoria);
+                    console.log('🔵 [PREVENTIVO] terreno.colturaSottocategoria:', terreno.colturaSottocategoria);
+                    console.log('🔵 [PREVENTIVO] terreno.coltura:', terreno.coltura);
+                    
+                    if (colturaNome) {
+                        // Assicurati che le colture siano caricate prima di procedere
+                        console.log('🔵 [PREVENTIVO] Verifica caricamento colture...');
+                        const colturePerCategoria = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
+                        console.log('🔵 [PREVENTIVO] window.colturePerCategoriaPreventivo esiste?', !!window.colturePerCategoriaPreventivo);
+                        console.log('🔵 [PREVENTIVO] colturePerCategoriaPreventivo locale esiste?', !!colturePerCategoriaPreventivo);
+                        console.log('🔵 [PREVENTIVO] colturePerCategoria (usata) esiste?', !!colturePerCategoria);
+                        console.log('🔵 [PREVENTIVO] Chiavi colturePerCategoria:', Object.keys(colturePerCategoria));
                         
-                        // Trova la categoria della coltura
-                        let categoriaId = null;
-                        if (terreno.colturaCategoria) {
-                            // Usa direttamente la categoria salvata nel terreno
-                            categoriaId = terreno.colturaCategoria;
-                        } else {
-                            // Cerca la categoria cercando la coltura in colturePerCategoriaPreventivo
-                            for (const [catId, colture] of Object.entries(colturePerCategoriaPreventivo)) {
-                                const colturaTrovata = colture.find(c => c.nome === colturaNome);
+                        if (!colturePerCategoria || Object.keys(colturePerCategoria).length === 0) {
+                            console.log('⚠️ [PREVENTIVO] Colture non ancora caricate, attendo il caricamento...');
+                            await loadColture();
+                            const colturePerCategoriaAfter = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
+                            console.log('✅ [PREVENTIVO] Colture caricate, chiavi:', Object.keys(colturePerCategoriaAfter));
+                        }
+                        
+                        // Trova la categoria della coltura usando il servizio (come in attivita-standalone.html)
+                        let categoriaTrovata = null;
+                        const isFileProtocol = window.location.protocol === 'file:';
+                        
+                        if (!isFileProtocol) {
+                            // Usa servizio per ottenere coltura completa con categoriaId
+                            try {
+                                console.log('🔵 [PREVENTIVO] Tentativo recupero categoria dal servizio per:', colturaNome);
+                                
+                                // Assicura che Firebase sia inizializzato nel servizio
+                                const { setFirebaseInstances } = await import('../../../core/services/firebase-service.js');
+                                setFirebaseInstances({ app, db, auth });
+                                
+                                // Assicura che il tenantId sia impostato nel servizio
+                                const { setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+                                if (currentTenantId) {
+                                    setCurrentTenantId(currentTenantId);
+                                }
+                                
+                                // Ottieni coltura completa dal servizio
+                                const { getColturaByNome } = await import('../../../core/services/colture-service.js');
+                                const colturaCompleta = await getColturaByNome(colturaNome);
+                                console.log('🔵 [PREVENTIVO] Coltura completa dal servizio:', colturaCompleta);
+                                
+                                if (colturaCompleta && colturaCompleta.categoriaId) {
+                                    categoriaTrovata = colturaCompleta.categoriaId;
+                                    console.log('✅ [PREVENTIVO] Categoria trovata dal servizio:', categoriaTrovata);
+                                } else {
+                                    console.warn('⚠️ [PREVENTIVO] Servizio non ha restituito categoriaId');
+                                }
+                            } catch (error) {
+                                console.warn('⚠️ [PREVENTIVO] Errore recupero categoria coltura dal servizio:', error);
+                            }
+                        }
+                        
+                        // Fallback: usa categoria salvata nel terreno
+                        if (!categoriaTrovata && terreno.colturaCategoria) {
+                            categoriaTrovata = terreno.colturaCategoria;
+                            console.log('🔵 [PREVENTIVO] Usata categoria dal terreno:', categoriaTrovata);
+                        }
+                        
+                        // Fallback: cerca la coltura in colturePerCategoriaPreventivo
+                        const colturePerCategoria = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
+                        if (!categoriaTrovata && colturePerCategoria && Object.keys(colturePerCategoria).length > 0) {
+                            console.log('🔵 [PREVENTIVO] Cerca coltura in colturePerCategoriaPreventivo...');
+                            const nomeColturaTerreno = (colturaNome || '').trim().toLowerCase();
+                            
+                            for (const [categoriaId, coltureList] of Object.entries(colturePerCategoria)) {
+                                if (categoriaId === 'senza_categoria') continue;
+                                
+                                console.log(`🔵 [PREVENTIVO] Cerca in categoria ${categoriaId}, colture:`, coltureList);
+                                
+                                const colturaTrovata = coltureList.find(c => {
+                                    const nomeColtura = ((c.nome || c) || '').trim().toLowerCase();
+                                    const idColtura = (c.id || '').trim().toLowerCase();
+                                    const match = nomeColtura === nomeColturaTerreno || 
+                                                 idColtura === nomeColturaTerreno ||
+                                                 nomeColtura === colturaNome ||
+                                                 idColtura === colturaNome;
+                                    
+                                    if (match) {
+                                        console.log('✅ [PREVENTIVO] Coltura trovata!', { nomeColtura, idColtura, nomeColturaTerreno, match });
+                                    }
+                                    return match;
+                                });
+                                
                                 if (colturaTrovata) {
-                                    categoriaId = catId;
+                                    categoriaTrovata = categoriaId;
+                                    console.log('✅ [PREVENTIVO] Categoria trovata cercando in colturePerCategoriaPreventivo:', categoriaTrovata);
                                     break;
                                 }
                             }
                         }
                         
+                        console.log('🔵 [PREVENTIVO] Categoria finale trovata:', categoriaTrovata);
+                        
                         // Imposta categoria e coltura se trovate
-                        if (categoriaId && categoriaId !== 'senza_categoria') {
+                        if (categoriaTrovata && categoriaTrovata !== 'senza_categoria') {
                             const categoriaSelect = document.getElementById('coltura-categoria');
-                            if (categoriaSelect) {
-                                categoriaSelect.value = categoriaId;
-                                // Aggiorna dropdown colture
-                                updateColtureDropdownPreventivo();
-                                
-                                // Imposta la coltura dopo un breve delay per permettere al dropdown di popolarsi
-                                setTimeout(() => {
-                                    const colturaSelect = document.getElementById('coltura');
-                                    if (colturaSelect) {
-                                        colturaSelect.value = colturaNome;
-                                        // Trigger onColturaChange per aggiornare tariffe
-                                        onColturaChange();
-                                    }
-                                }, 100);
-                            }
-                        } else if (colturaNome) {
-                            // Se non troviamo la categoria, prova a impostare solo la coltura (fallback)
                             const colturaSelect = document.getElementById('coltura');
-                            if (colturaSelect) {
-                                // Cerca se la coltura esiste in qualche categoria
-                                let trovata = false;
-                                for (const [catId, colture] of Object.entries(colturePerCategoriaPreventivo)) {
-                                    const colturaTrovata = colture.find(c => c.nome === colturaNome);
-                                    if (colturaTrovata) {
-                                        const categoriaSelect = document.getElementById('coltura-categoria');
-                                        if (categoriaSelect) {
-                                            categoriaSelect.value = catId;
-                                            updateColtureDropdownPreventivo();
-                                            setTimeout(() => {
-                                                colturaSelect.value = colturaNome;
-                                                onColturaChange();
-                                            }, 100);
-                                        }
-                                        trovata = true;
-                                        break;
+                            
+                            console.log('🔵 [PREVENTIVO] categoriaSelect trovato?', !!categoriaSelect);
+                            console.log('🔵 [PREVENTIVO] colturaSelect trovato?', !!colturaSelect);
+                            
+                            if (categoriaSelect && colturaSelect) {
+                                // Verifica che la categoria esista nel dropdown
+                                const categoriaOption = Array.from(categoriaSelect.options).find(opt => opt.value === categoriaTrovata);
+                                console.log('🔵 [PREVENTIVO] Categoria option trovata nel dropdown?', !!categoriaOption);
+                                console.log('🔵 [PREVENTIVO] Opzioni categoria disponibili:', Array.from(categoriaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
+                                
+                                if (categoriaOption) {
+                                    categoriaSelect.value = categoriaTrovata;
+                                    console.log('✅ [PREVENTIVO] Categoria selezionata nel dropdown:', categoriaTrovata);
+                                    
+                                    // Verifica che la categoria esista in colturePerCategoriaPreventivo
+                                    const colturePerCategoria = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
+                                    console.log('🔵 [PREVENTIVO] Verifica corrispondenza categoria...');
+                                    console.log('🔵 [PREVENTIVO] categoriaTrovata:', categoriaTrovata);
+                                    console.log('🔵 [PREVENTIVO] Chiavi disponibili in colturePerCategoria:', Object.keys(colturePerCategoria));
+                                    console.log('🔵 [PREVENTIVO] Categoria esiste in colturePerCategoria?', !!colturePerCategoria[categoriaTrovata]);
+                                    if (colturePerCategoria[categoriaTrovata]) {
+                                        console.log('🔵 [PREVENTIVO] Colture per questa categoria:', colturePerCategoria[categoriaTrovata].map(c => c.nome || c));
                                     }
+                                    
+                                    // Aggiorna dropdown colture
+                                    console.log('🔵 [PREVENTIVO] Chiamata updateColtureDropdownPreventivo()...');
+                                    updateColtureDropdownPreventivo();
+                                    
+                                    // Verifica stato dropdown dopo updateColtureDropdownPreventivo
+                                    console.log('🔵 [PREVENTIVO] Opzioni coltura dopo updateColtureDropdownPreventivo:', 
+                                        Array.from(colturaSelect.options).map(opt => ({ value: opt.value, text: opt.text })));
+                                    
+                                    // Attendi che il dropdown sia popolato prima di impostare la coltura
+                                    let tentativi = 0;
+                                    const maxTentativi = 20;
+                                    const checkInterval = setInterval(() => {
+                                        tentativi++;
+                                        const coltureDisponibili = Array.from(colturaSelect.options).map(opt => opt.value);
+                                        
+                                        console.log(`🔵 [PREVENTIVO] Tentativo ${tentativi}/${maxTentativi} - Colture disponibili:`, coltureDisponibili);
+                                        console.log(`🔵 [PREVENTIVO] Cerca coltura: "${colturaNome}"`);
+                                        
+                                        if (coltureDisponibili.includes(colturaNome)) {
+                                            clearInterval(checkInterval);
+                                            colturaSelect.value = colturaNome;
+                                            console.log('✅ [PREVENTIVO] Coltura selezionata con successo:', colturaNome);
+                                            // Trigger onColturaChange per aggiornare tariffe
+                                            onColturaChange();
+                                        } else if (tentativi >= maxTentativi) {
+                                            clearInterval(checkInterval);
+                                            console.error('❌ [PREVENTIVO] Coltura non trovata nel dropdown dopo il caricamento:', colturaNome);
+                                            console.error('❌ [PREVENTIVO] Colture disponibili:', coltureDisponibili);
+                                            const colturePerCategoria = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
+                                            console.error('❌ [PREVENTIVO] colturePerCategoria[' + categoriaTrovata + ']:',
+                                                colturePerCategoria[categoriaTrovata]);
+                                        }
+                                    }, 100);
+                                } else {
+                                    console.error('❌ [PREVENTIVO] Categoria non trovata nel dropdown:', categoriaTrovata);
+                                    console.error('❌ [PREVENTIVO] Opzioni disponibili:', Array.from(categoriaSelect.options).map(opt => opt.value));
                                 }
-                                if (!trovata) {
-                                    console.warn('Coltura non trovata nelle categorie:', colturaNome);
-                                }
+                            } else {
+                                console.error('❌ [PREVENTIVO] Dropdown non trovati!');
                             }
+                        } else {
+                            console.warn('⚠️ [PREVENTIVO] Categoria non trovata o è "senza_categoria"');
+                            console.warn('⚠️ [PREVENTIVO] categoriaTrovata:', categoriaTrovata);
+                            console.warn('⚠️ [PREVENTIVO] colturaNome:', colturaNome);
                         }
+                    } else {
+                        console.log('🔵 [PREVENTIVO] Nessuna coltura nel terreno');
                     }
                     
                     calcolaTotale();
+                } else {
+                    console.warn('⚠️ [PREVENTIVO] Terreno non trovato nell\'array terreni');
                 }
+            } else {
+                console.log('🔵 [PREVENTIVO] Nessun terreno selezionato');
             }
         };
 
@@ -1219,12 +1463,29 @@
                 return;
             }
 
-            // Cerca tariffa
-            const tariffa = tariffe.find(t => 
+            // Cerca tariffa: prima specifica per coltura, poi generica per categoria
+            let tariffa = tariffe.find(t => 
                 t.tipoLavoro === tipoLavoro && 
                 t.coltura === coltura && 
                 t.tipoCampo === tipoCampo
             );
+
+            // Se non trovata tariffa specifica, cerca tariffa generica per categoria
+            if (!tariffa && coltura) {
+                // Determina categoria della coltura selezionata
+                const categoriaSelect = document.getElementById('coltura-categoria');
+                const categoriaId = categoriaSelect ? categoriaSelect.value : null;
+                
+                if (categoriaId) {
+                    // Cerca tariffa generica (coltura vuota) per la stessa categoria
+                    tariffa = tariffe.find(t => 
+                        t.tipoLavoro === tipoLavoro && 
+                        t.coltura === '' && 
+                        t.categoriaColturaId === categoriaId &&
+                        t.tipoCampo === tipoCampo
+                    );
+                }
+            }
 
             if (tariffa) {
                 const tariffaFinale = (tariffa.tariffaBase || 0) * (tariffa.coefficiente || 1);

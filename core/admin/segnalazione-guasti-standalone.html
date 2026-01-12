@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -337,22 +337,101 @@
 
         <!-- Sezione Segnala Nuovo Guasto -->
         <div class="content">
-            <h2 class="section-title">Segnala Nuovo Guasto</h2>
+            <h2 class="section-title">Segnala Nuovo Guasto / Segnalazione</h2>
             <form id="segnala-guasto-form">
                 <div class="form-group">
-                    <label for="guasto-macchina">Trattore (Macchina) *</label>
-                    <select id="guasto-macchina" required>
-                        <option value="">-- Seleziona trattore --</option>
-                    </select>
-                    <small>Seleziona il trattore con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                    <label>Tipo di segnalazione *</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="tipo-macchina" name="tipoGuasto" value="macchina" required checked>
+                            <label for="tipo-macchina">🔧 Guasto Macchina/Attrezzo</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="tipo-generico" name="tipoGuasto" value="generico" required>
+                            <label for="tipo-generico">🌍 Segnalazione Generica</label>
+                        </div>
+                    </div>
+                    <small>Scegli se segnalare un guasto a macchina/attrezzo o una segnalazione generica (frane, voragini, problemi infrastrutturali, ecc.)</small>
                 </div>
 
-                <div class="form-group">
-                    <label for="guasto-attrezzo">Attrezzo (Opzionale)</label>
-                    <select id="guasto-attrezzo">
-                        <option value="">-- Nessun attrezzo --</option>
-                    </select>
-                    <small>Seleziona l'attrezzo con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                <!-- Sezione Guasto Macchina -->
+                <div id="sezione-macchina">
+                    <div class="form-group">
+                        <label for="guasto-macchina">Trattore (Macchina) *</label>
+                        <select id="guasto-macchina" required>
+                            <option value="">-- Seleziona trattore --</option>
+                        </select>
+                        <small>Seleziona il trattore con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="guasto-attrezzo">Attrezzo (Opzionale)</label>
+                        <select id="guasto-attrezzo">
+                            <option value="">-- Nessun attrezzo --</option>
+                        </select>
+                        <small>Seleziona l'attrezzo con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="guasto-componente">Componente con guasto *</label>
+                        <select id="guasto-componente" required>
+                            <option value="">-- Seleziona componente --</option>
+                            <option value="trattore">Trattore</option>
+                            <option value="attrezzo">Attrezzo</option>
+                            <option value="entrambi">Entrambi</option>
+                        </select>
+                        <small>Specifica quale componente ha il guasto</small>
+                    </div>
+                </div>
+
+                <!-- Sezione Segnalazione Generica -->
+                <div id="sezione-generico" style="display: none;">
+                    <div class="form-group">
+                        <label for="guasto-ubicazione">Ubicazione *</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="guasto-ubicazione" placeholder="Es: Podere Nord, filare 12" required style="flex: 1;">
+                            <button type="button" id="btn-apri-maps" class="btn btn-secondary" style="padding: 10px 15px; min-width: auto;" title="Apri in Google Maps">
+                                🗺️
+                            </button>
+                        </div>
+                        <small>Indica dove si trova il problema (terreno, podere, filare, ecc.). Clicca l'icona per aprire Google Maps.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📍 Localizza il problema sulla mappa</label>
+                        <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #2196F3;">
+                            <strong style="color: #1976D2;">💡 Come usare:</strong>
+                            <div style="margin-top: 5px; font-size: 13px; color: #1565C0;">
+                                1. Clicca sulla mappa nel punto esatto dove si trova il problema<br>
+                                2. Apparirà un marker rosso 🎯 che puoi trascinare per precisione<br>
+                                3. I confini del terreno sono mostrati in rosso
+                            </div>
+                        </div>
+                        <div id="map-container" style="width: 100%; height: 400px; border: 2px solid #2196F3; border-radius: 8px; margin-top: 10px; position: relative; background: #f5f5f5; cursor: crosshair;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; text-align: center; z-index: 1;">
+                                <div style="margin-bottom: 10px;">🗺️</div>
+                                <div>Caricamento mappa...</div>
+                            </div>
+                        </div>
+                        <small id="map-status" style="display: block; margin-top: 8px; color: #666;">
+                            <span id="marker-status">Clicca sulla mappa per posizionare il marker</span>
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="guasto-tipo-problema">Tipo di problema *</label>
+                        <select id="guasto-tipo-problema" required>
+                            <option value="">-- Seleziona tipo --</option>
+                            <option value="Frana">Frana</option>
+                            <option value="Voragine">Voragine</option>
+                            <option value="Danno infrastruttura">Danno infrastruttura</option>
+                            <option value="Problema filare">Problema filare</option>
+                            <option value="Danno recinzione">Danno recinzione</option>
+                            <option value="Problema irrigazione">Problema irrigazione</option>
+                            <option value="Altro">Altro</option>
+                        </select>
+                        <small>Seleziona il tipo di problema riscontrato</small>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -370,7 +449,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="guasto-dettagli">Dettagli del guasto *</label>
+                    <label for="guasto-dettagli">Dettagli del guasto / segnalazione *</label>
                     <textarea id="guasto-dettagli" required placeholder="Descrivi il problema riscontrato..."></textarea>
                     <small>Fornisci tutti i dettagli utili per la risoluzione</small>
                 </div>
@@ -383,7 +462,7 @@
                     <small>Se stai lavorando su un lavoro specifico, selezionalo</small>
                 </div>
 
-                <button type="submit" class="btn btn-danger">🚨 Segnala Guasto</button>
+                <button type="submit" class="btn btn-danger">🚨 Segnala</button>
             </form>
         </div>
 
@@ -429,6 +508,18 @@
         </div>
     </div>
 
+    <!-- Load Google Maps config -->
+    <script>
+        const mapsConfigScript = document.createElement('script');
+        mapsConfigScript.src = '../config/google-maps-config.js';
+        mapsConfigScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(mapsConfigScript);
+    </script>
+
     <script type="module">
         // Import Firebase modules (devono essere al top-level)
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -465,7 +556,14 @@
             let currentTenantId = null;
             let macchineList = [];
             let lavoriList = [];
+            let terreniMap = new Map(); // Mappa terreni per lookup rapido
             let guastiUnsubscribe = null;
+            
+            // Variabili mappa
+            let problemaMap = null;
+            let problemaMarker = null;
+            let terrenoPolygon = null;
+            let coordinateProblema = null; // {lat, lng}
 
             // Verifica autenticazione
             onAuthStateChanged(auth, async (user) => {
@@ -475,6 +573,22 @@
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         currentTenantId = userData.tenantId;
+                        
+                        // Imposta tenantId nel tenant-service per i servizi
+                        try {
+                            const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                            setCurrentTenantId(currentTenantId);
+                        } catch (error) {
+                            console.warn('Impossibile impostare tenantId nel servizio:', error);
+                        }
+                        
+                        // Assicura che Firebase sia inizializzato nei servizi
+                        try {
+                            const { setFirebaseInstances } = await import('../services/firebase-service.js');
+                            setFirebaseInstances({ app, db, auth });
+                        } catch (error) {
+                            console.warn('Impossibile impostare Firebase instances nel servizio:', error);
+                        }
                         
                         // Verifica ruolo operaio
                         const ruoli = userData.ruoli || [];
@@ -506,11 +620,15 @@
                             }
                         }
 
-                        // Carica prima le macchine, poi i lavori (per assicurarsi che i dropdown siano popolati)
+                        // Carica prima le macchine, poi i terreni, poi i lavori (per assicurarsi che i dropdown siano popolati)
                         await loadMacchine();
+                        await loadTerreni(); // Carica terreni prima dei lavori
                         // Piccolo delay per assicurarsi che i dropdown siano completamente popolati
                         await new Promise(resolve => setTimeout(resolve, 100));
                         await loadLavori();
+                        setupTipoGuastoToggle();
+                        setupLavoroChangeHandler();
+                        setupMapsButton();
                         await setupGuastiRealtime();
                     }
                 } else {
@@ -523,38 +641,141 @@
                 try {
                     if (!currentTenantId) return;
 
-                    const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
-                    const snapshot = await getDocs(macchineRef);
-                    
-                    macchineList = [];
+                    const isFileProtocol = window.location.protocol === 'file:';
                     const macchinaSelect = document.getElementById('guasto-macchina');
                     const attrezzoSelect = document.getElementById('guasto-attrezzo');
+                    
+                    if (!macchinaSelect || !attrezzoSelect) return;
                     
                     macchinaSelect.innerHTML = '<option value="">-- Seleziona trattore --</option>';
                     attrezzoSelect.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
 
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data.stato !== 'dismesso') {
-                            macchineList.push({ id: doc.id, ...data });
-                            const tipoMacchina = data.tipoMacchina || data.tipo || '';
-                            
-                            if (tipoMacchina === 'trattore') {
-                                const option = document.createElement('option');
-                                option.value = doc.id;
-                                option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
-                                macchinaSelect.appendChild(option);
-                            } else if (tipoMacchina === 'attrezzo') {
-                                const option = document.createElement('option');
-                                option.value = doc.id;
-                                option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
-                                attrezzoSelect.appendChild(option);
+                    if (isFileProtocol) {
+                        // Fallback per ambiente file://
+                        const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
+                        const snapshot = await getDocs(macchineRef);
+                        
+                        macchineList = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.stato !== 'dismesso') {
+                                macchineList.push({ id: doc.id, ...data });
+                                const tipoMacchina = data.tipoMacchina || data.tipo || '';
+                                
+                                if (tipoMacchina === 'trattore') {
+                                    const option = document.createElement('option');
+                                    option.value = doc.id;
+                                    option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
+                                    macchinaSelect.appendChild(option);
+                                } else if (tipoMacchina === 'attrezzo') {
+                                    const option = document.createElement('option');
+                                    option.value = doc.id;
+                                    option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
+                                    attrezzoSelect.appendChild(option);
+                                }
                             }
+                        });
+                    } else {
+                        // Usa servizio centralizzato
+                        try {
+                            // Assicura che Firebase sia inizializzato nei servizi
+                            const { setFirebaseInstances } = await import('../services/firebase-service.js');
+                            setFirebaseInstances({ app, db, auth });
+                            
+                            // Assicura che il tenantId sia impostato nel servizio
+                            const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                            if (currentTenantId) {
+                                setCurrentTenantId(currentTenantId);
+                            }
+                            
+                            // Usa servizio centralizzato
+                            const { getAllMacchine } = await import('../../../modules/parco-macchine/services/macchine-service.js');
+                            let macchine = await getAllMacchine({
+                                // Non usiamo soloAttive per evitare problemi con indice Firestore
+                                // Filtriamo lato client invece
+                                orderBy: 'nome',
+                                orderDirection: 'asc'
+                            });
+                            
+                            // Filtra lato client: solo macchine non dismesse
+                            macchine = macchine.filter(m => m.stato !== 'dismesso');
+                            
+                            // Converti in formato compatibile con codice esistente
+                            macchineList = macchine.map(m => ({
+                                id: m.id,
+                                nome: m.nome,
+                                tipoMacchina: m.tipoMacchina || m.tipo,
+                                tipo: m.tipo || m.tipoMacchina, // Retrocompatibilità
+                                stato: m.stato,
+                                cavalli: m.cavalli,
+                                cavalliMinimiRichiesti: m.cavalliMinimiRichiesti,
+                                categoriaFunzione: m.categoriaFunzione,
+                                ...(m.toFirestore ? m.toFirestore() : m)
+                            }));
+                            
+                            // Popola dropdown
+                            macchineList.forEach(macchina => {
+                                const tipoMacchina = macchina.tipoMacchina || macchina.tipo || '';
+                                
+                                if (tipoMacchina === 'trattore') {
+                                    const option = document.createElement('option');
+                                    option.value = macchina.id;
+                                    option.textContent = `🚜 ${macchina.nome || 'Trattore senza nome'}`;
+                                    macchinaSelect.appendChild(option);
+                                } else if (tipoMacchina === 'attrezzo') {
+                                    const option = document.createElement('option');
+                                    option.value = macchina.id;
+                                    option.textContent = `⚙️ ${macchina.nome || 'Attrezzo senza nome'}`;
+                                    attrezzoSelect.appendChild(option);
+                                }
+                            });
+                        } catch (error) {
+                            console.error('Errore caricamento macchine dal servizio:', error);
+                            // Fallback: carica direttamente da Firestore
+                            const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
+                            const snapshot = await getDocs(macchineRef);
+                            macchineList = [];
+                            snapshot.forEach(doc => {
+                                const data = doc.data();
+                                if (data.stato !== 'dismesso') {
+                                    macchineList.push({ id: doc.id, ...data });
+                                    const tipoMacchina = data.tipoMacchina || data.tipo || '';
+                                    
+                                    if (tipoMacchina === 'trattore') {
+                                        const option = document.createElement('option');
+                                        option.value = doc.id;
+                                        option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
+                                        macchinaSelect.appendChild(option);
+                                    } else if (tipoMacchina === 'attrezzo') {
+                                        const option = document.createElement('option');
+                                        option.value = doc.id;
+                                        option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
+                                        attrezzoSelect.appendChild(option);
+                                    }
+                                }
+                            });
                         }
-                    });
+                    }
                 } catch (error) {
                     console.error('Errore caricamento macchine:', error);
                     showAlert('Errore caricamento macchine', 'error');
+                }
+            }
+
+            // Carica terreni per lookup rapido
+            async function loadTerreni() {
+                try {
+                    if (!currentTenantId) return;
+
+                    const terreniRef = collection(db, `tenants/${currentTenantId}/terreni`);
+                    const snapshot = await getDocs(terreniRef);
+                    
+                    terreniMap.clear();
+                    snapshot.forEach(doc => {
+                        terreniMap.set(doc.id, { id: doc.id, ...doc.data() });
+                    });
+                } catch (error) {
+                    console.error('Errore caricamento terreni:', error);
                 }
             }
 
@@ -654,8 +875,7 @@
 
                     // Pre-seleziona macchina e attrezzo dal lavoro più recente
                     if (lavoroAttivoPiuRecente) {
-                        console.log('Lavoro attivo trovato:', lavoroAttivoPiuRecente);
-                        
+
                         // Pre-seleziona il lavoro nel dropdown
                         lavoroSelect.value = lavoroAttivoPiuRecente.id;
                         
@@ -669,7 +889,7 @@
                                 );
                                 if (optionExists) {
                                     macchinaSelect.value = lavoroAttivoPiuRecente.macchinaId;
-                                    console.log('Trattore pre-selezionato:', lavoroAttivoPiuRecente.macchinaId);
+
                                 } else {
                                     console.warn('Trattore non trovato nel dropdown:', lavoroAttivoPiuRecente.macchinaId);
                                 }
@@ -686,18 +906,533 @@
                                 );
                                 if (optionExists) {
                                     attrezzoSelect.value = lavoroAttivoPiuRecente.attrezzoId;
-                                    console.log('Attrezzo pre-selezionato:', lavoroAttivoPiuRecente.attrezzoId);
+
                                 } else {
                                     console.warn('Attrezzo non trovato nel dropdown:', lavoroAttivoPiuRecente.attrezzoId);
                                 }
                             }
                         }
+                        
+                        // Pre-seleziona componente in base a trattore/attrezzo
+                        updateComponenteDropdown();
+                        
+                        // Pre-compila ubicazione se c'è un terreno associato al lavoro
+                        if (lavoroAttivoPiuRecente.terrenoId) {
+                            const terreno = terreniMap.get(lavoroAttivoPiuRecente.terrenoId);
+                            if (terreno) {
+                                const ubicazioneInput = document.getElementById('guasto-ubicazione');
+                                if (ubicazioneInput) {
+                                    // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
+                                    let ubicazione = '';
+                                    if (terreno.podere && terreno.podere.trim()) {
+                                        ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                    } else {
+                                        ubicazione = terreno.nome || 'Terreno senza nome';
+                                    }
+                                    ubicazioneInput.value = ubicazione;
+                                }
+                            }
+                        }
                     } else {
-                        console.log('Nessun lavoro attivo trovato per l\'operaio corrente');
+
                     }
                 } catch (error) {
                     console.error('Errore caricamento lavori:', error);
                 }
+            }
+
+            // Aggiorna dropdown componente in base a trattore/attrezzo selezionati
+            function updateComponenteDropdown() {
+                const macchinaSelect = document.getElementById('guasto-macchina');
+                const attrezzoSelect = document.getElementById('guasto-attrezzo');
+                const componenteSelect = document.getElementById('guasto-componente');
+                
+                if (!macchinaSelect || !attrezzoSelect || !componenteSelect) return;
+                
+                const macchinaId = macchinaSelect.value;
+                const attrezzoId = attrezzoSelect.value;
+                
+                // Se c'è solo trattore, pre-seleziona "trattore"
+                if (macchinaId && !attrezzoId) {
+                    componenteSelect.value = 'trattore';
+                }
+                // Se c'è solo attrezzo, pre-seleziona "attrezzo"
+                else if (!macchinaId && attrezzoId) {
+                    componenteSelect.value = 'attrezzo';
+                }
+                // Se ci sono entrambi, pre-seleziona "entrambi" (ma l'utente può cambiare)
+                else if (macchinaId && attrezzoId) {
+                    if (!componenteSelect.value) {
+                        componenteSelect.value = 'entrambi';
+                    }
+                }
+                // Se non c'è né trattore né attrezzo, resetta
+                else {
+                    componenteSelect.value = '';
+                }
+            }
+
+            // Gestione toggle tipo guasto (macchina/generico)
+            function setupTipoGuastoToggle() {
+                const tipoMacchina = document.getElementById('tipo-macchina');
+                const tipoGenerico = document.getElementById('tipo-generico');
+                const sezioneMacchina = document.getElementById('sezione-macchina');
+                const sezioneGenerico = document.getElementById('sezione-generico');
+                
+                if (!tipoMacchina || !tipoGenerico || !sezioneMacchina || !sezioneGenerico) return;
+
+                function updateFormVisibility() {
+                    const isMacchina = tipoMacchina.checked;
+                    const isGenerico = tipoGenerico.checked;
+
+                    if (isMacchina) {
+                        sezioneMacchina.style.display = 'block';
+                        sezioneGenerico.style.display = 'none';
+                        // Rendi obbligatori i campi macchina
+                        document.getElementById('guasto-macchina').required = true;
+                        document.getElementById('guasto-componente').required = true;
+                        document.getElementById('guasto-ubicazione').required = false;
+                        document.getElementById('guasto-tipo-problema').required = false;
+                    } else if (isGenerico) {
+                        sezioneMacchina.style.display = 'none';
+                        sezioneGenerico.style.display = 'block';
+                        // Rendi obbligatori i campi generico
+                        document.getElementById('guasto-macchina').required = false;
+                        document.getElementById('guasto-componente').required = false;
+                        document.getElementById('guasto-ubicazione').required = true;
+                        document.getElementById('guasto-tipo-problema').required = true;
+                        
+                        // Pre-compila ubicazione se c'è un lavoro selezionato
+                        const lavoroSelect = document.getElementById('guasto-lavoro');
+                        const ubicazioneInput = document.getElementById('guasto-ubicazione');
+                        if (lavoroSelect && ubicazioneInput && lavoroSelect.value && !ubicazioneInput.value) {
+                            const lavoro = lavoriList.find(l => l.id === lavoroSelect.value);
+                            if (lavoro && lavoro.terrenoId) {
+                                const terreno = terreniMap.get(lavoro.terrenoId);
+                                if (terreno) {
+                                    // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
+                                    let ubicazione = '';
+                                    if (terreno.podere && terreno.podere.trim()) {
+                                        ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                    } else {
+                                        ubicazione = terreno.nome || 'Terreno senza nome';
+                                    }
+                                    ubicazioneInput.value = ubicazione;
+                                }
+                            }
+                        }
+                        
+                        // Inizializza mappa quando si passa a generico
+                        // Piccolo delay per assicurarsi che il container sia visibile
+                        setTimeout(() => {
+                            initProblemaMap();
+                        }, 100);
+                    }
+                }
+
+                tipoMacchina.addEventListener('change', updateFormVisibility);
+                tipoGenerico.addEventListener('change', updateFormVisibility);
+                
+                // Inizializza
+                updateFormVisibility();
+            }
+
+            // Aggiorna ubicazione quando cambia il lavoro selezionato (solo se tipo generico)
+            function setupLavoroChangeHandler() {
+                const lavoroSelect = document.getElementById('guasto-lavoro');
+                if (!lavoroSelect) return;
+
+                lavoroSelect.addEventListener('change', () => {
+                    const tipoGuasto = document.querySelector('input[name="tipoGuasto"]:checked')?.value;
+                    const ubicazioneInput = document.getElementById('guasto-ubicazione');
+                    
+                    // Aggiorna ubicazione solo se tipo generico e c'è un lavoro selezionato
+                    if (tipoGuasto === 'generico' && ubicazioneInput && lavoroSelect.value) {
+                        const lavoro = lavoriList.find(l => l.id === lavoroSelect.value);
+                        if (lavoro && lavoro.terrenoId) {
+                            const terreno = terreniMap.get(lavoro.terrenoId);
+                            if (terreno) {
+                                // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
+                                let ubicazione = '';
+                                if (terreno.podere && terreno.podere.trim()) {
+                                    ubicazione = `${terreno.podere.trim()} - ${terreno.nome || 'Terreno senza nome'}`;
+                                } else {
+                                    ubicazione = terreno.nome || 'Terreno senza nome';
+                                }
+                                ubicazioneInput.value = ubicazione;
+                            }
+                        }
+                        
+                        // Reinizializza mappa quando cambia il lavoro (se tipo generico)
+                        // Reset marker
+                        coordinateProblema = null;
+                        if (problemaMarker) {
+                            problemaMarker.setMap(null);
+                            problemaMarker = null;
+                        }
+                        if (terrenoPolygon) {
+                            terrenoPolygon.setMap(null);
+                            terrenoPolygon = null;
+                        }
+                        // Reinizializza mappa
+                        setTimeout(() => {
+                            initProblemaMap();
+                        }, 100);
+                    }
+                });
+            }
+
+            // Inizializza mappa per localizzazione problema
+            async function initProblemaMap() {
+                const mapContainer = document.getElementById('map-container');
+                if (!mapContainer) return;
+
+                // Attendi che la config sia caricata
+                let attempts = 0;
+                while (typeof window.GOOGLE_MAPS_API_KEY === 'undefined' && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                const apiKey = window.GOOGLE_MAPS_API_KEY;
+                if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
+                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Google Maps API key non configurata</div>';
+                    return;
+                }
+
+                // Carica Google Maps API se non già caricata
+                if (typeof google === 'undefined' || !google.maps) {
+                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Caricamento Google Maps...</div>';
+                    
+                    return new Promise((resolve) => {
+                        // Verifica se lo script è già stato aggiunto
+                        if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+                            // Aspetta che Google Maps sia completamente caricato
+                            const checkInterval = setInterval(() => {
+                                if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.MapTypeId && google.maps.Marker && google.maps.Polygon) {
+                                    clearInterval(checkInterval);
+                                    // Piccolo delay per assicurarsi che tutto sia pronto
+                                    setTimeout(() => {
+                                        initProblemaMapImplementation();
+                                        resolve();
+                                    }, 200);
+                                }
+                            }, 100);
+                            setTimeout(() => {
+                                clearInterval(checkInterval);
+                                if (typeof google === 'undefined' || !google.maps || !google.maps.Map) {
+                                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Timeout caricamento Google Maps</div>';
+                                } else {
+                                    // Prova comunque se è parzialmente caricato
+                                    setTimeout(() => {
+                                        initProblemaMapImplementation();
+                                    }, 200);
+                                }
+                                resolve();
+                            }, 10000);
+                            return;
+                        }
+
+                        // Crea callback globale per inizializzazione
+                        window.initProblemaMapCallback = function() {
+                            // Piccolo delay per assicurarsi che tutto sia pronto
+                            setTimeout(() => {
+                                if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.MapTypeId) {
+                                    initProblemaMapImplementation();
+                                    resolve();
+                                } else {
+                                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Errore inizializzazione Google Maps</div>';
+                                    resolve();
+                                }
+                            }, 200);
+                        };
+
+                        const script = document.createElement('script');
+                        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&callback=initProblemaMapCallback`;
+                        script.async = true;
+                        script.defer = true;
+                        
+                        script.onerror = () => {
+                            mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Errore caricamento Google Maps</div>';
+                            resolve();
+                        };
+                        
+                        script.onerror = () => {
+                            mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Errore caricamento Google Maps</div>';
+                            resolve();
+                        };
+                        
+                        document.head.appendChild(script);
+                    });
+                } else {
+                    // Verifica che sia completamente inizializzato
+                    if (google.maps && google.maps.Map && google.maps.MapTypeId) {
+                        initProblemaMapImplementation();
+                    } else {
+                        // Aspetta che sia pronto
+                        const checkInterval = setInterval(() => {
+                            if (typeof google !== 'undefined' && google.maps && google.maps.Map && google.maps.MapTypeId) {
+                                clearInterval(checkInterval);
+                                initProblemaMapImplementation();
+                            }
+                        }, 50);
+                        setTimeout(() => {
+                            clearInterval(checkInterval);
+                        }, 5000);
+                    }
+                }
+            }
+
+            // Implementazione effettiva della mappa
+            function initProblemaMapImplementation() {
+                const mapContainer = document.getElementById('map-container');
+                if (!mapContainer) return;
+
+                // Verifica che Google Maps sia completamente caricato
+                if (typeof google === 'undefined' || !google.maps || !google.maps.Map || !google.maps.MapTypeId) {
+                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Google Maps non disponibile. Attendi qualche secondo e riprova.</div>';
+                    return;
+                }
+
+                // Pulisci contenitore
+                mapContainer.innerHTML = '';
+
+                const lavoroSelect = document.getElementById('guasto-lavoro');
+                let center = { lat: 44.4949, lng: 11.3426 }; // Default: Bologna
+                let zoom = 15;
+                let terreno = null;
+
+                // Cerca terreno dal lavoro selezionato
+                if (lavoroSelect && lavoroSelect.value) {
+                    const lavoro = lavoriList.find(l => l.id === lavoroSelect.value);
+                    if (lavoro && lavoro.terrenoId) {
+                        terreno = terreniMap.get(lavoro.terrenoId);
+                        if (terreno) {
+                            // Usa coordinate terreno se disponibili
+                            if (terreno.coordinate) {
+                                const coord = terreno.coordinate;
+                                if (coord.lat !== undefined && coord.lng !== undefined) {
+                                    center = { lat: coord.lat, lng: coord.lng };
+                                } else if (coord._lat !== undefined && coord._long !== undefined) {
+                                    center = { lat: coord._lat, lng: coord._long };
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Verifica che Google Maps sia completamente inizializzato
+                if (!google.maps.Map || !google.maps.MapTypeId || !google.maps.Marker || !google.maps.Polygon) {
+                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Google Maps non completamente caricato. Attendi qualche secondo.</div>';
+                    return;
+                }
+
+                // Inizializza mappa
+                problemaMap = new google.maps.Map(mapContainer, {
+                    zoom: zoom,
+                    center: center,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE,
+                    disableDefaultUI: false,
+                    clickableIcons: false // Disabilita click su POI (punti di interesse)
+                });
+
+                // Imposta cursore crosshair sulla mappa
+                if (mapContainer) {
+                    mapContainer.style.cursor = 'crosshair';
+                }
+
+                // Listener click sulla mappa per posizionare marker (PRIMA del poligono)
+                console.log('🔧 Registrazione listener click sulla mappa...');
+                problemaMap.addListener('click', (event) => {
+                    console.log('🗺️ Click sulla mappa ricevuto!', event.latLng);
+                    const lat = event.latLng.lat();
+                    const lng = event.latLng.lng();
+                    coordinateProblema = { lat, lng };
+
+                    // Rimuovi marker precedente se esiste
+                    if (problemaMarker) {
+                        problemaMarker.setMap(null);
+                        problemaMarker = null;
+                    }
+
+                    // Crea nuovo marker
+                    try {
+                        problemaMarker = new google.maps.Marker({
+                            position: { lat, lng },
+                            map: problemaMap,
+                            draggable: true,
+                            title: 'Posizione del problema - Trascina per spostare',
+                            animation: google.maps.Animation.DROP,
+                            icon: {
+                                url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                                scaledSize: new google.maps.Size(40, 40)
+                            },
+                            zIndex: 1000 // Sopra il poligono
+                        });
+                        console.log('✅ Marker creato con successo!');
+                    } catch (error) {
+                        console.error('❌ Errore creazione marker:', error);
+                        showAlert('Errore posizionamento marker: ' + error.message, 'error');
+                        return;
+                    }
+
+                    // Aggiorna status
+                    const markerStatus = document.getElementById('marker-status');
+                    if (markerStatus) {
+                        markerStatus.innerHTML = `✅ Marker posizionato! Coordinate: ${lat.toFixed(6)}, ${lng.toFixed(6)} - <strong>Trascina il marker per precisione</strong>`;
+                        markerStatus.style.color = '#28a745';
+                    }
+
+                    // Listener per drag marker
+                    problemaMarker.addListener('dragstart', () => {
+                        const markerStatus = document.getElementById('marker-status');
+                        if (markerStatus) {
+                            markerStatus.innerHTML = '🔄 Trascinando marker...';
+                            markerStatus.style.color = '#ffc107';
+                        }
+                    });
+
+                    problemaMarker.addListener('dragend', (event) => {
+                        coordinateProblema = {
+                            lat: event.latLng.lat(),
+                            lng: event.latLng.lng()
+                        };
+                        const markerStatus = document.getElementById('marker-status');
+                        if (markerStatus) {
+                            markerStatus.innerHTML = `✅ Marker aggiornato! Coordinate: ${coordinateProblema.lat.toFixed(6)}, ${coordinateProblema.lng.toFixed(6)}`;
+                            markerStatus.style.color = '#28a745';
+                        }
+                    });
+
+                    // Info window sul marker
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `
+                            <div style="padding: 5px;">
+                                <strong>📍 Posizione problema</strong><br>
+                                Lat: ${lat.toFixed(6)}<br>
+                                Lng: ${lng.toFixed(6)}<br>
+                                <small>Trascina per spostare</small>
+                            </div>
+                        `
+                    });
+
+                    problemaMarker.addListener('click', () => {
+                        infoWindow.open(problemaMap, problemaMarker);
+                    });
+                });
+
+                // Assicura che il cursore sia sempre crosshair sulla mappa
+                // Usa getDiv() per ottenere il div della mappa
+                const mapDiv = problemaMap.getDiv();
+                if (mapDiv) {
+                    mapDiv.style.cursor = 'crosshair';
+                    
+                    // Listener per mantenere crosshair anche quando si passa sopra controlli
+                    mapDiv.addEventListener('mouseenter', () => {
+                        mapDiv.style.cursor = 'crosshair';
+                    });
+                }
+
+                // Disegna confini terreno se disponibili (DOPO il listener click)
+                if (terreno && terreno.polygonCoords && terreno.polygonCoords.length > 0) {
+                    const terrenoCoords = terreno.polygonCoords.map(c => {
+                        if (typeof c === 'object' && c !== null) {
+                            return new google.maps.LatLng(
+                                c.lat !== undefined ? c.lat : (Array.isArray(c) ? c[0] : center.lat),
+                                c.lng !== undefined ? c.lng : (Array.isArray(c) ? c[1] : center.lng)
+                            );
+                        } else if (Array.isArray(c)) {
+                            return new google.maps.LatLng(c[0] || center.lat, c[1] || center.lng);
+                        }
+                        return new google.maps.LatLng(center.lat, center.lng);
+                    });
+
+                    terrenoPolygon = new google.maps.Polygon({
+                        paths: terrenoCoords,
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 3,
+                        fillColor: '#FF0000',
+                        fillOpacity: 0.1,
+                        map: problemaMap,
+                        clickable: false, // ⭐ IMPORTANTE: non intercettare i click
+                        zIndex: 1 // Sotto il marker
+                    });
+
+                    // Adatta zoom ai confini del terreno
+                    const bounds = new google.maps.LatLngBounds();
+                    terrenoCoords.forEach(coord => bounds.extend(coord));
+                    problemaMap.fitBounds(bounds);
+                    console.log('✅ Poligono terreno disegnato (clickable: false)');
+                }
+
+                console.log('✅ Mappa inizializzata, listener click attivo. Clicca sulla mappa per posizionare il marker!');
+            }
+
+            // Setup pulsante Google Maps
+            function setupMapsButton() {
+                const btnMaps = document.getElementById('btn-apri-maps');
+                if (!btnMaps) return;
+
+                btnMaps.addEventListener('click', () => {
+                    const ubicazioneInput = document.getElementById('guasto-ubicazione');
+                    const lavoroSelect = document.getElementById('guasto-lavoro');
+                    
+                    if (!ubicazioneInput) return;
+
+                    let mapsUrl = '';
+                    let hasCoordinates = false;
+
+                    // Priorità 1: Coordinate del marker se posizionato
+                    if (coordinateProblema) {
+                        mapsUrl = `https://www.google.com/maps?q=${coordinateProblema.lat},${coordinateProblema.lng}`;
+                        hasCoordinates = true;
+                    }
+                    // Priorità 2: Coordinate del terreno se c'è un lavoro selezionato
+                    else if (lavoroSelect && lavoroSelect.value) {
+                        const lavoro = lavoriList.find(l => l.id === lavoroSelect.value);
+                        if (lavoro && lavoro.terrenoId) {
+                            const terreno = terreniMap.get(lavoro.terrenoId);
+                            if (terreno && terreno.coordinate) {
+                                const coord = terreno.coordinate;
+                                let lat, lng;
+                                
+                                if (typeof coord === 'object') {
+                                    if (coord.lat !== undefined && coord.lng !== undefined) {
+                                        lat = coord.lat;
+                                        lng = coord.lng;
+                                    } else if (coord.latitude !== undefined && coord.longitude !== undefined) {
+                                        lat = coord.latitude;
+                                        lng = coord.longitude;
+                                    } else if (coord._lat !== undefined && coord._long !== undefined) {
+                                        lat = coord._lat;
+                                        lng = coord._long;
+                                    }
+                                }
+                                
+                                if (lat !== undefined && lng !== undefined) {
+                                    mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                                    hasCoordinates = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // Fallback: ricerca per testo
+                    if (!hasCoordinates) {
+                        const ubicazione = ubicazioneInput.value.trim();
+                        if (ubicazione) {
+                            mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ubicazione)}`;
+                        } else {
+                            showAlert('Inserisci prima un\'ubicazione', 'error');
+                            return;
+                        }
+                    }
+
+                    if (mapsUrl) {
+                        window.open(mapsUrl, '_blank');
+                    }
+                });
             }
 
             // Setup listener real-time per guasti
@@ -765,33 +1500,80 @@
                 let html = '';
                 snapshot.docs.forEach(doc => {
                     const guasto = { id: doc.id, ...doc.data() };
+                    const tipoGuasto = guasto.tipoGuasto || 'macchina'; // Default per retrocompatibilità
                     
-                    // Determina quale macchina/attrezzo mostrare (priorità a trattore, poi attrezzo)
-                    let macchinaNome = '';
+                    let titolo = '';
                     let tipoIcon = '❓';
+                    let tipoBadge = '';
                     
-                    if (guasto.macchinaId) {
-                        const macchina = macchineList.find(m => m.id === guasto.macchinaId);
-                        if (macchina) {
-                            macchinaNome = `🚜 ${macchina.nome}`;
-                            tipoIcon = '🚜';
-                        }
-                    }
-                    
-                    if (guasto.attrezzoId) {
-                        const attrezzo = macchineList.find(m => m.id === guasto.attrezzoId);
-                        if (attrezzo) {
-                            if (macchinaNome) {
-                                macchinaNome += ` + ⚙️ ${attrezzo.nome}`;
-                            } else {
+                    if (tipoGuasto === 'generico') {
+                        // Segnalazione generica
+                        tipoIcon = '🌍';
+                        tipoBadge = '<span class="guasto-badge" style="background: #17a2b8; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🌍 Generico</span>';
+                        titolo = `${guasto.tipoProblema || 'Segnalazione'} - ${guasto.ubicazione || 'Ubicazione non specificata'}`;
+                    } else {
+                        // Guasto macchina (logica esistente)
+                        tipoBadge = '<span class="guasto-badge" style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🔧 Macchina</span>';
+                        const componenteGuasto = guasto.componenteGuasto || 'trattore'; // Default per retrocompatibilità
+                        let macchinaNome = '';
+                        
+                        if (componenteGuasto === 'trattore' && guasto.macchinaId) {
+                            const macchina = macchineList.find(m => m.id === guasto.macchinaId);
+                            if (macchina) {
+                                macchinaNome = `🚜 ${macchina.nome}`;
+                                tipoIcon = '🚜';
+                            }
+                        } else if (componenteGuasto === 'attrezzo' && guasto.attrezzoId) {
+                            const attrezzo = macchineList.find(m => m.id === guasto.attrezzoId);
+                            if (attrezzo) {
                                 macchinaNome = `⚙️ ${attrezzo.nome}`;
                                 tipoIcon = '⚙️';
                             }
+                        } else if (componenteGuasto === 'entrambi') {
+                            // Mostra entrambi
+                            if (guasto.macchinaId) {
+                                const macchina = macchineList.find(m => m.id === guasto.macchinaId);
+                                if (macchina) {
+                                    macchinaNome = `🚜 ${macchina.nome}`;
+                                }
+                            }
+                            if (guasto.attrezzoId) {
+                                const attrezzo = macchineList.find(m => m.id === guasto.attrezzoId);
+                                if (attrezzo) {
+                                    if (macchinaNome) {
+                                        macchinaNome += ` + ⚙️ ${attrezzo.nome}`;
+                                    } else {
+                                        macchinaNome = `⚙️ ${attrezzo.nome}`;
+                                    }
+                                }
+                            }
+                            tipoIcon = '🚜⚙️';
+                        } else {
+                            // Fallback per dati legacy senza componenteGuasto
+                            if (guasto.macchinaId) {
+                                const macchina = macchineList.find(m => m.id === guasto.macchinaId);
+                                if (macchina) {
+                                    macchinaNome = `🚜 ${macchina.nome}`;
+                                    tipoIcon = '🚜';
+                                }
+                            }
+                            if (guasto.attrezzoId) {
+                                const attrezzo = macchineList.find(m => m.id === guasto.attrezzoId);
+                                if (attrezzo) {
+                                    if (macchinaNome) {
+                                        macchinaNome += ` + ⚙️ ${attrezzo.nome}`;
+                                    } else {
+                                        macchinaNome = `⚙️ ${attrezzo.nome}`;
+                                        tipoIcon = '⚙️';
+                                    }
+                                }
+                            }
                         }
-                    }
-                    
-                    if (!macchinaNome) {
-                        macchinaNome = 'Macchina non trovata';
+                        
+                        if (!macchinaNome) {
+                            macchinaNome = 'Macchina non trovata';
+                        }
+                        titolo = macchinaNome;
                     }
 
                     const stato = guasto.stato || 'in-attesa';
@@ -810,13 +1592,18 @@
                     html += `
                         <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'in-attesa' : ''}">
                             <div class="guasto-header">
-                                <div class="guasto-title">${tipoIcon} ${macchinaNome}</div>
-                                <div style="display: flex; gap: 8px;">
+                                <div class="guasto-title">${tipoIcon} ${titolo}</div>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    ${tipoBadge}
                                     ${gravitaBadge}
                                     ${statoBadge}
                                 </div>
                             </div>
                             <div class="guasto-details">
+                                ${tipoGuasto === 'generico' ? `
+                                    <div><strong>Ubicazione:</strong> ${guasto.ubicazione || '-'}</div>
+                                    <div><strong>Tipo problema:</strong> ${guasto.tipoProblema || '-'}</div>
+                                ` : ''}
                                 <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
                                 <div><strong>Segnalato il:</strong> ${dataSegnalazione}</div>
                                 ${guasto.stato === 'risolto' ? `
@@ -838,7 +1625,7 @@
                             ${stato !== 'risolto' ? `
                                 <div class="guasto-actions">
                                     <button class="btn btn-success" onclick="openRisolviModal('${guasto.id}')">
-                                        ✅ Risolvi Guasto
+                                        ✅ Risolvi ${tipoGuasto === 'generico' ? 'Segnalazione' : 'Guasto'}
                                     </button>
                                 </div>
                             ` : ''}
@@ -853,27 +1640,58 @@
             document.getElementById('segnala-guasto-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
+                const tipoGuasto = document.querySelector('input[name="tipoGuasto"]:checked')?.value;
                 const macchinaId = document.getElementById('guasto-macchina').value;
                 const attrezzoId = document.getElementById('guasto-attrezzo').value || null;
+                const componenteGuasto = document.getElementById('guasto-componente').value;
                 const gravita = document.querySelector('input[name="gravita"]:checked')?.value;
                 const dettagli = document.getElementById('guasto-dettagli').value.trim();
                 const lavoroId = document.getElementById('guasto-lavoro').value || null;
+                const ubicazione = document.getElementById('guasto-ubicazione')?.value.trim() || null;
+                const tipoProblema = document.getElementById('guasto-tipo-problema')?.value || null;
 
-                if (!gravita || !dettagli) {
-                    showAlert('Compila tutti i campi obbligatori (Gravità, Dettagli)', 'error');
+                // Validazione base
+                if (!tipoGuasto || !gravita || !dettagli) {
+                    showAlert('Compila tutti i campi obbligatori', 'error');
                     return;
                 }
 
-                // Deve esserci almeno un trattore o un attrezzo
-                if (!macchinaId && !attrezzoId) {
-                    showAlert('Seleziona almeno un trattore o un attrezzo', 'error');
-                    return;
+                // Validazione guasto macchina
+                if (tipoGuasto === 'macchina') {
+                    if (!componenteGuasto) {
+                        showAlert('Seleziona il componente con il guasto', 'error');
+                        return;
+                    }
+                    // Validazione componente vs selezione macchina/attrezzo
+                    if (componenteGuasto === 'trattore' && !macchinaId) {
+                        showAlert('Devi selezionare un trattore se il guasto è del trattore', 'error');
+                        return;
+                    }
+                    if (componenteGuasto === 'attrezzo' && !attrezzoId) {
+                        showAlert('Devi selezionare un attrezzo se il guasto è dell\'attrezzo', 'error');
+                        return;
+                    }
+                    if (componenteGuasto === 'entrambi' && (!macchinaId || !attrezzoId)) {
+                        showAlert('Devi selezionare sia trattore che attrezzo se il guasto è di entrambi', 'error');
+                        return;
+                    }
+                }
+
+                // Validazione segnalazione generica
+                if (tipoGuasto === 'generico') {
+                    if (!ubicazione) {
+                        showAlert('Inserisci l\'ubicazione del problema', 'error');
+                        return;
+                    }
+                    if (!tipoProblema) {
+                        showAlert('Seleziona il tipo di problema', 'error');
+                        return;
+                    }
                 }
 
                 try {
                     const guastoData = {
-                        macchinaId: macchinaId || null, // Trattore (può essere null se c'è solo attrezzo)
-                        attrezzoId: attrezzoId, // Attrezzo separato se presente
+                        tipoGuasto, // 'macchina' | 'generico'
                         gravita,
                         dettagli,
                         lavoroId,
@@ -883,52 +1701,91 @@
                         risolto: false
                     };
 
-                    await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
-
-                    // Aggiorna stato trattore se presente
-                    if (macchinaId) {
-                        const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
-                        const macchinaDoc = await getDoc(macchinaRef);
-                        if (macchinaDoc.exists()) {
-                            let nuovoStato = 'guasto';
-                            if (gravita === 'non-grave') {
-                                nuovoStato = 'guasto-lavoro-in-corso';
-                            }
-                            await updateDoc(macchinaRef, {
-                                stato: nuovoStato
-                            });
+                    // Aggiungi campi specifici in base al tipo
+                    if (tipoGuasto === 'macchina') {
+                        guastoData.macchinaId = macchinaId || null;
+                        guastoData.attrezzoId = attrezzoId;
+                        guastoData.componenteGuasto = componenteGuasto;
+                    } else if (tipoGuasto === 'generico') {
+                        guastoData.macchinaId = null;
+                        guastoData.attrezzoId = null;
+                        guastoData.componenteGuasto = null;
+                        guastoData.ubicazione = ubicazione;
+                        guastoData.tipoProblema = tipoProblema;
+                        // Aggiungi coordinate problema se marker posizionato
+                        if (coordinateProblema) {
+                            guastoData.coordinateProblema = coordinateProblema;
                         }
                     }
 
-                    // Aggiorna stato attrezzo se presente
-                    if (attrezzoId) {
-                        const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
-                        const attrezzoDoc = await getDoc(attrezzoRef);
-                        if (attrezzoDoc.exists()) {
-                            let nuovoStato = 'guasto';
-                            if (gravita === 'non-grave') {
-                                nuovoStato = 'guasto-lavoro-in-corso';
+                    await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
+
+                    // Aggiorna stato macchine SOLO se è un guasto macchina
+                    if (tipoGuasto === 'macchina') {
+                        // Aggiorna stato trattore solo se il guasto è del trattore o di entrambi
+                        if (macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
+                            const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
+                            const macchinaDoc = await getDoc(macchinaRef);
+                            if (macchinaDoc.exists()) {
+                                let nuovoStato = 'guasto';
+                                if (gravita === 'non-grave') {
+                                    nuovoStato = 'guasto-lavoro-in-corso';
+                                }
+                                await updateDoc(macchinaRef, {
+                                    stato: nuovoStato
+                                });
                             }
-                            await updateDoc(attrezzoRef, {
-                                stato: nuovoStato
-                            });
+                        }
+
+                        // Aggiorna stato attrezzo solo se il guasto è dell'attrezzo o di entrambi
+                        if (attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
+                            const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
+                            const attrezzoDoc = await getDoc(attrezzoRef);
+                            if (attrezzoDoc.exists()) {
+                                let nuovoStato = 'guasto';
+                                if (gravita === 'non-grave') {
+                                    nuovoStato = 'guasto-lavoro-in-corso';
+                                }
+                                await updateDoc(attrezzoRef, {
+                                    stato: nuovoStato
+                                });
+                            }
                         }
                     }
 
                     // Se guasto grave e c'è un lavoro associato, sospendi lavoro
                     if (gravita === 'grave' && lavoroId) {
                         const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, lavoroId);
+                        const motivoSospensione = tipoGuasto === 'macchina' 
+                            ? 'Guasto macchina grave' 
+                            : 'Segnalazione grave';
                         await updateDoc(lavoroRef, {
                             stato: 'sospeso',
-                            motivoSospensione: 'Guasto macchina grave'
+                            motivoSospensione
                         });
                     }
 
-                    showAlert('Guasto segnalato con successo!', 'success');
+                    showAlert('Segnalazione inviata con successo!', 'success');
                     document.getElementById('segnala-guasto-form').reset();
+                    // Reset tipo a macchina
+                    document.getElementById('tipo-macchina').checked = true;
+                    // Reset mappa
+                    coordinateProblema = null;
+                    if (problemaMarker) {
+                        problemaMarker.setMap(null);
+                        problemaMarker = null;
+                    }
+                    if (terrenoPolygon) {
+                        terrenoPolygon.setMap(null);
+                        terrenoPolygon = null;
+                    }
+                    if (problemaMap) {
+                        problemaMap = null;
+                    }
+                    setupTipoGuastoToggle();
                 } catch (error) {
                     console.error('Errore segnalazione guasto:', error);
-                    showAlert('Errore segnalazione guasto: ' + error.message, 'error');
+                    showAlert('Errore segnalazione: ' + error.message, 'error');
                 }
             });
 
@@ -965,6 +1822,7 @@
                     }
 
                     const guastoData = guastoDoc.data();
+                    const tipoGuasto = guastoData.tipoGuasto || 'macchina'; // Default per retrocompatibilità
                     const updateData = {
                         stato: 'risolto',
                         risolto: true,
@@ -979,21 +1837,47 @@
 
                     await updateDoc(guastoRef, updateData);
 
-                    // Ripristina stato macchina
-                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
-                    const macchinaDoc = await getDoc(macchinaRef);
-                    if (macchinaDoc.exists()) {
-                        const macchinaData = macchinaDoc.data();
-                        // Ripristina stato precedente o disponibile
-                        let nuovoStato = 'disponibile';
-                        if (macchinaData.stato === 'guasto-lavoro-in-corso') {
-                            // Se era in uso prima del guasto, ripristina in uso
-                            nuovoStato = 'in-uso';
+                    // Ripristina stato macchine SOLO se è un guasto macchina
+                    if (tipoGuasto === 'macchina') {
+                        const componenteGuasto = guastoData.componenteGuasto || 'trattore'; // Default per retrocompatibilità
+
+                        // Ripristina stato trattore solo se il guasto era del trattore o di entrambi
+                        if (guastoData.macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
+                            const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                            const macchinaDoc = await getDoc(macchinaRef);
+                            if (macchinaDoc.exists()) {
+                                const macchinaData = macchinaDoc.data();
+                                // Ripristina stato precedente o disponibile
+                                let nuovoStato = 'disponibile';
+                                if (macchinaData.stato === 'guasto-lavoro-in-corso') {
+                                    // Se era in uso prima del guasto, ripristina in uso
+                                    nuovoStato = 'in-uso';
+                                }
+
+                                await updateDoc(macchinaRef, {
+                                    stato: nuovoStato
+                                });
+                            }
                         }
 
-                        await updateDoc(macchinaRef, {
-                            stato: nuovoStato
-                        });
+                        // Ripristina stato attrezzo solo se il guasto era dell'attrezzo o di entrambi
+                        if (guastoData.attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
+                            const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.attrezzoId);
+                            const attrezzoDoc = await getDoc(attrezzoRef);
+                            if (attrezzoDoc.exists()) {
+                                const attrezzoData = attrezzoDoc.data();
+                                // Ripristina stato precedente o disponibile
+                                let nuovoStato = 'disponibile';
+                                if (attrezzoData.stato === 'guasto-lavoro-in-corso') {
+                                    // Se era in uso prima del guasto, ripristina in uso
+                                    nuovoStato = 'in-uso';
+                                }
+
+                                await updateDoc(attrezzoRef, {
+                                    stato: nuovoStato
+                                });
+                            }
+                        }
                     }
 
                     // Se c'era un lavoro sospeso, riattivalo (il manager dovrà confermare)
@@ -1002,16 +1886,22 @@
                         const lavoroDoc = await getDoc(lavoroRef);
                         if (lavoroDoc.exists()) {
                             const lavoroData = lavoroDoc.data();
-                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione === 'Guasto macchina grave') {
+                            const motivoSospensione = tipoGuasto === 'macchina' 
+                                ? 'Guasto macchina grave' 
+                                : 'Segnalazione grave';
+                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione === motivoSospensione) {
                                 // Non riattiviamo automaticamente, il manager deve decidere
                                 await updateDoc(lavoroRef, {
-                                    motivoSospensione: 'Guasto risolto - In attesa riattivazione Manager'
+                                    motivoSospensione: `${tipoGuasto === 'macchina' ? 'Guasto' : 'Segnalazione'} risolto - In attesa riattivazione Manager`
                                 });
                             }
                         }
                     }
 
-                    showAlert('Guasto risolto con successo! La macchina è ora disponibile.', 'success');
+                    const messaggio = tipoGuasto === 'macchina' 
+                        ? 'Guasto risolto con successo! La macchina è ora disponibile.' 
+                        : 'Segnalazione risolta con successo!';
+                    showAlert(messaggio, 'success');
                     closeRisolviModal();
                 } catch (error) {
                     console.error('Errore risoluzione guasto:', error);

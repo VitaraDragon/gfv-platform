@@ -99,26 +99,40 @@ export async function getTariffa(tariffaId) {
 
 /**
  * Trova tariffa per tipo lavoro, coltura e tipo campo
+ * Se non trova una tariffa specifica per la coltura, cerca una tariffa generica (coltura vuota) per la categoria
  * @param {string} tipoLavoro - Tipo lavoro
- * @param {string} coltura - Coltura
+ * @param {string} coltura - Coltura (può essere vuota per tariffe generiche)
  * @param {string} tipoCampo - Tipo campo
+ * @param {string} categoriaColturaId - ID categoria coltura (opzionale, per fallback su tariffa generica)
  * @returns {Promise<Tariffa|null>} Tariffa trovata o null
  */
-export async function findTariffa(tipoLavoro, coltura, tipoCampo) {
+export async function findTariffa(tipoLavoro, coltura, tipoCampo, categoriaColturaId = null) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) {
       throw new Error('Nessun tenant corrente disponibile');
     }
     
-    const tariffe = await getAllTariffe({
+    // Prima cerca tariffa specifica per coltura
+    const tariffeSpecifiche = await getAllTariffe({
       tipoLavoro,
-      coltura,
+      coltura: coltura || '',
       soloAttive: true
     });
     
     // Filtra per tipoCampo
-    const tariffa = tariffe.find(t => t.tipoCampo === tipoCampo);
+    let tariffa = tariffeSpecifiche.find(t => t.tipoCampo === tipoCampo);
+    
+    // Se non trovata e abbiamo una coltura specifica, cerca tariffa generica (coltura vuota)
+    if (!tariffa && coltura && coltura.trim().length > 0) {
+      const tariffeGeneriche = await getAllTariffe({
+        tipoLavoro,
+        coltura: '', // Tariffa generica per tutte le colture
+        soloAttive: true
+      });
+      
+      tariffa = tariffeGeneriche.find(t => t.tipoCampo === tipoCampo);
+    }
     
     return tariffa || null;
   } catch (error) {
@@ -272,6 +286,7 @@ export default {
   deleteTariffa,
   calcolaTariffaPreventivo
 };
+
 
 
 

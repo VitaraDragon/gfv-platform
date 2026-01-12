@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Attivita Model - Modello dati attività
  * Gestisce dati attività lavorativa con calcolo ore automatico
  * 
@@ -220,9 +220,4 @@ export class Attivita extends Base {
 }
 
 export default Attivita;
-
-
-
-
-
 

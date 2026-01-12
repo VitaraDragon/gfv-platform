@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Calcolo Compensi Service - Servizio per calcolo compensi operai
  * Calcola compensi basati su ore validate e tariffe configurate
  * 
@@ -233,10 +233,4 @@ export function formattaEuro(euro) {
     maximumFractionDigits: 2
   }).format(euro);
 }
-
-
-
-
-
-
 

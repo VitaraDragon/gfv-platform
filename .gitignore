@@ -43,5 +43,17 @@ core/config/firebase-config.js
 core/config/google-maps-config.js
 mobile-config/
 
+# Firebase Service Account (credenziali private)
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!cors.json
+!firebase.json
+!firestore.rules
+!storage.rules
+
 # Vecchia app - repository separato, non tracciare come submodule
 vecchia app/

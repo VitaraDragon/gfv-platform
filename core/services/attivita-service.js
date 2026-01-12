@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Attivita Service - Servizio per gestione attività
  * Gestisce CRUD attività con supporto multi-tenant e filtri
  * 
@@ -254,9 +254,4 @@ export default {
   deleteAttivita,
   calculateOreNette
 };
-
-
-
-
-
 

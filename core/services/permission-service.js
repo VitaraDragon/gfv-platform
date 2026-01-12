@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Permission Service - Controllo permessi e ruoli
  * Gestisce verifica permessi basati su ruoli utente
  * 
@@ -223,6 +223,4 @@ export default {
   canManageSquadre,
   getAllPermissions
 };
-
-
 

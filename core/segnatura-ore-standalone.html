@@ -380,6 +380,10 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Segna le ore lavorate sui lavori assegnati</p>
             </div>
             <div class="header-actions">
+                <a href="admin/impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
                 <button class="btn btn-primary" onclick="openSegnaOraModal()">➕ Segna Nuova Ora</button>
                 <a href="dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
@@ -560,11 +564,27 @@
             }
 
             try {
-                // Carica dati utente
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (userDoc.exists()) {
-                    currentUserData = userDoc.data();
-                    currentTenantId = currentUserData.tenantId;
+                    // Carica dati utente
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        currentUserData = userDoc.data();
+                        currentTenantId = currentUserData.tenantId;
+                        
+                        // Imposta tenantId nel tenant-service per i servizi
+                        try {
+                            const { setCurrentTenantId } = await import('./services/tenant-service.js');
+                            setCurrentTenantId(currentTenantId);
+                        } catch (error) {
+                            console.warn('Impossibile impostare tenantId nel servizio:', error);
+                        }
+                        
+                        // Assicura che Firebase sia inizializzato nei servizi
+                        try {
+                            const { setFirebaseInstances } = await import('./services/firebase-service.js');
+                            setFirebaseInstances({ app, db, auth });
+                        } catch (error) {
+                            console.warn('Impossibile impostare Firebase instances nel servizio:', error);
+                        }
 
                     // Verifica permessi (operaio o caposquadra)
                     const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
@@ -576,6 +596,19 @@
                             window.location.href = 'dashboard-standalone.html';
                         }, 2000);
                         return;
+                    }
+                    
+                    // Mostra link impostazioni solo a Manager/Amministratore (non a operai/caposquadra)
+                    const impostazioniLink = document.getElementById('impostazioni-link');
+                    if (impostazioniLink) {
+                        const ruoli = currentUserData.ruoli || [];
+                        const isManager = ruoli.some(r => {
+                            const roleLower = r.toLowerCase();
+                            return roleLower.includes('manager') || roleLower.includes('amministratore');
+                        });
+                        if (isManager) {
+                            impostazioniLink.style.display = 'inline-flex';
+                        }
                     }
 
                     // Verifica se modulo Manodopera è attivo
@@ -656,10 +689,20 @@
                     }
                 }
                 
+                // Calcola data limite per lavori completati recenti (7 giorni fa)
+                const dataLimite = new Date();
+                dataLimite.setDate(dataLimite.getDate() - 7);
+                
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // Filtra solo lavori attivi (assegnato o in_corso)
-                    if (data.stato === 'assegnato' || data.stato === 'in_corso') {
+                    // Include lavori attivi (assegnato o in_corso) O lavori completati recenti (ultimi 7 giorni)
+                    const isAttivo = data.stato === 'assegnato' || data.stato === 'in_corso';
+                    const isCompletatoRecente = (data.stato === 'completato' || data.stato === 'completato_da_approvare') && 
+                                                data.completatoIl && 
+                                                data.completatoIl.toDate && 
+                                                data.completatoIl.toDate() >= dataLimite;
+                    
+                    if (isAttivo || isCompletatoRecente) {
                         let includeLavoro = false;
                         
                         if (isOperaio) {
@@ -690,7 +733,12 @@
                             if (data.dataInizio && data.dataInizio.toDate) {
                                 data.dataInizio = data.dataInizio.toDate();
                             }
-                            lavoriList.push({ id: doc.id, ...data });
+                            // Aggiungi flag per indicare se è completato recente
+                            lavoriList.push({ 
+                                id: doc.id, 
+                                ...data,
+                                isCompletatoRecente: isCompletatoRecente
+                            });
                             lavoriIdsSet.add(doc.id);
                         }
                     }
@@ -727,32 +775,79 @@
             }
 
             let html = '<div class="lavori-list">';
-            lavoriList.forEach(lavoro => {
-                const dataInizio = lavoro.dataInizio instanceof Date 
-                    ? lavoro.dataInizio.toLocaleDateString('it-IT')
-                    : new Date(lavoro.dataInizio).toLocaleDateString('it-IT');
-                
-                const statoBadge = lavoro.stato === 'assegnato' ? 'badge-assegnato' :
-                                  lavoro.stato === 'in_corso' ? 'badge-in_corso' :
-                                  'badge-completato';
-                
-                const statoLabel = lavoro.stato === 'assegnato' ? 'Assegnato' :
-                                  lavoro.stato === 'in_corso' ? 'In corso' :
-                                  'Completato';
+            
+            // Separa lavori attivi e completati recenti
+            const lavoriAttivi = lavoriList.filter(l => !l.isCompletatoRecente);
+            const lavoriCompletatiRecenti = lavoriList.filter(l => l.isCompletatoRecente);
+            
+            // Renderizza lavori attivi
+            if (lavoriAttivi.length > 0) {
+                lavoriAttivi.forEach(lavoro => {
+                    const dataInizio = lavoro.dataInizio instanceof Date 
+                        ? lavoro.dataInizio.toLocaleDateString('it-IT')
+                        : new Date(lavoro.dataInizio).toLocaleDateString('it-IT');
+                    
+                    const statoBadge = lavoro.stato === 'assegnato' ? 'badge-assegnato' :
+                                      lavoro.stato === 'in_corso' ? 'badge-in_corso' :
+                                      'badge-completato';
+                    
+                    const statoLabel = lavoro.stato === 'assegnato' ? 'Assegnato' :
+                                      lavoro.stato === 'in_corso' ? 'In corso' :
+                                      'Completato';
 
+                    html += `
+                        <div class="lavoro-card" onclick="selectLavoro('${lavoro.id}')">
+                            <div class="lavoro-header">
+                                <div class="lavoro-nome">${escapeHtml(lavoro.nome || 'N/A')}</div>
+                                <span class="badge ${statoBadge}">${statoLabel}</span>
+                            </div>
+                            <div class="lavoro-info">
+                                <div><strong>Data inizio:</strong> ${dataInizio}</div>
+                                <div><strong>Durata prevista:</strong> ${lavoro.durataPrevista || 'N/A'} giorni</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Renderizza lavori completati recenti (se presenti)
+            if (lavoriCompletatiRecenti.length > 0) {
                 html += `
-                    <div class="lavoro-card" onclick="selectLavoro('${lavoro.id}')">
-                        <div class="lavoro-header">
-                            <div class="lavoro-nome">${escapeHtml(lavoro.nome || 'N/A')}</div>
-                            <span class="badge ${statoBadge}">${statoLabel}</span>
-                        </div>
-                        <div class="lavoro-info">
-                            <div><strong>Data inizio:</strong> ${dataInizio}</div>
-                            <div><strong>Durata prevista:</strong> ${lavoro.durataPrevista || 'N/A'} giorni</div>
-                        </div>
-                    </div>
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e9ecef;">
+                        <h3 style="color: #6c757d; font-size: 16px; margin-bottom: 15px;">
+                            📋 Lavori Completati Recenti (ultimi 7 giorni)
+                        </h3>
+                        <p style="color: #6c757d; font-size: 13px; margin-bottom: 15px;">
+                            Puoi ancora segnare le ore per questi lavori completati di recente.
+                        </p>
                 `;
-            });
+                
+                lavoriCompletatiRecenti.forEach(lavoro => {
+                    const dataInizio = lavoro.dataInizio instanceof Date 
+                        ? lavoro.dataInizio.toLocaleDateString('it-IT')
+                        : new Date(lavoro.dataInizio).toLocaleDateString('it-IT');
+                    
+                    const dataCompletamento = lavoro.completatoIl && lavoro.completatoIl.toDate 
+                        ? lavoro.completatoIl.toDate().toLocaleDateString('it-IT')
+                        : 'N/A';
+
+                    html += `
+                        <div class="lavoro-card" onclick="selectLavoro('${lavoro.id}')" style="opacity: 0.85; border-left: 3px solid #ffc107;">
+                            <div class="lavoro-header">
+                                <div class="lavoro-nome">${escapeHtml(lavoro.nome || 'N/A')}</div>
+                                <span class="badge badge-completato" style="background: #ffc107; color: #000;">Completato</span>
+                            </div>
+                            <div class="lavoro-info">
+                                <div><strong>Data inizio:</strong> ${dataInizio}</div>
+                                <div><strong>Completato il:</strong> ${dataCompletamento}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
             html += '</div>';
 
             container.innerHTML = html;
@@ -972,18 +1067,24 @@
         }
 
         // Carica macchine (solo se modulo Parco Macchine attivo)
+        // Usa servizio centralizzato tramite helper
         async function loadMacchine() {
             if (!hasParcoMacchineModule || !currentTenantId) return;
             
             try {
-                const macchineRef = collection(db, 'tenants', currentTenantId, 'macchine');
-                const snapshot = await getDocs(macchineRef);
-                
-                macchineList = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    macchineList.push({ id: doc.id, ...data });
+                // Usa servizio centralizzato tramite helper
+                const { loadMacchineViaService } = await import('./services/service-helper.js');
+                const macchine = await loadMacchineViaService({
+                    tenantId: currentTenantId,
+                    firebaseInstances: { app, db, auth },
+                    options: {
+                        orderBy: 'nome',
+                        orderDirection: 'asc'
+                    }
                 });
+                
+                // Filtra lato client: solo macchine non dismesse
+                macchineList = macchine.filter(m => m.stato !== 'dismesso');
             } catch (error) {
                 console.error('Errore caricamento macchine:', error);
                 macchineList = [];

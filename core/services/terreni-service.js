@@ -38,20 +38,48 @@ export async function getAllTerreni(options = {}) {
       clienteId = null
     } = options;
     
-    // Costruisci filtri where
+    // Se c'è un filtro clienteId, carica tutti i terreni e filtra lato client
+    // per evitare problemi con indice composito Firestore
     const whereFilters = [];
+    let useClientSideFilter = false;
+    
     if (clienteId !== null) {
-      whereFilters.push(['clienteId', '==', clienteId]);
+      // Filtra lato client per evitare indice composito
+      useClientSideFilter = true;
     }
     
+    // Carica tutti i terreni (senza filtro clienteId se necessario)
     const documents = await getCollectionData(COLLECTION_NAME, {
       tenantId,
-      orderBy,
-      orderDirection,
-      where: whereFilters.length > 0 ? whereFilters : undefined
+      orderBy: useClientSideFilter ? undefined : orderBy, // Non ordinare se filtriamo lato client
+      orderDirection: useClientSideFilter ? undefined : orderDirection,
+      where: useClientSideFilter ? undefined : (whereFilters.length > 0 ? whereFilters : undefined)
     });
     
-    return documents.map(doc => Terreno.fromData(doc));
+    // Crea oggetti Terreno preservando i dati originali
+    let terreni = documents.map(doc => {
+      const terreno = Terreno.fromData(doc);
+      // Salva dati originali per accesso nel converter
+      terreno._originalData = doc;
+      return terreno;
+    });
+    
+    // Filtra lato client se necessario
+    if (useClientSideFilter && clienteId !== null) {
+      terreni = terreni.filter(t => t.clienteId === clienteId);
+    }
+    
+    // Ordina lato client se necessario
+    if (useClientSideFilter && orderBy) {
+      terreni.sort((a, b) => {
+        const aVal = a[orderBy] || '';
+        const bVal = b[orderBy] || '';
+        const comparison = String(aVal).localeCompare(String(bVal));
+        return orderDirection === 'desc' ? -comparison : comparison;
+      });
+    }
+    
+    return terreni;
   } catch (error) {
     console.error('Errore recupero terreni:', error);
     throw new Error(`Errore recupero terreni: ${error.message}`);
@@ -234,7 +262,4 @@ export default {
   deleteTerreno,
   getNumeroAttivitaTerreno
 };
-
-
-
 

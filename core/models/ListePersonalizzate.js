@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ListePersonalizzate Model - Modello dati liste personalizzate
  * Gestisce liste predefinite e custom per tipi lavoro e colture
  * 
@@ -256,9 +256,4 @@ export class ListePersonalizzate extends Base {
 export { TIPI_LAVORO_PREDEFINITI, COLTURE_PREDEFINITE };
 
 export default ListePersonalizzate;
-
-
-
-
-
 

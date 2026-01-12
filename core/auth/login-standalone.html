@@ -531,16 +531,50 @@
                     console.warn('Errore aggiornamento ultimo accesso:', error);
                 }
 
-                showSuccess('Accesso effettuato con successo!');
+                // Carica tenant disponibili per l'utente
+                const { getUserTenants } = await import('../services/tenant-service.js');
+                const tenants = await getUserTenants(user.uid);
                 
-                // Salva l'utente previsto per questa scheda
-                sessionStorage.setItem('gfv_expected_user_id', user.uid);
-                sessionStorage.removeItem('gfv_user_just_registered');
-                
-                // Redirect a dashboard dopo breve delay
-                setTimeout(() => {
-                    window.location.href = '../dashboard-standalone.html';
-                }, 500);
+                // Se più tenant, mostra selettore
+                if (tenants.length > 1) {
+                    hideLoading();
+                    showSuccess('Accesso effettuato con successo!');
+                    
+                    // Importa e mostra selettore tenant
+                    const { showTenantSelector, handleTenantSelection } = await import('../services/tenant-selection-service.js');
+                    
+                    const selectedTenantId = await showTenantSelector(tenants, async (tenantId) => {
+                        try {
+                            await handleTenantSelection(tenantId);
+                            // Salva l'utente previsto per questa scheda
+                            sessionStorage.setItem('gfv_expected_user_id', user.uid);
+                            sessionStorage.removeItem('gfv_user_just_registered');
+                            
+                            // Redirect a dashboard
+                            window.location.href = '../dashboard-standalone.html';
+                        } catch (error) {
+                            console.error('Errore selezione tenant:', error);
+                            showError('Errore durante la selezione dell\'azienda. Riprova.');
+                        }
+                    });
+                    
+                    // Se annullato, non fare nulla (l'utente può riprovare)
+                    if (!selectedTenantId) {
+                        return;
+                    }
+                } else {
+                    // Un solo tenant o nessun tenant: procedi normalmente
+                    showSuccess('Accesso effettuato con successo!');
+                    
+                    // Salva l'utente previsto per questa scheda
+                    sessionStorage.setItem('gfv_expected_user_id', user.uid);
+                    sessionStorage.removeItem('gfv_user_just_registered');
+                    
+                    // Redirect a dashboard dopo breve delay
+                    setTimeout(() => {
+                        window.location.href = '../dashboard-standalone.html';
+                    }, 500);
+                }
 
             } catch (error) {
                 hideLoading();
@@ -700,7 +734,6 @@
             }
         }
 
-        console.log('✅ Login page caricata');
     </script>
     
     <!-- EmailJS SDK -->
@@ -715,12 +748,16 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/gfv-platform/service-worker.js')
+                // Usa percorso relativo per compatibilità con localhost e GitHub Pages
+                const swPath = window.location.pathname.includes('/gfv-platform/') 
+                    ? '/gfv-platform/service-worker.js' 
+                    : '../../../service-worker.js';
+                navigator.serviceWorker.register(swPath)
                     .then((registration) => {
                         console.log('Service Worker registrato con successo:', registration.scope);
                     })
                     .catch((error) => {
-                        console.log('Registrazione Service Worker fallita:', error);
+                        console.warn('Registrazione Service Worker fallita (non critico):', error);
                     });
             });
         }

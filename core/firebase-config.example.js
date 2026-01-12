@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Firebase Configuration - GFV Platform (EXAMPLE)
  * 
  * Questo è un file di esempio. 
@@ -27,9 +27,4 @@ export const firebaseConfig = {
 };
 
 export default firebaseConfig;
-
-
-
-
-
 

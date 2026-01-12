@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -472,7 +472,7 @@
                     if (isFileProtocol) {
                         // In ambiente file://, i moduli ES6 non funzionano a causa di CORS
                         // L'applicazione continuerà a funzionare ma senza le funzionalità avanzate del service
-                        console.debug('⚠️ Ambiente file:// rilevato: il service macchine non può essere caricato. Usa un server HTTP per funzionalità complete.');
+
                         return null;
                     }
                     
@@ -844,7 +844,7 @@
                 } else {
                     // Service non disponibile (probabilmente ambiente file://)
                     // La validazione è stata completata correttamente, ma le ore macchina non sono state aggiornate automaticamente
-                    console.debug('Service macchine non disponibile: le ore macchina non sono state aggiornate automaticamente');
+
                 }
             } catch (error) {
                 console.error('Errore aggiornamento ore macchina:', error);

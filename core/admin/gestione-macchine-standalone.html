@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -389,6 +389,10 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Gestisci il parco macchine aziendale</p>
             </div>
             <div class="header-actions">
+                <a href="impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
                 <button class="btn btn-primary" id="macchine-tour-button" type="button">🧭 Tour</button>
                 <button class="btn btn-primary" id="nuova-macchina-button" onclick="openMacchinaModal()">➕ Nuova Macchina</button>
                 <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
@@ -651,30 +655,30 @@
     <!-- Funzioni stub per evitare errori prima del caricamento del modulo -->
     <script>
         window.openMacchinaModal = function(macchinaId) {
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
         window.closeMacchinaModal = function() {
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
         window.handleSalvaMacchina = function(e) {
             e.preventDefault();
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
         window.deleteMacchina = function(macchinaId) {
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
         window.resetFilters = function() {
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
         window.openCategoriaModal = function() {
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
         window.closeCategoriaModal = function() {
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
         window.handleSalvaCategoria = function(e) {
             e.preventDefault();
-            console.log('Funzione non ancora caricata, attendere...');
+
         };
     </script>
     
@@ -684,6 +688,39 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, getDoc, doc, collection, getDocs, query, where, setDoc, addDoc, updateDoc, deleteDoc, Timestamp, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // ============================================
+        // IMPORTS MODULI
+        // ============================================
+        import { showAlert, formattaData, isManutenzioneInScadenza, isManutenzioneScaduta, escapeHtml } from './js/gestione-macchine-utils.js';
+        import { 
+            migraCategorieAttrezziEsistenti as migraCategorieAttrezziEsistentiModule,
+            initializeCategorie as initializeCategorieModule,
+            loadCategorie as loadCategorieModule,
+            populateSottocategorie as populateSottocategorieModule,
+            setupMacchineRealtime as setupMacchineRealtimeModule,
+            loadMacchine as loadMacchineModule,
+            filterMacchine as filterMacchineModule,
+            renderMacchine as renderMacchineModule
+        } from './js/gestione-macchine-controller.js';
+        import {
+            setupFormDinamico as setupFormDinamicoModule,
+            setupFilters as setupFiltersModule,
+            resetFilters as resetFiltersModule,
+            openMacchinaModal as openMacchinaModalModule,
+            closeMacchinaModal as closeMacchinaModalModule,
+            handleSalvaMacchina as handleSalvaMacchinaModule,
+            deleteMacchina as deleteMacchinaModule,
+            openCategoriaModal as openCategoriaModalModule,
+            closeCategoriaModal as closeCategoriaModalModule,
+            handleSalvaCategoria as handleSalvaCategoriaModule,
+            loadStoricoGuasti as loadStoricoGuastiModule
+        } from './js/gestione-macchine-events.js';
+        import {
+            setupMacchineTourButton as setupMacchineTourButtonModule,
+            maybeAutoStartMacchineTour as maybeAutoStartMacchineTourModule,
+            startMacchineTour as startMacchineTourModule
+        } from './js/gestione-macchine-tour.js';
 
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -716,19 +753,224 @@
 
         let currentUser = null;
         let currentTenantId = null;
+        
+        // ============================================
+        // VARIABILI GLOBALI (per compatibilità)
+        // ============================================
         let macchine = [];
         let categorie = [];
         let categoriePrincipali = [];
-        let sottocategorieMap = new Map(); // parentId -> Array<sottocategorie>
-        let macchineUnsubscribe = null; // Per gestire il listener real-time
-        const MACCHINE_TOUR_STORAGE_KEY = 'gfv_macchine_tour_v1';
-        let macchineTourAutoRequested = false;
-
-        setupMacchineTourButton();
-
-        // Dichiarazioni funzioni (da definire dopo)
-        let openMacchinaModal, closeMacchinaModal, handleSalvaMacchina, deleteMacchina, resetFilters;
-        let openCategoriaModal, closeCategoriaModal, handleSalvaCategoria;
+        let sottocategorieMap = new Map();
+        let macchineUnsubscribe = null;
+        let usersMap = new Map();
+        
+        // ============================================
+        // STATE OBJECT
+        // ============================================
+        const macchineState = {
+            macchine: [],
+            categorie: [],
+            categoriePrincipali: [],
+            sottocategorieMap: new Map(), // parentId -> Array<sottocategorie>
+            macchineUnsubscribe: null, // Per gestire il listener real-time
+            usersMap: new Map(), // Mappa utenti per storico guasti
+            macchineTourAutoRequested: false
+        };
+        
+        // ============================================
+        // FUNZIONE UPDATE STATE
+        // ============================================
+        function updateState(updates) {
+            Object.assign(macchineState, updates);
+            // Aggiorna anche variabili globali per compatibilità
+            macchine = macchineState.macchine;
+            categorie = macchineState.categorie;
+            categoriePrincipali = macchineState.categoriePrincipali;
+            sottocategorieMap = macchineState.sottocategorieMap;
+            macchineUnsubscribe = macchineState.macchineUnsubscribe;
+            usersMap = macchineState.usersMap;
+        }
+        
+        // ============================================
+        // DEPENDENCIES OBJECT
+        // ============================================
+        const dependencies = {
+            db,
+            auth,
+            getDoc,
+            doc,
+            collection,
+            getDocs,
+            query,
+            where,
+            setDoc,
+            addDoc,
+            updateDoc,
+            deleteDoc,
+            Timestamp,
+            orderBy,
+            onSnapshot
+        };
+        
+        // ============================================
+        // WRAPPER FUNCTIONS
+        // ============================================
+        
+        // Wrapper per migraCategorieAttrezziEsistenti
+        async function migraCategorieAttrezziEsistentiWrapper() {
+            return await migraCategorieAttrezziEsistentiModule(currentTenantId, dependencies);
+        }
+        
+        // Wrapper per initializeCategorie
+        async function initializeCategorieWrapper() {
+            return await initializeCategorieModule(currentTenantId, dependencies, migraCategorieAttrezziEsistentiWrapper);
+        }
+        
+        // Wrapper per loadCategorie
+        async function loadCategorieWrapper() {
+            return await loadCategorieModule(currentTenantId, dependencies, macchineState, updateState);
+        }
+        
+        // Wrapper per populateSottocategorie
+        function populateSottocategorieWrapper(parentId, selectedValue = null) {
+            return populateSottocategorieModule(parentId, selectedValue, macchineState);
+        }
+        
+        // Wrapper per setupMacchineRealtime
+        async function setupMacchineRealtimeWrapper() {
+            const unsubscribe = await setupMacchineRealtimeModule(
+                currentTenantId,
+                dependencies,
+                macchineState,
+                updateState,
+                filterMacchineWrapper,
+                showAlert
+            );
+            if (unsubscribe) {
+                updateState({ macchineUnsubscribe: unsubscribe });
+            }
+        }
+        
+        // Wrapper per loadMacchine
+        async function loadMacchineWrapper() {
+            return await loadMacchineModule(setupMacchineRealtimeWrapper, macchineState);
+        }
+        
+        // Wrapper per filterMacchine
+        function filterMacchineWrapper() {
+            return filterMacchineModule(macchineState, renderMacchineWrapper);
+        }
+        
+        // Wrapper per renderMacchine
+        function renderMacchineWrapper(macchineList) {
+            return renderMacchineModule(macchineList, macchineState, maybeAutoStartMacchineTourWrapper);
+        }
+        
+        // Wrapper per setupFormDinamico
+        function setupFormDinamicoWrapper() {
+            return setupFormDinamicoModule(populateSottocategorieWrapper, filterMacchineWrapper);
+        }
+        
+        // Wrapper per setupFilters
+        function setupFiltersWrapper() {
+            return setupFiltersModule(filterMacchineWrapper);
+        }
+        
+        // Wrapper per resetFilters
+        function resetFiltersWrapper() {
+            return resetFiltersModule(filterMacchineWrapper);
+        }
+        
+        // Wrapper per openMacchinaModal
+        async function openMacchinaModalWrapper(macchinaId = null) {
+            return await openMacchinaModalModule(
+                macchinaId,
+                macchineState,
+                setupFormDinamicoWrapper,
+                populateSottocategorieWrapper,
+                loadStoricoGuastiWrapper
+            );
+        }
+        
+        // Wrapper per closeMacchinaModal
+        function closeMacchinaModalWrapper() {
+            return closeMacchinaModalModule();
+        }
+        
+        // Wrapper per handleSalvaMacchina
+        async function handleSalvaMacchinaWrapper(e) {
+            return await handleSalvaMacchinaModule(
+                e,
+                currentTenantId,
+                currentUser.uid,
+                dependencies,
+                showAlert,
+                closeMacchinaModalWrapper
+            );
+        }
+        
+        // Wrapper per deleteMacchina
+        async function deleteMacchinaWrapper(macchinaId) {
+            return await deleteMacchinaModule(macchinaId, currentTenantId, dependencies, showAlert);
+        }
+        
+        // Wrapper per openCategoriaModal
+        function openCategoriaModalWrapper() {
+            return openCategoriaModalModule();
+        }
+        
+        // Wrapper per closeCategoriaModal
+        function closeCategoriaModalWrapper() {
+            return closeCategoriaModalModule();
+        }
+        
+        // Wrapper per handleSalvaCategoria
+        async function handleSalvaCategoriaWrapper(e) {
+            return await handleSalvaCategoriaModule(
+                e,
+                currentTenantId,
+                currentUser.uid,
+                dependencies,
+                macchineState,
+                showAlert,
+                closeCategoriaModalWrapper,
+                loadCategorieWrapper,
+                populateSottocategorieWrapper
+            );
+        }
+        
+        // Wrapper per loadStoricoGuasti
+        async function loadStoricoGuastiWrapper(macchinaId) {
+            return await loadStoricoGuastiModule(macchinaId, currentTenantId, dependencies, macchineState, updateState);
+        }
+        
+        // Wrapper per setupMacchineTourButton
+        function setupMacchineTourButtonWrapper() {
+            return setupMacchineTourButtonModule(startMacchineTourWrapper);
+        }
+        
+        // Wrapper per maybeAutoStartMacchineTour
+        function maybeAutoStartMacchineTourWrapper() {
+            return maybeAutoStartMacchineTourModule(startMacchineTourWrapper, macchineState, updateState);
+        }
+        
+        // Wrapper per startMacchineTour
+        function startMacchineTourWrapper(triggeredManually) {
+            return startMacchineTourModule(triggeredManually, closeMacchinaModalWrapper, openMacchinaModalWrapper);
+        }
+        
+        // Esposizione su window per attributi HTML
+        window.openMacchinaModal = openMacchinaModalWrapper;
+        window.closeMacchinaModal = closeMacchinaModalWrapper;
+        window.handleSalvaMacchina = handleSalvaMacchinaWrapper;
+        window.deleteMacchina = deleteMacchinaWrapper;
+        window.resetFilters = resetFiltersWrapper;
+        window.openCategoriaModal = openCategoriaModalWrapper;
+        window.closeCategoriaModal = closeCategoriaModalWrapper;
+        window.handleSalvaCategoria = handleSalvaCategoriaWrapper;
+        
+        // Setup tour button
+        setupMacchineTourButtonWrapper();
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
@@ -754,6 +996,12 @@
                             }, 2000);
                             return;
                         }
+                        
+                        // Mostra link impostazioni (solo Manager/Amministratore, già verificato sopra)
+                        const impostazioniLink = document.getElementById('impostazioni-link');
+                        if (impostazioniLink) {
+                            impostazioniLink.style.display = 'inline-flex';
+                        }
 
                         // Verifica modulo Parco Macchine
                         if (currentTenantId) {
@@ -776,15 +1024,15 @@
                         }
 
                         // Inizializza categorie predefinite se necessario
-                        await initializeCategorie();
+                        await initializeCategorieWrapper();
                         // Carica categorie
-                        await loadCategorie();
+                        await loadCategorieWrapper();
                         // Setup filtri
-                        setupFilters();
+                        setupFiltersWrapper();
                         // Setup form dinamico
-                        setupFormDinamico();
+                        setupFormDinamicoWrapper();
                         // Carica macchine con listener real-time
-                        await setupMacchineRealtime();
+                        await setupMacchineRealtimeWrapper();
                     } else {
                         window.location.href = '../auth/login-standalone.html';
                     }
@@ -797,1543 +1045,56 @@
             }
         });
 
-        // Migra dati esistenti da categorieAttrezzi alla collezione unificata
-        async function migraCategorieAttrezziEsistenti() {
-            try {
-                if (!currentTenantId) return;
-                
-                // Verifica se esistono categorie nella vecchia collezione
-                const vecchiaCollezioneRef = collection(db, `tenants/${currentTenantId}/categorieAttrezzi`);
-                const vecchiaSnapshot = await getDocs(vecchiaCollezioneRef);
-                
-                if (vecchiaSnapshot.empty) {
-                    return; // Niente da migrare
-                }
-                
-                // Verifica se la nuova collezione esiste già
-                const nuovaCollezioneRef = collection(db, `tenants/${currentTenantId}/categorie`);
-                const nuovaSnapshot = await getDocs(nuovaCollezioneRef);
-                
-                if (!nuovaSnapshot.empty) {
-                    // Già migrato o inizializzato
-                    return;
-                }
-                
-                console.log(`Migrazione di ${vecchiaSnapshot.size} categorie attrezzi...`);
-                
-                // Migra ogni categoria
-                for (const docSnap of vecchiaSnapshot.docs) {
-                    const vecchiaData = docSnap.data();
-                    
-                    const nuovaCategoriaData = {
-                        nome: vecchiaData.nome,
-                        codice: vecchiaData.codice || vecchiaData.nome.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-                        descrizione: vecchiaData.descrizione || null,
-                        parentId: null, // Tutte le vecchie categorie sono principali
-                        applicabileA: 'attrezzi', // Le vecchie categorie erano solo per attrezzi
-                        predefinita: vecchiaData.predefinita || false,
-                        ordine: null,
-                        creatoDa: vecchiaData.creatoDa || 'system',
-                        createdAt: vecchiaData.createdAt || serverTimestamp(),
-                        updatedAt: serverTimestamp()
-                    };
-                    
-                    await addDoc(nuovaCollezioneRef, nuovaCategoriaData);
-                }
-                
-                console.log('Migrazione categorie attrezzi completata');
-            } catch (error) {
-                console.error('Errore migrazione categorie attrezzi:', error);
-                // Non bloccare il caricamento se la migrazione fallisce
-            }
-        }
-
-        // Inizializza categorie predefinite (usando servizio unificato)
-        async function initializeCategorie() {
-            try {
-                if (!currentTenantId) return;
-                
-                // Migra prima i dati esistenti
-                await migraCategorieAttrezziEsistenti();
-                
-                // Usa codice inline per evitare problemi CORS
-                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-                const snapshot = await getDocs(categorieRef);
-                
-                // Verifica quali categorie predefinite esistono già (per codice)
-                const codiciEsistenti = new Set();
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.codice) {
-                        codiciEsistenti.add(data.codice);
-                    }
-                });
-                
-                // Categorie principali predefinite per attrezzi
-                const categoriePrincipaliPredefinite = [
-                    { nome: 'Lavorazione del Terreno', codice: 'lavorazione_terreno', descrizione: 'Aratura, erpicatura, fresatura, vangatura, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
-                    { nome: 'Trattamenti', codice: 'trattamenti', descrizione: 'Fitofarmaci, concimazione, irrigazione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
-                    { nome: 'Potatura', codice: 'potatura', descrizione: 'Potatura manuale e meccanica', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
-                    { nome: 'Raccolta', codice: 'raccolta', descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 4 },
-                    { nome: 'Gestione del Verde', codice: 'gestione_verde', descrizione: 'Falciatura, taglio erba, manutenzione estetica, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 5 },
-                    { nome: 'Diserbo', codice: 'diserbo', descrizione: 'Eliminazione delle erbe infestanti', applicabileA: 'entrambi', predefinita: true, ordine: 6 },
-                    { nome: 'Semina e Piantagione', codice: 'semina_piantagione', descrizione: 'Semina, trapianto, piantagione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 7 },
-                    { nome: 'Trasporto', codice: 'trasporto', descrizione: 'Rimorchi, carri, carrelli, ecc.', applicabileA: 'attrezzi', predefinita: true, ordine: 8 },
-                    { nome: 'Altro', codice: 'altro', descrizione: 'Altri tipi non categorizzabili', applicabileA: 'entrambi', predefinita: true, ordine: 10 }
-                ];
-                
-                const categorieMap = new Map(); // codice -> id
-                
-                // Crea solo le categorie principali predefinite mancanti
-                for (const cat of categoriePrincipaliPredefinite) {
-                    if (!codiciEsistenti.has(cat.codice)) {
-                        const docRef = await addDoc(categorieRef, {
-                            ...cat,
-                            parentId: null,
-                            creatoDa: 'system',
-                            createdAt: Timestamp.now(),
-                            updatedAt: Timestamp.now()
-                        });
-                        categorieMap.set(cat.codice, docRef.id);
-                        codiciEsistenti.add(cat.codice);
-                    } else {
-                        // Trova l'ID della categoria esistente
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            if (data.codice === cat.codice) {
-                                categorieMap.set(cat.codice, doc.id);
-                            }
-                        });
-                    }
-                }
-                
-                // Crea sottocategorie predefinite mancanti
-                const sottocategoriePredefinite = [
-                    { nome: 'Generale', codice: 'lavorazione_terreno_generale', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione standard per campi aperti', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
-                    { nome: 'Tra le File', codice: 'lavorazione_terreno_tra_file', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione tra le file di frutteti/vigneti', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
-                    { nome: 'Sulla Fila', codice: 'lavorazione_terreno_sulla_fila', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione sulla fila di frutteti/vigneti', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
-                    { nome: 'Meccanica', codice: 'potatura_meccanica', parentCodice: 'potatura', descrizione: 'Potatura eseguita con attrezzi meccanici', applicabileA: 'attrezzi', predefinita: true, ordine: 2 }
-                ];
-                
-                for (const sottocat of sottocategoriePredefinite) {
-                    if (!codiciEsistenti.has(sottocat.codice)) {
-                        const parentId = categorieMap.get(sottocat.parentCodice);
-                        if (parentId) {
-                            await addDoc(categorieRef, {
-                                nome: sottocat.nome,
-                                codice: sottocat.codice,
-                                descrizione: sottocat.descrizione,
-                                parentId: parentId,
-                                applicabileA: sottocat.applicabileA,
-                                predefinita: sottocat.predefinita,
-                                ordine: sottocat.ordine,
-                                creatoDa: 'system',
-                                createdAt: Timestamp.now(),
-                                updatedAt: Timestamp.now()
-                            });
-                            codiciEsistenti.add(sottocat.codice);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Errore inizializzazione categorie:', error);
-            }
-        }
-
-        // Carica categorie principali e sottocategorie
-        async function loadCategorie() {
-            try {
-                if (!currentTenantId) return;
-                
-                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-                
-                // Carica tutte le categorie
-                const snapshot = await getDocs(query(categorieRef, orderBy('ordine', 'asc')));
-                categoriePrincipali = [];
-                sottocategorieMap.clear();
-                
-                snapshot.forEach(doc => {
-                    const catData = { id: doc.id, ...doc.data() };
-                    
-                    // Filtra solo categorie applicabili ad attrezzi
-                    if (catData.applicabileA === 'attrezzi' || catData.applicabileA === 'entrambi') {
-                        if (!catData.parentId) {
-                            // Categoria principale
-                            categoriePrincipali.push(catData);
-                        } else {
-                            // Sottocategoria
-                            if (!sottocategorieMap.has(catData.parentId)) {
-                                sottocategorieMap.set(catData.parentId, []);
-                            }
-                            sottocategorieMap.get(catData.parentId).push(catData);
-                        }
-                    }
-                });
-                
-                // Ordina sottocategorie per ordine
-                sottocategorieMap.forEach((sottocat, parentId) => {
-                    sottocat.sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
-                });
-                
-                // Popola dropdown categoria principale nel form
-                const categoriaPrincipaleSelect = document.getElementById('macchina-categoria-principale');
-                if (categoriaPrincipaleSelect) {
-                    categoriaPrincipaleSelect.innerHTML = '<option value="">-- Seleziona categoria principale --</option>';
-                    categoriePrincipali.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat.id;
-                        option.textContent = cat.nome;
-                        categoriaPrincipaleSelect.appendChild(option);
-                    });
-                }
-                
-                // Popola dropdown filtro categoria (include anche sottocategorie)
-                const filterCategoriaSelect = document.getElementById('filter-categoria');
-                if (filterCategoriaSelect) {
-                    filterCategoriaSelect.innerHTML = '<option value="tutte">Tutte le categorie</option>';
-                    categoriePrincipali.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat.id;
-                        option.textContent = cat.nome;
-                        filterCategoriaSelect.appendChild(option);
-                        
-                        // Aggiungi sottocategorie
-                        const sottocat = sottocategorieMap.get(cat.id);
-                        if (sottocat && sottocat.length > 0) {
-                            sottocat.forEach(subcat => {
-                                const subOption = document.createElement('option');
-                                subOption.value = subcat.id;
-                                subOption.textContent = `  └ ${subcat.nome}`;
-                                filterCategoriaSelect.appendChild(subOption);
-                            });
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Errore caricamento categorie:', error);
-            }
-        }
-        
-        // Popola sottocategorie quando cambia categoria principale
-        function populateSottocategorie(parentId, selectedValue = null) {
-            const sottocategoriaSelect = document.getElementById('macchina-sottocategoria');
-            const sottocategoriaGroup = document.getElementById('campo-sottocategoria-group');
-            
-            if (!sottocategoriaSelect || !sottocategoriaGroup) return;
-            
-            sottocategoriaSelect.innerHTML = '<option value="">-- Nessuna sottocategoria --</option>';
-            
-            if (!parentId) {
-                sottocategoriaGroup.style.display = 'none';
-                return;
-            }
-            
-            const sottocat = sottocategorieMap.get(parentId);
-            if (sottocat && sottocat.length > 0) {
-                sottocategoriaGroup.style.display = 'block';
-                sottocat.forEach(subcat => {
-                    const option = document.createElement('option');
-                    option.value = subcat.id;
-                    option.textContent = subcat.nome;
-                    if (selectedValue === subcat.id) {
-                        option.selected = true;
-                    }
-                    sottocategoriaSelect.appendChild(option);
-                });
-            } else {
-                sottocategoriaGroup.style.display = 'none';
-            }
-        }
-
-        // Setup form dinamico (mostra/nascondi campi in base a trattore/attrezzo)
-        function setupFormDinamico() {
-            const tipoTrattore = document.getElementById('tipo-trattore');
-            const tipoAttrezzo = document.getElementById('tipo-attrezzo');
-            const campoCavalli = document.getElementById('campo-cavalli-group');
-            const campoCategoria = document.getElementById('campo-categoria-group');
-            const campoCavalliMinimi = document.getElementById('campo-cavalli-minimi-group');
-            
-            function updateFormFields() {
-                const isTrattore = tipoTrattore.checked;
-                const isAttrezzo = tipoAttrezzo.checked;
-                
-                // Mostra/nascondi campi
-                if (campoCavalli) campoCavalli.style.display = isTrattore ? 'block' : 'none';
-                if (campoCategoria) campoCategoria.style.display = isAttrezzo ? 'block' : 'none';
-                if (campoCavalliMinimi) campoCavalliMinimi.style.display = isAttrezzo ? 'block' : 'none';
-                
-                // Aggiorna required
-                const cavalliInput = document.getElementById('macchina-cavalli');
-                const categoriaSelect = document.getElementById('macchina-categoria');
-                const cavalliMinimiInput = document.getElementById('macchina-cavalli-minimi');
-                
-                if (cavalliInput) {
-                    cavalliInput.required = isTrattore;
-                    if (!isTrattore) cavalliInput.value = '';
-                }
-                if (categoriaSelect) {
-                    categoriaSelect.required = isAttrezzo;
-                    if (!isAttrezzo) categoriaSelect.value = '';
-                }
-                if (cavalliMinimiInput) {
-                    cavalliMinimiInput.required = isAttrezzo;
-                    if (!isAttrezzo) cavalliMinimiInput.value = '';
-                }
-            }
-            
-            if (tipoTrattore) tipoTrattore.addEventListener('change', updateFormFields);
-            if (tipoAttrezzo) tipoAttrezzo.addEventListener('change', updateFormFields);
-            
-            // Event listener per cambio categoria principale (mostra sottocategorie)
-            const categoriaPrincipaleSelect = document.getElementById('macchina-categoria-principale');
-            if (categoriaPrincipaleSelect) {
-                categoriaPrincipaleSelect.addEventListener('change', function() {
-                    const categoriaPrincipaleId = this.value;
-                    populateSottocategorie(categoriaPrincipaleId);
-                });
-            }
-            
-            // Aggiorna anche filtro categoria quando cambia tipo
-            const filterTipo = document.getElementById('filter-tipo');
-            if (filterTipo) {
-                filterTipo.addEventListener('change', function() {
-                    const filterCategoriaGroup = document.getElementById('filter-categoria-group');
-                    if (filterCategoriaGroup) {
-                        filterCategoriaGroup.style.display = this.value === 'attrezzo' ? 'block' : 'none';
-                        if (this.value !== 'attrezzo') {
-                            document.getElementById('filter-categoria').value = 'tutte';
-                        }
-                        filterMacchine();
-                    }
-                });
-            }
-        }
-
-        // Reset filtri
-        resetFilters = function() {
-            document.getElementById('filter-stato').value = 'tutti';
-            document.getElementById('filter-tipo').value = 'tutti';
-            document.getElementById('filter-attive').value = 'false';
-            document.getElementById('filter-categoria').value = 'tutte';
-            document.getElementById('filter-categoria-group').style.display = 'none';
-            filterMacchine();
-        }
-
-        // Setup listener real-time per macchine (aggiornamento automatico)
-        async function setupMacchineRealtime() {
-            const container = document.getElementById('macchine-container');
-            container.innerHTML = '<div class="loading">Caricamento macchine...</div>';
-
-            try {
-                if (!currentTenantId) {
-                    container.innerHTML = '<div class="empty-state">Nessun tenant trovato</div>';
-                    return;
-                }
-
-                // Rimuovi listener precedente se esiste
-                if (macchineUnsubscribe) {
-                    macchineUnsubscribe();
-                    macchineUnsubscribe = null;
-                }
-
-                const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
-                const macchineQuery = query(macchineRef, orderBy('nome'));
-
-                // Setup listener real-time
-                macchineUnsubscribe = onSnapshot(
-                    macchineQuery,
-                    (snapshot) => {
-                        macchine = [];
-
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            macchine.push({
-                                id: doc.id,
-                                ...data,
-                                prossimaManutenzione: data.prossimaManutenzione || null,
-                                dataAcquisto: data.dataAcquisto || null
-                            });
-                        });
-
-                        // Aggiorna visualizzazione automaticamente
-                        filterMacchine();
-                    },
-                    (error) => {
-                        console.error('Errore listener macchine:', error);
-                        showAlert('Errore aggiornamento macchine', 'error');
-                        container.innerHTML = '<div class="empty-state">Errore caricamento macchine</div>';
-                    }
-                );
-            } catch (error) {
-                console.error('Errore setup listener macchine:', error);
-                showAlert('Errore caricamento macchine', 'error');
-                container.innerHTML = '<div class="empty-state">Errore caricamento macchine</div>';
-            }
-        }
-
-        // Carica macchine (funzione legacy mantenuta per compatibilità)
-        async function loadMacchine() {
-            // Usa setupMacchineRealtime se non è già attivo
-            if (!macchineUnsubscribe) {
-                await setupMacchineRealtime();
-            }
-            // Se il listener è già attivo, i dati si aggiornano automaticamente
-        }
-
-        // Formatta data
-        function formattaData(data) {
-            if (!data) return '-';
-            const d = data.toDate ? data.toDate() : new Date(data);
-            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
-
-        // Verifica se manutenzione in scadenza
-        function isManutenzioneInScadenza(macchina) {
-            if (!macchina.prossimaManutenzione && (!macchina.oreProssimaManutenzione || macchina.oreProssimaManutenzione === null)) {
-                return false;
-            }
-
-            // Verifica per data
-            if (macchina.prossimaManutenzione) {
-                const oggi = new Date();
-                oggi.setHours(0, 0, 0, 0);
-                const scadenza = macchina.prossimaManutenzione.toDate ? macchina.prossimaManutenzione.toDate() : new Date(macchina.prossimaManutenzione);
-                scadenza.setHours(0, 0, 0, 0);
-                const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
-                
-                if (giorniRimanenti <= 30 && giorniRimanenti >= 0) {
-                    return true;
-                }
-            }
-
-            // Verifica per ore
-            if (macchina.oreProssimaManutenzione !== null && macchina.oreAttuali !== null) {
-                const oreRimanenti = macchina.oreProssimaManutenzione - macchina.oreAttuali;
-                if (oreRimanenti <= 50 && oreRimanenti >= 0) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        // Verifica se manutenzione scaduta
-        function isManutenzioneScaduta(macchina) {
-            if (!macchina.prossimaManutenzione && (!macchina.oreProssimaManutenzione || macchina.oreProssimaManutenzione === null)) {
-                return false;
-            }
-
-            // Verifica per data
-            if (macchina.prossimaManutenzione) {
-                const oggi = new Date();
-                oggi.setHours(0, 0, 0, 0);
-                const scadenza = macchina.prossimaManutenzione.toDate ? macchina.prossimaManutenzione.toDate() : new Date(macchina.prossimaManutenzione);
-                scadenza.setHours(0, 0, 0, 0);
-                
-                if (scadenza < oggi) {
-                    return true;
-                }
-            }
-
-            // Verifica per ore
-            if (macchina.oreProssimaManutenzione !== null && macchina.oreAttuali !== null) {
-                if (macchina.oreAttuali >= macchina.oreProssimaManutenzione) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        // Filtra macchine
-        function filterMacchine() {
-            const filterStato = document.getElementById('filter-stato').value;
-            const filterTipo = document.getElementById('filter-tipo').value;
-            const filterAttive = document.getElementById('filter-attive').value === 'true';
-            const filterCategoria = document.getElementById('filter-categoria').value;
-
-            let filtered = macchine.filter(macchina => {
-                // Filtro stato
-                if (filterStato !== 'tutti' && macchina.stato !== filterStato) {
-                    return false;
-                }
-
-                // Filtro tipo (supporta sia tipoMacchina che tipo per retrocompatibilità)
-                if (filterTipo !== 'tutti') {
-                    const tipoMacchina = macchina.tipoMacchina || macchina.tipo;
-                    if (tipoMacchina !== filterTipo) {
-                        return false;
-                    }
-                }
-
-                // Filtro categoria (solo per attrezzi)
-                if (filterCategoria && filterCategoria !== 'tutte') {
-                    const tipoMacchina = macchina.tipoMacchina || macchina.tipo;
-                    // Usa categoriaId se disponibile, altrimenti categoriaFunzione (retrocompatibilità)
-                    const macchinaCategoriaId = macchina.categoriaId || macchina.categoriaFunzione;
-                    if (tipoMacchina !== 'attrezzo' || macchinaCategoriaId !== filterCategoria) {
-                        return false;
-                    }
-                }
-
-                // Filtro solo attive
-                if (filterAttive && macchina.stato === 'dismesso') {
-                    return false;
-                }
-
-                return true;
-            });
-
-            renderMacchine(filtered);
-        }
-
-        // Render macchine
-        function renderMacchine(macchineList) {
-            const container = document.getElementById('macchine-container');
-            document.getElementById('macchine-count').textContent = `${macchineList.length} macchine`;
-
-            if (macchineList.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚜</div><p>Nessuna macchina trovata</p></div>';
-                maybeAutoStartMacchineTour();
-                return;
-            }
-
-            // Funzione helper per ottenere nome categoria (cerca in principali e sottocategorie)
-            function getNomeCategoria(categoriaId) {
-                if (!categoriaId) return '-';
-                
-                // Cerca in categorie principali
-                const categoriaPrincipale = categoriePrincipali.find(c => c.id === categoriaId);
-                if (categoriaPrincipale) return categoriaPrincipale.nome;
-                
-                // Cerca in sottocategorie
-                for (const [parentId, sottocat] of sottocategorieMap.entries()) {
-                    const sottocategoria = sottocat.find(c => c.id === categoriaId);
-                    if (sottocategoria) {
-                        const parent = categoriePrincipali.find(c => c.id === parentId);
-                        return parent ? `${parent.nome} - ${sottocategoria.nome}` : sottocategoria.nome;
-                    }
-                }
-                
-                return '-';
-            }
-            
-            // Funzione helper per verificare compatibilità attrezzo con trattori disponibili
-            function getTrattoriCompatibili(attrezzo) {
-                if (!attrezzo.cavalliMinimiRichiesti) return [];
-                return macchine.filter(m => {
-                    const tipoMacchina = m.tipoMacchina || m.tipo;
-                    return tipoMacchina === 'trattore' && m.cavalli && m.cavalli >= attrezzo.cavalliMinimiRichiesti && m.stato !== 'dismesso';
-                });
-            }
-
-            const statoNames = {
-                'disponibile': '✅ Disponibile',
-                'in_uso': '🔄 In uso',
-                'in_manutenzione': '🔧 In manutenzione',
-                'guasto': '❌ Guasto',
-                'dismesso': '🗑️ Dismesso'
-            };
-
-            let html = `
-                <table class="macchine-table">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Tipo</th>
-                            <th>Marca/Modello</th>
-                            <th>Dettagli</th>
-                            <th>Stato</th>
-                            <th>Ore</th>
-                            <th>Prossima Manutenzione</th>
-                            <th>Azioni</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            macchineList.forEach(macchina => {
-                const tipoMacchina = macchina.tipoMacchina || macchina.tipo || '';
-                const oreUtilizzate = macchina.oreAttuali && macchina.oreIniziali 
-                    ? (macchina.oreAttuali - macchina.oreIniziali).toFixed(1) 
-                    : '-';
-                const oreAttuali = macchina.oreAttuali !== null && macchina.oreAttuali !== undefined 
-                    ? macchina.oreAttuali.toFixed(1) 
-                    : '-';
-                
-                const manutenzioneScaduta = isManutenzioneScaduta(macchina);
-                const manutenzioneInScadenza = isManutenzioneInScadenza(macchina);
-                
-                let manutenzioneBadge = '';
-                if (manutenzioneScaduta) {
-                    manutenzioneBadge = '<span class="badge badge-danger">⚠️ Scaduta</span>';
-                } else if (manutenzioneInScadenza) {
-                    manutenzioneBadge = '<span class="badge badge-warning">⏰ In scadenza</span>';
-                }
-
-                const marcaModello = [macchina.marca, macchina.modello].filter(Boolean).join(' ') || '-';
-                
-                // Dettagli specifici per tipo
-                let dettagliHTML = '';
-                if (tipoMacchina === 'trattore') {
-                    dettagliHTML = macchina.cavalli ? `<strong>${macchina.cavalli} CV</strong>` : '-';
-                } else if (tipoMacchina === 'attrezzo') {
-                    // Usa categoriaId se disponibile, altrimenti categoriaFunzione (retrocompatibilità)
-                    const macchinaCategoriaId = macchina.categoriaId || macchina.categoriaFunzione;
-                    const categoriaNome = getNomeCategoria(macchinaCategoriaId);
-                    const trattoriCompatibili = getTrattoriCompatibili(macchina);
-                    dettagliHTML = `
-                        <div><strong>Categoria:</strong> ${categoriaNome}</div>
-                        <div><strong>CV min:</strong> ${macchina.cavalliMinimiRichiesti || '-'}</div>
-                        ${trattoriCompatibili.length > 0 
-                            ? `<div><small style="color: #28a745;">✅ ${trattoriCompatibili.length} trattore/i compatibile/i</small></div>`
-                            : `<div><small style="color: #dc3545;">⚠️ Nessun trattore compatibile</small></div>`
-                        }
-                    `;
-                }
-                
-                const tipoIcon = tipoMacchina === 'trattore' ? '🚜' : tipoMacchina === 'attrezzo' ? '⚙️' : '';
-                const tipoLabel = tipoMacchina === 'trattore' ? 'Trattore' : tipoMacchina === 'attrezzo' ? 'Attrezzo' : tipoMacchina || '-';
-                
-                html += `
-                    <tr>
-                        <td><strong>${macchina.nome || '-'}</strong></td>
-                        <td>${tipoIcon} ${tipoLabel}</td>
-                        <td>${marcaModello}</td>
-                        <td>${dettagliHTML}</td>
-                        <td>${statoNames[macchina.stato] || macchina.stato || '-'}</td>
-                        <td>
-                            ${oreAttuali} ore
-                            ${oreUtilizzate !== '-' ? `<br><small style="color: #666;">(${oreUtilizzate} utilizzate)</small>` : ''}
-                        </td>
-                        <td>
-                            ${macchina.prossimaManutenzione ? formattaData(macchina.prossimaManutenzione) : '-'}
-                            ${macchina.oreProssimaManutenzione ? `<br><small style="color: #666;">${macchina.oreProssimaManutenzione} ore</small>` : ''}
-                            ${manutenzioneBadge}
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-info btn-sm" onclick="openMacchinaModal('${macchina.id}')">✏️ Modifica</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteMacchina('${macchina.id}')">🗑️ Elimina</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            html += `
-                    </tbody>
-                </table>
-            `;
-
-            container.innerHTML = html;
-            maybeAutoStartMacchineTour();
-        }
-
-        function setupMacchineTourButton() {
-            const tourButton = document.getElementById('macchine-tour-button');
-            if (tourButton) {
-                tourButton.addEventListener('click', () => startMacchineTour(true));
-            }
-        }
-
-        function maybeAutoStartMacchineTour() {
-            if (macchineTourAutoRequested) return;
-            try {
-                const hasSeen = localStorage.getItem(MACCHINE_TOUR_STORAGE_KEY);
-                if (!hasSeen) {
-                    macchineTourAutoRequested = true;
-                    setTimeout(() => startMacchineTour(false), 2000);
-                }
-            } catch (error) {
-                // Ignora errori localStorage
-            }
-        }
-
-        function startMacchineTour(triggeredManually) {
-            if (typeof introJs === 'undefined') {
-                if (triggeredManually) {
-                    alert('Tour non disponibile al momento. Riprova più tardi.');
-                }
-                return;
-            }
-
-            const modal = document.getElementById('macchina-modal');
-            const modalAlreadyOpen = modal && modal.classList.contains('active');
-            
-            // NON apriamo il modal all'inizio - lo apriremo solo quando necessario (step del form)
-            // Chiudiamo il modal se è già aperto per vedere gli step iniziali
-            if (modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
-                closeMacchinaModal();
-            }
-            
-            let macchineTourOpenedModal = false; // Non abbiamo aperto il modal noi
-            
-            // Avvia il tour senza aprire il modal
-            setTimeout(() => {
-                startMacchineTourWithSteps(modalAlreadyOpen, macchineTourOpenedModal);
-            }, 300);
-        }
-
-        function startMacchineTourWithSteps(modalAlreadyOpen, macchineTourOpenedModal) {
-            const steps = buildMacchineTourSteps();
-            if (!steps.length) {
-                if (!modalAlreadyOpen && typeof closeMacchinaModal === 'function') {
-                    closeMacchinaModal();
-                }
-                return;
-            }
-
-            // Funzione per forzare il posizionamento corretto del tooltip in base alle dimensioni dello schermo
-            function ensureTooltipVisible() {
-                setTimeout(() => {
-                    const tooltip = document.querySelector('.introjs-tooltip');
-                    const highlightedElement = document.querySelector('.introjs-showElement');
-                    
-                    if (!tooltip) return;
-                    
-                    const rect = tooltip.getBoundingClientRect();
-                    const viewportHeight = window.innerHeight;
-                    const viewportWidth = window.innerWidth;
-                    const tooltipHeight = rect.height;
-                    const tooltipWidth = rect.width;
-                    
-                    // Margine di sicurezza (più grande per schermi piccoli)
-                    const isMobile = viewportWidth < 768;
-                    const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
-                    const margin = isMobile ? 30 : (isTablet ? 25 : 20);
-                    
-                    // Ottieni la posizione corrente del tooltip
-                    const currentTop = parseInt(tooltip.style.top) || rect.top;
-                    const currentLeft = parseInt(tooltip.style.left) || rect.left;
-                    
-                    // Controlla e correggi posizione verticale
-                    let newTop = currentTop;
-                    if (rect.top < margin) {
-                        // Tooltip troppo in alto - spostalo in basso
-                        newTop = margin;
-                        tooltip.style.top = newTop + 'px';
-                        tooltip.style.bottom = 'auto';
-                    } else if (rect.bottom > viewportHeight - margin) {
-                        // Tooltip troppo in basso - spostalo in alto
-                        newTop = viewportHeight - tooltipHeight - margin;
-                        tooltip.style.top = newTop + 'px';
-                        tooltip.style.bottom = 'auto';
-                    }
-                    
-                    // Controlla e correggi posizione orizzontale
-                    let newLeft = currentLeft;
-                    if (rect.left < margin) {
-                        // Tooltip troppo a sinistra - spostalo a destra
-                        newLeft = margin;
-                        tooltip.style.left = newLeft + 'px';
-                        tooltip.style.right = 'auto';
-                    } else if (rect.right > viewportWidth - margin) {
-                        // Tooltip troppo a destra - spostalo a sinistra
-                        newLeft = viewportWidth - tooltipWidth - margin;
-                        tooltip.style.left = newLeft + 'px';
-                        tooltip.style.right = 'auto';
-                    }
-                    
-                    // Su schermi piccoli, centra il tooltip se è troppo largo
-                    if (isMobile && tooltipWidth > viewportWidth - (margin * 2)) {
-                        tooltip.style.left = margin + 'px';
-                        tooltip.style.right = margin + 'px';
-                        tooltip.style.width = 'auto';
-                        tooltip.style.maxWidth = (viewportWidth - (margin * 2)) + 'px';
-                    }
-                    
-                    // Se c'è un elemento evidenziato, assicurati che non sia coperto dal tooltip
-                    if (highlightedElement) {
-                        const elementRect = highlightedElement.getBoundingClientRect();
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        
-                        // Controlla se il tooltip copre l'elemento evidenziato
-                        const tooltipCoversElement = !(
-                            tooltipRect.bottom < elementRect.top ||
-                            tooltipRect.top > elementRect.bottom ||
-                            tooltipRect.right < elementRect.left ||
-                            tooltipRect.left > elementRect.right
-                        );
-                        
-                        if (tooltipCoversElement) {
-                            // Scrolla l'elemento in vista, lasciando spazio per il tooltip
-                            highlightedElement.scrollIntoView({ 
-                                behavior: 'smooth', 
-                                block: 'center',
-                                inline: 'nearest'
-                            });
-                            
-                            // Dopo lo scroll, riposiziona il tooltip se necessario
-                            setTimeout(() => {
-                                ensureTooltipVisible();
-                            }, 300);
-                        }
-                    }
-                }, 150);
-            }
-
-            const tour = introJs.tour().setOptions({
-                steps,
-                showProgress: true,
-                showBullets: false,
-                exitOnOverlayClick: true,
-                nextLabel: 'Avanti',
-                prevLabel: 'Indietro',
-                skipLabel: '×',
-                doneLabel: 'Fatto',
-                scrollToElement: true,
-                scrollPadding: 50,
-                tooltipClass: 'customTooltip',
-                highlightClass: 'customHighlight'
-            });
-
-            // Assicurati che il tooltip sia visibile quando il tour inizia
-            tour.onstart(() => {
-                setTimeout(() => {
-                    ensureTooltipVisible();
-                    const tooltip = document.querySelector('.introjs-tooltip');
-                    if (tooltip) {
-                        tooltip.style.zIndex = '99999';
-                        tooltip.style.position = 'absolute';
-                    }
-                }, 100);
-            });
-
-            // Gestisci scroll e posizionamento durante il tour
-            tour.onchange((targetElement) => {
-                if (!targetElement) return;
-                
-                // Controlla se lo step corrente è nel modal (form)
-                const isFormStep = targetElement.closest('#macchina-modal') !== null || 
-                                  targetElement.closest('[data-tour-section="macchina-form"]') !== null;
-                
-                // Se siamo agli step del form, apri il modal se non è già aperto
-                if (isFormStep) {
-                    const modal = document.getElementById('macchina-modal');
-                    const modalIsOpen = modal && modal.classList.contains('active');
-                    if (!modalIsOpen && typeof openMacchinaModal === 'function') {
-                        openMacchinaModal();
-                        macchineTourOpenedModal = true;
-                        // Aspetta che il modal sia aperto prima di continuare
-                        setTimeout(() => {
-                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
-                                targetElement.scrollIntoView({ 
-                                    behavior: 'smooth', 
-                                    block: 'center',
-                                    inline: 'nearest'
-                                });
-                            }
-                            ensureTooltipVisible();
-                        }, 400);
-                    }
-                } else {
-                    // Se NON siamo agli step del form, chiudi il modal se l'abbiamo aperto noi
-                    const modal = document.getElementById('macchina-modal');
-                    const modalIsOpen = modal && modal.classList.contains('active');
-                    if (modalIsOpen && macchineTourOpenedModal && typeof closeMacchinaModal === 'function') {
-                        closeMacchinaModal();
-                        // Aspetta che il modal sia chiuso prima di continuare
-                        setTimeout(() => {
-                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
-                                targetElement.scrollIntoView({ 
-                                    behavior: 'smooth', 
-                                    block: 'center',
-                                    inline: 'nearest'
-                                });
-                            }
-                            ensureTooltipVisible();
-                        }, 300);
-                    }
-                }
-                
-                // Scroll l'elemento in vista con un piccolo delay
-                setTimeout(() => {
-                    if (targetElement && typeof targetElement.scrollIntoView === 'function') {
-                        targetElement.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center',
-                            inline: 'nearest'
-                        });
-                    }
-                    // Forza il tooltip a essere visibile e sopra il modal
-                    ensureTooltipVisible();
-                    const tooltip = document.querySelector('.introjs-tooltip');
-                    if (tooltip) {
-                        tooltip.style.zIndex = '99999';
-                    }
-                    
-                    // Forza il refresh dell'overlay di Intro.js per correggere il posizionamento
-                    setTimeout(() => {
-                        const helperLayer = document.querySelector('.introjs-helperLayer');
-                        if (helperLayer && targetElement) {
-                            // Forza il ricalcolo del posizionamento
-                            const rect = targetElement.getBoundingClientRect();
-                            if (rect.width > 0 && rect.height > 0) {
-                                // L'elemento è visibile, forza il refresh
-                                helperLayer.style.display = 'none';
-                                setTimeout(() => {
-                                    helperLayer.style.display = '';
-                                }, 10);
-                            }
-                        }
-                    }, 200);
-                }, 150);
-            });
-
-            // Assicurati che il tooltip sia visibile quando viene mostrato
-            tour.onafterchange((targetElement) => {
-                ensureTooltipVisible();
-                
-                // Forza il refresh dell'overlay dopo che il tooltip è stato posizionato
-                if (targetElement) {
-                    // Funzione per forzare il refresh dell'overlay
-                    function refreshOverlay() {
-                        const helperLayer = document.querySelector('.introjs-helperLayer');
-                        if (!helperLayer || !targetElement) return;
-                        
-                        const targetRect = targetElement.getBoundingClientRect();
-                        
-                        // Verifica che l'elemento sia visibile e abbia dimensioni valide
-                        if (targetRect.width > 0 && targetRect.height > 0) {
-                            // Forza il ricalcolo dell'overlay usando le coordinate dell'elemento target
-                            helperLayer.style.width = targetRect.width + 'px';
-                            helperLayer.style.height = targetRect.height + 'px';
-                            helperLayer.style.top = (targetRect.top + window.scrollY) + 'px';
-                            helperLayer.style.left = (targetRect.left + window.scrollX) + 'px';
-                        }
-                    }
-                    
-                    // Esegui il refresh più volte con delay crescenti per assicurarsi che funzioni
-                    setTimeout(refreshOverlay, 50);
-                    setTimeout(refreshOverlay, 150);
-                    setTimeout(refreshOverlay, 300);
-                    setTimeout(refreshOverlay, 500);
-                }
-            });
-
-            tour.oncomplete(() => {
-                if (!modalAlreadyOpen && macchineTourOpenedModal && typeof closeMacchinaModal === 'function') {
-                    closeMacchinaModal();
-                }
-                try { localStorage.setItem(MACCHINE_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            });
-
-            tour.onexit(() => {
-                if (!modalAlreadyOpen && macchineTourOpenedModal && typeof closeMacchinaModal === 'function') {
-                    closeMacchinaModal();
-                }
-                try { localStorage.setItem(MACCHINE_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            });
-
-            tour.start();
-        }
-
-        function buildMacchineTourSteps() {
-            const steps = [];
-
-            const header = document.querySelector('.header');
-            if (header) {
-                steps.push({
-                    element: header,
-                    title: 'Gestione Parco Macchine',
-                    intro: 'Gestisci trattori e attrezzi dell’azienda, monitora stati e pianifica manutenzioni.'
-                });
-            }
-
-            const addButton = document.getElementById('nuova-macchina-button');
-            if (addButton) {
-                steps.push({
-                    element: addButton,
-                    title: 'Nuova macchina o attrezzo',
-                    intro: 'Apri il modulo per inserire una macchina. Scegli il tipo (trattore o attrezzo), inserisci marca/modello e imposta lo stato.'
-                });
-            }
-
-            const filters = document.querySelector('[data-tour-section="macchine-filters"]');
-            if (filters) {
-                steps.push({
-                    element: filters,
-                    title: 'Filtri rapidi',
-                    intro: 'Filtra per stato, tipo, categoria e visualizza solo macchine attive. Usa “Pulisci filtri” per tornare alla vista completa.'
-                });
-            }
-
-            const lista = document.querySelector('[data-tour-section="macchine-list"]');
-            if (lista) {
-                steps.push({
-                    element: lista,
-                    title: 'Elenco macchine',
-                    intro: 'La tabella mostra stato, ore, manutenzioni e compatibilità. Usa i pulsanti Modifica/Elimina per intervenire rapidamente.'
-                });
-            }
-
-            const form = document.querySelector('[data-tour-section="macchina-form"]');
-            // Aggiungiamo lo step del form anche se il modal non è aperto - verrà aperto durante il tour
-            if (form) {
-                steps.push({
-                    element: form,
-                    title: 'Modulo dettagli',
-                    intro: 'Il modulo è dinamico: per i trattori inserisci cavalli e dati tecnici, per gli attrezzi scegli la categoria e i CV minimi richiesti.'
-                });
-            }
-
-            steps.push({
-                title: 'Approfondisci',
-                intro: 'Trovi procedure complete e best practice nella guida “Parco Macchine”. Clicca su 📘 Guide dalla dashboard per aprirla.'
-            });
-
-            return steps;
-        }
-
-        // Apri modal macchina
-        openMacchinaModal = async function(macchinaId = null) {
-            document.getElementById('macchina-form').reset();
-            document.getElementById('macchina-id').value = macchinaId || '';
-            
-            // Reset radio buttons
-            document.getElementById('tipo-trattore').checked = false;
-            document.getElementById('tipo-attrezzo').checked = false;
-
-            if (macchinaId) {
-                const macchina = macchine.find(m => m.id === macchinaId);
-                if (!macchina) return;
-
-                document.getElementById('modal-title').textContent = 'Modifica Macchina';
-                
-                const tipoMacchina = macchina.tipoMacchina || macchina.tipo || '';
-                
-                // Imposta tipo macchina
-                if (tipoMacchina === 'trattore') {
-                    document.getElementById('tipo-trattore').checked = true;
-                } else if (tipoMacchina === 'attrezzo') {
-                    document.getElementById('tipo-attrezzo').checked = true;
-                }
-                
-                // Aggiorna campi dinamici
-                setupFormDinamico();
-                const updateFields = () => {
-                    const tipoTrattore = document.getElementById('tipo-trattore');
-                    const tipoAttrezzo = document.getElementById('tipo-attrezzo');
-                    const campoCavalli = document.getElementById('campo-cavalli-group');
-                    const campoCategoria = document.getElementById('campo-categoria-group');
-                    const campoCavalliMinimi = document.getElementById('campo-cavalli-minimi-group');
-                    
-                    if (campoCavalli) campoCavalli.style.display = tipoTrattore.checked ? 'block' : 'none';
-                    if (campoCategoria) campoCategoria.style.display = tipoAttrezzo.checked ? 'block' : 'none';
-                    if (campoCavalliMinimi) campoCavalliMinimi.style.display = tipoAttrezzo.checked ? 'block' : 'none';
-                };
-                updateFields();
-                
-                document.getElementById('macchina-nome').value = macchina.nome || '';
-                document.getElementById('macchina-stato').value = macchina.stato || 'disponibile';
-                document.getElementById('macchina-marca').value = macchina.marca || '';
-                document.getElementById('macchina-modello').value = macchina.modello || '';
-                document.getElementById('macchina-targa').value = macchina.targa || '';
-                document.getElementById('macchina-numero-telaio').value = macchina.numeroTelaio || '';
-                
-                // Campi trattore
-                if (tipoMacchina === 'trattore') {
-                    document.getElementById('macchina-cavalli').value = macchina.cavalli || '';
-                }
-                
-                // Campi attrezzo
-                if (tipoMacchina === 'attrezzo') {
-                    // Usa categoriaId se disponibile, altrimenti categoriaFunzione (retrocompatibilità)
-                    const categoriaId = macchina.categoriaId || macchina.categoriaFunzione;
-                    
-                    // Trova se è una sottocategoria o categoria principale
-                    let categoriaPrincipaleId = null;
-                    let sottocategoriaId = null;
-                    
-                    // Cerca in tutte le categorie
-                    const allCategorie = [...categoriePrincipali];
-                    sottocategorieMap.forEach(sottocat => {
-                        allCategorie.push(...sottocat);
-                    });
-                    
-                    const categoriaTrovata = allCategorie.find(c => c.id === categoriaId);
-                    if (categoriaTrovata) {
-                        if (categoriaTrovata.parentId) {
-                            // È una sottocategoria
-                            sottocategoriaId = categoriaTrovata.id;
-                            categoriaPrincipaleId = categoriaTrovata.parentId;
-                        } else {
-                            // È una categoria principale
-                            categoriaPrincipaleId = categoriaTrovata.id;
-                        }
-                    }
-                    
-                    if (categoriaPrincipaleId) {
-                        document.getElementById('macchina-categoria-principale').value = categoriaPrincipaleId;
-                        populateSottocategorie(categoriaPrincipaleId, sottocategoriaId);
-                    }
-                    
-                    document.getElementById('macchina-cavalli-minimi').value = macchina.cavalliMinimiRichiesti || '';
-                }
-                
-                if (macchina.dataAcquisto) {
-                    const dataAcquisto = macchina.dataAcquisto.toDate ? macchina.dataAcquisto.toDate() : new Date(macchina.dataAcquisto);
-                    document.getElementById('macchina-data-acquisto').value = dataAcquisto.toISOString().split('T')[0];
-                }
-                
-                document.getElementById('macchina-ore-iniziali').value = macchina.oreIniziali || 0;
-                document.getElementById('macchina-ore-attuali').value = macchina.oreAttuali || '';
-                document.getElementById('macchina-costo-ora').value = macchina.costoOra || '';
-                
-                if (macchina.prossimaManutenzione) {
-                    const prossimaManutenzione = macchina.prossimaManutenzione.toDate ? macchina.prossimaManutenzione.toDate() : new Date(macchina.prossimaManutenzione);
-                    document.getElementById('macchina-prossima-manutenzione').value = prossimaManutenzione.toISOString().split('T')[0];
-                }
-                
-                document.getElementById('macchina-ore-prossima-manutenzione').value = macchina.oreProssimaManutenzione || '';
-                document.getElementById('macchina-note').value = macchina.note || '';
-                
-                // Carica storico guasti
-                await loadStoricoGuasti(macchinaId);
-            } else {
-                document.getElementById('modal-title').textContent = 'Nuova Macchina';
-                document.getElementById('macchina-ore-iniziali').value = 0;
-                document.getElementById('macchina-costo-ora').value = '';
-                document.getElementById('storico-guasti-section').style.display = 'none';
-            }
-
-            document.getElementById('macchina-modal').classList.add('active');
-        }
-
-        // Carica storico guasti per macchina
-        async function loadStoricoGuasti(macchinaId) {
-            try {
-                const storicoSection = document.getElementById('storico-guasti-section');
-                const storicoList = document.getElementById('storico-guasti-list');
-                
-                if (!storicoSection || !storicoList || !currentTenantId) return;
-
-                storicoSection.style.display = 'block';
-                storicoList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Caricamento storico guasti...</div>';
-
-                // Carica utenti se non già caricati
-                if (usersMap.size === 0) {
-                    const usersRef = collection(db, 'users');
-                    const usersSnapshot = await getDocs(usersRef);
-                    usersSnapshot.forEach(doc => {
-                        usersMap.set(doc.id, doc.data());
-                    });
-                }
-
-                // Carica guasti per questa macchina
-                const guastiRef = collection(db, `tenants/${currentTenantId}/guasti`);
-                const guastiQuery = query(guastiRef, where('macchinaId', '==', macchinaId), orderBy('segnalatoIl', 'desc'));
-                
-                let guastiSnapshot;
-                try {
-                    guastiSnapshot = await getDocs(guastiQuery);
-                } catch (error) {
-                    // Se orderBy fallisce, carica senza orderBy e ordina in memoria
-                    const allGuastiRef = collection(db, `tenants/${currentTenantId}/guasti`);
-                    const allGuastiSnapshot = await getDocs(allGuastiRef);
-                    const guastiArray = [];
-                    allGuastiSnapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data.macchinaId === macchinaId) {
-                            guastiArray.push({ id: doc.id, ...data });
-                        }
-                    });
-                    guastiArray.sort((a, b) => {
-                        const dateA = a.segnalatoIl?.toDate ? a.segnalatoIl.toDate() : new Date(a.segnalatoIl || 0);
-                        const dateB = b.segnalatoIl?.toDate ? b.segnalatoIl.toDate() : new Date(b.segnalatoIl || 0);
-                        return dateB - dateA;
-                    });
-                    guastiSnapshot = {
-                        empty: guastiArray.length === 0,
-                        forEach: (callback) => {
-                            guastiArray.forEach(item => {
-                                callback({ id: item.id, data: () => item });
-                            });
-                        }
-                    };
-                }
-
-                if (guastiSnapshot.empty) {
-                    storicoList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Nessun guasto segnalato per questa macchina</div>';
-                    return;
-                }
-
-                let html = '';
-                guastiSnapshot.forEach(doc => {
-                    const guasto = doc.data();
-                    const operaio = usersMap.get(guasto.segnalatoDa);
-                    const operaioNome = operaio ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email : 'Operaio sconosciuto';
-                    
-                    const risoltoDa = guasto.risoltoDa ? usersMap.get(guasto.risoltoDa) : null;
-                    const risoltoDaNome = risoltoDa ? `${risoltoDa.nome || ''} ${risoltoDa.cognome || ''}`.trim() || risoltoDa.email : null;
-
-                    const dataSegnalazione = guasto.segnalatoIl?.toDate 
-                        ? guasto.segnalatoIl.toDate().toLocaleString('it-IT')
-                        : new Date(guasto.segnalatoIl).toLocaleString('it-IT');
-
-                    const dataRisoluzione = guasto.risoltoIl?.toDate 
-                        ? guasto.risoltoIl.toDate().toLocaleString('it-IT')
-                        : guasto.risoltoIl ? new Date(guasto.risoltoIl).toLocaleString('it-IT') : null;
-
-                    const gravitaBadge = guasto.gravita === 'grave' 
-                        ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🔴 Grave</span>'
-                        : '<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🟡 Non grave</span>';
-
-                    const statoBadge = guasto.stato === 'risolto'
-                        ? '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">✅ Risolto</span>'
-                        : guasto.stato === 'approvato-continuazione'
-                        ? '<span style="background: #17a2b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">✅ Continuazione approvata</span>'
-                        : guasto.stato === 'sospeso'
-                        ? '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⛔ Sospeso</span>'
-                        : '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⏳ In attesa</span>';
-
-                    html += `
-                        <div style="background: white; padding: 12px; margin-bottom: 10px; border-left: 3px solid ${guasto.stato === 'risolto' ? '#28a745' : guasto.gravita === 'grave' ? '#dc3545' : '#ffc107'}; border-radius: 4px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <div style="font-weight: 600; color: #333;">${dataSegnalazione}</div>
-                                <div style="display: flex; gap: 6px;">
-                                    ${gravitaBadge}
-                                    ${statoBadge}
-                                </div>
-                            </div>
-                            <div style="font-size: 13px; color: #666; margin-bottom: 6px;">
-                                <strong>Segnalato da:</strong> ${operaioNome}
-                            </div>
-                            <div style="font-size: 13px; color: #333; margin-bottom: 6px;">
-                                <strong>Dettagli:</strong> ${guasto.dettagli || '-'}
-                            </div>
-                            ${guasto.stato === 'risolto' ? `
-                                <div style="font-size: 13px; color: #155724; margin-top: 8px; padding-top: 8px; border-top: 1px solid #c3e6cb;">
-                                    <div><strong>Risolto il:</strong> ${dataRisoluzione || '-'}</div>
-                                    <div><strong>Risolto da:</strong> ${risoltoDaNome || 'Sconosciuto'}</div>
-                                    <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
-                                    ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-
-                storicoList.innerHTML = html;
-            } catch (error) {
-                console.error('Errore caricamento storico guasti:', error);
-                const storicoList = document.getElementById('storico-guasti-list');
-                if (storicoList) {
-                    storicoList.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">Errore caricamento storico guasti</div>';
-                }
-            }
-        }
-
-        // Chiudi modal macchina
-        closeMacchinaModal = function() {
-            document.getElementById('macchina-modal').classList.remove('active');
-            document.getElementById('macchina-form').reset();
-            document.getElementById('storico-guasti-section').style.display = 'none';
-        }
-
-        // Salva macchina
-        handleSalvaMacchina = async function(e) {
-            e.preventDefault();
-
-            const macchinaId = document.getElementById('macchina-id').value;
-            const nome = document.getElementById('macchina-nome').value.trim();
-            const tipoTrattore = document.getElementById('tipo-trattore').checked;
-            const tipoAttrezzo = document.getElementById('tipo-attrezzo').checked;
-            const tipoMacchina = tipoTrattore ? 'trattore' : tipoAttrezzo ? 'attrezzo' : null;
-            const stato = document.getElementById('macchina-stato').value;
-            const marca = document.getElementById('macchina-marca').value.trim() || null;
-            const modello = document.getElementById('macchina-modello').value.trim() || null;
-            const targa = document.getElementById('macchina-targa').value.trim() || null;
-            const numeroTelaio = document.getElementById('macchina-numero-telaio').value.trim() || null;
-            const dataAcquisto = document.getElementById('macchina-data-acquisto').value || null;
-            const oreIniziali = parseFloat(document.getElementById('macchina-ore-iniziali').value) || 0;
-            const oreAttualiInput = document.getElementById('macchina-ore-attuali').value;
-            const oreAttuali = oreAttualiInput ? parseFloat(oreAttualiInput) : oreIniziali;
-            const costoOraInput = document.getElementById('macchina-costo-ora').value;
-            const costoOra = costoOraInput ? parseFloat(costoOraInput) : null;
-            const prossimaManutenzione = document.getElementById('macchina-prossima-manutenzione').value || null;
-            const oreProssimaManutenzioneInput = document.getElementById('macchina-ore-prossima-manutenzione').value;
-            const oreProssimaManutenzione = oreProssimaManutenzioneInput ? parseFloat(oreProssimaManutenzioneInput) : null;
-            const note = document.getElementById('macchina-note').value.trim() || null;
-
-            // Validazione
-            if (!nome || nome.length < 3) {
-                showAlert('Il nome deve essere di almeno 3 caratteri', 'error');
-                return;
-            }
-
-            if (!tipoMacchina) {
-                showAlert('Seleziona un tipo macchina (Trattore o Attrezzo)', 'error');
-                return;
-            }
-
-            // Validazioni specifiche trattore
-            if (tipoMacchina === 'trattore') {
-                const cavalli = parseFloat(document.getElementById('macchina-cavalli').value);
-                if (!cavalli || cavalli <= 0) {
-                    showAlert('Inserisci la potenza del trattore in CV (maggiore di 0)', 'error');
-                    return;
-                }
-                if (cavalli > 1000) {
-                    showAlert('I cavalli non possono superare 1000 CV', 'error');
-                    return;
-                }
-            }
-
-            // Validazioni specifiche attrezzo e preparazione categoriaId
-            let categoriaId = null;
-            if (tipoMacchina === 'attrezzo') {
-                const categoriaPrincipaleId = document.getElementById('macchina-categoria-principale')?.value;
-                const sottocategoriaId = document.getElementById('macchina-sottocategoria')?.value;
-                
-                if (!categoriaPrincipaleId) {
-                    showAlert('Seleziona una categoria principale per l\'attrezzo', 'error');
-                    return;
-                }
-                
-                // Usa sottocategoria se selezionata, altrimenti categoria principale
-                categoriaId = sottocategoriaId || categoriaPrincipaleId;
-                
-                const cavalliMinimiInput = document.getElementById('macchina-cavalli-minimi');
-                if (!cavalliMinimiInput) {
-                    showAlert('Campo cavalli minimi non trovato', 'error');
-                    return;
-                }
-                const cavalliMinimi = parseFloat(cavalliMinimiInput.value);
-                
-                if (!cavalliMinimi || cavalliMinimi <= 0) {
-                    showAlert('Inserisci i cavalli minimi richiesti (maggiore di 0)', 'error');
-                    return;
-                }
-                if (cavalliMinimi > 1000) {
-                    showAlert('I cavalli minimi richiesti non possono superare 1000 CV', 'error');
-                    return;
-                }
-            }
-
-            if (oreAttuali < oreIniziali) {
-                showAlert('Le ore attuali non possono essere inferiori alle ore iniziali', 'error');
-                return;
-            }
-
-            try {
-                const macchinaData = {
-                    nome,
-                    tipoMacchina,
-                    tipo: tipoMacchina, // Manteniamo anche tipo per retrocompatibilità
-                    stato,
-                    marca,
-                    modello,
-                    targa,
-                    numeroTelaio,
-                    dataAcquisto: dataAcquisto ? Timestamp.fromDate(new Date(dataAcquisto)) : null,
-                    oreIniziali,
-                    oreAttuali,
-                    prossimaManutenzione: prossimaManutenzione ? Timestamp.fromDate(new Date(prossimaManutenzione)) : null,
-                    oreProssimaManutenzione,
-                    costoOra,
-                    note,
-                    creatoDa: currentUser.uid
-                };
-                
-                // Campi specifici trattore
-                if (tipoMacchina === 'trattore') {
-                    macchinaData.cavalli = parseFloat(document.getElementById('macchina-cavalli').value);
-                    macchinaData.categoriaId = null;
-                    macchinaData.categoriaFunzione = null; // Mantenuto per retrocompatibilità
-                    macchinaData.cavalliMinimiRichiesti = null;
-                }
-                
-                // Campi specifici attrezzo
-                if (tipoMacchina === 'attrezzo') {
-                    macchinaData.categoriaId = categoriaId;
-                    macchinaData.categoriaFunzione = categoriaId; // Mantenuto per retrocompatibilità
-                    macchinaData.cavalliMinimiRichiesti = parseFloat(document.getElementById('macchina-cavalli-minimi').value);
-                    macchinaData.cavalli = null;
-                }
-
-                if (macchinaId) {
-                    // Aggiorna
-                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
-                    await updateDoc(macchinaRef, macchinaData);
-                    showAlert('Macchina aggiornata con successo', 'success');
-                } else {
-                    // Crea nuova
-                    macchinaData.createdAt = Timestamp.now();
-                    macchinaData.updatedAt = Timestamp.now();
-                    await addDoc(collection(db, `tenants/${currentTenantId}/macchine`), macchinaData);
-                    showAlert('Macchina creata con successo', 'success');
-                }
-
-                closeMacchinaModal();
-                // Non serve ricaricare, il listener real-time aggiorna automaticamente
-            } catch (error) {
-                console.error('Errore salvataggio macchina:', error);
-                showAlert('Errore salvataggio macchina: ' + error.message, 'error');
-            }
-        }
-
-        // Elimina macchina
-        deleteMacchina = async function(macchinaId) {
-            if (!confirm('Sei sicuro di voler eliminare questa macchina?')) {
-                return;
-            }
-
-            try {
-                // Verifica se macchina è usata in lavori
-                const lavoriRef = collection(db, `tenants/${currentTenantId}/lavori`);
-                const lavoriSnapshot = await getDocs(query(lavoriRef, where('macchinaId', '==', macchinaId)));
-                
-                if (!lavoriSnapshot.empty) {
-                    if (!confirm(`Questa macchina è utilizzata in ${lavoriSnapshot.size} lavoro/i. Vuoi eliminarla comunque?`)) {
-                        return;
-                    }
-                }
-
-                await deleteDoc(doc(db, `tenants/${currentTenantId}/macchine`, macchinaId));
-                showAlert('Macchina eliminata con successo', 'success');
-                // Non serve ricaricare, il listener real-time aggiorna automaticamente
-            } catch (error) {
-                console.error('Errore eliminazione macchina:', error);
-                showAlert('Errore eliminazione macchina: ' + error.message, 'error');
-            }
-        }
-
-        // Mostra alert
-        function showAlert(message, type) {
-            const container = document.getElementById('alert-container');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            container.innerHTML = '';
-            container.appendChild(alert);
-
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
-        }
-
-        // Setup filtri (definita dopo loadCategorie per avere categorie disponibili)
-        function setupFilters() {
-            const filterStato = document.getElementById('filter-stato');
-            const filterTipo = document.getElementById('filter-tipo');
-            const filterAttive = document.getElementById('filter-attive');
-            const filterCategoria = document.getElementById('filter-categoria');
-            const filterCategoriaGroup = document.getElementById('filter-categoria-group');
-            
-            if (filterStato) filterStato.addEventListener('change', () => filterMacchine());
-            if (filterAttive) filterAttive.addEventListener('change', () => filterMacchine());
-            
-            if (filterTipo) {
-                filterTipo.addEventListener('change', () => {
-                    if (filterCategoriaGroup) {
-                        filterCategoriaGroup.style.display = filterTipo.value === 'attrezzo' ? 'block' : 'none';
-                        if (filterTipo.value !== 'attrezzo' && filterCategoria) {
-                            filterCategoria.value = 'tutte';
-                        }
-                    }
-                    filterMacchine();
-                });
-            }
-            
-            if (filterCategoria) {
-                filterCategoria.addEventListener('change', () => filterMacchine());
-            }
-        }
-
-        // Apri modal categoria
-        openCategoriaModal = function() {
-            document.getElementById('categoria-form').reset();
-            document.getElementById('categoria-modal').classList.add('active');
-        }
-
-        // Chiudi modal categoria
-        closeCategoriaModal = function() {
-            document.getElementById('categoria-modal').classList.remove('active');
-            document.getElementById('categoria-form').reset();
-        }
-
-        // Salva categoria
-        handleSalvaCategoria = async function(e) {
-            e.preventDefault();
-
-            const nome = document.getElementById('categoria-nome').value.trim();
-            const descrizione = document.getElementById('categoria-descrizione').value.trim() || null;
-
-            // Validazione
-            if (!nome || nome.length < 3) {
-                showAlert('Il nome categoria deve essere di almeno 3 caratteri', 'error');
-                return;
-            }
-
-            try {
-                // Genera codice dal nome
-                const codice = nome
-                    .toLowerCase()
-                    .normalize('NFD')
-                    .replace(/[\u0300-\u036f]/g, '')
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/^_+|_+$/g, '');
-
-                // Verifica che il codice non esista già
-                const categorieRef = collection(db, `tenants/${currentTenantId}/categorieAttrezzi`);
-                const snapshot = await getDocs(query(categorieRef, where('codice', '==', codice)));
-                
-                if (!snapshot.empty) {
-                    showAlert('Una categoria con questo nome esiste già', 'error');
-                    return;
-                }
-
-                const categoriaData = {
-                    nome,
-                    codice,
-                    descrizione,
-                    predefinita: false,
-                    creatoDa: currentUser.uid,
-                    createdAt: Timestamp.now(),
-                    updatedAt: Timestamp.now()
-                };
-
-                await addDoc(categorieRef, categoriaData);
-                showAlert('Categoria creata con successo', 'success');
-                
-                closeCategoriaModal();
-                await loadCategorie();
-                
-                // Seleziona la nuova categoria nel form macchina
-                const categoriaPrincipaleSelect = document.getElementById('macchina-categoria-principale');
-                if (categoriaPrincipaleSelect) {
-                    // Ricarica categorie per includere la nuova
-                    await loadCategorie();
-                    // Trova la categoria appena creata
-                    const nuovaCategoria = categoriePrincipali.find(c => c.codice === codice);
-                    if (nuovaCategoria) {
-                        categoriaPrincipaleSelect.value = nuovaCategoria.id;
-                        populateSottocategorie(nuovaCategoria.id);
-                    }
-                }
-            } catch (error) {
-                console.error('Errore salvataggio categoria:', error);
-                showAlert('Errore salvataggio categoria: ' + error.message, 'error');
-            }
-        }
-
-        // Export funzioni globali immediatamente
-        window.openMacchinaModal = openMacchinaModal;
-        window.closeMacchinaModal = closeMacchinaModal;
-        window.handleSalvaMacchina = handleSalvaMacchina;
-        window.deleteMacchina = deleteMacchina;
-        window.resetFilters = resetFilters;
-        window.openCategoriaModal = openCategoriaModal;
-        window.closeCategoriaModal = closeCategoriaModal;
-        window.handleSalvaCategoria = handleSalvaCategoria;
+        // Funzioni migrate nei moduli:
+        // - migraCategorieAttrezziEsistenti -> gestione-macchine-controller.js
+        // - initializeCategorie -> gestione-macchine-controller.js
+        // - loadCategorie -> gestione-macchine-controller.js
+        // - populateSottocategorie -> gestione-macchine-controller.js
+
+        // Funzione migrate nei moduli:
+        // - setupFormDinamico -> gestione-macchine-events.js
+
+        // Funzioni migrate nei moduli:
+        // - resetFilters -> gestione-macchine-events.js
+        // - setupMacchineRealtime -> gestione-macchine-controller.js
+        // - loadMacchine -> gestione-macchine-controller.js
+        // - formattaData -> gestione-macchine-utils.js
+        // - isManutenzioneInScadenza -> gestione-macchine-utils.js
+        // - isManutenzioneScaduta -> gestione-macchine-utils.js
+        // - filterMacchine -> gestione-macchine-controller.js
+
+        // Funzione migrate nei moduli:
+        // - renderMacchine -> gestione-macchine-controller.js
+
+        // Funzioni tour migrate nei moduli:
+        // - setupMacchineTourButton -> gestione-macchine-tour.js
+        // - maybeAutoStartMacchineTour -> gestione-macchine-tour.js
+        // - startMacchineTour -> gestione-macchine-tour.js
+        // - startMacchineTourWithSteps -> gestione-macchine-tour.js
+        // - buildMacchineTourSteps -> gestione-macchine-tour.js
+
+        // NOTA: startMacchineTourWithSteps e buildMacchineTourSteps sono funzioni interne del modulo tour
+        // che vengono chiamate da startMacchineTour. Non sono esportate pubblicamente.
+
+        // Funzioni migrate nei moduli:
+        // - openMacchinaModal -> gestione-macchine-events.js
+        // - loadStoricoGuasti -> gestione-macchine-events.js
+
+        // NOTA: Le funzioni sono state estratte nei moduli. Usare i wrapper definiti sopra.
+        // - closeMacchinaModal -> gestione-macchine-events.js
+        // - handleSalvaMacchina -> gestione-macchine-events.js
+        // - deleteMacchina -> gestione-macchine-events.js
+        // - showAlert -> gestione-macchine-utils.js
+        // - setupFilters -> gestione-macchine-events.js
+        // - openCategoriaModal -> gestione-macchine-events.js
+        // - closeCategoriaModal -> gestione-macchine-events.js
+        // - handleSalvaCategoria -> gestione-macchine-events.js
 
         // Pulizia listener quando si chiude la pagina
         window.addEventListener('beforeunload', () => {
-            if (macchineUnsubscribe) {
-                macchineUnsubscribe();
-                macchineUnsubscribe = null;
+            if (macchineState.macchineUnsubscribe) {
+                macchineState.macchineUnsubscribe();
+                updateState({ macchineUnsubscribe: null });
             }
         });
     </script>

@@ -1,4 +1,4 @@
-// Firebase Configuration - GFV Platform
+﻿// Firebase Configuration - GFV Platform
 // Questo file contiene la configurazione Firebase condivisa da tutte le pagine
 // IMPORTANTE: Questo file NON viene committato su Git (è nel .gitignore)
 
@@ -11,9 +11,4 @@ window.firebaseConfig = {
     messagingSenderId: "495860225347",
     appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
 };
-
-
-
-
-
 

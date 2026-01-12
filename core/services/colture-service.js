@@ -131,7 +131,7 @@ const COLTURE_PREDEFINITE = [
 
 /**
  * Inizializza colture predefinite per il tenant corrente
- * Richiede che le categorie siano già inizializzate
+ * Inizializza automaticamente le categorie se non esistono
  * @returns {Promise<void>}
  */
 export async function initializeColturePredefinite() {
@@ -141,13 +141,31 @@ export async function initializeColturePredefinite() {
       throw new Error('Nessun tenant corrente disponibile');
     }
     
-    // Carica tutte le categorie per colture
-    const { getAllCategorie } = await import('./categorie-service.js');
-    const categorieColture = await getAllCategorie({
+    // Assicura che le categorie siano inizializzate prima
+    const { getAllCategorie, initializeCategoriePredefinite } = await import('./categorie-service.js');
+    
+    // Verifica se ci sono categorie per colture
+    let categorieColture = await getAllCategorie({
       applicabileA: 'colture',
       orderBy: 'ordine',
       orderDirection: 'asc'
     });
+    
+    // Se non ci sono categorie, inizializzale
+    if (categorieColture.length === 0) {
+      try {
+        await initializeCategoriePredefinite();
+        // Ricarica le categorie dopo l'inizializzazione
+        categorieColture = await getAllCategorie({
+          applicabileA: 'colture',
+          orderBy: 'ordine',
+          orderDirection: 'asc'
+        });
+      } catch (catError) {
+        console.warn('⚠️ Errore inizializzazione categorie:', catError.message);
+        // Continua comunque, potrebbe essere che esistano già
+      }
+    }
     
     // Crea mappa codice categoria -> id categoria
     const categorieMap = new Map();

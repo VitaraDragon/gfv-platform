@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Liste Service - Servizio per gestione liste personalizzate
  * Gestisce liste predefinite e custom per tipi lavoro e colture
  * 
@@ -692,9 +692,4 @@ export async function migraColtureDaListePersonalizzate(createdBy = 'system') {
     return { success: false, migrati: 0, error: error.message };
   }
 }
-
-
-
-
-
 

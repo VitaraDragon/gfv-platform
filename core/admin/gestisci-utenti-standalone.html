@@ -345,6 +345,10 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Gestisci utenti, ruoli e permessi</p>
             </div>
             <div class="header-actions">
+                <a href="impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
                 <button class="btn btn-primary" onclick="openInvitaModal()">➕ Invita Utente</button>
                 <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
@@ -541,18 +545,27 @@
         }
 
         const firebaseConfig = await waitForConfig();
+        console.error('FIREBASE_CONFIG_LOADED', firebaseConfig);
 
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Inizializza Firebase usando firebase-service (necessario per tenant-service)
+        const { initializeFirebase, getDb, getAuthInstance } = await import('../services/firebase-service.js');
+        initializeFirebase(firebaseConfig);
+        
+        // Inizializza tenant-service per supporto multi-tenant
+        const { initializeTenantService } = await import('../services/tenant-service.js');
+        initializeTenantService();
+        
+        // Ottieni istanze Firebase dal service
+        const auth = getAuthInstance();
+        const db = getDb();
 
         let currentUserData = null;
         let currentTenantId = null;
         let hasManodoperaModule = false;
+        let user = null; // Utente autenticato corrente
 
         // Configurazione URL base dell'applicazione
         // IMPORTANTE: Imposta qui l'URL pubblico della tua app quando è online
@@ -585,7 +598,8 @@
         };
 
         // Verifica autenticazione e carica utenti
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, async (authUser) => {
+            user = authUser; // Salva in variabile globale
             if (!user) {
                 window.location.href = '../auth/login-standalone.html';
                 return;
@@ -596,7 +610,25 @@
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
                     currentUserData = userDoc.data();
-                    currentTenantId = currentUserData.tenantId;
+                    
+                    // Carica tenantId corrente usando tenant-service (supporta multi-tenant)
+                    const { getCurrentTenantId } = await import('../services/tenant-service.js');
+                    
+                    // Aspetta un attimo per permettere al tenant-service di inizializzarsi
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    currentTenantId = getCurrentTenantId();
+                    
+                    // Se getCurrentTenantId() restituisce null, usa tenantMemberships o tenantId deprecato
+                    if (!currentTenantId) {
+                        // Prova a usare il primo tenant da tenantMemberships
+                        if (currentUserData.tenantMemberships && Object.keys(currentUserData.tenantMemberships).length > 0) {
+                            currentTenantId = Object.keys(currentUserData.tenantMemberships)[0];
+                        } else if (currentUserData.tenantId) {
+                            // Fallback a tenantId deprecato
+                            currentTenantId = currentUserData.tenantId;
+                        }
+                    }
 
                     // Verifica permessi (solo amministratore)
                     if (!currentUserData.ruoli || !currentUserData.ruoli.includes('amministratore')) {
@@ -605,6 +637,12 @@
                             window.location.href = '../dashboard-standalone.html';
                         }, 2000);
                         return;
+                    }
+                    
+                    // Mostra link impostazioni (solo Amministratore, già verificato sopra)
+                    const impostazioniLink = document.getElementById('impostazioni-link');
+                    if (impostazioniLink) {
+                        impostazioniLink.style.display = 'inline-flex';
                     }
 
                     // Verifica se modulo Manodopera è attivo
@@ -988,10 +1026,14 @@
         async function handleInvitaUtente(e) {
             e.preventDefault();
             
+            console.error('🚀 HANDLE_INVITA_UTENTE CHIAMATO');
+            
             const email = document.getElementById('invita-email').value.trim();
             const nome = document.getElementById('invita-nome').value.trim();
             const cognome = document.getElementById('invita-cognome').value.trim();
             const cellulare = document.getElementById('invita-cellulare').value.trim();
+            
+            console.error('📝 FORM DATA:', { email, nome, cognome, cellulare });
             
             // Raccogli ruoli selezionati
             const ruoli = [];
@@ -1002,13 +1044,97 @@
                 if (document.getElementById('role-operaio').checked) ruoli.push('operaio');
             }
 
+            console.error('👥 RUOLI SELEZIONATI:', ruoli);
+
             if (ruoli.length === 0) {
+                console.error('❌ NESSUN RUOLO SELEZIONATO');
                 showAlert('Seleziona almeno un ruolo', 'error');
                 return;
             }
 
             try {
+                // Verifica autenticazione
+                if (!user) {
+                    user = auth.currentUser; // Fallback: recupera da auth
+                    if (!user) {
+                        showAlert('Errore: utente non autenticato. Ricarica la pagina.', 'error');
+                        return;
+                    }
+                }
+                
+                // Verifica che currentTenantId sia disponibile
+                if (!currentTenantId) {
+                    console.error('❌ currentTenantId è null!', {
+                        currentUserData: currentUserData,
+                        tenantMemberships: currentUserData?.tenantMemberships,
+                        tenantId: currentUserData?.tenantId
+                    });
+                    showAlert('Errore: tenant non disponibile. Ricarica la pagina.', 'error');
+                    return;
+                }
+                
                 showAlert('Creazione invito in corso...', 'success');
+                
+                console.error('🔍 [PRE-QUERY] Prima di verificare se email esiste...');
+                console.error('🔍 [PRE-QUERY] db:', db ? 'OK' : 'NULL');
+                console.error('🔍 [PRE-QUERY] collection:', collection ? 'OK' : 'NULL');
+                console.error('🔍 [PRE-QUERY] query:', query ? 'OK' : 'NULL');
+                console.error('🔍 [PRE-QUERY] where:', where ? 'OK' : 'NULL');
+                console.error('🔍 [PRE-QUERY] getDocs:', getDocs ? 'OK' : 'NULL');
+                
+                // Verifica se email esiste già in Firestore
+                const emailNormalized = email.toLowerCase().trim();
+                console.error('🔍 [PRE-QUERY] emailNormalized:', emailNormalized);
+                
+                let usersSnapshot;
+                let isExistingUser;
+                try {
+                    console.error('🔍 [QUERY] Creazione query...');
+                    const usersQuery = query(
+                        collection(db, 'users'),
+                        where('email', '==', emailNormalized)
+                    );
+                    console.error('🔍 [QUERY] Query creata:', usersQuery ? 'OK' : 'NULL');
+                    
+                    console.error('🔍 [QUERY] Esecuzione getDocs...');
+                    usersSnapshot = await getDocs(usersQuery);
+                    console.error('🔍 [QUERY] getDocs completato:', usersSnapshot ? 'OK' : 'NULL');
+                    isExistingUser = !usersSnapshot.empty;
+                    console.error('🔍 [QUERY] isExistingUser:', isExistingUser);
+                } catch (queryError) {
+                    console.error('❌ [QUERY] ERRORE durante query users:', {
+                        code: queryError.code,
+                        message: queryError.message,
+                        stack: queryError.stack
+                    });
+                    throw queryError; // Rilancia l'errore per essere catturato dal catch principale
+                }
+                
+                // Se utente esiste, verifica che non appartenga già a questo tenant
+                if (isExistingUser) {
+                    const existingUserDoc = usersSnapshot.docs[0];
+                    const existingUserData = existingUserDoc.data();
+                    
+                    // Verifica se appartiene già a questo tenant
+                    let alreadyBelongs = false;
+                    if (existingUserData.tenantMemberships && existingUserData.tenantMemberships[currentTenantId]) {
+                        const membership = existingUserData.tenantMemberships[currentTenantId];
+                        if (membership.stato === 'attivo') {
+                            alreadyBelongs = true;
+                        }
+                    } else if (existingUserData.tenantId === currentTenantId) {
+                        // Retrocompatibilità: verifica tenantId deprecato
+                        alreadyBelongs = true;
+                    }
+                    
+                    if (alreadyBelongs) {
+                        showAlert('⚠️ Questo utente appartiene già a questa azienda.', 'error');
+                        return;
+                    }
+                    
+                    // Mostra messaggio informativo
+                    showAlert('ℹ️ Utente esistente: verrà aggiunto a questa azienda invece di creare un nuovo account.', 'success');
+                }
                 
                 // Genera token unico
                 const generateToken = () => {
@@ -1026,7 +1152,7 @@
                 
                 // Crea invito in Firestore (NON crea utente in Authentication)
                 const invitoData = {
-                    email: email.toLowerCase().trim(),
+                    email: emailNormalized,
                     nome: nome.trim(),
                     cognome: cognome.trim(),
                     cellulare: cellulare || null, // Opzionale, può essere null
@@ -1034,27 +1160,290 @@
                     tenantId: currentTenantId,
                     token: token,
                     stato: 'invitato',
-                    inviatoDa: currentUserData.id,
+                    inviatoDa: currentUserData.id || user.uid, // Usa user.uid se currentUserData.id non disponibile
                     inviatoIl: serverTimestamp(),
                     scadeIl: scadeIl,
-                    accettatoIl: null
+                    accettatoIl: null,
+                    isExistingUser: isExistingUser // Flag: true se utente esiste già
                 };
                 
-                // Salva invito in Firestore
-                const invitoRef = await addDoc(collection(db, 'inviti'), invitoData);
-                console.log('✅ Invito creato:', invitoRef.id);
+                // DEBUG DETTAGLIATO: verifica tutti i dati prima di creare invito
+                console.error('🔍 DEBUG CREAZIONE INVITO - INIZIO');
                 
+                // Verifica autenticazione PRIMA
+                console.error('🔑 [1] Stato autenticazione:', {
+                    isAuthenticated: !!user,
+                    userId: user?.uid,
+                    userEmail: user?.email,
+                    authCurrentUser: auth.currentUser?.uid
+                });
+                
+                console.error('🏢 [2] Tenant corrente:', {
+                    currentTenantId: currentTenantId,
+                    type: typeof currentTenantId,
+                    isNull: currentTenantId === null,
+                    isUndefined: currentTenantId === undefined
+                });
+                
+                console.error('👤 [3] Utente corrente (currentUserData) - COMPLETO:', JSON.parse(JSON.stringify({
+                    id: currentUserData?.id,
+                    uid: currentUserData?.uid || user?.uid,
+                    email: currentUserData?.email || user?.email,
+                    nome: currentUserData?.nome,
+                    cognome: currentUserData?.cognome,
+                    tenantId: currentUserData?.tenantId,
+                    tenantMemberships: currentUserData?.tenantMemberships,
+                    ruoli: currentUserData?.ruoli,
+                    stato: currentUserData?.stato
+                })));
+                
+                // Verifica appartenenza al tenant - DETTAGLIATA
+                let belongsToTenantCheck = false;
+                let belongsToTenantDetails = {};
+                
+                if (currentUserData?.tenantMemberships && currentTenantId) {
+                    const membership = currentUserData.tenantMemberships[currentTenantId];
+                    belongsToTenantCheck = membership?.stato === 'attivo';
+                    belongsToTenantDetails = {
+                        method: 'tenantMemberships',
+                        hasMemberships: !!currentUserData.tenantMemberships,
+                        hasTenantId: !!currentTenantId,
+                        membershipExists: !!membership,
+                        membership: JSON.parse(JSON.stringify(membership || {})),
+                        membershipStato: membership?.stato,
+                        belongsToTenant: belongsToTenantCheck,
+                        allTenantIds: Object.keys(currentUserData.tenantMemberships || {})
+                    };
+                } else if (currentUserData?.tenantId === currentTenantId) {
+                    belongsToTenantCheck = true;
+                    belongsToTenantDetails = {
+                        method: 'tenantId_deprecato',
+                        userTenantId: currentUserData?.tenantId,
+                        currentTenantId: currentTenantId,
+                        matches: currentUserData?.tenantId === currentTenantId,
+                        belongsToTenant: belongsToTenantCheck
+                    };
+                } else {
+                    belongsToTenantDetails = {
+                        method: 'NONE',
+                        userTenantId: currentUserData?.tenantId,
+                        currentTenantId: currentTenantId,
+                        hasTenantMemberships: !!currentUserData?.tenantMemberships,
+                        tenantMembershipsKeys: currentUserData?.tenantMemberships ? Object.keys(currentUserData.tenantMemberships) : [],
+                        belongsToTenant: false
+                    };
+                }
+                
+                console.error('✅ [4] Verifica appartenenza al tenant:', belongsToTenantDetails);
+                
+                // Verifica ruoli manager/admin - DETTAGLIATA
+                let isManagerOrAdminCheck = false;
+                let userRolesForTenant = [];
+                let rolesCheckDetails = {};
+                
+                if (currentUserData?.tenantMemberships && currentTenantId) {
+                    const membership = currentUserData.tenantMemberships[currentTenantId];
+                    userRolesForTenant = membership?.ruoli || [];
+                    isManagerOrAdminCheck = userRolesForTenant.includes('manager') || userRolesForTenant.includes('amministratore');
+                    rolesCheckDetails = {
+                        method: 'tenantMemberships',
+                        membershipExists: !!membership,
+                        ruoli: JSON.parse(JSON.stringify(userRolesForTenant)),
+                        ruoliType: Array.isArray(userRolesForTenant) ? 'array' : typeof userRolesForTenant,
+                        hasManager: userRolesForTenant.includes('manager'),
+                        hasAdmin: userRolesForTenant.includes('amministratore'),
+                        isManagerOrAdmin: isManagerOrAdminCheck
+                    };
+                } else if (currentUserData?.ruoli) {
+                    userRolesForTenant = currentUserData.ruoli || [];
+                    if (currentUserData.tenantId === currentTenantId) {
+                        isManagerOrAdminCheck = userRolesForTenant.includes('manager') || userRolesForTenant.includes('amministratore');
+                    }
+                    rolesCheckDetails = {
+                        method: 'ruoli_deprecato',
+                        ruoli: JSON.parse(JSON.stringify(userRolesForTenant)),
+                        ruoliType: Array.isArray(userRolesForTenant) ? 'array' : typeof userRolesForTenant,
+                        tenantIdMatches: currentUserData.tenantId === currentTenantId,
+                        hasManager: userRolesForTenant.includes('manager'),
+                        hasAdmin: userRolesForTenant.includes('amministratore'),
+                        isManagerOrAdmin: isManagerOrAdminCheck
+                    };
+                } else {
+                    rolesCheckDetails = {
+                        method: 'NONE',
+                        hasTenantMemberships: !!currentUserData?.tenantMemberships,
+                        hasRuoli: !!currentUserData?.ruoli,
+                        isManagerOrAdmin: false
+                    };
+                }
+                
+                console.error('🔐 [5] Verifica permessi ruoli:', rolesCheckDetails);
+                
+                // Dati invito - COMPLETI
+                console.error('📋 [6] Dati invito da creare - COMPLETO:', JSON.parse(JSON.stringify({
+                    email: invitoData.email,
+                    nome: invitoData.nome,
+                    cognome: invitoData.cognome,
+                    cellulare: invitoData.cellulare,
+                    ruoli: invitoData.ruoli,
+                    tenantId: invitoData.tenantId,
+                    tenantIdType: typeof invitoData.tenantId,
+                    tenantIdIsNull: invitoData.tenantId === null,
+                    token: invitoData.token,
+                    stato: invitoData.stato,
+                    inviatoDa: invitoData.inviatoDa,
+                    isExistingUser: invitoData.isExistingUser
+                })));
+                
+                // Verifica campi obbligatori
+                console.error('✅ [7] Verifica campi obbligatori:', {
+                    tenantIdPresent: !!invitoData.tenantId,
+                    tenantIdValue: invitoData.tenantId,
+                    tenantIdType: typeof invitoData.tenantId,
+                    emailPresent: !!invitoData.email,
+                    emailValue: invitoData.email,
+                    ruoliPresent: Array.isArray(invitoData.ruoli) && invitoData.ruoli.length > 0,
+                    ruoliValue: invitoData.ruoli,
+                    ruoliType: Array.isArray(invitoData.ruoli) ? 'array' : typeof invitoData.ruoli
+                });
+                
+                // Riepilogo finale per security rules
+                console.error('📊 [8] Riepilogo verifica permessi per security rules:');
+                console.error('  ✓ isAuthenticated():', !!user, '→', !!user ? '✅' : '❌');
+                console.error('  ✓ tenantId != null:', !!invitoData.tenantId, '→', !!invitoData.tenantId ? '✅' : '❌');
+                console.error('  ✓ belongsToTenant(tenantId):', belongsToTenantCheck, '→', belongsToTenantCheck ? '✅' : '❌');
+                console.error('  ✓ isManagerOrAdmin(tenantId):', isManagerOrAdminCheck, '→', isManagerOrAdminCheck ? '✅' : '❌');
+                const finalResult = !!user && !!invitoData.tenantId && belongsToTenantCheck && isManagerOrAdminCheck;
+                console.error('  → RISULTATO FINALE ATTESO:', finalResult, '→', finalResult ? '✅ DOVREBBE FUNZIONARE' : '❌ DOVREBBE FALLIRE');
+                
+                // Simula cosa vedranno le security rules
+                console.error('🔍 [9] Simulazione security rules (come le vedranno):');
+                console.error('  - request.auth.uid:', user?.uid);
+                console.error('  - request.auth.token.email:', user?.email);
+                console.error('  - request.resource.data.tenantId:', invitoData.tenantId);
+                console.error('  - request.resource.data.email:', invitoData.email);
+                console.error('  - request.resource.data.ruoli:', invitoData.ruoli);
+                
+                // [10] Verifica lettura documento utente da Firestore (come lo vedranno le security rules)
+                console.error('🔍 [10] Verifica lettura documento utente da Firestore...');
+                try {
+                    const userDocRef = doc(db, 'users', user.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+                    if (userDocSnap.exists()) {
+                        const userDocData = userDocSnap.data();
+                        console.log('   ✅ Documento utente letto con successo:', {
+                            uid: user.uid,
+                            email: userDocData.email,
+                            tenantId: userDocData.tenantId,
+                            ruoli: userDocData.ruoli,
+                            tenantMemberships: JSON.parse(JSON.stringify(userDocData.tenantMemberships || {})),
+                            tenantMembershipsKeys: Object.keys(userDocData.tenantMemberships || {}),
+                            tenantMemberships_rosso: JSON.parse(JSON.stringify(userDocData.tenantMemberships?.[currentTenantId] || {}))
+                        });
+                        
+                        // Verifica specifica per il tenant corrente
+                        if (userDocData.tenantMemberships && userDocData.tenantMemberships[currentTenantId]) {
+                            const membership = userDocData.tenantMemberships[currentTenantId];
+                            console.log('   ✅ Membership trovata per tenant "rosso":', {
+                                membership: JSON.parse(JSON.stringify(membership)),
+                                stato: membership.stato,
+                                ruoli: membership.ruoli,
+                                ruoliType: Array.isArray(membership.ruoli) ? 'array' : typeof membership.ruoli,
+                                hasAmministratore: Array.isArray(membership.ruoli) ? membership.ruoli.includes('amministratore') : false,
+                                hasManager: Array.isArray(membership.ruoli) ? membership.ruoli.includes('manager') : false
+                            });
+                        } else {
+                            console.warn('   ⚠️ Membership NON trovata per tenant "rosso"');
+                            console.log('   Chiavi disponibili in tenantMemberships:', Object.keys(userDocData.tenantMemberships || {}));
+                        }
+                    } else {
+                        console.error('   ❌ Documento utente NON trovato in Firestore!');
+                    }
+                } catch (readError) {
+                    console.error('   ❌ Errore lettura documento utente:', readError);
+                }
+                
+                console.error('✅ DEBUG GROUP COMPLETATO - FINE DEBUG DETTAGLIATO');
+                
+                console.error('✅ DEBUG GROUP COMPLETATO - ARRIVATO AI LOG FINALI');
+                
+                // VERIFICA DB PRIMA DI CREARE INVITO
+                console.error('🔍 VERIFICA DB:', {
+                    db: db ? 'OK' : 'NULL',
+                    dbType: typeof db,
+                    collection: collection ? 'OK' : 'NULL',
+                    addDoc: addDoc ? 'OK' : 'NULL'
+                });
+                
+                // LOG MINIMI
+                console.error('INVITO_PAYLOAD', {
+                    tenantId: invitoData.tenantId,
+                    email: invitoData.email,
+                    ruoli: invitoData.ruoli,
+                    inviatoDa: invitoData.inviatoDa,
+                    invitoDataCompleto: JSON.parse(JSON.stringify(invitoData))
+                });
+                
+                // Verifica che db sia inizializzato
+                if (!db) {
+                    console.error('❌ DB NON INIZIALIZZATO!');
+                    const { getDb } = await import('../services/firebase-service.js');
+                    db = getDb();
+                    console.error('🔧 DB RECUPERATO:', db ? 'OK' : 'NULL');
+                }
+                
+                // Verifica che collection e addDoc siano disponibili
+                if (!collection) {
+                    console.error('❌ COLLECTION NON DISPONIBILE!');
+                    const { collection: col } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    console.error('🔧 COLLECTION RECUPERATA:', col ? 'OK' : 'NULL');
+                }
+                
+                if (!addDoc) {
+                    console.error('❌ ADDDOC NON DISPONIBILE!');
+                    const { addDoc: add } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    console.error('🔧 ADDDOC RECUPERATO:', add ? 'OK' : 'NULL');
+                }
+                
+                // Crea riferimento alla collection
+                console.error('📦 CREAZIONE COLLECTION REF...');
+                const invitiCollection = collection(db, 'inviti');
+                console.error('✅ COLLECTION REF CREATA:', invitiCollection ? 'OK' : 'NULL', {
+                    id: invitiCollection?.id,
+                    path: invitiCollection?.path,
+                    type: invitiCollection?.type
+                });
+                
+                try {
+                    console.error('📤 TENTATIVO CREAZIONE INVITO...');
+                    console.error('📤 PAYLOAD FINALE:', JSON.parse(JSON.stringify(invitoData)));
+                    console.error('📤 COLLECTION PATH:', invitiCollection.path);
+                    const invitoRef = await addDoc(invitiCollection, invitoData);
+                    console.error('✅ INVITO_OK', invitoRef.id);
+                } catch (addDocError) {
+                    console.error('❌ INVITO_ERROR', {
+                        code: addDocError.code,
+                        message: addDocError.message,
+                        stack: addDocError.stack,
+                        name: addDocError.name,
+                        payload: {
+                            tenantId: invitoData.tenantId,
+                            email: invitoData.email,
+                            ruoli: invitoData.ruoli
+                        },
+                        collectionPath: invitiCollection?.path
+                    });
+                    throw addDocError;
+                }
+
                 // Genera link di registrazione
                 // Costruisci URL assoluto per il link di registrazione
                 const baseUrl = getBaseUrl();
                 // Usa sempre il percorso relativo dalla root del repository
                 const registrationPath = '/core/auth/registrazione-invito-standalone.html';
                 const registrationUrl = baseUrl + registrationPath + `?token=${token}`;
-                
-                console.log('URL base:', baseUrl);
-                console.log('Link registrazione generato:', registrationUrl);
-                
-                // Formatta ruoli per l'email
+
+// Formatta ruoli per l'email
                 const ruoliFormattati = ruoli.map(r => {
                     const roleMap = {
                         'amministratore': '👑 Amministratore',
@@ -1072,22 +1461,97 @@
                     year: 'numeric'
                 });
                 
+                // Carica dati azienda per branding email (ESATTAMENTE come nei preventivi)
+                let datiAzienda = {
+                    nome: '',
+                    logoUrl: null,
+                    indirizzo: '',
+                    citta: '',
+                    cap: '',
+                    provincia: '',
+                    telefono: '',
+                    email: '',
+                    piva: ''
+                };
+                
+                try {
+                    const tenantRef = doc(db, 'tenants', currentTenantId);
+                    const tenantSnap = await getDoc(tenantRef);
+                    if (tenantSnap.exists()) {
+                        const tenantData = tenantSnap.data();
+                        datiAzienda = {
+                            nome: tenantData.nome || '',
+                            logoUrl: tenantData.logoUrl || null,
+                            indirizzo: tenantData.indirizzo || '',
+                            citta: tenantData.citta || '',
+                            cap: tenantData.cap || '',
+                            provincia: tenantData.provincia || '',
+                            telefono: tenantData.telefono || '',
+                            email: tenantData.email || '',
+                            piva: tenantData.piva || ''
+                        };
+                    }
+                } catch (tenantError) {
+                    console.warn('Errore caricamento dati azienda per email:', tenantError);
+                    // Continua con dati vuoti
+                }
+
+                // Prepara variabili azienda per template email (ESATTAMENTE come nei preventivi)
+                // Logo URL (solo URL, non HTML - il template EmailJS userà l'URL per creare l'immagine)
+                let logoUrl = '';
+                if (datiAzienda.logoUrl && datiAzienda.logoUrl.startsWith('http')) {
+                    logoUrl = datiAzienda.logoUrl; // Solo URL, non HTML
+                }
+                
+                // Nome azienda nell'header: solo testo semplice, il template EmailJS lo formatterà
+                let nomeAziendaHeader = datiAzienda.nome || '';
+                
+                // Nome azienda nel footer: testo semplice
+                let nomeAziendaFooter = datiAzienda.nome || '';
+                
+                // Formatta indirizzo completo
+                let indirizzoCompleto = '';
+                if (datiAzienda.indirizzo) {
+                    indirizzoCompleto = datiAzienda.indirizzo;
+                    if (datiAzienda.citta) {
+                        indirizzoCompleto += `, ${datiAzienda.citta}`;
+                    }
+                    if (datiAzienda.cap) {
+                        indirizzoCompleto += ` ${datiAzienda.cap}`;
+                    }
+                }
+                
                 // Invia email tramite EmailJS
                 let emailInviata = false;
                 try {
+                    if (typeof emailjs === 'undefined') {
+                        throw new Error('EmailJS non caricato');
+                    }
+
+                    // Prepara oggetto variabili per EmailJS (ESATTAMENTE come nei preventivi)
+                    const emailParams = {
+                        nome: nome,
+                        cognome: cognome,
+                        email: email,
+                        ruoli: ruoliFormattati,
+                        linkRegistrazione: registrationUrl,
+                        scadeIl: scadeIlFormattata,
+                        // Dati azienda per branding (ESATTAMENTE come nei preventivi)
+                        logo_url: logoUrl || '', // Solo URL del logo (non HTML)
+                        nome_azienda: nomeAziendaHeader || '', // Solo testo, il template lo formatterà
+                        nome_azienda_footer: nomeAziendaFooter || '',
+                        indirizzo_azienda: indirizzoCompleto || '',
+                        telefono_azienda: datiAzienda.telefono || '',
+                        email_azienda: datiAzienda.email || '',
+                        piva_azienda: datiAzienda.piva || ''
+                    };
+                    
                     await emailjs.send(
                         'service_f4to9qr',  // Service ID
                         'template_9917fde',  // Template ID
-                        {
-                            nome: nome,
-                            cognome: cognome,
-                            email: email,
-                            ruoli: ruoliFormattati,
-                            linkRegistrazione: registrationUrl,
-                            scadeIl: scadeIlFormattata
-                        }
+                        emailParams
                     );
-                    console.log('✅ Email inviata con successo');
+
                     emailInviata = true;
                     showAlert('✅ Invito creato e email inviata con successo!', 'success');
                 } catch (emailError) {
@@ -1102,10 +1566,43 @@
                 await loadUsers();
                 
             } catch (error) {
-                console.error('Errore creazione utente:', error);
+                console.group('❌ ERRORE CREAZIONE INVITO');
+                console.error('Errore completo:', error);
+                console.error('Codice errore:', error.code);
+                console.error('Messaggio errore:', error.message);
+                console.error('Stack trace:', error.stack);
+                
+                // Log dello stato al momento dell'errore
+                console.log('📊 Stato al momento dell\'errore:');
+                console.log('  - currentTenantId:', currentTenantId);
+                console.log('  - currentUserData:', currentUserData);
+                console.log('  - user (auth):', user);
+                console.log('  - user.uid:', user?.uid);
+                console.log('  - user.email:', user?.email);
+                
+                // Verifica permessi al momento dell'errore
+                if (currentUserData && currentTenantId) {
+                    const membership = currentUserData.tenantMemberships?.[currentTenantId];
+                    const ruoliTenant = membership?.ruoli || (currentUserData.tenantId === currentTenantId ? currentUserData.ruoli : []);
+                    console.log('  - Ruoli per tenant corrente:', ruoliTenant);
+                    console.log('  - È manager:', ruoliTenant.includes('manager'));
+                    console.log('  - È admin:', ruoliTenant.includes('amministratore'));
+                    console.log('  - Appartiene al tenant:', !!membership || currentUserData.tenantId === currentTenantId);
+                }
+                
+                console.groupEnd();
+                
                 let errorMessage = 'Errore durante la creazione: ' + error.message;
                 
-                if (error.code === 'auth/email-already-in-use') {
+                if (error.code === 'permission-denied' || error.code === 'PERMISSION_DENIED') {
+                    errorMessage = '❌ Permessi insufficienti. Verifica di essere manager o amministratore del tenant corrente.';
+                    console.error('🔒 ERRORE PERMESSI - Verifica security rules:', {
+                        tenantId: currentTenantId,
+                        userRoles: currentUserData?.ruoli,
+                        tenantMemberships: currentUserData?.tenantMemberships,
+                        isAuthenticated: !!user
+                    });
+                } else if (error.code === 'auth/email-already-in-use') {
                     errorMessage = 'Email già registrata in Authentication';
                 } else if (error.code === 'auth/invalid-email') {
                     errorMessage = 'Email non valida';

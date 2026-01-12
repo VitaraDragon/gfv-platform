@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -898,19 +898,19 @@
                     
                     for (const logoPath of possiblePaths) {
                         try {
-                            console.log('Tentativo caricamento logo da:', logoPath);
+
                             const logoResponse = await fetch(logoPath);
                             
                             if (logoResponse.ok) {
                                 logoBuffer = await logoResponse.arrayBuffer();
-                                console.log('Logo caricato con successo! Dimensione:', logoBuffer.byteLength, 'bytes');
+
                                 logoLoaded = true;
                                 break;
                             } else {
-                                console.log('Logo non trovato in:', logoPath, 'Status:', logoResponse.status);
+
                             }
                         } catch (pathError) {
-                            console.log('Errore caricamento da', logoPath, ':', pathError.message);
+
                             continue;
                         }
                     }
@@ -921,18 +921,14 @@
                                 buffer: logoBuffer,
                                 extension: 'png'
                             });
-                            
-                            console.log('Immagine aggiunta al workbook, inserisco nel foglio...');
-                            
+
                             // Inserisci logo molto grande che occupa tutto lo spazio sopra la tabella
                             // Dimensioni massime: larghezza 600px, altezza 200px per occupare righe 1-8
                             worksheet.addImage(logoImage, {
                                 tl: { col: 0, row: 0 },
                                 ext: { width: 600, height: 200 }
                             });
-                            
-                            console.log('Logo inserito nel foglio Excel! Dimensioni: 600x200px');
-                            
+
                             // Sposta la tabella alla riga 8 (margine superiore riga 8)
                             startRow = 8;
                             
@@ -942,14 +938,13 @@
                                 const row = worksheet.getRow(i);
                                 row.height = 25; // Altezza maggiore per logo più grande
                             }
-                            
-                            console.log('Layout con logo molto grande: logo occupa righe 1-7, tabella dalla riga 8');
+
                         } catch (imageError) {
                             console.error('Errore inserimento immagine in Excel:', imageError);
                             // Continua senza logo
                         }
                     } else {
-                        console.log('Logo non caricato da nessun percorso, continuo senza logo');
+
                     }
                 } catch (logoError) {
                     console.error('Errore generale caricamento logo:', logoError);

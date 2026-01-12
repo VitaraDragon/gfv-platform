@@ -526,6 +526,17 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="terreno-tipo-campo">Morfologia del Terreno</label>
+                    <select id="terreno-tipo-campo" style="width: 100%;">
+                        <option value="">-- Seleziona morfologia --</option>
+                        <option value="pianura">🏞️ Pianura</option>
+                        <option value="collina">⛰️ Collina</option>
+                        <option value="montagna">🏔️ Montagna</option>
+                    </select>
+                    <small>Seleziona la morfologia del terreno per la selezione automatica delle tariffe</small>
+                </div>
+
+                <div class="form-group">
                     <label for="terreno-podere">Podere</label>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <select id="terreno-podere" style="flex: 1;">
@@ -845,7 +856,7 @@
             }
         }
 
-        // Carica terreni
+        // Carica terreni usando servizio centralizzato
         async function loadTerreni() {
             const container = document.getElementById('terreni-container');
             container.innerHTML = '<div class="loading">Caricamento terreni...</div>';
@@ -856,25 +867,19 @@
                     return;
                 }
 
-                // Carica tutti i terreni del tenant e filtra client-side per evitare indice composito
-                const terreniQuery = query(
-                    collection(db, 'tenants', currentTenantId, 'terreni')
-                );
-                const snapshot = await getDocs(terreniQuery);
-                terreni = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    // Filtra solo i terreni del cliente selezionato
-                    if (data.clienteId === currentClienteId) {
-                        terreni.push({ id: doc.id, ...data });
+                // Usa servizio centralizzato tramite helper
+                const { loadTerreniViaService } = await import('../../../core/services/service-helper.js');
+                const terreniList = await loadTerreniViaService({
+                    tenantId: currentTenantId,
+                    firebaseInstances: { app, db, auth },
+                    options: {
+                        orderBy: 'nome',
+                        orderDirection: 'asc',
+                        clienteId: currentClienteId // Solo terreni del cliente selezionato
                     }
                 });
-                // Ordina client-side per nome
-                terreni.sort((a, b) => {
-                    const nomeA = (a.nome || '').toLowerCase();
-                    const nomeB = (b.nome || '').toLowerCase();
-                    return nomeA.localeCompare(nomeB);
-                });
+                
+                terreni = terreniList;
                 renderTerreni(terreni);
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
@@ -1041,6 +1046,13 @@
                         }, 100);
                     }
                     
+                    // Gestisci morfologia (tipoCampo)
+                    if (terrenoObj.tipoCampo) {
+                        document.getElementById('terreno-tipo-campo').value = terrenoObj.tipoCampo;
+                    } else {
+                        document.getElementById('terreno-tipo-campo').value = '';
+                    }
+                    
                     document.getElementById('terreno-podere').value = terrenoObj.podere || '';
                     document.getElementById('terreno-note').value = terrenoObj.note || '';
                 }
@@ -1050,6 +1062,8 @@
                 document.getElementById('terreno-coltura-categoria').value = '';
                 document.getElementById('terreno-coltura-sottocategoria').value = '';
                 document.getElementById('coltura-sottocategoria-group').style.display = 'none';
+                // Reset morfologia
+                document.getElementById('terreno-tipo-campo').value = '';
             }
             
             modal.classList.add('active');
@@ -1090,6 +1104,7 @@
             const clienteId = document.getElementById('terreno-cliente-id').value;
             const colturaCategoria = document.getElementById('terreno-coltura-categoria').value || null;
             const colturaSottocategoria = document.getElementById('terreno-coltura-sottocategoria').value || null;
+            const tipoCampo = document.getElementById('terreno-tipo-campo').value || null;
             
             const terrenoData = {
                 nome: document.getElementById('terreno-nome').value.trim(),
@@ -1098,6 +1113,7 @@
                 colturaSottocategoria: colturaSottocategoria,
                 // Mantieni anche coltura per retrocompatibilità (usa sottocategoria se presente, altrimenti categoria)
                 coltura: colturaSottocategoria || colturaCategoria || null,
+                tipoCampo: tipoCampo,
                 podere: document.getElementById('terreno-podere').value || null,
                 note: document.getElementById('terreno-note').value.trim() || '',
                 clienteId: clienteId,

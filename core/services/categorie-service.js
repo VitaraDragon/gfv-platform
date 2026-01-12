@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Categorie Service - Servizio unificato per gestione categorie gerarchiche
  * Gestisce CRUD categorie con supporto multi-tenant e struttura gerarchica
  * 
@@ -369,7 +369,7 @@ export async function initializeCategoriePredefinite() {
       if (sottocategoriaObsoleta) {
         try {
           await deleteDocument(COLLECTION_NAME, sottocategoriaObsoleta.id, tenantId);
-          console.log(`✅ Rimossa sottocategoria obsoleta: ${codiceObsoleto}`);
+
           // Rimuovi anche dal set dei codici esistenti per permettere la creazione della nuova
           codiciEsistenti.delete(codiceObsoleto.toLowerCase());
         } catch (error) {
@@ -495,7 +495,7 @@ export async function getAllCategorie(options = {}) {
       if (indexError.message && indexError.message.includes('index')) {
         // Log solo in sviluppo, non in produzione
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          console.debug('Indice Firestore mancante, uso fallback lato client');
+
         }
         
         // Carica tutte le categorie senza filtri/ordinamento
@@ -911,10 +911,4 @@ export default {
   CATEGORIE_PRINCIPALI_PREDEFINITE,
   SOTTOCATEGORIE_PREDEFINITE
 };
-
-
-
-
-
-
 

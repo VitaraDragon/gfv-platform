@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Base Model - Classe base per tutti i modelli dati
  * Fornisce funzionalità comuni: conversione Firestore, validazione, timestamp
  * 
@@ -132,9 +132,4 @@ export class Base {
 }
 
 export default Base;
-
-
-
-
-
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -677,13 +677,7 @@
                 const snapshot = await getDocs(lavoriRef);
                 
                 lavoriList = [];
-                console.log('🔍 [LOAD LAVORI] Filtro lavori:', {
-                    isCaposquadra: isCaposquadra,
-                    isOperaio: isOperaio,
-                    userId: userId,
-                    totaleLavori: snapshot.size
-                });
-                
+
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     
@@ -704,12 +698,7 @@
                                     motivo: 'Lavoro autonomo, non di squadra'
                                 });
                             } else if (data.caposquadraId !== userId) {
-                                console.log('ℹ️ [LOAD LAVORI] Lavoro escluso (caposquadraId diverso):', {
-                                    id: doc.id,
-                                    nome: data.nome,
-                                    lavoroCaposquadraId: data.caposquadraId,
-                                    currentUserId: userId
-                                });
+
                             }
                         }
                     } else if (isOperaio) {
@@ -2287,6 +2276,39 @@
             }
         }
 
+        // Funzioni helper per verificare dati obbligatori
+        async function verificaOreSegnateLavoro(lavoroId, userId) {
+            try {
+                const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
+                const oreSnapshot = await getDocs(oreRef);
+                
+                // Per caposquadra: verifica che ci siano ore segnate da qualsiasi operaio
+                // Per operaio: verifica che ci siano le sue ore
+                if (userId) {
+                    const oreQuery = query(oreRef, where('operaioId', '==', userId));
+                    const oreSnapshotUser = await getDocs(oreQuery);
+                    return oreSnapshotUser.size > 0;
+                } else {
+                    // Caposquadra: verifica che ci siano ore da qualsiasi operaio
+                    return oreSnapshot.size > 0;
+                }
+            } catch (error) {
+                console.error('Errore verifica ore segnate:', error);
+                return false;
+            }
+        }
+
+        async function verificaZoneLavorateLavoro(lavoroId) {
+            try {
+                const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const zoneSnapshot = await getDocs(zoneRef);
+                return zoneSnapshot.size > 0;
+            } catch (error) {
+                console.error('Errore verifica zone lavorate:', error);
+                return false;
+            }
+        }
+
         // Segna lavoro come completato (in attesa approvazione)
         window.segnaCompletato = async function(lavoroId, percentuale) {
             const lavoro = lavoriList.find(l => l.id === lavoroId);
@@ -2296,32 +2318,12 @@
             }
             
             // Debug: verifica dati lavoro
-            console.log('🔍 [SEGNA COMPLETATO] Dati lavoro:', {
-                id: lavoro.id,
-                nome: lavoro.nome,
-                caposquadraId: lavoro.caposquadraId,
-                operaioId: lavoro.operaioId,
-                stato: lavoro.stato,
-                currentUserDataId: currentUserData.id,
-                currentUserDataUid: currentUserData.uid
-            });
-            
+
             // Verifica che il lavoro sia assegnato all'utente corrente
             const userId = currentUserData.id || currentUserData.uid;
             const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
             const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
-            
-            console.log('🔍 [SEGNA COMPLETATO] Verifica permessi:', {
-                userId: userId,
-                lavoroCaposquadraId: lavoro.caposquadraId,
-                lavoroOperaioId: lavoro.operaioId,
-                isCaposquadra: isCaposquadra,
-                isOperaio: isOperaio,
-                ruoli: currentUserData.ruoli,
-                currentUserDataId: currentUserData.id,
-                currentUserDataUid: currentUserData.uid
-            });
-            
+
             // Verifica permessi in base al tipo di lavoro
             let canComplete = false;
             
@@ -2329,13 +2331,13 @@
                 // Lavoro di squadra assegnato a questo caposquadra
                 if (isCaposquadra) {
                     canComplete = true;
-                    console.log('✅ [SEGNA COMPLETATO] Permesso caposquadra per lavoro di squadra');
+
                 }
             } else if (lavoro.operaioId === userId && !lavoro.caposquadraId) {
                 // Lavoro autonomo assegnato a questo operaio
                 if (isOperaio) {
                     canComplete = true;
-                    console.log('✅ [SEGNA COMPLETATO] Permesso operaio per lavoro autonomo');
+
                 } else {
                     console.warn('⚠️ [SEGNA COMPLETATO] Operaio non ha ruolo "operaio" nei ruoli:', currentUserData.ruoli);
                 }
@@ -2366,6 +2368,24 @@
                 return;
             }
             
+            // VALIDAZIONE: Verifica dati obbligatori prima di completare
+            const haOre = await verificaOreSegnateLavoro(lavoroId, isOperaio ? userId : null);
+            const haZone = await verificaZoneLavorateLavoro(lavoroId);
+            
+            const mancanze = [];
+            if (!haOre) mancanze.push('ore segnate');
+            if (!haZone) mancanze.push('zone lavorate tracciate');
+            
+            if (mancanze.length > 0) {
+                const messaggio = `⚠️ Impossibile completare il lavoro!\n\n` +
+                    `Mancano i seguenti dati obbligatori:\n` +
+                    `• ${mancanze.join('\n• ')}\n\n` +
+                    `Completa tutti i dati richiesti prima di segnare il lavoro come completato.`;
+                
+                showAlert(messaggio, 'error');
+                return;
+            }
+            
             // Conferma
             const conferma = confirm(
                 `Sei sicuro di voler segnare questo lavoro come completato?\n\n` +
@@ -2377,15 +2397,7 @@
             
             try {
                 const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
-                
-                console.log('🔍 [SEGNA COMPLETATO] Aggiornamento documento con campi:', {
-                    stato: 'completato_da_approvare',
-                    percentualeCompletamentoTracciata: parseFloat(percentuale),
-                    completatoDa: currentUserData.id,
-                    completatoIl: 'serverTimestamp()',
-                    aggiornatoIl: 'serverTimestamp()'
-                });
-                
+
                 // Aggiorna stato a "completato_da_approvare"
                 await updateDoc(lavoroRef, {
                     stato: 'completato_da_approvare',
@@ -2394,9 +2406,7 @@
                     completatoIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
                 });
-                
-                console.log('✅ [SEGNA COMPLETATO] Aggiornamento completato con successo');
-                
+
                 showAlert('Lavoro segnato come completato! In attesa di approvazione del Manager.', 'success');
                 await loadLavori(); // Ricarica lavori
             } catch (error) {

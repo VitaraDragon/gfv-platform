@@ -632,6 +632,34 @@
                     <!-- Lista verrà popolata dinamicamente -->
                 </div>
             </div>
+
+            <!-- Coefficienti Morfologia Conto Terzi (solo Manager/Amministratore) -->
+            <div class="card" id="coefficienti-morfologia-section" style="display: none;">
+                <h2>⛰️ Coefficienti Morfologia Terreni (Conto Terzi)</h2>
+                <p class="info-text" style="margin-bottom: 20px;">Configura i coefficienti moltiplicativi per le diverse morfologie del terreno. Questi coefficienti verranno utilizzati automaticamente quando crei tariffe per tutte le morfologie. La tariffa finale sarà calcolata come: Tariffa Base × Coefficiente.</p>
+                
+                <form id="coefficienti-morfologia-form" onsubmit="handleSaveCoefficientiMorfologia(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="coeff-pianura">🏞️ Pianura</label>
+                            <input type="number" id="coeff-pianura" required step="0.01" min="0.1" value="1.0" placeholder="1.0">
+                            <small>Coefficiente per terreni in pianura (default: 1.0)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="coeff-collina">⛰️ Collina</label>
+                            <input type="number" id="coeff-collina" required step="0.01" min="0.1" value="1.2" placeholder="1.2">
+                            <small>Coefficiente per terreni in collina (default: 1.2)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="coeff-montagna">🏔️ Montagna</label>
+                            <input type="number" id="coeff-montagna" required step="0.01" min="0.1" value="1.5" placeholder="1.5">
+                            <small>Coefficiente per terreni in montagna (default: 1.5)</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">💾 Salva Coefficienti</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -762,7 +790,7 @@
                 document.head.appendChild(script);
                 
                 window.initGoogleMapsPodere = function() {
-                    console.log('✅ Google Maps initialized for poderi');
+
                     window.googleMapsReadyPodere = true;
                 };
             } else {
@@ -842,6 +870,10 @@
                         document.getElementById('poderi-section').style.display = 'block';
                         document.getElementById('liste-section').style.display = 'block';
                         document.getElementById('tariffe-section').style.display = 'block';
+                        document.getElementById('coefficienti-morfologia-section').style.display = 'block';
+                        
+                        // Carica coefficienti morfologia
+                        await loadCoefficientiMorfologia();
                         
                         // Carica dati azienda
                         if (currentTenantId) {
@@ -877,6 +909,7 @@
                         document.getElementById('poderi-section').style.display = 'none';
                         document.getElementById('liste-section').style.display = 'none';
                         document.getElementById('tariffe-section').style.display = 'none';
+                        document.getElementById('coefficienti-morfologia-section').style.display = 'none';
                     }
                     
                     if (isCaposquadra) {
@@ -975,7 +1008,7 @@
                                 const decodedPath = decodeURIComponent(pathPart);
                                 const logoRef = ref(storage, decodedPath);
                                 await deleteObject(logoRef);
-                                console.log('🗑️ Logo eliminato da Storage');
+
                             }
                         } catch (storageError) {
                             console.warn('⚠️ Errore eliminazione logo da Storage (non critico):', storageError);
@@ -1036,15 +1069,7 @@
                         // Estrai estensione file
                         const fileExtension = logoFileToUpload.name.split('.').pop().toLowerCase();
                         const logoFileName = `tenants/${normalizedTenantId}/logo_${Date.now()}.${fileExtension}`;
-                        
-                        console.log('📤 Upload logo:', {
-                            tenantId: currentUserData.tenantId,
-                            normalizedTenantId: normalizedTenantId,
-                            fileName: logoFileName,
-                            fileSize: logoFileToUpload.size,
-                            fileType: logoFileToUpload.type
-                        });
-                        
+
                         const logoStorageRef = ref(storage, logoFileName);
                         
                         // Elimina logo vecchio se presente
@@ -1059,7 +1084,7 @@
                                         const decodedPath = decodeURIComponent(pathPart);
                                         const oldLogoRef = ref(storage, decodedPath);
                                         await deleteObject(oldLogoRef);
-                                        console.log('🗑️ Logo vecchio eliminato');
+
                                     }
                                 } catch (deleteError) {
                                     console.warn('⚠️ Errore eliminazione logo vecchio (non critico):', deleteError);
@@ -1080,8 +1105,7 @@
                         
                         await uploadBytes(logoStorageRef, logoFileToUpload, metadata);
                         logoUrl = await getDownloadURL(logoStorageRef);
-                        
-                        console.log('✅ Logo caricato con successo:', logoUrl);
+
                     } catch (uploadError) {
                         console.error('❌ Errore upload logo:', uploadError);
                         
@@ -1272,7 +1296,7 @@
                     
                     // Se tipiLavoro è vuoto, prova migrazione automatica
                     if (tipiLavoroDocs.length === 0) {
-                        console.log('ℹ️ tipiLavoro vuoto, provo migrazione da ListePersonalizzate...');
+
                         await migraTipiLavoroAutomatica();
                         // Ricarica dopo migrazione
                         const snapshot2 = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
@@ -1382,7 +1406,7 @@
                 
                 if (deletePromises.length > 0) {
                     await Promise.all(deletePromises);
-                    console.log(`✅ Puliti ${duplicatiEliminati} duplicati di tipi lavoro`);
+
                 }
             } catch (error) {
                 console.error('Errore pulizia duplicati tipi lavoro:', error);
@@ -1469,8 +1493,7 @@
                         updatedAt: serverTimestamp()
                     });
                 }
-                
-                console.log('✅ Migrazione tipi lavoro completata');
+
             } catch (error) {
                 console.error('Errore migrazione automatica tipi lavoro:', error);
                 // Non bloccare se migrazione fallisce
@@ -1590,7 +1613,7 @@
                 }
 
                 if (createCount > 0) {
-                    console.log(`✅ Inizializzate ${createCount} colture predefinite`);
+
                 }
             } catch (error) {
                 console.error('Errore inizializzazione colture predefinite:', error);
@@ -1601,7 +1624,7 @@
         async function migraColtureAutomatica() {
             // Prevenire chiamate multiple simultanee o tentativi multipli
             if (isMigratingColture || migrazioneTentata) {
-                console.log('⚠️ Migrazione già in corso o già tentata, salto...');
+
                 return;
             }
             
@@ -1615,13 +1638,13 @@
                 const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
                 const snapshot = await getDocs(coltureRef);
                 if (!snapshot.empty) {
-                    console.log('✅ Colture già presenti, migrazione non necessaria');
+
                     isMigratingColture = false;
                     return; // Già migrato
                 }
                 
                 // IMPORTANTE: Inizializza categorie PRIMA di migrare colture
-                console.log('ℹ️ Inizializzazione categorie predefinite per colture...');
+
                 try {
                     // Categorie predefinite per colture
                     const categorieColturePredefinite = [
@@ -1662,8 +1685,7 @@
                             codiciEsistenti.add(categoriaData.codice.toLowerCase());
                         }
                     }
-                    
-                    console.log(`✅ Categorie inizializzate: ${categorieCreate} create, ${categorieColturePredefinite.length - categorieCreate} già esistenti`);
+
                     // Attendi un momento per assicurarsi che le categorie siano disponibili
                     await new Promise(resolve => setTimeout(resolve, 300));
                 } catch (error) {
@@ -1677,7 +1699,7 @@
                 const listeSnap = await getDoc(listeRef);
                 
                 if (!listeSnap.exists()) {
-                    console.log('ℹ️ Nessuna lista personalizzata trovata');
+
                     isMigratingColture = false;
                     return; // Nessuna lista da migrare
                 }
@@ -1686,7 +1708,7 @@
                 const coltureDaMigrare = data.colture || [];
                 
                 if (coltureDaMigrare.length === 0) {
-                    console.log('ℹ️ Nessuna coltura da migrare');
+
                     isMigratingColture = false;
                     return; // Nessuna coltura da migrare
                 }
@@ -1725,9 +1747,7 @@
                     isMigratingColture = false;
                     return;
                 }
-                
-                console.log(`✅ Trovate ${categorieMap.size} categorie per colture`);
-                
+
                 // Mappatura nomi colture piatti a categorie
                 const mappaturaColture = {
                     'vite': 'vite',
@@ -1782,8 +1802,7 @@
                     });
                     coltureCreate++;
                 }
-                
-                console.log(`✅ Migrazione colture completata: ${coltureCreate} create, ${coltureSkipped} saltate`);
+
                 isMigratingColture = false;
             } catch (error) {
                 console.error('❌ Errore migrazione automatica colture:', error);
@@ -1887,7 +1906,7 @@
                         if (sottocategoriaObsoleta) {
                             try {
                                 await deleteDoc(doc(categorieRef, sottocategoriaObsoleta.id));
-                                console.log(`✅ Rimossa sottocategoria obsoleta: ${codiceObsoleto}`);
+
                             } catch (error) {
                                 console.warn(`Impossibile rimuovere sottocategoria obsoleta ${codiceObsoleto}:`, error);
                             }
@@ -2406,7 +2425,7 @@
                 
                 // Prevenire chiamate multiple durante la migrazione
                 if (isMigratingColture) {
-                    console.log('⏳ Migrazione in corso, attendo...');
+
                     return;
                 }
                 
@@ -2487,12 +2506,12 @@
 
                     // Usa colture-service.js invece di caricamento diretto
                     colturePerCategoria = await getColturePerCategoria();
-                    console.log('✅ Colture per categoria caricate:', Object.keys(colturePerCategoria).length, 'categorie');
+
                 }
                 
                 // Se colture è vuoto, prova migrazione automatica (solo se non già tentata)
                 if (Object.keys(colturePerCategoria).length === 0 && !migrazioneTentata) {
-                    console.log('ℹ️ colture vuoto, provo migrazione da ListePersonalizzate...');
+
                     await migraColtureAutomatica();
                     
                     // Ricarica dopo migrazione (solo se non siamo già in un loop)
@@ -2783,9 +2802,7 @@
                 
                 // Elimina il documento specifico
                 await deleteDoc(doc(tipiRef, tipoDoc.id));
-                
-                console.log(`✅ Eliminato tipo lavoro "${tipoLavoro}"`);
-                
+
                 // Sincronizza ListePersonalizzate (per retrocompatibilità)
                 try {
                     const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
@@ -2830,7 +2847,7 @@
             
             const categoriaId = categoriaSelect?.value;
             if (!categoriaId) {
-                console.log('ℹ️ Nessuna categoria selezionata');
+
                 return;
             }
             
@@ -2913,9 +2930,8 @@
                 const coltureCategoria = COLTURE_PREDEFINITE.filter(c => 
                     c.categoriaCodice === categoria.codice.toLowerCase()
                 );
-                
-                
-                // Carica colture già esistenti per questa categoria
+
+// Carica colture già esistenti per questa categoria
                 const coltureEsistenti = colturePerCategoria[categoriaId] || [];
                 const nomiEsistenti = new Set(coltureEsistenti.map(c => c.nome.toLowerCase()));
                 
@@ -3308,6 +3324,99 @@
                     </div>
                 `;
             }).join('');
+        }
+        
+        // Carica coefficienti morfologia
+        async function loadCoefficientiMorfologia() {
+            if (!currentTenantId) return;
+            
+            try {
+                const coeffRef = doc(db, `tenants/${currentTenantId}/impostazioni`, 'coefficientiMorfologia');
+                const coeffSnap = await getDoc(coeffRef);
+                
+                // Valori default
+                let coefficienti = {
+                    pianura: 1.0,
+                    collina: 1.2,
+                    montagna: 1.5
+                };
+                
+                if (coeffSnap.exists()) {
+                    const data = coeffSnap.data();
+                    console.log('Coefficienti caricati da Firestore:', data);
+                    coefficienti = {
+                        pianura: data.pianura || 1.0,
+                        collina: data.collina || 1.2,
+                        montagna: data.montagna || 1.5
+                    };
+                } else {
+                    console.log('Nessun documento trovato, uso valori default');
+                }
+                
+                console.log('Impostazione coefficienti nei campi:', coefficienti);
+                document.getElementById('coeff-pianura').value = coefficienti.pianura;
+                document.getElementById('coeff-collina').value = coefficienti.collina;
+                document.getElementById('coeff-montagna').value = coefficienti.montagna;
+            } catch (error) {
+                console.error('Errore caricamento coefficienti morfologia:', error);
+                showAlert('Errore caricamento coefficienti', 'error');
+            }
+        }
+        
+        // Salva coefficienti morfologia
+        window.handleSaveCoefficientiMorfologia = async function(event) {
+            console.log('handleSaveCoefficientiMorfologia chiamata');
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            if (!currentTenantId) {
+                console.error('Tenant ID non disponibile');
+                showAlert('Tenant ID non disponibile', 'error');
+                return;
+            }
+            
+            console.log('Tenant ID:', currentTenantId);
+            
+            const coefficienti = {
+                pianura: parseFloat(document.getElementById('coeff-pianura').value),
+                collina: parseFloat(document.getElementById('coeff-collina').value),
+                montagna: parseFloat(document.getElementById('coeff-montagna').value)
+            };
+            
+            // Validazione
+            if (isNaN(coefficienti.pianura) || coefficienti.pianura < 0.1 ||
+                isNaN(coefficienti.collina) || coefficienti.collina < 0.1 ||
+                isNaN(coefficienti.montagna) || coefficienti.montagna < 0.1) {
+                showAlert('Inserisci valori validi (>= 0.1) per tutti i coefficienti', 'error');
+                return;
+            }
+            
+            try {
+                console.log('Salvataggio coefficienti:', coefficienti);
+                const coeffRef = doc(db, `tenants/${currentTenantId}/impostazioni`, 'coefficientiMorfologia');
+                await setDoc(coeffRef, {
+                    pianura: coefficienti.pianura,
+                    collina: coefficienti.collina,
+                    montagna: coefficienti.montagna,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+                
+                console.log('Coefficienti salvati con successo');
+                showAlert('Coefficienti salvati con successo!', 'success');
+                
+                // Ricarica i coefficienti per verificare che siano stati salvati
+                await loadCoefficientiMorfologia();
+            } catch (error) {
+                console.error('Errore salvataggio coefficienti:', error);
+                console.error('Dettagli errore:', {
+                    code: error.code,
+                    message: error.message,
+                    tenantId: currentTenantId
+                });
+                showAlert('Errore salvataggio coefficienti: ' + error.message, 'error');
+            }
         }
         
         // Salva tariffa
@@ -3760,6 +3869,7 @@
         window.updateSottocategorieDropdown = updateSottocategorieDropdown;
         window.updateTipiLavoroPredefinitiDropdown = updateTipiLavoroPredefinitiDropdown;
         window.onTipoLavoroPredeterminatoChange = onTipoLavoroPredeterminatoChange;
+        window.saveTariffa = saveTariffa;
         window.openAddCategoriaTipoLavoroModal = function() {
             // TODO: Implementare modal per aggiungere categoria tipi lavoro
             showAlert('Funzionalità in sviluppo', 'info');
@@ -4047,14 +4157,11 @@
             
             try {
                 const caposquadraId = currentUserData.id || auth.currentUser.uid;
-                console.log('Cercando squadra per caposquadraId:', caposquadraId);
-                
+
                 const squadreCollection = collection(db, `tenants/${currentTenantId}/squadre`);
                 const q = query(squadreCollection, where('caposquadraId', '==', caposquadraId));
                 const querySnapshot = await getDocs(q);
-                
-                console.log('Query squadre risultato:', querySnapshot.size, 'squadre trovate');
-                
+
                 if (querySnapshot.empty) {
                     console.warn('Nessuna squadra trovata per caposquadraId:', caposquadraId);
                     return [];
@@ -4063,15 +4170,7 @@
                 // Prendi la prima squadra trovata
                 const squadraDoc = querySnapshot.docs[0];
                 const squadraData = squadraDoc.data();
-                
-                console.log('Dati squadra trovata:', {
-                    id: squadraDoc.id,
-                    nome: squadraData.nome,
-                    caposquadraId: squadraData.caposquadraId,
-                    operai: squadraData.operai,
-                    operaiCount: squadraData.operai?.length || 0
-                });
-                
+
                 // Il campo corretto è "operai", non "membri"
                 return squadraData.operai || [];
             } catch (error) {

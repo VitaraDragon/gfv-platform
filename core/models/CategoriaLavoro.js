@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Categoria Lavoro Model - Modello dati categoria lavori
  * Gestisce categorie per organizzare tipi lavoro per funzione
  * 
@@ -87,10 +87,4 @@ export class CategoriaLavoro extends Base {
 }
 
 export default CategoriaLavoro;
-
-
-
-
-
-
 

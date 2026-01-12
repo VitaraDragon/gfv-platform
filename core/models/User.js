@@ -1,6 +1,7 @@
 /**
  * User Model - Modello dati utente
  * Gestisce dati utente con ruoli, tenant e stato
+ * Supporta multi-tenant membership: un utente può appartenere a più tenant con ruoli diversi
  * 
  * @module core/models/User
  */
@@ -15,8 +16,9 @@ export class User extends Base {
    * @param {string} data.email - Email
    * @param {string} data.nome - Nome
    * @param {string} data.cognome - Cognome
-   * @param {Array<string>} data.ruoli - Array ruoli ['amministratore', 'manager', etc.]
-   * @param {string} data.tenantId - ID tenant
+   * @param {Array<string>} data.ruoli - Array ruoli ['amministratore', 'manager', etc.] (DEPRECATO - usa tenantMemberships)
+   * @param {string} data.tenantId - ID tenant (DEPRECATO - usa tenantMemberships)
+   * @param {Object} data.tenantMemberships - Oggetto con membership per tenant { tenantId: { ruoli, stato, ... } }
    * @param {string} data.stato - Stato ('attivo' | 'invitato' | 'disattivato')
    * @param {string} data.creatoDa - ID utente che ha creato questo utente
    * @param {Date} data.creatoIl - Data creazione
@@ -34,8 +36,14 @@ export class User extends Base {
     this.email = data.email || '';
     this.nome = data.nome || '';
     this.cognome = data.cognome || '';
+    
+    // NUOVO: Multi-tenant membership
+    this.tenantMemberships = data.tenantMemberships || {};
+    
+    // DEPRECATO: Mantenuto per retrocompatibilità
     this.ruoli = data.ruoli || [];
     this.tenantId = data.tenantId || null;
+    
     this.stato = data.stato || 'attivo';
     this.creatoDa = data.creatoDa || null;
     this.creatoIl = data.creatoIl ? (data.creatoIl instanceof Date ? data.creatoIl : new Date(data.creatoIl)) : null;
@@ -98,9 +106,17 @@ export class User extends Base {
   /**
    * Verifica se utente ha un ruolo specifico
    * @param {string} role - Nome ruolo
+   * @param {string} tenantId - ID tenant (opzionale, se non specificato usa tenantId deprecato)
    * @returns {boolean} true se ha il ruolo
    */
-  hasRole(role) {
+  hasRole(role, tenantId = null) {
+    // Se specificato tenantId, usa tenantMemberships
+    if (tenantId && this.tenantMemberships && this.tenantMemberships[tenantId]) {
+      const membership = this.tenantMemberships[tenantId];
+      return membership.ruoli && Array.isArray(membership.ruoli) && membership.ruoli.includes(role);
+    }
+    
+    // Retrocompatibilità: usa ruoli deprecati
     return this.ruoli && this.ruoli.includes(role);
   }
   
@@ -175,6 +191,170 @@ export class User extends Base {
     return this.stato === 'disattivato';
   }
   
+  // ============================================
+  // METODI MULTI-TENANT MEMBERSHIP
+  // ============================================
+  
+  /**
+   * Ottieni tutte le membership tenant dell'utente
+   * @returns {Object} Oggetto con tutte le membership { tenantId: { ruoli, stato, ... } }
+   */
+  getTenantMemberships() {
+    return this.tenantMemberships || {};
+  }
+  
+  /**
+   * Ottieni ruoli utente per un tenant specifico
+   * @param {string} tenantId - ID tenant
+   * @returns {Array<string>} Array di ruoli per quel tenant
+   */
+  getRolesForTenant(tenantId) {
+    if (!tenantId) {
+      return [];
+    }
+    
+    // Usa tenantMemberships se disponibile
+    if (this.tenantMemberships && this.tenantMemberships[tenantId]) {
+      const membership = this.tenantMemberships[tenantId];
+      return membership.ruoli && Array.isArray(membership.ruoli) ? membership.ruoli : [];
+    }
+    
+    // Retrocompatibilità: se tenantId corrisponde al tenantId deprecato, usa ruoli deprecati
+    if (this.tenantId === tenantId && this.ruoli && Array.isArray(this.ruoli)) {
+      return this.ruoli;
+    }
+    
+    return [];
+  }
+  
+  /**
+   * Verifica se utente appartiene a un tenant
+   * @param {string} tenantId - ID tenant
+   * @returns {boolean} true se appartiene al tenant
+   */
+  belongsToTenant(tenantId) {
+    if (!tenantId) {
+      return false;
+    }
+    
+    // Usa tenantMemberships se disponibile
+    if (this.tenantMemberships && this.tenantMemberships[tenantId]) {
+      const membership = this.tenantMemberships[tenantId];
+      return membership.stato === 'attivo';
+    }
+    
+    // Retrocompatibilità: verifica tenantId deprecato
+    return this.tenantId === tenantId;
+  }
+  
+  /**
+   * Ottieni tenant predefinito (quello con tenantIdPredefinito: true o il primo)
+   * @returns {string|null} ID del tenant predefinito o null
+   */
+  getDefaultTenant() {
+    // Cerca tenant con flag tenantIdPredefinito
+    if (this.tenantMemberships) {
+      for (const [tenantId, membership] of Object.entries(this.tenantMemberships)) {
+        if (membership.tenantIdPredefinito === true) {
+          return tenantId;
+        }
+      }
+      
+      // Se nessuno ha il flag, restituisci il primo tenant attivo
+      for (const [tenantId, membership] of Object.entries(this.tenantMemberships)) {
+        if (membership.stato === 'attivo') {
+          return tenantId;
+        }
+      }
+    }
+    
+    // Retrocompatibilità: usa tenantId deprecato
+    return this.tenantId || null;
+  }
+  
+  /**
+   * Aggiungi membership a un tenant
+   * @param {string} tenantId - ID tenant
+   * @param {Object} membershipData - Dati membership
+   * @param {Array<string>} membershipData.ruoli - Array di ruoli
+   * @param {string} membershipData.stato - Stato ('attivo' | 'disattivato')
+   * @param {Date|Timestamp} membershipData.dataInizio - Data inizio membership
+   * @param {string} membershipData.creatoDa - ID utente che ha creato la membership
+   * @param {boolean} membershipData.tenantIdPredefinito - Se true, questo è il tenant predefinito
+   */
+  addTenantMembership(tenantId, membershipData) {
+    if (!tenantId) {
+      throw new Error('tenantId obbligatorio');
+    }
+    
+    if (!this.tenantMemberships) {
+      this.tenantMemberships = {};
+    }
+    
+    this.tenantMemberships[tenantId] = {
+      ruoli: membershipData.ruoli || [],
+      stato: membershipData.stato || 'attivo',
+      dataInizio: membershipData.dataInizio || new Date(),
+      creatoDa: membershipData.creatoDa || null,
+      tenantIdPredefinito: membershipData.tenantIdPredefinito || false
+    };
+    
+    // Se è il primo tenant o è marcato come predefinito, aggiorna anche tenantId deprecato per retrocompatibilità
+    if (membershipData.tenantIdPredefinito || Object.keys(this.tenantMemberships).length === 1) {
+      this.tenantId = tenantId;
+      this.ruoli = membershipData.ruoli || [];
+    }
+  }
+  
+  /**
+   * Rimuovi membership da un tenant
+   * @param {string} tenantId - ID tenant
+   */
+  removeTenantMembership(tenantId) {
+    if (!tenantId || !this.tenantMemberships) {
+      return;
+    }
+    
+    delete this.tenantMemberships[tenantId];
+    
+    // Se era il tenant predefinito, aggiorna tenantId deprecato con un altro tenant
+    if (this.tenantId === tenantId) {
+      const remainingTenants = Object.keys(this.tenantMemberships);
+      if (remainingTenants.length > 0) {
+        this.tenantId = remainingTenants[0];
+        const newMembership = this.tenantMemberships[this.tenantId];
+        this.ruoli = newMembership ? (newMembership.ruoli || []) : [];
+      } else {
+        this.tenantId = null;
+        this.ruoli = [];
+      }
+    }
+  }
+  
+  /**
+   * Ottieni lista di tutti i tenant a cui l'utente appartiene
+   * @returns {Array<Object>} Array di oggetti { tenantId, ruoli, stato, ... }
+   */
+  getUserTenants() {
+    if (!this.tenantMemberships || Object.keys(this.tenantMemberships).length === 0) {
+      // Retrocompatibilità: se non ci sono tenantMemberships ma c'è tenantId, restituisci quello
+      if (this.tenantId) {
+        return [{
+          tenantId: this.tenantId,
+          ruoli: this.ruoli || [],
+          stato: this.stato || 'attivo',
+          tenantIdPredefinito: true
+        }];
+      }
+      return [];
+    }
+    
+    return Object.entries(this.tenantMemberships).map(([tenantId, membership]) => ({
+      tenantId,
+      ...membership
+    }));
+  }
+  
   /**
    * Converte in formato Firestore
    * @returns {Object} Oggetto Firestore
@@ -182,9 +362,14 @@ export class User extends Base {
   toFirestore() {
     const data = super.toFirestore();
     
-    // Assicurati che ruoli sia sempre un array
+    // Assicurati che ruoli sia sempre un array (retrocompatibilità)
     if (!data.ruoli) {
       data.ruoli = [];
+    }
+    
+    // Assicurati che tenantMemberships sia sempre un oggetto
+    if (!data.tenantMemberships) {
+      data.tenantMemberships = {};
     }
     
     return data;
@@ -192,9 +377,4 @@ export class User extends Base {
 }
 
 export default User;
-
-
-
-
-
 

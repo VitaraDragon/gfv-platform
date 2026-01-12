@@ -289,6 +289,10 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Gestisci preventivi per lavori conto terzi</p>
             </div>
             <div class="header-actions">
+                <a href="../../../core/admin/impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
                 <a href="nuovo-preventivo-standalone.html" class="btn btn-primary">➕ Nuovo Preventivo</a>
                 <a href="conto-terzi-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
@@ -419,6 +423,12 @@
                                 window.location.href = '../../../core/dashboard-standalone.html';
                             }, 2000);
                             return;
+                        }
+                        
+                        // Mostra link impostazioni (solo Manager/Amministratore, già verificato sopra)
+                        const impostazioniLink = document.getElementById('impostazioni-link');
+                        if (impostazioniLink) {
+                            impostazioniLink.style.display = 'inline-flex';
                         }
 
                         // Carica clienti per mostrare nomi

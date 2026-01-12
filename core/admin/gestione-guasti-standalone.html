@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -459,6 +459,14 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label>Filtra per Tipo</label>
+                    <select id="filter-tipo">
+                        <option value="">Tutti</option>
+                        <option value="macchina">🔧 Macchina</option>
+                        <option value="generico">🌍 Generico</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label>Filtra per Macchina</label>
                     <select id="filter-macchina">
                         <option value="">Tutte</option>
@@ -597,6 +605,22 @@
 
                     const userData = userDoc.data();
                     currentTenantId = userData.tenantId;
+                    
+                    // Imposta tenantId nel tenant-service per i servizi
+                    try {
+                        const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                        setCurrentTenantId(currentTenantId);
+                    } catch (error) {
+                        console.warn('Impossibile impostare tenantId nel servizio:', error);
+                    }
+                    
+                    // Assicura che Firebase sia inizializzato nei servizi
+                    try {
+                        const { setFirebaseInstances } = await import('../services/firebase-service.js');
+                        setFirebaseInstances({ app, db, auth });
+                    } catch (error) {
+                        console.warn('Impossibile impostare Firebase instances nel servizio:', error);
+                    }
 
                     // Verifica permessi (solo Manager o Amministratore)
                     const ruoli = userData.ruoli || [];
@@ -649,22 +673,88 @@
                 try {
                     if (!currentTenantId) return;
 
-                    const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
-                    const snapshot = await getDocs(macchineRef);
-                    
-                    macchineList = [];
+                    const isFileProtocol = window.location.protocol === 'file:';
                     const macchinaSelect = document.getElementById('filter-macchina');
+                    
+                    if (!macchinaSelect) return;
+                    
                     macchinaSelect.innerHTML = '<option value="">Tutte</option>';
 
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        macchineList.push({ id: doc.id, ...data });
-                        const tipoIcon = (data.tipoMacchina || data.tipo) === 'trattore' ? '🚜' : '⚙️';
-                        const option = document.createElement('option');
-                        option.value = doc.id;
-                        option.textContent = `${tipoIcon} ${data.nome || 'Macchina senza nome'}`;
-                        macchinaSelect.appendChild(option);
-                    });
+                    if (isFileProtocol) {
+                        // Fallback per ambiente file://
+                        const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
+                        const snapshot = await getDocs(macchineRef);
+                        
+                        macchineList = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            macchineList.push({ id: doc.id, ...data });
+                            const tipoIcon = (data.tipoMacchina || data.tipo) === 'trattore' ? '🚜' : '⚙️';
+                            const option = document.createElement('option');
+                            option.value = doc.id;
+                            option.textContent = `${tipoIcon} ${data.nome || 'Macchina senza nome'}`;
+                            macchinaSelect.appendChild(option);
+                        });
+                    } else {
+                        // Usa servizio centralizzato
+                        try {
+                            // Assicura che Firebase sia inizializzato nei servizi
+                            const { setFirebaseInstances } = await import('../services/firebase-service.js');
+                            setFirebaseInstances({ app, db, auth });
+                            
+                            // Assicura che il tenantId sia impostato nel servizio
+                            const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                            if (currentTenantId) {
+                                setCurrentTenantId(currentTenantId);
+                            }
+                            
+                            // Usa servizio centralizzato
+                            const { getAllMacchine } = await import('../../../modules/parco-macchine/services/macchine-service.js');
+                            let macchine = await getAllMacchine({
+                                // Non usiamo soloAttive per evitare problemi con indice Firestore
+                                // Filtriamo lato client invece
+                                orderBy: 'nome',
+                                orderDirection: 'asc'
+                            });
+                            
+                            // Converti in formato compatibile con codice esistente
+                            macchineList = macchine.map(m => ({
+                                id: m.id,
+                                nome: m.nome,
+                                tipoMacchina: m.tipoMacchina || m.tipo,
+                                tipo: m.tipo || m.tipoMacchina, // Retrocompatibilità
+                                stato: m.stato,
+                                cavalli: m.cavalli,
+                                cavalliMinimiRichiesti: m.cavalliMinimiRichiesti,
+                                categoriaFunzione: m.categoriaFunzione,
+                                ...(m.toFirestore ? m.toFirestore() : m)
+                            }));
+                            
+                            // Popola dropdown
+                            macchineList.forEach(macchina => {
+                                const tipoIcon = (macchina.tipoMacchina || macchina.tipo) === 'trattore' ? '🚜' : '⚙️';
+                                const option = document.createElement('option');
+                                option.value = macchina.id;
+                                option.textContent = `${tipoIcon} ${macchina.nome || 'Macchina senza nome'}`;
+                                macchinaSelect.appendChild(option);
+                            });
+                        } catch (error) {
+                            console.error('Errore caricamento macchine dal servizio:', error);
+                            // Fallback: carica direttamente da Firestore
+                            const macchineRef = collection(db, `tenants/${currentTenantId}/macchine`);
+                            const snapshot = await getDocs(macchineRef);
+                            macchineList = [];
+                            snapshot.forEach(doc => {
+                                const data = doc.data();
+                                macchineList.push({ id: doc.id, ...data });
+                                const tipoIcon = (data.tipoMacchina || data.tipo) === 'trattore' ? '🚜' : '⚙️';
+                                const option = document.createElement('option');
+                                option.value = doc.id;
+                                option.textContent = `${tipoIcon} ${data.nome || 'Macchina senza nome'}`;
+                                macchinaSelect.appendChild(option);
+                            });
+                        }
+                    }
                 } catch (error) {
                     console.error('Errore caricamento macchine:', error);
                 }
@@ -673,13 +763,18 @@
             // Carica utenti
             async function loadUsers() {
                 try {
+                    if (!currentTenantId) return;
+                    
+                    // ⭐ IMPORTANTE: Filtra per tenantId per rispettare le regole Firestore
                     const usersRef = collection(db, 'users');
-                    const snapshot = await getDocs(usersRef);
+                    const q = query(usersRef, where('tenantId', '==', currentTenantId));
+                    const snapshot = await getDocs(q);
                     
                     usersMap.clear();
                     snapshot.forEach(doc => {
                         usersMap.set(doc.id, doc.data());
                     });
+                    console.log(`✅ Caricati ${usersMap.size} utenti del tenant`);
                 } catch (error) {
                     console.error('Errore caricamento utenti:', error);
                 }
@@ -773,6 +868,7 @@
             function filterGuasti() {
                 const filterStato = document.getElementById('filter-stato').value;
                 const filterGravita = document.getElementById('filter-gravita').value;
+                const filterTipo = document.getElementById('filter-tipo').value;
                 const filterMacchina = document.getElementById('filter-macchina').value;
 
                 let filtered = guastiList;
@@ -783,6 +879,13 @@
 
                 if (filterGravita) {
                     filtered = filtered.filter(g => g.gravita === filterGravita);
+                }
+
+                if (filterTipo) {
+                    filtered = filtered.filter(g => {
+                        const tipoGuasto = g.tipoGuasto || 'macchina'; // Default per retrocompatibilità
+                        return tipoGuasto === filterTipo;
+                    });
                 }
 
                 if (filterMacchina) {
@@ -808,9 +911,25 @@
 
                 let html = '';
                 guasti.forEach(guasto => {
-                    const macchina = macchineList.find(m => m.id === guasto.macchinaId);
-                    const macchinaNome = macchina ? macchina.nome : 'Macchina non trovata';
-                    const tipoIcon = macchina ? ((macchina.tipoMacchina || macchina.tipo) === 'trattore' ? '🚜' : '⚙️') : '❓';
+                    const tipoGuasto = guasto.tipoGuasto || 'macchina'; // Default per retrocompatibilità
+                    
+                    let titolo = '';
+                    let tipoIcon = '❓';
+                    let tipoBadge = '';
+                    
+                    if (tipoGuasto === 'generico') {
+                        // Segnalazione generica
+                        tipoIcon = '🌍';
+                        tipoBadge = '<span class="badge" style="background: #17a2b8; color: white;">🌍 Generico</span>';
+                        titolo = `${guasto.tipoProblema || 'Segnalazione'} - ${guasto.ubicazione || 'Ubicazione non specificata'}`;
+                    } else {
+                        // Guasto macchina
+                        tipoBadge = '<span class="badge" style="background: #6c757d; color: white;">🔧 Macchina</span>';
+                        const macchina = macchineList.find(m => m.id === guasto.macchinaId);
+                        const macchinaNome = macchina ? macchina.nome : 'Macchina non trovata';
+                        tipoIcon = macchina ? ((macchina.tipoMacchina || macchina.tipo) === 'trattore' ? '🚜' : '⚙️') : '❓';
+                        titolo = macchinaNome;
+                    }
 
                     const operaio = usersMap.get(guasto.segnalatoDa);
                     const operaioNome = operaio ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email : 'Operaio sconosciuto';
@@ -841,8 +960,9 @@
                     html += `
                         <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'approvato' : stato === 'sospeso' ? 'sospeso' : ''}">
                             <div class="guasto-header">
-                                <div class="guasto-title">${tipoIcon} ${macchinaNome}</div>
+                                <div class="guasto-title">${tipoIcon} ${titolo}</div>
                                 <div class="guasto-badges">
+                                    ${tipoBadge}
                                     ${gravitaBadge}
                                     ${statoBadge}
                                 </div>
@@ -850,6 +970,45 @@
                             <div class="guasto-details">
                                 <div><strong>Operaio:</strong> ${operaioNome}</div>
                                 <div><strong>Segnalato il:</strong> ${dataSegnalazione}</div>
+                                ${tipoGuasto === 'generico' ? `
+                                    <div><strong>Ubicazione:</strong> ${guasto.ubicazione || '-'}</div>
+                                    <div><strong>Tipo problema:</strong> ${guasto.tipoProblema || '-'}</div>
+                                    ${(() => {
+                                        // Gestisci coordinate in diversi formati (oggetto, GeoPoint Firestore)
+                                        let lat, lng;
+                                        if (guasto.coordinateProblema) {
+                                            const coord = guasto.coordinateProblema;
+                                            if (coord.lat !== undefined && coord.lng !== undefined) {
+                                                lat = coord.lat;
+                                                lng = coord.lng;
+                                            } else if (coord._lat !== undefined && coord._long !== undefined) {
+                                                // GeoPoint Firestore
+                                                lat = coord._lat;
+                                                lng = coord._long;
+                                            } else if (coord.latitude !== undefined && coord.longitude !== undefined) {
+                                                lat = coord.latitude;
+                                                lng = coord.longitude;
+                                            }
+                                        }
+                                        
+                                        if (lat !== undefined && lng !== undefined) {
+                                            return `
+                                                <div style="margin-top: 8px;">
+                                                    <a href="https://www.google.com/maps?q=${lat},${lng}&z=18" 
+                                                       target="_blank" 
+                                                       class="btn btn-secondary btn-sm" 
+                                                       style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; padding: 6px 12px; border-radius: 4px; background: #6c757d; color: white; border: none; cursor: pointer;">
+                                                        🗺️ Visualizza sulla mappa
+                                                    </a>
+                                                    <small style="display: block; margin-top: 4px; color: #666; font-size: 12px;">
+                                                        Coordinate: ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                                                    </small>
+                                                </div>
+                                            `;
+                                        }
+                                        return '';
+                                    })()}
+                                ` : ''}
                                 <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
                                 ${lavoroNome ? `<div><strong>Lavoro associato:</strong> ${lavoroNome}</div>` : ''}
                                 ${guasto.stato === 'risolto' ? `
@@ -903,6 +1062,7 @@
             function setupFilters() {
                 document.getElementById('filter-stato').addEventListener('change', filterGuasti);
                 document.getElementById('filter-gravita').addEventListener('change', filterGuasti);
+                document.getElementById('filter-tipo').addEventListener('change', filterGuasti);
                 document.getElementById('filter-macchina').addEventListener('change', filterGuasti);
             }
 
@@ -910,6 +1070,7 @@
             window.resetFilters = function() {
                 document.getElementById('filter-stato').value = '';
                 document.getElementById('filter-gravita').value = '';
+                document.getElementById('filter-tipo').value = '';
                 document.getElementById('filter-macchina').value = '';
                 filterGuasti();
             };
@@ -945,24 +1106,30 @@
                     }
 
                     const guastoData = guastoDoc.data();
+                    const tipoGuasto = guastoData.tipoGuasto || 'macchina'; // Default per retrocompatibilità
                     await updateDoc(guastoRef, {
                         stato: 'sospeso',
                         sospesoDa: currentUser.uid,
                         sospesoIl: serverTimestamp()
                     });
 
-                    // Aggiorna stato macchina
-                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
-                    await updateDoc(macchinaRef, {
-                        stato: 'guasto'
-                    });
+                    // Aggiorna stato macchina SOLO se è un guasto macchina
+                    if (tipoGuasto === 'macchina' && guastoData.macchinaId) {
+                        const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                        await updateDoc(macchinaRef, {
+                            stato: 'guasto'
+                        });
+                    }
 
                     // Sospendi lavoro se presente
                     if (guastoData.lavoroId) {
                         const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
+                        const motivoSospensione = tipoGuasto === 'macchina' 
+                            ? 'Guasto macchina - Sospeso dal Manager'
+                            : 'Segnalazione - Sospeso dal Manager';
                         await updateDoc(lavoroRef, {
                             stato: 'sospeso',
-                            motivoSospensione: 'Guasto macchina - Sospeso dal Manager'
+                            motivoSospensione
                         });
                     }
 
@@ -1007,6 +1174,7 @@
                     }
 
                     const guastoData = guastoDoc.data();
+                    const tipoGuasto = guastoData.tipoGuasto || 'macchina'; // Default per retrocompatibilità
                     const updateData = {
                         stato: 'risolto',
                         risolto: true,
@@ -1021,19 +1189,21 @@
 
                     await updateDoc(guastoRef, updateData);
 
-                    // Ripristina stato macchina
-                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
-                    const macchinaDoc = await getDoc(macchinaRef);
-                    if (macchinaDoc.exists()) {
-                        const macchinaData = macchinaDoc.data();
-                        let nuovoStato = 'disponibile';
-                        if (macchinaData.stato === 'guasto-lavoro-in-corso') {
-                            nuovoStato = 'in-uso';
-                        }
+                    // Ripristina stato macchina SOLO se è un guasto macchina
+                    if (tipoGuasto === 'macchina' && guastoData.macchinaId) {
+                        const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                        const macchinaDoc = await getDoc(macchinaRef);
+                        if (macchinaDoc.exists()) {
+                            const macchinaData = macchinaDoc.data();
+                            let nuovoStato = 'disponibile';
+                            if (macchinaData.stato === 'guasto-lavoro-in-corso') {
+                                nuovoStato = 'in-uso';
+                            }
 
-                        await updateDoc(macchinaRef, {
-                            stato: nuovoStato
-                        });
+                            await updateDoc(macchinaRef, {
+                                stato: nuovoStato
+                            });
+                        }
                     }
 
                     // Se c'era un lavoro sospeso, riattivalo
@@ -1042,7 +1212,10 @@
                         const lavoroDoc = await getDoc(lavoroRef);
                         if (lavoroDoc.exists()) {
                             const lavoroData = lavoroDoc.data();
-                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione?.includes('Guasto')) {
+                            const motivoSospensione = tipoGuasto === 'macchina' 
+                                ? 'Guasto macchina'
+                                : 'Segnalazione';
+                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione?.includes(motivoSospensione)) {
                                 await updateDoc(lavoroRef, {
                                     stato: 'attivo',
                                     motivoSospensione: null
@@ -1094,6 +1267,7 @@
                     }
 
                     const guastoData = guastoDoc.data();
+                    const tipoGuasto = guastoData.tipoGuasto || 'macchina'; // Default per retrocompatibilità
                     await updateDoc(guastoRef, {
                         stato: 'in-attesa',
                         risolto: false,
@@ -1105,11 +1279,13 @@
                         risoltoIl: null
                     });
 
-                    // Aggiorna stato macchina
-                    const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
-                    await updateDoc(macchinaRef, {
-                        stato: guastoData.gravita === 'grave' ? 'guasto' : 'guasto-lavoro-in-corso'
-                    });
+                    // Aggiorna stato macchina SOLO se è un guasto macchina
+                    if (tipoGuasto === 'macchina' && guastoData.macchinaId) {
+                        const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
+                        await updateDoc(macchinaRef, {
+                            stato: guastoData.gravita === 'grave' ? 'guasto' : 'guasto-lavoro-in-corso'
+                        });
+                    }
 
                     showAlert('Guasto riaperto con successo!', 'success');
                     closeRiapriModal();

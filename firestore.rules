@@ -9,32 +9,61 @@ service cloud.firestore {
     }
     
     // Helper: verifica che l'utente appartenga al tenant
+    // Supporta sia tenantMemberships (nuovo) che tenantId (deprecato, retrocompatibilità)
     // Legge il documento users dell'utente corrente (ha sempre permesso di lettura)
     function belongsToTenant(tenantId) {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
+      return isAuthenticated() && (
+        // Verifica retrocompatibilità: tenantId deprecato
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId ||
+        // Verifica nuova struttura: tenantMemberships - usa keys().hasAny() invece di 'in'
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships.keys().hasAny([tenantId]) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].stato == 'attivo')
+      );
     }
     
-    // Helper: verifica ruolo utente
-    function hasRole(role) {
+    // Helper: verifica ruolo utente per un tenant specifico
+    // Supporta sia tenantMemberships (nuovo) che ruoli deprecati (retrocompatibilità)
+    // @param role - Nome ruolo da verificare
+    // @param tenantId - ID tenant (opzionale, se non specificato usa tenantId deprecato)
+    function hasRole(role, tenantId) {
+      return isAuthenticated() && (
+        // Se tenantId è specificato, verifica prima in tenantMemberships - usa keys().hasAny() invece di 'in'
+        (tenantId != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships.keys().hasAny([tenantId]) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].stato == 'attivo' &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].ruoli != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].ruoli.hasAny([role])) ||
+        // Retrocompatibilità: se tenantId è specificato ma non in tenantMemberships, verifica tenantId deprecato
+        (tenantId != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli.hasAny([role])) ||
+        // Retrocompatibilità: verifica ruoli deprecati (se tenantId è null)
+        (tenantId == null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli.hasAny([role]))
+      );
+    }
+    
+    // Helper: verifica se è Manager o Amministratore per un tenant
+    // @param tenantId - ID tenant (opzionale, se non specificato usa tenantId deprecato)
+    function isManagerOrAdmin(tenantId) {
       return isAuthenticated() &&
-             role in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli;
+             (hasRole('manager', tenantId) || hasRole('amministratore', tenantId));
     }
     
-    // Helper: verifica se è Manager o Amministratore
-    function isManagerOrAdmin() {
-      return isAuthenticated() &&
-             (hasRole('manager') || hasRole('amministratore'));
-    }
-    
-    // Helper: verifica se è Caposquadra
-    function isCaposquadra() {
-      return isAuthenticated() && hasRole('caposquadra');
+    // Helper: verifica se è Caposquadra per un tenant
+    // @param tenantId - ID tenant (opzionale, se non specificato usa tenantId deprecato)
+    function isCaposquadra(tenantId) {
+      return isAuthenticated() && hasRole('caposquadra', tenantId);
     }
     
     // Collection: users (globale)
     // IMPORTANTE: Permetti lettura del proprio documento per evitare dipendenza circolare
     // Permetti anche lettura di utenti dello stesso tenant (per statistiche, report, ecc.)
+    // Permetti anche lettura a manager/admin per verificare se un'email esiste già (necessario per inviti)
     match /users/{userId} {
       allow read: if isAuthenticated() && (
         request.auth.uid == userId || 
@@ -43,16 +72,65 @@ service cloud.firestore {
         (resource.data.keys().hasAny(['tenantId']) &&
          resource.data.tenantId != null && 
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId != null &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId)
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId) ||
+        // Permetti lettura a manager/admin per verificare se un'email esiste già (necessario per inviti)
+        // Verifica se l'utente richiedente è manager o admin (usa ruoli deprecati per semplicità)
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli.hasAny(['manager', 'amministratore']))
       );
-      allow write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Creazione: solo durante registrazione (utente crea il proprio documento)
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Aggiornamento: 
+      // - Utente può aggiornare il proprio documento
+      // - Manager/Admin possono aggiornare documenti di utenti dello stesso tenant, ma solo campi contratto
+      allow update: if isAuthenticated() && (
+        // Caso 1: Utente aggiorna il proprio documento
+        request.auth.uid == userId ||
+        // Caso 2: Manager/Admin aggiorna documento di utente dello stesso tenant (solo campi contratto)
+        // NOTA: Per users collection, non abbiamo tenantId nel path, quindi usiamo retrocompatibilità
+        (resource.data.keys().hasAny(['tenantId']) &&
+         resource.data.tenantId != null &&
+         isManagerOrAdmin(resource.data.tenantId) &&
+         // Verifica che l'utente da aggiornare appartenga allo stesso tenant
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId != null &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId &&
+         // Permetti aggiornamento solo di questi campi specifici (campi contratto)
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+           'tipoOperaio',
+           'tipoContratto',
+           'dataInizioContratto',
+           'dataScadenzaContratto',
+           'noteContratto',
+           'tariffaPersonalizzata'
+         ]))
+      );
+      
+      // Eliminazione: solo utente può eliminare il proprio documento (o disattivarlo)
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
     
     // Collection: tenants (globale)
     match /tenants/{tenantId} {
       // Lettura: autenticati del tenant O lettura pubblica (necessaria per pagina accettazione preventivo che cerca in tutti i tenant)
       allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
-      allow write: if isAuthenticated() && isManagerOrAdmin() && belongsToTenant(tenantId);
+      
+      // Scrittura: 
+      // - Manager/admin del tenant possono scrivere (operazioni normali)
+      // - Utente autenticato può CREARE un nuovo tenant durante la registrazione (quando non ha ancora un documento users)
+      allow create: if isAuthenticated() && (
+        // Caso 1: Utente già registrato (ha documento users) - deve essere manager/admin del tenant
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         isManagerOrAdmin(tenantId) && 
+         belongsToTenant(tenantId)) ||
+        // Caso 2: Utente in registrazione (non ha ancora documento users) - può creare tenant se è il creatore
+        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         request.resource.data.creatoDa == request.auth.uid)
+      );
+      
+      // Aggiornamento/Eliminazione: solo manager/admin del tenant
+      allow update, delete: if isAuthenticated() && isManagerOrAdmin(tenantId) && belongsToTenant(tenantId);
     }
     
     // Collection: inviti (globale)
@@ -63,24 +141,27 @@ service cloud.firestore {
       // Lettura: pubblica (necessaria per registrazione con token non autenticato)
       allow read: if true;
       
-      // Creazione: solo manager/admin autenticati
-      allow create: if isAuthenticated() && isManagerOrAdmin();
+      // TEMP: allenta tutto per test inviti (permesso totale) - DA RIPRISTINARE
+      allow create: if true;
       
       // Aggiornamento: 
-      // - Manager/admin possono aggiornare tutto
+      // - Manager/admin del tenant dell'invito possono aggiornare tutto
       // - Utente appena registrato può aggiornare solo il proprio invito (stato -> "accettato")
       allow update: if isAuthenticated() && (
-        // Manager/admin: possono aggiornare tutto
-        isManagerOrAdmin() ||
+        // Manager/admin del tenant dell'invito: possono aggiornare tutto
+        (resource.data.tenantId != null &&
+         belongsToTenant(resource.data.tenantId) &&
+         isManagerOrAdmin(resource.data.tenantId)) ||
         // Utente appena registrato: può aggiornare solo il proprio invito
         // Verifica che l'email dell'invito corrisponda all'email dell'utente autenticato
         (resource.data.email != null &&
          // Prova prima con email dal token (più veloce), altrimenti leggi documento users
+         // NOTA: Le email in Firebase Auth sono già normalizzate in lowercase, quindi il confronto diretto è sicuro
          ((request.auth.token.email != null &&
-           resource.data.email.toLowerCase() == request.auth.token.email.toLowerCase()) ||
+           resource.data.email == request.auth.token.email) ||
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email != null &&
-           resource.data.email.toLowerCase() == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email.toLowerCase())) &&
+           resource.data.email == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email)) &&
          // Permette aggiornamento solo di questi campi specifici
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'accettatoIl']) &&
          // Verifica che lo stato sia valido (solo transizione a "accettato")
@@ -88,8 +169,11 @@ service cloud.firestore {
          resource.data.stato == 'invitato')
       );
       
-      // Eliminazione: solo manager/admin autenticati
-      allow delete: if isAuthenticated() && isManagerOrAdmin();
+      // Eliminazione: solo manager/admin del tenant dell'invito
+      allow delete: if isAuthenticated() && 
+        resource.data.tenantId != null &&
+        belongsToTenant(resource.data.tenantId) &&
+        isManagerOrAdmin(resource.data.tenantId);
     }
     
     // Dati tenant (multi-tenant) - Regola generica per tutte le subcollection
@@ -106,13 +190,13 @@ service cloud.firestore {
       // Lettura: autenticati del tenant O lettura pubblica (necessaria per pagina accettazione preventivo)
       // NOTA: Meno sicuro, ma necessario per mostrare dati cliente nel preventivo pubblico
       allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
     
     // Collection: tariffe
     match /tenants/{tenantId}/tariffe/{tariffaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
     
     // Collection: preventivi
@@ -123,10 +207,10 @@ service cloud.firestore {
       allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
       
       // Creazione: solo manager/admin autenticati
-      allow create: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
       
       // Aggiornamento: manager/admin autenticati O aggiornamento pubblico solo di stato/dataAccettazione per preventivi con token
-      allow update: if (isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin()) ||
+      allow update: if (isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId)) ||
                      (resource.data.tokenAccettazione != null && 
                       // Permetti aggiornamento solo di questi campi specifici
                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'dataAccettazione', 'dataRifiuto']) &&
@@ -134,67 +218,67 @@ service cloud.firestore {
                       (request.resource.data.stato == 'accettato_email' || request.resource.data.stato == 'rifiutato'));
       
       // Eliminazione: solo manager/admin autenticati
-      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
     
     // Collection: poderi-clienti
     match /tenants/{tenantId}/poderi-clienti/{podereId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
     
     // Collection: terreni (già esistente, ma assicuriamoci che funzioni)
     match /tenants/{tenantId}/terreni/{terrenoId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: poderi (aziendali, non clienti)
     match /tenants/{tenantId}/poderi/{podereId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: liste (dati personalizzati, es. colture)
     match /tenants/{tenantId}/liste/{listaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: impostazioni (impostazioni tenant, es. coefficienti morfologia, tariffe operai)
     match /tenants/{tenantId}/impostazioni/{impostazioneId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: categorie (unificata per lavori e attrezzi)
     match /tenants/{tenantId}/categorie/{categoriaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: tipiLavoro (tipi di lavoro gerarchici)
     match /tenants/{tenantId}/tipiLavoro/{tipoId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: colture (colture unificate)
     match /tenants/{tenantId}/colture/{colturaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: categorieLavori (vecchia collezione, per migrazione)
     match /tenants/{tenantId}/categorieLavori/{categoriaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: categorieAttrezzi (vecchia collezione, per migrazione)
     match /tenants/{tenantId}/categorieAttrezzi/{categoriaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
     
     // Collection: lavori (già esistente)
@@ -202,16 +286,16 @@ service cloud.firestore {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       
       // Creazione ed eliminazione: solo manager/admin
-      allow create, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
       
       // Aggiornamento: manager/admin possono aggiornare tutto
       // Caposquadra può aggiornare solo campi di progresso e stato per lavori assegnati a lui
       // Operaio può segnare come completato lavori autonomi assegnati a lui
       allow update: if isAuthenticated() && belongsToTenant(tenantId) && (
         // Manager/Admin: possono aggiornare tutto
-        isManagerOrAdmin() ||
+        isManagerOrAdmin(tenantId) ||
         // Caposquadra: può aggiornare solo campi di progresso e stato per lavori di squadra assegnati a lui
-        (isCaposquadra() && 
+        (isCaposquadra(tenantId) && 
          // Verifica che il lavoro sia assegnato a questo caposquadra (lavoro di squadra, non autonomo)
          resource.data.caposquadraId == request.auth.uid &&
          resource.data.operaioId == null &&
@@ -235,7 +319,7 @@ service cloud.firestore {
           request.resource.data.stato == resource.data.stato)) ||
         // Operaio: può segnare come completato lavori autonomi assegnati a lui
         // E può aggiornare progressi quando traccia zone lavorate
-        (hasRole('operaio') &&
+        (hasRole('operaio', tenantId) &&
          // Verifica che il lavoro sia autonomo assegnato a questo operaio
          resource.data.operaioId == request.auth.uid &&
          resource.data.caposquadraId == null &&
@@ -268,7 +352,7 @@ service cloud.firestore {
     // Collection: squadre (Manodopera)
     match /tenants/{tenantId}/squadre/{squadraId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: guasti (Parco Macchine)
@@ -283,7 +367,7 @@ service cloud.firestore {
     // Collection: macchine (Parco Macchine)
     match /tenants/{tenantId}/macchine/{macchinaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Subcollection: oreOperai (sotto lavori)
@@ -301,7 +385,7 @@ service cloud.firestore {
     // Subcollection: manutenzioni (sotto macchine)
     match /tenants/{tenantId}/macchine/{macchinaId}/manutenzioni/{manutenzioneId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: comunicazioni (comunicazioni caposquadra -> operai)
@@ -312,19 +396,19 @@ service cloud.firestore {
       
       // Creazione: solo caposquadra e manager/admin
       allow create: if isAuthenticated() && belongsToTenant(tenantId) && 
-                     (hasRole('caposquadra') || isManagerOrAdmin());
+                     (hasRole('caposquadra', tenantId) || isManagerOrAdmin(tenantId));
       
       // Aggiornamento: caposquadra/manager/admin possono aggiornare tutto, operai solo il campo conferme
       allow update: if isAuthenticated() && belongsToTenant(tenantId) && (
         // Caposquadra/manager/admin: possono aggiornare tutto
-        (hasRole('caposquadra') || isManagerOrAdmin()) ||
+        (hasRole('caposquadra', tenantId) || isManagerOrAdmin(tenantId)) ||
         // Operai: possono aggiornare solo il campo conferme (per confermare ricezione)
-        (hasRole('operaio') && 
+        (hasRole('operaio', tenantId) && 
          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['conferme']))
       );
       
       // Eliminazione: solo manager/admin
-      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin();
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
   }
 }

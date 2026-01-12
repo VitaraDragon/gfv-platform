@@ -7,6 +7,225 @@
 
 ---
 
+## 🆕 Ultimo Aggiornamento: Fix Caricamento Ore per Operaio e Duplicazioni (2026-01-05)
+
+### Funzionalità Completate
+- ✅ **Sezione Ore per Operaio**: Aggiunta nella tab Panoramica dei dettagli lavoro
+- ✅ **Fix Duplicazione Statistiche**: Risolto problema duplicazione quando si cambia tab
+- ✅ **Fix Scritta Caricamento**: Risolto problema scritta "Caricamento statistiche ore..." che rimaneva
+- ✅ **UI Migliorata**: Rimosso simbolo "Poligono" ridondante dalla lista zone lavorate
+
+### Problemi Risolti
+
+#### 1. Sezione "Ore per Operaio" Non Caricava
+- **Sintomo**: La sezione "Ore per Operaio" nella tab Panoramica rimaneva in caricamento e non mostrava i dati
+- **Causa**: La funzione `loadDettaglioOverview` caricava solo i totali delle ore ma non raggruppava per operaio
+- **Soluzione**: Aggiunta logica per raggruppare le ore per operaio e caricare i nomi degli operai
+
+#### 2. Duplicazione Statistiche
+- **Sintomo**: Quando si apriva la tab "Ore" e poi si tornava alla "Panoramica", le statistiche venivano duplicate
+- **Causa**: `loadDettaglioOverview` veniva chiamata due volte (da switchTab e da openDettaglioModal)
+- **Soluzione**: Rimossa chiamata ridondante e aggiunto flag per evitare chiamate multiple simultanee
+
+#### 3. Scritta "Caricamento statistiche ore..." Rimanente
+- **Sintomo**: La scritta di caricamento rimaneva visibile anche dopo il caricamento completo
+- **Causa**: Problema con la visibilità dei tab e gestione del container
+- **Soluzione**: Migliorata gestione visibilità tab e pulizia container
+
+### Test Eseguiti
+- ✅ **Sezione Ore per Operaio**: Si carica correttamente nella tab Panoramica
+- ✅ **Nessuna duplicazione**: Le statistiche non si duplicano più quando si cambia tab
+- ✅ **Scritta caricamento**: Non rimane più visibile dopo il caricamento
+- ✅ **Lista zone**: Più pulita senza simbolo "Poligono"
+
+### File Modificati
+- ✅ `core/admin/js/gestione-lavori-controller.js` - Aggiunta sezione "Ore per Operaio", flag anti-duplicazione, migliorata pulizia container
+- ✅ `core/admin/js/gestione-lavori-events.js` - Rimossa chiamata ridondante, migliorata gestione visibilità tab
+- ✅ `core/admin/js/gestione-lavori-maps.js` - Rimosso simbolo "Poligono" dalla lista zone
+
+---
+
+## 🆕 Aggiornamento Precedente: Fix Dropdown Attrezzi e Tipo Assegnazione (2026-01-03)
+
+### Funzionalità Completate
+- ✅ **Fix Dropdown Attrezzi**: Risolto problema dropdown attrezzi che non compariva quando si selezionava un trattore
+- ✅ **Fix Tipo Assegnazione**: Risolto problema caposquadra obbligatorio anche per lavori autonomi
+- ✅ **MutationObserver**: Aggiunto observer per configurare handler quando modal diventa attivo
+- ✅ **Event Delegation**: Implementato event delegation sul form per gestire cambiamenti tipo assegnazione
+- ✅ **Pulizia Log**: Rimossi tutti i log di debug aggiunti durante il troubleshooting
+
+### Problemi Risolti
+
+#### 1. Dropdown Attrezzi Non Visibile
+- **Sintomo**: Quando si creava un lavoro nel modulo conto terzi e si selezionava un trattore, il dropdown degli attrezzi non compariva
+- **Causa**: `setupMacchineHandlers` non veniva chiamato quando il modal veniva aperto
+- **Soluzione**: Aggiunto `MutationObserver` che monitora quando il modal diventa attivo e configura automaticamente gli handler
+
+#### 2. Tipo Assegnazione (Caposquadra Obbligatorio)
+- **Sintomo**: Quando si selezionava "Lavoro Autonomo", il caposquadra rimaneva obbligatorio invece di diventare opzionale
+- **Causa**: I listener sui radio button venivano persi quando gli elementi venivano clonati o ricreati
+- **Soluzione**: Cambiato approccio da listener diretti a event delegation sul form, che funziona anche quando gli elementi vengono ricreati
+
+### Test Eseguiti
+- ✅ **Dropdown attrezzi**: Compare correttamente quando si seleziona un trattore
+- ✅ **Tipo assegnazione squadra**: Caposquadra obbligatorio, operaio nascosto
+- ✅ **Tipo assegnazione autonomo**: Operaio obbligatorio, caposquadra non obbligatorio e nascosto
+- ✅ **Modal observer**: Handler configurati correttamente quando il modal diventa attivo
+- ✅ **Event delegation**: Funziona correttamente anche quando gli elementi vengono ricreati
+
+### File Modificati
+- ✅ `core/admin/gestione-lavori-standalone.html` - Aggiunto MutationObserver, rimossi log
+- ✅ `core/admin/js/gestione-lavori-events.js` - Modificato `setupTipoAssegnazioneHandlers` per event delegation, migliorato `setupMacchineHandlers`, rimossi log
+- ✅ `core/admin/js/gestione-lavori-controller.js` - Rimossi log da `populateAttrezziDropdown` e `populateTrattoriDropdown`
+
+---
+
+## 🆕 Aggiornamento Precedente: Fix Dropdown Tipi Lavoro Multitenant (2026-01-03)
+
+### Funzionalità Completate
+- ✅ **Fix Dropdown Tipi Lavoro**: Risolto problema dropdown vuoto durante test multitenant
+- ✅ **Inizializzazione Automatica**: Tipi di lavoro predefiniti inizializzati automaticamente per nuovi tenant
+- ✅ **Pulizia Log**: Rimossi tutti i log di debug non necessari da attività e terreni
+
+### Problema Risolto
+- **Sintomo**: Dropdown "Tipo Lavoro Specifico" rimaneva vuoto dopo selezione categoria/sottocategoria
+- **Causa**: Tenant "rosso" non aveva tipi di lavoro inizializzati nella collection Firestore
+- **Soluzione**: Aggiunto controllo automatico che inizializza i 66 tipi predefiniti quando la collection è vuota
+
+### Test Eseguiti
+- ✅ **Inizializzazione automatica**: 66 tipi di lavoro creati automaticamente al primo utilizzo
+- ✅ **Dropdown popolato**: Funziona correttamente per tutte le categorie (13, 3, 7, 15, 6, 8 tipi a seconda della categoria)
+- ✅ **Filtri categoria**: Filtro per categoria principale e sottocategoria funzionante
+- ✅ **Salvataggio attività**: Attività salvata con successo con tipo di lavoro selezionato
+
+### File Modificati
+- ✅ `core/js/attivita-controller.js` - Aggiunto inizializzazione automatica, rimossi log
+- ✅ `core/services/tipi-lavoro-service.js` - Migliorata inizializzazione, rimossi log
+- ✅ `core/services/firebase-service.js` - Rimossi log di debug
+- ✅ `core/js/terreni-events.js` - Rimossi log di debug
+- ✅ `core/js/terreni-maps.js` - Rimossi log di debug
+- ✅ `core/js/terreni-tour.js` - Rimosso log di debug
+- ✅ `core/terreni-standalone.html` - Rimossi log di debug
+- ✅ `core/attivita-standalone.html` - Rimossi log di debug
+
+---
+
+## 🆕 Aggiornamento Precedente: Test Multitenant e Fix Tracciamento Terreni (2026-01-03)
+
+### Funzionalità Completate
+- ✅ **Test Multitenant Completato**: Sistema multitenant testato e funzionante con nuovo utente
+- ✅ **Fix Tracciamento Confini**: Risolto problema click listener mappa che non rilevava `isDrawing`
+- ✅ **Fix Salvataggio Terreno**: Risolto errore async/await su `getTerreniCollection`
+- ✅ **Fix Conversione Coordinate**: Coordinate poligono ora salvate correttamente in Firestore
+
+### Test Eseguiti
+- ✅ **Registrazione nuovo utente**: Crea correttamente nuovo tenant con ruolo `amministratore`
+- ✅ **Tracciamento confini terreno**: Funziona correttamente, poligono visualizzato sulla mappa
+- ✅ **Creazione terreno con poligono**: Terreno salvato correttamente in Firestore con coordinate
+- ✅ **Calcolo superficie**: Superficie calcolata automaticamente dal poligono tracciato
+
+### File Modificati
+- ✅ `core/js/terreni-maps.js` - Fix click listener con `getState()`
+- ✅ `core/js/terreni-events.js` - Fix async/await, conversione coordinate
+- ✅ `core/terreni-standalone.html` - Fix wrapper, rimosso codice duplicato
+
+### Documentazione
+- ✅ Creato `TEST_MULTITENANT_2026-01-03.md` con documentazione completa del test
+
+---
+
+## 🆕 Aggiornamento Precedente: Completamento Standardizzazione Servizi (2026-01-03)
+
+### Funzionalità Completate
+- ✅ **Standardizzazione Servizi Completata**: Migrati tutti i file rimanenti a usare `service-helper.js`
+- ✅ **FASE 2 Macchine Completata**: `segnatura-ore-standalone.html` migrato a `loadMacchineViaService`
+- ✅ **FASE 3 Terreni Completata**: Migrati `attivita-controller.js`, `dashboard-maps.js`, `terreni-clienti-standalone.html`
+- ✅ **Fix Indice Composito Firestore**: Gestione automatica filtro `clienteId` + `orderBy` con filtro lato client
+- ✅ **Fix Campo Coltura**: Aggiunto `coltura` al modello `Terreno` per precompilazione automatica nel diario attività
+- ✅ **Fix Dashboard Maps**: Ripristinati `collection` e `getDocs` nelle dependencies
+
+### File Migrati
+- ✅ `core/segnatura-ore-standalone.html` - Migrato `loadMacchine()` a `loadMacchineViaService` (~70 righe → ~15 righe)
+- ✅ `core/js/attivita-controller.js` - Migrato `loadTerreni()` a `loadTerreniViaService` (con supporto modalità Conto Terzi)
+- ✅ `core/js/dashboard-maps.js` - Migrato caricamento terreni a `loadTerreniViaService`
+- ✅ `modules/conto-terzi/views/terreni-clienti-standalone.html` - Migrato a `loadTerreniViaService` con filtro clienteId
+- ✅ `core/dashboard-standalone.html` - Aggiunto `app` alle dependencies per supportare `dashboard-maps.js`
+
+### File Modificati per Supporto
+- ✅ `core/models/Terreno.js` - Aggiunto campo `coltura` al costruttore e documentazione
+- ✅ `core/services/terreni-service.js` - Gestione filtro lato client per `clienteId` + `orderBy` (evita indice composito)
+- ✅ `core/services/service-helper.js` - Migliorato converter per preservare `coltura` dai dati originali, fix fallback per indice composito
+
+### Vantaggi
+- ✅ **Codice Standardizzato**: Tutti i file principali usano `service-helper.js` per macchine e terreni
+- ✅ **Riduzione Codice**: ~150+ righe di codice duplicato rimosse
+- ✅ **Precompilazione Coltura**: Campo `coltura` ora disponibile per precompilazione automatica nel diario attività
+- ✅ **Gestione Indici**: Evitati problemi indice composito Firestore con filtro lato client intelligente
+- ✅ **Manutenibilità**: Pattern uniforme in tutta l'applicazione
+
+### Test Completati (2026-01-03)
+- ✅ **Test 1: Segnatura Ore** - Funziona correttamente (flusso completo testato: lavoro → segnatura → validazione → alert manutenzione)
+- ✅ **Test 2: Diario Attività** - Precompilazione coltura funzionante
+- ✅ **Test 3: Dashboard Maps** - Mappa aziendale funzionante
+- ✅ **Test 4: Terreni Clienti** - Filtro clienteId funzionante senza errori indice composito
+- ✅ **Standardizzazione Completata**: 4/4 test passati con successo
+
+---
+
+## 🆕 Aggiornamento Precedente: Fix Service Worker e Correzioni Moduli Attività (2026-01-03)
+
+### Funzionalità Completate
+- ✅ **Fix Service Worker**: Risolto errore "Failed to convert value to 'Response'" con gestione errori robusta
+- ✅ **Fix Wrapper Attività**: Corretti wrapper `populateSottocategorieLavoro` e `populateTrattoriDropdown` per evitare errori durante modifica attività
+- ✅ **Filtro Categorie Test**: Esclusa categoria "test categoria refactoring" da tutti i dropdown categorie lavori
+- ✅ **Coerenza Moduli**: Stesso filtro applicato in core, admin e modulo conto terzi
+
+### File Modificati
+- ✅ `service-worker.js` - Riscritto handler fetch con gestione errori completa
+- ✅ `core/attivita-standalone.html` - Corretti wrapper per populateSottocategorieLavoro e populateTrattoriDropdown
+- ✅ `core/js/attivita-controller.js` - Aggiunto filtro esclusione categorie test
+- ✅ `core/admin/js/gestione-lavori-controller.js` - Aggiunto filtro esclusione categorie test
+- ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Aggiunto filtro esclusione categorie test
+- ✅ `modules/conto-terzi/views/tariffe-standalone.html` - Aggiunto filtro esclusione categorie test
+
+### Vantaggi
+- ✅ **Stabilità Service Worker**: Nessun errore in console per richieste gestite dal service worker
+- ✅ **Modifica Attività Funzionante**: Nessun errore quando si modifica un'attività esistente
+- ✅ **UI Pulita**: Dropdown categorie senza voci di test
+- ✅ **Manutenibilità**: Filtro centralizzato per escludere categorie di test
+
+---
+
+## 🆕 Aggiornamento Precedente: Link Impostazioni nell'Header (2025-12-24)
+
+### Funzionalità Completate
+- ✅ **Link Impostazioni nell'Header**: Aggiunto link alle impostazioni con icona ingranaggio nell'header di 9 pagine chiave
+- ✅ **Accesso Rapido**: Possibilità di accedere alle impostazioni senza tornare alla dashboard
+- ✅ **Coerenza UI**: Stile identico alla dashboard (icona ⚙️ + testo "Impostazioni")
+- ✅ **Controllo Permessi**: Link visibile solo a Manager/Amministratore
+- ✅ **Pagine Modificate**: 
+  - Core Base: Terreni, Attività
+  - Admin/Manodopera: Gestione Lavori, Gestione Macchine, Gestisci Utenti, Segnatura Ore
+  - Modulo Conto Terzi: Preventivi, Nuovo Preventivo, Tariffe
+
+### File Modificati
+- ✅ `core/terreni-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `core/attivita-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `core/admin/gestione-lavori-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `core/admin/gestione-macchine-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `core/admin/gestisci-utenti-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `core/segnatura-ore-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `modules/conto-terzi/views/preventivi-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `modules/conto-terzi/views/nuovo-preventivo-standalone.html` - Aggiunto link impostazioni nell'header
+- ✅ `modules/conto-terzi/views/tariffe-standalone.html` - Aggiunto link impostazioni nell'header
+
+### Vantaggi
+- ✅ **Navigazione Migliorata**: Accesso rapido alle impostazioni dalle pagine dove serve configurare qualcosa
+- ✅ **UX Coerente**: Stesso comportamento della dashboard in tutte le pagine
+- ✅ **Sicurezza**: Link visibile solo agli utenti autorizzati (Manager/Amministratore)
+
+---
+
 ## ✅ Cosa Funziona
 
 ### 1. Core Services ✅

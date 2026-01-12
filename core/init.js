@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Core Initialization - Inizializza tutti i servizi core
  * Questo file deve essere importato all'avvio dell'applicazione
  * 
@@ -17,18 +17,17 @@ import { initializeAuthService } from './services/auth-service.js';
 export async function initializeCore(firebaseConfig) {
   try {
     // 1. Inizializza Firebase
-    console.log('🔧 Inizializzazione Firebase...');
+
     initializeFirebase(firebaseConfig);
     
     // 2. Inizializza Tenant Service
-    console.log('🔧 Inizializzazione Tenant Service...');
+
     initializeTenantService();
     
     // 3. Inizializza Auth Service
-    console.log('🔧 Inizializzazione Auth Service...');
+
     initializeAuthService();
-    
-    console.log('✅ Core inizializzato con successo');
+
   } catch (error) {
     console.error('❌ Errore inizializzazione core:', error);
     throw error;
@@ -38,9 +37,4 @@ export async function initializeCore(firebaseConfig) {
 export default {
   initializeCore
 };
-
-
-
-
-
 

@@ -13,7 +13,8 @@ export class Tariffa extends Base {
    * @param {Object} data - Dati tariffa
    * @param {string} data.id - ID tariffa
    * @param {string} data.tipoLavoro - Tipo lavoro (obbligatorio, es. "Aratura", "Semina")
-   * @param {string} data.coltura - Coltura (obbligatorio, es. "Grano", "Mais")
+   * @param {string} data.coltura - Coltura (opzionale, es. "Grano", "Mais"). Se vuota, si applica a tutta la categoria
+   * @param {string} data.categoriaColturaId - ID categoria coltura (opzionale, usato quando coltura è vuota per identificare la categoria)
    * @param {string} data.tipoCampo - Tipo campo: "pianura" | "collina" | "montagna" (obbligatorio)
    * @param {number} data.tariffaBase - Tariffa base in €/ettaro (obbligatorio)
    * @param {number} data.coefficiente - Coefficiente moltiplicativo per tipo campo (default: 1.0)
@@ -25,6 +26,7 @@ export class Tariffa extends Base {
     
     this.tipoLavoro = data.tipoLavoro || '';
     this.coltura = data.coltura || '';
+    this.categoriaColturaId = data.categoriaColturaId || null;
     this.tipoCampo = data.tipoCampo || 'pianura';
     this.tariffaBase = data.tariffaBase !== undefined ? parseFloat(data.tariffaBase) : 0;
     this.coefficiente = data.coefficiente !== undefined ? parseFloat(data.coefficiente) : 1.0;
@@ -43,9 +45,7 @@ export class Tariffa extends Base {
       errors.push('Tipo lavoro obbligatorio');
     }
     
-    if (!this.coltura || this.coltura.trim().length === 0) {
-      errors.push('Coltura obbligatoria');
-    }
+    // Coltura è opzionale: se vuota, si applica a tutte le colture della categoria
     
     const tipiCampoValidi = ['pianura', 'collina', 'montagna'];
     if (!tipiCampoValidi.includes(this.tipoCampo)) {
@@ -94,6 +94,7 @@ export class Tariffa extends Base {
 }
 
 export default Tariffa;
+
 
 
 

@@ -17,7 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getAuthInstance } from './firebase-service.js';
 import { getDocumentData, createDocument, updateDocument } from './firebase-service.js';
-import { getCurrentTenantId, setCurrentTenantId } from './tenant-service.js';
+import { getCurrentTenantId, setCurrentTenantId, getUserTenants } from './tenant-service.js';
 
 // Utente corrente in cache
 let currentUserData = null;
@@ -37,10 +37,9 @@ export function initializeAuthService() {
         const userData = await getDocumentData('users', user.uid);
         currentUserData = userData;
         
-        // Aggiorna tenant corrente se disponibile
-        if (userData && userData.tenantId) {
-          setCurrentTenantId(userData.tenantId);
-        }
+        // Gestione tenant: il tenant-service si occupa di impostare il tenant corrente
+        // basandosi su tenantMemberships o tenantId deprecato
+        // Non impostiamo qui per permettere al tenant-service di gestire la logica multi-tenant
         
         // Notifica tutti i listener
         authStateListeners.forEach(listener => {
@@ -153,7 +152,7 @@ export async function signUp(email, password, userData = {}) {
  * Effettua login
  * @param {string} email - Email utente
  * @param {string} password - Password
- * @returns {Promise<Object>} Dati utente
+ * @returns {Promise<Object>} Dati utente con informazioni tenant
  */
 export async function signIn(email, password) {
   try {
@@ -184,12 +183,34 @@ export async function signIn(email, password) {
       throw new Error('Account non attivo. Contatta l\'amministratore.');
     }
     
+    // Carica tenant disponibili per l'utente
+    const tenants = await getUserTenants(firebaseUser.uid);
+    
+    // Se un solo tenant, imposta automaticamente
+    // Se più tenant, il tenant-service gestirà la selezione tramite sessionStorage
+    if (tenants.length === 1) {
+      setCurrentTenantId(tenants[0].tenantId);
+    } else if (tenants.length > 1) {
+      // Più tenant: non impostare automaticamente, lascia che l'UI gestisca la selezione
+      // Il tenant-service userà sessionStorage o tenant predefinito
+    } else {
+      // Nessun tenant: retrocompatibilità con tenantId deprecato
+      if (userData.tenantId) {
+        setCurrentTenantId(userData.tenantId);
+      }
+    }
+    
     // Aggiorna ultimo accesso
     await updateDocument('users', firebaseUser.uid, {
       ultimoAccesso: new Date()
     });
     
-    return userData;
+    // Aggiungi informazioni tenant al risultato
+    return {
+      ...userData,
+      _tenants: tenants, // Informazioni tenant disponibili
+      _requiresTenantSelection: tenants.length > 1 // Se true, UI deve mostrare selettore
+    };
   } catch (error) {
     console.error('Errore login:', error);
     throw new Error(`Errore login: ${error.message}`);
@@ -314,6 +335,19 @@ export async function updateUserProfile(updates) {
   }
 }
 
+/**
+ * Ottieni lista tenant disponibili per l'utente corrente
+ * @returns {Promise<Array<Object>>} Array di { tenantId, ruoli, stato, ... }
+ */
+export async function getUserTenantsList() {
+  const user = getCurrentFirebaseUser();
+  if (!user) {
+    return [];
+  }
+  
+  return await getUserTenants(user.uid);
+}
+
 // Export default
 export default {
   initializeAuthService,
@@ -326,10 +360,7 @@ export default {
   isAuthenticated,
   resetPassword,
   updateUserPassword,
-  updateUserProfile
+  updateUserProfile,
+  getUserTenantsList
 };
-
-
-
-
 

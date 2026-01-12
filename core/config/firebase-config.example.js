@@ -1,4 +1,4 @@
-// Firebase Configuration - GFV Platform (EXAMPLE)
+﻿// Firebase Configuration - GFV Platform (EXAMPLE)
 // Questo è un file di esempio per il repository pubblico
 // Copia questo file come firebase-config.js e inserisci i tuoi valori reali
 
@@ -11,9 +11,4 @@ window.firebaseConfig = {
     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
     appId: "YOUR_APP_ID"
 };
-
-
-
-
-
 

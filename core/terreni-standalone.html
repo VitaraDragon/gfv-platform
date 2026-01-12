@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Terreni - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="../../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
-    <link rel="stylesheet" href="styles/tour.css">
+    <link rel="stylesheet" href="./styles/tour.css">
     <style>
         * {
             margin: 0;
@@ -540,6 +540,10 @@
                 <div style="font-size: 14px; opacity: 0.95;" id="user-info">Caricamento...</div>
             </div>
             <div class="header-actions">
+                <a href="admin/impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
                 <a href="dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
                 <button class="btn btn-primary" id="terreni-tour-button" type="button">🧭 Tour</button>
                 <button class="btn btn-primary" id="add-terreno-button" onclick="openTerrenoModal()">+ Aggiungi Terreno</button>
@@ -701,36 +705,57 @@
     <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Firebase SDK e Google Maps -->
     <script type="module">
-        // Attendi che le configurazioni siano caricate
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined' && typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                    resolve();
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50; // 5 secondi
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined' && typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve();
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        if (typeof window.firebaseConfig === 'undefined') {
-                            reject(new Error('Firebase config not loaded after 5 seconds'));
-                        } else {
-                            console.warn('Google Maps API key not found. Maps will not be available.');
-                            resolve(); // Continua comunque senza Maps
-                        }
-                    }
-                }, 100);
-            });
-        }
+        // ============================================
+        // IMPORT MODULI (prima di tutto)
+        // ============================================
+        import { 
+            waitForConfig as waitForConfigModule,
+            getTenantId as getTenantIdModule,
+            getTerreniCollection as getTerreniCollectionModule,
+            loadPoderi as loadPoderiModule,
+            populatePoderiDropdown as populatePoderiDropdownModule,
+            loadColture as loadColtureModule,
+            loadTerreni as loadTerreniModule,
+            renderTerreni as renderTerreniModule,
+            filterTerreni as filterTerreniModule,
+            clearFilters as clearFiltersModule
+        } from './js/terreni-controller.js';
 
-        await waitForConfig();
+        import {
+            showAlert as showAlertUtil,
+            escapeHtml as escapeHtmlUtil,
+            calcolaAlertAffitto as calcolaAlertAffittoUtil,
+            formattaDataScadenza as formattaDataScadenzaUtil,
+            getColturaColor as getColturaColorUtil
+        } from './js/terreni-utils.js';
+
+        import {
+            initMap as initMapModule,
+            searchLocation as searchLocationModule,
+            toggleDrawing as toggleDrawingModule,
+            clearPolygon as clearPolygonModule,
+            loadExistingPolygon as loadExistingPolygonModule
+        } from './js/terreni-maps.js';
+
+        import {
+            openTerrenoModal as openTerrenoModalModule,
+            closeTerrenoModal as closeTerrenoModalModule,
+            handleSaveTerreno as handleSaveTerrenoModule,
+            editTerreno as editTerrenoModule,
+            confirmDeleteTerreno as confirmDeleteTerrenoModule,
+            toggleDataScadenzaAffitto as toggleDataScadenzaAffittoModule,
+            updateColtureDropdownTerreni as updateColtureDropdownTerreniModule,
+            setupColturaColorListener as setupColturaColorListenerModule
+        } from './js/terreni-events.js';
+
+        import {
+            setupTerreniTourButton as setupTerreniTourButtonModule,
+            maybeAutoStartTerreniTour as maybeAutoStartTerreniTourModule,
+            startTerreniTour as startTerreniTourModule
+        } from './js/terreni-tour.js';
+
+        // Attendi che le configurazioni siano caricate
+        await waitForConfigModule();
 
         const firebaseConfig = window.firebaseConfig;
         const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
@@ -759,7 +784,40 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Variabili globali
+        // ============================================
+        // STATE OBJECT
+        // ============================================
+        const terreniState = {
+            // Google Maps
+            map: null,
+            polygon: null,
+            isDrawing: false,
+            currentPolygonCoords: [],
+            
+            // Terreni
+            currentTerrenoId: null,
+            currentTenantId: null,
+            terreni: [],
+            terreniFiltrati: [],
+            
+            // Liste
+            poderi: [],
+            colture: [],
+            categorieColtureTerreni: [],
+            colturePerCategoriaTerreni: {},
+            
+            // Tour
+            terreniTourAutoRequested: false,
+            terreniTourOpenedModal: false,
+            
+            // Firebase (riferimenti)
+            db,
+            auth
+        };
+
+        // ============================================
+        // VARIABILI GLOBALI (per compatibilità)
+        // ============================================
         let terreni = [];
         let terreniFiltrati = [];
         let currentTerrenoId = null;
@@ -774,7 +832,256 @@
         let terreniTourAutoRequested = false;
         let terreniTourOpenedModal = false;
 
-        setupTerreniTourButton();
+        // Liste aggiuntive per colture (per compatibilità con codice esistente)
+        let categorieColtureTerreni = [];
+        let colturePerCategoriaTerreni = {};
+
+        // ============================================
+        // FUNZIONE UPDATE STATE
+        // ============================================
+        function updateState(updates) {
+            Object.assign(terreniState, updates);
+            // Sincronizza con variabili globali per compatibilità
+            map = terreniState.map;
+            polygon = terreniState.polygon;
+            isDrawing = terreniState.isDrawing;
+            currentPolygonCoords = terreniState.currentPolygonCoords;
+            currentTerrenoId = terreniState.currentTerrenoId;
+            currentTenantId = terreniState.currentTenantId;
+            terreni = terreniState.terreni;
+            terreniFiltrati = terreniState.terreniFiltrati;
+            poderi = terreniState.poderi;
+            colture = terreniState.colture;
+            categorieColtureTerreni = terreniState.categorieColtureTerreni;
+            colturePerCategoriaTerreni = terreniState.colturePerCategoriaTerreni;
+            terreniTourAutoRequested = terreniState.terreniTourAutoRequested;
+            terreniTourOpenedModal = terreniState.terreniTourOpenedModal;
+        }
+
+        // ============================================
+        // WRAPPER FUNCTIONS
+        // ============================================
+
+        // Wrapper per waitForConfig (usa quello del modulo)
+        async function waitForConfigWrapper() {
+            return await waitForConfigModule();
+        }
+
+        // Wrapper per getTenantId
+        async function getTenantIdWrapper(userId) {
+            return await getTenantIdModule(userId, db, terreniState.currentTenantId);
+        }
+
+        // Wrapper per getTerreniCollection
+        function getTerreniCollectionWrapper(tenantId) {
+            return getTerreniCollectionModule(tenantId, db);
+        }
+
+        // Wrapper per loadPoderi
+        async function loadPoderiWrapper() {
+            await loadPoderiModule(terreniState.currentTenantId, db, terreniState.poderi);
+            updateState({ poderi: terreniState.poderi });
+        }
+
+        // Wrapper per populatePoderiDropdown
+        function populatePoderiDropdownWrapper() {
+            populatePoderiDropdownModule(terreniState.poderi);
+        }
+
+        // Wrapper per loadColture
+        async function loadColtureWrapper() {
+            await loadColtureModule(
+                terreniState.currentTenantId,
+                db,
+                app,
+                auth,
+                terreniState.categorieColtureTerreni,
+                terreniState.colturePerCategoriaTerreni,
+                terreniState.colture
+            );
+            updateState({
+                categorieColtureTerreni: terreniState.categorieColtureTerreni,
+                colturePerCategoriaTerreni: terreniState.colturePerCategoriaTerreni,
+                colture: terreniState.colture
+            });
+        }
+
+        // Wrapper per loadTerreni
+        async function loadTerreniWrapper() {
+            await loadTerreniModule(
+                terreniState.currentTenantId,
+                auth,
+                db,
+                app,
+                terreniState.terreni,
+                terreniState.terreniFiltrati,
+                (terreni, terreniFiltrati) => {
+                    updateState({ terreni, terreniFiltrati });
+                    renderTerreniWrapper(terreni, terreniFiltrati);
+                }
+            );
+        }
+
+        // Wrapper per renderTerreni
+        function renderTerreniWrapper(terreni, terreniFiltrati) {
+            renderTerreniModule(
+                terreni || terreniState.terreni,
+                terreniFiltrati || terreniState.terreniFiltrati,
+                () => maybeAutoStartTerreniTourWrapper()
+            );
+        }
+
+        // Wrapper per filterTerreni
+        function filterTerreniWrapper() {
+            filterTerreniModule(
+                terreniState.terreni,
+                terreniState.terreniFiltrati,
+                (terreni, terreniFiltrati) => {
+                    updateState({ terreniFiltrati });
+                    renderTerreniWrapper(terreni, terreniFiltrati);
+                }
+            );
+        }
+
+        // Wrapper per clearFilters
+        function clearFiltersWrapper() {
+            clearFiltersModule(
+                terreniState.terreni,
+                terreniState.terreniFiltrati,
+                (terreni, terreniFiltrati) => {
+                    updateState({ terreniFiltrati });
+                    renderTerreniWrapper(terreni, terreniFiltrati);
+                }
+            );
+        }
+
+        // Wrapper per openTerrenoModal
+        async function openTerrenoModalWrapper(terrenoId) {
+            await openTerrenoModalModule(
+                terrenoId,
+                terreniState,
+                updateState,
+                loadColtureWrapper,
+                populatePoderiDropdownWrapper,
+                updateColtureDropdownTerreniWrapper,
+                toggleDataScadenzaAffittoWrapper,
+                initMapWrapper,
+                loadExistingPolygonWrapper
+            );
+        }
+
+        // Wrapper per closeTerrenoModal
+        function closeTerrenoModalWrapper() {
+            closeTerrenoModalModule(terreniState, updateState);
+        }
+
+        // Wrapper per handleSaveTerreno
+        async function handleSaveTerrenoWrapper(e) {
+            await handleSaveTerrenoModule(
+                e,
+                terreniState,
+                updateState,
+                getTerreniCollectionWrapper,
+                loadTerreniWrapper
+            );
+        }
+
+        // Wrapper per editTerreno
+        function editTerrenoWrapper(terrenoId) {
+            editTerrenoModule(terrenoId, openTerrenoModalWrapper);
+        }
+
+        // Wrapper per confirmDeleteTerreno
+        async function confirmDeleteTerrenoWrapper(terrenoId) {
+            await confirmDeleteTerrenoModule(
+                terrenoId,
+                terreniState,
+                getTerreniCollectionWrapper,
+                loadTerreniWrapper
+            );
+        }
+
+        // Wrapper per toggleDataScadenzaAffitto
+        function toggleDataScadenzaAffittoWrapper() {
+            toggleDataScadenzaAffittoModule();
+        }
+
+        // Wrapper per updateColtureDropdownTerreni
+        function updateColtureDropdownTerreniWrapper() {
+            updateColtureDropdownTerreniModule(terreniState, updateState, getColturaColorUtil);
+        }
+
+        // Wrapper per initMap - passa anche una funzione per leggere lo state corrente
+        function initMapWrapper() {
+            // Passa una funzione getState che legge sempre lo state corrente
+            initMapModule(terreniState, updateState, () => terreniState);
+        }
+
+        // Wrapper per searchLocation
+        function searchLocationWrapper() {
+            searchLocationModule(terreniState);
+        }
+
+        // Wrapper per toggleDrawing
+        function toggleDrawingWrapper() {
+            toggleDrawingModule(terreniState, updateState);
+        }
+
+        // Wrapper per clearPolygon
+        function clearPolygonWrapper() {
+            clearPolygonModule(terreniState, updateState);
+        }
+
+        // Wrapper per loadExistingPolygon
+        function loadExistingPolygonWrapper(polygonCoords) {
+            loadExistingPolygonModule(polygonCoords, terreniState, updateState);
+        }
+
+        // Wrapper per startTerreniTour
+        function startTerreniTourWrapper(triggeredManually) {
+            startTerreniTourModule(
+                triggeredManually,
+                terreniState,
+                updateState,
+                openTerrenoModalWrapper,
+                closeTerrenoModalWrapper
+            );
+        }
+
+        // Wrapper per maybeAutoStartTerreniTour
+        function maybeAutoStartTerreniTourWrapper() {
+            maybeAutoStartTerreniTourModule(
+                terreniState,
+                updateState,
+                startTerreniTourWrapper
+            );
+        }
+
+        // Wrapper per setupTerreniTourButton
+        function setupTerreniTourButtonWrapper() {
+            setupTerreniTourButtonModule(startTerreniTourWrapper);
+        }
+
+        // ============================================
+        // ESPOSIZIONE FUNZIONI SU WINDOW (per attributi HTML)
+        // ============================================
+        window.openTerrenoModal = openTerrenoModalWrapper;
+        window.closeTerrenoModal = closeTerrenoModalWrapper;
+        window.handleSaveTerreno = handleSaveTerrenoWrapper;
+        window.editTerreno = editTerrenoWrapper;
+        window.confirmDeleteTerreno = confirmDeleteTerrenoWrapper;
+        window.toggleDataScadenzaAffitto = toggleDataScadenzaAffittoWrapper;
+        window.updateColtureDropdownTerreni = updateColtureDropdownTerreniWrapper;
+        window.filterTerreni = filterTerreniWrapper;
+        window.clearFilters = clearFiltersWrapper;
+        window.initMap = initMapWrapper; // Per callback Google Maps
+        window.searchLocation = searchLocationWrapper;
+        window.toggleDrawing = toggleDrawingWrapper;
+        window.clearPolygon = clearPolygonWrapper;
+        window.loadExistingPolygon = loadExistingPolygonWrapper;
+
+        // Setup tour button
+        setupTerreniTourButtonWrapper();
 
         // Carica Google Maps API (con async per migliori performance)
         if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
@@ -786,7 +1093,7 @@
             document.head.appendChild(script);
             
             window.initGoogleMaps = function() {
-                console.log('✅ Google Maps initialized');
+
                 window.googleMapsReady = true;
                 
                 // Ricalcola superficie per terreni con mappa ma senza superficie salvata
@@ -814,14 +1121,14 @@
                                     
                                     // Salva nel database
                                     try {
-                                        const terrenoRef = doc(getTerreniCollection(currentTenantId), terreno.id);
+                                        const terrenoRef = doc(getTerreniCollectionWrapper(currentTenantId), terreno.id);
                                         await updateDoc(terrenoRef, { 
                                             superficie: parseFloat(superficie.toFixed(2)),
                                             updatedAt: serverTimestamp()
                                         });
                                         
                                         // Aggiorna visualizzazione
-                                        renderTerreni();
+                                        renderTerreniWrapper();
                                     } catch (e) {
                                         console.warn('Errore salvataggio superficie:', e);
                                     }
@@ -837,28 +1144,7 @@
             console.warn('⚠️ Google Maps API key non configurata. Le mappe non saranno disponibili.');
         }
 
-        // Funzione helper: ottieni tenant ID dall'utente
-        async function getTenantId(userId) {
-            if (currentTenantId) return currentTenantId;
-            
-            try {
-                const userDoc = await getDoc(doc(db, 'users', userId));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    currentTenantId = userData.tenantId;
-                    return currentTenantId;
-                }
-            } catch (error) {
-                console.error('Errore recupero tenant:', error);
-            }
-            return null;
-        }
-
-        // Funzione helper: ottieni collection terreni per tenant
-        function getTerreniCollection(tenantId) {
-            if (!tenantId) throw new Error('Tenant ID non disponibile');
-            return collection(db, `tenants/${tenantId}/terreni`);
-        }
+        // Funzioni helper rimosse - ora usate dai moduli tramite wrapper
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
@@ -879,6 +1165,7 @@
                     
                     // Salva tenant ID
                     currentTenantId = userData.tenantId;
+                    updateState({ currentTenantId });
                     
                     // Imposta tenantId nel tenant-service per i servizi
                     try {
@@ -887,18 +1174,33 @@
                     } catch (error) {
                         console.warn('Impossibile impostare tenantId nel servizio:', error);
                     }
+                    
+                    // Carica dati usando wrapper
+                    await loadColtureWrapper();
+                    await loadPoderiWrapper();
+                    await loadTerreniWrapper();
+                    
+                    // Setup listener colore coltura
+                    setupColturaColorListenerModule(terreniState, getColturaColorUtil);
+                    
+                    // Mostra link impostazioni solo a Manager/Amministratore
+                    const impostazioniLink = document.getElementById('impostazioni-link');
+                    if (impostazioniLink) {
+                        const ruoli = userData.ruoli || [];
+                        const isManager = ruoli.some(r => {
+                            const roleLower = r.toLowerCase();
+                            return roleLower.includes('manager') || roleLower.includes('amministratore');
+                        });
+                        if (isManager) {
+                            impostazioniLink.style.display = 'inline-flex';
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Errore caricamento utente:', error);
             }
 
-            // Carica colture, poderi e terreni
-            await loadColture();
-            await loadPoderi();
-            await loadTerreni();
-            
-            // Setup listener per aggiornare colore poligono quando cambia coltura
-            setupColturaColorListener();
+            // Carica colture, poderi e terreni (già fatto sopra in onAuthStateChanged)
         });
 
         // Logout
@@ -909,1849 +1211,31 @@
             }
         });
 
-        // Carica poderi disponibili
-        async function loadPoderi() {
-            try {
-                if (!currentTenantId) return;
-                
-                const poderiCollection = collection(db, `tenants/${currentTenantId}/poderi`);
-                const q = query(poderiCollection, orderBy('nome', 'asc'));
-                const querySnapshot = await getDocs(q);
-                
-                poderi = [];
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    poderi.push({
-                        id: docSnap.id,
-                        nome: data.nome || ''
-                    });
-                });
-                
-                // Popola dropdown poderi
-                populatePoderiDropdown();
-            } catch (error) {
-                console.error('Errore caricamento poderi:', error);
-                poderi = [];
-            }
-        }
-        
-        // Popola dropdown poderi
-        function populatePoderiDropdown() {
-            const podereSelect = document.getElementById('terreno-podere');
-            if (!podereSelect) return;
-            
-            // Mantieni opzione vuota
-            podereSelect.innerHTML = '<option value="">-- Nessun podere --</option>';
-            
-            // Aggiungi poderi
-            poderi.forEach(podere => {
-                const option = document.createElement('option');
-                option.value = podere.nome;
-                option.textContent = podere.nome;
-                podereSelect.appendChild(option);
-            });
-        }
-        
-        // Variabili globali per categorie e colture
-        let categorieColtureTerreni = [];
-        let colturePerCategoriaTerreni = {};
+        // Funzioni loadPoderi e populatePoderiDropdown RIMOSSE - ora usate dai moduli tramite wrapper
 
-        // Inizializza colture predefinite se non presenti (fallback per ambiente file://)
-        async function initializeColturePredefiniteTerreni() {
-            try {
-                if (!currentTenantId) return;
+        // Funzione initializeColturePredefiniteTerreni RIMOSSA - ora gestita nel modulo terreni-controller.js
 
-                // Carica categorie per ottenere gli ID
-                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-                const categorieSnapshot = await getDocs(categorieRef);
-                const categorieMap = new Map(); // codice -> id
-                categorieSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (data.applicabileA === 'colture' && data.codice) {
-                        categorieMap.set(data.codice.toLowerCase(), doc.id);
-                    }
-                });
+        // Funzione loadCategorieColtureTerreni RIMOSSA - ora gestita nel modulo terreni-controller.js
 
-                // Carica colture esistenti
-                const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
-                const coltureSnapshot = await getDocs(coltureRef);
-                const nomiEsistenti = new Set();
-                coltureSnapshot.forEach(doc => {
-                    const nome = doc.data().nome;
-                    if (nome) nomiEsistenti.add(nome.toLowerCase());
-                });
+        // Funzione loadColturePerCategoriaTerreni RIMOSSA - ora gestita nel modulo terreni-controller.js
 
-                // Colture predefinite
-                const COLTURE_PREDEFINITE = [
-                    // Frutteto
-                    { nome: 'Pesco', categoriaCodice: 'frutteto' }, { nome: 'Melo', categoriaCodice: 'frutteto' },
-                    { nome: 'Pero', categoriaCodice: 'frutteto' }, { nome: 'Albicocche', categoriaCodice: 'frutteto' },
-                    { nome: 'Prugne', categoriaCodice: 'frutteto' }, { nome: 'Ciliegio', categoriaCodice: 'frutteto' },
-                    { nome: 'Susino', categoriaCodice: 'frutteto' }, { nome: 'Fico', categoriaCodice: 'frutteto' },
-                    { nome: 'Nocciolo', categoriaCodice: 'frutteto' }, { nome: 'Mandorlo', categoriaCodice: 'frutteto' },
-                    { nome: 'Castagno', categoriaCodice: 'frutteto' }, { nome: 'Cotogno', categoriaCodice: 'frutteto' },
-                    { nome: 'Sorbo', categoriaCodice: 'frutteto' }, { nome: 'Nespolo', categoriaCodice: 'frutteto' },
-                    { nome: 'Giuggiolo', categoriaCodice: 'frutteto' }, { nome: 'Corbezzolo', categoriaCodice: 'frutteto' },
-                    { nome: 'Gelso', categoriaCodice: 'frutteto' }, { nome: 'Mora', categoriaCodice: 'frutteto' },
-                    { nome: 'Lampone', categoriaCodice: 'frutteto' }, { nome: 'Mirtillo', categoriaCodice: 'frutteto' },
-                    { nome: 'Ribes', categoriaCodice: 'frutteto' }, { nome: 'Uva Spina', categoriaCodice: 'frutteto' },
-                    { nome: 'Kiwi', categoriaCodice: 'frutteto' }, { nome: 'Melograno', categoriaCodice: 'frutteto' },
-                    { nome: 'Fico d\'India', categoriaCodice: 'frutteto' }, { nome: 'Kaki', categoriaCodice: 'frutteto' },
-                    { nome: 'Noce', categoriaCodice: 'frutteto' }, { nome: 'Pistacchio', categoriaCodice: 'frutteto' },
-                    // Seminativo
-                    { nome: 'Grano', categoriaCodice: 'seminativo' }, { nome: 'Mais', categoriaCodice: 'seminativo' },
-                    { nome: 'Orzo', categoriaCodice: 'seminativo' }, { nome: 'Favino', categoriaCodice: 'seminativo' },
-                    { nome: 'Girasole', categoriaCodice: 'seminativo' }, { nome: 'Soia', categoriaCodice: 'seminativo' },
-                    { nome: 'Colza', categoriaCodice: 'seminativo' }, { nome: 'Avena', categoriaCodice: 'seminativo' },
-                    { nome: 'Segale', categoriaCodice: 'seminativo' }, { nome: 'Fava', categoriaCodice: 'seminativo' },
-                    { nome: 'Lenticchia', categoriaCodice: 'seminativo' }, { nome: 'Cece', categoriaCodice: 'seminativo' },
-                    { nome: 'Lupino', categoriaCodice: 'seminativo' }, { nome: 'Cicerchia', categoriaCodice: 'seminativo' },
-                    { nome: 'Riso', categoriaCodice: 'seminativo' }, { nome: 'Grano Saraceno', categoriaCodice: 'seminativo' },
-                    { nome: 'Amaranto', categoriaCodice: 'seminativo' }, { nome: 'Quinoa', categoriaCodice: 'seminativo' },
-                    { nome: 'Canapa', categoriaCodice: 'seminativo' }, { nome: 'Lino', categoriaCodice: 'seminativo' },
-                    { nome: 'Carthamo', categoriaCodice: 'seminativo' }, { nome: 'Erba Medica', categoriaCodice: 'seminativo' },
-                    { nome: 'Trifoglio', categoriaCodice: 'seminativo' }, { nome: 'Veccia', categoriaCodice: 'seminativo' },
-                    { nome: 'Lupinella', categoriaCodice: 'seminativo' }, { nome: 'Sulla', categoriaCodice: 'seminativo' },
-                    { nome: 'Sorgo', categoriaCodice: 'seminativo' }, { nome: 'Miglio', categoriaCodice: 'seminativo' },
-                    { nome: 'Panico', categoriaCodice: 'seminativo' },
-                    // Vite
-                    { nome: 'Vite', categoriaCodice: 'vite' },
-                    { nome: 'Vite da Tavola', categoriaCodice: 'vite' },
-                    { nome: 'Vite da Vino', categoriaCodice: 'vite' },
-                    // Ortive
-                    { nome: 'Pomodoro', categoriaCodice: 'ortive' }, { nome: 'Zucchine', categoriaCodice: 'ortive' },
-                    { nome: 'Melanzane', categoriaCodice: 'ortive' }, { nome: 'Peperoni', categoriaCodice: 'ortive' },
-                    { nome: 'Insalata', categoriaCodice: 'ortive' }, { nome: 'Carote', categoriaCodice: 'ortive' },
-                    { nome: 'Patate', categoriaCodice: 'ortive' }, { nome: 'Bietole', categoriaCodice: 'ortive' },
-                    { nome: 'Fragole', categoriaCodice: 'ortive' }, { nome: 'Cipolle', categoriaCodice: 'ortive' },
-                    { nome: 'Aglio', categoriaCodice: 'ortive' }, { nome: 'Fagioli', categoriaCodice: 'ortive' },
-                    { nome: 'Fagiolini', categoriaCodice: 'ortive' }, { nome: 'Piselli', categoriaCodice: 'ortive' },
-                    { nome: 'Cavolo', categoriaCodice: 'ortive' }, { nome: 'Broccoli', categoriaCodice: 'ortive' },
-                    { nome: 'Cavolfiore', categoriaCodice: 'ortive' }, { nome: 'Spinaci', categoriaCodice: 'ortive' },
-                    { nome: 'Lattuga', categoriaCodice: 'ortive' }, { nome: 'Radicchio', categoriaCodice: 'ortive' },
-                    { nome: 'Finocchi', categoriaCodice: 'ortive' }, { nome: 'Sedano', categoriaCodice: 'ortive' },
-                    { nome: 'Cetrioli', categoriaCodice: 'ortive' }, { nome: 'Angurie', categoriaCodice: 'ortive' },
-                    { nome: 'Meloni', categoriaCodice: 'ortive' },
-                    // Prato
-                    { nome: 'Prato', categoriaCodice: 'prato' }, { nome: 'Prato Stabile', categoriaCodice: 'prato' },
-                    { nome: 'Pascolo', categoriaCodice: 'prato' },
-                    // Olivo
-                    { nome: 'Olivo', categoriaCodice: 'olivo' },
-                    // Agrumeto
-                    { nome: 'Arancio', categoriaCodice: 'agrumeto' }, { nome: 'Limone', categoriaCodice: 'agrumeto' },
-                    { nome: 'Mandarino', categoriaCodice: 'agrumeto' }, { nome: 'Clementine', categoriaCodice: 'agrumeto' },
-                    { nome: 'Pompelmo', categoriaCodice: 'agrumeto' }, { nome: 'Bergamotto', categoriaCodice: 'agrumeto' },
-                    { nome: 'Cedro', categoriaCodice: 'agrumeto' }, { nome: 'Lime', categoriaCodice: 'agrumeto' },
-                    { nome: 'Kumquat', categoriaCodice: 'agrumeto' },
-                    // Bosco
-                    { nome: 'Bosco', categoriaCodice: 'bosco' }
-                ];
+        // Funzioni updateColtureDropdownTerreni, setupColturaColorListener, loadColture RIMOSSE - ora gestite nei moduli
 
-                // Crea colture predefinite mancanti
-                let createCount = 0;
-                for (const colturaData of COLTURE_PREDEFINITE) {
-                    if (!nomiEsistenti.has(colturaData.nome.toLowerCase())) {
-                        const categoriaId = categorieMap.get(colturaData.categoriaCodice);
-                        if (categoriaId) {
-                            await addDoc(coltureRef, {
-                                nome: colturaData.nome,
-                                categoriaId: categoriaId,
-                                descrizione: null,
-                                predefinito: true,
-                                creatoDa: 'system',
-                                createdAt: serverTimestamp(),
-                                updatedAt: serverTimestamp()
-                            });
-                            nomiEsistenti.add(colturaData.nome.toLowerCase());
-                            createCount++;
-                        }
-                    }
-                }
+        // Funzione loadTerreni RIMOSSA - ora gestita nel modulo terreni-controller.js
 
-                if (createCount > 0) {
-                    console.log(`✅ Inizializzate ${createCount} colture predefinite`);
-                }
-            } catch (error) {
-                console.error('Errore inizializzazione colture predefinite:', error);
-            }
-        }
+        // Filtra terreni - RIMOSSO: ora usa wrapper filterTerreniWrapper esposto su window.filterTerreni
 
-        // Carica categorie per colture usando categorie-service.js
-        async function loadCategorieColtureTerreni() {
-            try {
-                if (!currentTenantId) return;
+        // Pulisci filtri - RIMOSSO: ora usa wrapper clearFiltersWrapper esposto su window.clearFilters
 
-                // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
-                const isFileProtocol = window.location.protocol === 'file:';
-                
-                if (isFileProtocol) {
-                    // Fallback: carica direttamente da Firestore
-                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-                    const categorieSnapshot = await getDocs(categorieRef);
-                    
-                    categorieColtureTerreni = [];
-                    categorieSnapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data.applicabileA === 'colture') {
-                            categorieColtureTerreni.push({ id: doc.id, ...data });
-                        }
-                    });
-                    
-                    categorieColtureTerreni.sort((a, b) => {
-                        const ordineA = a.ordine || 999;
-                        const ordineB = b.ordine || 999;
-                        return ordineA - ordineB;
-                    });
-                } else {
-                    // Usa categorie-service.js invece di caricamento diretto
-                    // Assicura che Firebase sia inizializzato nel servizio
-                    const { setFirebaseInstances } = await import('./services/firebase-service.js');
-                    setFirebaseInstances({ app, db, auth });
-                    
-                    // Assicura che il tenantId sia impostato nel servizio
-                    const { setCurrentTenantId } = await import('./services/tenant-service.js');
-                    if (currentTenantId) {
-                        setCurrentTenantId(currentTenantId);
-                    }
-                    
-                    const { getAllCategorie } = await import('./services/categorie-service.js');
-                    const categorie = await getAllCategorie({
-                        applicabileA: 'colture',
-                        orderBy: 'ordine',
-                        orderDirection: 'asc'
-                    });
+        // Funzione renderTerreni RIMOSSA - ora gestita nel modulo terreni-controller.js
 
-                    categorieColtureTerreni = categorie;
-                }
+        // Funzioni setupTerreniTourButton, maybeAutoStartTerreniTour, startTerreniTour, startTourWithSteps, buildTerreniTourSteps RIMOSSE
+        // CODICE RIMOSSO (circa 1000+ righe) - funzioni duplicate ora gestite nel modulo terreni-tour.js
 
-                // Popola dropdown categoria (se esiste)
-                const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-                if (categoriaSelect) {
-                    categoriaSelect.innerHTML = '<option value="">-- Seleziona categoria --</option>';
-                    categorieColtureTerreni.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat.id;
-                        option.textContent = cat.nome;
-                        categoriaSelect.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Errore caricamento categorie colture:', error);
-            }
-        }
+        // Funzioni openTerrenoModal, closeTerrenoModal, handleSaveTerreno, editTerreno, confirmDeleteTerreno, toggleDataScadenzaAffitto RIMOSSE
+        // CODICE RIMOSSO - funzioni duplicate ora gestite nei moduli tramite wrapper functions
 
-        // Carica colture organizzate per categoria usando colture-service.js
-        async function loadColturePerCategoriaTerreni() {
-            try {
-                if (!currentTenantId) return;
-
-                // Verifica se siamo in ambiente file:// (non supportato per moduli ES6)
-                const isFileProtocol = window.location.protocol === 'file:';
-                
-                if (isFileProtocol) {
-                    // Fallback: carica direttamente da Firestore
-                    const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
-                    let coltureSnapshot = await getDocs(coltureRef);
-                    
-                    // Se ci sono poche colture (meno di 20), inizializza quelle predefinite
-                    if (coltureSnapshot.size < 20) {
-                        await initializeColturePredefiniteTerreni();
-                        coltureSnapshot = await getDocs(coltureRef);
-                    }
-                    
-                    colturePerCategoriaTerreni = {};
-                    const coltureArray = [];
-                    coltureSnapshot.forEach(doc => {
-                        coltureArray.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    coltureArray.sort((a, b) => {
-                        const nomeA = (a.nome || '').toLowerCase();
-                        const nomeB = (b.nome || '').toLowerCase();
-                        return nomeA.localeCompare(nomeB);
-                    });
-                    
-                    // Carica categorie valide per filtrare
-                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-                    const categorieSnapshot = await getDocs(categorieRef);
-                    const categorieValideSet = new Set();
-                    categorieSnapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (data.applicabileA === 'colture') {
-                            categorieValideSet.add(doc.id);
-                        }
-                    });
-                    
-                    // Organizza per categoria
-                    coltureArray.forEach(coltura => {
-                        const categoriaId = coltura.categoriaId || 'senza_categoria';
-                        
-                        if (categoriaId !== 'senza_categoria' && !categorieValideSet.has(categoriaId)) {
-                            const categoriaIdCorretto = 'senza_categoria';
-                            if (!colturePerCategoriaTerreni[categoriaIdCorretto]) {
-                                colturePerCategoriaTerreni[categoriaIdCorretto] = [];
-                            }
-                            colturePerCategoriaTerreni[categoriaIdCorretto].push(coltura);
-                            return;
-                        }
-                        
-                        if (!colturePerCategoriaTerreni[categoriaId]) {
-                            colturePerCategoriaTerreni[categoriaId] = [];
-                        }
-                        colturePerCategoriaTerreni[categoriaId].push(coltura);
-                    });
-                    
-                    console.log('✅ Colture caricate e organizzate per categoria:');
-                    console.log('   Totale colture:', coltureArray.length);
-                    console.log('   Categorie con colture:', Object.keys(colturePerCategoriaTerreni));
-                    Object.keys(colturePerCategoriaTerreni).forEach(catId => {
-                        console.log(`   - Categoria ${catId}: ${colturePerCategoriaTerreni[catId].length} colture`);
-                    });
-                } else {
-                    // Assicura che Firebase sia inizializzato nel servizio
-                    const { setFirebaseInstances } = await import('./services/firebase-service.js');
-                    setFirebaseInstances({ app, db, auth });
-                    
-                    // Assicura che il tenantId sia impostato nel servizio
-                    const { setCurrentTenantId } = await import('./services/tenant-service.js');
-                    if (currentTenantId) {
-                        setCurrentTenantId(currentTenantId);
-                    }
-                    
-                    // Assicura che le colture predefinite siano inizializzate
-                    const { initializeColturePredefinite, getColturePerCategoria, getAllColture } = await import('./services/colture-service.js');
-                    
-                    // Verifica se ci sono poche colture e inizializza se necessario
-                    const coltureEsistenti = await getAllColture();
-                    if (coltureEsistenti.length < 20) {
-                        await initializeColturePredefinite();
-                    }
-
-                    // Usa colture-service.js invece di caricamento diretto
-                    colturePerCategoriaTerreni = await getColturePerCategoria();
-                }
-
-                // Estrai tutte le colture per retrocompatibilità
-                colture = [];
-                Object.values(colturePerCategoriaTerreni).forEach(coltureList => {
-                    coltureList.forEach(c => colture.push(c.nome));
-                });
-
-                // Non popolare direttamente il dropdown, sarà popolato quando si seleziona una categoria
-                // Aggiorna il dropdown se c'è già una categoria selezionata
-                const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-                if (categoriaSelect && categoriaSelect.value) {
-                    updateColtureDropdownTerreni();
-                }
-            } catch (error) {
-                console.error('Errore caricamento colture:', error);
-                // Fallback: usa ListePersonalizzate se colture non disponibile
-                console.warn('Impossibile caricare da colture, uso ListePersonalizzate:', error.message);
-                const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
-                const listeSnap = await getDoc(listeRef);
-                
-                if (listeSnap.exists()) {
-                    const data = listeSnap.data();
-                    colture = data.colture || [];
-                } else {
-                    // Se non esistono, usa predefinite
-                    colture = ['Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco'];
-                }
-                
-                // Non popolare direttamente il dropdown, sarà popolato quando si seleziona una categoria
-                const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-                if (categoriaSelect && categoriaSelect.value) {
-                    updateColtureDropdownTerreni();
-                }
-            }
-        }
-
-
-        // Aggiorna dropdown colture in base alla categoria selezionata
-        function updateColtureDropdownTerreni() {
-            const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-            const colturaSelect = document.getElementById('terreno-coltura');
-            
-            // Aggiorna colore poligono se sta tracciando
-            if (polygon && isDrawing) {
-                const colors = getColturaColor();
-                polygon.setOptions({
-                    fillColor: colors.fill + '80',
-                    strokeColor: colors.stroke
-                });
-            }
-            
-            if (!categoriaSelect || !colturaSelect) {
-                console.warn('⚠️ updateColtureDropdownTerreni: dropdown non trovati');
-                return;
-            }
-            
-            const categoriaId = categoriaSelect.value;
-            
-            // Reset dropdown colture
-            colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
-            
-            if (!categoriaId) {
-                colturaSelect.innerHTML = '<option value="">-- Seleziona prima la categoria --</option>';
-                return;
-            }
-            
-            // Popola con le colture della categoria selezionata
-            const coltureCategoria = colturePerCategoriaTerreni[categoriaId] || [];
-            
-            if (coltureCategoria.length === 0) {
-                colturaSelect.innerHTML = '<option value="">-- Nessuna coltura disponibile per questa categoria --</option>';
-                return;
-            }
-            
-            // Ordina per nome
-            coltureCategoria.sort((a, b) => {
-                const nomeA = (a.nome || '').toLowerCase();
-                const nomeB = (b.nome || '').toLowerCase();
-                return nomeA.localeCompare(nomeB);
-            });
-            
-            coltureCategoria.forEach((coltura) => {
-                const nomeColtura = coltura.nome || coltura;
-                const option = document.createElement('option');
-                option.value = nomeColtura;
-                option.textContent = nomeColtura;
-                colturaSelect.appendChild(option);
-            });
-        }
-        
-        // Esponi funzione globalmente per accesso da attributi HTML
-        window.updateColtureDropdownTerreni = updateColtureDropdownTerreni;
-        
-        // Aggiorna colore poligono quando cambia la coltura selezionata
-        function setupColturaColorListener() {
-            const colturaSelect = document.getElementById('terreno-coltura');
-            if (colturaSelect) {
-                colturaSelect.addEventListener('change', function() {
-                    if (polygon && isDrawing) {
-                        const colors = getColturaColor();
-                        polygon.setOptions({
-                            fillColor: colors.fill + '80',
-                            strokeColor: colors.stroke
-                        });
-                    }
-                });
-            }
-        }
-        
-        // Carica colture (wrapper per retrocompatibilità)
-        async function loadColture() {
-            await loadCategorieColtureTerreni();
-            await loadColturePerCategoriaTerreni();
-        }
-
-        // Carica terreni
-        async function loadTerreni() {
-            try {
-                if (!currentTenantId) {
-                    const user = auth.currentUser;
-                    if (user) {
-                        currentTenantId = await getTenantId(user.uid);
-                    }
-                }
-                
-                if (!currentTenantId) {
-                    throw new Error('Tenant ID non disponibile. Assicurati di essere autenticato.');
-                }
-
-                const terreniCollection = getTerreniCollection(currentTenantId);
-                const q = query(terreniCollection, orderBy('nome', 'asc'));
-                const querySnapshot = await getDocs(q);
-                
-                terreni = [];
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    
-                    // Escludi terreni dei clienti (solo terreni aziendali)
-                    if (data.clienteId && data.clienteId !== '') {
-                        return; // Salta questo terreno
-                    }
-                    
-                    // Calcola superficie dalla mappa se presente e superficie non salvata o zero
-                    let superficie = data.superficie || null;
-                    if ((!superficie || superficie === 0) && data.polygonCoords && Array.isArray(data.polygonCoords) && data.polygonCoords.length >= 3) {
-                        // Ricalcola superficie dalla mappa usando Google Maps Geometry se disponibile
-                        try {
-                            if (window.googleMapsReady && google && google.maps && google.maps.geometry) {
-                                // Usa Google Maps Geometry per calcolo preciso
-                                const coords = data.polygonCoords.map(c => {
-                                    if (c.lat && c.lng) {
-                                        return new google.maps.LatLng(c.lat, c.lng);
-                                    }
-                                    return c;
-                                });
-                                
-                                const area = google.maps.geometry.spherical.computeArea(coords);
-                                superficie = area / 10000; // Converti da m² a ettari
-                                
-                                // Salva automaticamente la superficie calcolata (in background)
-                                if (superficie > 0 && superficie < 10000) {
-                                    setTimeout(async () => {
-                                        try {
-                                            const terrenoRef = doc(getTerreniCollection(currentTenantId), docSnap.id);
-                                            await updateDoc(terrenoRef, { 
-                                                superficie: parseFloat(superficie.toFixed(2)),
-                                                updatedAt: serverTimestamp()
-                                            });
-                                        } catch (e) {
-                                            console.warn('Errore salvataggio superficie calcolata:', e);
-                                        }
-                                    }, 1000);
-                                }
-                            } else {
-                                // Fallback: calcolo approssimato usando formula Shoelace
-                                const coords = data.polygonCoords.map(c => {
-                                    if (c.lat && c.lng) {
-                                        return { lat: c.lat, lng: c.lng };
-                                    }
-                                    return c;
-                                });
-                                
-                                if (coords.length >= 3) {
-                                    // Formula Shoelace per calcolo area poligono
-                                    let area = 0;
-                                    for (let i = 0; i < coords.length; i++) {
-                                        const j = (i + 1) % coords.length;
-                                        area += coords[i].lng * coords[j].lat;
-                                        area -= coords[j].lng * coords[i].lat;
-                                    }
-                                    area = Math.abs(area) / 2;
-                                    
-                                    // Conversione approssimata: 1 grado ≈ 111 km
-                                    // Per latitudine media italiana (circa 44°), 1 grado lat ≈ 111 km, 1 grado lng ≈ 78 km
-                                    const latMedia = coords.reduce((sum, c) => sum + c.lat, 0) / coords.length;
-                                    const latRad = latMedia * Math.PI / 180;
-                                    const lngToM = 111320 * Math.cos(latRad); // Metri per grado longitudine
-                                    const latToM = 110540; // Metri per grado latitudine (approssimato)
-                                    
-                                    const areaM2 = area * lngToM * latToM;
-                                    superficie = areaM2 / 10000; // Converti in ettari
-                                    
-                                    // Se la superficie calcolata è ragionevole, usala
-                                    if (superficie > 0 && superficie < 10000) {
-                                        // Salva automaticamente la superficie calcolata (in background)
-                                        setTimeout(async () => {
-                                            try {
-                                                const terrenoRef = doc(getTerreniCollection(currentTenantId), docSnap.id);
-                                                await updateDoc(terrenoRef, { 
-                                                    superficie: parseFloat(superficie.toFixed(2)),
-                                                    updatedAt: serverTimestamp()
-                                                });
-                                            } catch (e) {
-                                                console.warn('Errore salvataggio superficie calcolata:', e);
-                                            }
-                                        }, 1000);
-                                    } else {
-                                        superficie = data.superficie || null;
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            console.warn('Errore calcolo superficie da mappa:', e);
-                            superficie = data.superficie || null;
-                        }
-                    }
-                    
-                    terreni.push({
-                        id: docSnap.id,
-                        nome: data.nome || '',
-                        superficie: superficie,
-                        coltura: data.coltura || null,
-                        podere: data.podere || null,
-                        coordinate: data.coordinate || null,
-                        polygonCoords: data.polygonCoords || null,
-                        note: data.note || '',
-                        tipoPossesso: data.tipoPossesso || 'proprieta',
-                        dataScadenzaAffitto: data.dataScadenzaAffitto || null,
-                        canoneAffitto: data.canoneAffitto || null,
-                        hasMappa: function() {
-                            return this.polygonCoords && Array.isArray(this.polygonCoords) && this.polygonCoords.length > 0;
-                        }
-                    });
-                });
-                
-                // Reset filtri quando si ricaricano i terreni
-                terreniFiltrati = [];
-                renderTerreni();
-            } catch (error) {
-                console.error('Errore caricamento terreni:', error);
-                showAlert('Errore nel caricamento dei terreni: ' + error.message, 'error');
-                document.getElementById('terreni-container').innerHTML = `
-                    <div class="alert alert-error">
-                        <strong>Errore:</strong> ${error.message}
-                    </div>
-                `;
-            }
-        }
-
-        // Filtra terreni
-        window.filterTerreni = function() {
-            const filterTipoPossesso = document.getElementById('filter-tipo-possesso').value;
-            const filterAlert = document.getElementById('filter-alert').value;
-            
-            terreniFiltrati = terreni.filter(terreno => {
-                // Filtro tipo possesso
-                if (filterTipoPossesso && terreno.tipoPossesso !== filterTipoPossesso) {
-                    return false;
-                }
-                
-                // Filtro alert (solo per affitti)
-                if (filterAlert && terreno.tipoPossesso === 'affitto') {
-                    const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
-                    if (alert.colore !== filterAlert) {
-                        return false;
-                    }
-                } else if (filterAlert && terreno.tipoPossesso === 'proprieta') {
-                    // Se filtro per alert ma terreno è proprietà, escludi
-                    return false;
-                }
-                
-                return true;
-            });
-            
-            renderTerreni();
-        };
-
-        // Pulisci filtri
-        window.clearFilters = function() {
-            document.getElementById('filter-tipo-possesso').value = '';
-            document.getElementById('filter-alert').value = '';
-            terreniFiltrati = [];
-            renderTerreni();
-        };
-
-        // Render terreni (tabella come vecchia app)
-        function renderTerreni() {
-            const container = document.getElementById('terreni-container');
-            
-            // Usa terreni filtrati se disponibili, altrimenti tutti i terreni
-            const terreniDaMostrare = terreniFiltrati.length > 0 ? terreniFiltrati : terreni;
-            
-            if (terreniDaMostrare.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🌾</div>
-                        <h3>Nessun terreno registrato</h3>
-                        <p>Aggiungi il tuo primo terreno utilizzando il pulsante "Aggiungi Terreno".</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="section-header">
-                    <h2>I Tuoi Terreni (${terreniDaMostrare.length}${terreniFiltrati.length > 0 ? ` di ${terreni.length}` : ''})</h2>
-                </div>
-                <div class="terreni-table">
-                    <div class="terreni-header">
-                        <div class="col-nome">Nome Campo</div>
-                        <div class="col-coltura">Coltura</div>
-                        <div class="col-podere">Podere</div>
-                        <div class="col-possesso">Possesso</div>
-                        <div class="col-ettari">Ha</div>
-                        <div class="col-mappa">Mappa</div>
-                        <div class="col-note">Note</div>
-                        <div class="col-azioni">Azioni</div>
-                    </div>
-                    ${terreniDaMostrare.map(terreno => {
-                        const escapedNome = escapeHtml(terreno.nome || 'Senza nome');
-                        const escapedColtura = escapeHtml(terreno.coltura || '');
-                        const escapedPodere = escapeHtml(terreno.podere || '');
-                        const ettariValue = terreno.superficie ? terreno.superficie.toFixed(2) : '0.00';
-                        const hasMappa = terreno.polygonCoords && Array.isArray(terreno.polygonCoords) && terreno.polygonCoords.length > 0;
-                        const escapedNote = escapeHtml(terreno.note || '');
-                        
-                        // Calcola alert scadenza affitto
-                        const tipoPossesso = terreno.tipoPossesso || 'proprieta';
-                        let possessoHtml = '';
-                        
-                        if (tipoPossesso === 'proprieta') {
-                            possessoHtml = '<span class="badge badge-success">Proprietà</span>';
-                        } else if (tipoPossesso === 'affitto') {
-                            const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
-                            const dataScadenzaFormattata = terreno.dataScadenzaAffitto ? formattaDataScadenza(terreno.dataScadenzaAffitto) : '';
-                            let tooltipText = `Affitto - Scade il ${dataScadenzaFormattata}`;
-                            if (alert.giorni !== null) {
-                                if (alert.giorni < 0) {
-                                    tooltipText = `Affitto - Scaduto il ${dataScadenzaFormattata}`;
-                                } else {
-                                    tooltipText = `Affitto - Scade tra ${alert.testo} (${dataScadenzaFormattata})`;
-                                }
-                            }
-                            
-                            let pallinoHtml = '';
-                            if (alert.colore) {
-                                const pallinoEmoji = alert.colore === 'green' ? '🟢' : alert.colore === 'yellow' ? '🟡' : alert.colore === 'red' ? '🔴' : '⚫';
-                                pallinoHtml = `<span class="alert-dot alert-dot-${alert.colore}" title="${tooltipText}">${pallinoEmoji}</span>`;
-                            }
-                            
-                            possessoHtml = `<span class="badge badge-info" title="${tooltipText}">Affitto</span> ${pallinoHtml}`;
-                        }
-                        
-                        return `
-                        <div class="terreno-row">
-                            <div class="col-nome" data-label="Nome Campo">
-                                <span class="terreno-name">${escapedNome}</span>
-                            </div>
-                            <div class="col-coltura" data-label="Coltura">
-                                <span class="terreno-coltura">${escapedColtura || '-'}</span>
-                            </div>
-                            <div class="col-podere" data-label="Podere">
-                                <span class="terreno-podere">${escapedPodere || '-'}</span>
-                            </div>
-                            <div class="col-possesso" data-label="Possesso">
-                                ${possessoHtml}
-                            </div>
-                            <div class="col-ettari" data-label="Ettari">
-                                <span class="terreno-ettari">${ettariValue}</span>
-                            </div>
-                            <div class="col-mappa" data-label="Mappa">
-                                ${hasMappa ? 
-                                    '<span class="map-indicator" title="Confini tracciati">📍</span>' : 
-                                    '<span class="map-indicator no-map" title="Nessun confine tracciato">❌</span>'
-                                }
-                            </div>
-                            <div class="col-note" data-label="Note">
-                                ${escapedNote || '-'}
-                            </div>
-                            <div class="col-azioni" data-label="Azioni">
-                                <button onclick="editTerreno('${terreno.id}')" class="btn-edit-small" title="Modifica">✏️</button>
-                                <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="Elimina">🗑️</button>
-                            </div>
-                        </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-
-            maybeAutoStartTerreniTour();
-        }
-
-        function setupTerreniTourButton() {
-            const tourButton = document.getElementById('terreni-tour-button');
-            if (tourButton) {
-                tourButton.addEventListener('click', () => startTerreniTour(true));
-            }
-        }
-
-        function maybeAutoStartTerreniTour() {
-            if (terreniTourAutoRequested) return;
-            try {
-                const hasSeen = localStorage.getItem(TERRENI_TOUR_STORAGE_KEY);
-                if (!hasSeen) {
-                    terreniTourAutoRequested = true;
-                    setTimeout(() => startTerreniTour(false), 2000);
-                }
-            } catch (error) {
-                // Ignora errori localStorage
-            }
-        }
-
-        function startTerreniTour(triggeredManually) {
-            if (typeof introJs === 'undefined') {
-                if (triggeredManually) {
-                    alert('Tour non disponibile al momento. Riprova più tardi.');
-                }
-                return;
-            }
-
-            const modal = document.getElementById('terreno-modal');
-            const modalAlreadyOpen = modal && modal.classList.contains('active');
-            
-            // Apriamo temporaneamente il modal per costruire gli step correttamente
-            // (così tutti gli elementi sono visibili quando vengono cercati)
-            let modalWasOpenedForTour = false;
-            if (!modalAlreadyOpen && typeof window.openTerrenoModal === 'function') {
-                window.openTerrenoModal();
-                modalWasOpenedForTour = true;
-                // Piccolo delay per assicurarsi che il modal sia completamente aperto
-                setTimeout(() => {
-                    // Costruisci gli step ora che il modal è aperto
-                    const steps = buildTerreniTourSteps();
-                    
-                    if (!steps.length) {
-                        if (modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
-                            window.closeTerrenoModal();
-                        }
-                        if (triggeredManually) {
-                            alert('Completa il caricamento della pagina per poter vedere il tour.');
-                        }
-                        return;
-                    }
-
-                    terreniTourOpenedModal = false;
-
-                    // Se abbiamo aperto il modal, chiudiamolo prima di iniziare il tour
-                    // (lo riapriremo quando arriviamo agli step del form)
-                    if (modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
-                        window.closeTerrenoModal();
-                        // Piccolo delay per assicurarsi che il modal sia chiuso
-                        setTimeout(() => {
-                            startTourWithSteps(steps, modalAlreadyOpen, modalWasOpenedForTour);
-                        }, 100);
-                    } else {
-                        startTourWithSteps(steps, modalAlreadyOpen, modalWasOpenedForTour);
-                    }
-                }, 200);
-            } else {
-                // Il modal è già aperto, costruisci gli step direttamente
-                const steps = buildTerreniTourSteps();
-                
-                if (!steps.length) {
-                    if (triggeredManually) {
-                        alert('Completa il caricamento della pagina per poter vedere il tour.');
-                    }
-                    return;
-                }
-
-                terreniTourOpenedModal = false;
-                startTourWithSteps(steps, modalAlreadyOpen, false);
-            }
-        }
-
-        function startTourWithSteps(steps, modalAlreadyOpen, modalWasOpenedForTour) {
-            // Variabile per salvare la posizione top del popup della barra di ricerca
-            let searchPopupTop = null;
-            
-            const tour = introJs.tour().setOptions({
-                steps,
-                showProgress: true,
-                showBullets: false,
-                exitOnOverlayClick: true,
-                nextLabel: 'Avanti',
-                prevLabel: 'Indietro',
-                skipLabel: '×',
-                doneLabel: 'Fatto',
-                scrollToElement: true, // Scroll automatico agli elementi
-                scrollPadding: 50, // Padding maggiore per lo scroll
-                tooltipClass: 'customTooltip',
-                highlightClass: 'customHighlight'
-            });
-            
-            // Flag per evitare loop infiniti
-            let isRepositioning = false;
-            let ensureTooltipCallCount = 0;
-            let lastCallTime = 0;
-            const MAX_ENSURE_CALLS = 3; // Massimo 3 chiamate consecutive
-            const CALL_RESET_TIME = 500; // Reset contatore dopo 500ms di inattività
-            let isListaStepActive = false; // Flag per preservare position: fixed per lista terreni
-            
-            // Funzione per forzare il posizionamento corretto del tooltip in base alle dimensioni dello schermo
-            function ensureTooltipVisible() {
-                const now = Date.now();
-                
-                // Reset contatore se è passato abbastanza tempo dall'ultima chiamata
-                if (now - lastCallTime > CALL_RESET_TIME) {
-                    ensureTooltipCallCount = 0;
-                }
-                lastCallTime = now;
-                
-                ensureTooltipCallCount++;
-                if (ensureTooltipCallCount > MAX_ENSURE_CALLS) {
-                    console.log('⏸️ [TERRENI TOUR DEBUG] Troppe chiamate consecutive, salto');
-                    ensureTooltipCallCount = 0;
-                    return;
-                }
-                
-                if (isRepositioning) {
-                    console.log('⏸️ [TERRENI TOUR DEBUG] Reposizionamento già in corso, salto');
-                    return;
-                }
-                
-                setTimeout(() => {
-                    const tooltip = document.querySelector('.introjs-tooltip');
-                    const highlightedElement = document.querySelector('.introjs-showElement');
-                    
-                    console.log('🔍 [TERRENI TOUR DEBUG] ensureTooltipVisible chiamata (#', ensureTooltipCallCount, ')');
-                    
-                    if (!tooltip) {
-                        console.warn('⚠️ [TERRENI TOUR DEBUG] Tooltip non trovato!');
-                        ensureTooltipCallCount = 0; // Reset se tooltip non esiste
-                        return;
-                    }
-                    
-                    // Se siamo nello step della lista, preserva position: fixed
-                    if (isListaStepActive) {
-                        console.log('📋 [TERRENI TOUR DEBUG] Preservo position: fixed per lista terreni');
-                        tooltip.style.setProperty('position', 'fixed', 'important');
-                        tooltip.style.setProperty('z-index', '9999999', 'important');
-                    } else {
-                        // FORZA position: absolute con !important per uscire dallo stacking context del parent
-                        tooltip.style.setProperty('position', 'absolute', 'important');
-                        tooltip.style.setProperty('z-index', '999999', 'important');
-                    }
-                    
-                    // Log z-index attuale del tooltip
-                    const tooltipZIndex = window.getComputedStyle(tooltip).zIndex;
-                    const tooltipPosition = window.getComputedStyle(tooltip).position;
-                    console.log('📊 [TERRENI TOUR DEBUG] Tooltip z-index:', tooltipZIndex, 'position:', tooltipPosition);
-                    
-                    const rect = tooltip.getBoundingClientRect();
-                    const viewportHeight = window.innerHeight;
-                    const viewportWidth = window.innerWidth;
-                    const tooltipHeight = rect.height;
-                    const tooltipWidth = rect.width;
-                    
-                    // Margine di sicurezza (più grande per schermi piccoli)
-                    const isMobile = viewportWidth < 768;
-                    const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
-                    const margin = isMobile ? 30 : (isTablet ? 25 : 20);
-                    
-                    // Ottieni la posizione corrente del tooltip
-                    const currentTop = parseInt(tooltip.style.top) || rect.top;
-                    const currentLeft = parseInt(tooltip.style.left) || rect.left;
-                    
-                    // Controlla e correggi posizione verticale
-                    let newTop = currentTop;
-                    if (rect.top < margin) {
-                        // Tooltip troppo in alto - spostalo in basso
-                        newTop = margin;
-                        tooltip.style.top = newTop + 'px';
-                        tooltip.style.bottom = 'auto';
-                    } else if (rect.bottom > viewportHeight - margin) {
-                        // Tooltip troppo in basso - spostalo in alto
-                        newTop = viewportHeight - tooltipHeight - margin;
-                        tooltip.style.top = newTop + 'px';
-                        tooltip.style.bottom = 'auto';
-                    }
-                    
-                    // Controlla e correggi posizione orizzontale
-                    let newLeft = currentLeft;
-                    if (rect.left < margin) {
-                        // Tooltip troppo a sinistra - spostalo a destra
-                        newLeft = margin;
-                        tooltip.style.left = newLeft + 'px';
-                        tooltip.style.right = 'auto';
-                    } else if (rect.right > viewportWidth - margin) {
-                        // Tooltip troppo a destra - spostalo a sinistra
-                        newLeft = viewportWidth - tooltipWidth - margin;
-                        tooltip.style.left = newLeft + 'px';
-                        tooltip.style.right = 'auto';
-                    }
-                    
-                    // Su schermi piccoli, centra il tooltip se è troppo largo
-                    if (isMobile && tooltipWidth > viewportWidth - (margin * 2)) {
-                        tooltip.style.left = margin + 'px';
-                        tooltip.style.right = margin + 'px';
-                        tooltip.style.width = 'auto';
-                        tooltip.style.maxWidth = (viewportWidth - (margin * 2)) + 'px';
-                    }
-                    
-                    // FORZA anche il tooltipReferenceLayer ad avere position absolute/fixed e z-index alto
-                    const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
-                    if (tooltipReferenceLayer) {
-                        if (isListaStepActive) {
-                            tooltipReferenceLayer.style.setProperty('position', 'fixed', 'important');
-                            tooltipReferenceLayer.style.setProperty('z-index', '9999999', 'important');
-                        } else {
-                            tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
-                            tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
-                        }
-                        const refLayerZIndex = window.getComputedStyle(tooltipReferenceLayer).zIndex;
-                        const refLayerPosition = window.getComputedStyle(tooltipReferenceLayer).position;
-                        console.log('📌 [TERRENI TOUR DEBUG] TooltipReferenceLayer z-index:', refLayerZIndex, 'position:', refLayerPosition);
-                    }
-                    
-                    // Verifica z-index e stacking context degli elementi che potrebbero coprire il tooltip
-                    const listaTerreni = document.querySelector('[data-tour-section="lista-terreni"]') ||
-                                       document.querySelector('.terreni-list') ||
-                                       document.querySelector('table');
-                    if (listaTerreni) {
-                        const listaStyle = window.getComputedStyle(listaTerreni);
-                        const listaZIndex = listaStyle.zIndex;
-                        const listaPosition = listaStyle.position;
-                        const listaTransform = listaStyle.transform;
-                        const listaOpacity = listaStyle.opacity;
-                        console.log('📋 [TERRENI TOUR DEBUG] Lista/Tabella z-index:', listaZIndex, 'position:', listaPosition, 'transform:', listaTransform, 'opacity:', listaOpacity);
-                        
-                        // Se la lista ha position o transform, potrebbe creare un nuovo stacking context
-                        if (listaPosition !== 'static' || listaTransform !== 'none') {
-                            console.warn('⚠️ [TERRENI TOUR DEBUG] Lista/Tabella potrebbe creare un nuovo stacking context!');
-                        }
-                    }
-                    
-                    // Se c'è un elemento evidenziato, assicurati che non sia coperto dal tooltip
-                    if (highlightedElement) {
-                        const elementRect = highlightedElement.getBoundingClientRect();
-                        const tooltipRect = tooltip.getBoundingClientRect();
-                        
-                        console.log('🎯 [TERRENI TOUR DEBUG] Elemento evidenziato:', highlightedElement.tagName, highlightedElement.className, highlightedElement.id);
-                        console.log('📍 [TERRENI TOUR DEBUG] Tooltip posizione:', {
-                            top: tooltipRect.top,
-                            left: tooltipRect.left,
-                            bottom: tooltipRect.bottom,
-                            right: tooltipRect.right
-                        });
-                        console.log('📍 [TERRENI TOUR DEBUG] Elemento posizione:', {
-                            top: elementRect.top,
-                            left: elementRect.left,
-                            bottom: elementRect.bottom,
-                            right: elementRect.right
-                        });
-                        
-                        // Controlla se il tooltip copre l'elemento evidenziato
-                        const tooltipCoversElement = !(
-                            tooltipRect.bottom < elementRect.top ||
-                            tooltipRect.top > elementRect.bottom ||
-                            tooltipRect.right < elementRect.left ||
-                            tooltipRect.left > elementRect.right
-                        );
-                        
-                        // Per la lista terreni, non fare scroll se il tooltip copre l'elemento (è normale)
-                        if (tooltipCoversElement && !isRepositioning && ensureTooltipCallCount <= 1 && !isListaStepActive) {
-                            console.log('⚠️ [TERRENI TOUR DEBUG] Tooltip copre l\'elemento evidenziato!');
-                            isRepositioning = true;
-                            
-                            // Scrolla l'elemento in vista, lasciando spazio per il tooltip
-                            highlightedElement.scrollIntoView({ 
-                                behavior: 'smooth', 
-                                block: 'center',
-                                inline: 'nearest'
-                            });
-                            
-                            // Dopo lo scroll, riposiziona il tooltip se necessario (solo una volta)
-                            setTimeout(() => {
-                                isRepositioning = false;
-                                ensureTooltipCallCount = 0; // Reset contatore
-                                ensureTooltipVisible();
-                            }, 300);
-                        } else if (tooltipCoversElement && isListaStepActive) {
-                            console.log('ℹ️ [TERRENI TOUR DEBUG] Tooltip copre elemento lista (normale per step lista)');
-                        } else if (tooltipCoversElement) {
-                            console.log('⏸️ [TERRENI TOUR DEBUG] Tooltip copre elemento ma già in riposizionamento o troppe chiamate');
-                        }
-                    }
-                    
-                    console.log('✅ [TERRENI TOUR DEBUG] ensureTooltipVisible completata');
-                }, 150);
-            }
-
-            // Gestisci apertura/chiusura modal e scroll durante il tour
-            tour.onchange((targetElement) => {
-                if (!targetElement) return;
-                
-                // Se è lo step del pulsante traccia confini, sposta il popup in una posizione leggibile
-                const drawButton = document.getElementById('btn-draw');
-                if (targetElement && drawButton && (targetElement === drawButton || targetElement.id === 'btn-draw')) {
-                    // Forza il posizionamento del popup in una posizione ottimale
-                    function forcePopupPosition() {
-                        const tooltip = document.querySelector('.introjs-tooltip');
-                        if (tooltip) {
-                            const viewportHeight = window.innerHeight;
-                            const tooltipHeight = tooltip.offsetHeight || 350; // Stima se non disponibile
-                            const margin = 50; // Margine maggiore per i pulsanti
-                            
-                            // Calcola posizione: circa 60% dall'alto dello schermo (non proprio in fondo)
-                            // Questo lascia spazio per i pulsanti in basso
-                            const optimalPosition = (viewportHeight * 0.6) - (tooltipHeight / 2);
-                            
-                            // Assicurati che non sia troppo in basso (lascia almeno 150px per i pulsanti)
-                            const maxPosition = viewportHeight - tooltipHeight - 150;
-                            const finalPosition = Math.min(optimalPosition, maxPosition);
-                            
-                            // Forza il posizionamento con !important tramite setProperty
-                            tooltip.style.setProperty('top', finalPosition + 'px', 'important');
-                            tooltip.style.setProperty('bottom', 'auto', 'important');
-                            tooltip.style.setProperty('margin-top', '0', 'important');
-                        }
-                    }
-                    
-                    // Esegui più volte per forzare il posizionamento
-                    setTimeout(forcePopupPosition, 50);
-                    setTimeout(forcePopupPosition, 150);
-                    setTimeout(forcePopupPosition, 300);
-                    setTimeout(forcePopupPosition, 500);
-                    setTimeout(forcePopupPosition, 800);
-                }
-                
-                // Scroll l'elemento in vista con un piccolo delay
-                setTimeout(() => {
-                    if (targetElement && typeof targetElement.scrollIntoView === 'function') {
-                        targetElement.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center',
-                            inline: 'nearest'
-                        });
-                    }
-                    
-                    // FORZA position e z-index PRIMA di ensureTooltipVisible
-                    const tooltip = document.querySelector('.introjs-tooltip');
-                    const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
-                    
-                    if (tooltip) {
-                        tooltip.style.setProperty('position', 'absolute', 'important');
-                        tooltip.style.setProperty('z-index', '999999', 'important');
-                    }
-                    
-                    if (tooltipReferenceLayer) {
-                        tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
-                        tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
-                    }
-                    
-                    // Forza il tooltip a essere visibile
-                    ensureTooltipVisible();
-                    
-                    // Forza il refresh dell'overlay di Intro.js per correggere il posizionamento
-                    // Questo è importante quando si naviga avanti perché l'elemento potrebbe non essere ancora completamente renderizzato
-                    setTimeout(() => {
-                        const helperLayer = document.querySelector('.introjs-helperLayer');
-                        if (helperLayer && targetElement) {
-                            // Forza il ricalcolo del posizionamento
-                            const rect = targetElement.getBoundingClientRect();
-                            if (rect.width > 0 && rect.height > 0) {
-                                // L'elemento è visibile, forza il refresh
-                                helperLayer.style.display = 'none';
-                                setTimeout(() => {
-                                    helperLayer.style.display = '';
-                                }, 10);
-                            }
-                        }
-                    }, 200);
-                }, 150);
-                
-                const isFormStep = targetElement.closest('[data-tour-section="form-terreno"]') ||
-                                  targetElement.closest('[data-tour-section="mappa-terreno"]');
-                
-                const isListaStep = targetElement.closest('[data-tour-section="lista-terreni"]');
-                
-                // Apri il modal quando arriviamo agli step del form/mappa
-                if (isFormStep && !modalAlreadyOpen && !terreniTourOpenedModal && typeof window.openTerrenoModal === 'function') {
-                    terreniTourOpenedModal = true;
-                    // Apri il modal con delay per assicurarsi che sia completamente renderizzato
-                    setTimeout(() => {
-                        window.openTerrenoModal();
-                        // Scroll l'elemento dopo che il modal è aperto
-                        setTimeout(() => {
-                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
-                                targetElement.scrollIntoView({ 
-                                    behavior: 'smooth', 
-                                    block: 'center',
-                                    inline: 'nearest'
-                                });
-                            }
-                            // Forza il tooltip a essere visibile
-                            ensureTooltipVisible();
-                        }, 300);
-                    }, 300);
-                }
-                
-                // Chiudi il modal quando arriviamo alla lista (se l'abbiamo aperto noi)
-                if (isListaStep && modalWasOpenedForTour && terreniTourOpenedModal && typeof window.closeTerrenoModal === 'function') {
-                    terreniTourOpenedModal = false;
-                    setTimeout(() => {
-                        window.closeTerrenoModal();
-                        // Scroll la lista dopo che il modal è chiuso
-                        setTimeout(() => {
-                            if (targetElement && typeof targetElement.scrollIntoView === 'function') {
-                                targetElement.scrollIntoView({ 
-                                    behavior: 'smooth', 
-                                    block: 'center',
-                                    inline: 'nearest'
-                                });
-                            }
-                            // Forza il tooltip a essere visibile solo se esiste
-                            const tooltipAfterClose = document.querySelector('.introjs-tooltip');
-                            if (tooltipAfterClose) {
-                                ensureTooltipVisible();
-                            } else {
-                                console.log('⏸️ [TERRENI TOUR DEBUG] Tooltip non esiste dopo chiusura modal, aspetto...');
-                                setTimeout(() => {
-                                    const tooltipAfterWait = document.querySelector('.introjs-tooltip');
-                                    if (tooltipAfterWait) {
-                                        ensureTooltipVisible();
-                                    }
-                                }, 200);
-                            }
-                        }, 300);
-                    }, 200);
-                }
-            });
-
-            // Assicurati che il tooltip sia visibile quando viene mostrato
-            tour.onafterchange((targetElement) => {
-                console.log('✨ [TERRENI TOUR DEBUG] onafterchange chiamato per:', targetElement?.tagName, targetElement?.className, targetElement?.id);
-                
-                // FORZA position e z-index PRIMA di tutto
-                const tooltip = document.querySelector('.introjs-tooltip');
-                const tooltipReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
-                
-                if (tooltip) {
-                    // FORZA position: absolute con !important
-                    tooltip.style.setProperty('position', 'absolute', 'important');
-                    tooltip.style.setProperty('z-index', '999999', 'important');
-                    
-                    const zIndexAfter = window.getComputedStyle(tooltip).zIndex;
-                    const positionAfter = window.getComputedStyle(tooltip).position;
-                    console.log('📊 [TERRENI TOUR DEBUG] Tooltip z-index in onafterchange:', zIndexAfter, 'position:', positionAfter);
-                    
-                    // Verifica se lo z-index è quello che ci aspettiamo
-                    if (zIndexAfter !== '999999' && zIndexAfter !== '999999px') {
-                        console.error('❌ [TERRENI TOUR DEBUG] PROBLEMA: z-index non è 999999! È:', zIndexAfter);
-                    }
-                    if (positionAfter !== 'absolute' && positionAfter !== 'fixed') {
-                        console.error('❌ [TERRENI TOUR DEBUG] PROBLEMA: position non è absolute/fixed! È:', positionAfter);
-                    }
-                }
-                
-                if (tooltipReferenceLayer) {
-                    tooltipReferenceLayer.style.setProperty('position', 'absolute', 'important');
-                    tooltipReferenceLayer.style.setProperty('z-index', '999999', 'important');
-                }
-                
-                // Se è lo step della lista terreni, forza il tooltip sopra la lista
-                const isListaStep = targetElement && (
-                    targetElement.closest('[data-tour-section="lista-terreni"]') ||
-                    targetElement.classList.contains('terreni-table') ||
-                    targetElement.querySelector('table')
-                );
-                
-                // Imposta il flag per preservare position: fixed
-                isListaStepActive = !!isListaStep;
-                
-                if (isListaStep && tooltip) {
-                    console.log('📋 [TERRENI TOUR DEBUG] Step lista terreni - forzo tooltip sopra la lista');
-                    // Forza z-index ancora più alto e assicurati che sia sopra tutto
-                    tooltip.style.setProperty('z-index', '9999999', 'important');
-                    tooltip.style.setProperty('position', 'fixed', 'important'); // Usa fixed per essere sicuro che sia sopra tutto
-                    if (tooltipReferenceLayer) {
-                        tooltipReferenceLayer.style.setProperty('z-index', '9999999', 'important');
-                        tooltipReferenceLayer.style.setProperty('position', 'fixed', 'important');
-                    }
-                    // Reset contatore per permettere nuove chiamate per questo step
-                    ensureTooltipCallCount = 0;
-                } else {
-                    // Reset flag se non siamo nello step della lista
-                    isListaStepActive = false;
-                }
-                
-                // Chiama ensureTooltipVisible solo se il tooltip esiste
-                const tooltipExists = document.querySelector('.introjs-tooltip');
-                if (tooltipExists) {
-                    ensureTooltipVisible();
-                } else {
-                    console.log('⏸️ [TERRENI TOUR DEBUG] Tooltip non esiste ancora in onafterchange, aspetto...');
-                    // Aspetta che Intro.js crei il tooltip
-                    setTimeout(() => {
-                        const tooltipAfterWait = document.querySelector('.introjs-tooltip');
-                        if (tooltipAfterWait) {
-                            ensureTooltipVisible();
-                        }
-                    }, 100);
-                }
-                
-                // Se è lo step del pulsante traccia confini, forza il popup in una posizione leggibile
-                const drawButton = document.getElementById('btn-draw');
-                if (targetElement && drawButton && (targetElement === drawButton || targetElement.id === 'btn-draw')) {
-                    function forcePopupPosition() {
-                        const tooltip = document.querySelector('.introjs-tooltip');
-                        if (tooltip) {
-                            const viewportHeight = window.innerHeight;
-                            const tooltipRect = tooltip.getBoundingClientRect();
-                            const tooltipHeight = tooltipRect.height || 350;
-                            
-                            // Posizione ottimale: circa 60% dall'alto, lasciando spazio per i pulsanti
-                            const optimalPosition = (viewportHeight * 0.6) - (tooltipHeight / 2);
-                            const maxPosition = viewportHeight - tooltipHeight - 150; // Lascia 150px per i pulsanti
-                            const finalPosition = Math.min(optimalPosition, maxPosition);
-                            
-                            // Forza con !important
-                            tooltip.style.setProperty('top', finalPosition + 'px', 'important');
-                            tooltip.style.setProperty('bottom', 'auto', 'important');
-                            tooltip.style.setProperty('margin-top', '0', 'important');
-                            tooltip.style.setProperty('transform', 'none', 'important');
-                        }
-                    }
-                    
-                    // Esegui più volte
-                    setTimeout(forcePopupPosition, 100);
-                    setTimeout(forcePopupPosition, 300);
-                    setTimeout(forcePopupPosition, 600);
-                }
-                
-                // Forza il refresh dell'overlay dopo che il tooltip è stato posizionato
-                // Questo è critico quando si naviga avanti perché l'elemento potrebbe non essere ancora completamente renderizzato
-                if (targetElement) {
-                    // Funzione per forzare il refresh dell'overlay
-                    function refreshOverlay() {
-                        const helperLayer = document.querySelector('.introjs-helperLayer');
-                        if (!helperLayer || !targetElement) return;
-                        
-                        const targetRect = targetElement.getBoundingClientRect();
-                        
-                        // Verifica che l'elemento sia visibile e abbia dimensioni valide
-                        if (targetRect.width > 0 && targetRect.height > 0) {
-                            // Forza il ricalcolo dell'overlay usando le coordinate dell'elemento target
-                            helperLayer.style.width = targetRect.width + 'px';
-                            helperLayer.style.height = targetRect.height + 'px';
-                            helperLayer.style.top = (targetRect.top + window.scrollY) + 'px';
-                            helperLayer.style.left = (targetRect.left + window.scrollX) + 'px';
-                        }
-                    }
-                    
-                    // Esegui il refresh più volte con delay crescenti per assicurarsi che funzioni
-                    // Questo gestisce il caso in cui l'elemento non è ancora completamente renderizzato
-                    setTimeout(refreshOverlay, 50);
-                    setTimeout(refreshOverlay, 150);
-                    setTimeout(refreshOverlay, 300);
-                    setTimeout(refreshOverlay, 500);
-                }
-            });
-
-            tour.oncomplete(() => {
-                // Reset flag quando il tour finisce
-                isListaStepActive = false;
-                isRepositioning = false;
-                ensureTooltipCallCount = 0;
-                
-                if (!modalAlreadyOpen && modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
-                    window.closeTerrenoModal();
-                }
-                try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            });
-
-            tour.onexit(() => {
-                // Reset flag quando il tour viene chiuso
-                isListaStepActive = false;
-                isRepositioning = false;
-                ensureTooltipCallCount = 0;
-                
-                if (!modalAlreadyOpen && modalWasOpenedForTour && typeof window.closeTerrenoModal === 'function') {
-                    window.closeTerrenoModal();
-                }
-                try { localStorage.setItem(TERRENI_TOUR_STORAGE_KEY, 'done'); } catch (error) {}
-            });
-
-            tour.start();
-            
-            // Assicurati che il tooltip sia visibile anche all'inizio
-            setTimeout(() => {
-                ensureTooltipVisible();
-            }, 300);
-        }
-
-        function buildTerreniTourSteps() {
-            const steps = [];
-
-            // 1. Header - usa l'intero header per migliore visibilità
-            const header = document.querySelector('.header');
-            if (header) {
-                steps.push({
-                    element: header,
-                    position: 'bottom',
-                    title: 'Gestione Terreni',
-                    intro: 'Qui gestisci l\'anagrafica completa dei terreni aziendali. Puoi sempre tornare alla dashboard o aprire le guide.'
-                });
-            }
-
-            // 2. Pulsante aggiungi
-            const addButton = document.getElementById('add-terreno-button');
-            if (addButton) {
-                steps.push({
-                    element: addButton,
-                    position: 'auto', // Lascia che Intro.js scelga la posizione migliore
-                    title: 'Aggiungi nuovo terreno',
-                    intro: 'Premi qui per aprire il modulo completo: inserisci dati anagrafici, podere, coltura e traccia i confini sulla mappa.'
-                });
-            }
-
-            // 3. Form e mappa (nel modal - verrà aperto durante il tour)
-            const modal = document.getElementById('terreno-modal');
-            const form = modal ? modal.querySelector('#terreno-form') : null;
-            
-            // Usa il form specifico invece del modal-content
-            if (form) {
-                steps.push({
-                    element: form,
-                    position: 'left', // A sinistra del form
-                    title: 'Modulo dettagli terreno',
-                    intro: 'Compila Nome, Superficie, Coltura, Podere e note operative. I dropdown sono alimentati dalle liste aziendali. La superficie può essere calcolata automaticamente tracciando i confini.'
-                });
-            }
-
-            // Step dettagliati per il tracciamento confini
-            const mappa = modal ? modal.querySelector('[data-tour-section="mappa-terreno"]') : null;
-            if (mappa) {
-                // Step 1: Ricerca indirizzo - usa il wrapper che include input e pulsante
-                // Questo assicura che l'evidenziazione sia allineata correttamente
-                const searchWrapper = document.getElementById('map-search-wrapper');
-                if (searchWrapper) {
-                    steps.push({
-                        element: searchWrapper,
-                        position: 'left', // A SINISTRA per non coprire la barra di ricerca
-                        title: 'Cerca l\'indirizzo del terreno',
-                        intro: 'Digita l\'indirizzo o il nome del luogo e clicca "🔍 Cerca" per centrare la mappa. Puoi anche trascinare manualmente la mappa per posizionarla.'
-                    });
-                } else {
-                    // Fallback all'input se il wrapper non esiste
-                    const searchInput = document.getElementById('map-search');
-                    if (searchInput) {
-                        steps.push({
-                            element: searchInput,
-                            position: 'left',
-                            title: 'Cerca l\'indirizzo del terreno',
-                            intro: 'Digita l\'indirizzo o il nome del luogo e clicca "🔍 Cerca" per centrare la mappa. Puoi anche trascinare manualmente la mappa per posizionarla.'
-                        });
-                    }
-                }
-
-                // Step 2: Pulsante tracciamento - punta DIRETTAMENTE al pulsante
-                // Sposta il popup a destra nella zona vuota (non sopra o sotto il pulsante)
-                const drawButton = document.getElementById('btn-draw');
-                if (drawButton) {
-                    steps.push({
-                        element: drawButton,
-                        position: 'right', // A DESTRA del pulsante per metterlo nella zona vuota
-                        title: 'Inizia il tracciamento confini',
-                        intro: 'Clicca "✏️ Traccia Confini" per attivare la modalità disegno. Il cursore diventerà una croce: ora puoi cliccare sulla mappa per aggiungere punti al perimetro. 🆕 Nuovo terreno: clicca sulla mappa per tracciare. ✏️ Modifica esistente: i confini vengono caricati automaticamente e puoi trascinare i vertici (pallini verdi) per modificarli. Servono almeno 3 punti per calcolare la superficie.'
-                    });
-                }
-
-                // Step 3: Area calcolata - punta DIRETTAMENTE al container map-info
-                const mapInfo = document.getElementById('map-info');
-                if (mapInfo) {
-                    steps.push({
-                        element: mapInfo,
-                        position: 'top', // Sopra l'info
-                        title: 'Superficie calcolata automaticamente',
-                        intro: 'La superficie viene calcolata in tempo reale mentre tracci. Puoi anche inserire manualmente la superficie nel campo "Superficie" del form se preferisci. Il valore calcolato dalla mappa ha priorità se presente.'
-                    });
-                }
-            }
-
-            // 4. Lista terreni - ALLA FINE (dopo aver chiuso il modal)
-            const lista = document.querySelector('[data-tour-section="lista-terreni"]');
-            if (lista) {
-                // Verifica che l'elemento sia nel DOM
-                const listaStyle = window.getComputedStyle(lista);
-                const isListaVisible = listaStyle.display !== 'none' && 
-                                      listaStyle.visibility !== 'hidden';
-                
-                if (isListaVisible) {
-                    // Prova a trovare la tabella, altrimenti usa il container
-                    let targetElement = lista.querySelector('table');
-                    if (!targetElement) {
-                        targetElement = lista.querySelector('.terreni-table');
-                    }
-                    if (!targetElement) {
-                        // Se non c'è tabella, usa il container stesso
-                        targetElement = lista;
-                    }
-                    
-                    // Aggiungi lo step solo se l'elemento esiste
-                    if (targetElement) {
-                        steps.push({
-                            element: targetElement,
-                            position: 'auto', // Lascia che Intro.js scelga la posizione migliore
-                            title: 'Elenco terreni',
-                            intro: 'La tabella mostra nome campo, coltura, podere, superficie e stato mappa. Clicca "✏️ Modifica" per modificare un terreno esistente: i confini verranno caricati sulla mappa e potrai modificarli trascinando i vertici.'
-                        });
-                    }
-                }
-            }
-
-            // 5. Step finale - rimuoviamo questo step perché è troppo generico
-            // Se necessario, possiamo aggiungere uno step più specifico
-
-            return steps;
-        }
-
-        // Apri modal terreno
-        window.openTerrenoModal = async function(terrenoId = null) {
-            currentTerrenoId = terrenoId;
-            const modal = document.getElementById('terreno-modal');
-            const form = document.getElementById('terreno-form');
-            const title = document.getElementById('modal-title');
-            
-            // IMPORTANTE: Carica colture e popola dropdown PRIMA di impostare i valori
-            // Ricarica colture per assicurarsi che siano aggiornate
-            await loadColture();
-            populatePoderiDropdown();
-            
-            if (terrenoId) {
-                title.textContent = 'Modifica Terreno';
-                // Carica dati terreno
-                const terreno = terreni.find(t => t.id === terrenoId);
-                if (terreno) {
-                    document.getElementById('terreno-nome').value = terreno.nome || '';
-                    document.getElementById('terreno-superficie').value = terreno.superficie || '';
-                    
-                    // Trova la categoria della coltura selezionata
-                    const colturaNome = terreno.coltura || '';
-                    if (colturaNome) {
-                        // Cerca la coltura nelle categorie caricate
-                        let categoriaIdTrovata = null;
-                        for (const [catId, coltureList] of Object.entries(colturePerCategoriaTerreni)) {
-                            const colturaTrovata = coltureList.find(c => c.nome === colturaNome);
-                            if (colturaTrovata) {
-                                categoriaIdTrovata = catId;
-                                break;
-                            }
-                        }
-                        
-                        // Imposta la categoria se trovata
-                        const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-                        if (categoriaSelect && categoriaIdTrovata) {
-                            categoriaSelect.value = categoriaIdTrovata;
-                            // Aggiorna il dropdown delle colture
-                            updateColtureDropdownTerreni();
-                        }
-                        
-                        // Imposta la coltura dopo aver aggiornato il dropdown
-                        setTimeout(() => {
-                            document.getElementById('terreno-coltura').value = colturaNome;
-                        }, 100);
-                    }
-                    
-                    const podereValue = terreno.podere || '';
-                    // Imposta il valore DOPO che il dropdown è stato popolato
-                    document.getElementById('terreno-podere').value = podereValue;
-                    document.getElementById('terreno-note').value = terreno.note || '';
-                    
-                    // Carica tipo possesso e campi affitto
-                    const tipoPossesso = terreno.tipoPossesso || 'proprieta';
-                    document.getElementById('terreno-tipo-possesso').value = tipoPossesso;
-                    
-                    if (tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
-                        const scadenza = terreno.dataScadenzaAffitto.toDate ? terreno.dataScadenzaAffitto.toDate() : new Date(terreno.dataScadenzaAffitto);
-                        const scadenzaStr = scadenza.toISOString().split('T')[0];
-                        document.getElementById('terreno-data-scadenza-affitto').value = scadenzaStr;
-                        document.getElementById('terreno-canone-affitto').value = terreno.canoneAffitto || '';
-                    }
-                    
-                    // Mostra/nascondi campi affitto
-                    toggleDataScadenzaAffitto();
-                    
-                    // Inizializza mappa se disponibile
-                    if (window.googleMapsReady) {
-                        setTimeout(() => {
-                            initMap();
-                            if (terreno.polygonCoords && terreno.polygonCoords.length > 0) {
-                                loadExistingPolygon(terreno.polygonCoords);
-                                // Calcola superficie dalla mappa esistente e aggiorna il campo
-                                setTimeout(() => {
-                                    if (polygon && currentPolygonCoords.length >= 3) {
-                                        const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
-                                        const areaHectares = area / 10000;
-                                        document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
-                                    }
-                                }, 500);
-                            } else if (terreno.coordinate) {
-                                map.setCenter(terreno.coordinate);
-                                map.setZoom(15);
-                            }
-                        }, 300);
-                    }
-                }
-            } else {
-                title.textContent = 'Aggiungi Terreno';
-                form.reset();
-                // Reset dropdown categoria colture
-                document.getElementById('terreno-coltura-categoria').value = '';
-                // Reset dropdown colture mantenendo solo l'opzione iniziale
-                const colturaSelect = document.getElementById('terreno-coltura');
-                if (colturaSelect) {
-                    colturaSelect.innerHTML = '<option value="">-- Seleziona prima la categoria --</option>';
-                }
-                document.getElementById('terreno-podere').value = '';
-                document.getElementById('terreno-tipo-possesso').value = 'proprieta';
-                toggleDataScadenzaAffitto(); // Nascondi campi affitto
-                currentPolygonCoords = [];
-                polygon = null;
-                if (window.googleMapsReady) {
-                    setTimeout(() => {
-                        initMap();
-                    }, 300);
-                }
-            }
-            
-            // Le colture vengono caricate automaticamente quando si seleziona una categoria
-            
-            modal.classList.add('active');
-        };
-
-        // Chiudi modal terreno
-        window.closeTerrenoModal = function() {
-            const modal = document.getElementById('terreno-modal');
-            modal.classList.remove('active');
-            currentTerrenoId = null;
-            
-            // Pulisci mappa
-            if (polygon) {
-                polygon.setMap(null);
-                polygon = null;
-            }
-            currentPolygonCoords = [];
-            isDrawing = false;
-            if (map) {
-                map = null;
-            }
-        };
-
-        // Salva terreno
-        window.handleSaveTerreno = async function(e) {
-            e.preventDefault();
-            
-            if (!currentTenantId) {
-                showAlert('Errore: Tenant ID non disponibile', 'error');
-                return;
-            }
-            
-            const nome = document.getElementById('terreno-nome').value.trim();
-            if (!nome) {
-                showAlert('Il nome terreno è obbligatorio', 'error');
-                return;
-            }
-            
-            const coltura = document.getElementById('terreno-coltura').value.trim() || null;
-            const podere = document.getElementById('terreno-podere').value.trim() || null;
-            const note = document.getElementById('terreno-note').value.trim();
-            const tipoPossesso = document.getElementById('terreno-tipo-possesso').value;
-            const dataScadenzaAffitto = document.getElementById('terreno-data-scadenza-affitto').value;
-            const canoneAffitto = document.getElementById('terreno-canone-affitto').value;
-            
-            // Prepara dati terreno
-            const terrenoData = {
-                nome,
-                superficie: null,
-                coltura: coltura || null,
-                podere: podere || null,
-                note: note || null,
-                tipoPossesso: tipoPossesso || 'proprieta',
-                updatedAt: serverTimestamp()
-            };
-            
-            // Aggiungi campi affitto solo se tipo possesso è affitto
-            if (tipoPossesso === 'affitto') {
-                if (!dataScadenzaAffitto) {
-                    showAlert('Data scadenza affitto obbligatoria per terreni in affitto', 'error');
-                    return;
-                }
-                terrenoData.dataScadenzaAffitto = Timestamp.fromDate(new Date(dataScadenzaAffitto));
-                terrenoData.canoneAffitto = canoneAffitto ? parseFloat(canoneAffitto) : null;
-            } else {
-                // Se è proprietà, rimuovi eventuali campi affitto esistenti
-                terrenoData.dataScadenzaAffitto = null;
-                terrenoData.canoneAffitto = null;
-            }
-            
-            // Aggiungi coordinate se disponibili
-            if (currentPolygonCoords && currentPolygonCoords.length > 0) {
-                // Calcola punto centrale dal poligono
-                let sumLat = 0, sumLng = 0;
-                currentPolygonCoords.forEach(coord => {
-                    sumLat += coord.lat();
-                    sumLng += coord.lng();
-                });
-                terrenoData.coordinate = {
-                    lat: sumLat / currentPolygonCoords.length,
-                    lng: sumLng / currentPolygonCoords.length
-                };
-                
-                // Converti coordinate poligono in formato serializzabile
-                terrenoData.polygonCoords = currentPolygonCoords.map(coord => ({
-                    lat: coord.lat(),
-                    lng: coord.lng()
-                }));
-                
-                // Calcola superficie dalla mappa (sempre, se mappa tracciata)
-                if (window.googleMapsReady && polygon) {
-                    const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
-                    terrenoData.superficie = area / 10000; // Converti da m² a ettari
-                }
-            } else {
-                // Se non c'è mappa, usa superficie manuale se inserita
-                const superficie = parseFloat(document.getElementById('terreno-superficie').value) || null;
-                terrenoData.superficie = superficie;
-            }
-            
-            try {
-                const terreniCollection = getTerreniCollection(currentTenantId);
-                
-                // Rimuovi createdAt se presente (per update)
-                const dataToSave = { ...terrenoData };
-                if (currentTerrenoId) {
-                    delete dataToSave.createdAt;
-                }
-                
-                if (currentTerrenoId) {
-                    // Aggiorna usando setDoc con merge per garantire che tutti i campi vengano salvati
-                    const terrenoRef = doc(terreniCollection, currentTerrenoId);
-                    await setDoc(terrenoRef, dataToSave, { merge: true });
-                    showAlert('Terreno aggiornato con successo!', 'success');
-                } else {
-                    // Crea
-                    dataToSave.createdAt = serverTimestamp();
-                    await addDoc(terreniCollection, dataToSave);
-                    showAlert('Terreno creato con successo!', 'success');
-                }
-                
-                closeTerrenoModal();
-                await loadTerreni();
-            } catch (error) {
-                console.error('Errore salvataggio terreno:', error);
-                showAlert('Errore nel salvataggio: ' + error.message, 'error');
-            }
-        };
-
-        // Modifica terreno
-        window.editTerreno = function(terrenoId) {
-            openTerrenoModal(terrenoId);
-        };
-
-        // Conferma eliminazione terreno
-        window.confirmDeleteTerreno = async function(terrenoId) {
-            const terreno = terreni.find(t => t.id === terrenoId);
-            if (!terreno) return;
-            
-            if (!currentTenantId) {
-                showAlert('Errore: Tenant ID non disponibile', 'error');
-                return;
-            }
-            
-            try {
-                // Verifica se terreno è usato in attività usando Firebase direttamente
-                let numAttivita = 0;
-                try {
-                    const attivitaCollection = collection(db, `tenants/${currentTenantId}/attivita`);
-                    const q = query(attivitaCollection, where('terrenoId', '==', terrenoId));
-                    const querySnapshot = await getDocs(q);
-                    numAttivita = querySnapshot.size;
-                } catch (e) {
-                    console.warn('Errore verifica attività:', e);
-                    // Continua comunque, ma senza verifica
-                }
-                
-                let message = `Sei sicuro di voler eliminare il terreno "${terreno.nome}"?`;
-                let forceDelete = false;
-                
-                if (numAttivita > 0) {
-                    message += `\n\n⚠️ ATTENZIONE: Questo terreno è utilizzato in ${numAttivita} attività.`;
-                    message += `\n\nSe elimini il terreno, le attività rimarranno con un riferimento a un terreno inesistente.`;
-                    message += `\n\nVuoi eliminare comunque?`;
-                    
-                    // Prima conferma: avviso
-                    if (!confirm(message)) {
-                        return; // Utente ha annullato
-                    }
-                    
-                    // Seconda conferma: conferma forzata
-                    forceDelete = confirm(
-                        `⚠️ CONFERMA FINALE\n\nStai per eliminare un terreno utilizzato in ${numAttivita} attività.\n\n` +
-                        `Questa operazione non può essere annullata.\n\n` +
-                        `Sei sicuro di voler procedere?`
-                    );
-                    
-                    if (!forceDelete) {
-                        return; // Utente ha annullato
-                    }
-                } else {
-                    // Nessuna attività associata, conferma normale
-                    if (!confirm(message)) {
-                        return; // Utente ha annullato
-                    }
-                }
-                
-                // Elimina usando Firebase direttamente
-                const terreniCollection = getTerreniCollection(currentTenantId);
-                const terrenoRef = doc(terreniCollection, terrenoId);
-                await deleteDoc(terrenoRef);
-                showAlert('Terreno eliminato con successo!', 'success');
-                await loadTerreni();
-                
-            } catch (error) {
-                console.error('Errore eliminazione terreno:', error);
-                showAlert('Errore nell\'eliminazione: ' + error.message, 'error');
-            }
-        };
-
-        // Mostra alert
-        function showAlert(message, type = 'success') {
-            const container = document.getElementById('alert-container');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            container.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
-        }
-
-        // Escape HTML
-        function escapeHtml(text) {
-            if (!text) return '';
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return String(text).replace(/[&<>"']/g, m => map[m]);
-        }
-
-        // Toggle campi affitto in base al tipo possesso
-        window.toggleDataScadenzaAffitto = function() {
-            const tipoPossesso = document.getElementById('terreno-tipo-possesso').value;
-            const affittoFields = document.getElementById('affitto-fields');
-            const affittoCanoneField = document.getElementById('affitto-canone-field');
-            const dataScadenzaInput = document.getElementById('terreno-data-scadenza-affitto');
-            
-            if (tipoPossesso === 'affitto') {
-                affittoFields.style.display = 'block';
-                affittoCanoneField.style.display = 'block';
-                dataScadenzaInput.required = true;
-            } else {
-                affittoFields.style.display = 'none';
-                affittoCanoneField.style.display = 'none';
-                dataScadenzaInput.required = false;
-                dataScadenzaInput.value = '';
-                document.getElementById('terreno-canone-affitto').value = '';
-            }
-        };
-
-        // Calcola alert scadenza affitto
-        function calcolaAlertAffitto(dataScadenza) {
-            if (!dataScadenza) {
-                return { colore: null, testo: '', giorni: null };
-            }
-
-            const oggi = new Date();
-            oggi.setHours(0, 0, 0, 0);
-            
-            const scadenza = dataScadenza.toDate ? dataScadenza.toDate() : new Date(dataScadenza);
-            scadenza.setHours(0, 0, 0, 0);
-
-            const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
-            const mesiRimanenti = giorniRimanenti / 30;
-
-            if (giorniRimanenti < 0) {
-                return { colore: 'grey', testo: 'Scaduto', giorni: giorniRimanenti, mesi: null };
-            } else if (giorniRimanenti <= 30) {
-                // Rosso: ≤1 mese
-                return { colore: 'red', testo: `${giorniRimanenti} giorni`, giorni: giorniRimanenti, mesi: mesiRimanenti };
-            } else if (giorniRimanenti <= 180) {
-                // Giallo: 1-6 mesi
-                const mesi = Math.floor(mesiRimanenti);
-                return { colore: 'yellow', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
-            } else {
-                // Verde: >6 mesi
-                const mesi = Math.floor(mesiRimanenti);
-                return { colore: 'green', testo: `~${mesi} mesi`, giorni: giorniRimanenti, mesi: mesiRimanenti };
-            }
-        }
-
-        // Formatta data scadenza per tooltip
-        function formattaDataScadenza(data) {
-            if (!data) return '';
-            const d = data.toDate ? data.toDate() : new Date(data);
-            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
+        // Funzioni calcolaAlertAffitto e formattaDataScadenza RIMOSSE - ora gestite nel modulo terreni-utils.js
 
         // ========== Google Maps Functions ==========
         
@@ -2953,7 +1437,7 @@
             const address = document.getElementById('map-search').value;
 
             if (!address) {
-                showAlert('Inserisci un indirizzo da cercare', 'warning');
+                showAlertUtil('Inserisci un indirizzo da cercare', 'warning');
                 return;
             }
 
@@ -2968,34 +1452,13 @@
                         title: address
                     });
                 } else {
-                    showAlert('Indirizzo non trovato: ' + status, 'error');
+                    showAlertUtil('Indirizzo non trovato: ' + status, 'error');
                 }
             });
         };
 
-        // Toggle tracciamento
-        window.toggleDrawing = function() {
-            if (!map) return;
-            
-            isDrawing = !isDrawing;
-            const btn = document.getElementById('btn-draw');
-            
-            if (isDrawing) {
-                btn.textContent = '⏹️ Stop Tracciamento';
-                btn.className = 'btn btn-danger';
-                document.getElementById('map').style.cursor = 'crosshair';
-                if (polygon) {
-                    polygon.setMap(null);
-                    polygon = null;
-                    currentPolygonCoords = [];
-                    document.getElementById('map-info').classList.remove('active');
-                }
-            } else {
-                btn.textContent = '✏️ Traccia Confini';
-                btn.className = 'btn btn-success';
-                document.getElementById('map').style.cursor = 'default';
-            }
-        };
+        // NOTA: window.toggleDrawing è già definito sopra (riga 1094) come toggleDrawingWrapper
+        // Questa funzione duplicata è stata rimossa per evitare conflitti
 
         // Cancella poligono
         window.clearPolygon = function() {
@@ -3025,85 +1488,23 @@
         }
 
         // Carica poligono esistente
-        window.loadExistingPolygon = function(polygonCoords) {
-            if (!map || !google || !google.maps) return;
-            
-            if (!polygonCoords || polygonCoords.length === 0) return;
-            
-            clearPolygon();
-            
-            // Converti coordinate in LatLng se necessario
-            const coords = polygonCoords.map(coord => {
-                if (coord.lat && coord.lng) {
-                    return new google.maps.LatLng(coord.lat, coord.lng);
-                }
-                return coord;
-            });
-            
-            const colors = getColturaColor();
-            polygon = new google.maps.Polygon({
-                paths: coords,
-                fillColor: colors.fill + '80', // Aggiungi trasparenza
-                fillOpacity: 0.35,
-                strokeColor: colors.stroke,    // Usa versione scura per perimetro
-                strokeWeight: 3,               // Aumentato per maggiore visibilità
-                strokeOpacity: 1.0,            // Massima visibilità
-                editable: true,
-                draggable: true
-            });
-            
-            polygon.setMap(map);
-            currentPolygonCoords = polygon.getPath().getArray();
-            
-            // Listener per modifiche
-            google.maps.event.addListener(polygon.getPath(), 'set_at', function() {
-                currentPolygonCoords = polygon.getPath().getArray();
-                if (currentPolygonCoords.length >= 3) {
-                    updateAreaInfo();
-                }
-            });
-
-            google.maps.event.addListener(polygon.getPath(), 'insert_at', function() {
-                currentPolygonCoords = polygon.getPath().getArray();
-                if (currentPolygonCoords.length >= 3) {
-                    updateAreaInfo();
-                }
-            });
-
-            google.maps.event.addListener(polygon.getPath(), 'remove_at', function() {
-                currentPolygonCoords = polygon.getPath().getArray();
-                if (currentPolygonCoords.length >= 3) {
-                    updateAreaInfo();
-                }
-            });
-            
-            // Fit bounds
-            const bounds = new google.maps.LatLngBounds();
-            coords.forEach(coord => bounds.extend(coord));
-            map.fitBounds(bounds);
-            
-            document.getElementById('map-info').classList.add('active');
-            updateAreaInfo();
-            
-            // Calcola e aggiorna superficie quando si carica un poligono esistente
-            if (currentPolygonCoords.length >= 3) {
-                const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
-                const areaHectares = area / 10000;
-                document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
-            }
-        };
+        // Funzione loadExistingPolygon RIMOSSA - ora gestita nel modulo terreni-maps.js
     </script>
     
     <!-- Service Worker Registration for PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/gfv-platform/service-worker.js')
+                // Usa percorso relativo per compatibilità con localhost e GitHub Pages
+                const swPath = window.location.pathname.includes('/gfv-platform/') 
+                    ? '/gfv-platform/service-worker.js' 
+                    : '../../service-worker.js';
+                navigator.serviceWorker.register(swPath)
                     .then((registration) => {
                         console.log('Service Worker registrato con successo:', registration.scope);
                     })
                     .catch((error) => {
-                        console.log('Registrazione Service Worker fallita:', error);
+                        console.warn('Registrazione Service Worker fallita (non critico):', error);
                     });
             });
         }

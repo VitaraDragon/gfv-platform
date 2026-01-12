@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tipo Lavoro Model - Modello dati tipo lavoro specifico
  * Gestisce tipi lavoro organizzati per categoria
  * 
@@ -67,10 +67,4 @@ export class TipoLavoro extends Base {
 }
 
 export default TipoLavoro;
-
-
-
-
-
-
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Config Loader - Carica configurazioni Firebase e Google Maps
  * Gestisce fallback per GitHub Pages
  */
@@ -181,12 +181,12 @@ window.GFVConfigLoader.loadGoogleMapsAPI = function loadGoogleMapsAPI() {
             const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY;
             
             if (attempts === 1) {
-                console.log('🔍 Verifica chiave API Google Maps...', GOOGLE_MAPS_API_KEY ? 'Trovata' : 'Non trovata');
+
             }
             
             if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
                 clearInterval(checkConfig);
-                console.log('✅ Chiave API Google Maps trovata, procedo con caricamento...');
+
                 // Config trovato, procedi con il caricamento
                 loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY).then(resolve);
             } else if (attempts >= maxAttempts) {

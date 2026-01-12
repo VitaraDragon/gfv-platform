@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Categorie Lavori Service - Servizio per gestione categorie lavori
  * Gestisce CRUD categorie con supporto multi-tenant
  * 
@@ -397,10 +397,4 @@ export default {
   getNumeroTipiLavoroCategoria,
   CATEGORIE_PREDEFINITE
 };
-
-
-
-
-
-
 

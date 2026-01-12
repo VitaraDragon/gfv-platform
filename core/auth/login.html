@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -242,8 +242,7 @@
             try {
                 await initializeCore(firebaseConfig);
                 appInitialized = true;
-                console.log('✅ App inizializzata');
-                
+
                 // Verifica se già autenticato
                 checkAuthState();
             } catch (error) {

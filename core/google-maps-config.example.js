@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Google Maps Configuration - GFV Platform
  * Configurazione opzionale per Google Maps API
  * 
@@ -40,9 +40,4 @@ export default {
   GOOGLE_MAPS_API_KEY,
   googleMapsConfig
 };
-
-
-
-
-
 

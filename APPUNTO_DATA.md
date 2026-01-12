@@ -27,5 +27,5 @@ Quando si aggiungono nuove sezioni o aggiornamenti, ricordarsi di aggiornare:
 
 ---
 
-**Ultimo aggiornamento appunto**: 2025-12-09 12:07:24
+**Ultimo aggiornamento appunto**: 2025-12-24 10:20:26
 

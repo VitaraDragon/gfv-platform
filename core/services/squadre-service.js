@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Squadre Service - Servizio per gestione squadre
  * Gestisce CRUD squadre con supporto multi-tenant
  * 
@@ -327,6 +327,4 @@ export default {
   getOperaiDisponibili,
   getOperaiAssegnati
 };
-
-
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Lavoro Model - Modello dati lavoro
  * Gestisce dati lavoro con assegnazione flessibile (caposquadra O operaio diretto) e terreno
  * 

@@ -16,7 +16,7 @@ export class Categoria extends Base {
    * @param {string} data.codice - Codice univoco categoria (es. "lavorazione_terreno") - obbligatorio
    * @param {string} data.descrizione - Descrizione categoria - opzionale
    * @param {string} data.parentId - ID categoria padre (null per categorie principali) - opzionale
-   * @param {string} data.applicabileA - Applicabile a: 'attrezzi' | 'lavori' | 'entrambi' - default: 'entrambi'
+   * @param {string} data.applicabileA - Applicabile a: 'attrezzi' | 'lavori' | 'entrambi' | 'colture' - default: 'entrambi'
    * @param {boolean} data.predefinita - Se true, categoria predefinita del sistema - default: false
    * @param {number} data.ordine - Ordine di visualizzazione - opzionale
    * @param {string} data.creatoDa - ID utente che ha creato la categoria
@@ -69,7 +69,7 @@ export class Categoria extends Base {
     }
     
     // Validazione applicabileA
-    const applicabiliValidi = ['attrezzi', 'lavori', 'entrambi'];
+    const applicabiliValidi = ['attrezzi', 'lavori', 'entrambi', 'colture'];
     if (this.applicabileA && !applicabiliValidi.includes(this.applicabileA)) {
       errors.push(`applicabileA deve essere uno di: ${applicabiliValidi.join(', ')}`);
     }
@@ -114,6 +114,14 @@ export class Categoria extends Base {
   }
   
   /**
+   * Verifica se categoria è applicabile a colture
+   * @returns {boolean}
+   */
+  isApplicabileAColture() {
+    return this.applicabileA === 'colture' || this.applicabileA === 'entrambi';
+  }
+  
+  /**
    * Verifica se categoria è principale (non ha parent)
    * @returns {boolean}
    */
@@ -131,10 +139,4 @@ export class Categoria extends Base {
 }
 
 export default Categoria;
-
-
-
-
-
-
 

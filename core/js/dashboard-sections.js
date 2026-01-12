@@ -457,6 +457,9 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
     section.className = 'dashboard-section';
     section.style.width = '100%';
     
+    // Verifica se modulo Conto Terzi è attivo
+    const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
+    
     section.innerHTML = `
         <h2><span class="section-icon">👷</span> Gestione Manodopera</h2>
         <div class="stats-grid" style="margin-bottom: 30px;">
@@ -468,10 +471,12 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
                 <div class="stat-value" id="stat-lavori-attivi-manodopera">-</div>
                 <div class="stat-label">Lavori Attivi</div>
             </div>
+            ${hasContoTerzi ? `
             <a href="admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff3cd; border: 2px solid #ffc107;" title="Clicca per vedere i lavori da pianificare">
                 <div class="stat-value" id="stat-lavori-da-pianificare" style="color: #856404;">-</div>
                 <div class="stat-label" style="color: #856404;">📝 Da Pianificare</div>
             </a>
+            ` : ''}
             <div class="stat-card">
                 <div class="stat-value" id="stat-ore-validate-manodopera">-</div>
                 <div class="stat-label">Ore Validate (Mese)</div>
@@ -496,10 +501,11 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
                 <span class="action-title">Gestione Lavori</span>
                 <span class="action-description">Crea, modifica e assegna lavori</span>
             </a>
-            <a href="admin/validazione-ore-standalone.html" class="action-card">
+            <a href="admin/validazione-ore-standalone.html" class="action-card" style="position: relative;">
                 <span class="action-icon">✅</span>
                 <span class="action-title">Validazione Ore</span>
                 <span class="action-description">Valida ore lavori autonomi</span>
+                <span id="ore-da-validare-badge" style="position: absolute; top: 8px; right: 8px; background: #dc3545; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; min-width: 24px; padding: 0 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Ore da validare">0</span>
             </a>
             <a href="admin/statistiche-manodopera-standalone.html" class="action-card">
                 <span class="action-icon">📊</span>
@@ -559,6 +565,10 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
 window.GFVDashboardSections.createManagerLavoriSection = function createManagerLavoriSection(userData, availableModules, loadStatsCallback, loadRecentCallback) {
     const section = document.createElement('div');
     section.className = 'dashboard-section';
+    
+    // Verifica se modulo Conto Terzi è attivo
+    const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
+    
     section.innerHTML = `
         <h2><span class="section-icon">📋</span> Gestione Lavori</h2>
         <div class="stats-grid">
@@ -574,10 +584,12 @@ window.GFVDashboardSections.createManagerLavoriSection = function createManagerL
                 <div class="stat-value" id="stat-lavori-completati">-</div>
                 <div class="stat-label">Lavori Completati</div>
             </div>
+            ${hasContoTerzi ? `
             <a href="admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Clicca per vedere i lavori da pianificare">
                 <div class="stat-value" id="stat-lavori-pianificati">-</div>
                 <div class="stat-label">Lavori Pianificati</div>
             </a>
+            ` : ''}
         </div>
         <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
         <div class="quick-actions">
@@ -655,6 +667,19 @@ window.GFVDashboardSections.createCaposquadraSection = function createCaposquadr
             </h3>
             <div id="comunicazione-rapida-content">
                 <div style="text-align: center; padding: 20px; color: #666;">Caricamento lavori...</div>
+            </div>
+        </div>
+        <div id="comunicazioni-inviate-section" style="background: white; border: 1px solid #e9ecef; border-radius: 12px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 8px;">
+                    <span>📋</span> Comunicazioni Inviate
+                </span>
+                <a href="admin/impostazioni-standalone.html" style="font-size: 13px; color: #2E8B57; text-decoration: none; font-weight: normal;">
+                    Vedi tutte →
+                </a>
+            </h3>
+            <div id="comunicazioni-inviate-content">
+                <div style="text-align: center; padding: 15px; color: #666;">Caricamento...</div>
             </div>
         </div>
         <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>

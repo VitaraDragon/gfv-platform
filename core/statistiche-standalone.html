@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistiche - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -538,6 +538,63 @@
     
     <!-- Firebase SDK -->
     <script type="module">
+        // ============================================
+        // IMPORT MODULI (prima di tutto)
+        // ============================================
+        import {
+            formatOre as formatOreUtil,
+            formatMese as formatMeseUtil,
+            escapeHtml as escapeHtmlUtil,
+            calcolaAlertAffitto as calcolaAlertAffittoUtil,
+            formattaDataScadenza as formattaDataScadenzaUtil
+        } from './js/statistiche-utils.js';
+
+        import {
+            getTenantId as getTenantIdModule,
+            getTerreniCollection as getTerreniCollectionModule,
+            getAttivitaCollection as getAttivitaCollectionModule,
+            getMacchineCollection as getMacchineCollectionModule,
+            loadMacchine as loadMacchineModule,
+            getAllTerreni as getAllTerreniModule,
+            getAllAttivita as getAllAttivitaModule,
+            getTotaleTerreni as getTotaleTerreniModule,
+            getTotaleOre as getTotaleOreModule,
+            getTotaleAttivita as getTotaleAttivitaModule,
+            getOrePerTipoLavoro as getOrePerTipoLavoroModule,
+            getAttivitaPerTerreno as getAttivitaPerTerrenoModule,
+            getOrePerMese as getOrePerMeseModule,
+            getTipiLavoroPiuFrequenti as getTipiLavoroPiuFrequentiModule,
+            getOreMacchineTotali as getOreMacchineTotaliModule,
+            getMacchinePiuUtilizzate as getMacchinePiuUtilizzateModule,
+            getManutenzioniInScadenza as getManutenzioniInScadenzaModule,
+            getOreMacchinaPerTerreno as getOreMacchinaPerTerrenoModule,
+            getOreMacchinaVsLavoratore as getOreMacchinaVsLavoratoreModule,
+            getOreMacchinePerMese as getOreMacchinePerMeseModule,
+            loadStatistiche as loadStatisticheModule,
+            loadStatisticheTerreni as loadStatisticheTerreniModule,
+            loadStatisticheMacchine as loadStatisticheMacchineModule,
+            loadFilters as loadFiltersModule
+        } from './js/statistiche-controller.js';
+
+        import {
+            updateChartOreTipo as updateChartOreTipoModule,
+            updateChartAttivitaTerreno as updateChartAttivitaTerrenoModule,
+            updateChartOreMese as updateChartOreMeseModule,
+            updateChartTopLavori as updateChartTopLavoriModule,
+            updateChartTopMacchine as updateChartTopMacchineModule,
+            updateChartOreMacchinaTerreno as updateChartOreMacchinaTerrenoModule,
+            updateChartOreMacchinaVsLavoratore as updateChartOreMacchinaVsLavoratoreModule,
+            updateChartOreMacchineMese as updateChartOreMacchineMeseModule,
+            updateChartDistribuzioneTerreni as updateChartDistribuzioneTerreniModule,
+            updateChartDistribuzioneSuperficie as updateChartDistribuzioneSuperficieModule
+        } from './js/statistiche-charts.js';
+
+        import {
+            applyFilters as applyFiltersModule,
+            resetFilters as resetFiltersModule,
+            initApp as initAppModule
+        } from './js/statistiche-events.js';
+
         // Attendi che lo script config sia caricato
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -587,60 +644,330 @@
         let hasParcoMacchineModule = false;
         let macchineList = [];
 
-        // Funzione helper: ottieni tenant ID
-        async function getTenantId(userId) {
-            if (currentTenantId) return currentTenantId;
-            
-            try {
-                const userDoc = await getDoc(doc(db, 'users', userId));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    currentTenantId = userData.tenantId;
-                    return currentTenantId;
-                }
-            } catch (error) {
-                console.error('Errore recupero tenant:', error);
-            }
-            return null;
+        // ============================================
+        // STATE OBJECT
+        // ============================================
+        const statisticheState = {
+            currentTenantId: null,
+            hasParcoMacchineModule: false,
+            macchineList: [],
+            chartOreTipo: null,
+            chartAttivitaTerreno: null,
+            chartOreMese: null,
+            chartTopLavori: null,
+            chartTopMacchine: null,
+            chartOreMacchinaTerreno: null,
+            chartOreMacchinaVsLavoratore: null,
+            chartOreMacchineMese: null
+        };
+
+        // Funzione updateState
+        function updateState(updates) {
+            Object.assign(statisticheState, updates);
+            // Aggiorna variabili globali per compatibilità
+            if (updates.currentTenantId !== undefined) currentTenantId = updates.currentTenantId;
+            if (updates.hasParcoMacchineModule !== undefined) hasParcoMacchineModule = updates.hasParcoMacchineModule;
+            if (updates.macchineList !== undefined) macchineList = updates.macchineList;
+            if (updates.chartOreTipo !== undefined) window.chartOreTipo = updates.chartOreTipo;
+            if (updates.chartAttivitaTerreno !== undefined) window.chartAttivitaTerreno = updates.chartAttivitaTerreno;
+            if (updates.chartOreMese !== undefined) window.chartOreMese = updates.chartOreMese;
+            if (updates.chartTopLavori !== undefined) window.chartTopLavori = updates.chartTopLavori;
+            if (updates.chartTopMacchine !== undefined) window.chartTopMacchine = updates.chartTopMacchine;
+            if (updates.chartOreMacchinaTerreno !== undefined) window.chartOreMacchinaTerreno = updates.chartOreMacchinaTerreno;
+            if (updates.chartOreMacchinaVsLavoratore !== undefined) window.chartOreMacchinaVsLavoratore = updates.chartOreMacchinaVsLavoratore;
+            if (updates.chartOreMacchineMese !== undefined) window.chartOreMacchineMese = updates.chartOreMacchineMese;
         }
 
-        // Funzione helper: ottieni collection
-        function getTerreniCollection(tenantId) {
-            if (!tenantId) throw new Error('Tenant ID non disponibile');
-            return collection(db, `tenants/${tenantId}/terreni`);
+        // Dependencies object
+        const dependencies = {
+            db,
+            auth,
+            app,
+            collection,
+            doc,
+            getDoc,
+            getDocs,
+            query,
+            where,
+            orderBy
+        };
+
+        // Utils object
+        const utils = {
+            formatOre: formatOreUtil,
+            formatMese: formatMeseUtil,
+            escapeHtml: escapeHtmlUtil,
+            calcolaAlertAffitto: calcolaAlertAffittoUtil,
+            formattaDataScadenza: formattaDataScadenzaUtil
+        };
+
+        // ============================================
+        // WRAPPER FUNCTIONS
+        // ============================================
+
+        // Helper functions
+        async function getTenantIdWrapper(userId) {
+            return await getTenantIdModule(userId, dependencies, currentTenantId);
         }
 
-        function getAttivitaCollection(tenantId) {
-            if (!tenantId) throw new Error('Tenant ID non disponibile');
-            return collection(db, `tenants/${tenantId}/attivita`);
+        function getTerreniCollectionWrapper(tenantId) {
+            return getTerreniCollectionModule(tenantId, dependencies);
         }
 
-        function getMacchineCollection(tenantId) {
-            if (!tenantId) throw new Error('Tenant ID non disponibile');
-            return collection(db, `tenants/${tenantId}/macchine`);
+        function getAttivitaCollectionWrapper(tenantId) {
+            return getAttivitaCollectionModule(tenantId, dependencies);
         }
 
-        // Carica macchine
-        async function loadMacchine() {
-            if (!currentTenantId) return;
-            
-            try {
-                const macchineRef = getMacchineCollection(currentTenantId);
-                const snapshot = await getDocs(macchineRef);
-                macchineList = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    macchineList.push({
-                        id: doc.id,
-                        ...data
-                    });
-                });
-                console.log(`✅ Caricate ${macchineList.length} macchine`);
-            } catch (error) {
-                console.error('Errore caricamento macchine:', error);
-                macchineList = [];
-            }
+        function getMacchineCollectionWrapper(tenantId) {
+            return getMacchineCollectionModule(tenantId, dependencies);
         }
+
+        // Caricamento dati
+        async function loadMacchineWrapper() {
+            const result = await loadMacchineModule(
+                currentTenantId,
+                statisticheState,
+                updateState,
+                dependencies
+            );
+            return result;
+        }
+
+        async function getAllTerreniWrapper() {
+            return await getAllTerreniModule(
+                currentTenantId,
+                dependencies,
+                getTenantIdWrapper
+            );
+        }
+
+        async function getAllAttivitaWrapper(filters = {}) {
+            return await getAllAttivitaModule(
+                currentTenantId,
+                filters,
+                dependencies,
+                getTenantIdWrapper
+            );
+        }
+
+        // Statistiche base
+        async function getTotaleTerreniWrapper() {
+            return await getTotaleTerreniModule(getAllTerreniWrapper);
+        }
+
+        async function getTotaleOreWrapper(periodo = {}) {
+            return await getTotaleOreModule(periodo, getAllAttivitaWrapper);
+        }
+
+        async function getTotaleAttivitaWrapper(periodo = {}) {
+            return await getTotaleAttivitaModule(periodo, getAllAttivitaWrapper);
+        }
+
+        async function getOrePerTipoLavoroWrapper(periodo = {}) {
+            return await getOrePerTipoLavoroModule(periodo, getAllAttivitaWrapper);
+        }
+
+        async function getAttivitaPerTerrenoWrapper(periodo = {}) {
+            return await getAttivitaPerTerrenoModule(periodo, getAllAttivitaWrapper);
+        }
+
+        async function getOrePerMeseWrapper(periodo = {}) {
+            return await getOrePerMeseModule(periodo, getAllAttivitaWrapper);
+        }
+
+        async function getTipiLavoroPiuFrequentiWrapper(periodo = {}, limit = 5) {
+            return await getTipiLavoroPiuFrequentiModule(periodo, limit, getAllAttivitaWrapper);
+        }
+
+        // Statistiche macchine
+        async function getOreMacchineTotaliWrapper(periodo = {}) {
+            return await getOreMacchineTotaliModule(
+                periodo,
+                hasParcoMacchineModule,
+                currentTenantId,
+                getAllAttivitaWrapper,
+                dependencies
+            );
+        }
+
+        async function getMacchinePiuUtilizzateWrapper(periodo = {}, limit = 5) {
+            return await getMacchinePiuUtilizzateModule(
+                periodo,
+                limit,
+                hasParcoMacchineModule,
+                currentTenantId,
+                macchineList,
+                getAllAttivitaWrapper,
+                loadMacchineWrapper,
+                dependencies
+            );
+        }
+
+        async function getManutenzioniInScadenzaWrapper() {
+            return await getManutenzioniInScadenzaModule(hasParcoMacchineModule, macchineList);
+        }
+
+        async function getOreMacchinaPerTerrenoWrapper(periodo = {}) {
+            return await getOreMacchinaPerTerrenoModule(
+                periodo,
+                hasParcoMacchineModule,
+                currentTenantId,
+                getAllAttivitaWrapper,
+                dependencies
+            );
+        }
+
+        async function getOreMacchinaVsLavoratoreWrapper(periodo = {}) {
+            return await getOreMacchinaVsLavoratoreModule(
+                periodo,
+                hasParcoMacchineModule,
+                getAllAttivitaWrapper
+            );
+        }
+
+        async function getOreMacchinePerMeseWrapper(periodo = {}) {
+            return await getOreMacchinePerMeseModule(
+                periodo,
+                hasParcoMacchineModule,
+                currentTenantId,
+                getAllAttivitaWrapper,
+                dependencies
+            );
+        }
+
+        // Charts
+        function updateChartOreTipoWrapper(data) {
+            updateChartOreTipoModule(data, statisticheState, updateState, utils.formatOre);
+        }
+
+        function updateChartAttivitaTerrenoWrapper(data) {
+            updateChartAttivitaTerrenoModule(data, statisticheState, updateState);
+        }
+
+        function updateChartOreMeseWrapper(data) {
+            updateChartOreMeseModule(data, statisticheState, updateState, utils.formatOre, utils.formatMese);
+        }
+
+        function updateChartTopLavoriWrapper(data) {
+            updateChartTopLavoriModule(data, statisticheState, updateState);
+        }
+
+        function updateChartTopMacchineWrapper(data) {
+            updateChartTopMacchineModule(data, statisticheState, updateState, utils.formatOre);
+        }
+
+        function updateChartOreMacchinaTerrenoWrapper(data) {
+            updateChartOreMacchinaTerrenoModule(data, statisticheState, updateState, utils.formatOre);
+        }
+
+        function updateChartOreMacchinaVsLavoratoreWrapper(data) {
+            updateChartOreMacchinaVsLavoratoreModule(data, statisticheState, updateState, utils.formatOre);
+        }
+
+        function updateChartOreMacchineMeseWrapper(data) {
+            updateChartOreMacchineMeseModule(data, statisticheState, updateState, utils.formatOre, utils.formatMese);
+        }
+
+        function updateChartDistribuzioneTerreniWrapper(proprieta, affitto) {
+            updateChartDistribuzioneTerreniModule(proprieta, affitto);
+        }
+
+        function updateChartDistribuzioneSuperficieWrapper(proprieta, affitto) {
+            updateChartDistribuzioneSuperficieModule(proprieta, affitto);
+        }
+
+        // Caricamento statistiche
+        async function loadStatisticheWrapper() {
+            const callbacks = {
+                getAllTerreni: getAllTerreniWrapper,
+                getAllAttivita: getAllAttivitaWrapper,
+                getTotaleTerreni: getTotaleTerreniWrapper,
+                getTotaleOre: getTotaleOreWrapper,
+                getTotaleAttivita: getTotaleAttivitaWrapper,
+                getOrePerTipoLavoro: getOrePerTipoLavoroWrapper,
+                getAttivitaPerTerreno: getAttivitaPerTerrenoWrapper,
+                getOrePerMese: getOrePerMeseWrapper,
+                getTipiLavoroPiuFrequenti: getTipiLavoroPiuFrequentiWrapper,
+                loadStatisticheTerreni: loadStatisticheTerreniWrapper,
+                loadStatisticheMacchine: loadStatisticheMacchineWrapper,
+                updateChartOreTipo: updateChartOreTipoWrapper,
+                updateChartAttivitaTerreno: updateChartAttivitaTerrenoWrapper,
+                updateChartOreMese: updateChartOreMeseWrapper,
+                updateChartTopLavori: updateChartTopLavoriWrapper
+            };
+            await loadStatisticheModule(
+                currentTenantId,
+                dependencies,
+                callbacks,
+                utils,
+                hasParcoMacchineModule
+            );
+        }
+
+        async function loadStatisticheTerreniWrapper() {
+            await loadStatisticheTerreniModule(
+                currentTenantId,
+                dependencies,
+                getAllTerreniWrapper,
+                getTenantIdWrapper,
+                utils,
+                updateChartDistribuzioneTerreniWrapper,
+                updateChartDistribuzioneSuperficieWrapper
+            );
+        }
+
+        async function loadStatisticheMacchineWrapper(periodo = {}) {
+            const callbacks = {
+                getOreMacchineTotali: getOreMacchineTotaliWrapper,
+                getMacchinePiuUtilizzate: getMacchinePiuUtilizzateWrapper,
+                getManutenzioniInScadenza: getManutenzioniInScadenzaWrapper,
+                getOreMacchinaPerTerreno: getOreMacchinaPerTerrenoWrapper,
+                getOreMacchinaVsLavoratore: getOreMacchinaVsLavoratoreWrapper,
+                getOreMacchinePerMese: getOreMacchinePerMeseWrapper,
+                loadMacchine: loadMacchineWrapper,
+                getAllAttivita: getAllAttivitaWrapper,
+                updateChartTopMacchine: updateChartTopMacchineWrapper,
+                updateChartOreMacchinaTerreno: updateChartOreMacchinaTerrenoWrapper,
+                updateChartOreMacchinaVsLavoratore: updateChartOreMacchinaVsLavoratoreWrapper,
+                updateChartOreMacchineMese: updateChartOreMacchineMeseWrapper
+            };
+            await loadStatisticheMacchineModule(
+                periodo,
+                hasParcoMacchineModule,
+                currentTenantId,
+                macchineList,
+                dependencies,
+                callbacks,
+                utils
+            );
+        }
+
+        async function loadFiltersWrapper() {
+            await loadFiltersModule(
+                currentTenantId,
+                dependencies,
+                getAllTerreniWrapper,
+                getAllAttivitaWrapper,
+                getTenantIdWrapper
+            );
+        }
+
+        // Events
+        window.applyFilters = function() {
+            applyFiltersModule(loadStatisticheWrapper);
+        };
+
+        window.resetFilters = function() {
+            resetFiltersModule(loadStatisticheWrapper);
+        };
+
+        async function initAppWrapper() {
+            await initAppModule(loadFiltersWrapper, loadStatisticheWrapper);
+        }
+
+        // Funzioni helper e caricamento dati sono ora nei moduli
+        // Le chiamate usano i wrapper definiti sopra
+        // Funzione loadMacchine rimossa - ora in statistiche-controller.js, usa loadMacchineWrapper()
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
@@ -691,7 +1018,7 @@
                             
                             // Carica macchine se modulo attivo
                             if (hasParcoMacchineModule) {
-                                await loadMacchine();
+                                await loadMacchineWrapper();
                             }
                         }
                     } catch (error) {
@@ -706,393 +1033,63 @@
             }
 
             // Inizializza app
-            await initApp();
+            await initAppWrapper();
         });
 
-        // Funzioni statistiche
-        async function getAllTerreni() {
-            if (!currentTenantId) {
-                const user = auth.currentUser;
-                if (user) {
-                    currentTenantId = await getTenantId(user.uid);
-                }
-            }
-            
-            if (!currentTenantId) return [];
-            
-            try {
-                const q = query(getTerreniCollection(currentTenantId));
-                const snapshot = await getDocs(q);
-                // Filtra solo terreni aziendali (escludi terreni clienti)
-                return snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
-                    .filter(terreno => {
-                        // Escludi terreni dei clienti (solo terreni aziendali)
-                        return !terreno.clienteId || terreno.clienteId === '';
-                    });
-            } catch (error) {
-                console.error('Errore caricamento terreni:', error);
-                return [];
-            }
-        }
+        // Funzioni statistiche sono ora nei moduli
+        // Le chiamate usano i wrapper definiti sopra
+        // Funzione getAllTerreni rimossa - usa getAllTerreniWrapper
+        // Funzione getAllAttivita rimossa - usa getAllAttivitaWrapper
 
-        async function getAllAttivita(filters = {}) {
-            if (!currentTenantId) {
-                const user = auth.currentUser;
-                if (user) {
-                    currentTenantId = await getTenantId(user.uid);
-                }
-            }
-            
-            if (!currentTenantId) return [];
-            
-            try {
-                let q = query(getAttivitaCollection(currentTenantId));
+        // Funzione getAllAttivita rimossa - usa getAllAttivitaWrapper
 
-                // Conta quanti filtri sono attivi
-                const hasTerrenoId = !!filters.terrenoId;
-                const hasTipoLavoro = !!filters.tipoLavoro;
-                const hasDataDa = !!filters.dataDa;
-                const hasDataA = !!filters.dataA;
-                const filterCount = [hasTerrenoId, hasTipoLavoro, hasDataDa, hasDataA].filter(Boolean).length;
+        // Funzioni statistiche sono ora nei moduli - usa i wrapper
+        // Funzioni formatOre, formatMese sono ora in statistiche-utils.js
+        // Funzioni updateChart* sono ora in statistiche-charts.js
+        // Variabili chart* sono gestite tramite state object
 
-                // Applica filtri
-                if (hasTerrenoId) {
-                    q = query(q, where('terrenoId', '==', filters.terrenoId));
-                }
-                if (hasTipoLavoro) {
-                    q = query(q, where('tipoLavoro', '==', filters.tipoLavoro));
-                }
-                if (hasDataDa) {
-                    q = query(q, where('data', '>=', filters.dataDa));
-                }
-                if (hasDataA) {
-                    q = query(q, where('data', '<=', filters.dataA));
-                }
-
-                // Ordina per data (richiede indice composito se ci sono 2+ filtri)
-                q = query(q, orderBy('data', 'desc'));
-                const snapshot = await getDocs(q);
-                let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Filtra solo attività aziendali (escludi attività terreni clienti)
-                results = results.filter(attivita => {
-                    // Escludi attività dei clienti (solo attività aziendali)
-                    return !attivita.clienteId || attivita.clienteId === '';
-                });
-                
-                // Se la query fallisce per mancanza di indice, prova senza orderBy e ordina in memoria
-                return results;
-            } catch (error) {
-                // Se l'errore è relativo agli indici, prova senza orderBy
-                if (error.code === 'failed-precondition' && error.message.includes('index')) {
-                    console.warn('Indice Firestore mancante, carico senza orderBy e ordino in memoria...');
-                    try {
-                        // Ricarica senza orderBy
-                        let q = query(getAttivitaCollection(currentTenantId));
-                        if (filters.terrenoId) q = query(q, where('terrenoId', '==', filters.terrenoId));
-                        if (filters.tipoLavoro) q = query(q, where('tipoLavoro', '==', filters.tipoLavoro));
-                        if (filters.dataDa) q = query(q, where('data', '>=', filters.dataDa));
-                        if (filters.dataA) q = query(q, where('data', '<=', filters.dataA));
-                        
-                        const snapshot = await getDocs(q);
-                        let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        
-                        // Filtra solo attività aziendali (escludi attività terreni clienti)
-                        results = results.filter(attivita => {
-                            // Escludi attività dei clienti (solo attività aziendali)
-                            return !attivita.clienteId || attivita.clienteId === '';
-                        });
-                        
-                        // Ordina in memoria per data
-                        results.sort((a, b) => {
-                            if (!a.data || !b.data) return 0;
-                            return b.data.localeCompare(a.data);
-                        });
-                        
-                        // Filtra per data se necessario (già fatto nella query, ma per sicurezza)
-                        if (filters.dataDa) {
-                            results = results.filter(att => att.data >= filters.dataDa);
-                        }
-                        if (filters.dataA) {
-                            results = results.filter(att => att.data <= filters.dataA);
-                        }
-                        
-                        // Mostra messaggio informativo
-                        const indexLink = error.message.match(/https:\/\/[^\s]+/);
-                        if (indexLink) {
-                            console.warn('Per migliorare le prestazioni, crea l\'indice Firestore:', indexLink[0]);
-                        }
-                        
-                        return results;
-                    } catch (retryError) {
-                        console.error('Errore anche senza orderBy:', retryError);
-                        const indexLink = error.message.match(/https:\/\/[^\s]+/);
-                        if (indexLink) {
-                            alert(`È necessario creare un indice Firestore per i filtri multipli.\n\nApri questo link per crearlo automaticamente:\n\n${indexLink[0]}\n\nDopo aver creato l'indice, attendi qualche minuto e riprova.`);
-                        }
-                        return [];
-                    }
-                } else {
-                    console.error('Errore caricamento attività:', error);
-                    return [];
-                }
-            }
-        }
-
-        // Funzioni statistiche
-        async function getTotaleTerreni() {
-            const terreni = await getAllTerreni();
-            return terreni.length;
-        }
-
-        async function getTotaleOre(periodo = {}) {
-            const attivita = await getAllAttivita(periodo);
-            const totaleOre = attivita.reduce((sum, att) => sum + (att.oreNette || 0), 0);
-            return parseFloat(totaleOre.toFixed(2));
-        }
-
-        async function getTotaleAttivita(periodo = {}) {
-            const attivita = await getAllAttivita(periodo);
-            return attivita.length;
-        }
-
-        async function getOrePerTipoLavoro(periodo = {}) {
-            const attivita = await getAllAttivita(periodo);
-            const orePerTipo = {};
-            attivita.forEach(att => {
-                const tipo = att.tipoLavoro || 'Non specificato';
-                if (!orePerTipo[tipo]) {
-                    orePerTipo[tipo] = 0;
-                }
-                orePerTipo[tipo] += att.oreNette || 0;
-            });
-            return Object.entries(orePerTipo)
-                .map(([tipoLavoro, ore]) => ({
-                    tipoLavoro,
-                    ore: parseFloat(ore.toFixed(2))
-                }))
-                .sort((a, b) => b.ore - a.ore);
-        }
-
-        async function getAttivitaPerTerreno(periodo = {}) {
-            const attivita = await getAllAttivita(periodo);
-            const attivitaPerTerreno = {};
-            attivita.forEach(att => {
-                const terrenoNome = att.terrenoNome || 'Non specificato';
-                if (!attivitaPerTerreno[terrenoNome]) {
-                    attivitaPerTerreno[terrenoNome] = {
-                        terrenoNome,
-                        numeroAttivita: 0,
-                        oreTotali: 0
-                    };
-                }
-                attivitaPerTerreno[terrenoNome].numeroAttivita++;
-                attivitaPerTerreno[terrenoNome].oreTotali += att.oreNette || 0;
-            });
-            return Object.values(attivitaPerTerreno)
-                .map(item => ({
-                    ...item,
-                    oreTotali: parseFloat(item.oreTotali.toFixed(2))
-                }))
-                .sort((a, b) => b.numeroAttivita - a.numeroAttivita);
-        }
-
-        async function getOrePerMese(periodo = {}) {
-            const attivita = await getAllAttivita(periodo);
-            const orePerMese = {};
-            attivita.forEach(att => {
-                if (!att.data) return;
-                const mese = att.data.substring(0, 7);
-                if (!orePerMese[mese]) {
-                    orePerMese[mese] = 0;
-                }
-                orePerMese[mese] += att.oreNette || 0;
-            });
-            return Object.entries(orePerMese)
-                .map(([mese, ore]) => ({
-                    mese,
-                    ore: parseFloat(ore.toFixed(2))
-                }))
-                .sort((a, b) => a.mese.localeCompare(b.mese));
-        }
-
-        async function getTipiLavoroPiuFrequenti(periodo = {}, limit = 5) {
-            const attivita = await getAllAttivita(periodo);
-            const frequenza = {};
-            attivita.forEach(att => {
-                const tipo = att.tipoLavoro || 'Non specificato';
-                frequenza[tipo] = (frequenza[tipo] || 0) + 1;
-            });
-            return Object.entries(frequenza)
-                .map(([tipoLavoro, frequenza]) => ({
-                    tipoLavoro,
-                    frequenza
-                }))
-                .sort((a, b) => b.frequenza - a.frequenza)
-                .slice(0, limit);
-        }
-
-        // Grafici
-        let chartOreTipo = null;
-        let chartAttivitaTerreno = null;
-        let chartOreMese = null;
-        let chartTopLavori = null;
+        // Funzioni updateChart* sono ora in statistiche-charts.js
+        // Usa i wrapper definiti sopra (updateChartOreTipoWrapper, updateChartAttivitaTerrenoWrapper, ecc.)
         
-        // Grafici Macchine
-        let chartTopMacchine = null;
-        let chartOreMacchinaTerreno = null;
-        let chartOreMacchinaVsLavoratore = null;
-        let chartOreMacchineMese = null;
+        // Funzione updateChartOreTipo rimossa - usa updateChartOreTipoWrapper
+        // Funzione updateChartAttivitaTerreno rimossa - usa updateChartAttivitaTerrenoWrapper
+        // Funzione updateChartOreMese rimossa - usa updateChartOreMeseWrapper
+        // Funzione updateChartTopLavori rimossa - usa updateChartTopLavoriWrapper
+        // Funzioni updateChart* macchine rimosse - usa i wrapper corrispondenti
+        // Funzioni updateChartDistribuzioneTerreni e updateChartDistribuzioneSuperficie rimosse - usa i wrapper
 
-        function formatOre(ore) {
-            const oreInt = Math.floor(ore);
-            const minuti = Math.round((ore - oreInt) * 60);
-            if (minuti === 0) {
-                return `${oreInt}h`;
-            }
-            return `${oreInt}h ${minuti}min`;
-        }
+        // ============================================
+        // FUNZIONI INLINE RIMOSSE - ORA NEI MODULI
+        // ============================================
+        // Tutte le funzioni seguenti sono state estratte nei moduli:
+        // - statistiche-utils.js: formatOre, formatMese, escapeHtml, calcolaAlertAffitto, formattaDataScadenza
+        // - statistiche-controller.js: getAllTerreni, getAllAttivita, getTotale*, getOre*, getAttivita*, getTipiLavoro*, 
+        //   getOreMacchineTotali, getMacchinePiuUtilizzate, getManutenzioniInScadenza, getOreMacchinaPerTerreno,
+        //   getOreMacchinaVsLavoratore, getOreMacchinePerMese, loadStatistiche, loadStatisticheTerreni, 
+        //   loadStatisticheMacchine, loadFilters
+        // - statistiche-charts.js: updateChartOreTipo, updateChartAttivitaTerreno, updateChartOreMese, updateChartTopLavori,
+        //   updateChartTopMacchine, updateChartOreMacchinaTerreno, updateChartOreMacchinaVsLavoratore, 
+        //   updateChartOreMacchineMese, updateChartDistribuzioneTerreni, updateChartDistribuzioneSuperficie
+        // - statistiche-events.js: applyFilters, resetFilters, initApp
+        // 
+        // Le chiamate usano i wrapper definiti sopra
 
-        function formatMese(mese) {
-            const [anno, meseNum] = mese.split('-');
-            const mesi = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-            return `${mesi[parseInt(meseNum) - 1]} ${anno}`;
-        }
+        // Funzione updateChartOreTipo_LEGACY_DO_NOT_USE rimossa completamente
+        // Funzione getAllAttivita_LEGACY_DO_NOT_USE rimossa completamente
+        // Tutte le funzioni updateChart* inline sono state rimosse - ora in statistiche-charts.js
+        // Usa i wrapper definiti sopra
 
-        function updateChartOreTipo(data) {
-            // Trova sempre il container direttamente dal DOM usando querySelector
-            let chartContainer = document.querySelector('.chart-card:has(canvas#chart-ore-tipo)') || 
-                                 document.querySelector('.chart-card:has([id*="chart-ore-tipo"])') ||
-                                 document.querySelector('#chart-ore-tipo')?.closest('.chart-card');
-            
-            // Se non trovato, cerca tra tutti i chart-card (fallback)
-            if (!chartContainer) {
-                const containers = document.querySelectorAll('.chart-card');
-                // Il primo chart-card dovrebbe essere quello delle ore per tipo
-                chartContainer = containers[0];
-            }
-            
-            if (!chartContainer) {
-                console.error('Container per chart-ore-tipo non trovato');
-                return;
-            }
-            
-            let canvas = chartContainer.querySelector('canvas#chart-ore-tipo');
-            
-            // Se il canvas non esiste o è stato sostituito, ricrearlo
-            if (!canvas || canvas.tagName !== 'CANVAS') {
-                chartContainer.innerHTML = '<canvas id="chart-ore-tipo"></canvas>';
-                canvas = document.getElementById('chart-ore-tipo');
-            }
-            
-            if (chartOreTipo) {
-                chartOreTipo.destroy();
-            }
-            
-            if (data.length === 0) {
-                chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            chartOreTipo = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: data.map(d => d.tipoLavoro),
-                    datasets: [{
-                        data: data.map(d => d.ore),
-                        backgroundColor: [
-                            '#2E8B57', '#007bff', '#ff9800', '#9c27b0', '#e91e63',
-                            '#00bcd4', '#4caf50', '#ffc107', '#795548', '#607d8b'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.label}: ${formatOre(context.parsed)}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        // Funzioni updateChart* inline rimosse - ora in statistiche-charts.js
+        // updateChartAttivitaTerreno, updateChartOreMese, updateChartTopLavori, 
+        // updateChartTopMacchine, updateChartOreMacchinaTerreno, updateChartOreMacchinaVsLavoratore,
+        // updateChartOreMacchineMese, updateChartDistribuzioneTerreni, updateChartDistribuzioneSuperficie
+        // sono tutte nei moduli - usa i wrapper corrispondenti
 
-        function updateChartAttivitaTerreno(data) {
-            // Trova sempre il container direttamente dal DOM
-            let chartContainer = document.querySelector('.chart-card:has(canvas#chart-attivita-terreno)') || 
-                                 document.querySelector('#chart-attivita-terreno')?.closest('.chart-card');
-            
-            // Se non trovato, cerca tra tutti i chart-card (fallback)
-            if (!chartContainer) {
-                const containers = document.querySelectorAll('.chart-card');
-                // Il secondo chart-card dovrebbe essere quello delle attività per terreno
-                chartContainer = containers[1];
-            }
-            
-            if (!chartContainer) {
-                console.error('Container per chart-attivita-terreno non trovato');
-                return;
-            }
-            
-            let canvas = chartContainer.querySelector('canvas#chart-attivita-terreno');
-            
-            // Se il canvas non esiste o è stato sostituito, ricrearlo
-            if (!canvas || canvas.tagName !== 'CANVAS') {
-                chartContainer.innerHTML = '<canvas id="chart-attivita-terreno"></canvas>';
-                canvas = document.getElementById('chart-attivita-terreno');
-            }
-            
-            if (chartAttivitaTerreno) {
-                chartAttivitaTerreno.destroy();
-            }
-            
-            if (data.length === 0) {
-                chartContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            chartAttivitaTerreno = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: data.map(d => d.terrenoNome),
-                    datasets: [{
-                        label: 'Numero Attività',
-                        data: data.map(d => d.numeroAttivita),
-                        backgroundColor: '#2E8B57'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        // Funzioni updateChart* inline rimosse - ora in statistiche-charts.js
+        // Usa i wrapper definiti sopra
 
-        function updateChartOreMese(data) {
+        // Funzione updateChartOreMese rimossa - usa updateChartOreMeseWrapper
+        function updateChartOreMese_LEGACY_DO_NOT_USE(data) {
             // Trova sempre il container direttamente dal DOM
             let chartContainer = document.querySelector('.chart-card:has(canvas#chart-ore-mese)') || 
                                  document.querySelector('#chart-ore-mese')?.closest('.chart-card');
@@ -1235,72 +1232,15 @@
             });
         }
 
-        // Carica dati e aggiorna UI
-        async function loadStatistiche() {
-            try {
-                // Ottieni filtri
-                const dataDa = document.getElementById('filter-data-da').value;
-                const dataA = document.getElementById('filter-data-a').value;
-                const terrenoId = document.getElementById('filter-terreno').value;
-                const tipoLavoro = document.getElementById('filter-tipo-lavoro').value;
-
-                const periodo = {};
-                if (dataDa) periodo.dataDa = dataDa;
-                if (dataA) periodo.dataA = dataA;
-                if (terrenoId) periodo.terrenoId = terrenoId;
-                if (tipoLavoro) periodo.tipoLavoro = tipoLavoro;
-
-                // Calcola statistiche
-                const [totaleTerreni, totaleOre, totaleAttivita, orePerTipoLavoro, attivitaPerTerreno, orePerMese, tipiLavoroPiuFrequenti] = await Promise.all([
-                    getTotaleTerreni(),
-                    getTotaleOre(periodo),
-                    getTotaleAttivita(periodo),
-                    getOrePerTipoLavoro(periodo),
-                    getAttivitaPerTerreno(periodo),
-                    getOrePerMese(periodo),
-                    getTipiLavoroPiuFrequenti(periodo, 5)
-                ]);
-
-                // Aggiorna metriche
-                document.getElementById('metric-terreni').textContent = totaleTerreni;
-                document.getElementById('metric-ore').textContent = formatOre(totaleOre);
-                document.getElementById('metric-attivita').textContent = totaleAttivita;
-                
-                // Calcola media ore/mese
-                const mediaOreMese = orePerMese.length > 0 ? (totaleOre / orePerMese.length).toFixed(1) : 0;
-                document.getElementById('metric-ore-mese').textContent = formatOre(parseFloat(mediaOreMese));
-
-                // Aggiorna sottotitoli
-                const periodoText = dataDa && dataA ? `${dataDa} - ${dataA}` : 'Tutti i periodi';
-                document.getElementById('metric-ore-subtitle').textContent = periodoText;
-                document.getElementById('metric-attivita-subtitle').textContent = periodoText;
-                document.getElementById('metric-ore-mese-subtitle').textContent = periodoText;
-
-                // Aggiorna grafici
-                updateChartOreTipo(orePerTipoLavoro);
-                updateChartAttivitaTerreno(attivitaPerTerreno);
-                updateChartOreMese(orePerMese);
-                updateChartTopLavori(tipiLavoroPiuFrequenti);
-
-                // Carica statistiche terreni
-                await loadStatisticheTerreni();
-                
-                // Carica statistiche macchine se modulo attivo
-                if (hasParcoMacchineModule) {
-                    await loadStatisticheMacchine(periodo);
-                }
-            } catch (error) {
-                console.error('Errore caricamento statistiche:', error);
-                alert('Errore nel caricamento delle statistiche: ' + error.message);
-            }
-        }
+        // Funzione loadStatistiche rimossa - ora in statistiche-controller.js
+        // Usa loadStatisticheWrapper() definito sopra
 
         // Funzioni statistiche macchine
         async function getOreMacchineTotali(periodo = {}) {
             if (!hasParcoMacchineModule) return 0;
             
             try {
-                const attivita = await getAllAttivita(periodo);
+                const attivita = await getAllAttivitaWrapper(periodo);
                 let totaleOre = 0;
                 
                 // Somma ore macchina da attività Core Base
@@ -1363,7 +1303,7 @@
             if (!hasParcoMacchineModule) return [];
             
             try {
-                const attivita = await getAllAttivita(periodo);
+                const attivita = await getAllAttivitaWrapper(periodo);
                 const orePerMacchina = {};
                 
                 // Conta ore per macchina da attività Core Base
@@ -1443,13 +1383,7 @@
                 macchineList.forEach(m => {
                     macchineMap[m.id] = m;
                 });
-                
-                console.log('📊 Statistiche Macchine - Debug:');
-                console.log('  - Macchine caricate:', macchineList.length);
-                console.log('  - Macchine con ore:', Object.keys(orePerMacchina).length);
-                console.log('  - ID macchine con ore:', Object.keys(orePerMacchina));
-                console.log('  - ID macchine caricate:', macchineList.map(m => m.id));
-                console.log('  - Nomi macchine caricate:', macchineList.map(m => ({ id: m.id, nome: m.nome })));
+
                 
                 return Object.entries(orePerMacchina)
                     .map(([macchinaId, ore]) => {
@@ -1459,7 +1393,7 @@
                             console.warn(`  - ID cercato: "${macchinaId}"`);
                             console.warn(`  - ID disponibili:`, macchineList.map(m => `"${m.id}"`));
                         } else {
-                            console.log(`✅ Macchina ID "${macchinaId}" trovata: "${macchina.nome}"`);
+
                         }
                         return {
                             macchinaId,
@@ -1522,7 +1456,7 @@
             if (!hasParcoMacchineModule) return [];
             
             try {
-                const attivita = await getAllAttivita(periodo);
+                const attivita = await getAllAttivitaWrapper(periodo);
                 const orePerTerreno = {};
                 
                 attivita.forEach(att => {
@@ -1602,7 +1536,7 @@
             if (!hasParcoMacchineModule) return { oreLavoratore: 0, oreMacchina: 0 };
             
             try {
-                const attivita = await getAllAttivita(periodo);
+                const attivita = await getAllAttivitaWrapper(periodo);
                 let oreLavoratore = 0;
                 let oreMacchina = 0;
                 
@@ -1625,7 +1559,7 @@
             if (!hasParcoMacchineModule) return [];
             
             try {
-                const attivita = await getAllAttivita(periodo);
+                const attivita = await getAllAttivitaWrapper(periodo);
                 const orePerMese = {};
                 
                 attivita.forEach(att => {
@@ -1990,12 +1924,7 @@
         }
 
         // Escape HTML per prevenire XSS
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // Funzione escapeHtml rimossa - usa utils.escapeHtml
 
         // Carica statistiche terreni
         async function loadStatisticheTerreni() {
@@ -2009,7 +1938,7 @@
                 
                 if (!currentTenantId) return;
                 
-                const terreni = await getAllTerreni();
+                const terreni = await getAllTerreniWrapper();
                 
                 // Calcola statistiche
                 let totaleTerreni = terreni.length;
@@ -2052,15 +1981,15 @@
                 document.getElementById('stat-canone-annuo').textContent = canoneAnnuoTotale > 0 ? `€${canoneAnnuoTotale.toFixed(2)}` : '-';
                 
                 // Aggiorna grafici
-                updateChartDistribuzioneTerreni(terreniProprieta, terreniAffitto);
-                updateChartDistribuzioneSuperficie(superficieProprieta, superficieAffitto);
+                updateChartDistribuzioneTerreniWrapper(terreniProprieta, terreniAffitto);
+                updateChartDistribuzioneSuperficieWrapper(superficieProprieta, superficieAffitto);
                 
                 // Carica affitti in scadenza
                 const affitti = terreni
                     .filter(t => t.tipoPossesso === 'affitto' && t.dataScadenzaAffitto)
                     .map(t => ({
                         ...t,
-                        alert: calcolaAlertAffitto(t.dataScadenzaAffitto)
+                        alert: utils.calcolaAlertAffitto(t.dataScadenzaAffitto)
                     }))
                     .sort((a, b) => {
                         const order = { 'red': 0, 'yellow': 1, 'green': 2, 'grey': 3 };
@@ -2085,7 +2014,7 @@
                             <div style="padding: 12px; margin-bottom: 10px; background: ${coloreSfondo}; border-left: 3px solid ${coloreBordo}; border-radius: 4px;">
                                 <div style="font-weight: 600; color: #333; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
                                     <span>${pallinoEmoji}</span>
-                                    <span>${escapeHtml(affitto.nome || 'Senza nome')}</span>
+                                    <span>${utils.escapeHtml(affitto.nome || 'Senza nome')}</span>
                                 </div>
                                 <div style="font-size: 13px; color: #666; margin-bottom: 4px;">
                                     <strong>Scade:</strong> ${dataFormattata} (${affitto.alert.testo})
@@ -2199,7 +2128,7 @@
                 }
 
                 // Carica terreni
-                const terreni = await getAllTerreni();
+                const terreni = await getAllTerreniWrapper();
                 const selectTerreno = document.getElementById('filter-terreno');
                 selectTerreno.innerHTML = '<option value="">Tutti i terreni</option>';
                 terreni.forEach(terreno => {
@@ -2266,7 +2195,7 @@
                     console.error('Errore caricamento tipi lavoro:', error);
                     // Fallback: carica dalle attività
                     try {
-                        const attivita = await getAllAttivita();
+                        const attivita = await getAllAttivitaWrapper();
                         const tipiLavoro = [...new Set(attivita.map(a => a.tipoLavoro).filter(Boolean))].sort();
                         const selectTipoLavoro = document.getElementById('filter-tipo-lavoro');
                         if (selectTipoLavoro) {
@@ -2287,40 +2216,26 @@
             }
         }
 
-        // Funzioni filtri
-        window.applyFilters = function() {
-            loadStatistiche();
-        };
-
-        window.resetFilters = function() {
-            document.getElementById('filter-data-da').value = '';
-            document.getElementById('filter-data-a').value = '';
-            document.getElementById('filter-terreno').value = '';
-            document.getElementById('filter-tipo-lavoro').value = '';
-            loadStatistiche();
-        };
-
-        // Inizializza app
-        async function initApp() {
-            try {
-                await loadFilters();
-                await loadStatistiche();
-            } catch (error) {
-                console.error('Errore inizializzazione app:', error);
-            }
-        }
+        // Funzioni filtri e initApp sono ora nei moduli
+        // Le chiamate usano i wrapper definiti sopra
+        // window.applyFilters e window.resetFilters sono già definiti sopra nei wrapper
+        // initApp è sostituito da initAppWrapper
     </script>
     
     <!-- Service Worker Registration for PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/gfv-platform/service-worker.js')
+                // Usa percorso relativo per compatibilità con localhost e GitHub Pages
+                const swPath = window.location.pathname.includes('/gfv-platform/') 
+                    ? '/gfv-platform/service-worker.js' 
+                    : '../../service-worker.js';
+                navigator.serviceWorker.register(swPath)
                     .then((registration) => {
                         console.log('Service Worker registrato con successo:', registration.scope);
                     })
                     .catch((error) => {
-                        console.log('Registrazione Service Worker fallita:', error);
+                        console.warn('Registrazione Service Worker fallita (non critico):', error);
                     });
             });
         }

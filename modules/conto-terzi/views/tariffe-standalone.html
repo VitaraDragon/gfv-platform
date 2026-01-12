@@ -364,6 +364,10 @@
                 <p style="opacity: 0.9; margin-top: 5px;">Configura tariffe per calcolo preventivi automatici</p>
             </div>
             <div class="header-actions">
+                <a href="../../../core/admin/impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
+                    <span>⚙️</span>
+                    <span>Impostazioni</span>
+                </a>
                 <button class="btn btn-primary" onclick="openTariffaModal()">➕ Nuova Tariffa</button>
                 <a href="conto-terzi-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
@@ -458,35 +462,42 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="coltura">Coltura *</label>
-                    <select id="coltura" required>
+                    <label for="coltura">Coltura</label>
+                    <select id="coltura">
                         <option value="">-- Seleziona prima la categoria --</option>
                     </select>
                     <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        <strong>💡 Lascia vuoto per applicare a tutte le colture della categoria</strong><br>
                         <a href="#" onclick="event.preventDefault(); window.location.href='../../../core/admin/impostazioni-standalone.html'; return false;" style="color: #1976D2; text-decoration: underline;">+ Aggiungi nuova coltura</a>
                     </small>
                 </div>
 
                 <div class="form-group">
-                    <label for="tipo-campo">Tipo Campo *</label>
-                    <select id="tipo-campo" required>
+                    <label for="tipo-campo">Tipo Campo</label>
+                    <select id="tipo-campo">
+                        <option value="">-- Seleziona per tariffa singola --</option>
                         <option value="pianura">🏞️ Pianura</option>
                         <option value="collina">⛰️ Collina</option>
                         <option value="montagna">🏔️ Montagna</option>
                     </select>
+                    <small>Lascia vuoto se vuoi creare tariffe per tutte le morfologie</small>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label for="tariffa-base">Tariffa Base (€/ettaro) *</label>
                         <input type="number" id="tariffa-base" required step="0.01" min="0" placeholder="0.00">
-                        <small>Tariffa base per ettaro</small>
+                        <small>Tariffa base per ettaro (pianura)</small>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="coefficiente-group" style="display: none;">
                         <label for="coefficiente">Coefficiente *</label>
-                        <input type="number" id="coefficiente" required step="0.01" min="0.1" value="1.0" placeholder="1.0">
-                        <small>Moltiplicatore per tipo campo (es: collina = 1.2)</small>
+                        <input type="number" id="coefficiente" step="0.01" min="0.1" value="1.0" placeholder="1.0">
+                        <small>Moltiplicatore per tipo campo (solo per tariffa singola)</small>
                     </div>
+                </div>
+                
+                <div id="info-crea-multiple" style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0; display: none;">
+                    <strong>ℹ️ Clicca "Crea per tutte le morfologie" per creare automaticamente 3 tariffe (pianura, collina, montagna) usando i coefficienti configurati nelle Impostazioni.</strong>
                 </div>
 
                 <div class="form-group">
@@ -504,116 +515,13 @@
 
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" onclick="closeTariffaModal()">Annulla</button>
-                    <button type="button" id="btn-crea-multiple" class="btn btn-primary" style="background: #28a745; display: none;" onclick="openCreaMultipleModal()">✨ Crea per tutte le morfologie</button>
-                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" id="btn-crea-multiple" class="btn btn-primary" style="background: #28a745;" onclick="handleCreaMultipleTariffe(event)">✨ Crea per tutte le morfologie</button>
+                    <button type="submit" class="btn btn-primary">Salva Tariffa Singola</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal Creazione Multiple Tariffe -->
-    <div id="crea-multiple-modal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">
-                <h3>✨ Crea Tariffe per tutte le Morfologie</h3>
-                <button class="close-btn" onclick="closeCreaMultipleModal()">&times;</button>
-            </div>
-            <form id="crea-multiple-form" onsubmit="handleCreaMultipleTariffe(event)">
-                <div class="form-group">
-                    <label for="cm-lavoro-categoria-principale">Categoria Principale Lavoro *</label>
-                    <select id="cm-lavoro-categoria-principale" required>
-                        <option value="">-- Seleziona categoria --</option>
-                    </select>
-                    <small>Seleziona la categoria funzionale principale del lavoro</small>
-                </div>
-
-                <div class="form-group" id="cm-lavoro-sottocategoria-group" style="display: none;">
-                    <label for="cm-lavoro-sottocategoria">Sottocategoria</label>
-                    <select id="cm-lavoro-sottocategoria">
-                        <option value="">-- Nessuna sottocategoria --</option>
-                    </select>
-                    <small>Sottocategoria specifica (opzionale, se disponibile)</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="cm-tipo-lavoro">Tipo Lavoro *</label>
-                    <select id="cm-tipo-lavoro" required>
-                        <option value="">-- Seleziona prima la categoria --</option>
-                    </select>
-                    <small style="display: block; margin-top: 5px; color: #666;">
-                        <a href="#" onclick="event.preventDefault(); openTipoLavoroModalFromMultiple(); return false;" style="color: #1976D2; text-decoration: underline; font-size: 12px;">+ Aggiungi nuovo tipo lavoro</a>
-                    </small>
-                </div>
-
-                <div class="form-group">
-                    <label for="cm-coltura-categoria">Categoria Coltura *</label>
-                    <select id="cm-coltura-categoria" required onchange="updateColtureDropdown('cm-coltura')">
-                        <option value="">-- Seleziona categoria --</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="cm-coltura">Coltura *</label>
-                    <select id="cm-coltura" required>
-                        <option value="">-- Seleziona prima la categoria --</option>
-                    </select>
-                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                        <a href="#" onclick="event.preventDefault(); window.location.href='../../../core/admin/impostazioni-standalone.html'; return false;" style="color: #1976D2; text-decoration: underline;">+ Aggiungi nuova coltura</a>
-                    </small>
-                </div>
-
-                <div class="form-group">
-                    <label for="cm-tariffa-base">Tariffa Base (€/ettaro) *</label>
-                    <input type="number" id="cm-tariffa-base" required step="0.01" min="0" placeholder="0.00">
-                    <small>Tariffa base per ettaro (pianura)</small>
-                </div>
-
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <h4 style="margin-bottom: 15px; color: #1976D2;">Coefficienti per Morfologia</h4>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="cm-coeff-pianura">🏞️ Pianura</label>
-                            <input type="number" id="cm-coeff-pianura" required step="0.01" min="0.1" value="1.0" placeholder="1.0">
-                            <small>Tariffa finale: <span id="cm-finale-pianura">€ 0.00</span></small>
-                        </div>
-                        <div class="form-group">
-                            <label for="cm-coeff-collina">⛰️ Collina</label>
-                            <input type="number" id="cm-coeff-collina" required step="0.01" min="0.1" value="1.2" placeholder="1.2">
-                            <small>Tariffa finale: <span id="cm-finale-collina">€ 0.00</span></small>
-                        </div>
-                        <div class="form-group">
-                            <label for="cm-coeff-montagna">🏔️ Montagna</label>
-                            <input type="number" id="cm-coeff-montagna" required step="0.01" min="0.1" value="1.5" placeholder="1.5">
-                            <small>Tariffa finale: <span id="cm-finale-montagna">€ 0.00</span></small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="cm-attiva">Stato</label>
-                    <select id="cm-attiva">
-                        <option value="true">Attiva</option>
-                        <option value="false">Disattivata</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="cm-note">Note</label>
-                    <textarea id="cm-note" placeholder="Note aggiuntive sulla tariffa..."></textarea>
-                </div>
-
-                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                    <strong>ℹ️ Verrà creata 1 tariffa per ogni morfologia (3 tariffe totali)</strong>
-                </div>
-
-                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeCreaMultipleModal()">Annulla</button>
-                    <button type="submit" class="btn btn-primary">✨ Crea 3 Tariffe</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Load Firebase config from external file -->
     <script>
@@ -710,6 +618,12 @@
                             }, 2000);
                             return;
                         }
+                        
+                        // Mostra link impostazioni (solo Manager/Amministratore, già verificato sopra)
+                        const impostazioniLink = document.getElementById('impostazioni-link');
+                        if (impostazioniLink) {
+                            impostazioniLink.style.display = 'inline-flex';
+                        }
 
                         // Setup filtri
                         setupFilters();
@@ -719,7 +633,6 @@
                         await loadTipiLavoro();
                         // Setup handler per cambio categoria/sottocategoria
                         setupCategoriaLavoroHandler(); // Form principale
-                        setupCategoriaLavoroHandler('cm-'); // Form creazione multiple
                         // Carica categorie e colture
                         await loadColture();
                         // Carica tariffe
@@ -769,6 +682,13 @@
                     
                     snapshot.forEach(doc => {
                         const catData = { id: doc.id, ...doc.data() };
+                        
+                        // Escludi categorie di test (contengono "test" nel nome)
+                        const nomeCategoria = (catData.nome || '').toLowerCase();
+                        if (nomeCategoria.includes('test')) {
+                            return; // Salta questa categoria
+                        }
+                        
                         if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
                             if (!catData.parentId) {
                                 categorieLavoriPrincipali.push(catData);
@@ -802,6 +722,12 @@
                         sottocategorieLavoriMap.clear();
                         
                         categorie.forEach(catData => {
+                            // Escludi categorie di test (contengono "test" nel nome)
+                            const nomeCategoria = (catData.nome || '').toLowerCase();
+                            if (nomeCategoria.includes('test')) {
+                                return; // Salta questa categoria
+                            }
+                            
                             if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
                                 if (!catData.parentId) {
                                     categorieLavoriPrincipali.push(catData);
@@ -825,7 +751,6 @@
                 }
                 
                 populateCategoriaLavoroDropdown();
-                populateCategoriaLavoroDropdown('cm-'); // Per form creazione multiple
             } catch (error) {
                 console.error('Errore caricamento categorie lavori:', error);
                 categorieLavoriPrincipali = [];
@@ -956,7 +881,6 @@
 
                 // Popola dropdown con tipi filtrati
                 populateTipiLavoroDropdown(tipiLavoroFiltrati);
-                populateTipiLavoroDropdown(tipiLavoroFiltrati, 'cm-'); // Per form creazione multiple
                 
                 // Mantieni anche lista piatta per compatibilità con codice esistente
                 tipiLavoro = tipiLavoroFiltrati.map(tipo => ({ nome: tipo.nome }));
@@ -1029,22 +953,20 @@
 
                 // Popola dropdown categorie
                 const categoriaSelectNormal = document.getElementById('coltura-categoria');
-                const categoriaSelectMultiple = document.getElementById('cm-coltura-categoria');
 
-                [categoriaSelectNormal, categoriaSelectMultiple].forEach(select => {
-                    if (!select) return;
-                    const currentValue = select.value;
-                    select.innerHTML = '<option value="">-- Seleziona categoria --</option>';
+                if (categoriaSelectNormal) {
+                    const currentValue = categoriaSelectNormal.value;
+                    categoriaSelectNormal.innerHTML = '<option value="">-- Seleziona categoria --</option>';
                     categorieColture.forEach(cat => {
                         const option = document.createElement('option');
                         option.value = cat.id;
                         option.textContent = cat.nome;
-                        select.appendChild(option);
+                        categoriaSelectNormal.appendChild(option);
                     });
                     if (currentValue) {
-                        select.value = currentValue;
+                        categoriaSelectNormal.value = currentValue;
                     }
-                });
+                }
             } catch (error) {
                 console.error('Errore caricamento categorie colture:', error);
             }
@@ -1164,7 +1086,7 @@
 
         // Aggiorna dropdown colture quando cambia categoria
         window.updateColtureDropdown = function(selectId) {
-            const categoriaSelectId = selectId === 'coltura' ? 'coltura-categoria' : 'cm-coltura-categoria';
+            const categoriaSelectId = 'coltura-categoria';
             const categoriaSelect = document.getElementById(categoriaSelectId);
             const colturaSelect = document.getElementById(selectId);
 
@@ -1176,7 +1098,7 @@
             const categoriaId = categoriaSelect.value;
             const currentValue = colturaSelect.value;
 
-            colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
+            colturaSelect.innerHTML = '<option value="">-- Tutte le colture della categoria --</option>';
 
             if (!categoriaId) {
                 return;
@@ -1349,9 +1271,20 @@
                     return false;
                 }
 
-                // Filtro coltura
-                if (filterColtura && !tariffa.coltura?.toLowerCase().includes(filterColtura)) {
-                    return false;
+                // Filtro coltura (include anche categoria se coltura è vuota)
+                if (filterColtura) {
+                    let colturaDisplay = '';
+                    if (tariffa.coltura && tariffa.coltura.trim().length > 0) {
+                        colturaDisplay = tariffa.coltura;
+                    } else if (tariffa.categoriaColturaId) {
+                        const categoria = categorieColture.find(cat => cat.id === tariffa.categoriaColturaId);
+                        colturaDisplay = categoria ? categoria.nome : 'Tutte le colture';
+                    } else {
+                        colturaDisplay = 'Tutte le colture';
+                    }
+                    if (!colturaDisplay.toLowerCase().includes(filterColtura)) {
+                        return false;
+                    }
                 }
 
                 // Filtro tipo campo
@@ -1402,9 +1335,21 @@
                     'montagna': '🏔️ Montagna'
                 }[tariffa.tipoCampo] || tariffa.tipoCampo;
                 
+                // Determina display coltura: se vuota ma ha categoriaColturaId, mostra nome categoria
+                let colturaDisplay = '';
+                if (tariffa.coltura && tariffa.coltura.trim().length > 0) {
+                    colturaDisplay = escapeHtml(tariffa.coltura);
+                } else if (tariffa.categoriaColturaId) {
+                    // Cerca nome categoria
+                    const categoria = categorieColture.find(cat => cat.id === tariffa.categoriaColturaId);
+                    colturaDisplay = categoria ? `<em style="color: #1976D2; font-weight: 500;">${escapeHtml(categoria.nome)}</em>` : '<em style="color: #666;">Tutte le colture</em>';
+                } else {
+                    colturaDisplay = '<em style="color: #666;">Tutte le colture</em>';
+                }
+                
                 html += '<tr>';
                 html += `<td><strong>${escapeHtml(tariffa.tipoLavoro || '')}</strong></td>`;
-                html += `<td>${escapeHtml(tariffa.coltura || '')}</td>`;
+                html += `<td>${colturaDisplay}</td>`;
                 html += `<td>${tipoCampoFormattato}</td>`;
                 html += `<td>€ ${(tariffa.tariffaBase || 0).toFixed(2)}</td>`;
                 html += `<td>${(tariffa.coefficiente || 1).toFixed(2)}x</td>`;
@@ -1501,7 +1446,7 @@
                         }
                     }, 300);
                     // Imposta categoria e coltura
-                    if (tariffa.coltura) {
+                    if (tariffa.coltura && tariffa.coltura.trim().length > 0) {
                         // Trova categoria della coltura
                         let categoriaId = null;
                         for (const [catId, colture] of Object.entries(colturePerCategoria)) {
@@ -1516,20 +1461,63 @@
                             updateColtureDropdown('coltura');
                         }
                         document.getElementById('coltura').value = tariffa.coltura || '';
+                    } else {
+                        // Coltura vuota = tutte le colture, imposta categoria se disponibile
+                        if (tariffa.categoriaColturaId) {
+                            document.getElementById('coltura-categoria').value = tariffa.categoriaColturaId;
+                            updateColtureDropdown('coltura');
+                        }
+                        document.getElementById('coltura').value = '';
                     }
-                    document.getElementById('tipo-campo').value = tariffa.tipoCampo || 'pianura';
+                    document.getElementById('tipo-campo').value = tariffa.tipoCampo || '';
                     document.getElementById('tariffa-base').value = tariffa.tariffaBase || '';
-                    document.getElementById('coefficiente').value = tariffa.coefficiente || 1.0;
+                    // Mostra coefficiente solo se tipo-campo è selezionato
+                    if (tariffa.tipoCampo) {
+                        document.getElementById('coefficiente-group').style.display = 'block';
+                        document.getElementById('coefficiente').value = tariffa.coefficiente || 1.0;
+                        document.getElementById('coefficiente').required = true;
+                        document.getElementById('info-crea-multiple').style.display = 'none';
+                        document.getElementById('btn-crea-multiple').style.display = 'none';
+                    } else {
+                        document.getElementById('coefficiente-group').style.display = 'none';
+                        document.getElementById('info-crea-multiple').style.display = 'block';
+                        document.getElementById('btn-crea-multiple').style.display = 'inline-block';
+                    }
                     document.getElementById('attiva').value = tariffa.attiva ? 'true' : 'false';
                     document.getElementById('note').value = tariffa.note || '';
                 }
             } else {
                 title.textContent = 'Nuova Tariffa';
-                // Mostra pulsante "Crea per tutte le morfologie" solo quando crei nuova tariffa
-                document.getElementById('btn-crea-multiple').style.display = 'inline-block';
+                // Reset tipo-campo
+                document.getElementById('tipo-campo').value = '';
+                document.getElementById('coefficiente-group').style.display = 'none';
+                document.getElementById('info-crea-multiple').style.display = 'block';
                 // Popola dropdown tipi lavoro
                 populateTipiLavoroDropdown();
             }
+            
+            // Listener per tipo-campo
+            const tipoCampoSelect = document.getElementById('tipo-campo');
+            tipoCampoSelect.onchange = function() {
+                const tipoCampo = this.value;
+                const coeffGroup = document.getElementById('coefficiente-group');
+                const infoMultiple = document.getElementById('info-crea-multiple');
+                const btnMultiple = document.getElementById('btn-crea-multiple');
+                
+                if (tipoCampo) {
+                    // Tariffa singola: mostra coefficiente, nascondi pulsante multipla
+                    coeffGroup.style.display = 'block';
+                    document.getElementById('coefficiente').required = true;
+                    infoMultiple.style.display = 'none';
+                    btnMultiple.style.display = 'none';
+                } else {
+                    // Nessun tipo campo: nascondi coefficiente, mostra pulsante multipla
+                    coeffGroup.style.display = 'none';
+                    document.getElementById('coefficiente').required = false;
+                    infoMultiple.style.display = 'block';
+                    btnMultiple.style.display = 'inline-block';
+                }
+            };
             
             modal.classList.add('active');
         };
@@ -1537,208 +1525,13 @@
         // Chiudi modal
         window.closeTariffaModal = function() {
             document.getElementById('tariffa-modal').classList.remove('active');
+            // Reset form
+            document.getElementById('tariffa-form').reset();
+            document.getElementById('coefficiente-group').style.display = 'none';
+            document.getElementById('info-crea-multiple').style.display = 'none';
             document.getElementById('btn-crea-multiple').style.display = 'none';
         };
 
-        // Apri modal creazione multiple
-        window.openCreaMultipleModal = function() {
-            const tipoLavoro = document.getElementById('tipo-lavoro').value.trim();
-            
-            if (!tipoLavoro) {
-                showAlert('Errore: Seleziona un tipo lavoro', 'error');
-                return;
-            }
-            const coltura = document.getElementById('coltura').value;
-            if (!coltura) {
-                showAlert('Seleziona una coltura', 'error');
-                return;
-            }
-            const tariffaBase = document.getElementById('tariffa-base').value;
-            const attiva = document.getElementById('attiva').value;
-            const note = document.getElementById('note').value.trim();
-
-            // Popola dropdown tipi lavoro nel modal multiplo
-            populateTipiLavoroDropdown();
-
-            // Precompila i campi se già compilati nel form normale
-            if (tipoLavoro) document.getElementById('cm-tipo-lavoro').value = tipoLavoro;
-            if (coltura) document.getElementById('cm-coltura').value = coltura;
-            if (tariffaBase) {
-                document.getElementById('cm-tariffa-base').value = tariffaBase;
-                updateCreaMultiplePreview();
-            }
-            if (attiva) document.getElementById('cm-attiva').value = attiva;
-            if (note) document.getElementById('cm-note').value = note;
-
-            document.getElementById('crea-multiple-modal').classList.add('active');
-        };
-
-        // Chiudi modal creazione multiple
-        window.closeCreaMultipleModal = function() {
-            document.getElementById('crea-multiple-modal').classList.remove('active');
-            document.getElementById('crea-multiple-form').reset();
-        };
-
-        // Aggiorna preview tariffe finali nel modal creazione multiple
-        function updateCreaMultiplePreview() {
-            const tariffaBase = parseFloat(document.getElementById('cm-tariffa-base').value) || 0;
-            const coeffPianura = parseFloat(document.getElementById('cm-coeff-pianura').value) || 1.0;
-            const coeffCollina = parseFloat(document.getElementById('cm-coeff-collina').value) || 1.2;
-            const coeffMontagna = parseFloat(document.getElementById('cm-coeff-montagna').value) || 1.5;
-
-            document.getElementById('cm-finale-pianura').textContent = `€ ${(tariffaBase * coeffPianura).toFixed(2)}`;
-            document.getElementById('cm-finale-collina').textContent = `€ ${(tariffaBase * coeffCollina).toFixed(2)}`;
-            document.getElementById('cm-finale-montagna').textContent = `€ ${(tariffaBase * coeffMontagna).toFixed(2)}`;
-        }
-
-        // Setup event listeners per preview nel modal creazione multiple
-        document.addEventListener('DOMContentLoaded', function() {
-            // Aggiungi listener quando il modal viene aperto
-            const cmModal = document.getElementById('crea-multiple-modal');
-            if (cmModal) {
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                            if (cmModal.classList.contains('active')) {
-                                // Modal aperto, aggiungi listener
-                                const cmTariffaBase = document.getElementById('cm-tariffa-base');
-                                const cmCoeffPianura = document.getElementById('cm-coeff-pianura');
-                                const cmCoeffCollina = document.getElementById('cm-coeff-collina');
-                                const cmCoeffMontagna = document.getElementById('cm-coeff-montagna');
-
-                                if (cmTariffaBase) {
-                                    cmTariffaBase.addEventListener('input', updateCreaMultiplePreview);
-                                    cmCoeffPianura?.addEventListener('input', updateCreaMultiplePreview);
-                                    cmCoeffCollina?.addEventListener('input', updateCreaMultiplePreview);
-                                    cmCoeffMontagna?.addEventListener('input', updateCreaMultiplePreview);
-                                }
-                            }
-                        }
-                    });
-                });
-                observer.observe(cmModal, { attributes: true });
-            }
-        });
-
-        // Salva tariffe multiple
-        window.handleCreaMultipleTariffe = async function(event) {
-            event.preventDefault();
-
-            if (!currentTenantId && currentUser) {
-                try {
-                    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-                    if (userDoc.exists()) {
-                        currentTenantId = userDoc.data().tenantId;
-                    }
-                } catch (error) {
-                    console.error('Errore recupero tenant:', error);
-                    if (error.code === 'permission-denied') {
-                        showAlert('Errore: Permessi insufficienti per leggere i dati utente. Verifica le regole di sicurezza Firestore.', 'error');
-                        return;
-                    }
-                }
-            }
-
-            if (!currentTenantId) {
-                showAlert('Errore: nessun tenant disponibile. Verifica che il tuo account abbia un tenantId configurato.', 'error');
-                return;
-            }
-
-            const tipoLavoro = document.getElementById('cm-tipo-lavoro').value.trim();
-            const coltura = document.getElementById('cm-coltura').value;
-            const tariffaBase = parseFloat(document.getElementById('cm-tariffa-base').value);
-            
-            if (!coltura) {
-                showAlert('Seleziona una coltura', 'error');
-                return;
-            }
-            const coeffPianura = parseFloat(document.getElementById('cm-coeff-pianura').value);
-            const coeffCollina = parseFloat(document.getElementById('cm-coeff-collina').value);
-            const coeffMontagna = parseFloat(document.getElementById('cm-coeff-montagna').value);
-            const attiva = document.getElementById('cm-attiva').value === 'true';
-            const note = document.getElementById('cm-note').value.trim() || '';
-
-            // Validazione
-            if (!tipoLavoro || !coltura || !tariffaBase || tariffaBase <= 0) {
-                showAlert('Errore: Compila tutti i campi obbligatori con valori validi', 'error');
-                return;
-            }
-            
-            if (!tipoLavoro) {
-                showAlert('Errore: Seleziona un tipo lavoro', 'error');
-                return;
-            }
-
-            const morfologie = [
-                { tipo: 'pianura', coefficiente: coeffPianura, emoji: '🏞️' },
-                { tipo: 'collina', coefficiente: coeffCollina, emoji: '⛰️' },
-                { tipo: 'montagna', coefficiente: coeffMontagna, emoji: '🏔️' }
-            ];
-
-            let createCount = 0;
-            let skipCount = 0;
-            const errors = [];
-
-            try {
-                // Crea le 3 tariffe
-                for (const morf of morfologie) {
-                    try {
-                        // Verifica se esiste già
-                        const tariffeEsistenti = await getDocs(query(
-                            collection(db, 'tenants', currentTenantId, 'tariffe'),
-                            where('tipoLavoro', '==', tipoLavoro),
-                            where('coltura', '==', coltura),
-                            where('tipoCampo', '==', morf.tipo)
-                        ));
-
-                        if (!tariffeEsistenti.empty) {
-                            skipCount++;
-                            continue;
-                        }
-
-                        const tariffaData = {
-                            tipoLavoro,
-                            coltura,
-                            tipoCampo: morf.tipo,
-                            tariffaBase,
-                            coefficiente: morf.coefficiente,
-                            attiva,
-                            note,
-                            createdAt: serverTimestamp(),
-                            updatedAt: serverTimestamp()
-                        };
-
-                        await addDoc(collection(db, 'tenants', currentTenantId, 'tariffe'), tariffaData);
-                        createCount++;
-                    } catch (error) {
-                        console.error(`Errore creazione tariffa ${morf.tipo}:`, error);
-                        errors.push(`${morf.emoji} ${morf.tipo}: ${error.message}`);
-                    }
-                }
-
-                // Mostra risultato
-                if (createCount === 3) {
-                    showAlert(`✅ Create con successo ${createCount} tariffe per tutte le morfologie!`, 'success');
-                } else if (createCount > 0) {
-                    let msg = `✅ Create ${createCount} tariffe`;
-                    if (skipCount > 0) {
-                        msg += `, ${skipCount} già esistenti`;
-                    }
-                    if (errors.length > 0) {
-                        msg += `. Errori: ${errors.join('; ')}`;
-                    }
-                    showAlert(msg, 'success');
-                } else {
-                    showAlert(`⚠️ Nessuna tariffa creata. ${skipCount > 0 ? 'Tutte le tariffe esistono già.' : 'Errore: ' + errors.join('; ')}`, 'error');
-                }
-
-                window.closeCreaMultipleModal();
-                await loadTariffe();
-            } catch (error) {
-                console.error('Errore creazione tariffe multiple:', error);
-                showAlert('Errore: ' + error.message, 'error');
-            }
-        };
 
         // Duplica tariffa per altre morfologie
         window.duplicaPerAltreMorfologie = async function(tariffaId) {
@@ -1777,35 +1570,45 @@
                 return;
             }
 
-            // Coefficienti predefiniti basati sulla morfologia esistente
-            const coeffBase = tariffa.coefficiente || 1.0;
-            const coeffDefault = {
-                'pianura': 1.0,
-                'collina': 1.2,
-                'montagna': 1.5
+            // Carica coefficienti dalle impostazioni
+            let coefficienti = {
+                pianura: 1.0,
+                collina: 1.2,
+                montagna: 1.5
             };
-
-            // Calcola coefficienti per morfologie mancanti
-            let coeffPianura = coeffDefault.pianura;
-            let coeffCollina = coeffDefault.collina;
-            let coeffMontagna = coeffDefault.montagna;
-
-            // Se la tariffa esistente è pianura, usa coefficienti standard
-            if (tariffa.tipoCampo === 'pianura') {
-                coeffCollina = coeffBase * 1.2;
-                coeffMontagna = coeffBase * 1.5;
-            } else if (tariffa.tipoCampo === 'collina') {
-                coeffPianura = coeffBase / 1.2;
-                coeffMontagna = coeffBase * 1.25;
-            } else if (tariffa.tipoCampo === 'montagna') {
-                coeffPianura = coeffBase / 1.5;
-                coeffCollina = coeffBase / 1.25;
+            
+            try {
+                const coeffRef = doc(db, `tenants/${currentTenantId}/impostazioni`, 'coefficientiMorfologia');
+                const coeffSnap = await getDoc(coeffRef);
+                if (coeffSnap.exists()) {
+                    const data = coeffSnap.data();
+                    coefficienti = {
+                        pianura: data.pianura || 1.0,
+                        collina: data.collina || 1.2,
+                        montagna: data.montagna || 1.5
+                    };
+                }
+            } catch (error) {
+                console.warn('Errore caricamento coefficienti, uso default:', error);
             }
 
+            const coeffPianura = coefficienti.pianura;
+            const coeffCollina = coefficienti.collina;
+            const coeffMontagna = coefficienti.montagna;
+
+            let colturaDisplay = '';
+            if (tariffa.coltura && tariffa.coltura.trim().length > 0) {
+                colturaDisplay = tariffa.coltura;
+            } else if (tariffa.categoriaColturaId) {
+                const categoria = categorieColture.find(cat => cat.id === tariffa.categoriaColturaId);
+                colturaDisplay = categoria ? categoria.nome : 'Tutte le colture';
+            } else {
+                colturaDisplay = 'Tutte le colture';
+            }
             if (!confirm(`Vuoi creare ${morfologieMancanti.length} tariffa/e per le morfologie mancanti?\n\nMorfologie da creare: ${morfologieMancanti.map(m => {
                 const emoji = { 'pianura': '🏞️', 'collina': '⛰️', 'montagna': '🏔️' }[m];
                 return `${emoji} ${m}`;
-            }).join(', ')}\n\nTipo Lavoro: ${tariffa.tipoLavoro}\nColtura: ${tariffa.coltura}`)) {
+            }).join(', ')}\n\nTipo Lavoro: ${tariffa.tipoLavoro}\nColtura: ${colturaDisplay}`)) {
                 return;
             }
 
@@ -1819,7 +1622,7 @@
                         const tariffeEsistenti = await getDocs(query(
                             collection(db, 'tenants', currentTenantId, 'tariffe'),
                             where('tipoLavoro', '==', tariffa.tipoLavoro),
-                            where('coltura', '==', tariffa.coltura || ''),
+                            where('coltura', '==', (tariffa.coltura || '').trim() || ''),
                             where('tipoCampo', '==', morf)
                         ));
 
@@ -1834,7 +1637,8 @@
 
                         const tariffaData = {
                             tipoLavoro: tariffa.tipoLavoro,
-                            coltura: tariffa.coltura,
+                            coltura: (tariffa.coltura || '').trim() || '', // Gestisce null/undefined
+                            categoriaColturaId: tariffa.categoriaColturaId || null, // Mantieni categoria se presente
                             tipoCampo: morf,
                             tariffaBase: tariffa.tariffaBase,
                             coefficiente: coefficiente,
@@ -1865,6 +1669,112 @@
             }
         };
 
+        // Crea tariffe per tutte le morfologie
+        window.handleCreaMultipleTariffe = async function(event) {
+            event.preventDefault();
+            
+            if (!currentTenantId) {
+                showAlert('Errore: nessun tenant disponibile. Verifica che il tuo account abbia un tenantId configurato.', 'error');
+                return;
+            }
+
+            const tipoLavoro = document.getElementById('tipo-lavoro').value.trim();
+            const colturaValue = document.getElementById('coltura').value.trim();
+            const categoriaColturaId = document.getElementById('coltura-categoria').value || null;
+            const tariffaBase = parseFloat(document.getElementById('tariffa-base').value);
+            const attiva = document.getElementById('attiva').value === 'true';
+            const note = document.getElementById('note').value.trim() || '';
+
+            // Validazione
+            if (!tipoLavoro || !tariffaBase || tariffaBase <= 0) {
+                showAlert('Errore: Compila tutti i campi obbligatori con valori validi', 'error');
+                return;
+            }
+
+            // Carica coefficienti dalle impostazioni
+            let coefficienti = {
+                pianura: 1.0,
+                collina: 1.2,
+                montagna: 1.5
+            };
+            
+            try {
+                const coeffRef = doc(db, `tenants/${currentTenantId}/impostazioni`, 'coefficientiMorfologia');
+                const coeffSnap = await getDoc(coeffRef);
+                if (coeffSnap.exists()) {
+                    const data = coeffSnap.data();
+                    coefficienti = {
+                        pianura: data.pianura || 1.0,
+                        collina: data.collina || 1.2,
+                        montagna: data.montagna || 1.5
+                    };
+                }
+            } catch (error) {
+                console.warn('Errore caricamento coefficienti, uso default:', error);
+            }
+
+            const morfologie = [
+                { tipo: 'pianura', coefficiente: coefficienti.pianura, emoji: '🏞️' },
+                { tipo: 'collina', coefficiente: coefficienti.collina, emoji: '⛰️' },
+                { tipo: 'montagna', coefficiente: coefficienti.montagna, emoji: '🏔️' }
+            ];
+
+            let createCount = 0;
+            let skipCount = 0;
+            const errors = [];
+
+            try {
+                // Crea le 3 tariffe
+                for (const morf of morfologie) {
+                    try {
+                        // Verifica se esiste già
+                        const tariffeEsistenti = await getDocs(query(
+                            collection(db, 'tenants', currentTenantId, 'tariffe'),
+                            where('tipoLavoro', '==', tipoLavoro),
+                            where('coltura', '==', colturaValue || ''),
+                            where('tipoCampo', '==', morf.tipo)
+                        ));
+
+                        if (!tariffeEsistenti.empty) {
+                            skipCount++;
+                            continue;
+                        }
+
+                        const tariffaData = {
+                            tipoLavoro,
+                            coltura: colturaValue || '',
+                            categoriaColturaId: (!colturaValue && categoriaColturaId) ? categoriaColturaId : null,
+                            tipoCampo: morf.tipo,
+                            tariffaBase,
+                            coefficiente: morf.coefficiente,
+                            attiva,
+                            note,
+                            createdAt: serverTimestamp(),
+                            updatedAt: serverTimestamp()
+                        };
+
+                        await addDoc(collection(db, 'tenants', currentTenantId, 'tariffe'), tariffaData);
+                        createCount++;
+                    } catch (error) {
+                        console.error(`Errore creazione tariffa ${morf.tipo}:`, error);
+                        errors.push(`${morf.emoji} ${morf.tipo}: ${error.message}`);
+                    }
+                }
+
+                // Mostra risultato
+                if (createCount > 0) {
+                    showAlert(`✅ Create ${createCount} tariffa/e con successo!${skipCount > 0 ? ` (${skipCount} già esistenti)` : ''}`, 'success');
+                    closeTariffaModal();
+                    await loadTariffe();
+                } else {
+                    showAlert(`⚠️ Nessuna tariffa creata. ${skipCount > 0 ? 'Tutte le tariffe esistono già.' : ''}${errors.length > 0 ? ' Errori: ' + errors.join('; ') : ''}`, 'warning');
+                }
+            } catch (error) {
+                console.error('Errore creazione tariffe:', error);
+                showAlert('Errore: ' + error.message, 'error');
+            }
+        };
+
         // Salva tariffa
         window.handleSalvaTariffa = async function(event) {
             event.preventDefault();
@@ -1891,10 +1801,21 @@
             }
 
             const tariffaId = document.getElementById('tariffa-id').value;
+            const tipoCampo = document.getElementById('tipo-campo').value;
+            
+            // Validazione: tipo-campo obbligatorio per tariffa singola
+            if (!tipoCampo) {
+                showAlert('Errore: Seleziona un tipo campo o usa "Crea per tutte le morfologie"', 'error');
+                return;
+            }
+            
+            const colturaValue = document.getElementById('coltura').value.trim();
+            const categoriaColturaId = document.getElementById('coltura-categoria').value || null;
             const tariffaData = {
                 tipoLavoro: document.getElementById('tipo-lavoro').value.trim(),
-                coltura: document.getElementById('coltura').value.trim(),
-                tipoCampo: document.getElementById('tipo-campo').value,
+                coltura: colturaValue || '', // Permetti stringa vuota per "tutte le colture"
+                categoriaColturaId: (!colturaValue && categoriaColturaId) ? categoriaColturaId : null, // Salva categoria solo se coltura è vuota
+                tipoCampo: tipoCampo,
                 tariffaBase: parseFloat(document.getElementById('tariffa-base').value),
                 coefficiente: parseFloat(document.getElementById('coefficiente').value),
                 attiva: document.getElementById('attiva').value === 'true',
@@ -1946,7 +1867,16 @@
                 return;
             }
 
-            if (!confirm(`Sei sicuro di voler eliminare la tariffa "${tariffa.tipoLavoro} - ${tariffa.coltura} - ${tariffa.tipoCampo}"?`)) {
+            let colturaDisplay = '';
+            if (tariffa.coltura && tariffa.coltura.trim().length > 0) {
+                colturaDisplay = tariffa.coltura;
+            } else if (tariffa.categoriaColturaId) {
+                const categoria = categorieColture.find(cat => cat.id === tariffa.categoriaColturaId);
+                colturaDisplay = categoria ? categoria.nome : 'Tutte le colture';
+            } else {
+                colturaDisplay = 'Tutte le colture';
+            }
+            if (!confirm(`Sei sicuro di voler eliminare la tariffa "${tariffa.tipoLavoro} - ${colturaDisplay} - ${tariffa.tipoCampo}"?`)) {
                 return;
             }
 
@@ -1994,9 +1924,8 @@
             }
         };
 
-        window.openTipoLavoroModalFromMultiple = function() {
-            window.openTipoLavoroModal();
-        };
+        // Funzione rimossa - non più necessaria con modal unificato
+        // Funzione rimossa - non più necessaria con modal unificato
     </script>
 </body>
 </html>

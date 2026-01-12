@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Statistiche Service - Servizio per statistiche e aggregazioni
  * Calcola metriche e aggregazioni sulle attività
  * 
@@ -286,9 +286,4 @@ export default {
   getTipiLavoroPiuFrequenti,
   getStatisticheComplete
 };
-
-
-
-
-
 

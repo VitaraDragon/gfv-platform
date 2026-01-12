@@ -350,8 +350,8 @@
         const firebaseConfig = await waitForConfig();
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged, deleteUser } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
@@ -359,7 +359,7 @@
         const db = getFirestore(app);
 
         // Elementi DOM
-        console.log('🔍 Caricamento elementi DOM...');
+
         const registerForm = document.getElementById('register-form');
         const nomeInput = document.getElementById('nome');
         const cognomeInput = document.getElementById('cognome');
@@ -383,12 +383,11 @@
         if (!registerButton || !loadingOverlay) {
             console.error('❌ ERRORE CRITICO: Pulsante o overlay non trovati!');
         }
-        console.log('✅ Tutti gli elementi DOM caricati correttamente');
 
         // Verifica se già autenticato
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log('🔍 Utente già autenticato, verifico se ha completato la registrazione...');
+
                 // Verifica se l'utente ha completato la registrazione (ha tenantId e ruoli)
                 try {
                     const userDocRef = doc(db, 'users', user.uid);
@@ -400,7 +399,7 @@
                         const hasRoles = userData.ruoli && Array.isArray(userData.ruoli) && userData.ruoli.length > 0;
                         
                         if (hasTenantId && hasRoles) {
-                            console.log('✅ Utente ha completato la registrazione, redirect alla dashboard');
+
                             window.location.href = '../dashboard-standalone.html';
                         } else {
                             console.warn('⚠️ Utente autenticato ma registrazione incompleta (tenantId:', hasTenantId, 'ruoli:', hasRoles, ')');
@@ -508,37 +507,38 @@
         }
 
         // Gestione submit form
-        console.log('🔗 Registro event listener per il form...');
+
         if (!registerForm) {
             console.error('❌ ERRORE: registerForm è null, non posso registrare l\'event listener!');
         } else {
-            console.log('✅ Form trovato, registro event listener...');
+
         }
         
         // Aggiungi anche event listener al pulsante come fallback
         registerButton.addEventListener('click', (e) => {
-            console.log('🖱️ CLICK PULSANTE: Pulsante Crea Account cliccato!');
+
         });
         
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('📝 FORM SUBMIT: Form di registrazione inviato!');
-            console.log('📝 Event object:', e);
-            console.log('📝 Form element:', registerForm);
-            console.log('📝 Valido il form...');
 
-            // Valida form
+// Valida form
             if (!validateForm()) {
                 console.warn('⚠️ Validazione form fallita');
                 return;
             }
-            console.log('✅ Validazione form OK');
 
             // Mostra loading
-            console.log('⏳ Mostro loading overlay...');
+
             loadingOverlay.classList.add('active');
             registerButton.disabled = true;
             hideErrors();
+
+            // Variabile per tracciare se l'utente Firebase Auth è stato creato
+            let firebaseUser = null;
+            let tenantId = null;
+            let tenantCreated = false;
+            let userDocCreated = false;
 
             try {
                 const nome = nomeInput.value.trim();
@@ -546,14 +546,10 @@
                 const email = emailInput.value.trim().toLowerCase();
                 const password = passwordInput.value;
                 const aziendaNome = aziendaNomeInput.value.trim();
-                
-                console.log('📝 Dati form:', { nome, cognome, email, aziendaNome, passwordLength: password.length });
 
                 // Crea utente Firebase Auth
-                console.log('🔐 Creando utente Firebase Auth...');
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const firebaseUser = userCredential.user;
-                console.log('✅ Utente Firebase Auth creato:', firebaseUser.uid);
+                firebaseUser = userCredential.user;
 
                 // Genera ID tenant basato sul nome azienda (normalizzato)
                 // Normalizza il nome: minuscolo, rimuovi spazi e caratteri speciali, sostituisci con underscore
@@ -570,7 +566,7 @@
                 }
                 
                 // Verifica se esiste già un tenant con questo ID
-                let tenantId = tenantIdBase;
+                tenantId = tenantIdBase;
                 let suffix = 1;
                 let tenantExists = true;
                 
@@ -582,14 +578,11 @@
                         // Se esiste, aggiungi un suffisso numerico
                         tenantId = `${tenantIdBase}_${suffix}`;
                         suffix++;
-                        console.log(`⚠️ Tenant ID "${tenantIdBase}" già esistente, provo con: ${tenantId}`);
+
                     }
                 }
-                
-                console.log('🏢 Tenant ID generato dal nome azienda:', tenantId);
-                console.log('🏢 Nome azienda originale:', aziendaNome);
 
-                // Crea tenant
+// Crea tenant
                 const tenantData = {
                     nome: aziendaNome,
                     creatoDa: firebaseUser.uid,
@@ -600,16 +593,11 @@
                 };
 
                 // Salva il tenant PRIMA dell'utente
-                console.log('💾 STEP 1: Salvando tenant con ID:', tenantId);
-                console.log('💾 Dati tenant:', JSON.stringify(tenantData, null, 2));
-                console.log('💾 Database reference:', db);
-                console.log('💾 Document reference:', doc(db, 'tenants', tenantId));
-                
+
                 try {
                     const tenantDocRef = doc(db, 'tenants', tenantId);
-                    console.log('💾 Tentativo salvataggio tenant...');
                     await setDoc(tenantDocRef, tenantData);
-                    console.log('✅ STEP 1 COMPLETATO: Tenant salvato in Firestore');
+                    tenantCreated = true;
                 } catch (tenantError) {
                     console.error('❌ ERRORE CRITICO durante salvataggio tenant:', tenantError);
                     console.error('❌ Tipo errore:', typeof tenantError);
@@ -626,16 +614,15 @@
                 }
                 
                 // Verifica che il tenant sia stato salvato
-                console.log('🔍 STEP 2: Verifico che il tenant sia stato salvato...');
+
                 try {
                     const tenantCheck = await getDoc(doc(db, 'tenants', tenantId));
                     if (!tenantCheck.exists()) {
                         console.error('❌ ERRORE: Tenant non trovato dopo il salvataggio!');
                         throw new Error('Errore: tenant non salvato correttamente - documento non trovato');
                     }
-                    console.log('✅ STEP 2 COMPLETATO: Tenant verificato in Firestore');
-                    console.log('✅ Dati tenant salvati:', tenantCheck.data());
-                } catch (verifyError) {
+
+} catch (verifyError) {
                     console.error('❌ ERRORE durante verifica tenant:', verifyError);
                     throw new Error(`Errore durante verifica tenant: ${verifyError.message}`);
                 }
@@ -643,10 +630,8 @@
                 // Crea documento utente in Firestore
                 // Assicurati che ruoli sia un array esplicito
                 const ruoliArray = ['amministratore'];
-                console.log('💾 Creando utente con ruoli:', ruoliArray);
-                console.log('💾 TenantId da associare:', tenantId);
-                
-                const userData = {
+
+const userData = {
                     id: firebaseUser.uid,
                     email: email.toLowerCase().trim(),
                     nome: nome,
@@ -659,24 +644,21 @@
                     ultimoAccesso: null
                 };
 
-                console.log('💾 Dati utente da salvare:', userData);
-                console.log('💾 Verifico se documento utente esiste già...');
-                
-                // Verifica se il documento esiste già
+// Verifica se il documento esiste già
                 const existingUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 if (existingUserDoc.exists()) {
                     console.warn('⚠️ Documento utente esiste già, uso updateDoc invece di setDoc');
                     // Se esiste, usa updateDoc per aggiornare tutti i campi
                     await updateDoc(doc(db, 'users', firebaseUser.uid), userData);
+                    userDocCreated = true; // Anche updateDoc conta come creazione/modifica riuscita
                 } else {
-                    console.log('✅ Documento utente non esiste, creo nuovo documento');
                     // Se non esiste, crea nuovo documento SENZA merge
                     await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+                    userDocCreated = true;
                 }
-                console.log('✅ Documento utente salvato');
 
                 // Attendi un momento per assicurarsi che Firestore abbia processato
-                console.log('⏳ Attendo 1 secondo per propagazione Firestore...');
+
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
                 // Verifica che il documento sia stato salvato correttamente
@@ -689,12 +671,8 @@
 
                 // Verifica che i dati siano stati salvati correttamente
                 const savedData = userDocCheck.data();
-                console.log('✅ Dati salvati letti da Firestore:', savedData);
-                console.log('✅ Ruoli salvati:', savedData.ruoli);
-                console.log('✅ TenantId salvato:', savedData.tenantId);
-                console.log('✅ Tipo ruoli:', typeof savedData.ruoli, Array.isArray(savedData.ruoli));
-                
-                // Verifica tenantId
+
+// Verifica tenantId
                 if (!savedData.tenantId || savedData.tenantId !== tenantId) {
                     console.error('❌ ERRORE: tenantId non salvato correttamente!');
                     console.error('❌ Atteso:', tenantId, 'Trovato:', savedData.tenantId);
@@ -702,7 +680,7 @@
                     await updateDoc(userDocRef, {
                         tenantId: tenantId
                     });
-                    console.log('✅ TenantId aggiornato');
+
                 }
                 
                 // Controlla se i ruoli sono stati salvati correttamente
@@ -718,9 +696,8 @@
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     const userDocCheck2 = await getDoc(userDocRef);
                     const savedData2 = userDocCheck2.data();
-                    console.log('✅ Dopo updateDoc - Ruoli:', savedData2.ruoli);
-                    console.log('✅ Dopo updateDoc - TenantId:', savedData2.tenantId);
-                    ruoliSalvati = savedData2.ruoli;
+
+ruoliSalvati = savedData2.ruoli;
                 }
                 
                 if (!ruoliSalvati || !Array.isArray(ruoliSalvati) || ruoliSalvati.length === 0) {
@@ -732,11 +709,8 @@
                     console.error('❌ ERRORE: TenantId ancora non salvato dopo retry!');
                     throw new Error('Impossibile salvare il tenantId. Controlla la console per dettagli.');
                 }
-                
-                console.log('✅ Ruoli salvati correttamente:', ruoliSalvati);
-                console.log('✅ TenantId salvato correttamente:', savedData.tenantId);
 
-                // Successo!
+// Successo!
                 showSuccess('✅ Account creato con successo! Reindirizzamento alla dashboard...');
                 
                 // Salva flag che l'utente si è appena registrato
@@ -745,9 +719,9 @@
                 sessionStorage.setItem('gfv_expected_tenant_id', tenantId);
                 
                 // Attendi più tempo per assicurarsi che tutto sia salvato e propagato in Firestore
-                console.log('⏳ Attendo 3 secondi prima del redirect per propagazione Firestore...');
+
                 setTimeout(() => {
-                    console.log('🚀 Redirect alla dashboard...');
+
                     window.location.href = '../dashboard-standalone.html';
                 }, 3000);
 
@@ -757,10 +731,50 @@
                 console.error('❌ Codice errore:', error.code);
                 console.error('❌ Messaggio errore:', error.message);
                 
+                // Cleanup: se l'utente Firebase Auth è stato creato ma il documento Firestore no,
+                // elimina l'utente Firebase Auth per permettere una nuova registrazione
+                if (firebaseUser && !userDocCreated) {
+                    console.warn('⚠️ Utente Firebase Auth creato ma documento Firestore non creato. Eseguo cleanup...');
+                    try {
+                        // Elimina il documento utente se è stato creato parzialmente
+                        if (userDocCreated) {
+                            try {
+                                await deleteDoc(doc(db, 'users', firebaseUser.uid));
+                                console.log('✅ Documento utente eliminato');
+                            } catch (deleteUserDocError) {
+                                console.warn('⚠️ Errore eliminazione documento utente (potrebbe non esistere):', deleteUserDocError);
+                            }
+                        }
+                        
+                        // Elimina il tenant se è stato creato ma l'utente no
+                        if (tenantCreated && tenantId) {
+                            try {
+                                await deleteDoc(doc(db, 'tenants', tenantId));
+                                console.log('✅ Tenant eliminato');
+                            } catch (deleteTenantError) {
+                                console.warn('⚠️ Errore eliminazione tenant:', deleteTenantError);
+                            }
+                        }
+                        
+                        // Elimina l'utente Firebase Auth
+                        await deleteUser(firebaseUser);
+                        console.log('✅ Utente Firebase Auth eliminato - ora puoi riprovare la registrazione');
+                    } catch (cleanupError) {
+                        console.error('❌ ERRORE durante cleanup:', cleanupError);
+                        console.error('⚠️ ATTENZIONE: L\'utente Firebase Auth potrebbe essere ancora presente. Potrebbe essere necessario eliminarlo manualmente dalla console Firebase.');
+                    }
+                }
+                
                 let errorMessage = 'Errore durante la registrazione';
                 
                 if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'Questa email è già registrata';
+                    // Se abbiamo fatto cleanup, l'email non dovrebbe più essere in uso
+                    // Ma se l'errore persiste, significa che l'utente esisteva già prima
+                    if (firebaseUser && !userDocCreated) {
+                        errorMessage = 'Registrazione fallita. Puoi riprovare con la stessa email.';
+                    } else {
+                        errorMessage = 'Questa email è già registrata. Se hai già un account, accedi invece di registrarti.';
+                    }
                     showError('email', errorMessage);
                 } else if (error.code === 'auth/invalid-email') {
                     errorMessage = 'Email non valida';
@@ -784,7 +798,6 @@
             }
         });
 
-        console.log('✅ Pagina registrazione caricata');
     </script>
 </body>
 </html>

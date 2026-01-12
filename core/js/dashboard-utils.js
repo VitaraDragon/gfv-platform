@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Dashboard Utilities - Funzioni di utilità per la dashboard
  * Gestisce ruoli, normalizzazione, escape HTML, etc.
  */

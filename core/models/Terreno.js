@@ -18,9 +18,11 @@ export class Terreno extends Base {
    * @param {Array} data.polygonCoords - Coordinate poligono mappa (opzionale)
    * @param {string} data.note - Note opzionali
    * @param {string} data.podere - Nome del podere (opzionale)
+   * @param {string} data.coltura - Nome della coltura (opzionale)
    * @param {string} data.tipoPossesso - Tipo possesso: "proprieta" | "affitto" (default: "proprieta")
    * @param {Date|Timestamp} data.dataScadenzaAffitto - Data scadenza affitto (opzionale, solo se tipoPossesso === "affitto")
    * @param {number} data.canoneAffitto - Canone mensile affitto in euro (opzionale)
+   * @param {string} data.tipoCampo - Morfologia terreno: "pianura" | "collina" | "montagna" (opzionale, per conto terzi)
    * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
    * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
    */
@@ -33,12 +35,14 @@ export class Terreno extends Base {
     this.polygonCoords = data.polygonCoords || null;
     this.note = data.note || '';
     this.podere = data.podere || null;
+    this.coltura = data.coltura || null;
     this.tipoPossesso = data.tipoPossesso || 'proprieta';
     this.dataScadenzaAffitto = data.dataScadenzaAffitto || null;
     this.canoneAffitto = data.canoneAffitto !== undefined ? parseFloat(data.canoneAffitto) : null;
     
     // Campo Conto Terzi (opzionale)
     this.clienteId = data.clienteId || null;  // Se presente → terreno cliente
+    this.tipoCampo = data.tipoCampo || null;  // Morfologia: pianura, collina, montagna
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;
@@ -79,6 +83,14 @@ export class Terreno extends Base {
     // Validazione canone affitto
     if (this.canoneAffitto !== null && this.canoneAffitto < 0) {
       errors.push('Canone affitto non può essere negativo');
+    }
+    
+    // Validazione tipoCampo (se presente)
+    if (this.tipoCampo !== null && this.tipoCampo !== undefined) {
+      const tipiValidi = ['pianura', 'collina', 'montagna'];
+      if (!tipiValidi.includes(this.tipoCampo)) {
+        errors.push('Tipo campo deve essere uno tra: pianura, collina, montagna');
+      }
     }
     
     return {
