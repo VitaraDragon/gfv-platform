@@ -473,13 +473,60 @@
     </script>
 
     <script type="module">
+        // Calcola base path per GitHub Pages
+        function getBasePath() {
+            if (window.location.protocol === 'file:') {
+                return '';
+            }
+            const pathname = window.location.pathname;
+            const coreIndex = pathname.indexOf('/core/');
+            const modulesIndex = pathname.indexOf('/modules/');
+            if (coreIndex !== -1) {
+                return pathname.substring(0, coreIndex);
+            }
+            if (modulesIndex !== -1) {
+                return pathname.substring(0, modulesIndex);
+            }
+            return '/';
+        }
+        
+        // Funzione helper per risolvere percorsi relativi in assoluti con base path
+        function resolvePath(relativePath) {
+            if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+                return relativePath;
+            }
+            const basePath = getBasePath();
+            if (relativePath.startsWith('/')) {
+                const pathWithoutSlash = relativePath.substring(1);
+                return basePath === '/' ? '/' + pathWithoutSlash : basePath + '/' + pathWithoutSlash;
+            }
+            // Per percorsi relativi, risolvi rispetto all'URL corrente
+            const currentUrl = new URL(window.location.href);
+            const docPath = currentUrl.pathname;
+            const lastSlash = docPath.lastIndexOf('/');
+            const docDir = lastSlash !== -1 ? docPath.substring(0, lastSlash + 1) : '/';
+            const resolvedUrl = new URL(relativePath, currentUrl.origin + docDir);
+            let resolvedPath = resolvedUrl.pathname;
+            if (basePath && basePath !== '/' && !resolvedPath.startsWith(basePath)) {
+                const pathWithoutSlash = resolvedPath.startsWith('/') ? resolvedPath.substring(1) : resolvedPath;
+                const normalizedBasePath = basePath.endsWith('/') ? basePath : basePath + '/';
+                return normalizedBasePath + pathWithoutSlash;
+            }
+            return resolvedPath;
+        }
+        
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getCurrentTenantId, getCurrentTenant } from '../../../core/services/tenant-service.js';
         import { getAllPianificazioni, deletePianificazione, confermaPianificazione } from '../services/pianificazione-impianto-service.js';
         import { calcolaMateriali, formattaMaterialiPerTabella, TIPI_IMPIANTO } from '../services/calcolo-materiali-service.js';
-        import { getAllTerreni } from '../../../core/services/terreni-service.js';
         import { getChiaveTecnica, getNomeVisualizzato } from '../config/forme-allevamento.js';
+        
+        // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
+        const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+        const terreniServiceModule = await import(resolvePath('../../../core/services/terreni-service.js'));
+        
+        const { getCurrentTenantId, getCurrentTenant } = tenantServiceModule;
+        const { getAllTerreni } = terreniServiceModule;
 
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
@@ -516,9 +563,9 @@
                 // Carica configurazione Firebase
                 const firebaseConfig = await waitForConfig();
                 
-                // Importa servizi Firebase e Tenant
-                const { initializeFirebase, getAuthInstance, getDb } = await import('../../../core/services/firebase-service.js');
-                const { initializeTenantService } = await import('../../../core/services/tenant-service.js');
+                // Importa servizi Firebase e Tenant con risoluzione percorsi
+                const { initializeFirebase, getAuthInstance, getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+                const { initializeTenantService } = await import(resolvePath('../../../core/services/tenant-service.js'));
                 
                 // Inizializza Firebase PRIMA di tutto
                 await initializeFirebase(firebaseConfig);
