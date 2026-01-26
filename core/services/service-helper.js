@@ -5,6 +5,8 @@
  * @module core/services/service-helper
  */
 
+import { resolveImportPath } from './path-resolver.js';
+
 // ============================================
 // COSTANTI
 // ============================================
@@ -46,7 +48,13 @@ function isFileProtocol() {
  */
 async function initializeFirebaseInstances(firebaseInstances) {
     try {
-        const { setFirebaseInstances } = await import('./firebase-service.js');
+        // Usa import.meta.url per risolvere il percorso rispetto al file corrente
+        // Se non disponibile (script inline), usa window.location.href
+        const currentUrl = (typeof import.meta !== 'undefined' && import.meta.url) 
+            ? import.meta.url 
+            : (typeof window !== 'undefined' ? window.location.href : null);
+        const resolvedPath = resolveImportPath('./firebase-service.js', currentUrl);
+        const { setFirebaseInstances } = await import(resolvedPath);
         setFirebaseInstances(firebaseInstances);
     } catch (error) {
         console.warn('Errore inizializzazione Firebase instances:', error);
@@ -61,7 +69,13 @@ async function setTenantId(tenantId) {
     if (!tenantId) return;
     
     try {
-        const { setCurrentTenantId } = await import('./tenant-service.js');
+        // Usa import.meta.url per risolvere il percorso rispetto al file corrente
+        // Se non disponibile (script inline), usa window.location.href
+        const currentUrl = (typeof import.meta !== 'undefined' && import.meta.url) 
+            ? import.meta.url 
+            : (typeof window !== 'undefined' ? window.location.href : null);
+        const resolvedPath = resolveImportPath('./tenant-service.js', currentUrl);
+        const { setCurrentTenantId } = await import(resolvedPath);
         setCurrentTenantId(tenantId);
     } catch (error) {
         console.warn('Errore impostazione tenantId:', error);
@@ -252,7 +266,13 @@ export async function callService(serviceName, serviceFunction, options = {}) {
             throw new Error(`Servizio ${serviceName} non trovato in SERVICE_PATHS`);
         }
         
-        const serviceModule = await import(servicePath);
+        // Risolvi il percorso per GitHub Pages usando import.meta.url
+        // Se non disponibile (script inline), usa window.location.href
+        const currentUrl = (typeof import.meta !== 'undefined' && import.meta.url) 
+            ? import.meta.url 
+            : (typeof window !== 'undefined' ? window.location.href : null);
+        const resolvedServicePath = resolveImportPath(servicePath, currentUrl);
+        const serviceModule = await import(resolvedServicePath);
         
         // 4. Verifica che funzione esista
         if (!serviceModule[serviceFunction]) {
