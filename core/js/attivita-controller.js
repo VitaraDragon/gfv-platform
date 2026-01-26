@@ -882,8 +882,8 @@ export async function loadAttivita(
             await liberaMacchineCallback(attivita, tenantId, db, hasParcoMacchineModule);
         }
         
-        // Renderizza attività
-        if (renderAttivitaCallback) renderAttivitaCallback();
+        // NON chiamare renderAttivitaCallback qui - deve essere chiamata DOPO che loadMacchine() è completata
+        // renderAttivitaCallback verrà chiamata dall'esterno dopo Promise.all()
     } catch (error) {
         console.error('Errore caricamento attività:', error);
         if (showAlertCallback) {
@@ -1077,13 +1077,15 @@ export function populateCategoriaLavoroDropdown(categorieLavoriPrincipali = [], 
  * @param {Map} sottocategorieLavoriMap - Map con sottocategorie
  * @param {string} selectedValue - Valore selezionato (opzionale)
  * @param {Array} tipiLavoroFiltratiParam - Tipi già filtrati (opzionale)
+ * @param {Array} categorieLavoriPrincipali - Array categorie principali (opzionale, per filtro vendemmia)
  */
 export function populateTipoLavoroDropdown(
     categoriaId,
     tipiLavoroList = [],
     sottocategorieLavoriMap = new Map(),
     selectedValue = null,
-    tipiLavoroFiltratiParam = null
+    tipiLavoroFiltratiParam = null,
+    categorieLavoriPrincipali = []
 ) {
     const select = document.getElementById('attivita-tipo-lavoro-gerarchico');
     const tipoLavoroGroup = document.getElementById('attivita-tipo-lavoro-gerarchico-group');
@@ -1102,6 +1104,46 @@ export function populateTipoLavoroDropdown(
     // Se sono stati passati tipi già filtrati, usali direttamente
     let tipiFiltrati = tipiLavoroFiltratiParam;
     
+    // Verifica se categoria è RACCOLTA (per filtro vendemmia)
+    const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
+    const categoriaNome = categoriaTrovata ? (categoriaTrovata.nome || '').toLowerCase() : '';
+    const categoriaParent = categoriaTrovata && categoriaTrovata.parentId 
+        ? categorieLavoriPrincipali.find(c => c.id === categoriaTrovata.parentId)
+        : null;
+    const categoriaParentNome = categoriaParent ? (categoriaParent.nome || '').toLowerCase() : '';
+    const isRaccolta = categoriaNome.includes('raccolta') || categoriaParentNome.includes('raccolta');
+    
+    console.log('[ATTIVITA-CONTROLLER] populateTipoLavoroDropdown - categoriaId:', categoriaId, 'categoriaNome:', categoriaNome, 'isRaccolta:', isRaccolta);
+    
+    // Verifica se terreno è VITE (per filtro vendemmia)
+    let isTerrenoVite = false;
+    const terrenoSelect = document.getElementById('attivita-terreno');
+    const terrenoId = terrenoSelect ? terrenoSelect.value : null;
+    
+    console.log('[ATTIVITA-CONTROLLER] Verifica terreno VITE - terrenoId:', terrenoId);
+    
+    if (terrenoId && isRaccolta) {
+        // Prova a recuperare terreno da terreniList se disponibile globalmente
+        let terreno = null;
+        if (typeof window.attivitaState !== 'undefined' && window.attivitaState.terreniList) {
+            terreno = window.attivitaState.terreniList.find(t => t.id === terrenoId);
+            console.log('[ATTIVITA-CONTROLLER] Terreno trovato in attivitaState:', terreno ? { id: terreno.id, nome: terreno.nome, coltura: terreno.coltura } : 'non trovato');
+        } else {
+            console.log('[ATTIVITA-CONTROLLER] window.attivitaState non disponibile o terreniList vuoto');
+        }
+        
+        if (terreno && terreno.coltura) {
+            const colturaLower = terreno.coltura.toLowerCase();
+            // Verifica se la coltura contiene "vite" (può essere "Vite", "Vite da Vino", "Vite da Tavola", etc.)
+            if (colturaLower.includes('vite')) {
+                isTerrenoVite = true;
+                console.log('[ATTIVITA-CONTROLLER] ✓ Terreno VITE rilevato (coltura:', terreno.coltura, '), applico filtro tipi vendemmia');
+            } else {
+                console.log('[ATTIVITA-CONTROLLER] Terreno non è VITE, coltura:', terreno.coltura);
+            }
+        }
+    }
+    
     // Altrimenti, filtra tipi lavoro per categoria (include anche sottocategorie se categoriaId è principale)
     if (!tipiFiltrati) {
         tipiFiltrati = tipiLavoroList.filter(tipo => tipo.categoriaId === categoriaId);
@@ -1115,6 +1157,49 @@ export function populateTipoLavoroDropdown(
                 const sottocatIds = sottocat.map(sc => sc.id);
                 tipiFiltrati = tipiLavoroList.filter(tipo => sottocatIds.includes(tipo.categoriaId));
             }
+        }
+    }
+    
+    // FILTRO VENDEMMIA: Se terreno è VITE e categoria è RACCOLTA, mostra solo tipi vendemmia
+    console.log('[ATTIVITA-CONTROLLER] Verifica filtro vendemmia - isTerrenoVite:', isTerrenoVite, 'isRaccolta:', isRaccolta, 'tipiFiltrati.length:', tipiFiltrati.length);
+    
+    if (isTerrenoVite && isRaccolta && tipiFiltrati.length > 0) {
+        console.log('[ATTIVITA-CONTROLLER] ✓✓✓ Applicando filtro vendemmia: mostro solo Vendemmia Manuale e Vendemmia Meccanica');
+        console.log('[ATTIVITA-CONTROLLER] Tipi prima del filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
+        
+        tipiFiltrati = tipiFiltrati.filter(tipo => {
+            const nomeTipo = (tipo.nome || '').toLowerCase();
+            const includeVendemmia = nomeTipo.includes('vendemmia');
+            console.log('[ATTIVITA-CONTROLLER] Tipo:', tipo.nome, 'include vendemmia?', includeVendemmia);
+            return includeVendemmia;
+        });
+        
+        console.log('[ATTIVITA-CONTROLLER] Tipi dopo filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
+        
+        // Se non ci sono tipi vendemmia nella lista, aggiungi i predefiniti
+        if (tipiFiltrati.length === 0) {
+            console.log('[ATTIVITA-CONTROLLER] Nessun tipo vendemmia trovato, aggiungo predefiniti');
+            const sottocatManuale = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+                sc.codice === 'raccolta_manuale' || sc.nome?.toLowerCase().includes('manuale')
+            );
+            const sottocatMeccanica = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+                sc.codice === 'raccolta_meccanica' || sc.nome?.toLowerCase().includes('meccanica')
+            );
+            
+            tipiFiltrati = [
+                { nome: 'Vendemmia Manuale', sottocategoriaId: sottocatManuale?.id || categoriaId, categoriaId: categoriaId },
+                { nome: 'Vendemmia Meccanica', sottocategoriaId: sottocatMeccanica?.id || categoriaId, categoriaId: categoriaId }
+            ];
+        }
+    } else {
+        if (!isTerrenoVite) {
+            console.log('[ATTIVITA-CONTROLLER] Filtro vendemmia NON applicato: terreno non è VITE');
+        }
+        if (!isRaccolta) {
+            console.log('[ATTIVITA-CONTROLLER] Filtro vendemmia NON applicato: categoria non è RACCOLTA');
+        }
+        if (tipiFiltrati.length === 0) {
+            console.log('[ATTIVITA-CONTROLLER] Filtro vendemmia NON applicato: nessun tipo disponibile');
         }
     }
     
@@ -1507,14 +1592,18 @@ export async function renderAttivita(params) {
 
     // Crea mappa macchine per visualizzazione
     let macchineMap = {};
-    if (hasParcoMacchineModule) {
+    if (hasParcoMacchineModule && macchineList && macchineList.length > 0) {
         try {
             macchineList.forEach(m => {
-                macchineMap[m.id] = m.nome || 'Macchina senza nome';
+                if (m && m.id) {
+                    macchineMap[m.id] = m.nome || m.marca || 'Macchina senza nome';
+                }
             });
         } catch (error) {
             console.warn('Errore creazione mappa macchine:', error);
         }
+    } else if (hasParcoMacchineModule) {
+        console.warn('[renderAttivita] Modulo Parco Macchine attivo ma macchineList vuota o non definita');
     }
 
     html += `
@@ -2629,6 +2718,8 @@ export async function loadTipiLavoro(params) {
         // Se è specificata una categoria, filtra per quella categoria o le sue sottocategorie
         // NOTA: Non modificare tipiLavoroList direttamente, usa una variabile locale per il filtro
         let tipiLavoroFiltrati = tipiLavoroList;
+        
+        console.log('[ATTIVITA-CONTROLLER] loadTipiLavoro - categoriaId:', categoriaId, 'tipi totali:', tipiLavoroList.length);
         if (categoriaId) {
             // Verifica se categoriaId è una sottocategoria o categoria principale
             const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
@@ -2653,8 +2744,10 @@ export async function loadTipiLavoro(params) {
         }
         
         // Passa i tipi filtrati alla funzione di popolamento
+        // IMPORTANTE: Passa anche categorieLavoriPrincipali per il filtro vendemmia
         if (populateTipoLavoroDropdownCallback) {
-            populateTipoLavoroDropdownCallback(categoriaId, null, tipiLavoroFiltrati);
+            console.log('[ATTIVITA-CONTROLLER] Chiamata populateTipoLavoroDropdownCallback con categoriaId:', categoriaId, 'tipi filtrati:', tipiLavoroFiltrati.length);
+            populateTipoLavoroDropdownCallback(categoriaId, null, tipiLavoroFiltrati, categorieLavoriPrincipali);
         }
     } catch (error) {
         console.error('Errore caricamento tipi lavoro:', error);

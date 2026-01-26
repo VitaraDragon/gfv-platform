@@ -229,6 +229,8 @@ export async function getCollectionData(collectionName, options = {}) {
   try {
     const { tenantId, orderBy: orderByField, orderDirection = 'asc', where: whereFilters = [], limit: limitCount } = options;
 
+    const collectionPath = tenantId ? `tenants/${tenantId}/${collectionName}` : collectionName;
+    
     let collectionRef = getCollection(collectionName, tenantId);
 
     // Applica filtri where

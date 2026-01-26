@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Squadre Service - Servizio per gestione squadre
  * Gestisce CRUD squadre con supporto multi-tenant
  * 
@@ -42,8 +42,14 @@ export async function getAllSquadre(options = {}) {
     
     return documents.map(doc => Squadra.fromData(doc));
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero squadre:', error);
+      throw new Error(`Errore recupero squadre: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero squadre:', error);
-    throw new Error(`Errore recupero squadre: ${error.message}`);
+    return [];
   }
 }
 
@@ -261,8 +267,14 @@ export async function getUtentiByRuolo(ruolo) {
     
     return users;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero utenti per ruolo:', error);
+      throw new Error(`Errore recupero utenti: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero utenti per ruolo:', error);
-    throw new Error(`Errore recupero utenti: ${error.message}`);
+    return [];
   }
 }
 

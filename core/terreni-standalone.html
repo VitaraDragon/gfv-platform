@@ -263,7 +263,7 @@
             align-items: center;
         }
 
-        .btn-edit-small, .btn-delete-small {
+        .btn-edit-small, .btn-delete-small, .btn-vigneto-small {
             padding: 6px 12px;
             border: none;
             border-radius: 6px;
@@ -292,6 +292,17 @@
 
         .btn-delete-small:hover {
             background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .btn-vigneto-small {
+            background: #6A1B9A;
+            color: white;
+            font-size: 14px; /* allineato a edit/delete */
+        }
+
+        .btn-vigneto-small:hover {
+            background: #5a1490;
             transform: translateY(-1px);
         }
 
@@ -922,12 +933,39 @@
             );
         }
 
+        // Variabile globale per modulo vigneto
+        let hasVignetoModule = false;
+
+        // Verifica modulo vigneto (senza dipendenze da firebase-service.js)
+        async function checkVignetoModule() {
+            try {
+                if (!terreniState.currentTenantId) {
+                    hasVignetoModule = false;
+                    return;
+                }
+
+                const tenantDoc = await getDoc(doc(db, 'tenants', terreniState.currentTenantId));
+                if (!tenantDoc.exists()) {
+                    hasVignetoModule = false;
+                    return;
+                }
+
+                const tenantData = tenantDoc.data();
+                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                hasVignetoModule = modules.includes('vigneto');
+            } catch (error) {
+                console.warn('Errore verifica modulo vigneto:', error);
+                hasVignetoModule = false;
+            }
+        }
+
         // Wrapper per renderTerreni
         function renderTerreniWrapper(terreni, terreniFiltrati) {
             renderTerreniModule(
                 terreni || terreniState.terreni,
                 terreniFiltrati || terreniState.terreniFiltrati,
-                () => maybeAutoStartTerreniTourWrapper()
+                () => maybeAutoStartTerreniTourWrapper(),
+                hasVignetoModule
             );
         }
 
@@ -1062,6 +1100,28 @@
             setupTerreniTourButtonModule(startTerreniTourWrapper);
         }
 
+        // Funzione per gestire click "Gestisci Vigneto"
+        window.gestisciVigneto = async function(terrenoId) {
+            try {
+                // Verifica modulo vigneto
+                if (!hasVignetoModule) {
+                    await checkVignetoModule();
+                }
+
+                if (!hasVignetoModule) {
+                    alert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.');
+                    window.location.href = './admin/abbonamento-standalone.html';
+                    return;
+                }
+
+                // Apri pagina vigneti con terrenoId come parametro
+                window.location.href = `../modules/vigneto/views/vigneti-standalone.html?terrenoId=${terrenoId}`;
+            } catch (error) {
+                console.error('Errore apertura gestione vigneto:', error);
+                alert('Errore nell\'apertura della gestione vigneto: ' + error.message);
+            }
+        };
+
         // ============================================
         // ESPOSIZIONE FUNZIONI SU WINDOW (per attributi HTML)
         // ============================================
@@ -1174,6 +1234,9 @@
                     } catch (error) {
                         console.warn('Impossibile impostare tenantId nel servizio:', error);
                     }
+                    
+                    // Verifica modulo vigneto
+                    await checkVignetoModule();
                     
                     // Carica dati usando wrapper
                     await loadColtureWrapper();

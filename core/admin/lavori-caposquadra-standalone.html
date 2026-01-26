@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -2268,6 +2268,28 @@
                     } catch (error) {
                         console.error('Errore liberazione macchine:', error);
                         // Non blocchiamo il salvataggio se c'è un errore con le macchine
+                    }
+                }
+                
+                // Aggiorna vigneti se modulo Vigneto attivo e lavoro completato
+                if (lavoroCompletato && lavoro.terrenoId) {
+                    try {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                        if (tenantDoc.exists()) {
+                            const tenantData = tenantDoc.data();
+                            const hasVignetoModule = tenantData.modules && tenantData.modules.includes('vigneto');
+                            
+                            if (hasVignetoModule) {
+                                const { aggiornaVignetiDaTerreno } = await import('../../../modules/vigneto/services/lavori-vigneto-service.js');
+                                const annoLavoro = lavoro.dataInizio?.toDate 
+                                    ? lavoro.dataInizio.toDate().getFullYear() 
+                                    : new Date().getFullYear();
+                                await aggiornaVignetiDaTerreno(lavoro.terrenoId, annoLavoro);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Errore aggiornamento vigneti:', error);
+                        // Non blocchiamo l'operazione principale
                     }
                 }
             } catch (error) {

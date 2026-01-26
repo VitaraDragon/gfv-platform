@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Attivita Model - Modello dati attività
  * Gestisce dati attività lavorativa con calcolo ore automatico
  * 
@@ -22,6 +22,9 @@ export class Attivita extends Base {
    * @param {number} data.pauseMinuti - Minuti di pausa (obbligatorio)
    * @param {number} data.oreNette - Ore nette lavorate (calcolato automaticamente)
    * @param {string} data.note - Note opzionali
+   * @param {string} data.macchinaId - ID trattore utilizzato (opzionale, solo se modulo Parco Macchine attivo)
+   * @param {string} data.attrezzoId - ID attrezzo utilizzato (opzionale, solo se modulo Parco Macchine attivo)
+   * @param {number} data.oreMacchina - Ore macchina (opzionale, può differire da oreNette)
    * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
    * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
    */
@@ -42,6 +45,11 @@ export class Attivita extends Base {
     // Campi Conto Terzi (opzionali)
     this.clienteId = data.clienteId || null;  // Se presente → attività conto terzi
     this.lavoroId = data.lavoroId || null;     // Se collegata a un lavoro
+    
+    // Campi Macchine (opzionali, solo se modulo Parco Macchine attivo)
+    this.macchinaId = data.macchinaId || null;  // ID trattore utilizzato
+    this.attrezzoId = data.attrezzoId || null;  // ID attrezzo utilizzato
+    this.oreMacchina = data.oreMacchina !== null && data.oreMacchina !== undefined ? parseFloat(data.oreMacchina) : null;  // Ore macchina (può differire da oreNette)
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;

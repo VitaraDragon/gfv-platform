@@ -7,7 +7,303 @@
 
 ---
 
-## 🆕 Ultimo Aggiornamento: Fix Caricamento Ore per Operaio e Duplicazioni (2026-01-05)
+## 🆕 Ultimo Aggiornamento: Completamento Funzionalità Modulo Vigneto (2026-01-20)
+
+### Funzionalità Completate
+- ✅ **Filtri nelle Viste Vigneto e Vendemmia**: Implementata logica filtraggio completa
+  - Filtri vigneti: terreno, varietà, stato (applicazione automatica)
+  - Filtri vendemmia: vigneto, varietà, anno (applicazione automatica)
+  - Pulsante "Pulisci Filtri" per reset rapido
+  - UI allineata al resto dell'app
+- ✅ **Gestione Modifiche/Eliminazioni Lavori Collegati alle Vendemmie**: Integrità dati garantita
+  - Eliminazione vendemmia quando lavoro/attività eliminato
+  - Scollegamento vendemmia quando terreno cambia da VITE a altro
+  - Eliminazione vendemmia quando tipo lavoro cambia da vendemmia a altro
+  - Funzioni helper per ricerca vendemmie per lavoroId/attivitaId
+- ✅ **Fix Calcolo Costo Macchine nelle Vendemmie**: Costo totale ora include macchine
+  - Calcolo automatico costo macchine quando modulo Parco Macchine attivo
+  - Supporto vendemmie collegate a lavoro (ore da oreOperai validate)
+  - Supporto vendemmie collegate ad attività (ore da attività)
+  - Estrazione macchine dal form con ID e ore
+  - Log dettagliati per debug
+- 📝 **Pianificazione Dashboard Standalone Dedicata**: Struttura completa pianificata
+  - Card statistiche con grafici Chart.js
+  - Sezione vendemmie recenti (ultime 10)
+  - Sezione lavori vigneto (in corso + completati recenti)
+  - Filtri vigneto/anno
+  - Documentazione aggiornata
+
+### File Modificati
+- ✅ `modules/vigneto/views/vigneti-standalone.html` - Filtri implementati
+- ✅ `modules/vigneto/views/vendemmia-standalone.html` - Filtri implementati + estrazione macchine
+- ✅ `modules/vigneto/services/vendemmia-service.js` - Calcolo costo macchine + funzioni helper ricerca
+- ✅ `core/admin/js/gestione-lavori-events.js` - Gestione modifiche/eliminazioni lavori
+- ✅ `core/js/attivita-events.js` - Gestione modifiche/eliminazioni attività
+- ✅ `PLAN_MODULO_VIGNETO_DETTAGLIATO.md` - Aggiunta sezione dashboard standalone
+- ✅ `STATO_MODULI_SPECIALIZZATI_2026-01-18.md` - Aggiunta sezione dashboard standalone
+
+---
+
+## 🆕 Aggiornamento Precedente: Miglioramento Tracciamento Poligono Vendemmia (2026-01-19)
+
+### Funzionalità Completate
+- ✅ **Tracciamento Poligono Avanzato**: Implementate funzionalità avanzate per tracciamento area vendemmiata
+  - Cursore crosshair durante il tracciamento
+  - Snap automatico ai vertici del terreno (8m)
+  - Snap automatico al confine del terreno (5m)
+  - Chiusura automatica quando si clicca vicino al primo punto (20m)
+  - Doppio clic per terminare tracciamento
+  - Tolleranza per punti vicini al confine (3m)
+  - Feedback visivo quando applica snap
+  - Disabilitazione snap temporanea con Shift
+- ✅ **Fix Click Listener**: Risolto problema click non funzionanti (isDrawingPolygon veniva resettato da eliminaPoligono)
+- ✅ **Funzioni Helper**: Aggiunte 6 funzioni helper per gestione snap e tolleranza
+
+### File Modificati
+- ✅ `modules/vigneto/views/vendemmia-standalone.html` - Miglioramenti tracciamento poligono
+
+---
+
+## 🆕 Aggiornamento Precedente: Verifica Codice Modulo Vigneto (2026-01-18)
+
+### Verifica e Correzioni Documentazione
+- ✅ **Rilevamento Automatico Vendemmia**: Verificato implementato nel codice (funzioni `createVendemmiaFromLavoro` e `createVendemmiaFromAttivita` presenti e chiamate da hook)
+- ✅ **Calcolo Compensi Vendemmia**: Verificato implementato nel codice (funzione `calcolaCompensiVendemmia` presente e funzionante)
+- ✅ **Tracciamento Poligono Area Vendemmiata**: Completato (2026-01-18) - Modal mappa interattivo per tracciare area vendemmiata
+- ✅ **Tabella Macchine**: Completata (2026-01-18) - Visualizzazione macchine dall'attività quando manodopera non attivo
+- 🚧 **Filtri nelle Viste**: Struttura HTML presente, logica filtraggio mancante (~30 righe codice)
+
+### Stato Reale Modulo Vigneto
+- **Completamento**: ~70-75% (aggiornato da ~65-70% dopo verifica codice)
+- **Funzionalità Core**: ✅ Completate (Anagrafica, Vendemmia, Integrazione Lavori, Sistema Spese)
+- **Funzionalità Avanzate**: 🚧 Parzialmente completate (mancano filtri, viste potatura/trattamenti standalone, diradamento, pianificazione impianti)
+
+### File Verificati
+- ✅ `modules/vigneto/services/vendemmia-service.js` - Funzioni rilevamento automatico e calcolo compensi presenti
+- ✅ `core/js/attivita-events.js` - Hook creazione vendemmia automatica implementati
+- ✅ `core/admin/js/gestione-lavori-events.js` - Hook creazione vendemmia automatica implementati
+
+---
+
+## 📋 Aggiornamento Precedente: Completamento Funzionalità Vendemmia (2026-01-17)
+
+### Funzionalità Completate
+- ✅ **Tabella Editabile Operai**: Implementata tabella con colonne editabili (Data, Nome, Ore) quando modulo manodopera non attivo
+- ✅ **Visualizzazione Ore Macchina**: Corretta visualizzazione ore macchina nella sezione "Dati Lavoro" con raggruppamento per macchina/attrezzo
+- ✅ **Precompilazione Superficie Vendemmiata**: Implementato calcolo automatico superficie vendemmiata dal lavoro (superficieTotaleLavorata o percentualeCompletamento)
+- ✅ **Link "Vedi Lavoro"**: Corretto link per manager, ora punta a gestione-lavori-standalone.html con apertura automatica modal
+- ✅ **Rimozione Campi Non Necessari**: Rimossi campi macchine utilizzate (dropdown), ore impiegate, parcella/blocco
+- ✅ **Correzione Validazione Form**: Risolto problema validazione form quando vendemmia collegata a lavoro
+
+### File Modificati
+- ✅ `modules/vigneto/views/vendemmia-standalone.html` - Modifiche principali
+- ✅ `modules/vigneto/models/Vendemmia.js` - Validazione aggiornata per array oggetti operai
+- ✅ `modules/vigneto/services/vendemmia-service.js` - Calcolo compensi aggiornato
+- ✅ `core/admin/gestione-lavori-standalone.html` - Apertura automatica modal con parametro lavoroId
+
+---
+
+## 📋 Aggiornamento Precedente: Integrazione Sistema Lavori/Diario con Modulo Vigneto Completata (2026-01-14)
+
+### Funzionalità Completate
+- ✅ **Integrazione Sistema Lavori/Diario con Modulo Vigneto**: Servizio integrazione creato e funzionante
+- ✅ **Calcolo Automatico Spese**: Aggregazione spese dai lavori completati (manodopera + macchine)
+- ✅ **Aggiornamento Automatico**: Spese vigneto aggiornate automaticamente quando un lavoro viene completato
+- ✅ **Pulsante Ricalcolo Manuale**: UI per forzare ricalcolo spese se necessario
+
+### Servizio Creato
+- ✅ `modules/vigneto/services/lavori-vigneto-service.js` - Servizio integrazione completo
+  - Calcolo costi lavori da ore validate
+  - Aggregazione spese annuali per categoria
+  - Mappatura tipi lavoro → categorie spese vigneto
+  - Aggiornamento automatico vigneto
+
+### Integrazioni Automatiche
+- ✅ Approvazione lavoro manager → aggiornamento automatico spese vigneto
+- ✅ Attività rapida → aggiornamento automatico spese vigneto
+- ✅ Completamento automatico (100%) → aggiornamento automatico spese vigneto
+
+### Problemi Risolti
+- ✅ **Indice Composito Firestore**: Risolto recuperando tutti i lavori e filtrando lato client
+- ✅ **Conversione Timestamp Firestore**: Risolta con conversione robusta che gestisce tutti i formati
+- ✅ **Visibilità Pulsante**: Risolta spostando pulsante nella riga filtri
+
+### File Modificati
+- ✅ `modules/vigneto/services/lavori-vigneto-service.js` - Creato (nuovo servizio)
+- ✅ `core/admin/js/gestione-lavori-events.js` - Integrazione approvazione lavori
+- ✅ `core/js/attivita-events.js` - Integrazione attività rapida
+- ✅ `core/admin/lavori-caposquadra-standalone.html` - Integrazione completamento automatico
+- ✅ `modules/vigneto/views/vigneti-standalone.html` - Pulsante ricalcolo manuale
+
+### Test Eseguiti
+- ✅ Test funzionalità base (creazione lavoro, segnatura ore, validazione, completamento)
+- ✅ Test calcolo costi (manodopera + macchine)
+- ✅ Test integrazione automatica (3 punti)
+- ✅ Test ricalcolo manuale
+- ✅ Test edge cases (lavori senza ore, anni diversi, lavori non completati)
+
+### Risultato
+- ✅ **Integrazione Completata e Funzionante**: Sistema aggrega automaticamente spese dai lavori e aggiorna vigneto
+
+---
+
+## 🆕 Aggiornamento Precedente: Standardizzazione Error Handling Completata (2026-01-12)
+
+### Funzionalità Completate
+- ✅ **Standardizzazione Error Handling**: Aggiornati 8 servizi principali per conformità allo standard
+- ✅ **Pattern Coerente**: Distinzione chiara tra errori critici (lanciano eccezioni) e non critici (ritornano valori default)
+- ✅ **Documentazione Aggiornata**: Standard documentato con stato conformità di tutti i servizi
+
+### Servizi Aggiornati
+- ✅ `ore-service.js` - 3 funzioni aggiornate
+- ✅ `lavori-service.js` - 2 funzioni aggiornate
+- ✅ `squadre-service.js` - 2 funzioni aggiornate
+- ✅ `attivita-service.js` - 1 funzione aggiornata
+- ✅ `terreni-service.js` - 1 funzione aggiornata
+- ✅ `categorie-service.js` - 2 funzioni aggiornate
+- ✅ `colture-service.js` - 2 funzioni aggiornate
+- ✅ `tipi-lavoro-service.js` - 2 funzioni aggiornate
+
+### Pattern Applicato
+- **Array**: Ritornano `[]` per errori non critici
+- **Oggetti strutturati**: Ritornano `{}` per errori non critici
+- **Oggetti singoli**: Ritornano `null` per errori non critici
+- **Numeri**: Ritornano `0` per errori non critici
+- **CRUD**: Lanciano sempre eccezioni con messaggi chiari
+
+### Benefici
+- ✅ Comportamento prevedibile in tutta l'applicazione
+- ✅ Applicazione più robusta a errori temporanei
+- ✅ UI non si blocca per errori non critici
+- ✅ Logging appropriato e messaggi chiari
+
+### File Modificati
+- ✅ 8 servizi aggiornati (`core/services/*.js`)
+- ✅ Documentazione standard aggiornata (`core/services/ERROR_HANDLING_STANDARD.md`)
+
+### File Creati
+- ✅ Test error handling (`tests/services/error-handling-standard.test.js`) - 20 test passati
+- ✅ Documentazione test (`tests/services/README-error-handling-tests.md`)
+
+### Test Creati
+- ✅ **20 test passati** su 20
+- ✅ Pattern array, oggetti, numeri verificati
+- ✅ Distinzione errori critici/non critici verificata
+- ✅ Logging standardizzato verificato
+- ✅ Messaggi di errore verificati
+
+### Risultato
+- ✅ **Error Handling Standardizzato**: Tutti i servizi principali conformi allo standard documentato
+- ✅ **Test Completati**: Pattern di error handling verificati con 20 test automatici
+
+---
+
+## 🆕 Aggiornamento Precedente: Test Manuali Multi-tenant Completati (2026-01-12)
+
+### Funzionalità Completate
+- ✅ **Test Manuali Multi-tenant Eseguiti**: Verificato isolamento dati tra tenant
+- ✅ **Isolamento Verificato**: Ogni tenant vede solo i propri dati (terreni, attività, clienti, lavori, macchine, statistiche)
+- ✅ **Nessun Problema Trovato**: Sistema multi-tenant funzionante correttamente
+
+### Test Eseguiti
+- ✅ Isolamento terreni: ogni tenant vede solo i propri terreni
+- ✅ Isolamento attività: ogni tenant vede solo le proprie attività
+- ✅ Isolamento clienti: ogni tenant vede solo i propri clienti
+- ✅ Isolamento lavori: ogni tenant vede solo i propri lavori
+- ✅ Isolamento macchine: ogni tenant vede solo le proprie macchine
+- ✅ Isolamento statistiche: ogni tenant vede solo le proprie statistiche
+
+### Risultato
+- ✅ **Sistema Multi-tenant Pronto per Produzione**: Isolamento dati verificato e funzionante
+
+---
+
+## 🆕 Aggiornamento Precedente: Fix Reset Password e Manifest (2026-01-12)
+
+### Funzionalità Completate
+- ✅ **Fix Reset Password**: Risolto errore "Missing or insufficient permissions" durante richiesta reset password
+- ✅ **Fix Percorso Manifest**: Corretto percorso manifest.json per compatibilità file:// e server locale
+
+### Problema Risolto - Reset Password
+- **Sintomo**: Errore "Missing or insufficient permissions" quando si richiedeva reset password
+- **Causa**: Il codice faceva una query su Firestore per verificare l'email, ma richiedeva autenticazione (utente non autenticato durante reset)
+- **Soluzione**: Rimossa verifica su Firestore - Firebase Auth verifica automaticamente se l'email esiste
+
+### Problema Risolto - Manifest
+- **Sintomo**: Errore 404 in console per manifest.json
+- **Causa**: Percorso assoluto `/gfv-platform/manifest.json` non funzionava con file:// o server locale
+- **Soluzione**: Cambiato percorso a relativo `../../manifest.json`
+
+### File Modificati
+- ✅ `core/auth/login-standalone.html` - Rimosso controllo Firestore, corretto percorso manifest
+
+### Test Eseguiti
+- ✅ **Reset password**: Funziona correttamente senza errori permessi
+- ✅ **Manifest**: Nessun errore 404 in console
+
+---
+
+## 🆕 Aggiornamento Precedente: Fix Filtro Terreni e Preparazione Test Manuali (2026-01-12)
+
+### Funzionalità Completate
+- ✅ **Fix Filtro Terreni Clienti**: Risolto problema visualizzazione terreni clienti nella lista principale - ora mostra solo terreni aziendali
+- ✅ **Fix Dashboard Statistiche**: Corretto conteggio terreni e affitti per escludere terreni clienti
+- ✅ **Preparazione Test Manuali**: Creata guida pratica completa e checklist per test isolamento multi-tenant
+- ✅ **Verifica Isolamento Multi-tenant**: Testato e verificato che l'isolamento funziona correttamente
+
+### Problema Risolto
+- **Sintomo**: Nella sezione Terreni del tenant "Sabbie Gialle" venivano mostrati tutti i terreni, inclusi quelli dei clienti
+- **Causa**: Il servizio `terreni-service.js` non filtrava i terreni con `clienteId` quando si richiedevano solo terreni aziendali
+- **Soluzione**: Aggiunto filtro per escludere terreni clienti quando `clienteId` è `null` (solo terreni aziendali)
+
+### File Modificati
+- ✅ `core/services/terreni-service.js` - Aggiunto filtro per escludere terreni clienti
+- ✅ `core/js/dashboard-data.js` - Aggiunto filtro per affitti e conteggio terreni
+
+### File Creati
+- ✅ `GUIDA_TEST_MANUALI_PRATICA.md` - Guida completa test manuali (400+ righe)
+- ✅ `CHECKLIST_TEST_MANUALI.md` - Checklist rapida per test
+
+### Test Eseguiti
+- ✅ **Filtro terreni**: Lista terreni mostra solo terreni aziendali (proprietà o affitto)
+- ✅ **Isolamento multi-tenant**: Non si vedono terreni dell'altro tenant (rosso)
+- ✅ **Dashboard**: Statistiche e affitti considerano solo terreni aziendali
+
+---
+
+## 🆕 Aggiornamento Precedente: Analisi Completa App e Miglioramenti Critici (2026-01-11)
+
+### Funzionalità Completate
+- ✅ **Analisi Dettagliata Stato App**: Documento completo (550+ righe) con identificazione funzionalità completate/mancanti, TODO con priorità, roadmap sviluppo
+- ✅ **Test Isolamento Multi-tenant**: Guida test manuali completa (200+ righe) + test automatici (20 test passati) per tutte le collection principali
+- ✅ **Verifica Uso Terreno**: Migliorato per usare servizi invece di Firebase direttamente, codice più pulito
+- ✅ **Test Servizi Critici**: Creati test per firebase-service, tenant-service, auth-service (~10 nuovi test)
+- ✅ **Reset Password Completo**: Implementato in login.html (era già presente in standalone)
+- ✅ **Standard Error Handling**: Documentato standard completo (200+ righe) per comportamento coerente tra servizi
+
+### File Creati
+- `ANALISI_STATO_APP_2026.md` - Analisi completa stato app
+- `tests/security/test-isolamento-multi-tenant.md` - Guida test manuali
+- `tests/security/test-multi-tenant-completo.test.js` - Test automatici (20 test)
+- `tests/services/firebase-service.test.js` - Test firebase-service
+- `tests/services/tenant-service.test.js` - Test tenant-service
+- `tests/services/auth-service.test.js` - Test auth-service
+- `core/services/ERROR_HANDLING_STANDARD.md` - Standard error handling
+- `RIEPILOGO_LAVORI_FINALE_2026-01-11.md` - Riepilogo completo lavori
+
+### File Modificati
+- `core/js/terreni-events.js` - Migliorato per usare servizi
+- `core/auth/login.html` - Implementato reset password
+
+### Prossimi Passi (2026-01-12)
+1. 🟡 **Eseguire Test Manuali Multi-tenant** (1-2 ore) - Verificare isolamento reale
+2. 🟡 **Ottimizzare Performance** (3-4 ore) - Lazy loading, cache
+3. 🟢 **Completare Test Coverage** (8-10 ore) - Test integrazione
+4. 🟢 **Documentazione API** (2-3 ore) - JSDoc completo
+
+---
+
+## 🆕 Aggiornamento Precedente: Fix Caricamento Ore per Operaio e Duplicazioni (2026-01-05)
 
 ### Funzionalità Completate
 - ✅ **Sezione Ore per Operaio**: Aggiunta nella tab Panoramica dei dettagli lavoro
@@ -467,7 +763,7 @@ gfv-platform/
 
 ---
 
-**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Tour terreni ottimizzato! Gestione affitti terreni e statistiche complete! **Modulo Conto Terzi - Fase 1 MVP completata!** **Sistema inviti collaboratori completamente funzionante!** Pronto per continuare sviluppo! 🚀
+**Stato**: ✅ Login funzionante! Sistema categorie gerarchico unificato completato! Tour terreni ottimizzato! Gestione affitti terreni e statistiche complete! **Modulo Conto Terzi - Fase 1 MVP completata!** **Sistema inviti collaboratori completamente funzionante!** **Modulo Vigneto ~70-75% completato** (Anagrafica Vigneti ✅, Gestione Vendemmia ✅, Rilevamento Automatico ✅, Calcolo Compensi ✅, Integrazione Lavori/Diario ✅, Sistema Spese/Costi ✅, Tracciamento Poligono ✅)! Pronto per continuare sviluppo! 🚀
 
 ---
 

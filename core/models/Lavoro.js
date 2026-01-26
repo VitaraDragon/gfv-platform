@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Lavoro Model - Modello dati lavoro
  * Gestisce dati lavoro con assegnazione flessibile (caposquadra O operaio diretto) e terreno
  * 
@@ -6,7 +6,7 @@
  */
 
 import { Base } from './Base.js';
-import { dateToTimestamp } from '../services/firebase-service.js';
+import { dateToTimestamp, timestampToDate } from '../services/firebase-service.js';
 
 export class Lavoro extends Base {
   /**
@@ -54,19 +54,16 @@ export class Lavoro extends Base {
     this.clienteId = data.clienteId || null;        // Se presente → lavoro conto terzi
     this.preventivoId = data.preventivoId || null;  // Se creato da preventivo accettato
     
+    // Campo Vigneto (opzionale)
+    this.pianificazioneId = data.pianificazioneId || null;  // Se creato da pianificazione impianto confermata
+    
     // Campi Parco Macchine (opzionali)
     this.macchinaId = data.macchinaId || null;
     this.attrezzoId = data.attrezzoId || null;
     this.operatoreMacchinaId = data.operatoreMacchinaId || null;
     
-    // Gestione dataInizio
-    if (data.dataInizio) {
-      this.dataInizio = data.dataInizio instanceof Date 
-        ? data.dataInizio 
-        : new Date(data.dataInizio);
-    } else {
-      this.dataInizio = null;
-    }
+    // Gestione dataInizio (converte Timestamp Firestore in Date se necessario)
+    this.dataInizio = data.dataInizio ? timestampToDate(data.dataInizio) : null;
     
     this.durataPrevista = data.durataPrevista !== undefined 
       ? parseInt(data.durataPrevista) 

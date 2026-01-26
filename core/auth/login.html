@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -380,19 +380,109 @@
         });
 
         // Gestione password dimenticata
-        forgotPasswordLink.addEventListener('click', (e) => {
+        forgotPasswordLink.addEventListener('click', async (e) => {
             e.preventDefault();
             const email = emailInput.value.trim();
             
             if (!email) {
-                showError('Inserisci la tua email per reimpostare la password');
-                emailInput.focus();
-                return;
+                // Se non c'è email nel campo, chiedi di inserirla
+                const emailPrompt = prompt('Inserisci la tua email per reimpostare la password:');
+                if (!emailPrompt || !emailPrompt.trim()) {
+                    return;
+                }
+                const emailToUse = emailPrompt.trim();
+                
+                if (!emailToUse.includes('@')) {
+                    showError('Email non valida');
+                    return;
+                }
+                
+                await sendResetPasswordEmail(emailToUse);
+            } else {
+                // Usa l'email già inserita nel form
+                await sendResetPasswordEmail(email);
             }
-
-            // TODO: Implementare reset password
-            showInfo('Funzionalità reset password in arrivo');
         });
+
+        // Funzione helper per ottenere URL base
+        function getBaseUrl() {
+            const isLocal = window.location.protocol === 'file:';
+            if (isLocal) {
+                return window.location.origin;
+            } else {
+                // Per GitHub Pages
+                const pathIndex = window.location.pathname.indexOf('/core/');
+                if (pathIndex !== -1) {
+                    return window.location.origin + window.location.pathname.substring(0, pathIndex);
+                }
+                return window.location.origin;
+            }
+        }
+
+        // Funzione per inviare email reset password
+        async function sendResetPasswordEmail(email) {
+            try {
+                showLoading();
+                
+                // Verifica che l'utente esista in Firestore
+                const { getFirestore, collection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const db = getFirestore();
+                
+                const usersQuery = query(
+                    collection(db, 'users'),
+                    where('email', '==', email.toLowerCase().trim())
+                );
+                const usersSnapshot = await getDocs(usersQuery);
+                
+                if (usersSnapshot.empty) {
+                    hideLoading();
+                    showError('Nessun account trovato con questa email');
+                    return;
+                }
+                
+                // Determina URL di reset (per GitHub Pages o locale)
+                const baseUrl = getBaseUrl();
+                const resetPath = '/core/auth/reset-password-standalone.html';
+                const continueUrl = baseUrl + resetPath;
+                
+                // Configurazione per Firebase Auth
+                const actionCodeSettings = {
+                    url: continueUrl,
+                    handleCodeInApp: false // Apri nel browser, non nell'app
+                };
+                
+                // Genera link di reset password usando Firebase Auth
+                const { sendPasswordResetEmail } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                await sendPasswordResetEmail(auth, email, actionCodeSettings);
+                
+                hideLoading();
+                showSuccess(`Email di reset password inviata a ${email}. Controlla la tua casella di posta e segui le istruzioni.`);
+                
+            } catch (error) {
+                hideLoading();
+                console.error('Errore invio email reset:', error);
+                
+                let errorMessage = 'Errore durante l\'invio dell\'email di reset';
+                
+                if (error.code) {
+                    if (error.code === 'auth/user-not-found') {
+                        errorMessage = 'Nessun account trovato con questa email';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Email non valida';
+                    } else if (error.code === 'auth/invalid-continue-uri') {
+                        errorMessage = 'URL non autorizzato. Configura gli URL autorizzati in Firebase Console (Authentication > Settings > Authorized domains)';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Troppi tentativi. Riprova più tardi.';
+                    } else {
+                        errorMessage = error.message || errorMessage;
+                    }
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                showError(errorMessage);
+            }
+        }
 
         // Inizializza app al caricamento
         initApp();

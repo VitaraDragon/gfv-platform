@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="../../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <style>
         * {
@@ -645,27 +645,11 @@
             }
         }
 
-        // Funzione per inviare email reset password usando soluzione ibrida
-        // EmailJS per inviare email + Firebase Auth per generare link sicuro
+        // Funzione per inviare email reset password
+        // Firebase Auth verifica automaticamente che l'email esista
         async function sendResetPasswordEmail(email) {
             try {
                 showLoading();
-                
-                // Verifica che l'utente esista in Firestore
-                const usersQuery = query(
-                    collection(db, 'users'),
-                    where('email', '==', email.toLowerCase().trim())
-                );
-                const usersSnapshot = await getDocs(usersQuery);
-                
-                if (usersSnapshot.empty) {
-                    hideLoading();
-                    showError('Nessun account trovato con questa email');
-                    return;
-                }
-                
-                const userDoc = usersSnapshot.docs[0];
-                const userData = userDoc.data();
                 
                 // Determina URL di reset (per GitHub Pages o locale)
                 const baseUrl = getBaseUrl();
@@ -679,7 +663,8 @@
                 };
                 
                 // Genera link di reset password usando Firebase Auth
-                // Questo genera un link sicuro con codice oobCode
+                // Firebase Auth verifica automaticamente che l'email esista
+                // Se l'email non esiste, Firebase restituirà errore 'auth/user-not-found'
                 await sendPasswordResetEmail(auth, email, actionCodeSettings);
                 
                 // NOTA: Firebase invia automaticamente l'email, ma noi vogliamo usare EmailJS

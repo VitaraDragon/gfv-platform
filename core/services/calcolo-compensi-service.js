@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Calcolo Compensi Service - Servizio per calcolo compensi operai
  * Calcola compensi basati su ore validate e tariffe configurate
  * 
@@ -218,6 +218,49 @@ export function formattaOre(ore) {
   }
   
   return `${oreIntere}h ${minuti}min`;
+}
+
+/**
+ * Ottieni tariffa oraria proprietario
+ * Restituisce tariffa configurata nelle impostazioni tenant, o tariffa default
+ * @param {string} tenantId - ID tenant
+ * @returns {Promise<number>} Tariffa oraria in euro
+ */
+export async function getTariffaProprietario(tenantId) {
+  try {
+    // Carica tariffa dal tenant
+    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+    
+    if (typeof window.firebaseConfig === 'undefined') {
+      throw new Error('Firebase config non disponibile');
+    }
+    
+    const app = initializeApp(window.firebaseConfig);
+    const db = getFirestore(app);
+    
+    // Prova a recuperare da tenants/{tenantId}/tariffe/proprietario
+    const tariffeRef = doc(db, `tenants/${tenantId}/tariffe`, 'proprietario');
+    const tariffeSnap = await getDoc(tariffeRef);
+    
+    // Tariffa default proprietario
+    const tariffaDefault = 15.0; // €/ora default
+    
+    if (tariffeSnap.exists()) {
+      const tariffe = tariffeSnap.data();
+      // Supporta sia 'tariffaOraria' che 'tariffa' come nome campo
+      const tariffa = tariffe.tariffaOraria || tariffe.tariffa || null;
+      if (tariffa !== null && tariffa !== undefined) {
+        return parseFloat(tariffa);
+      }
+    }
+    
+    return tariffaDefault;
+  } catch (error) {
+    console.error('Errore recupero tariffa proprietario:', error);
+    // Fallback a tariffa default
+    return 15.0;
+  }
 }
 
 /**

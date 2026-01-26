@@ -45,6 +45,18 @@ window.GFVDashboardSections.createCoreBaseSection = function createCoreBaseSecti
             </a>
         `;
     }
+
+    // Aggiungi Report/Bilancio se modulo report è attivo
+    if (availableModules && availableModules.includes('report')) {
+        actionsHTML += `
+            <a href="../modules/report/views/report-standalone.html" class="action-card">
+                <span class="action-icon">📑</span>
+                <span class="action-title">Report/Bilancio</span>
+                <span class="action-description">Report unificati ed export (cross-moduli)</span>
+            </a>
+        `;
+    }
+    
     
     // Aggiungi card Abbonamento (sempre visibile per gestire piano e moduli)
     actionsHTML += `
@@ -441,6 +453,64 @@ window.GFVDashboardSections.createContoTerziCard = function createContoTerziCard
                 <span class="action-title" style="font-size: 18px; color: #1976D2;">Apri Conto Terzi</span>
                 <span class="action-description" style="color: #666;">
                     Accedi alla gestione completa clienti, terreni e lavori conto terzi
+                </span>
+            </a>
+        </div>
+    `;
+    
+    return section;
+};
+
+/**
+ * Card Vigneto (design viola distintivo)
+ */
+window.GFVDashboardSections.createVignetoCard = function createVignetoCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    section.style.background = 'linear-gradient(135deg, #E1BEE7 0%, #CE93D8 100%)';
+    section.style.border = '2px solid #6A1B9A';
+    section.style.borderRadius = '12px';
+    
+    section.innerHTML = `
+        <h2 style="color: #6A1B9A;"><span class="section-icon">🍇</span> Vigneto</h2>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+            Gestisci vigneti, vendemmia, potatura e trattamenti
+        </p>
+        <div class="quick-actions">
+            <a href="../modules/vigneto/views/vigneto-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #6A1B9A;">
+                <span class="action-icon" style="font-size: 48px;">🍇</span>
+                <span class="action-title" style="font-size: 18px; color: #6A1B9A;">Apri Vigneto</span>
+                <span class="action-description" style="color: #666;">
+                    Accedi alla gestione completa vigneti, vendemmia e trattamenti
+                </span>
+            </a>
+        </div>
+    `;
+    
+    return section;
+};
+
+/**
+ * Card Report/Bilancio (design scuro distintivo)
+ */
+window.GFVDashboardSections.createReportCard = function createReportCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    section.style.background = 'linear-gradient(135deg, #1F2937 0%, #374151 100%)';
+    section.style.border = '2px solid #111827';
+    section.style.borderRadius = '12px';
+    
+    section.innerHTML = `
+        <h2 style="color: white;"><span class="section-icon">📑</span> Report/Bilancio</h2>
+        <p style="color: rgba(255,255,255,0.8); margin-bottom: 20px; font-size: 14px;">
+            Report unificati ed export (PDF/Excel/CSV) cross-moduli
+        </p>
+        <div class="quick-actions">
+            <a href="../modules/report/views/report-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #111827;">
+                <span class="action-icon" style="font-size: 48px;">📑</span>
+                <span class="action-title" style="font-size: 18px; color: #111827;">Apri Report/Bilancio</span>
+                <span class="action-description" style="color: #666;">
+                    Accedi ai report unificati: esporta dati da tutti i moduli attivi in Excel/PDF
                 </span>
             </a>
         </div>

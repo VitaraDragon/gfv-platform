@@ -421,13 +421,12 @@ export async function confirmDeleteTerreno(
     try {
         const { collection, query, where, getDocs, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
         
-        // Verifica se terreno è usato in attività usando Firebase direttamente
+        // Verifica se terreno è usato in attività usando il servizio
         let numAttivita = 0;
         try {
-            const attivitaCollection = collection(state.db, `tenants/${state.currentTenantId}/attivita`);
-            const q = query(attivitaCollection, where('terrenoId', '==', terrenoId));
-            const querySnapshot = await getDocs(q);
-            numAttivita = querySnapshot.size;
+            // Usa il servizio terreni-service invece di Firebase direttamente
+            const { getNumeroAttivitaTerreno } = await import('../services/terreni-service.js');
+            numAttivita = await getNumeroAttivitaTerreno(terrenoId);
         } catch (e) {
             console.warn('Errore verifica attività:', e);
             // Continua comunque, ma senza verifica

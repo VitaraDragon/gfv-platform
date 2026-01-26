@@ -100,6 +100,7 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
 export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback, loadTipiLavoroCallback) {
     const categoriaPrincipaleSelect = document.getElementById('lavoro-categoria-principale');
     const sottocategoriaSelect = document.getElementById('lavoro-sottocategoria');
+    const terrenoSelect = document.getElementById('lavoro-terreno');
     
     if (categoriaPrincipaleSelect) {
         categoriaPrincipaleSelect.addEventListener('change', function() {
@@ -126,6 +127,22 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
             // Usa sottocategoria se selezionata, altrimenti categoria principale
             const categoriaId = sottocategoriaId || categoriaPrincipaleId;
             if (categoriaId && loadTipiLavoroCallback) {
+                loadTipiLavoroCallback(categoriaId);
+            }
+        });
+    }
+    
+    // Handler per cambio terreno: ricarica tipi lavoro se categoria RACCOLTA è già selezionata
+    if (terrenoSelect) {
+        terrenoSelect.addEventListener('change', function() {
+            const terrenoId = this.value;
+            const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale')?.value;
+            const sottocategoriaId = document.getElementById('lavoro-sottocategoria')?.value;
+            
+            // Se categoria è già selezionata, ricarica i tipi lavoro (per applicare filtro vendemmia)
+            const categoriaId = sottocategoriaId || categoriaPrincipaleId;
+            if (categoriaId && loadTipiLavoroCallback) {
+                console.log('[GESTIONE-LAVORI] Terreno cambiato, ricarico tipi lavoro per applicare filtro vendemmia');
                 loadTipiLavoroCallback(categoriaId);
             }
         });
@@ -727,6 +744,26 @@ export async function openEliminaModal(
                 }
             }
             
+            // Gestione vendemmia collegata (se modulo vigneto attivo)
+            try {
+                const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                const hasVignetoModule = await hasModuleAccess('vigneto');
+                
+                if (hasVignetoModule) {
+                    const { findVendemmiaByLavoroId, deleteVendemmia } = await import('../../../modules/vigneto/services/vendemmia-service.js');
+                    const vendemmiaCollegata = await findVendemmiaByLavoroId(lavoroId);
+                    
+                    if (vendemmiaCollegata) {
+                        console.log('[GESTIONE-LAVORI] Lavoro collegato a vendemmia, elimino vendemmia:', vendemmiaCollegata.vendemmiaId);
+                        await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
+                        console.log('[GESTIONE-LAVORI] ✓ Vendemmia eliminata');
+                    }
+                }
+            } catch (error) {
+                console.warn('[GESTIONE-LAVORI] Errore eliminazione vendemmia collegata:', error);
+                // Non blocchiamo l'operazione principale
+            }
+            
             await deleteDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
             showAlert('Lavoro eliminato con successo!', 'success');
             
@@ -824,6 +861,21 @@ export async function approvaLavoro(
             // Ricarica trattori e attrezzi per aggiornare dropdown
             if (loadTrattoriCallback) await loadTrattoriCallback();
             if (loadAttrezziCallback) await loadAttrezziCallback();
+        }
+        
+        // Aggiorna vigneti se modulo Vigneto attivo
+        try {
+            const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+            const hasVignetoModule = await hasModuleAccess('vigneto');
+            
+            if (hasVignetoModule && lavoro.terrenoId) {
+                const { aggiornaVignetiDaTerreno } = await import('../../../modules/vigneto/services/lavori-vigneto-service.js');
+                const annoLavoro = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate().getFullYear() : new Date().getFullYear();
+                await aggiornaVignetiDaTerreno(lavoro.terrenoId, annoLavoro);
+            }
+        } catch (error) {
+            console.warn('[GESTIONE-LAVORI] Errore aggiornamento vigneti:', error);
+            // Non blocchiamo l'operazione principale
         }
         
         showAlert('Lavoro approvato con successo!', 'success');
@@ -1288,6 +1340,77 @@ export async function generaVoceDiarioContoTerzi(
  * @param {Function} updateMacchinaStatoCallback - Callback per aggiornare stato macchina
  * @param {Function} generaVoceDiarioContoTerziCallback - Callback per generare voce diario conto terzi
  */
+/**
+ * Crea vigneto da lavoro di tipo "Impianto Nuovo Vigneto"
+ * @param {string} lavoroId - ID lavoro creato
+ * @param {string} pianificazioneId - ID pianificazione
+ * @param {string} terrenoId - ID terreno
+ * @param {string} currentTenantId - ID tenant
+ * @param {Object} db - Istanza Firestore
+ */
+async function creaVignetoDaLavoro(lavoroId, pianificazioneId, terrenoId, currentTenantId, db) {
+    try {
+        // Carica moduli vigneto
+        const { getAllPianificazioni, getPianificazione } = await import('../../../modules/vigneto/services/pianificazione-impianto-service.js');
+        const { createVigneto } = await import('../../../modules/vigneto/services/vigneti-service.js');
+        const { getChiaveTecnica } = await import('../../../modules/vigneto/config/forme-allevamento.js');
+        
+        // Carica pianificazione
+        const pianificazione = await getPianificazione(pianificazioneId);
+        if (!pianificazione || pianificazione.tipoColtura !== 'vigneto') {
+            throw new Error('Pianificazione non valida o non per vigneto');
+        }
+        
+        // Leggi dati dal form vigneto
+        const varieta = document.getElementById('vigneto-varieta')?.value.trim();
+        const annataImpianto = parseInt(document.getElementById('vigneto-annata-impianto')?.value);
+        const portainnesto = document.getElementById('vigneto-portainnesto')?.value.trim() || null;
+        const formaAllevamentoNome = document.getElementById('vigneto-forma-allevamento')?.value.trim();
+        const tipoPalo = document.getElementById('vigneto-tipo-palo')?.value.trim();
+        const destinazioneUva = document.getElementById('vigneto-destinazione-uva')?.value;
+        const note = document.getElementById('vigneto-note')?.value.trim() || '';
+        
+        // Validazione campi obbligatori
+        if (!varieta) throw new Error('Varietà uva obbligatoria');
+        if (!annataImpianto || annataImpianto < 1900 || annataImpianto > new Date().getFullYear() + 1) {
+            throw new Error('Anno impianto obbligatorio e valido');
+        }
+        if (!formaAllevamentoNome) throw new Error('Forma di allevamento obbligatoria');
+        if (!tipoPalo) throw new Error('Tipo palo obbligatorio');
+        if (!destinazioneUva) throw new Error('Destinazione uva obbligatoria');
+        
+        // Converti nome visualizzato forma allevamento → chiave tecnica
+        const formaAllevamentoChiave = getChiaveTecnica(formaAllevamentoNome) || formaAllevamentoNome;
+        
+        // Prepara dati vigneto
+        const vignetoData = {
+            terrenoId: terrenoId,
+            varieta: varieta,
+            annataImpianto: annataImpianto,
+            portainnesto: portainnesto,
+            formaAllevamento: formaAllevamentoNome, // Salva nome visualizzato
+            densita: Math.round(pianificazione.densitaEffettiva || 0), // Numero intero
+            superficieEttari: parseFloat((pianificazione.superficieNettaImpianto || 0).toFixed(2)), // 2 decimali
+            distanzaFile: pianificazione.distanzaFile || 0,
+            distanzaUnita: pianificazione.distanzaUnita || 0,
+            tipoPalo: tipoPalo,
+            destinazioneUva: destinazioneUva,
+            note: note,
+            numeroFilari: pianificazione.numeroFile || 0,
+            ceppiTotali: pianificazione.numeroUnitaTotale || 0
+        };
+        
+        // Crea vigneto
+        const vignetoId = await createVigneto(vignetoData);
+        console.log('[GESTIONE-LAVORI] Vigneto creato da lavoro impianto:', vignetoId);
+        
+        showAlert('Vigneto creato con successo dal lavoro di impianto!', 'success');
+    } catch (error) {
+        console.error('Errore creazione vigneto da lavoro:', error);
+        throw error;
+    }
+}
+
 export async function handleSalvaLavoro(
     event,
     state,
@@ -1400,6 +1523,9 @@ export async function handleSalvaLavoro(
             showAlert('Pianificazione completata! Il lavoro è stato assegnato.', 'success');
         }
         
+        // Leggi pianificazioneId se presente (per lavori di tipo Impianto)
+        const pianificazioneId = document.getElementById('lavoro-pianificazione-impianto')?.value || null;
+        
         const lavoroData = {
             nome,
             terrenoId,
@@ -1408,7 +1534,8 @@ export async function handleSalvaLavoro(
             durataPrevista,
             stato: nuovoStato,
             note: note || '',
-            aggiornatoIl: serverTimestamp()
+            aggiornatoIl: serverTimestamp(),
+            pianificazioneId: pianificazioneId || null // Collegamento a pianificazione impianto
         };
         
         // Assegnazione flessibile: O caposquadra O operaio (non entrambi) - solo se Manodopera attivo
@@ -1492,6 +1619,66 @@ export async function handleSalvaLavoro(
             const lavoroOriginale = state.lavoriList.find(l => l.id === state.currentLavoroId);
             lavoroEraCompletato = lavoroOriginale?.stato === 'completato';
             
+            // Gestione vendemmia collegata (se modulo vigneto attivo)
+            try {
+                const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                const hasVignetoModule = await hasModuleAccess('vigneto');
+                
+                if (hasVignetoModule) {
+                    const { findVendemmiaByLavoroId, deleteVendemmia, updateVendemmia } = await import('../../../modules/vigneto/services/vendemmia-service.js');
+                    const vendemmiaCollegata = await findVendemmiaByLavoroId(state.currentLavoroId);
+                    
+                    if (vendemmiaCollegata) {
+                        const tipoLavoroOriginale = lavoroOriginale?.tipoLavoro || '';
+                        const tipoLavoroNuovo = lavoroData.tipoLavoro || '';
+                        const terrenoOriginaleId = lavoroOriginale?.terrenoId;
+                        const terrenoNuovoId = lavoroData.terrenoId;
+                        
+                        // Verifica se terreno originale era VITE
+                        let terrenoOriginaleEraVite = false;
+                        if (terrenoOriginaleId) {
+                            const { getTerreno } = await import('../../../core/services/terreni-service.js');
+                            const terrenoOriginale = await getTerreno(terrenoOriginaleId);
+                            terrenoOriginaleEraVite = terrenoOriginale?.coltura?.toLowerCase().includes('vite') || false;
+                        }
+                        
+                        // Verifica se terreno nuovo è VITE
+                        let terrenoNuovoEVite = false;
+                        if (terrenoNuovoId) {
+                            const { getTerreno } = await import('../../../core/services/terreni-service.js');
+                            const terrenoNuovo = await getTerreno(terrenoNuovoId);
+                            terrenoNuovoEVite = terrenoNuovo?.coltura?.toLowerCase().includes('vite') || false;
+                        }
+                        
+                        // Caso 1: Tipo lavoro cambiato da vendemmia a altro → elimina vendemmia
+                        if (tipoLavoroOriginale.toLowerCase().includes('vendemmia') && 
+                            !tipoLavoroNuovo.toLowerCase().includes('vendemmia')) {
+                            console.log('[GESTIONE-LAVORI] Tipo lavoro cambiato da vendemmia a altro, elimino vendemmia collegata');
+                            await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
+                            console.log('[GESTIONE-LAVORI] ✓ Vendemmia eliminata');
+                        }
+                        // Caso 2: Terreno cambiato da VITE a altro → scollega vendemmia (mantiene dati produzione)
+                        else if (terrenoOriginaleEraVite && !terrenoNuovoEVite) {
+                            console.log('[GESTIONE-LAVORI] Terreno cambiato da VITE a altro, scollego vendemmia');
+                            await updateVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId, {
+                                lavoroId: null
+                            });
+                            console.log('[GESTIONE-LAVORI] ✓ Vendemmia scollegata dal lavoro');
+                        }
+                        // Caso 3: Lavoro modificato ma ancora vendemmia su terreno VITE → sincronizza dati operativi vendemmia
+                        else if (tipoLavoroNuovo.toLowerCase().includes('vendemmia') && terrenoNuovoEVite) {
+                            console.log('[GESTIONE-LAVORI] Lavoro vendemmia modificato, sincronizzo vendemmia collegata (operai/macchine/data/ore)');
+                            const { syncVendemmiaFromLavoro } = await import('../../../modules/vigneto/services/vendemmia-service.js');
+                            await syncVendemmiaFromLavoro(state.currentLavoroId);
+                            console.log('[GESTIONE-LAVORI] ✓ Sync vendemmia completato');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('[GESTIONE-LAVORI] Errore gestione vendemmia collegata:', error);
+                // Non blocchiamo l'operazione principale
+            }
+            
             lavoroData.aggiornatoIl = serverTimestamp();
             
             await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', state.currentLavoroId), lavoroData);
@@ -1504,6 +1691,16 @@ export async function handleSalvaLavoro(
             const nuovoLavoroRef = await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
             nuovoLavoroId = nuovoLavoroRef.id;
             showAlert('Lavoro creato con successo!', 'success');
+            
+            // Se è un lavoro di tipo "Impianto Nuovo Vigneto" con pianificazione, crea anche il vigneto
+            if (tipoLavoro.includes('Impianto Nuovo Vigneto') && pianificazioneId) {
+                try {
+                    await creaVignetoDaLavoro(nuovoLavoroId, pianificazioneId, terrenoId, currentTenantId, db);
+                } catch (error) {
+                    console.error('Errore creazione vigneto da lavoro:', error);
+                    showAlert('Lavoro creato ma errore nella creazione del vigneto: ' + error.message, 'warning');
+                }
+            }
         }
         
         // Genera voce diario automatica se lavoro conto terzi completato
@@ -1514,6 +1711,85 @@ export async function handleSalvaLavoro(
             if (lavoroCompletatoDoc.exists()) {
                 const lavoroCompletatoData = { id: nuovoLavoroId, ...lavoroCompletatoDoc.data() };
                 await generaVoceDiarioContoTerziCallback(nuovoLavoroId, lavoroCompletatoData, null);
+            }
+        }
+        
+        // Rilevamento automatico vendemmia: crea vendemmia se lavoro è di tipo vendemmia su terreno VITE
+        if (lavoroData.terrenoId && lavoroData.tipoLavoro) {
+            try {
+                const tipoLavoro = lavoroData.tipoLavoro || '';
+                console.log('[GESTIONE-LAVORI] Verifica rilevamento vendemmia:', {
+                    tipoLavoro,
+                    terrenoId: lavoroData.terrenoId,
+                    nuovoLavoroId: nuovoLavoroId || state.currentLavoroId
+                });
+                
+                if (tipoLavoro.toLowerCase().includes('vendemmia')) {
+                    console.log('[GESTIONE-LAVORI] ✓ Rilevato lavoro vendemmia, verifica terreno VITE...');
+                    
+                    const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                    const hasVignetoModule = await hasModuleAccess('vigneto');
+                    console.log('[GESTIONE-LAVORI] Modulo vigneto attivo?', hasVignetoModule);
+                    
+                    if (hasVignetoModule) {
+                        // Carica terreno per verificare coltura
+                        const { getTerreno } = await import('../../../core/services/terreni-service.js');
+                        const terreno = await getTerreno(lavoroData.terrenoId);
+                        console.log('[GESTIONE-LAVORI] Terreno caricato:', terreno ? { id: terreno.id, nome: terreno.nome, coltura: terreno.coltura } : 'non trovato');
+                        
+                        if (terreno && terreno.coltura && terreno.coltura.toLowerCase().includes('vite')) {
+                            console.log('[GESTIONE-LAVORI] ✓ Terreno VITE confermato (coltura:', terreno.coltura, '), creo vendemmia automatica...');
+                            
+                            const lavoroIdPerVendemmia = nuovoLavoroId || state.currentLavoroId;
+                            console.log('[GESTIONE-LAVORI] ID lavoro per vendemmia:', lavoroIdPerVendemmia);
+                            
+                            const { createVendemmiaFromLavoro } = await import('../../../modules/vigneto/services/vendemmia-service.js');
+                            const vendemmiaId = await createVendemmiaFromLavoro(lavoroIdPerVendemmia);
+                            
+                            if (vendemmiaId) {
+                                console.log('[GESTIONE-LAVORI] ✓✓✓ Vendemmia creata automaticamente:', vendemmiaId);
+                            } else {
+                                console.warn('[GESTIONE-LAVORI] ⚠ Vendemmia non creata (vigneto non trovato?)');
+                            }
+                        } else {
+                            console.log('[GESTIONE-LAVORI] Terreno non è VITE:', terreno?.coltura);
+                        }
+                    } else {
+                        console.log('[GESTIONE-LAVORI] Modulo vigneto non attivo, skip rilevamento vendemmia');
+                    }
+                } else {
+                    console.log('[GESTIONE-LAVORI] Tipo lavoro non è vendemmia:', tipoLavoro);
+                }
+            } catch (error) {
+                console.error('[GESTIONE-LAVORI] Errore rilevamento automatico vendemmia:', error);
+                console.error('[GESTIONE-LAVORI] Stack:', error.stack);
+                // Non blocchiamo l'operazione principale
+            }
+        } else {
+            console.log('[GESTIONE-LAVORI] Skip rilevamento vendemmia:', {
+                hasTerrenoId: !!lavoroData.terrenoId,
+                hasTipoLavoro: !!lavoroData.tipoLavoro
+            });
+        }
+        
+        // Aggiorna vigneti se modulo Vigneto attivo e lavoro completato
+        if (lavoroCompletatoOra && !lavoroEraCompletato && lavoroData.terrenoId) {
+            try {
+                const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                const hasVignetoModule = await hasModuleAccess('vigneto');
+                
+                if (hasVignetoModule) {
+                    const { aggiornaVignetiDaTerreno } = await import('../../../modules/vigneto/services/lavori-vigneto-service.js');
+                    const annoLavoro = lavoroData.dataInizio?.toDate 
+                        ? lavoroData.dataInizio.toDate().getFullYear() 
+                        : (lavoroData.dataInizio instanceof Date 
+                            ? lavoroData.dataInizio.getFullYear() 
+                            : new Date().getFullYear());
+                    await aggiornaVignetiDaTerreno(lavoroData.terrenoId, annoLavoro);
+                }
+            } catch (error) {
+                console.warn('[GESTIONE-LAVORI] Errore aggiornamento vigneti:', error);
+                // Non blocchiamo l'operazione principale
             }
         }
         

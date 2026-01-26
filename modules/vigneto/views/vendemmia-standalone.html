@@ -1,0 +1,3064 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Vendemmia - GFV Platform</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#6A1B9A">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .modal-header h2 {
+            color: #6A1B9A;
+            font-size: 24px;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .table-editabile {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .table-editabile th,
+        .table-editabile td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        .table-editabile th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        
+        .table-editabile input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .table-editabile input:focus {
+            outline: none;
+            border-color: #6A1B9A;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #6A1B9A;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 5px;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #6A1B9A;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .info-box strong {
+            color: #6A1B9A;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-completa {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-incompleta {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .link-lavoro {
+            color: #6A1B9A;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .link-lavoro:hover {
+            text-decoration: underline;
+        }
+
+        .dati-lavoro-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #6A1B9A;
+        }
+
+        .dati-lavoro-section h3 {
+            color: #6A1B9A;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .dati-lavoro-section table {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .dati-lavoro-section table th {
+            background: #e9ecef;
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        .dati-lavoro-section table td {
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        /* Modal Mappa Tracciamento */
+        .modal-mappa {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            overflow-y: auto;
+        }
+
+        .modal-mappa.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-mappa-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 95%;
+            width: 100%;
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-mappa-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .modal-mappa-header h3 {
+            color: #6A1B9A;
+            margin: 0;
+        }
+
+        .modal-mappa-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        /* Cursore crosshair durante il tracciamento per maggiore precisione */
+        .modal-mappa-body.drawing-mode #mappa-vendemmia-container {
+            cursor: crosshair !important;
+        }
+
+        .modal-mappa-body.drawing-mode #mappa-vendemmia-container * {
+            cursor: crosshair !important;
+        }
+        
+        /* Forza cursore anche sugli elementi interni di Google Maps */
+        .modal-mappa-body.drawing-mode #mappa-vendemmia-container div {
+            cursor: crosshair !important;
+        }
+        
+        .modal-mappa-body.drawing-mode #mappa-vendemmia-container canvas {
+            cursor: crosshair !important;
+        }
+
+        #mappa-vendemmia-container {
+            width: 100%;
+            height: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e9ecef;
+            margin-bottom: 15px;
+        }
+
+        .mappa-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .mappa-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .mappa-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .mappa-info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .mappa-info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .mappa-info-value {
+            color: #6A1B9A;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🍇 Gestione Vendemmia</h1>
+                <p style="opacity: 0.9;">Registra e gestisci le vendemmie dei tuoi vigneti</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openCreateModal()">➕ Nuova Vendemmia</button>
+                <a href="vigneti-standalone.html" class="btn btn-secondary">← Vigneti</a>
+                <a href="../views/vigneto-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Vigneto</label>
+                    <select id="filter-vigneto" onchange="applyFilters()">
+                        <option value="">Tutti i vigneti</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Varietà</label>
+                    <select id="filter-varieta" onchange="applyFilters()">
+                        <option value="">Tutte le varietà</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Anno</label>
+                    <select id="filter-anno" onchange="applyFilters()">
+                        <option value="">Tutti gli anni</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" onclick="resetFilters()">Pulisci Filtri</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <div id="loading" class="loading">Caricamento vendemmie...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna vendemmia trovata</h3>
+                    <p>Registra la tua prima vendemmia per iniziare</p>
+                </div>
+                <table id="vendemmie-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Vigneto</th>
+                            <th>Varietà</th>
+                            <th>Quantità (qli)</th>
+                            <th>Superficie (ha)</th>
+                            <th>Resa (qli/ha)</th>
+                            <th>Gradazione (°Brix)</th>
+                            <th>Destinazione</th>
+                            <th>Stato</th>
+                            <th>Costo Totale (€)</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendemmie-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Creazione/Modifica Vendemmia -->
+    <div id="vendemmia-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Nuova Vendemmia</h2>
+                <button class="close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="vendemmia-form">
+                <input type="hidden" id="vendemmia-id">
+                <input type="hidden" id="vigneto-id-hidden">
+                <input type="hidden" id="lavoro-id-hidden">
+                
+                <!-- Sezione Dati Lavoro (sola lettura, se vendemmia collegata a lavoro) -->
+                <div id="dati-lavoro-section" class="dati-lavoro-section" style="display: none;">
+                    <h3>📋 Dati Lavoro (sola consultazione)</h3>
+                    <div id="dati-lavoro-content">
+                        <p><strong>Nota:</strong> Questi dati provengono dal lavoro collegato. Per modificarli, vai alla pagina del lavoro.</p>
+                        <div id="dati-lavoro-tabelle"></div>
+                        <div style="margin-top: 15px;">
+                            <a id="link-lavoro" href="#" target="_blank" class="btn btn-primary">🔗 Vedi Dettagli Lavoro</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="vignetoId">Vigneto *</label>
+                    <select id="vignetoId" required onchange="onVignetoChange()">
+                        <option value="">Seleziona vigneto</option>
+                    </select>
+                    <div class="error-message" id="vignetoId-error"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data">Data Vendemmia *</label>
+                        <input type="date" id="data" required>
+                        <div class="error-message" id="data-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="varieta">Varietà *</label>
+                        <input type="text" id="varieta" required readonly>
+                        <div class="error-message" id="varieta-error"></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="quantitaQli">Quantità Raccolta (quintali) *</label>
+                        <input type="number" id="quantitaQli" required min="0" step="0.01" placeholder="es. 200.75" onchange="calcolaResa()">
+                        <div class="error-message" id="quantitaQli-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantitaEttari">Superficie Vendemmiata (ha) *</label>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="number" id="quantitaEttari" required min="0" step="0.01" placeholder="es. 3.0" onchange="calcolaResa()" style="flex: 1;">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="apriMappaTracciamento()" title="Traccia area vendemmiata sulla mappa" style="padding: 8px 12px; white-space: nowrap;">
+                                🗺️ Traccia
+                            </button>
+                        </div>
+                        <div class="error-message" id="quantitaEttari-error"></div>
+                        <small style="color: #6c757d; display: block; margin-top: 5px;" id="poligono-info" style="display: none;">
+                            ✓ Area tracciata sulla mappa
+                        </small>
+                    </div>
+                </div>
+
+                <div class="info-box" id="resa-info" style="display: none;">
+                    <strong>Resa calcolata:</strong> <span id="resa-calcolata">-</span> qli/ha
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gradazione">Gradazione (°Brix)</label>
+                        <input type="number" id="gradazione" min="0" max="30" step="0.1" placeholder="es. 13.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="acidita">Acidità (g/L)</label>
+                        <input type="number" id="acidita" min="0" max="20" step="0.1" placeholder="es. 5.2">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ph">pH</label>
+                        <input type="number" id="ph" min="0" max="14" step="0.1" placeholder="es. 3.4">
+                    </div>
+                    <div class="form-group">
+                        <label for="destinazione">Destinazione Uva *</label>
+                        <select id="destinazione" required>
+                            <option value="">Seleziona</option>
+                            <option value="vino">Vino</option>
+                            <option value="vendita_uva">Vendita Uva</option>
+                        </select>
+                        <div class="error-message" id="destinazione-error"></div>
+                    </div>
+                </div>
+
+                <!-- Sezione Operai: Dropdown (se manodopera attivo) o Tabella Editabile (se manodopera non attivo) -->
+                <div id="operai-dropdown-section" class="form-group" style="display: none;">
+                    <label for="operai">Operai Coinvolti *</label>
+                    <select id="operai" multiple required style="min-height: 100px;">
+                        <option value="">Caricamento operai...</option>
+                    </select>
+                    <small style="color: #6c757d;">Tieni premuto Ctrl/Cmd per selezionare più operai</small>
+                    <div class="error-message" id="operai-error"></div>
+                </div>
+                
+                <!-- Tabella editabile operai (quando manodopera non attivo e vendemmia non collegata a lavoro) -->
+                <div id="operai-tabella-section" class="form-group" style="display: none;">
+                    <label>Operai Coinvolti *</label>
+                    <div style="margin-bottom: 10px;">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="aggiungiRigaOperaio()">➕ Aggiungi Operaio</button>
+                    </div>
+                    <table id="operai-tabella" class="table-editabile" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Data</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Nome Operaio</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Ore</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operai-tabella-body">
+                            <!-- Righe verranno aggiunte dinamicamente -->
+                        </tbody>
+                        <tfoot id="operai-tabella-footer" style="display: none;">
+                            <tr style="background: #e9ecef; font-weight: bold;">
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;" colspan="2">Totale Ore:</td>
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: left;" id="totale-ore-operai">0.0</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">Inserisci manualmente i dati degli operai coinvolti nella vendemmia</small>
+                    <div class="error-message" id="operai-tabella-error"></div>
+                </div>
+
+                <!-- Tabella macchine (sola lettura quando manodopera non attivo e vendemmia collegata ad attività) -->
+                <div id="macchine-tabella-section" class="form-group" style="display: none;">
+                    <label>Macchine Utilizzate</label>
+                    <table id="macchine-tabella" class="table-editabile" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Tipo</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Nome</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Ore</th>
+                            </tr>
+                        </thead>
+                        <tbody id="macchine-tabella-body">
+                            <!-- Righe verranno aggiunte dinamicamente -->
+                        </tbody>
+                    </table>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">Dati presi dall'attività collegata</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="note">Note</label>
+                    <textarea id="note" rows="3" placeholder="Note aggiuntive sulla vendemmia"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Mappa Tracciamento Poligono -->
+    <div id="modal-mappa-vendemmia" class="modal-mappa">
+        <div class="modal-mappa-content">
+            <div class="modal-mappa-header">
+                <h3>🗺️ Traccia Area Vendemmiata</h3>
+                <button class="close" onclick="chiudiMappaTracciamento()" style="font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; border: none; background: none;">&times;</button>
+            </div>
+            <div class="modal-mappa-body">
+                <div class="mappa-controls">
+                    <button type="button" class="btn btn-primary" id="btn-draw-polygon" onclick="iniziaTracciamentoPoligono()">✏️ Traccia Poligono</button>
+                    <button type="button" class="btn btn-secondary" id="btn-clear-polygon" onclick="eliminaPoligono()" style="display: none;">🗑️ Elimina</button>
+                    <button type="button" class="btn btn-success" id="btn-save-polygon" onclick="salvaPoligono()" style="display: none;">💾 Salva Area</button>
+                </div>
+                <div class="mappa-info" id="mappa-info" style="display: none;">
+                    <div class="mappa-info-item">
+                        <span class="mappa-info-label">Superficie tracciata:</span>
+                        <span class="mappa-info-value" id="superficie-calcolata">0.00 ha</span>
+                    </div>
+                    <div class="mappa-info-item">
+                        <span class="mappa-info-label">Punti tracciati:</span>
+                        <span class="mappa-info-value" id="punti-tracciati">0</span>
+                    </div>
+                </div>
+                <div id="mappa-vendemmia-container"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="chiudiMappaTracciamento()">Annulla</button>
+                    <button type="button" class="btn btn-success" id="btn-conferma-polygon" onclick="confermaPoligono()" style="display: none;">✓ Conferma e Applica</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Google Maps config -->
+    <script>
+        const mapsConfigScript = document.createElement('script');
+        mapsConfigScript.src = '../../../core/config/google-maps-config.js';
+        mapsConfigScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(mapsConfigScript);
+    </script>
+    
+    <!-- Google Maps API -->
+    <script>
+        let googleMapsReady = false;
+        
+        // Carica Google Maps API dopo che la config è pronta
+        function loadGoogleMapsAPI() {
+            if (typeof google !== 'undefined' && google.maps) {
+                googleMapsReady = true;
+                return;
+            }
+            
+            // Verifica se lo script è già stato aggiunto
+            if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+                // Aspetta che Google Maps sia caricato
+                const checkInterval = setInterval(() => {
+                    if (typeof google !== 'undefined' && google.maps) {
+                        clearInterval(checkInterval);
+                        googleMapsReady = true;
+                    }
+                }, 100);
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                }, 5000);
+                return;
+            }
+            
+            const apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&loading=async`;
+            script.async = true;
+            script.defer = true;
+            script.onload = function() {
+                googleMapsReady = true;
+            };
+            script.onerror = function() {
+                console.warn('⚠️ Google Maps API non disponibile');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Prova a caricare dopo un breve delay per assicurarsi che la config sia caricata
+        setTimeout(loadGoogleMapsAPI, 500);
+    </script>
+
+    <script type="module">
+        // Funzione per attendere il config (con percorso corretto da modules/vigneto/views/)
+        async function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                
+                // Carica direttamente il config dal percorso corretto
+                const configScript = document.createElement('script');
+                // Percorso relativo da modules/vigneto/views/ a core/config/
+                configScript.src = '../../../core/config/firebase-config.js';
+                
+                configScript.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window.firebaseConfig !== 'undefined') {
+                            resolve(window.firebaseConfig);
+                        } else {
+                            // Fallback: prova GitHub
+                            loadFallbackConfig().then(resolve).catch(reject);
+                        }
+                    }, 100);
+                };
+                
+                configScript.onerror = function() {
+                    loadFallbackConfig().then(resolve).catch(reject);
+                };
+                
+                document.head.appendChild(configScript);
+            });
+        }
+        
+        function loadFallbackConfig() {
+            return new Promise((resolve, reject) => {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+                
+                fallbackScript.onload = function() {
+                    setTimeout(() => {
+                        if (typeof window.firebaseConfig !== 'undefined') {
+                            resolve(window.firebaseConfig);
+                        } else {
+                            reject(new Error('Firebase config non trovato neanche su GitHub'));
+                        }
+                    }, 100);
+                };
+                
+                fallbackScript.onerror = function() {
+                    reject(new Error('Errore caricamento config da GitHub'));
+                };
+                
+                document.head.appendChild(fallbackScript);
+            });
+        }
+
+        import { getVendemmie, getVendemmia, createVendemmia, updateVendemmia, deleteVendemmia } from '../services/vendemmia-service.js';
+        import { getAllVigneti } from '../services/vigneti-service.js';
+        import { getAllMacchine } from '../../../modules/parco-macchine/services/macchine-service.js';
+        import { getLavoro } from '../../../core/services/lavori-service.js';
+        import { getAttivita } from '../../../core/services/attivita-service.js';
+        import { getTerreno } from '../../../core/services/terreni-service.js';
+        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
+        import { getCurrentTenantId, getCurrentTenant, initializeTenantService } from '../../../core/services/tenant-service.js';
+        import { initializeAuthService } from '../../../core/services/auth-service.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getDoc, doc, collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        let vendemmie = [];
+        let allVendemmie = []; // Tutte le vendemmie (senza filtri)
+        let vigneti = [];
+        let operai = [];
+        let macchine = [];
+        let currentEditingId = null;
+        let currentVignetoId = null;
+        
+        // Variabili per mappa tracciamento poligono
+        let mappaVendemmia = null;
+        let poligonoVendemmia = null;
+        let terrenoPolygon = null;
+        let terrenoBoundaryCoords = []; // Coordinate del confine del terreno (per snap)
+        let isDrawingPolygon = false;
+        let poligonoCoords = [];
+        let firstPoint = null; // Primo punto del poligono (per chiusura automatica)
+        let currentVignetoForMap = null;
+        
+        // Costanti per snap e tolleranza
+        const SNAP_DISTANCE_METERS = 5; // Distanza massima per snap al confine (5 metri)
+        const VERTEX_SNAP_DISTANCE_METERS = 8; // Distanza massima per snap ai vertici (8 metri)
+
+        async function init() {
+            try {
+                // 1. Carica e inizializza Firebase
+                const firebaseConfig = await waitForConfig();
+                initializeFirebase(firebaseConfig);
+                const auth = getAuthInstance();
+                const db = getDb();
+                
+                // 2. Inizializza servizi
+                initializeAuthService();
+                initializeTenantService();
+                
+                // 3. Verifica autenticazione con onAuthStateChanged
+                onAuthStateChanged(auth, async (user) => {
+                    if (!user) {
+                        window.location.href = '../../../core/auth/login-standalone.html';
+                        return;
+                    }
+                    
+                    try {
+                        // Carica dati utente
+                        const userDoc = await getDoc(doc(db, 'users', user.uid));
+                        if (!userDoc.exists()) {
+                            window.location.href = '../../../core/auth/login-standalone.html';
+                            return;
+                        }
+                        
+                        const userData = userDoc.data();
+                        
+                        // 4. Verifica che il modulo vigneto sia attivo
+                        const tenantId = getCurrentTenantId();
+                        
+                        if (tenantId) {
+                            const tenant = await getCurrentTenant();
+                            if (tenant) {
+                                // Salva stato modulo manodopera globalmente
+                                window.hasManodoperaModule = tenant.modules && tenant.modules.includes('manodopera');
+                            }
+                            if (!tenant || !tenant.modules || !tenant.modules.includes('vigneto')) {
+                                alert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.');
+                                window.location.href = '../../../core/admin/abbonamento-standalone.html';
+                                return;
+                            }
+                        }
+
+                        // 5. Carica dati
+                        await loadVigneti();
+                        await loadOperai();
+                        await loadMacchine();
+                        await loadVendemmie();
+                    } catch (error) {
+                        console.error('[VENDEMMIA] Errore in onAuthStateChanged:', error);
+                        alert('Errore nel caricamento dei dati: ' + error.message);
+                    }
+                });
+            } catch (error) {
+                console.error('[VENDEMMIA] Errore inizializzazione:', error);
+                alert('Errore nel caricamento dei dati: ' + error.message);
+            }
+        }
+
+        async function loadVigneti() {
+            try {
+                vigneti = await getAllVigneti();
+                const vignetoSelect = document.getElementById('vignetoId');
+                const filterVigneto = document.getElementById('filter-vigneto');
+                
+                vignetoSelect.innerHTML = '<option value="">Seleziona vigneto</option>';
+                filterVigneto.innerHTML = '<option value="">Tutti i vigneti</option>';
+                
+                vigneti.forEach(vigneto => {
+                    const option = `<option value="${vigneto.id}">${vigneto.varieta} - ${vigneto.superficieEttari} ha</option>`;
+                    vignetoSelect.innerHTML += option;
+                    filterVigneto.innerHTML += option;
+                });
+
+                // Popola filtri varietà
+                const varietaSet = new Set(vigneti.map(v => v.varieta).filter(Boolean));
+                const filterVarieta = document.getElementById('filter-varieta');
+                varietaSet.forEach(varieta => {
+                    filterVarieta.innerHTML += `<option value="${varieta}">${varieta}</option>`;
+                });
+            } catch (error) {
+                console.error('Errore caricamento vigneti:', error);
+            }
+        }
+
+        async function loadOperai() {
+            try {
+                const tenantId = getCurrentTenantId();
+                if (!tenantId) {
+                    operai = [];
+                    return;
+                }
+                
+                const db = getDb();
+                const usersRef = collection(db, 'users');
+                const q = query(
+                    usersRef,
+                    where('tenantId', '==', tenantId),
+                    where('ruoli', 'array-contains', 'operaio'),
+                    where('stato', '==', 'attivo')
+                );
+                const snapshot = await getDocs(q);
+                
+                operai = [];
+                snapshot.forEach(doc => {
+                    operai.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Ordina operai per nome
+                operai.sort((a, b) => {
+                    const nomeA = `${a.nome || ''} ${a.cognome || ''}`.trim() || a.email || '';
+                    const nomeB = `${b.nome || ''} ${b.cognome || ''}`.trim() || b.email || '';
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                const operaiSelect = document.getElementById('operai');
+                operaiSelect.innerHTML = '';
+                
+                if (operai.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Nessun operaio disponibile';
+                    operaiSelect.appendChild(option);
+                    operaiSelect.disabled = true;
+                    return;
+                }
+                
+                operaiSelect.disabled = false;
+                operai.forEach(operaio => {
+                    const option = document.createElement('option');
+                    option.value = operaio.id;
+                    const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || operaio.id;
+                    const tipoOperaio = operaio.tipoOperaio ? ` (${operaio.tipoOperaio})` : '';
+                    option.textContent = `${nomeCompleto}${tipoOperaio}`;
+                    operaiSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('[VENDEMMIA] Errore caricamento operai:', error);
+                operai = [];
+                const operaiSelect = document.getElementById('operai');
+                if (operaiSelect) {
+                    operaiSelect.innerHTML = '<option value="">Errore caricamento operai</option>';
+                    operaiSelect.disabled = true;
+                }
+            }
+        }
+
+        async function loadMacchine() {
+            try {
+                console.log('[VENDEMMIA] loadMacchine chiamata');
+                // Carica macchine solo per la sezione "Dati Lavoro" (sola lettura)
+                // Il campo dropdown macchine è stato rimosso
+                macchine = await getAllMacchine();
+                console.log('[VENDEMMIA] loadMacchine completata:', { 
+                    macchineLength: macchine ? macchine.length : 0,
+                    primeMacchine: macchine && macchine.length > 0 ? macchine.slice(0, 3).map(m => ({ id: m.id, nome: m.nome || m.marca })) : []
+                });
+            } catch (error) {
+                console.error('[VENDEMMIA] Errore caricamento macchine:', error);
+            }
+        }
+
+        async function loadVendemmie() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('vendemmie-table').style.display = 'none';
+                document.getElementById('empty-state').style.display = 'none';
+
+                // Carica tutte le vendemmie di tutti i vigneti
+                allVendemmie = [];
+                for (const vigneto of vigneti) {
+                    try {
+                        const vendemmieVigneto = await getVendemmie(vigneto.id);
+                        const vendemmieConNome = vendemmieVigneto.map(v => ({
+                            ...v, 
+                            vignetoNome: vigneto.varieta
+                        }));
+                        allVendemmie.push(...vendemmieConNome);
+                    } catch (error) {
+                        console.error(`Errore caricamento vendemmie per vigneto ${vigneto.id}:`, error);
+                    }
+                }
+
+                // Popola filtro varietà con tutte le varietà disponibili
+                const varietaSet = new Set(allVendemmie.map(v => v.varieta).filter(Boolean));
+                const filterVarieta = document.getElementById('filter-varieta');
+                if (filterVarieta) {
+                    filterVarieta.innerHTML = '<option value="">Tutte le varietà</option>';
+                    varietaSet.forEach(varieta => {
+                        filterVarieta.innerHTML += `<option value="${varieta}">${varieta}</option>`;
+                    });
+                }
+                // Popola filtro anno con tutti gli anni disponibili
+                const anniSet = new Set();
+                allVendemmie.forEach(v => {
+                    if (v.data) {
+                        const dataVendemmia = v.data instanceof Date 
+                            ? v.data 
+                            : (v.data?.toDate ? v.data.toDate() : new Date(v.data));
+                        anniSet.add(dataVendemmia.getFullYear());
+                    }
+                });
+                const filterAnno = document.getElementById('filter-anno');
+                if (filterAnno) {
+                    const anniArray = Array.from(anniSet).sort((a, b) => b - a); // Ordine decrescente
+                    filterAnno.innerHTML = '<option value="">Tutti gli anni</option>';
+                    anniArray.forEach(anno => {
+                        filterAnno.innerHTML += `<option value="${anno}">${anno}</option>`;
+                    });
+                }
+                // Applica filtri (o mostra tutte se nessun filtro attivo)
+                applyFilters();
+            } catch (error) {
+                console.error('Errore caricamento vendemmie:', error);
+                alert('Errore nel caricamento delle vendemmie: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function renderVendemmie() {
+            const tbody = document.getElementById('vendemmie-tbody');
+            tbody.innerHTML = '';
+
+            if (vendemmie.length === 0) {
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('vendemmie-table').style.display = 'table';
+
+            vendemmie.forEach(vendemmia => {
+                const dataVendemmia = vendemmia.data instanceof Date 
+                    ? vendemmia.data 
+                    : (vendemmia.data?.toDate ? vendemmia.data.toDate() : new Date(vendemmia.data));
+                const dataFormattata = dataVendemmia.toLocaleDateString('it-IT');
+
+                // Verifica se vendemmia è completa
+                const isCompleta = vendemmia.quantitaQli !== null && 
+                                   vendemmia.quantitaQli > 0 && 
+                                   vendemmia.quantitaEttari !== null && 
+                                   vendemmia.quantitaEttari > 0 && 
+                                   vendemmia.destinazione !== null && 
+                                   vendemmia.destinazione.trim().length > 0;
+                
+                const statoBadge = isCompleta 
+                    ? '<span class="badge badge-completa">✓ Completa</span>'
+                    : '<span class="badge badge-incompleta">⚠ Incompleta</span>';
+                
+                const linkLavoro = vendemmia.lavoroId 
+                    ? `<br><a href="../../../core/admin/gestione-lavori-standalone.html?lavoroId=${vendemmia.lavoroId}" class="link-lavoro" target="_blank">🔗 Vedi Lavoro</a>`
+                    : '';
+
+                const row = `
+                    <tr>
+                        <td>${dataFormattata}</td>
+                        <td>${vendemmia.vignetoNome || '-'}</td>
+                        <td><strong>${vendemmia.varieta || '-'}</strong></td>
+                        <td>${vendemmia.quantitaQli ? vendemmia.quantitaQli.toFixed(2) : '-'}</td>
+                        <td>${vendemmia.quantitaEttari ? vendemmia.quantitaEttari.toFixed(2) : '-'}</td>
+                        <td>${vendemmia.resaQliHa ? vendemmia.resaQliHa.toFixed(2) : '-'}</td>
+                        <td>${vendemmia.gradazione ? vendemmia.gradazione.toFixed(1) : '-'}</td>
+                        <td>${getDestinazioneLabel(vendemmia.destinazione)}</td>
+                        <td>${statoBadge}${linkLavoro}</td>
+                        <td>${vendemmia.costoTotale ? vendemmia.costoTotale.toFixed(2) : '0.00'}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-sm btn-primary" onclick="editVendemmia('${vendemmia.vignetoId}', '${vendemmia.id}')">✏️ Modifica</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteVendemmiaConfirm('${vendemmia.vignetoId}', '${vendemmia.id}')">🗑️ Elimina</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function getDestinazioneLabel(destinazione) {
+            const labels = {
+                'vino': '🍷 Vino',
+                'vendita_uva': '🍇 Vendita Uva'
+            };
+            return labels[destinazione] || destinazione;
+        }
+
+        window.onVignetoChange = function() {
+            const vignetoId = document.getElementById('vignetoId').value;
+            const vigneto = vigneti.find(v => v.id === vignetoId);
+            
+            if (vigneto) {
+                document.getElementById('varieta').value = vigneto.varieta || '';
+                document.getElementById('vigneto-id-hidden').value = vignetoId;
+                currentVignetoId = vignetoId;
+            }
+        };
+
+        window.calcolaResa = function() {
+            const quantitaQli = parseFloat(document.getElementById('quantitaQli').value) || 0;
+            const quantitaEttari = parseFloat(document.getElementById('quantitaEttari').value) || 0;
+            
+            if (quantitaEttari > 0) {
+                const resa = quantitaQli / quantitaEttari;
+                document.getElementById('resa-calcolata').textContent = resa.toFixed(2);
+                document.getElementById('resa-info').style.display = 'block';
+            } else {
+                document.getElementById('resa-info').style.display = 'none';
+            }
+        };
+
+        window.openCreateModal = function() {
+            currentEditingId = null;
+            currentVignetoId = null;
+            document.getElementById('modal-title').textContent = 'Nuova Vendemmia';
+            document.getElementById('vendemmia-form').reset();
+            document.getElementById('vendemmia-id').value = '';
+            document.getElementById('vigneto-id-hidden').value = '';
+            document.getElementById('lavoro-id-hidden').value = '';
+            document.getElementById('resa-info').style.display = 'none';
+            document.getElementById('dati-lavoro-section').style.display = 'none';
+            
+            // Reset poligono
+            poligonoCoords = [];
+            if (poligonoVendemmia) {
+                poligonoVendemmia.setMap(null);
+                poligonoVendemmia = null;
+            }
+            const poligonoInfo = document.getElementById('poligono-info');
+            if (poligonoInfo) {
+                poligonoInfo.style.display = 'none';
+            }
+            
+            // Reset tabella operai e totale
+            const tbody = document.getElementById('operai-tabella-body');
+            const footer = document.getElementById('operai-tabella-footer');
+            if (tbody) {
+                tbody.innerHTML = '';
+            }
+            if (footer) {
+                footer.style.display = 'none';
+                const totaleElement = document.getElementById('totale-ore-operai');
+                if (totaleElement) {
+                    totaleElement.textContent = '0.0';
+                }
+            }
+            
+            // Reset tabella macchine
+            const tbodyMacchine = document.getElementById('macchine-tabella-body');
+            if (tbodyMacchine) {
+                tbodyMacchine.innerHTML = '';
+            }
+            
+            // Gestisci sezione operai in base a modulo manodopera
+            const hasManodopera = window.hasManodoperaModule || false;
+            const operaiDropdownSection = document.getElementById('operai-dropdown-section');
+            const operaiTabellaSection = document.getElementById('operai-tabella-section');
+            const macchineTabellaSection = document.getElementById('macchine-tabella-section');
+            const operaiSelect = document.getElementById('operai');
+            
+            // SEMPRE usa tabella editabile per vendemmie (indipendentemente dal modulo manodopera)
+            if (operaiDropdownSection) operaiDropdownSection.style.display = 'none';
+            if (operaiTabellaSection) operaiTabellaSection.style.display = 'block';
+            // Rimuovi required dal dropdown quando si usa tabella editabile
+            if (operaiSelect) {
+                operaiSelect.removeAttribute('required');
+            }
+            // Pulisci tabella e aggiungi una riga vuota
+            // tbody è già dichiarato sopra (riga 1196), riutilizziamo quello
+            if (tbody) {
+                tbody.innerHTML = '';
+                aggiungiRigaOperaio();
+            }
+            
+            // Nascondi tabella macchine per nuova vendemmia (non c'è ancora attività collegata)
+            if (macchineTabellaSection) {
+                macchineTabellaSection.style.display = 'none';
+            }
+            
+            // Campi macchine/ore rimossi - non più necessari
+            
+            document.getElementById('vendemmia-modal').classList.add('active');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('vendemmia-modal').classList.remove('active');
+            currentEditingId = null;
+            currentVignetoId = null;
+            
+            // Reset poligono (ma mantieni se è stato salvato)
+            // Il poligono verrà ricaricato quando si riapre la vendemmia
+        };
+
+        window.editVendemmia = async function(vignetoId, vendemmiaId) {
+            try {
+                const vendemmia = await getVendemmia(vignetoId, vendemmiaId);
+                if (!vendemmia) return;
+
+                currentEditingId = vendemmiaId;
+                currentVignetoId = vignetoId;
+                document.getElementById('modal-title').textContent = 'Modifica Vendemmia';
+                document.getElementById('vendemmia-id').value = vendemmiaId;
+                document.getElementById('vigneto-id-hidden').value = vignetoId;
+                
+                // Gestisci collegamento lavoro
+                const lavoroIdHidden = document.getElementById('lavoro-id-hidden');
+                const datiLavoroSection = document.getElementById('dati-lavoro-section');
+                
+                // Gestisci sezione operai in base a modulo manodopera e collegamento lavoro
+                const hasManodopera = window.hasManodoperaModule || false;
+                const operaiDropdownSection = document.getElementById('operai-dropdown-section');
+                const operaiTabellaSection = document.getElementById('operai-tabella-section');
+                const macchineTabellaSection = document.getElementById('macchine-tabella-section');
+                
+                // Variabile per salvare superficie vendemmiata calcolata dal lavoro
+                let superficieVendemmiataDalLavoro = null;
+                
+                if (vendemmia.lavoroId) {
+                    lavoroIdHidden.value = vendemmia.lavoroId;
+                    datiLavoroSection.style.display = 'block';
+                    // Carica dati lavoro e calcola superficie vendemmiata
+                    superficieVendemmiataDalLavoro = await loadDatiLavoro(vendemmia.lavoroId);
+                    
+                    // Se collegata a lavoro: nascondi entrambe le sezioni (dati vengono dal lavoro)
+                    if (operaiDropdownSection) operaiDropdownSection.style.display = 'none';
+                    if (operaiTabellaSection) operaiTabellaSection.style.display = 'none';
+                    
+                    // Rimuovi required dal campo operai quando è nascosto (per evitare errori di validazione)
+                    const operaiSelect = document.getElementById('operai');
+                    if (operaiSelect) {
+                        operaiSelect.removeAttribute('required');
+                    }
+                } else {
+                    lavoroIdHidden.value = '';
+                    datiLavoroSection.style.display = 'none';
+                    
+                    // SEMPRE usa tabella editabile per vendemmie (indipendentemente dal modulo manodopera)
+                    if (operaiDropdownSection) operaiDropdownSection.style.display = 'none';
+                    if (operaiTabellaSection) operaiTabellaSection.style.display = 'block';
+                    
+                    // Rimuovi required dal dropdown quando si usa tabella editabile
+                    const operaiSelect = document.getElementById('operai');
+                    if (operaiSelect) {
+                        operaiSelect.removeAttribute('required');
+                    }
+                    // NON popolare qui - verrà popolato più avanti dopo aver compilato tutti i campi
+                    
+                    // Mostra anche tabella macchine
+                    if (macchineTabellaSection) {
+                        macchineTabellaSection.style.display = 'block';
+                        
+                        // Assicurati che le macchine siano caricate prima di usarle
+                        if (!macchine || macchine.length === 0) {
+                            await loadMacchine();
+                        }
+                        
+                        // Carica macchine dalla vendemmia o dall'attività
+                        await caricaMacchinePerVendemmia(vendemmia);
+                    }
+                }
+                
+                // Popola form
+                document.getElementById('vignetoId').value = vignetoId;
+                onVignetoChange();
+                
+                const dataVendemmia = vendemmia.data instanceof Date 
+                    ? vendemmia.data 
+                    : (vendemmia.data?.toDate ? vendemmia.data.toDate() : new Date(vendemmia.data));
+                document.getElementById('data').value = dataVendemmia.toISOString().split('T')[0];
+                document.getElementById('quantitaQli').value = vendemmia.quantitaQli || '';
+                
+                // Precompila superficie vendemmiata
+                let superficieVendemmiata = null;
+                
+                // Prova a prendere dalla vendemmia
+                if (vendemmia.quantitaEttari !== null && vendemmia.quantitaEttari !== undefined) {
+                    superficieVendemmiata = parseFloat(vendemmia.quantitaEttari);
+                    if (isNaN(superficieVendemmiata) || superficieVendemmiata <= 0) {
+                        superficieVendemmiata = null;
+                    }
+                }
+                
+                // Se non c'è o è 0, e c'è un lavoro collegato, usa quella del lavoro
+                if ((!superficieVendemmiata || superficieVendemmiata === 0) && vendemmia.lavoroId && superficieVendemmiataDalLavoro) {
+                    superficieVendemmiata = superficieVendemmiataDalLavoro;
+                }
+                
+                const quantitaEttariInput = document.getElementById('quantitaEttari');
+                if (quantitaEttariInput) {
+                    if (superficieVendemmiata && superficieVendemmiata > 0) {
+                        quantitaEttariInput.value = superficieVendemmiata.toFixed(2);
+                        // Ricalcola resa se quantità è già compilata
+                        calcolaResa();
+                    } else {
+                        quantitaEttariInput.value = '';
+                    }
+                }
+                
+                // Carica poligono esistente se presente (salva coordinate per uso futuro)
+                if (vendemmia.poligonoVendemmiato && vendemmia.poligonoVendemmiato.length >= 3) {
+                    // Salva coordinate come array di oggetti {lat, lng} per uso futuro
+                    poligonoCoords = vendemmia.poligonoVendemmiato.map(c => {
+                        // Se sono già LatLng, mantienili, altrimenti crea oggetti semplici
+                        if (c.lat && c.lng) {
+                            return { lat: c.lat, lng: c.lng };
+                        }
+                        return c;
+                    });
+                    const poligonoInfo = document.getElementById('poligono-info');
+                    if (poligonoInfo) {
+                        poligonoInfo.style.display = 'block';
+                    }
+                } else {
+                    poligonoCoords = [];
+                    const poligonoInfo = document.getElementById('poligono-info');
+                    if (poligonoInfo) {
+                        poligonoInfo.style.display = 'none';
+                    }
+                }
+                
+                document.getElementById('gradazione').value = vendemmia.gradazione || '';
+                document.getElementById('acidita').value = vendemmia.acidita || '';
+                document.getElementById('ph').value = vendemmia.ph || '';
+                document.getElementById('destinazione').value = vendemmia.destinazione || '';
+                document.getElementById('note').value = vendemmia.note || '';
+
+                // Popola operai (solo se non collegata a lavoro)
+                // La logica di popolamento è già gestita sopra in base a hasManodopera
+                // hasManodopera, operaiDropdownSection e operaiTabellaSection sono già dichiarate sopra (riga 1280-1282)
+                
+                // SEMPRE usa tabella editabile per vendemmie
+                const isTabellaVisible = operaiTabellaSection && operaiTabellaSection.style.display !== 'none';
+                
+                if (!vendemmia.lavoroId && vendemmia.operai && Array.isArray(vendemmia.operai)) {
+                    if (isTabellaVisible) {
+                        // Popola tabella editabile
+                        // I dati operai potrebbero essere array di ID o array di oggetti
+                        // Se sono oggetti con nome/data/ore, usali direttamente
+                        // Altrimenti, crea oggetti vuoti
+                        const operaiData = vendemmia.operai.map(op => {
+                            if (typeof op === 'object' && op.nome) {
+                                return op; // Già nel formato corretto
+                            } else {
+                                // È un ID, crea oggetto vuoto (l'utente dovrà compilare)
+                                return { id: op, nome: '', data: null, ore: 0 };
+                            }
+                        });
+                        popolaTabellaOperai(operaiData);
+                    }
+                } else if (!vendemmia.lavoroId) {
+                    // Se non ci sono operai ma la tabella è visibile, aggiungi almeno una riga vuota
+                    if (operaiTabellaSection && operaiTabellaSection.style.display !== 'none') {
+                        const tbody = document.getElementById('operai-tabella-body');
+                        if (tbody && tbody.children.length === 0) {
+                            aggiungiRigaOperaio();
+                        }
+                    }
+                }
+
+                // Campo macchine rimosso - non più necessario
+
+                calcolaResa();
+                document.getElementById('vendemmia-modal').classList.add('active');
+            } catch (error) {
+                console.error('Errore modifica vendemmia:', error);
+                alert('Errore nel caricamento della vendemmia: ' + error.message);
+            }
+        };
+
+        async function loadDatiLavoro(lavoroId) {
+            try {
+                const tenantId = getCurrentTenantId();
+                if (!tenantId) return;
+                
+                const db = getDb();
+                const lavoro = await getLavoro(lavoroId);
+                if (!lavoro) return;
+                
+                // Aggiorna link - usa gestione-lavori per manager/amministratore (più accessibile)
+                const linkLavoro = document.getElementById('link-lavoro');
+                linkLavoro.href = `../../../core/admin/gestione-lavori-standalone.html?lavoroId=${lavoroId}`;
+                
+                // Calcola superficie vendemmiata dal lavoro
+                let superficieVendemmiata = null;
+                if (lavoro.superficieTotaleLavorata && lavoro.superficieTotaleLavorata > 0) {
+                    // Usa superficie totale lavorata se disponibile (calcolata dalle zone tracciate)
+                    superficieVendemmiata = lavoro.superficieTotaleLavorata;
+                } else if (lavoro.percentualeCompletamento && lavoro.terrenoId) {
+                    // Calcola dalla percentuale di completamento
+                    const terrenoDoc = await getDoc(doc(db, `tenants/${tenantId}/terreni`, lavoro.terrenoId));
+                    if (terrenoDoc.exists()) {
+                        const terreno = terrenoDoc.data();
+                        const superficieTotaleTerreno = terreno.superficie || 0;
+                        if (superficieTotaleTerreno > 0) {
+                            superficieVendemmiata = (lavoro.percentualeCompletamento / 100) * superficieTotaleTerreno;
+                        }
+                    }
+                }
+                
+                // Carica ore validate del lavoro
+                const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+                const oreSnapshot = await getDocs(oreQuery);
+                
+                const operaiMap = {};
+                let totaleOre = 0;
+                
+                for (const oraDoc of oreSnapshot.docs) {
+                    const ora = oraDoc.data();
+                    const operaioId = ora.operaioId;
+                    if (!operaioId) continue;
+                    
+                    // Carica dati operaio
+                    const userDoc = await getDoc(doc(db, 'users', operaioId));
+                    if (!userDoc.exists()) continue;
+                    
+                    const userData = userDoc.data();
+                    const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim() || userData.email || operaioId;
+                    
+                    const oreNette = ora.oreNette || 0;
+                    totaleOre += oreNette;
+                    
+                    if (!operaiMap[operaioId]) {
+                        operaiMap[operaioId] = {
+                            nome: nomeCompleto,
+                            oreTotali: 0
+                        };
+                    }
+                    operaiMap[operaioId].oreTotali += oreNette;
+                }
+                
+                // Carica macchine del lavoro con ore dalle oreOperai
+                const macchineMap = {};
+                
+                // Raccogli ore macchina dalle oreOperai validate
+                for (const oraDoc of oreSnapshot.docs) {
+                    const ora = oraDoc.data();
+                    const oreMacchina = ora.oreMacchina || 0;
+                    
+                    if (ora.macchinaId && oreMacchina > 0) {
+                        if (!macchineMap[ora.macchinaId]) {
+                            const macchina = macchine.find(m => m.id === ora.macchinaId);
+                            if (macchina) {
+                                macchineMap[ora.macchinaId] = {
+                                    id: ora.macchinaId,
+                                    nome: macchina.nome || macchina.marca,
+                                    tipo: 'Trattore',
+                                    oreTotali: 0
+                                };
+                            }
+                        }
+                        if (macchineMap[ora.macchinaId]) {
+                            macchineMap[ora.macchinaId].oreTotali += oreMacchina;
+                        }
+                    }
+                    
+                    if (ora.attrezzoId && oreMacchina > 0) {
+                        if (!macchineMap[ora.attrezzoId]) {
+                            const attrezzo = macchine.find(m => m.id === ora.attrezzoId);
+                            if (attrezzo) {
+                                macchineMap[ora.attrezzoId] = {
+                                    id: ora.attrezzoId,
+                                    nome: attrezzo.nome || attrezzo.marca,
+                                    tipo: 'Attrezzo',
+                                    oreTotali: 0
+                                };
+                            }
+                        }
+                        if (macchineMap[ora.attrezzoId]) {
+                            macchineMap[ora.attrezzoId].oreTotali += oreMacchina;
+                        }
+                    }
+                }
+                
+                // Se non ci sono ore macchina nelle oreOperai, usa i dati del lavoro (fallback)
+                const macchineLavoro = Object.values(macchineMap);
+                if (macchineLavoro.length === 0) {
+                    if (lavoro.macchinaId) {
+                        const macchina = macchine.find(m => m.id === lavoro.macchinaId);
+                        if (macchina) {
+                            macchineLavoro.push({
+                                nome: macchina.nome || macchina.marca,
+                                tipo: 'Trattore',
+                                oreTotali: 0
+                            });
+                        }
+                    }
+                    if (lavoro.attrezzoId) {
+                        const attrezzo = macchine.find(m => m.id === lavoro.attrezzoId);
+                        if (attrezzo) {
+                            macchineLavoro.push({
+                                nome: attrezzo.nome || attrezzo.marca,
+                                tipo: 'Attrezzo',
+                                oreTotali: 0
+                            });
+                        }
+                    }
+                }
+                
+                // Renderizza tabelle
+                const tabelleContainer = document.getElementById('dati-lavoro-tabelle');
+                let html = '';
+                
+                // Tabella operai
+                if (Object.keys(operaiMap).length > 0) {
+                    html += '<h4 style="margin-top: 15px; margin-bottom: 10px;">Operai Coinvolti</h4>';
+                    html += '<table><thead><tr><th>Nome Operaio</th><th>Ore</th></tr></thead><tbody>';
+                    for (const operaioId of Object.keys(operaiMap)) {
+                        const op = operaiMap[operaioId];
+                        html += `<tr><td>${op.nome}</td><td>${op.oreTotali.toFixed(2)}h</td></tr>`;
+                    }
+                    html += `<tr style="font-weight: bold;"><td>Totale</td><td>${totaleOre.toFixed(2)}h</td></tr>`;
+                    html += '</tbody></table>';
+                }
+                
+                // Tabella macchine
+                if (macchineLavoro.length > 0) {
+                    html += '<h4 style="margin-top: 15px; margin-bottom: 10px;">Macchine Utilizzate</h4>';
+                    html += '<table><thead><tr><th>Tipo</th><th>Nome</th><th>Ore</th></tr></thead><tbody>';
+                    macchineLavoro.forEach(m => {
+                        const ore = m.oreTotali !== undefined ? m.oreTotali.toFixed(2) : '-';
+                        html += `<tr><td>${m.tipo}</td><td>${m.nome}</td><td>${ore}h</td></tr>`;
+                    });
+                    // Non mostriamo il totale perché trattore+attrezzo lavorano insieme (stesse ore, non cumulabili)
+                    html += '</tbody></table>';
+                }
+                
+                tabelleContainer.innerHTML = html;
+                
+                // Ritorna superficie vendemmiata calcolata
+                return superficieVendemmiata;
+            } catch (error) {
+                console.error('Errore caricamento dati lavoro:', error);
+                return null;
+            }
+        }
+
+        window.deleteVendemmiaConfirm = function(vignetoId, vendemmiaId) {
+            if (confirm('Sei sicuro di voler eliminare questa vendemmia?')) {
+                deleteVendemmiaAction(vignetoId, vendemmiaId);
+            }
+        };
+
+        async function deleteVendemmiaAction(vignetoId, vendemmiaId) {
+            try {
+                await deleteVendemmia(vignetoId, vendemmiaId);
+                await loadVendemmie();
+                alert('Vendemmia eliminata con successo');
+            } catch (error) {
+                console.error('Errore eliminazione vendemmia:', error);
+                alert('Errore nell\'eliminazione: ' + error.message);
+            }
+        }
+
+        window.applyFilters = function() {
+            const filterVigneto = document.getElementById('filter-vigneto')?.value || '';
+            const filterVarieta = document.getElementById('filter-varieta')?.value || '';
+            const filterAnno = document.getElementById('filter-anno')?.value || '';
+            
+            // Filtra vendemmie
+            vendemmie = allVendemmie.filter(vendemmia => {
+                // Filtro vigneto
+                if (filterVigneto && vendemmia.vignetoId !== filterVigneto) {
+                    return false;
+                }
+                
+                // Filtro varietà
+                if (filterVarieta && vendemmia.varieta !== filterVarieta) {
+                    return false;
+                }
+                
+                // Filtro anno
+                if (filterAnno) {
+                    const dataVendemmia = vendemmia.data instanceof Date 
+                        ? vendemmia.data 
+                        : (vendemmia.data?.toDate ? vendemmia.data.toDate() : new Date(vendemmia.data));
+                    const annoVendemmia = dataVendemmia.getFullYear();
+                    if (annoVendemmia.toString() !== filterAnno) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            // Renderizza vendemmie filtrate
+            renderVendemmie();
+        };
+
+        window.resetFilters = function() {
+            document.getElementById('filter-vigneto').value = '';
+            document.getElementById('filter-varieta').value = '';
+            document.getElementById('filter-anno').value = '';
+            applyFilters();
+        };
+
+        // Funzioni per gestire tabella editabile operai
+        let rigaOperaioCounter = 0;
+        
+        window.aggiungiRigaOperaio = function() {
+            const tbody = document.getElementById('operai-tabella-body');
+            const rigaId = `riga-operaio-${rigaOperaioCounter++}`;
+            const dataVendemmia = document.getElementById('data').value || new Date().toISOString().split('T')[0];
+            
+            const tr = document.createElement('tr');
+            tr.id = rigaId;
+            tr.innerHTML = `
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="date" class="operaio-data" value="${dataVendemmia}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                </td>
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="text" class="operaio-nome" placeholder="Nome operaio" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                </td>
+                <td style="padding: 8px; border: 1px solid #ddd;">
+                    <input type="number" class="operaio-ore" placeholder="Ore" min="0" step="0.5" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;" onchange="aggiornaTotaleOreOperai()" oninput="aggiornaTotaleOreOperai()">
+                </td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="rimuoviRigaOperaio('${rigaId}')" style="padding: 4px 8px;">🗑️</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            
+            // Mostra footer con totale se non già visibile
+            const footer = document.getElementById('operai-tabella-footer');
+            if (footer) {
+                footer.style.display = 'table-footer-group';
+            }
+            
+            // Aggiorna totale
+            aggiornaTotaleOreOperai();
+        };
+        
+        window.rimuoviRigaOperaio = function(rigaId) {
+            const riga = document.getElementById(rigaId);
+            if (riga) {
+                riga.remove();
+                aggiornaTotaleOreOperai();
+                
+                // Nascondi footer se non ci sono più righe
+                const tbody = document.getElementById('operai-tabella-body');
+                const footer = document.getElementById('operai-tabella-footer');
+                if (tbody && tbody.children.length === 0 && footer) {
+                    footer.style.display = 'none';
+                }
+            }
+        };
+        
+        // Funzione per calcolare e aggiornare il totale delle ore
+        window.aggiornaTotaleOreOperai = function() {
+            const tbody = document.getElementById('operai-tabella-body');
+            const totaleElement = document.getElementById('totale-ore-operai');
+            const footer = document.getElementById('operai-tabella-footer');
+            
+            if (!tbody || !totaleElement) return;
+            
+            let totale = 0;
+            const righe = tbody.querySelectorAll('tr');
+            
+            righe.forEach(riga => {
+                const oreInput = riga.querySelector('.operaio-ore');
+                if (oreInput && oreInput.value) {
+                    const ore = parseFloat(oreInput.value);
+                    if (!isNaN(ore) && ore >= 0) {
+                        totale += ore;
+                    }
+                }
+            });
+            
+            totaleElement.textContent = totale.toFixed(1);
+            
+            // Mostra/nascondi footer in base alla presenza di righe
+            if (footer) {
+                if (righe.length > 0) {
+                    footer.style.display = 'table-footer-group';
+                } else {
+                    footer.style.display = 'none';
+                }
+            }
+        };
+        
+        function popolaTabellaOperai(operaiData) {
+            const tbody = document.getElementById('operai-tabella-body');
+            const footer = document.getElementById('operai-tabella-footer');
+            
+            if (!tbody) {
+                console.error('[VENDEMMIA] popolaTabellaOperai - tbody NON TROVATO!');
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            
+            // Nascondi footer inizialmente
+            if (footer) {
+                footer.style.display = 'none';
+            }
+            
+            if (Array.isArray(operaiData) && operaiData.length > 0) {
+                // Se operaiData è array di oggetti (da tabella editabile)
+                if (operaiData[0] && typeof operaiData[0] === 'object' && operaiData[0].nome) {
+                    operaiData.forEach(op => {
+                        const rigaId = `riga-operaio-${rigaOperaioCounter++}`;
+                        const tr = document.createElement('tr');
+                        tr.id = rigaId;
+                        const dataOp = op.data instanceof Date 
+                            ? op.data.toISOString().split('T')[0]
+                            : (op.data?.toDate ? op.data.toDate().toISOString().split('T')[0] : op.data || '');
+                        tr.innerHTML = `
+                            <td style="padding: 8px; border: 1px solid #ddd;">
+                                <input type="date" class="operaio-data" value="${dataOp}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">
+                                <input type="text" class="operaio-nome" value="${op.nome || ''}" placeholder="Nome operaio" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">
+                                <input type="number" class="operaio-ore" value="${op.ore || ''}" placeholder="Ore" min="0" step="0.5" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;" onchange="aggiornaTotaleOreOperai()" oninput="aggiornaTotaleOreOperai()">
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                                <button type="button" class="btn btn-sm btn-danger" onclick="rimuoviRigaOperaio('${rigaId}')" style="padding: 4px 8px;">🗑️</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    
+                    // Mostra footer con totale
+                    const footer = document.getElementById('operai-tabella-footer');
+                    if (footer) {
+                        footer.style.display = 'table-footer-group';
+                    }
+                    
+                    // Aggiorna totale dopo aver popolato la tabella
+                    setTimeout(() => aggiornaTotaleOreOperai(), 100);
+                } else {
+                    // Se operaiData è array di ID (da dropdown), non popolare tabella (dovrebbe usare dropdown)
+                    aggiungiRigaOperaio();
+                }
+            } else {
+                // Nessun dato: aggiungi una riga vuota
+                aggiungiRigaOperaio();
+            }
+        }
+        
+        function getOperaiFromTabella() {
+            const tbody = document.getElementById('operai-tabella-body');
+            const righe = tbody.querySelectorAll('tr');
+            const operaiData = [];
+            
+            righe.forEach(riga => {
+                const dataInput = riga.querySelector('.operaio-data');
+                const nomeInput = riga.querySelector('.operaio-nome');
+                const oreInput = riga.querySelector('.operaio-ore');
+                
+                if (dataInput && nomeInput && nomeInput.value.trim()) {
+                    operaiData.push({
+                        data: dataInput.value ? new Date(dataInput.value) : null,
+                        nome: nomeInput.value.trim(),
+                        ore: oreInput.value ? parseFloat(oreInput.value) : 0
+                    });
+                }
+            });
+            
+            return operaiData;
+        }
+        
+        // ========== FUNZIONI TABELLA MACCHINE (SOLA LETTURA) ==========
+        
+        function popolaTabellaMacchine(macchineData) {
+            console.log('[VENDEMMIA] popolaTabellaMacchine chiamata con:', macchineData);
+            
+            const tbody = document.getElementById('macchine-tabella-body');
+            if (!tbody) {
+                console.error('[VENDEMMIA] tbody macchine-tabella-body non trovato!');
+                return;
+            }
+            
+            console.log('[VENDEMMIA] tbody trovato, pulisco...');
+            tbody.innerHTML = '';
+            
+            if (Array.isArray(macchineData) && macchineData.length > 0) {
+                console.log('[VENDEMMIA] Aggiungo', macchineData.length, 'righe alla tabella');
+                macchineData.forEach((m, index) => {
+                    const tr = document.createElement('tr');
+                    
+                    // Gestisci formato: può essere {id, nome, tipo, ore} o {nome, tipo, oreTotali}
+                    const tipo = m.tipo || 'Trattore';
+                    const nome = m.nome || '';
+                    const ore = m.ore !== undefined ? m.ore : (m.oreTotali !== undefined ? m.oreTotali : 0);
+                    const macchinaId = m.id || null; // ID macchina se disponibile
+                    
+                    console.log(`[VENDEMMIA] Riga ${index + 1}:`, { tipo, nome, ore, macchinaId });
+                    
+                    // Imposta data-macchina-id se disponibile
+                    if (macchinaId) {
+                        tr.setAttribute('data-macchina-id', macchinaId);
+                    }
+                    
+                    // Tabella di sola lettura (come quando manodopera è attivo)
+                    tr.innerHTML = `
+                        <td style="padding: 8px; border: 1px solid #ddd;">${tipo}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${nome}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${ore.toFixed(2)}h</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                console.log('[VENDEMMIA] Tabella popolata con', macchineData.length, 'righe');
+            } else {
+                console.log('[VENDEMMIA] Nessun dato macchine, mostro messaggio vuoto');
+                // Nessun dato: mostra messaggio
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td colspan="3" style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #6c757d;">
+                        Nessuna macchina registrata
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+        
+        // Carica macchine dalla vendemmia o dall'attività collegata
+        async function caricaMacchinePerVendemmia(vendemmia) {
+            console.log('[VENDEMMIA] caricaMacchinePerVendemmia chiamata', { 
+                vendemmiaId: vendemmia.id, 
+                attivitaId: vendemmia.attivitaId,
+                lavoroId: vendemmia.lavoroId,
+                macchineVendemmia: vendemmia.macchine 
+            });
+            
+            try {
+                // Assicurati che le macchine siano caricate
+                console.log('[VENDEMMIA] Stato macchine prima del caricamento:', { 
+                    macchineLength: macchine ? macchine.length : 0,
+                    macchineDefinito: typeof macchine !== 'undefined'
+                });
+                
+                if (!macchine || macchine.length === 0) {
+                    console.log('[VENDEMMIA] Macchine vuote, carico...');
+                    await loadMacchine();
+                    console.log('[VENDEMMIA] Macchine caricate:', { 
+                        macchineLength: macchine ? macchine.length : 0 
+                    });
+                }
+                
+                let macchineData = [];
+                
+                // Priorità: 1) Attività collegata, 2) Macchine salvate nella vendemmia
+                if (vendemmia.attivitaId) {
+                    console.log('[VENDEMMIA] Vendemmia ha attivitaId:', vendemmia.attivitaId);
+                    // Se c'è un'attività collegata, carica macchine da lì (priorità)
+                    const attivita = await getAttivita(vendemmia.attivitaId);
+                    console.log('[VENDEMMIA] Attività caricata completa:', attivita);
+                    console.log('[VENDEMMIA] Attività caricata (campi macchina):', { 
+                        attivitaId: attivita ? attivita.id : null,
+                        macchinaId: attivita ? attivita.macchinaId : null,
+                        attrezzoId: attivita ? attivita.attrezzoId : null,
+                        oreMacchina: attivita ? attivita.oreMacchina : null,
+                        oreNette: attivita ? attivita.oreNette : null,
+                        tutteLeChiavi: attivita ? Object.keys(attivita) : []
+                    });
+                    
+                    if (attivita) {
+                        if (attivita.macchinaId) {
+                            console.log('[VENDEMMIA] Cercando trattore con ID:', attivita.macchinaId);
+                            const macchina = macchine.find(m => m.id === attivita.macchinaId);
+                            console.log('[VENDEMMIA] Trattore trovato:', { 
+                                trovato: !!macchina,
+                                nome: macchina ? macchina.nome : null,
+                                marca: macchina ? macchina.marca : null
+                            });
+                            
+                            if (macchina) {
+                                macchineData.push({
+                                    id: attivita.macchinaId, // Aggiungi ID per calcolo costi
+                                    tipo: 'Trattore',
+                                    nome: macchina.nome || macchina.marca || 'Trattore',
+                                    ore: attivita.oreMacchina || attivita.oreNette || 0
+                                });
+                            } else {
+                                // Se non trovata nella lista, usa almeno l'ID
+                                console.warn('[VENDEMMIA] Trattore non trovato nella lista macchine, uso ID');
+                                macchineData.push({
+                                    id: attivita.macchinaId, // Aggiungi ID per calcolo costi
+                                    tipo: 'Trattore',
+                                    nome: `Trattore (ID: ${attivita.macchinaId})`,
+                                    ore: attivita.oreMacchina || attivita.oreNette || 0
+                                });
+                            }
+                        }
+                        if (attivita.attrezzoId) {
+                            console.log('[VENDEMMIA] Cercando attrezzo con ID:', attivita.attrezzoId);
+                            const attrezzo = macchine.find(m => m.id === attivita.attrezzoId);
+                            console.log('[VENDEMMIA] Attrezzo trovato:', { 
+                                trovato: !!attrezzo,
+                                nome: attrezzo ? attrezzo.nome : null,
+                                marca: attrezzo ? attrezzo.marca : null
+                            });
+                            
+                            if (attrezzo) {
+                                macchineData.push({
+                                    id: attivita.attrezzoId, // Aggiungi ID per calcolo costi
+                                    tipo: 'Attrezzo',
+                                    nome: attrezzo.nome || attrezzo.marca || 'Attrezzo',
+                                    ore: attivita.oreMacchina || attivita.oreNette || 0
+                                });
+                            } else {
+                                // Se non trovato nella lista, usa almeno l'ID
+                                console.warn('[VENDEMMIA] Attrezzo non trovato nella lista macchine, uso ID');
+                                macchineData.push({
+                                    id: attivita.attrezzoId, // Aggiungi ID per calcolo costi
+                                    tipo: 'Attrezzo',
+                                    nome: `Attrezzo (ID: ${attivita.attrezzoId})`,
+                                    ore: attivita.oreMacchina || attivita.oreNette || 0
+                                });
+                            }
+                        }
+                    } else {
+                        console.warn('[VENDEMMIA] Attività non trovata con ID:', vendemmia.attivitaId);
+                    }
+                } else if (vendemmia.macchine && Array.isArray(vendemmia.macchine) && vendemmia.macchine.length > 0) {
+                    console.log('[VENDEMMIA] Usando macchine salvate nella vendemmia:', vendemmia.macchine);
+                    // Se non c'è attività ma ci sono macchine salvate nella vendemmia, usale
+                    macchineData = vendemmia.macchine;
+                } else {
+                    console.log('[VENDEMMIA] Nessuna macchina trovata (nessuna attività collegata e nessuna macchina salvata)');
+                }
+                
+                console.log('[VENDEMMIA] MacchineData finale:', macchineData);
+                
+                // Popola tabella con i dati trovati (sola lettura)
+                popolaTabellaMacchine(macchineData);
+            } catch (error) {
+                console.error('[VENDEMMIA] Errore caricamento macchine:', error);
+                // In caso di errore, mostra tabella vuota
+                popolaTabellaMacchine([]);
+            }
+        }
+
+        // Gestione form
+        document.getElementById('vendemmia-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                // Rimuovi required dal campo operai se la sezione è nascosta (vendemmia collegata a lavoro)
+                const lavoroId = document.getElementById('lavoro-id-hidden').value;
+                const operaiDropdownSection = document.getElementById('operai-dropdown-section');
+                const operaiTabellaSection = document.getElementById('operai-tabella-section');
+                const operaiSelect = document.getElementById('operai');
+                
+                if (lavoroId || (operaiDropdownSection && operaiDropdownSection.style.display === 'none' && operaiTabellaSection && operaiTabellaSection.style.display === 'none')) {
+                    // Vendemmia collegata a lavoro o sezioni nascoste: rimuovi required
+                    if (operaiSelect) {
+                        operaiSelect.removeAttribute('required');
+                    }
+                }
+                
+                const vignetoId = document.getElementById('vignetoId').value;
+                
+                if (!vignetoId) {
+                    alert('Seleziona un vigneto');
+                    return;
+                }
+
+                // Gestisci operai in base a modulo manodopera
+                const hasManodopera = window.hasManodoperaModule || false;
+                let operaiData = [];
+                
+                if (lavoroId) {
+                    // Vendemmia collegata a lavoro: operai vengono dal lavoro (non modificabili)
+                    operaiData = [];
+                } else if (hasManodopera) {
+                    // Modulo manodopera attivo: usa dropdown
+                    const operaiSelect = document.getElementById('operai');
+                    operaiData = Array.from(operaiSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
+                    if (operaiData.length === 0) {
+                        alert('Seleziona almeno un operaio');
+                        return;
+                    }
+                } else {
+                    // Modulo manodopera non attivo: usa tabella editabile
+                    operaiData = getOperaiFromTabella();
+                    // Valida che ci sia almeno un operaio
+                    if (operaiData.length === 0) {
+                        alert('Inserisci almeno un operaio nella tabella');
+                        return;
+                    }
+                }
+                
+                // Macchine: estrai dalla tabella o dal lavoro/attività collegata
+                let macchineSelezionate = [];
+                
+                // Se vendemmia collegata a lavoro, recupera macchine dal lavoro
+                if (lavoroId) {
+                    console.log('[VENDEMMIA] Vendemmia collegata a lavoro, recupero macchine dal lavoro...');
+                    try {
+                        const { getLavoro } = await import('../../../core/services/lavori-service.js');
+                        const lavoro = await getLavoro(lavoroId);
+                        console.log('[VENDEMMIA] Lavoro caricato:', { id: lavoro?.id, macchinaId: lavoro?.macchinaId, attrezzoId: lavoro?.attrezzoId });
+                        
+                        if (lavoro) {
+                            if (lavoro.macchinaId) {
+                                macchineSelezionate.push(lavoro.macchinaId);
+                            }
+                            if (lavoro.attrezzoId) {
+                                macchineSelezionate.push(lavoro.attrezzoId);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[VENDEMMIA] Errore recupero macchine dal lavoro:', error);
+                    }
+                } else {
+                    // Estrai macchine dalla tabella (se presente)
+                    const macchineTabellaBody = document.getElementById('macchine-tabella-body');
+                    if (macchineTabellaBody) {
+                        const righe = macchineTabellaBody.querySelectorAll('tr');
+                        console.log('[VENDEMMIA] Trovate', righe.length, 'righe nella tabella macchine');
+                        
+                        righe.forEach((riga, index) => {
+                            const macchinaIdAttr = riga.getAttribute('data-macchina-id');
+                            const oreInput = riga.querySelector('input[type="number"]');
+                            const ore = oreInput ? parseFloat(oreInput.value) || 0 : 0;
+                            
+                            if (macchinaIdAttr) {
+                                console.log(`[VENDEMMIA] Macchina ${index + 1}: ID=${macchinaIdAttr}, Ore=${ore}`);
+                                macchineSelezionate.push({
+                                    id: macchinaIdAttr,
+                                    ore: ore
+                                });
+                            }
+                        });
+                    }
+                }
+                
+                console.log('[VENDEMMIA] Macchine selezionate per salvataggio:', macchineSelezionate);
+
+                // Calcola ore totali se operai è array di oggetti (tabella editabile)
+                let oreImpiegateValue = null;
+                if (!hasManodopera && !lavoroId && Array.isArray(operaiData) && operaiData.length > 0 && typeof operaiData[0] === 'object' && operaiData[0].ore !== undefined) {
+                    // Calcola ore totali dalla tabella editabile
+                    const oreTotali = operaiData.reduce((sum, op) => sum + (op.ore || 0), 0);
+                    if (oreTotali > 0) {
+                        oreImpiegateValue = oreTotali;
+                    }
+                }
+
+                // Prepara coordinate poligono se presente
+                let poligonoVendemmiato = null;
+                if (poligonoCoords && poligonoCoords.length >= 3) {
+                    // Usa poligono tracciato/modificato
+                    // Verifica se sono già oggetti {lat, lng} o LatLng
+                    if (typeof poligonoCoords[0] === 'object' && poligonoCoords[0].lat !== undefined && typeof poligonoCoords[0].lat === 'function') {
+                        // Sono LatLng, converti
+                        poligonoVendemmiato = poligonoCoords.map(coord => ({
+                            lat: coord.lat(),
+                            lng: coord.lng()
+                        }));
+                    } else if (typeof poligonoCoords[0] === 'object' && poligonoCoords[0].lat !== undefined) {
+                        // Sono già oggetti {lat, lng}
+                        poligonoVendemmiato = poligonoCoords;
+                    }
+                } else if (currentEditingId && currentVignetoId) {
+                    // Se si sta modificando e non c'è nuovo poligono, mantieni quello esistente
+                    try {
+                        const vendemmiaEsistente = await getVendemmia(currentVignetoId, currentEditingId);
+                        if (vendemmiaEsistente && vendemmiaEsistente.poligonoVendemmiato) {
+                            poligonoVendemmiato = vendemmiaEsistente.poligonoVendemmiato;
+                        }
+                    } catch (error) {
+                        console.error('Errore recupero poligono esistente:', error);
+                    }
+                }
+
+                const formData = {
+                    vignetoId: vignetoId,
+                    data: new Date(document.getElementById('data').value),
+                    varieta: document.getElementById('varieta').value,
+                    quantitaQli: parseFloat(document.getElementById('quantitaQli').value),
+                    quantitaEttari: parseFloat(document.getElementById('quantitaEttari').value),
+                    gradazione: document.getElementById('gradazione').value ? parseFloat(document.getElementById('gradazione').value) : null,
+                    acidita: document.getElementById('acidita').value ? parseFloat(document.getElementById('acidita').value) : null,
+                    ph: document.getElementById('ph').value ? parseFloat(document.getElementById('ph').value) : null,
+                    destinazione: document.getElementById('destinazione').value,
+                    operai: operaiData,
+                    macchine: macchineSelezionate, // Macchine dalla tabella editabile (quando manodopera non attivo)
+                    oreImpiegate: oreImpiegateValue, // Ore totali calcolate da operai se tabella editabile
+                    parcella: null, // Campo rimosso
+                    poligonoVendemmiato: poligonoVendemmiato, // Coordinate poligono area vendemmiata
+                    note: document.getElementById('note').value || ''
+                };
+                
+                console.log('[VENDEMMIA] FormData preparato per salvataggio:', {
+                    vignetoId: formData.vignetoId,
+                    operaiCount: formData.operai?.length || 0,
+                    macchineCount: formData.macchine?.length || 0,
+                    macchine: formData.macchine,
+                    oreImpiegate: formData.oreImpiegate
+                });
+
+                console.log('[VENDEMMIA] ========== SALVATAGGIO VENDEMMIA ==========');
+                console.log('[VENDEMMIA] Modo:', currentEditingId && currentVignetoId ? 'UPDATE' : 'CREATE');
+                console.log('[VENDEMMIA] FormData completo:', JSON.stringify(formData, null, 2));
+                
+                if (currentEditingId && currentVignetoId) {
+                    console.log('[VENDEMMIA] Chiamo updateVendemmia...');
+                    await updateVendemmia(currentVignetoId, currentEditingId, formData);
+                    console.log('[VENDEMMIA] updateVendemmia completata');
+                    alert('Vendemmia aggiornata con successo');
+                } else {
+                    console.log('[VENDEMMIA] Chiamo createVendemmia...');
+                    const vendemmiaId = await createVendemmia(vignetoId, formData);
+                    console.log('[VENDEMMIA] createVendemmia completata, ID:', vendemmiaId);
+                    alert('Vendemmia registrata con successo');
+                }
+
+                closeModal();
+                await loadVendemmie();
+            } catch (error) {
+                console.error('Errore salvataggio vendemmia:', error);
+                alert('Errore nel salvataggio: ' + error.message);
+            }
+        });
+
+        // Chiudi modal cliccando fuori
+        document.getElementById('vendemmia-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'vendemmia-modal') {
+                closeModal();
+            }
+        });
+
+        // ========== FUNZIONI MAPPA TRACCIAMENTO POLIGONO ==========
+        
+        window.apriMappaTracciamento = async function() {
+            // Verifica che Google Maps sia caricato
+            if (typeof google === 'undefined' || !google.maps) {
+                // Aspetta che Google Maps sia caricato
+                let attempts = 0;
+                const maxAttempts = 50;
+                while (attempts < maxAttempts && (typeof google === 'undefined' || !google.maps)) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (typeof google === 'undefined' || !google.maps) {
+                    alert('Google Maps non è ancora caricato. Attendi qualche secondo e riprova.');
+                    return;
+                }
+            }
+            
+            const vignetoId = document.getElementById('vignetoId').value;
+            if (!vignetoId) {
+                alert('Seleziona prima un vigneto');
+                return;
+            }
+            
+            const vigneto = vigneti.find(v => v.id === vignetoId);
+            if (!vigneto) {
+                alert('Vigneto non trovato');
+                return;
+            }
+            
+            currentVignetoForMap = vigneto;
+            
+            // Carica terreno per visualizzare confini
+            const terreno = await getTerreno(vigneto.terrenoId);
+            if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) {
+                alert('Il terreno selezionato non ha confini tracciati. Traccia prima i confini del terreno.');
+                return;
+            }
+            
+            // Apri modal mappa
+            document.getElementById('modal-mappa-vendemmia').classList.add('active');
+            
+            // Inizializza mappa se non già inizializzata
+            if (!mappaVendemmia) {
+                await initMappaVendemmia(terreno);
+            } else {
+                // Ricarica terreno se necessario
+                await caricaTerrenoSullaMappa(terreno);
+            }
+            
+            // Carica poligono esistente se presente
+            // Priorità: 1) poligono tracciato nella sessione corrente, 2) poligono salvato nella vendemmia
+            setTimeout(async () => {
+                if (!mappaVendemmia) return;
+                
+                // Se c'è già un poligono tracciato nella sessione, usalo
+                if (poligonoCoords && poligonoCoords.length >= 3) {
+                    // Converti in LatLng se necessario
+                    if (typeof poligonoCoords[0] === 'object' && poligonoCoords[0].lat !== undefined && typeof poligonoCoords[0].lat !== 'function') {
+                        // Sono oggetti {lat, lng}, converti in LatLng
+                        poligonoCoords = poligonoCoords.map(c => new google.maps.LatLng(c.lat, c.lng));
+                    }
+                    aggiornaPoligonoSullaMappa();
+                    aggiornaInfoPoligono();
+                } else {
+                    // Altrimenti, carica poligono salvato nella vendemmia (se si sta modificando)
+                    const vendemmiaId = document.getElementById('vendemmia-id').value;
+                    if (vendemmiaId && currentVignetoId) {
+                        try {
+                            const vendemmiaEsistente = await getVendemmia(currentVignetoId, vendemmiaId);
+                            if (vendemmiaEsistente && vendemmiaEsistente.poligonoVendemmiato && vendemmiaEsistente.poligonoVendemmiato.length > 0) {
+                                caricaPoligonoEsistente(vendemmiaEsistente.poligonoVendemmiato);
+                            }
+                        } catch (error) {
+                            console.error('Errore caricamento vendemmia esistente:', error);
+                        }
+                    }
+                }
+            }, 500);
+        };
+        
+        window.chiudiMappaTracciamento = function() {
+            // Termina tracciamento se attivo
+            if (isDrawingPolygon) {
+                isDrawingPolygon = false;
+                const mapContainer = document.querySelector('.modal-mappa-body');
+                console.log('[VENDEMMIA] chiudiMappaTracciamento - Rimozione classe drawing-mode');
+                if (mapContainer) {
+                    mapContainer.classList.remove('drawing-mode');
+                    // Rimuovi anche il cursore via JavaScript
+                    const mappaElement = document.getElementById('mappa-vendemmia-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = '';
+                        const mapDivs = mappaElement.querySelectorAll('div');
+                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                        mapDivs.forEach(div => {
+                            div.style.cursor = '';
+                        });
+                        mapCanvas.forEach(canvas => {
+                            canvas.style.cursor = '';
+                        });
+                    }
+                }
+                const btn = document.getElementById('btn-draw-polygon');
+                if (btn) {
+                    btn.textContent = '✏️ Traccia Poligono';
+                    btn.style.background = '#17a2b8';
+                }
+                if (mappaVendemmia.clickListener) {
+                    google.maps.event.removeListener(mappaVendemmia.clickListener);
+                    mappaVendemmia.clickListener = null;
+                }
+            }
+            
+            // Chiudi modal
+            if (isDrawingPolygon) {
+                isDrawingPolygon = false;
+                document.getElementById('btn-draw-polygon').textContent = '✏️ Traccia Poligono';
+                document.getElementById('btn-draw-polygon').style.background = '#17a2b8';
+                
+                if (mappaVendemmia && mappaVendemmia.clickListener) {
+                    google.maps.event.removeListener(mappaVendemmia.clickListener);
+                    mappaVendemmia.clickListener = null;
+                }
+            }
+            
+            document.getElementById('modal-mappa-vendemmia').classList.remove('active');
+            
+            // NOTA: Non eliminiamo il poligono tracciato, così l'utente può riaprire la mappa
+            // e vedere/modificare il poligono. Verrà salvato solo quando si conferma con "Conferma e Applica"
+        };
+        
+        async function initMappaVendemmia(terreno) {
+            try {
+                const container = document.getElementById('mappa-vendemmia-container');
+                if (!container) return;
+                
+                // Inizializza mappa centrata sul terreno
+                const center = terreno.polygonCoords && terreno.polygonCoords.length > 0
+                    ? { lat: terreno.polygonCoords[0].lat, lng: terreno.polygonCoords[0].lng }
+                    : { lat: 43.7228, lng: 10.4017 }; // Default Toscana
+                
+                mappaVendemmia = new google.maps.Map(container, {
+                    center: center,
+                    zoom: 15,
+                    mapTypeId: 'satellite',
+                    mapTypeControl: true,
+                    streetViewControl: false
+                });
+                
+                // Carica terreno sulla mappa
+                await caricaTerrenoSullaMappa(terreno);
+                
+            } catch (error) {
+                console.error('Errore inizializzazione mappa:', error);
+                alert('Errore nel caricamento della mappa: ' + error.message);
+            }
+        }
+        
+        async function caricaTerrenoSullaMappa(terreno) {
+            if (!mappaVendemmia || !terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) return;
+            
+            // Rimuovi poligono terreno precedente se presente
+            if (terrenoPolygon) {
+                terrenoPolygon.setMap(null);
+            }
+            
+            // Crea poligono terreno
+            const terrenoCoords = terreno.polygonCoords.map(c => 
+                new google.maps.LatLng(c.lat, c.lng)
+            );
+            
+            terrenoPolygon = new google.maps.Polygon({
+                paths: terrenoCoords,
+                fillColor: '#2E8B57',
+                fillOpacity: 0.2,
+                strokeColor: '#2E8B57',
+                strokeWeight: 3,
+                strokeOpacity: 0.8,
+                editable: false,
+                clickable: false, // IMPORTANTE: false per non intercettare i click
+                zIndex: 1 // Sotto al poligono vendemmia
+            });
+            
+            terrenoPolygon.setMap(mappaVendemmia);
+            
+            // Salva coordinate del confine per lo snap
+            terrenoBoundaryCoords = terrenoCoords;
+            
+            // Centra mappa sul terreno
+            const bounds = new google.maps.LatLngBounds();
+            terrenoCoords.forEach(coord => bounds.extend(coord));
+            mappaVendemmia.fitBounds(bounds);
+        }
+        
+        window.iniziaTracciamentoPoligono = function() {
+            if (!mappaVendemmia) {
+                alert('Mappa non inizializzata');
+                return;
+            }
+            
+            if (isDrawingPolygon) {
+                // Termina tracciamento
+                isDrawingPolygon = false;
+                document.getElementById('btn-draw-polygon').textContent = '✏️ Traccia Poligono';
+                document.getElementById('btn-draw-polygon').style.background = '#17a2b8';
+                
+                // Rimuovi classe drawing-mode
+                const mapContainer = document.querySelector('.modal-mappa-body');
+                console.log('[VENDEMMIA] Termina tracciamento - Rimozione classe drawing-mode:', {
+                    mapContainer: mapContainer,
+                    hasMapContainer: !!mapContainer
+                });
+                if (mapContainer) {
+                    mapContainer.classList.remove('drawing-mode');
+                    console.log('[VENDEMMIA] Classe drawing-mode rimossa. Classi dopo:', mapContainer.className);
+                    
+                    // Rimuovi anche il cursore via JavaScript
+                    const mappaElement = document.getElementById('mappa-vendemmia-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = '';
+                        const mapDivs = mappaElement.querySelectorAll('div');
+                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                        mapDivs.forEach(div => {
+                            div.style.cursor = '';
+                        });
+                        mapCanvas.forEach(canvas => {
+                            canvas.style.cursor = '';
+                        });
+                    }
+                }
+                
+                // Rimuovi listener click
+                if (mappaVendemmia.clickListener) {
+                    google.maps.event.removeListener(mappaVendemmia.clickListener);
+                    mappaVendemmia.clickListener = null;
+                }
+            } else {
+                // Inizia tracciamento
+                // IMPORTANTE: Elimina poligono PRIMA di impostare isDrawingPolygon = true
+                // per evitare che eliminaPoligono() resetti il flag
+                
+                // Elimina poligono precedente se presente (senza resettare isDrawingPolygon)
+                if (poligonoVendemmia) {
+                    poligonoVendemmia.setMap(null);
+                    poligonoVendemmia = null;
+                }
+                poligonoCoords = [];
+                firstPoint = null;
+                
+                // Rimuovi listener precedente se presente
+                if (mappaVendemmia.clickListener) {
+                    google.maps.event.removeListener(mappaVendemmia.clickListener);
+                    mappaVendemmia.clickListener = null;
+                }
+                
+                // ORA imposta il flag a true
+                isDrawingPolygon = true;
+                console.log('[VENDEMMIA] isDrawingPolygon impostato a true');
+                
+                document.getElementById('btn-draw-polygon').textContent = '⏸️ Pausa Tracciamento';
+                document.getElementById('btn-draw-polygon').style.background = '#dc3545';
+                
+                // Aggiungi classe drawing-mode per cursore crosshair
+                const mapContainer = document.querySelector('.modal-mappa-body');
+                console.log('[VENDEMMIA] iniziaTracciamentoPoligono - Aggiunta classe drawing-mode:', {
+                    mapContainer: mapContainer,
+                    hasMapContainer: !!mapContainer,
+                    mapContainerClasses: mapContainer ? mapContainer.className : 'N/A',
+                    mappaElement: document.getElementById('mappa-vendemmia-container'),
+                    mappaElementStyle: document.getElementById('mappa-vendemmia-container') ? 
+                        window.getComputedStyle(document.getElementById('mappa-vendemmia-container')).cursor : 'N/A'
+                });
+                if (mapContainer) {
+                    mapContainer.classList.add('drawing-mode');
+                    console.log('[VENDEMMIA] Classe drawing-mode aggiunta. Classi dopo:', mapContainer.className);
+                    
+                    // Forza anche il cursore via JavaScript per Google Maps
+                    const mappaElement = document.getElementById('mappa-vendemmia-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = 'crosshair';
+                        console.log('[VENDEMMIA] Cursore crosshair impostato via JS su mappaElement');
+                        
+                        // Prova anche sugli elementi interni
+                        setTimeout(() => {
+                            const mapDivs = mappaElement.querySelectorAll('div');
+                            const mapCanvas = mappaElement.querySelectorAll('canvas');
+                            console.log('[VENDEMMIA] Elementi trovati nella mappa:', {
+                                divs: mapDivs.length,
+                                canvas: mapCanvas.length
+                            });
+                            mapDivs.forEach(div => {
+                                div.style.cursor = 'crosshair';
+                            });
+                            mapCanvas.forEach(canvas => {
+                                canvas.style.cursor = 'crosshair';
+                            });
+                        }, 100);
+                    }
+                } else {
+                    console.warn('[VENDEMMIA] mapContainer non trovato!');
+                }
+                
+                // Listener click sulla mappa con gestione doppio clic e snap
+                let clickTimeout = null;
+                console.log('[VENDEMMIA] Aggiungo listener click alla mappa');
+                mappaVendemmia.clickListener = mappaVendemmia.addListener('click', (event) => {
+                    console.log('[VENDEMMIA] Click ricevuto sulla mappa:', {
+                        isDrawingPolygon: isDrawingPolygon,
+                        hasEvent: !!event,
+                        hasLatLng: !!(event && event.latLng),
+                        clickTimeout: !!clickTimeout,
+                        poligonoCoordsLength: poligonoCoords.length
+                    });
+                    
+                    if (!isDrawingPolygon) {
+                        console.log('[VENDEMMIA] Click ignorato: isDrawingPolygon = false');
+                        return;
+                    }
+                    
+                    // Gestisci doppio clic per terminare tracciamento
+                    if (clickTimeout) {
+                        console.log('[VENDEMMIA] Doppio clic rilevato');
+                        clearTimeout(clickTimeout);
+                        clickTimeout = null;
+                        // Doppio clic: termina tracciamento
+                        if (poligonoCoords.length >= 3) {
+                            isDrawingPolygon = false;
+                            const btn = document.getElementById('btn-draw-polygon');
+                            const mapContainer = document.querySelector('.modal-mappa-body');
+                            console.log('[VENDEMMIA] Doppio clic - Termina tracciamento:', {
+                                mapContainer: mapContainer,
+                                hasMapContainer: !!mapContainer
+                            });
+                            btn.textContent = '✏️ Traccia Poligono';
+                            btn.style.background = '#17a2b8';
+                            if (mapContainer) {
+                                mapContainer.classList.remove('drawing-mode');
+                                console.log('[VENDEMMIA] Classe drawing-mode rimossa. Classi dopo:', mapContainer.className);
+                                // Rimuovi anche il cursore via JavaScript
+                                const mappaElement = document.getElementById('mappa-vendemmia-container');
+                                if (mappaElement) {
+                                    mappaElement.style.cursor = '';
+                                    const mapDivs = mappaElement.querySelectorAll('div');
+                                    const mapCanvas = mappaElement.querySelectorAll('canvas');
+                                    console.log('[VENDEMMIA] Rimozione cursore da elementi:', {
+                                        divs: mapDivs.length,
+                                        canvas: mapCanvas.length
+                                    });
+                                    mapDivs.forEach(div => {
+                                        div.style.cursor = '';
+                                    });
+                                    mapCanvas.forEach(canvas => {
+                                        canvas.style.cursor = '';
+                                    });
+                                }
+                            }
+                            alert('Tracciamento completato. Puoi modificare il poligono trascinando i punti.');
+                            return;
+                        }
+                        return;
+                    }
+                    
+                    // Singolo clic: aggiungi punto con snap
+                    console.log('[VENDEMMIA] Singolo clic - Imposto timeout');
+                    clickTimeout = setTimeout(() => {
+                        console.log('[VENDEMMIA] Timeout scaduto - Processo click');
+                        clickTimeout = null;
+                        
+                        // Applica snap: prima ai vertici, poi al confine
+                        // Tieni premuto Shift per disabilitare lo snap temporaneamente
+                        const disableSnap = event.domEvent && event.domEvent.shiftKey;
+                        let snappedPoint = event.latLng;
+                        let snapApplied = false;
+                        
+                        if (!disableSnap && terrenoBoundaryCoords.length > 0) {
+                            // 1. Snap ai vertici del terreno (solo se molto vicino)
+                            const vertexSnap = findNearestVertex(snappedPoint, terrenoBoundaryCoords, VERTEX_SNAP_DISTANCE_METERS);
+                            if (vertexSnap) {
+                                const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(snappedPoint, vertexSnap);
+                                if (snapDistance <= VERTEX_SNAP_DISTANCE_METERS) {
+                                    snappedPoint = vertexSnap;
+                                    snapApplied = true;
+                                }
+                            }
+                            
+                            // 2. Snap al confine del terreno (solo se non già agganciato a un vertice)
+                            if (!snapApplied) {
+                                const boundarySnap = findNearestPointOnBoundary(snappedPoint, terrenoBoundaryCoords, SNAP_DISTANCE_METERS);
+                                if (boundarySnap) {
+                                    const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(snappedPoint, boundarySnap);
+                                    if (snapDistance <= SNAP_DISTANCE_METERS) {
+                                        snappedPoint = boundarySnap;
+                                        snapApplied = true;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Feedback visivo quando applica lo snap
+                        if (snapApplied) {
+                            const snapMarker = new google.maps.Marker({
+                                position: snappedPoint,
+                                map: mappaVendemmia,
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 8,
+                                    fillColor: '#00ff00',
+                                    fillOpacity: 0.8,
+                                    strokeColor: '#ffffff',
+                                    strokeWeight: 2
+                                },
+                                zIndex: 2000
+                            });
+                            setTimeout(() => {
+                                if (snapMarker) snapMarker.setMap(null);
+                            }, 1000);
+                        }
+                        
+                        // Valida che il punto sia dentro i confini del terreno (con tolleranza)
+                        if (terrenoPolygon) {
+                            const isInside = google.maps.geometry.poly.containsLocation(snappedPoint, terrenoPolygon);
+                            const distanceToBoundary = getDistanceToBoundary(snappedPoint, terrenoBoundaryCoords);
+                            
+                            // Permetti punto se è dentro O se è molto vicino al confine (entro 3 metri)
+                            if (!isInside && distanceToBoundary > 3) {
+                                alert('Il punto deve essere dentro i confini del terreno!');
+                                return;
+                            }
+                            
+                            // Se il punto è stato agganciato al confine ma è leggermente fuori, spostalo leggermente dentro
+                            if (!isInside && distanceToBoundary <= 3) {
+                                snappedPoint = movePointInsideBoundary(snappedPoint, terrenoBoundaryCoords);
+                            }
+                        }
+                        
+                        // Salva il primo punto per la chiusura automatica
+                        if (poligonoCoords.length === 0) {
+                            firstPoint = snappedPoint;
+                        }
+                        
+                        // Verifica se il click è vicino al primo punto (per chiudere il poligono)
+                        if (firstPoint && poligonoCoords.length >= 3) {
+                            const distanzaDalPrimo = google.maps.geometry.spherical.computeDistanceBetween(
+                                snappedPoint,
+                                firstPoint
+                            );
+                            // Se il click è entro 20 metri dal primo punto, chiudi il poligono
+                            if (distanzaDalPrimo < 20) {
+                                poligonoCoords.push(firstPoint);
+                                
+                                // Termina tracciamento
+                                isDrawingPolygon = false;
+                                const btn = document.getElementById('btn-draw-polygon');
+                                const mapContainer = document.querySelector('.modal-mappa-body');
+                                console.log('[VENDEMMIA] Poligono chiuso automaticamente - Rimozione classe drawing-mode');
+                                btn.textContent = '✏️ Traccia Poligono';
+                                btn.style.background = '#17a2b8';
+                                if (mapContainer) {
+                                    mapContainer.classList.remove('drawing-mode');
+                                    console.log('[VENDEMMIA] Classe drawing-mode rimossa. Classi dopo:', mapContainer.className);
+                                    // Rimuovi anche il cursore via JavaScript
+                                    const mappaElement = document.getElementById('mappa-vendemmia-container');
+                                    if (mappaElement) {
+                                        mappaElement.style.cursor = '';
+                                        const mapDivs = mappaElement.querySelectorAll('div');
+                                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                                        console.log('[VENDEMMIA] Rimozione cursore da elementi:', {
+                                            divs: mapDivs.length,
+                                            canvas: mapCanvas.length
+                                        });
+                                        mapDivs.forEach(div => {
+                                            div.style.cursor = '';
+                                        });
+                                        mapCanvas.forEach(canvas => {
+                                            canvas.style.cursor = '';
+                                        });
+                                    }
+                                }
+                                alert('Poligono chiuso! Puoi modificarlo trascinando i punti.');
+                                
+                                aggiornaPoligonoSullaMappa();
+                                aggiornaInfoPoligono();
+                                return;
+                            }
+                        }
+                        
+                        poligonoCoords.push(snappedPoint);
+                        console.log('[VENDEMMIA] Punto aggiunto:', {
+                            punto: snappedPoint,
+                            totalePunti: poligonoCoords.length,
+                            snapped: snapApplied
+                        });
+                        
+                        // Aggiorna poligono sulla mappa
+                        aggiornaPoligonoSullaMappa();
+                        
+                        // Aggiorna info
+                        aggiornaInfoPoligono();
+                    }, 300); // Timeout per distinguere singolo da doppio clic
+                });
+            }
+        };
+        
+        function aggiornaPoligonoSullaMappa() {
+            if (!mappaVendemmia || poligonoCoords.length < 2) return;
+            
+            // Rimuovi poligono precedente
+            if (poligonoVendemmia) {
+                poligonoVendemmia.setMap(null);
+            }
+            
+            // Crea nuovo poligono
+            poligonoVendemmia = new google.maps.Polygon({
+                paths: poligonoCoords,
+                fillColor: '#FF6B35', // Arancione acceso per migliore visibilità
+                fillOpacity: 0.4,
+                strokeColor: '#FF4500', // Rosso-arancione per bordo più visibile
+                strokeWeight: 4,
+                strokeOpacity: 1.0,
+                editable: true,
+                draggable: false
+            });
+            
+            poligonoVendemmia.setMap(mappaVendemmia);
+            
+            // Listener per modifiche poligono (drag dei vertici)
+            google.maps.event.addListener(poligonoVendemmia.getPath(), 'set_at', function() {
+                poligonoCoords = poligonoVendemmia.getPath().getArray();
+                aggiornaInfoPoligono();
+            });
+            
+            google.maps.event.addListener(poligonoVendemmia.getPath(), 'insert_at', function() {
+                poligonoCoords = poligonoVendemmia.getPath().getArray();
+                aggiornaInfoPoligono();
+            });
+            
+            google.maps.event.addListener(poligonoVendemmia.getPath(), 'remove_at', function() {
+                poligonoCoords = poligonoVendemmia.getPath().getArray();
+                aggiornaInfoPoligono();
+            });
+        }
+        
+        function aggiornaInfoPoligono() {
+            const infoDiv = document.getElementById('mappa-info');
+            const superficieDiv = document.getElementById('superficie-calcolata');
+            const puntiDiv = document.getElementById('punti-tracciati');
+            const btnClear = document.getElementById('btn-clear-polygon');
+            const btnSave = document.getElementById('btn-save-polygon');
+            const btnConferma = document.getElementById('btn-conferma-polygon');
+            
+            if (poligonoCoords.length >= 3) {
+                // Calcola superficie
+                const areaMq = google.maps.geometry.spherical.computeArea(poligonoCoords);
+                const areaHa = areaMq / 10000; // Converti in ettari
+                
+                superficieDiv.textContent = areaHa.toFixed(2) + ' ha';
+                puntiDiv.textContent = poligonoCoords.length;
+                
+                infoDiv.style.display = 'block';
+                btnClear.style.display = 'inline-block';
+                btnSave.style.display = 'inline-block';
+                btnConferma.style.display = 'inline-block';
+            } else {
+                infoDiv.style.display = 'none';
+                btnClear.style.display = 'none';
+                btnSave.style.display = 'none';
+                btnConferma.style.display = 'none';
+            }
+        }
+        
+        window.eliminaPoligono = function(resetDrawingMode = true) {
+            if (poligonoVendemmia) {
+                poligonoVendemmia.setMap(null);
+                poligonoVendemmia = null;
+            }
+            poligonoCoords = [];
+            firstPoint = null;
+            
+            // Resetta isDrawingPolygon solo se esplicitamente richiesto
+            if (resetDrawingMode) {
+                isDrawingPolygon = false;
+                const mapContainer = document.querySelector('.modal-mappa-body');
+                console.log('[VENDEMMIA] eliminaPoligono - Rimozione classe drawing-mode');
+                if (mapContainer) {
+                    mapContainer.classList.remove('drawing-mode');
+                    // Rimuovi anche il cursore via JavaScript
+                    const mappaElement = document.getElementById('mappa-vendemmia-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = '';
+                        const mapDivs = mappaElement.querySelectorAll('div');
+                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                        mapDivs.forEach(div => {
+                            div.style.cursor = '';
+                        });
+                        mapCanvas.forEach(canvas => {
+                            canvas.style.cursor = '';
+                        });
+                    }
+                }
+                const btn = document.getElementById('btn-draw-polygon');
+                if (btn) {
+                    btn.textContent = '✏️ Traccia Poligono';
+                    btn.style.background = '#17a2b8';
+                }
+                if (mappaVendemmia.clickListener) {
+                    google.maps.event.removeListener(mappaVendemmia.clickListener);
+                    mappaVendemmia.clickListener = null;
+                }
+            }
+            aggiornaInfoPoligono();
+        };
+        
+        // ========== FUNZIONI HELPER PER SNAP E TOLLERANZA ==========
+        
+        // Trova il vertice più vicino del terreno entro la distanza massima
+        function findNearestVertex(point, boundaryCoords, maxDistance) {
+            let nearestVertex = null;
+            let minDistance = maxDistance;
+            
+            boundaryCoords.forEach(vertex => {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, vertex);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestVertex = vertex;
+                }
+            });
+            
+            return nearestVertex;
+        }
+        
+        // Trova il punto più vicino sul confine del terreno (su un segmento di linea)
+        function findNearestPointOnBoundary(point, boundaryCoords, maxDistance) {
+            let nearestPoint = null;
+            let minDistance = maxDistance;
+            
+            // Itera su tutti i segmenti del confine
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length]; // Ultimo punto si collega al primo
+                
+                // Calcola punto più vicino su questo segmento
+                const closestPoint = getClosestPointOnSegment(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestPoint = closestPoint;
+                }
+            }
+            
+            return nearestPoint;
+        }
+        
+        // Calcola il punto più vicino su un segmento di linea
+        function getClosestPointOnSegment(point, segmentStart, segmentEnd) {
+            const A = point.lat();
+            const B = point.lng();
+            const C = segmentStart.lat();
+            const D = segmentStart.lng();
+            const E = segmentEnd.lat();
+            const F = segmentEnd.lng();
+            
+            // Calcola vettore del segmento
+            const dx = E - C;
+            const dy = F - D;
+            const lengthSquared = dx * dx + dy * dy;
+            
+            if (lengthSquared === 0) {
+                // Segmento degenere (punto)
+                return segmentStart;
+            }
+            
+            // Calcola parametro t (0 = start, 1 = end)
+            const t = Math.max(0, Math.min(1, ((A - C) * dx + (B - D) * dy) / lengthSquared));
+            
+            // Calcola punto più vicino
+            const closestLat = C + t * dx;
+            const closestLng = D + t * dy;
+            
+            return new google.maps.LatLng(closestLat, closestLng);
+        }
+        
+        // Calcola distanza minima da un punto al confine del terreno
+        function getDistanceToBoundary(point, boundaryCoords) {
+            let minDistance = Infinity;
+            
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length];
+                const closestPoint = getClosestPointOnSegment(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                minDistance = Math.min(minDistance, distance);
+            }
+            
+            return minDistance;
+        }
+        
+        // Sposta un punto leggermente dentro il confine del terreno
+        function movePointInsideBoundary(point, boundaryCoords) {
+            // Trova il punto più vicino sul confine
+            const nearestBoundaryPoint = findNearestPointOnBoundary(point, boundaryCoords, 100);
+            if (!nearestBoundaryPoint) return point;
+            
+            // Calcola vettore dal confine verso il centro del terreno
+            const center = getPolygonCenter(boundaryCoords);
+            const dx = center.lat() - nearestBoundaryPoint.lat();
+            const dy = center.lng() - nearestBoundaryPoint.lng();
+            const length = Math.sqrt(dx * dx + dy * dy);
+            
+            if (length === 0) return point;
+            
+            // Normalizza e sposta di 1 metro verso l'interno
+            const moveDistance = 1 / 111000; // Circa 1 metro in gradi (approssimazione)
+            const normalizedDx = dx / length;
+            const normalizedDy = dy / length;
+            
+            return new google.maps.LatLng(
+                nearestBoundaryPoint.lat() + normalizedDx * moveDistance,
+                nearestBoundaryPoint.lng() + normalizedDy * moveDistance
+            );
+        }
+        
+        // Calcola centro di un poligono
+        function getPolygonCenter(coords) {
+            let sumLat = 0, sumLng = 0;
+            coords.forEach(coord => {
+                sumLat += coord.lat();
+                sumLng += coord.lng();
+            });
+            return new google.maps.LatLng(sumLat / coords.length, sumLng / coords.length);
+        }
+        
+        window.salvaPoligono = function() {
+            if (poligonoCoords.length < 3) {
+                alert('Traccia almeno 3 punti per creare un poligono valido');
+                return;
+            }
+            
+            // Il poligono è già visibile sulla mappa
+            // L'utente può confermare con "Conferma e Applica"
+            alert('Poligono tracciato! Clicca "Conferma e Applica" per salvare e applicare la superficie.');
+        };
+        
+        window.confermaPoligono = function() {
+            if (poligonoCoords.length < 3) {
+                alert('Traccia almeno 3 punti per creare un poligono valido');
+                return;
+            }
+            
+            // Calcola superficie
+            const areaMq = google.maps.geometry.spherical.computeArea(poligonoCoords);
+            const areaHa = areaMq / 10000; // Converti in ettari
+            
+            // Compila campo superficie
+            const quantitaEttariInput = document.getElementById('quantitaEttari');
+            if (quantitaEttariInput) {
+                quantitaEttariInput.value = areaHa.toFixed(2);
+                calcolaResa();
+            }
+            
+            // Mostra info poligono salvato
+            const poligonoInfo = document.getElementById('poligono-info');
+            if (poligonoInfo) {
+                poligonoInfo.style.display = 'block';
+            }
+            
+            // Termina tracciamento se attivo
+            if (isDrawingPolygon) {
+                isDrawingPolygon = false;
+                document.getElementById('btn-draw-polygon').textContent = '✏️ Traccia Poligono';
+                document.getElementById('btn-draw-polygon').style.background = '#17a2b8';
+                
+                if (mappaVendemmia && mappaVendemmia.clickListener) {
+                    google.maps.event.removeListener(mappaVendemmia.clickListener);
+                    mappaVendemmia.clickListener = null;
+                }
+            }
+            
+            // Chiudi modal
+            chiudiMappaTracciamento();
+        };
+        
+        function caricaPoligonoEsistente(coordinate) {
+            if (!coordinate || coordinate.length < 3 || !mappaVendemmia) return;
+            
+            // Converti coordinate in LatLng se necessario
+            if (typeof coordinate[0] === 'object' && coordinate[0].lat !== undefined) {
+                poligonoCoords = coordinate.map(c => 
+                    new google.maps.LatLng(c.lat, c.lng)
+                );
+            } else {
+                // Già LatLng
+                poligonoCoords = coordinate;
+            }
+            
+            // Aggiorna poligono sulla mappa
+            aggiornaPoligonoSullaMappa();
+            aggiornaInfoPoligono();
+            
+            // Mostra info poligono salvato
+            const poligonoInfo = document.getElementById('poligono-info');
+            if (poligonoInfo) {
+                poligonoInfo.style.display = 'block';
+            }
+        }
+        
+        // Chiudi modal mappa cliccando fuori
+        document.getElementById('modal-mappa-vendemmia').addEventListener('click', (e) => {
+            if (e.target.id === 'modal-mappa-vendemmia') {
+                chiudiMappaTracciamento();
+            }
+        });
+
+        // Inizializza al caricamento
+        init();
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Attivita Service - Servizio per gestione attività
  * Gestisce CRUD attività con supporto multi-tenant e filtri
  * 
@@ -87,8 +87,14 @@ export async function getAllAttivita(filters = {}) {
     
     return attivita;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero attività:', error);
+      throw new Error(`Errore recupero attività: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero attività:', error);
-    throw new Error(`Errore recupero attività: ${error.message}`);
+    return [];
   }
 }
 

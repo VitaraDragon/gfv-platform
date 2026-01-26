@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -179,11 +179,99 @@
             border-radius: 8px;
             border: 2px solid #e9ecef;
             text-align: center;
+            position: relative;
+            transition: all 0.3s;
         }
 
         .module-card.active {
             border-color: #2E8B57;
             background: #f0f8f4;
+        }
+
+        .module-card.in-bundle {
+            border: 2px solid #2E8B57;
+            background: linear-gradient(135deg, #f0f8f4 0%, #e8f5e9 100%);
+            box-shadow: 0 2px 8px rgba(46, 139, 87, 0.15);
+        }
+
+        .module-card.disabled {
+            opacity: 0.6;
+            cursor: not-allowed !important;
+        }
+
+        .module-card.disabled:hover {
+            transform: none;
+        }
+
+        .recommended-plan-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .recommended-plan-card:hover {
+            border-color: #2E8B57;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .recommended-plan-card.recommended {
+            border-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .bundle-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .bundle-card:hover {
+            border-color: #2E8B57;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .bundle-card.bundle-active {
+            border: 3px solid #2E8B57;
+            background: linear-gradient(135deg, #f0f8f4 0%, #e8f5e9 100%);
+            box-shadow: 0 4px 12px rgba(46, 139, 87, 0.2);
+        }
+
+        .bundle-discount {
+            background: #dc3545;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .custom-module-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .custom-module-checkbox:hover {
+            background: #f0f8f4;
+        }
+
+        .custom-module-checkbox input[type="checkbox"] {
+            margin-right: 8px;
         }
 
         .module-icon {
@@ -249,6 +337,11 @@
             .content {
                 grid-template-columns: 1fr;
             }
+            
+            /* Su mobile, riepilogo sotto il piano attuale */
+            .content > div:first-child {
+                grid-template-columns: 1fr !important;
+            }
         }
     </style>
 </head>
@@ -263,66 +356,132 @@
         </div>
 
         <div class="content">
-            <!-- Piano Corrente -->
-            <div class="card current-plan">
-                <h2>Piano Attuale</h2>
-                <div class="plan-name" id="current-plan-name">Professional</div>
-                <div class="plan-price" id="current-plan-price">€29<span>/mese</span></div>
-                <div style="margin-top: 20px;">
-                    <strong>Scadenza:</strong> <span id="current-plan-expiry">31/12/2025</span>
+            <!-- Piano Corrente e Riepilogo -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; grid-column: 1 / -1;">
+                <!-- Piano Corrente -->
+                <div class="card current-plan">
+                    <h2>Piano Attuale</h2>
+                    <div class="plan-name" id="current-plan-name">Base</div>
+                    <div class="plan-price" id="current-plan-price">€9<span>/mese</span></div>
+                    <div style="margin-top: 20px;">
+                        <strong>Scadenza:</strong> <span id="current-plan-expiry">Caricamento...</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <strong>Stato:</strong> <span id="current-plan-status">Caricamento...</span>
+                    </div>
                 </div>
-                <div style="margin-top: 10px;">
-                    <strong>Stato:</strong> <span id="current-plan-status">Attivo</span>
+
+                <!-- Riepilogo Abbonamento -->
+                <div class="card" style="background: linear-gradient(135deg, #f0f8f4 0%, #e8f5e9 100%); border: 2px solid #2E8B57;">
+                    <h2 style="color: #2E8B57; margin-bottom: 10px; font-size: 18px;">📊 Riepilogo</h2>
+                    <div id="subscription-summary">
+                        <div class="loading">Caricamento riepilogo...</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Piani Disponibili -->
-            <div class="card plan-card" onclick="selectPlan('starter')">
-                <h2>Starter</h2>
-                <div class="plan-name">Starter</div>
-                <div class="plan-price">€9<span>/mese</span></div>
-                <ul class="plan-features">
-                    <li>Fino a 5 utenti</li>
-                    <li>1 modulo incluso</li>
-                    <li>Supporto email</li>
-                    <li>Storage base</li>
-                </ul>
-                <button class="btn btn-primary">Scegli Piano</button>
+            <!-- Sezione: Upgrade al Piano Base (solo se Free) -->
+            <div class="card" id="upgrade-section" style="grid-column: 1 / -1; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 3px solid #2E8B57; display: none;">
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: center;">
+                    <div>
+                        <h2 style="color: #2E8B57; margin-bottom: 15px; font-size: 24px;">🚀 Sfrutta al Meglio la Tua App</h2>
+                        <p style="color: #333; margin-bottom: 15px; font-size: 16px; line-height: 1.6;">
+                            Passa al <strong style="color: #2E8B57;">Piano Base</strong> e sblocca tutto il potenziale della piattaforma! 
+                            Attiva i moduli che ti servono e personalizza completamente la tua esperienza.
+                        </p>
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2E8B57;">
+                            <div style="font-size: 14px; color: #666; margin-bottom: 8px;"><strong>Con il Piano Base puoi:</strong></div>
+                            <ul style="margin: 0; padding-left: 20px; color: #333; font-size: 14px; line-height: 1.8;">
+                                <li>Attivare <strong>qualsiasi modulo</strong> che ti serve (€3-6/mese ciascuno)</li>
+                                <li>Gestire <strong>terreni e attività illimitati</strong></li>
+                                <li>Risparmiare con i <strong>bundle ottimizzati</strong></li>
+                                <li>Personalizzare completamente la tua app in base alle tue esigenze</li>
+                            </ul>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div>
+                                <div style="font-size: 12px; color: #666;">A partire da</div>
+                                <div style="font-size: 32px; font-weight: bold; color: #2E8B57;">€5<span style="font-size: 18px; color: #666;">/mese</span></div>
+                            </div>
+                            <button class="btn btn-primary" onclick="selectPlan('base')" style="padding: 12px 30px; font-size: 16px; font-weight: bold;">
+                                ✨ Passa al Piano Base
+                            </button>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 80px; margin-bottom: 10px;">💚</div>
+                        <div style="font-size: 14px; color: #666; font-weight: bold;">Piano Base</div>
+                    </div>
+                </div>
             </div>
 
-            <div class="card plan-card active" onclick="selectPlan('professional')">
-                <h2>Professional</h2>
-                <div class="plan-name">Professional</div>
-                <div class="plan-price">€29<span>/mese</span></div>
-                <ul class="plan-features">
-                    <li>Fino a 20 utenti</li>
-                    <li>3 moduli inclusi</li>
-                    <li>Supporto prioritario</li>
-                    <li>Storage esteso</li>
-                    <li>Report avanzati</li>
-                </ul>
-                <button class="btn btn-primary">Piano Attuale</button>
+            <!-- Sezione: Costruisci il tuo Piano -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>🔧 Costruisci il tuo Piano</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Non trovi quello che cerchi? Personalizza completamente il tuo piano</p>
+                
+                <div id="build-plan-section" style="display: none;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Moduli da Attivare</label>
+                        <div id="custom-modules-selection" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa;">
+                            <!-- Moduli selezionabili -->
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e7f3ff; padding: 15px; border-radius: 6px; border-left: 4px solid #2E8B57; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>Prezzo Totale Stimato:</strong>
+                                <div style="font-size: 24px; font-weight: bold; color: #2E8B57;" id="custom-total-price">€0<span style="font-size: 14px; color: #666;">/mese</span></div>
+                            </div>
+                            <div id="custom-plan-suggestion" style="font-size: 13px; color: #666;">
+                                <!-- Suggerimento piano -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="applyCustomPlan()" style="width: 100%;">Applica Piano Personalizzato</button>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="toggleBuildPlan()" id="toggle-build-plan-btn" style="width: 100%;">
+                    <span id="toggle-build-plan-text">Mostra Costruttore Piano</span>
+                </button>
             </div>
 
-            <div class="card plan-card" onclick="selectPlan('enterprise')">
-                <h2>Enterprise</h2>
-                <div class="plan-name">Enterprise</div>
-                <div class="plan-price">€49<span>/mese</span></div>
-                <ul class="plan-features">
-                    <li>Utenti illimitati</li>
-                    <li>Tutti i moduli</li>
-                    <li>Supporto dedicato</li>
-                    <li>Storage illimitato</li>
-                    <li>API personalizzate</li>
-                    <li>Onboarding assistito</li>
-                </ul>
-                <button class="btn btn-primary">Scegli Piano</button>
+            <!-- Sezione: Bundle Disponibili -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>🎁 Bundle Disponibili</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Risparmia con combinazioni di moduli ottimizzate</p>
+                
+                <div id="bundles-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                    <!-- Bundle verranno renderizzati dinamicamente -->
+                </div>
+            </div>
+
+            <!-- Sezione: Moduli e Bundle Attivi -->
+            <div class="card" id="active-modules-section" style="grid-column: 1 / -1; background: linear-gradient(135deg, #f0f8f4 0%, #e8f5e9 100%); border: 2px solid #2E8B57; display: none;">
+                <h2 style="color: #2E8B57; margin-bottom: 15px;">✅ Moduli e Bundle Attivi</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">I tuoi moduli e bundle attualmente attivi</p>
+                
+                <div id="active-modules-content">
+                    <!-- Moduli e bundle attivi verranno renderizzati dinamicamente -->
+                </div>
+            </div>
+
+            <!-- Sezione: Suggerimenti Intelligenti -->
+            <div class="card" id="suggestions-section" style="grid-column: 1 / -1; background: linear-gradient(135deg, #fffbf0 0%, #fff8e1 100%); border: 2px solid #ffc107; display: none;">
+                <h2 style="color: #ff9800; margin-bottom: 15px;">💡 Suggerimenti per Completare la Tua App</h2>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Moduli e bundle consigliati per ottimizzare la tua esperienza</p>
+                
+                <div id="suggestions-content">
+                    <!-- Suggerimenti verranno renderizzati dinamicamente -->
+                </div>
             </div>
 
             <!-- Moduli Disponibili -->
             <div class="card modules-section">
-                <h2>Moduli Disponibili</h2>
-                <p style="color: #666; margin-bottom: 20px;">Attiva o disattiva i moduli che vuoi utilizzare</p>
+                <h2>🔧 Moduli Disponibili</h2>
+                <p style="color: #666; margin-bottom: 20px;">Attiva i moduli che vuoi utilizzare</p>
                 
                 <div id="alert-container" style="margin-bottom: 20px;"></div>
                 
@@ -379,25 +538,42 @@
 
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getFirestore, doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { 
+            initializeTenantService,
+            getCurrentTenantId, 
+            getCurrentTenant, 
+            getUserRolesForTenant 
+        } from '../services/tenant-service.js';
+        import { setFirebaseInstances } from '../services/firebase-service.js';
+        import { 
+            SUBSCRIPTION_PLANS, 
+            AVAILABLE_MODULES, 
+            BUNDLES,
+            getPlanConfig, 
+            getAllPlans,
+            getAllModules,
+            getModuleConfig,
+            calculateTotalPrice,
+            canActivateModule,
+            getSuggestedBundles
+        } from '../config/subscription-plans.js';
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentUserData = null;
-        let currentTenantId = null;
-        let activeModules = [];
+        // Registra le istanze Firebase nel firebase-service per permettere a tenant-service di usarle
+        setFirebaseInstances({ app, db, auth });
 
-        // Definizione moduli disponibili
-        const availableModules = [
-            { id: 'manodopera', name: 'Manodopera', icon: '👷', description: 'Gestione squadre, operai e lavori' },
-            { id: 'parcoMacchine', name: 'Parco Macchine', icon: '🚜', description: 'Gestione macchine, manutenzioni e scadenze' },
-            { id: 'contoTerzi', name: 'Conto Terzi', icon: '🤝', description: 'Gestione clienti e lavori esterni' }
-            // Nota: Moduli Vendemmia e Bilancio rimossi - saranno disponibili quando implementati
-            // { id: 'vendemmia', name: 'Vendemmia', icon: '🍇', description: 'Calcoli vendemmia e tariffe' },
-            // { id: 'bilancio', name: 'Bilancio', icon: '💰', description: 'Gestione finanziaria e contabilità' }
-        ];
+        // Inizializza tenant service DOPO aver registrato le istanze
+        initializeTenantService();
+
+        let currentUser = null;
+        let currentTenantId = null;
+        let currentTenantData = null;
+        let activeModules = [];
+        let activeBundles = [];
 
         // Verifica autenticazione e carica dati
         onAuthStateChanged(auth, async (user) => {
@@ -406,30 +582,90 @@
                 return;
             }
 
+            currentUser = user;
+            
             try {
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (userDoc.exists()) {
-                    currentUserData = userDoc.data();
-                    currentTenantId = currentUserData.tenantId;
-
-                    // Verifica permessi (solo amministratore)
-                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('amministratore')) {
-                        showAlert('Solo gli amministratori possono gestire i moduli', 'error');
-                        setTimeout(() => {
-                            window.location.href = '../dashboard-standalone.html';
-                        }, 2000);
-                        return;
+                // Aspetta un attimo per permettere al tenant service di inizializzarsi
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Usa tenant-service per ottenere tenant corrente (supporta multi-tenant membership)
+                currentTenantId = getCurrentTenantId();
+                
+                // Se non c'è tenantId dal servizio, prova a caricarlo direttamente da Firestore (retrocompatibilità)
+                if (!currentTenantId) {
+                    console.warn('Tenant ID non trovato dal tenant-service, provo caricamento diretto...');
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        // Prova tenantId deprecato o primo tenant da tenantMemberships
+                        if (userData.tenantId) {
+                            currentTenantId = userData.tenantId;
+                        } else if (userData.tenantMemberships && Object.keys(userData.tenantMemberships).length > 0) {
+                            currentTenantId = Object.keys(userData.tenantMemberships)[0];
+                        }
                     }
-
-                    // Carica dati tenant e moduli
-                    await loadTenantData();
-                    renderModules();
-                } else {
-                    window.location.href = '../auth/login-standalone.html';
                 }
+                
+                if (!currentTenantId) {
+                    console.error('Nessun tenant disponibile per l\'utente');
+                    showAlert('Nessun tenant disponibile. Contatta l\'amministratore.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '../dashboard-standalone.html';
+                    }, 2000);
+                    return;
+                }
+
+                // Verifica permessi usando tenant-service (supporta multi-tenant)
+                const ruoli = await getUserRolesForTenant(currentTenantId, user.uid);
+                
+                // Se non ci sono ruoli dal servizio, prova a caricarli direttamente (retrocompatibilità)
+                let hasAdminRole = false;
+                if (ruoli && ruoli.length > 0) {
+                    hasAdminRole = ruoli.includes('amministratore');
+                } else {
+                    // Fallback: carica ruoli direttamente
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        if (userData.tenantMemberships && userData.tenantMemberships[currentTenantId]) {
+                            hasAdminRole = userData.tenantMemberships[currentTenantId].ruoli?.includes('amministratore') || false;
+                        } else if (userData.tenantId === currentTenantId && userData.ruoli) {
+                            hasAdminRole = userData.ruoli.includes('amministratore');
+                        }
+                    }
+                }
+                
+                if (!hasAdminRole) {
+                    showAlert('Solo gli amministratori possono gestire i moduli', 'error');
+                    setTimeout(() => {
+                        window.location.href = '../dashboard-standalone.html';
+                    }, 2000);
+                    return;
+                }
+
+                // Carica dati tenant e moduli
+                await loadTenantData();
+                
+                // Verifica scadenza abbonamento
+                checkExpiryStatus();
+                
+                // Calcola planId da currentTenantData (dopo loadTenantData)
+                let planId = currentTenantData?.plan || currentTenantData?.piano || 'base';
+                if (['starter', 'professional', 'enterprise'].includes(planId)) {
+                    planId = 'base';
+                }
+                const planConfig = getPlanConfig(planId);
+                
+                renderActiveModules();
+                renderModules();
+                renderUpgradeSection();
+                renderBundles();
+                renderSuggestions();
+                updateSubscriptionSummary(planConfig);
             } catch (error) {
                 console.error('Errore:', error);
-                showAlert('Errore caricamento dati', 'error');
+                showAlert('Errore caricamento dati: ' + error.message, 'error');
+                // Non fare redirect automatico in caso di errore, mostra solo l'alert
             }
         });
 
@@ -438,39 +674,371 @@
             if (!currentTenantId) return;
 
             try {
-                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                if (tenantDoc.exists()) {
-                    const tenantData = tenantDoc.data();
-                    activeModules = tenantData.modules || [];
-                    
-                    // Aggiorna piano corrente
-                    const piano = tenantData.piano || 'starter';
-                    document.getElementById('current-plan-name').textContent = piano.charAt(0).toUpperCase() + piano.slice(1);
+                // Usa tenant-service per ottenere dati tenant
+                currentTenantData = await getCurrentTenant();
+                
+                if (!currentTenantData) {
+                    // Fallback: carica direttamente da Firestore
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    if (tenantDoc.exists()) {
+                        currentTenantData = tenantDoc.data();
+                    } else {
+                        showAlert('Tenant non trovato', 'error');
+                        return;
+                    }
                 }
+                
+                activeModules = currentTenantData.modules || [];
+                activeBundles = currentTenantData.activeBundles || [];
+                
+                // Aggiorna piano corrente (supporta sia 'plan' che 'piano' per retrocompatibilità)
+                // Retrocompatibilità: se trova 'starter'/'professional'/'enterprise', migra a 'base'
+                let planId = currentTenantData.plan || currentTenantData.piano || 'base';
+                if (['starter', 'professional', 'enterprise'].includes(planId)) {
+                    planId = 'base'; // Migra a piano base
+                }
+                const planConfig = getPlanConfig(planId);
+                
+                // Se non c'è expiryDate, inizializzala (1 mese da oggi)
+                if (!currentTenantData.expiryDate) {
+                    const defaultExpiry = new Date();
+                    defaultExpiry.setMonth(defaultExpiry.getMonth() + 1);
+                    
+                    try {
+                        await updateDoc(doc(db, 'tenants', currentTenantId), {
+                            expiryDate: Timestamp.fromDate(defaultExpiry),
+                            startDate: currentTenantData.startDate || Timestamp.fromDate(new Date()),
+                            updatedAt: serverTimestamp()
+                        });
+                        currentTenantData.expiryDate = Timestamp.fromDate(defaultExpiry);
+                        if (!currentTenantData.startDate) {
+                            currentTenantData.startDate = Timestamp.fromDate(new Date());
+                        }
+                    } catch (error) {
+                        console.warn('Errore inizializzazione expiryDate:', error);
+                    }
+                }
+                
+                // Aggiorna UI piano corrente con dati reali
+                updateCurrentPlanUI(planConfig, currentTenantData);
             } catch (error) {
                 console.error('Errore caricamento tenant:', error);
-                showAlert('Errore caricamento dati tenant', 'error');
+                showAlert('Errore caricamento dati tenant: ' + error.message, 'error');
+            }
+        }
+        
+        // Aggiorna UI piano corrente con dati reali
+        function updateCurrentPlanUI(planConfig, tenantData) {
+            if (!planConfig) {
+                planConfig = getPlanConfig('base'); // Default
+            }
+            
+            // Nome piano
+            document.getElementById('current-plan-name').textContent = planConfig.name;
+            
+            // Prezzo (calcola totale: piano + moduli/bundle)
+            const totalPrice = calculateTotalPrice(planConfig.id, activeModules, activeBundles);
+            document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
+            
+            // Scadenza (se disponibile)
+            const expiryDate = tenantData.expiryDate;
+            if (expiryDate) {
+                const date = expiryDate.toDate ? expiryDate.toDate() : new Date(expiryDate);
+                const formattedDate = date.toLocaleDateString('it-IT');
+                document.getElementById('current-plan-expiry').textContent = formattedDate;
+            } else {
+                document.getElementById('current-plan-expiry').textContent = 'Non impostata';
+            }
+            
+            // Stato (calcolato anche in base a scadenza)
+            let status = tenantData.status || 'active';
+            if (expiryDate) {
+                const date = expiryDate.toDate ? expiryDate.toDate() : new Date(expiryDate);
+                const now = new Date();
+                if (date < now) {
+                    status = 'expired';
+                } else {
+                    // Se scade entro 7 giorni, mostra come "in scadenza"
+                    const daysUntilExpiry = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+                    if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+                        status = 'expiring';
+                    }
+                }
+            }
+            
+            const statusText = {
+                'active': 'Attivo',
+                'suspended': 'Sospeso',
+                'expired': 'Scaduto',
+                'expiring': 'In scadenza',
+                'trial': 'Trial'
+            }[status] || 'Attivo';
+            
+            // Colore stato in base a scadenza
+            const statusElement = document.getElementById('current-plan-status');
+            statusElement.textContent = statusText;
+            statusElement.style.color = status === 'expired' ? '#dc3545' : 
+                                       status === 'expiring' ? '#ff9800' : 
+                                       '#2E8B57';
+            
+            // Aggiorna riepilogo
+            updateSubscriptionSummary(planConfig);
+        }
+        
+        // Aggiorna riepilogo abbonamento
+        function updateSubscriptionSummary(planConfig) {
+            const container = document.getElementById('subscription-summary');
+            if (!container) return;
+            
+            const totalPrice = calculateTotalPrice(planConfig.id, activeModules, activeBundles);
+            const basePrice = planConfig.price;
+            
+            // Calcola moduli coperti da bundle
+            const modulesCoveredByBundles = new Set();
+            let bundlesPrice = 0;
+            let totalSavings = 0;
+            const activeBundlesList = [];
+            
+            activeBundles.forEach(bundleId => {
+                const bundle = BUNDLES.find(b => b.id === bundleId);
+                if (bundle) {
+                    bundlesPrice += bundle.price;
+                    activeBundlesList.push(bundle);
+                    bundle.modules.forEach(modId => modulesCoveredByBundles.add(modId));
+                    
+                    // Calcola risparmio del bundle
+                    const bundleModulesPrice = bundle.modules.reduce((sum, modId) => {
+                        const mod = getModuleConfig(modId);
+                        return sum + (mod && mod.available ? mod.price : 0);
+                    }, 0);
+                    totalSavings += (bundleModulesPrice - bundle.price);
+                }
+            });
+            
+            // Moduli singoli (non in bundle)
+            const singleModules = activeModules.filter(modId => !modulesCoveredByBundles.has(modId));
+            const singleModulesPrice = singleModules.reduce((sum, modId) => {
+                const mod = getModuleConfig(modId);
+                return sum + (mod && mod.available ? mod.price : 0);
+            }, 0);
+            
+            let html = `
+                <div style="font-size: 14px; color: #666; margin-bottom: 8px;">Totale Mensile</div>
+                <div style="font-size: 28px; font-weight: bold; color: #2E8B57; margin-bottom: 15px;">€${totalPrice}/mese</div>
+            `;
+            
+            // Bundle attivi con risparmio
+            if (activeBundlesList.length > 0) {
+                html += `
+                    <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #2E8B57;">
+                        <div style="font-size: 12px; font-weight: bold; color: #2E8B57; margin-bottom: 5px;">🎁 Bundle (${activeBundlesList.length})</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #2E8B57;">€${bundlesPrice}/mese</div>
+                        ${totalSavings > 0 ? `<div style="font-size: 11px; color: #155724; margin-top: 3px;">💰 Risparmi €${totalSavings}/mese</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            // Moduli singoli attivi
+            if (singleModules.length > 0) {
+                html += `
+                    <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #ff9800;">
+                        <div style="font-size: 12px; font-weight: bold; color: #ff9800; margin-bottom: 5px;">🔧 Singoli (${singleModules.length})</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #ff9800;">€${singleModulesPrice}/mese</div>
+                    </div>
+                `;
+            }
+            
+            // Se non ci sono bundle né moduli
+            if (activeBundlesList.length === 0 && singleModules.length === 0) {
+                html += `
+                    <div style="background: #fff3cd; padding: 10px; border-radius: 6px; border: 1px solid #ffc107; text-align: center; font-size: 12px; color: #856404;">
+                        ⚠️ Nessun modulo attivo
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Verifica stato scadenza e mostra alert se necessario
+        function checkExpiryStatus() {
+            if (!currentTenantData || !currentTenantData.expiryDate) {
+                return;
+            }
+            
+            const expiryDate = currentTenantData.expiryDate.toDate ? 
+                              currentTenantData.expiryDate.toDate() : 
+                              new Date(currentTenantData.expiryDate);
+            const now = new Date();
+            const daysUntilExpiry = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) {
+                // Scaduto
+                showAlert('⚠️ Il tuo abbonamento è scaduto. Rinnova per continuare a utilizzare tutte le funzionalità.', 'error');
+            } else if (daysUntilExpiry <= 7) {
+                // In scadenza (entro 7 giorni)
+                showAlert(`⚠️ Il tuo abbonamento scade tra ${daysUntilExpiry} ${daysUntilExpiry === 1 ? 'giorno' : 'giorni'}. Rinnova per evitare interruzioni.`, 'info');
             }
         }
 
-        // Renderizza moduli
+        // Renderizza moduli attivi (sezione separata)
+        function renderActiveModules() {
+            const container = document.getElementById('active-modules-content');
+            const section = document.getElementById('active-modules-section');
+            if (!container || !section) return;
+            
+            // Trova moduli coperti da bundle
+            const modulesCoveredByBundles = new Set();
+            const activeBundlesList = [];
+            activeBundles.forEach(bundleId => {
+                const bundle = BUNDLES.find(b => b.id === bundleId);
+                if (bundle) {
+                    activeBundlesList.push(bundle);
+                    bundle.modules.forEach(modId => modulesCoveredByBundles.add(modId));
+                }
+            });
+            
+            // Moduli singoli attivi (non in bundle)
+            const singleActiveModules = activeModules.filter(modId => !modulesCoveredByBundles.has(modId));
+            
+            // Se non ci sono moduli né bundle attivi, nascondi la sezione
+            if (activeBundlesList.length === 0 && singleActiveModules.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            
+            let html = '';
+            
+            // Bundle attivi
+            if (activeBundlesList.length > 0) {
+                html += `
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="color: #2E8B57; font-size: 16px; margin-bottom: 10px;">🎁 Bundle Attivi</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;">
+                `;
+                
+                activeBundlesList.forEach(bundle => {
+                    const bundleModules = bundle.modules.map(modId => {
+                        const mod = getModuleConfig(modId);
+                        return mod ? `${mod.icon} ${mod.name}` : modId;
+                    }).join(', ');
+                    
+                    const bundleModulesPrice = bundle.modules.reduce((sum, modId) => {
+                        const mod = getModuleConfig(modId);
+                        return sum + (mod && mod.available ? mod.price : 0);
+                    }, 0);
+                    const savings = bundleModulesPrice - bundle.price;
+                    
+                    html += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #2E8B57;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <h4 style="margin: 0; color: #2E8B57; font-size: 14px;">✓ ${bundle.name}</h4>
+                                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #dc3545; color: white; border: none;" onclick="deactivateBundle('${bundle.id}')">Disattiva</button>
+                            </div>
+                            <div style="font-size: 12px; color: #666; margin-bottom: 5px;">${bundleModules}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                <div>
+                                    <div style="font-size: 18px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
+                                    ${savings > 0 ? `<div style="font-size: 11px; color: #155724;">💰 Risparmi €${savings}/mese</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            // Moduli singoli attivi
+            if (singleActiveModules.length > 0) {
+                html += `
+                    <div>
+                        <h3 style="color: #ff9800; font-size: 16px; margin-bottom: 10px;">🔧 Moduli Singoli Attivi</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                `;
+                
+                singleActiveModules.forEach(modId => {
+                    const mod = getModuleConfig(modId);
+                    if (mod) {
+                        html += `
+                            <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #ff9800;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <div>
+                                        <div style="font-size: 20px; margin-bottom: 5px;">${mod.icon}</div>
+                                        <div style="font-weight: bold; color: #ff9800; font-size: 14px;">${mod.name}</div>
+                                    </div>
+                                    <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #dc3545; color: white; border: none;" onclick="toggleModule('${mod.id}')">Disattiva</button>
+                                </div>
+                                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">${mod.description}</div>
+                                <div style="font-size: 16px; font-weight: bold; color: #ff9800;">€${mod.price}/mese</div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // Renderizza moduli disponibili (solo non attivi)
         function renderModules() {
             const container = document.getElementById('modules-grid');
+            const modules = getAllModules(true); // Include anche moduli non disponibili
             
-            if (availableModules.length === 0) {
+            if (modules.length === 0) {
                 container.innerHTML = '<div class="empty-state">Nessun modulo disponibile</div>';
                 return;
             }
+            
+            // Retrocompatibilità: migra piani vecchi a 'base'
+            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+            if (['starter', 'professional', 'enterprise'].includes(planId)) {
+                planId = 'base';
+            }
+            const planConfig = getPlanConfig(planId);
 
+            // Trova moduli coperti da bundle
+            const modulesCoveredByBundles = new Set();
+            activeBundles.forEach(bundleId => {
+                const bundle = BUNDLES.find(b => b.id === bundleId);
+                if (bundle) {
+                    bundle.modules.forEach(modId => modulesCoveredByBundles.add(modId));
+                }
+            });
+            
+            // Filtra solo moduli NON attivi
+            const availableModules = modules.filter(module => !activeModules.includes(module.id));
+            
+            if (availableModules.length === 0) {
+                container.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #666;">🎉 Tutti i moduli disponibili sono già attivi!</div>';
+                return;
+            }
+            
             const html = availableModules.map(module => {
-                const isActive = activeModules.includes(module.id);
+                const canActivate = canActivateModule(planConfig.id, module.id, activeModules);
+                const isDisabled = !module.available || !canActivate.canActivate;
+                
                 return `
-                    <div class="module-card ${isActive ? 'active' : ''}" data-module-id="${module.id}" onclick="toggleModule('${module.id}')">
+                    <div class="module-card ${isDisabled ? 'disabled' : ''}" 
+                         data-module-id="${module.id}" 
+                         onclick="${isDisabled ? '' : `toggleModule('${module.id}')`}"
+                         style="${isDisabled ? 'opacity: 0.6; cursor: not-allowed;' : 'cursor: pointer;'}"
+                         title="${isDisabled ? (module.available ? canActivate.reason : 'Modulo non ancora disponibile') : ''}">
                         <div class="module-icon">${module.icon}</div>
-                        <div class="module-name">${module.name}</div>
+                        <div class="module-name">
+                            ${module.name} 
+                            ${module.badge ? `<span style="font-size: 10px; color: #ff9800;">(${module.badge})</span>` : ''}
+                        </div>
                         <div class="module-price" style="font-size: 12px; margin-top: 5px;">${module.description}</div>
-                        <div style="margin-top: 10px; font-size: 12px; color: ${isActive ? '#2E8B57' : '#666'}; font-weight: ${isActive ? 'bold' : 'normal'};">
-                            ${isActive ? '✓ Attivo' : 'Disattivo'}
+                        <div style="margin-top: 5px; font-size: 11px; color: #666;">
+                            ${module.available ? `€${module.price}/mese` : 'Prossimamente'}
+                        </div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                            ${module.available ? 'Clicca per attivare' : 'Prossimamente'}
                         </div>
                     </div>
                 `;
@@ -478,17 +1046,664 @@
 
             container.innerHTML = html;
         }
+        
+        // Mostra/nascondi sezione upgrade (solo se piano Free)
+        function renderUpgradeSection() {
+            const upgradeSection = document.getElementById('upgrade-section');
+            if (!upgradeSection) return;
+            
+            // Retrocompatibilità: migra piani vecchi a 'base'
+            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+            if (['starter', 'professional', 'enterprise'].includes(planId)) {
+                planId = 'base';
+            }
+            
+            // Mostra solo se piano Free
+            if (planId === 'free') {
+                upgradeSection.style.display = 'block';
+            } else {
+                upgradeSection.style.display = 'none';
+            }
+        }
+        
+        // Renderizza suggerimenti intelligenti
+        function renderSuggestions() {
+            const container = document.getElementById('suggestions-content');
+            const section = document.getElementById('suggestions-section');
+            if (!container || !section) return;
+            
+            const suggestions = [];
+            
+            // Trova tutti i moduli già attivi (sia come singoli che in bundle)
+            const allActiveModules = new Set(activeModules);
+            
+            // Trova anche i moduli coperti da bundle attivi
+            activeBundles.forEach(bundleId => {
+                const bundle = BUNDLES.find(b => b.id === bundleId);
+                if (bundle) {
+                    bundle.modules.forEach(modId => allActiveModules.add(modId));
+                }
+            });
+            
+            // Trova bundle migliorativi (che aggiungono almeno un modulo nuovo)
+            BUNDLES.forEach(bundle => {
+                if (activeBundles.includes(bundle.id)) return; // Skip bundle già attivi
+                
+                // Un bundle è "migliorativo" se ha almeno un modulo che NON è ancora attivo
+                const newModules = bundle.modules.filter(modId => !allActiveModules.has(modId));
+                const existingModules = bundle.modules.filter(modId => allActiveModules.has(modId));
+                
+                // Suggerisci solo se ha almeno un modulo nuovo (bundle migliorativo)
+                // NON suggerire se tutti i moduli sono già attivi (non aggiunge valore)
+                if (newModules.length > 0) {
+                    const bundleModulesPrice = bundle.modules.reduce((sum, modId) => {
+                        const mod = getModuleConfig(modId);
+                        return sum + (mod && mod.available ? mod.price : 0);
+                    }, 0);
+                    const savings = bundleModulesPrice - bundle.price;
+                    
+                    if (savings > 0) {
+                        suggestions.push({
+                            type: 'bundle',
+                            bundle,
+                            activeModules: existingModules,
+                            missingModules: newModules,
+                            savings
+                        });
+                    }
+                }
+            });
+            
+            // Trova moduli correlati (stessa categoria dei moduli attivi)
+            const activeModuleCategories = new Set();
+            allActiveModules.forEach(modId => {
+                const mod = getModuleConfig(modId);
+                if (mod) activeModuleCategories.add(mod.category);
+            });
+            
+            const relatedModules = getAllModules(false).filter(module => {
+                return !allActiveModules.has(module.id) && 
+                       activeModuleCategories.has(module.category) &&
+                       module.available;
+            });
+            
+            if (relatedModules.length > 0) {
+                suggestions.push({
+                    type: 'modules',
+                    modules: relatedModules.slice(0, 3) // Max 3 moduli correlati
+                });
+            }
+            
+            if (suggestions.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            
+            section.style.display = 'block';
+            
+            let html = '';
+            
+            suggestions.forEach(suggestion => {
+                if (suggestion.type === 'bundle') {
+                    const { bundle, activeModules: activeMods, missingModules, savings } = suggestion;
+                    const activeNames = activeMods.map(modId => {
+                        const mod = getModuleConfig(modId);
+                        return mod ? mod.name : modId;
+                    }).join(', ');
+                    const missingNames = missingModules.map(modId => {
+                        const mod = getModuleConfig(modId);
+                        return mod ? mod.name : modId;
+                    }).join(', ');
+                    
+                    html += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div>
+                                    <h3 style="margin: 0; color: #ff9800; font-size: 16px;">🎁 ${bundle.name}</h3>
+                                    <p style="font-size: 13px; color: #666; margin-top: 5px;">${bundle.description}</p>
+                                </div>
+                                <span style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">Risparmia €${savings}/mese</span>
+                            </div>
+                            <div style="background: #f0f8f4; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">✓ Moduli già attivi: <strong>${activeNames}</strong></div>
+                                <div style="font-size: 12px; color: #666;">+ Moduli da aggiungere: <strong>${missingNames}</strong></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 12px; color: #999; text-decoration: line-through;">€${bundle.modules.reduce((sum, modId) => {
+                                        const mod = getModuleConfig(modId);
+                                        return sum + (mod && mod.available ? mod.price : 0);
+                                    }, 0)}/mese (singoli)</div>
+                                    <div style="font-size: 20px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
+                                </div>
+                                <button class="btn btn-primary" onclick="selectBundle('${bundle.id}')" style="padding: 8px 20px;">Attiva Bundle</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (suggestion.type === 'modules') {
+                    html += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+                            <h3 style="margin: 0 0 10px 0; color: #ff9800; font-size: 16px;">🔗 Moduli Correlati</h3>
+                            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Completa la tua suite con questi moduli della stessa categoria:</p>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    `;
+                    
+                    suggestion.modules.forEach(module => {
+                        html += `
+                            <div style="background: #fff3e0; padding: 12px; border-radius: 6px; border: 1px solid #ff9800; cursor: pointer;" onclick="toggleModule('${module.id}')">
+                                <div style="font-size: 20px; margin-bottom: 5px;">${module.icon}</div>
+                                <div style="font-weight: bold; color: #ff9800; font-size: 14px; margin-bottom: 3px;">${module.name}</div>
+                                <div style="font-size: 11px; color: #666; margin-bottom: 5px;">${module.description}</div>
+                                <div style="font-size: 14px; font-weight: bold; color: #ff9800;">€${module.price}/mese</div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div></div>`;
+                }
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Renderizza bundle disponibili (solo migliorativi - che aggiungono moduli)
+        function renderBundles() {
+            const container = document.getElementById('bundles-section');
+            
+            // Trova tutti i moduli già attivi (sia come singoli che in bundle)
+            const allActiveModules = new Set(activeModules);
+            
+            // Filtra bundle NON attivi E che hanno almeno un modulo NON ancora attivo (bundle migliorativi)
+            const availableBundles = BUNDLES.filter(bundle => {
+                // Escludi bundle già attivi
+                if (activeBundles.includes(bundle.id)) return false;
+                
+                // Un bundle è "migliorativo" se ha almeno un modulo che NON è ancora attivo
+                const hasNewModule = bundle.modules.some(modId => !allActiveModules.has(modId));
+                
+                return hasNewModule;
+            });
+            
+            if (availableBundles.length === 0) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">🎉 Non ci sono bundle disponibili che aggiungano nuovi moduli rispetto a quelli già attivi!</div>';
+                return;
+            }
+            
+            const html = availableBundles.map(bundle => {
+                // Calcola prezzo singoli moduli (solo disponibili)
+                const availableModules = bundle.modules.filter(modId => {
+                    const mod = getModuleConfig(modId);
+                    return mod && mod.available;
+                });
+                
+                const singlePrice = availableModules.reduce((sum, modId) => {
+                    const mod = getModuleConfig(modId);
+                    return sum + (mod ? mod.price : 0);
+                }, 0);
+                
+                // Verifica se tutti i moduli del bundle sono disponibili
+                const allModulesAvailable = bundle.modules.every(modId => {
+                    const mod = getModuleConfig(modId);
+                    return mod && mod.available;
+                });
+                
+                // Se non tutti i moduli sono disponibili, mostra solo quelli disponibili
+                const savings = allModulesAvailable ? (singlePrice - bundle.price) : 0;
+                
+                // Verifica quali moduli sono già attivi
+                const activeInBundle = bundle.modules.filter(modId => activeModules.includes(modId));
+                const notActiveInBundle = bundle.modules.filter(modId => !activeModules.includes(modId));
+                
+                const isFullyActive = activeInBundle.length === bundle.modules.length;
+                const isPartiallyActive = activeInBundle.length > 0 && activeInBundle.length < bundle.modules.length;
+                const isBundleActive = activeBundles.includes(bundle.id);
+                
+                return `
+                    <div class="bundle-card ${isBundleActive ? 'bundle-active' : ''}" style="${isBundleActive ? 'border: 3px solid #2E8B57; background: linear-gradient(135deg, #f0f8f4 0%, #e8f5e9 100%);' : ''}">
+                        ${isBundleActive ? '<div style="position: absolute; top: 10px; right: 10px; background: #2E8B57; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">✓ ATTIVO</div>' : ''}
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <h3 style="margin: 0; color: #2E8B57;">${bundle.name}</h3>
+                            <span class="bundle-discount">-${bundle.discount}%</span>
+                        </div>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">${bundle.description}</p>
+                        <div style="margin-bottom: 10px;">
+                            ${allModulesAvailable ? `
+                                <div style="font-size: 12px; color: #999; text-decoration: line-through;">€${singlePrice}/mese (singoli)</div>
+                                <div style="font-size: 20px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
+                                <div style="font-size: 11px; color: ${savings > 0 ? '#2E8B57' : '#dc3545'}; font-weight: bold;">Risparmi €${savings}/mese</div>
+                            ` : `
+                                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Alcuni moduli non ancora disponibili</div>
+                                <div style="font-size: 20px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
+                                <div style="font-size: 11px; color: #ff9800;">Prossimamente</div>
+                            `}
+                        </div>
+                        <div style="font-size: 12px; margin-bottom: 10px;">
+                            <strong>Moduli inclusi:</strong>
+                            <div style="margin-top: 5px;">
+                                ${bundle.modules.map(modId => {
+                                    const mod = getModuleConfig(modId);
+                                    const isActive = activeModules.includes(modId);
+                                    return mod ? `<span style="display: inline-block; background: ${isActive ? '#d4edda' : '#f0f8f4'}; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 11px;">${mod.icon} ${mod.name} ${isActive ? '✓' : ''}</span>` : '';
+                                }).join('')}
+                            </div>
+                        </div>
+                        ${isBundleActive ? 
+                            '<div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; border: 1px solid #2E8B57; margin-bottom: 10px;">✓ Bundle Attivo - €' + bundle.price + '/mese</div>' +
+                            `<button class="btn btn-secondary" style="width: 100%; background: #dc3545; color: white; border: none;" onclick="event.stopPropagation(); deactivateBundle('${bundle.id}')">❌ Disattiva Bundle</button>` : 
+                            (isFullyActive ? 
+                                '<div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; font-size: 12px; text-align: center; border: 1px solid #ffc107; margin-bottom: 10px;">⚠️ Tutti i moduli sono attivi ma il bundle non è applicato<br><small>Attiva il bundle per risparmiare €' + (singlePrice - bundle.price) + '/mese</small></div>' +
+                                `<button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="event.stopPropagation(); selectBundle('${bundle.id}')">Attiva Bundle e Risparmia</button>` :
+                                `<button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="event.stopPropagation(); selectBundle('${bundle.id}')">${isPartiallyActive ? 'Completa Bundle (' + notActiveInBundle.length + ' moduli mancanti)' : 'Attiva Bundle'}</button>`
+                            )
+                        }
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        // Toggle costruttore piano
+        window.toggleBuildPlan = function() {
+            const section = document.getElementById('build-plan-section');
+            const btn = document.getElementById('toggle-build-plan-btn');
+            const text = document.getElementById('toggle-build-plan-text');
+            
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                text.textContent = 'Nascondi Costruttore Piano';
+                initializeCustomPlanBuilder();
+            } else {
+                section.style.display = 'none';
+                text.textContent = 'Mostra Costruttore Piano';
+            }
+        };
+        
+        // Inizializza costruttore piano personalizzato
+        function initializeCustomPlanBuilder() {
+            const modulesContainer = document.getElementById('custom-modules-selection');
+            const modules = getAllModules(false); // Solo moduli disponibili
+            
+            const html = modules.map(module => {
+                const isSelected = activeModules.includes(module.id);
+                return `
+                    <label class="custom-module-checkbox">
+                        <input type="checkbox" value="${module.id}" ${isSelected ? 'checked' : ''} onchange="updateCustomPlanPrice()">
+                        <span>${module.icon} ${module.name} (€${module.price}/mese)</span>
+                    </label>
+                `;
+            }).join('');
+            
+            modulesContainer.innerHTML = html;
+            
+            updateCustomPlanPrice();
+        }
+        
+        // Aggiorna prezzo piano personalizzato
+        window.updateCustomPlanPrice = function() {
+            const checkboxes = document.querySelectorAll('#custom-modules-selection input[type="checkbox"]:checked');
+            const selectedModules = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Determina piano: Free se nessun modulo, Base se almeno un modulo
+            let basePrice = 0;
+            let suggestedPlan = 'free';
+            
+            if (selectedModules.length > 0) {
+                basePrice = 5; // Base
+                suggestedPlan = 'base';
+            }
+            
+            // Calcola prezzo moduli
+            const modulesPrice = selectedModules.reduce((sum, modId) => {
+                const mod = getModuleConfig(modId);
+                return sum + (mod && mod.available ? mod.price : 0);
+            }, 0);
+            
+            const totalPrice = basePrice + modulesPrice;
+            
+            // Aggiorna UI
+            document.getElementById('custom-total-price').innerHTML = `€${totalPrice}<span style="font-size: 14px; color: #666;">/mese</span>`;
+            
+            // Suggerimento piano
+            const planConfig = getPlanConfig(suggestedPlan);
+            let suggestion = '';
+            if (planConfig) {
+                suggestion = `💡 Ti consigliamo il piano <strong>${planConfig.name}</strong> (€${planConfig.price}/mese base)`;
+                if (selectedModules.length > 0) {
+                    suggestion += `<br><small style="color: #666;">+ €${modulesPrice}/mese per ${selectedModules.length} moduli</small>`;
+                }
+            }
+            document.getElementById('custom-plan-suggestion').innerHTML = suggestion;
+            
+            // Aggiorna suggerimenti bundle
+            updateCustomPlanBundleSuggestions(selectedModules);
+        };
+        
+        // Aggiorna suggerimenti bundle nel costruttore piano
+        function updateCustomPlanBundleSuggestions(selectedModules) {
+            const suggestions = getSuggestedBundles(selectedModules);
+            // TODO: Mostrare suggerimenti bundle anche nel costruttore
+        };
+        
+        // Applica piano personalizzato
+        window.applyCustomPlan = async function() {
+            const checkboxes = document.querySelectorAll('#custom-modules-selection input[type="checkbox"]:checked');
+            const selectedModules = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Determina piano: Free se nessun modulo, Base se almeno un modulo
+            let planId = 'free';
+            if (selectedModules.length > 0) {
+                planId = 'base';
+            }
+            
+            const planConfig = getPlanConfig(planId);
+            if (!planConfig) {
+                showAlert('Errore: piano non trovato', 'error');
+                return;
+            }
+            
+            // Verifica che i moduli selezionati siano disponibili
+            const unavailableModules = selectedModules.filter(modId => {
+                const mod = getModuleConfig(modId);
+                return !mod || !mod.available;
+            });
+            
+            if (unavailableModules.length > 0) {
+                showAlert('Alcuni moduli selezionati non sono ancora disponibili', 'error');
+                return;
+            }
+            
+            try {
+                // Applica piano e moduli (nessuna limitazione)
+                const modulesToApply = selectedModules;
+                
+                const newExpiryDate = new Date();
+                newExpiryDate.setMonth(newExpiryDate.getMonth() + 1);
+                
+                await updateDoc(doc(db, 'tenants', currentTenantId), {
+                    plan: planId,
+                    modules: modulesToApply,
+                    expiryDate: Timestamp.fromDate(newExpiryDate),
+                    updatedAt: serverTimestamp()
+                });
+                
+                // Mantieni bundle attivi solo se tutti i loro moduli sono ancora presenti
+                let bundlesToKeep = activeBundles.filter(bundleId => {
+                    const bundle = BUNDLES.find(b => b.id === bundleId);
+                    if (!bundle) return false;
+                    return bundle.modules.every(modId => modulesToApply.includes(modId));
+                });
+                
+                await updateDoc(doc(db, 'tenants', currentTenantId), {
+                    activeBundles: bundlesToKeep,
+                    updatedAt: serverTimestamp()
+                });
+                
+                // Aggiorna stato locale
+                currentTenantData.plan = planId;
+                currentTenantData.modules = modulesToApply;
+                currentTenantData.activeBundles = bundlesToKeep;
+                activeModules = modulesToApply;
+                activeBundles = bundlesToKeep;
+                
+                // Ricalcola e aggiorna UI
+                updateCurrentPlanUI(planConfig, currentTenantData);
+                renderActiveModules();
+                renderModules();
+                renderUpgradeSection();
+                renderBundles();
+                renderSuggestions();
+                
+                showAlert('Piano personalizzato applicato con successo!', 'success');
+                
+                // Chiudi costruttore
+                document.getElementById('build-plan-section').style.display = 'none';
+                document.getElementById('toggle-build-plan-text').textContent = 'Mostra Costruttore Piano';
+                
+            } catch (error) {
+                console.error('Errore applicazione piano personalizzato:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+        
+        // Disattiva bundle
+        window.deactivateBundle = async function(bundleId) {
+            const bundle = BUNDLES.find(b => b.id === bundleId);
+            if (!bundle) return;
+            
+            if (!activeBundles.includes(bundleId)) {
+                showAlert('Il bundle non è attivo', 'info');
+                return;
+            }
+            
+            // Calcola moduli del bundle che devono essere disattivati
+            const bundleModules = bundle.modules;
+            const bundleModulesNames = bundleModules.map(modId => {
+                const mod = getModuleConfig(modId);
+                return mod ? mod.name : modId;
+            }).join(', ');
+            
+            const bundleModulesPrice = bundleModules.reduce((sum, modId) => {
+                const mod = getModuleConfig(modId);
+                return sum + (mod && mod.available ? mod.price : 0);
+            }, 0);
+            
+            if (!confirm(`Disattivare il bundle "${bundle.name}"?\n\n⚠️ I moduli del bundle (${bundleModulesNames}) verranno disattivati.\n\n📅 Dal mese prossimo i moduli saranno disattivati e non ci sarà il rinnovo del pagamento.\n\nIl prezzo passerà da €${bundle.price}/mese a €0/mese per questi moduli.`)) {
+                return;
+            }
+            
+            try {
+                // Rimuovi bundle dagli attivi
+                const updatedBundles = activeBundles.filter(bId => bId !== bundleId);
+                
+                // Rimuovi anche i moduli del bundle dagli attivi
+                const updatedModules = activeModules.filter(modId => !bundleModules.includes(modId));
+                
+                await updateDoc(doc(db, 'tenants', currentTenantId), {
+                    activeBundles: updatedBundles,
+                    modules: updatedModules,
+                    updatedAt: serverTimestamp()
+                });
+                
+                activeBundles = updatedBundles;
+                activeModules = updatedModules;
+                currentTenantData.activeBundles = updatedBundles;
+                currentTenantData.modules = updatedModules;
+                
+                const planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+                const totalPrice = calculateTotalPrice(planId, updatedModules, updatedBundles);
+                document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
+                
+                renderActiveModules();
+                renderModules();
+                renderBundles();
+                renderSuggestions();
+                updateSubscriptionSummary(getPlanConfig(planId));
+                
+                showAlert(`Bundle "${bundle.name}" disattivato.\n\n📅 Dal mese prossimo i moduli (${bundleModulesNames}) saranno disattivati e non ci sarà il rinnovo del pagamento.`, 'success');
+                
+            } catch (error) {
+                console.error('Errore disattivazione bundle:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+        
+        // Seleziona bundle
+        window.selectBundle = async function(bundleId) {
+            const bundle = BUNDLES.find(b => b.id === bundleId);
+            if (!bundle) return;
+            
+            // Se il bundle è già attivo, non fare nulla (la disattivazione è gestita da deactivateBundle)
+            if (activeBundles.includes(bundleId)) {
+                return;
+            }
+            
+            // Verifica quali moduli sono già attivi
+            const newModules = bundle.modules.filter(modId => {
+                const mod = getModuleConfig(modId);
+                return mod && mod.available;
+            });
+            
+            const alreadyActive = newModules.filter(modId => activeModules.includes(modId));
+            const toActivate = newModules.filter(modId => !activeModules.includes(modId));
+            
+            // Calcola risparmio
+            const singlePrice = bundle.modules.reduce((sum, modId) => {
+                const mod = getModuleConfig(modId);
+                return sum + (mod && mod.available ? mod.price : 0);
+            }, 0);
+            const savings = singlePrice - bundle.price;
+            
+            // Se tutti i moduli sono già attivi, permette di attivare il bundle per risparmiare
+            if (toActivate.length === 0 && alreadyActive.length === newModules.length) {
+                // Tutti i moduli sono già attivi come singoli - converti a bundle
+                const currentSinglesPrice = alreadyActive.reduce((sum, modId) => {
+                    const mod = getModuleConfig(modId);
+                    return sum + (mod && mod.available ? mod.price : 0);
+                }, 0);
+                
+                if (!confirm(`Attivare il bundle "${bundle.name}"?\n\nTutti i moduli sono già attivi come singoli (€${currentSinglesPrice}/mese).\n\nAttivando il bundle risparmierai €${savings}/mese (da €${currentSinglesPrice}/mese a €${bundle.price}/mese).`)) {
+                    return;
+                }
+                
+                try {
+                    // I moduli rimangono attivi, ma ora sono coperti dal bundle
+                    // Assicuriamoci che TUTTI i moduli del bundle (solo disponibili) siano in activeModules
+                    const availableBundleModules = bundle.modules.filter(modId => {
+                        const mod = getModuleConfig(modId);
+                        return mod && mod.available;
+                    });
+                    const allBundleModules = new Set([...activeModules, ...availableBundleModules]);
+                    const updatedModules = Array.from(allBundleModules);
+                    const updatedBundles = [...activeBundles, bundleId];
+                    
+                    await updateDoc(doc(db, 'tenants', currentTenantId), {
+                        modules: updatedModules,
+                        activeBundles: updatedBundles,
+                        updatedAt: serverTimestamp()
+                    });
+                    
+                    activeModules = updatedModules;
+                    activeBundles = updatedBundles;
+                    currentTenantData.modules = updatedModules;
+                    currentTenantData.activeBundles = updatedBundles;
+                    
+                    const planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+                    const totalPrice = calculateTotalPrice(planId, updatedModules, updatedBundles);
+                    document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
+                    
+                    renderActiveModules();
+                    renderModules();
+                    renderBundles();
+                    renderSuggestions();
+                    updateSubscriptionSummary(getPlanConfig(planId));
+                    
+                    showAlert(`Bundle "${bundle.name}" attivato! Risparmi €${savings}/mese rispetto ai moduli singoli.`, 'success');
+                    
+                } catch (error) {
+                    console.error('Errore attivazione bundle:', error);
+                    showAlert(`Errore: ${error.message}`, 'error');
+                }
+                return;
+            }
+            
+            // Caso normale: alcuni moduli non sono attivi
+            const moduleNames = toActivate.map(modId => {
+                const mod = getModuleConfig(modId);
+                return mod ? mod.name : modId;
+            }).join(', ');
+            
+            if (!confirm(`Attivare il bundle "${bundle.name}"?\n\nVerranno attivati: ${moduleNames}\n\nRisparmio: €${savings}/mese`)) {
+                return;
+            }
+            
+            try {
+                // Assicuriamoci che TUTTI i moduli del bundle (solo disponibili) siano in activeModules
+                const availableBundleModules = bundle.modules.filter(modId => {
+                    const mod = getModuleConfig(modId);
+                    return mod && mod.available;
+                });
+                const allBundleModules = new Set([...activeModules, ...availableBundleModules]);
+                const updatedModules = Array.from(allBundleModules);
+                
+                // Aggiungi bundle agli attivi se non già presente
+                const updatedBundles = activeBundles.includes(bundleId) 
+                    ? activeBundles 
+                    : [...activeBundles, bundleId];
+                
+                await updateDoc(doc(db, 'tenants', currentTenantId), {
+                    modules: updatedModules,
+                    activeBundles: updatedBundles,
+                    updatedAt: serverTimestamp()
+                });
+                
+                activeModules = updatedModules;
+                activeBundles = updatedBundles;
+                currentTenantData.modules = updatedModules;
+                currentTenantData.activeBundles = updatedBundles;
+                
+                const planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+                const totalPrice = calculateTotalPrice(planId, updatedModules, updatedBundles);
+                document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
+                
+                renderActiveModules();
+                renderModules();
+                renderBundles();
+                renderSuggestions();
+                updateSubscriptionSummary(getPlanConfig(planId));
+                
+                showAlert(`Bundle "${bundle.name}" attivato con successo! Moduli attivati: ${moduleNames}`, 'success');
+                
+            } catch (error) {
+                console.error('Errore attivazione bundle:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+        
 
         // Toggle modulo
         window.toggleModule = async function(moduleId) {
-            const isActive = activeModules.includes(moduleId);
+            const module = getModuleConfig(moduleId);
+            if (!module) {
+                showAlert('Modulo non trovato', 'error');
+                return;
+            }
             
-            if (isActive) {
-                if (!confirm(`Sei sicuro di voler disattivare il modulo "${availableModules.find(m => m.id === moduleId)?.name}"?\n\nLe funzionalità associate non saranno più disponibili.`)) {
+            const isActive = activeModules.includes(moduleId);
+            // Retrocompatibilità: migra piani vecchi
+            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+            if (['starter', 'professional', 'enterprise'].includes(planId)) {
+                planId = 'base';
+            }
+            
+            // Se stai attivando, verifica permessi e limiti
+            if (!isActive) {
+                // Verifica se modulo può essere attivato
+                const canActivate = canActivateModule(planId, moduleId, activeModules);
+                if (!canActivate.canActivate) {
+                    showAlert(canActivate.reason, 'error');
+                    return;
+                }
+                
+                // Verifica limite moduli
+                const planConfig = getPlanConfig(planId);
+                // Nessuna limitazione moduli (tutti pay-per-use)
+                
+                // Calcola nuovo prezzo totale
+                const currentPrice = calculateTotalPrice(planId, activeModules, activeBundles);
+                const newPrice = calculateTotalPrice(planId, [...activeModules, moduleId], activeBundles);
+                const priceIncrease = newPrice - currentPrice;
+                
+                const confirmMessage = `Attivare il modulo "${module.name}"?\n\n` +
+                    `Prezzo modulo: €${module.price}/mese\n` +
+                    `Prezzo totale nuovo: €${newPrice}/mese\n` +
+                    `(Aumento: +€${priceIncrease}/mese)`;
+                
+                if (!confirm(confirmMessage)) {
                     return;
                 }
             } else {
-                if (!confirm(`Attivare il modulo "${availableModules.find(m => m.id === moduleId)?.name}"?`)) {
+                if (!confirm(`Sei sicuro di voler disattivare il modulo "${module.name}"?\n\nLe funzionalità associate non saranno più disponibili.`)) {
                     return;
                 }
             }
@@ -496,10 +1711,24 @@
             try {
                 // Aggiorna array moduli
                 let newModules = [...activeModules];
+                let newBundles = [...activeBundles];
                 
                 if (isActive) {
                     // Rimuovi modulo
                     newModules = newModules.filter(m => m !== moduleId);
+                    
+                    // Se il modulo faceva parte di un bundle, rimuovi il bundle
+                    newBundles = newBundles.filter(bundleId => {
+                        const bundle = BUNDLES.find(b => b.id === bundleId);
+                        if (bundle && bundle.modules.includes(moduleId)) {
+                            // Verifica se tutti i moduli del bundle sono ancora attivi
+                            const allModulesActive = bundle.modules.every(modId => 
+                                modId === moduleId || newModules.includes(modId)
+                            );
+                            return allModulesActive; // Mantieni bundle solo se tutti i moduli sono ancora attivi
+                        }
+                        return true;
+                    });
                 } else {
                     // Aggiungi modulo
                     if (!newModules.includes(moduleId)) {
@@ -510,24 +1739,37 @@
                 // Salva in Firestore
                 await updateDoc(doc(db, 'tenants', currentTenantId), {
                     modules: newModules,
-                    aggiornatoIl: serverTimestamp()
+                    activeBundles: newBundles,
+                    plan: planId, // Assicura che 'plan' esista (fix inconsistenza)
+                    updatedAt: serverTimestamp()
                 });
 
                 // Aggiorna stato locale
                 activeModules = newModules;
+                activeBundles = newBundles;
+                currentTenantData.modules = newModules;
+                currentTenantData.activeBundles = newBundles;
+                
+                // Ricalcola e aggiorna prezzo totale
+                const totalPrice = calculateTotalPrice(planId, newModules, newBundles);
+                document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
                 
                 // Rerenderizza moduli
+                renderActiveModules();
                 renderModules();
+                renderBundles();
+                renderSuggestions();
+                updateSubscriptionSummary(getPlanConfig(planId));
                 
                 showAlert(
-                    `Modulo "${availableModules.find(m => m.id === moduleId)?.name}" ${isActive ? 'disattivato' : 'attivato'} con successo!`,
+                    `Modulo "${module.name}" ${isActive ? 'disattivato' : 'attivato'} con successo!`,
                     'success'
                 );
 
                 // Se hai disattivato Manodopera, avvisa che alcune pagine non saranno più accessibili
                 if (isActive && moduleId === 'manodopera') {
                     setTimeout(() => {
-                        showAlert('⚠️ Ricorda: con Manodopera disattivato, le pagine "Gestisci Utenti" e "Gestione Squadre" non saranno più accessibili.', 'error');
+                        showAlert('⚠️ Ricorda: con Manodopera disattivato, le pagine "Gestisci Utenti" e "Gestione Squadre" non saranno più accessibili.', 'info');
                     }, 2000);
                 }
             } catch (error) {
@@ -552,9 +1794,106 @@
             }, 5000);
         }
 
-        // Placeholder per cambio piano (futuro)
-        window.selectPlan = function(plan) {
-            showAlert('Funzionalità cambio piano in sviluppo', 'info');
+        // Cambio piano completo
+        window.selectPlan = async function(planId) {
+            // Retrocompatibilità: migra piani vecchi
+            let currentPlanId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+            if (['starter', 'professional', 'enterprise'].includes(currentPlanId)) {
+                currentPlanId = 'base';
+            }
+            
+            // Se è già il piano corrente, non fare nulla
+            if (planId === currentPlanId) {
+                return;
+            }
+            
+            const currentPlanConfig = getPlanConfig(currentPlanId);
+            const newPlanConfig = getPlanConfig(planId);
+            
+            if (!currentPlanConfig || !newPlanConfig) {
+                showAlert('Piano non trovato', 'error');
+                return;
+            }
+            
+            // Verifica se è upgrade o downgrade
+            const isUpgrade = ['free', 'starter', 'professional', 'enterprise'].indexOf(planId) > 
+                             ['free', 'starter', 'professional', 'enterprise'].indexOf(currentPlanId);
+            const isDowngrade = !isUpgrade;
+            
+            // Calcola differenza prezzo
+            const currentPrice = calculateTotalPrice(currentPlanId, activeModules, activeBundles);
+            const newPrice = calculateTotalPrice(planId, activeModules, activeBundles);
+            const priceDiff = newPrice - currentPrice;
+            
+            // Mostra conferma con dettagli
+            const confirmMessage = `Vuoi cambiare piano da ${currentPlanConfig.name} a ${newPlanConfig.name}?\n\n` +
+                `Prezzo attuale: €${currentPrice}/mese\n` +
+                `Prezzo nuovo: €${newPrice}/mese\n` +
+                `${priceDiff >= 0 ? 'Aumento' : 'Riduzione'}: €${Math.abs(priceDiff)}/mese\n\n` +
+                `I moduli attivi verranno mantenuti.\n\n` +
+                `Confermi il cambio piano?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            try {
+                // Mantieni tutti i moduli (nessuna limitazione)
+                let modulesToKeep = [...activeModules];
+                
+                // Calcola nuova data scadenza (1 mese da oggi)
+                const newExpiryDate = new Date();
+                newExpiryDate.setMonth(newExpiryDate.getMonth() + 1);
+                
+                // Mantieni bundle attivi solo se tutti i loro moduli sono ancora presenti
+                let bundlesToKeep = activeBundles.filter(bundleId => {
+                    const bundle = BUNDLES.find(b => b.id === bundleId);
+                    if (!bundle) return false;
+                    return bundle.modules.every(modId => modulesToKeep.includes(modId));
+                });
+                
+                // Aggiorna Firestore
+                const updates = {
+                    plan: planId,
+                    modules: modulesToKeep,
+                    activeBundles: bundlesToKeep,
+                    expiryDate: Timestamp.fromDate(newExpiryDate),
+                    updatedAt: serverTimestamp()
+                };
+                
+                // Se è il primo cambio piano, aggiungi anche startDate
+                if (!currentTenantData.startDate) {
+                    updates.startDate = Timestamp.fromDate(new Date());
+                }
+                
+                await updateDoc(doc(db, 'tenants', currentTenantId), updates);
+                
+                // Aggiorna stato locale
+                currentTenantData.plan = planId;
+                currentTenantData.modules = modulesToKeep;
+                currentTenantData.activeBundles = bundlesToKeep;
+                currentTenantData.expiryDate = Timestamp.fromDate(newExpiryDate);
+                activeModules = modulesToKeep;
+                activeBundles = bundlesToKeep;
+                
+                // Ricalcola e aggiorna UI
+                updateCurrentPlanUI(newPlanConfig, currentTenantData);
+                renderActiveModules();
+                renderModules();
+                renderUpgradeSection();
+                renderBundles();
+                renderSuggestions();
+                updateSubscriptionSummary(newPlanConfig);
+                
+                showAlert(
+                    `Piano cambiato con successo da ${currentPlanConfig.name} a ${newPlanConfig.name}!`,
+                    'success'
+                );
+                
+            } catch (error) {
+                console.error('Errore cambio piano:', error);
+                showAlert(`Errore cambio piano: ${error.message}`, 'error');
+            }
         };
     </script>
 </body>

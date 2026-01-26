@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Lavori Service - Servizio per gestione lavori
  * Gestisce CRUD lavori con supporto multi-tenant
  * 
@@ -69,8 +69,14 @@ export async function getAllLavori(options = {}) {
     
     return documents.map(doc => Lavoro.fromData(doc));
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero lavori:', error);
+      throw new Error(`Errore recupero lavori: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero lavori:', error);
-    throw new Error(`Errore recupero lavori: ${error.message}`);
+    return [];
   }
 }
 
@@ -159,8 +165,14 @@ export async function getLavoriAttivi(options = {}) {
     const lavori = await getAllLavori(options);
     return lavori.filter(lavoro => lavoro.isAttivo());
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero lavori attivi:', error);
+      throw new Error(`Errore recupero lavori attivi: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero lavori attivi:', error);
-    throw new Error(`Errore recupero lavori attivi: ${error.message}`);
+    return [];
   }
 }
 

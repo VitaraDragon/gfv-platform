@@ -249,8 +249,14 @@ export async function getAllColture(options = {}) {
     
     return documents.map(doc => Coltura.fromData(doc));
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero colture:', error);
+      throw new Error(`Errore recupero colture: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero colture:', error);
-    throw new Error(`Errore recupero colture: ${error.message}`);
+    return [];
   }
 }
 
@@ -273,8 +279,14 @@ export async function getColturePerCategoria() {
     
     return colturePerCategoria;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero colture per categoria:', error);
+      throw new Error(`Errore recupero colture per categoria: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna oggetto vuoto
     console.error('Errore recupero colture per categoria:', error);
-    throw new Error(`Errore recupero colture per categoria: ${error.message}`);
+    return {};
   }
 }
 

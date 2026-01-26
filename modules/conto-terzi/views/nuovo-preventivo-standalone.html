@@ -1319,12 +1319,13 @@
                         }
                         
                         // Fallback: cerca la coltura in colturePerCategoriaPreventivo
-                        const colturePerCategoria = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
-                        if (!categoriaTrovata && colturePerCategoria && Object.keys(colturePerCategoria).length > 0) {
+                        // Usa direttamente window.colturePerCategoriaPreventivo per avere sempre i dati aggiornati
+                        const colturePerCategoriaUpdated = window.colturePerCategoriaPreventivo || colturePerCategoriaPreventivo || {};
+                        if (!categoriaTrovata && colturePerCategoriaUpdated && Object.keys(colturePerCategoriaUpdated).length > 0) {
                             console.log('🔵 [PREVENTIVO] Cerca coltura in colturePerCategoriaPreventivo...');
                             const nomeColturaTerreno = (colturaNome || '').trim().toLowerCase();
                             
-                            for (const [categoriaId, coltureList] of Object.entries(colturePerCategoria)) {
+                            for (const [categoriaId, coltureList] of Object.entries(colturePerCategoriaUpdated)) {
                                 if (categoriaId === 'senza_categoria') continue;
                                 
                                 console.log(`🔵 [PREVENTIVO] Cerca in categoria ${categoriaId}, colture:`, coltureList);

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Categorie Service - Servizio unificato per gestione categorie gerarchiche
  * Gestisce CRUD categorie con supporto multi-tenant e struttura gerarchica
  * 
@@ -302,6 +302,15 @@ const SOTTOCATEGORIE_PREDEFINITE = [
     predefinita: true,
     ordine: 2
   },
+  {
+    nome: 'Impianto',
+    codice: 'semina_piantagione_impianto',
+    parentCodice: 'semina_piantagione',
+    descrizione: 'Impianto completo di nuove colture con struttura di sostegno (vigneti, frutteti, oliveti)',
+    applicabileA: 'lavori',
+    predefinita: true,
+    ordine: 3
+  },
   // Sottocategorie per Diserbo
   {
     nome: 'Manuale',
@@ -547,8 +556,14 @@ export async function getAllCategorie(options = {}) {
       throw indexError;
     }
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero categorie:', error);
+      throw new Error(`Errore recupero categorie: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero categorie:', error);
-    throw new Error(`Errore recupero categorie: ${error.message}`);
+    return [];
   }
 }
 
@@ -592,8 +607,14 @@ export async function getCategorieGerarchiche(options = {}) {
     
     return strutturaGerarchica;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero categorie gerarchiche:', error);
+      throw new Error(`Errore recupero categorie gerarchiche: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero categorie gerarchiche:', error);
-    throw new Error(`Errore recupero categorie gerarchiche: ${error.message}`);
+    return [];
   }
 }
 

@@ -209,6 +209,9 @@ export async function loadAffittiInScadenza(dependencies) {
         const affitti = [];
         terreniSnapshot.forEach(doc => {
             const terreno = doc.data();
+            // Escludi terreni clienti (solo terreni aziendali)
+            if (terreno.clienteId && terreno.clienteId !== '') return;
+            
             if (terreno.tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
                 const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
                 affitti.push({
@@ -329,10 +332,14 @@ export async function loadCoreStatsForManager(dependencies) {
         const tenantId = userData.tenantId;
         if (!tenantId) return;
         
-        // Carica terreni
+        // Carica terreni (solo aziendali, escludi terreni clienti)
         const terreniCollection = collection(db, `tenants/${tenantId}/terreni`);
         const terreniSnapshot = await getDocs(terreniCollection);
-        const totaleTerreni = terreniSnapshot.size;
+        // Filtra solo terreni aziendali
+        const totaleTerreni = terreniSnapshot.docs.filter(doc => {
+            const terreno = doc.data();
+            return !terreno.clienteId || terreno.clienteId === '';
+        }).length;
         const statTerreniEl = document.getElementById('stat-terreni-manager');
         if (statTerreniEl) statTerreniEl.textContent = totaleTerreni;
         

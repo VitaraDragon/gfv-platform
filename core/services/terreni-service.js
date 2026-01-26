@@ -38,17 +38,14 @@ export async function getAllTerreni(options = {}) {
       clienteId = null
     } = options;
     
-    // Se c'è un filtro clienteId, carica tutti i terreni e filtra lato client
-    // per evitare problemi con indice composito Firestore
+    // Dobbiamo sempre filtrare lato client:
+    // - Se clienteId è null: escludiamo terreni clienti (solo aziendali)
+    // - Se clienteId è specificato: filtriamo per quel cliente
+    // Questo evita problemi con indice composito Firestore
     const whereFilters = [];
-    let useClientSideFilter = false;
+    const useClientSideFilter = true; // Sempre filtra lato client per gestire clienteId
     
-    if (clienteId !== null) {
-      // Filtra lato client per evitare indice composito
-      useClientSideFilter = true;
-    }
-    
-    // Carica tutti i terreni (senza filtro clienteId se necessario)
+    // Carica tutti i terreni (senza filtro se dobbiamo filtrare lato client)
     const documents = await getCollectionData(COLLECTION_NAME, {
       tenantId,
       orderBy: useClientSideFilter ? undefined : orderBy, // Non ordinare se filtriamo lato client
@@ -64,12 +61,18 @@ export async function getAllTerreni(options = {}) {
       return terreno;
     });
     
-    // Filtra lato client se necessario
-    if (useClientSideFilter && clienteId !== null) {
+    // Filtra terreni:
+    // - Se clienteId è null: mostra solo terreni aziendali (escludi terreni clienti)
+    // - Se clienteId è specificato: mostra solo terreni di quel cliente
+    if (clienteId === null) {
+      // Escludi terreni clienti (solo terreni aziendali)
+      terreni = terreni.filter(t => !t.clienteId || t.clienteId === '');
+    } else if (clienteId !== null) {
+      // Filtra per cliente specifico
       terreni = terreni.filter(t => t.clienteId === clienteId);
     }
     
-    // Ordina lato client se necessario
+    // Ordina lato client se necessario (sempre quando filtriamo lato client)
     if (useClientSideFilter && orderBy) {
       terreni.sort((a, b) => {
         const aVal = a[orderBy] || '';
@@ -81,8 +84,14 @@ export async function getAllTerreni(options = {}) {
     
     return terreni;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero terreni:', error);
+      throw new Error(`Errore recupero terreni: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero terreni:', error);
-    throw new Error(`Errore recupero terreni: ${error.message}`);
+    return [];
   }
 }
 

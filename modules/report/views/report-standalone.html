@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report/Bilancio - GFV Platform</title>
+  <meta name="theme-color" content="#1F2937" />
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #111827 0%, #374151 100%);
+      color: #111827;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header {
+      background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+      color: white;
+      padding: 28px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .header h1 { font-size: 26px; }
+    .header p { opacity: .9; font-size: 14px; margin-top: 6px; }
+    .header-left { display: flex; flex-direction: column; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform .15s ease, background .15s ease;
+    }
+    .btn:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
+    .btn-primary { background: rgba(59,130,246,0.25); border-color: rgba(59,130,246,0.35); }
+    .btn-primary:hover { background: rgba(59,130,246,0.32); }
+
+    .panel {
+      margin-top: 16px;
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 220px; }
+    label { font-size: 12px; font-weight: 700; color: #374151; }
+    select {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: white;
+    }
+    .muted { color: #6b7280; font-size: 13px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .card {
+      grid-column: span 4;
+      background: #f9fafb;
+      border: 1px solid #eef2f7;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .card h3 { font-size: 13px; color: #374151; }
+    .card .value { font-size: 22px; font-weight: 800; margin-top: 8px; }
+    .card .sub { margin-top: 6px; font-size: 12px; color: #6b7280; }
+    @media (max-width: 900px) { .card { grid-column: span 6; } }
+    @media (max-width: 600px) { .card { grid-column: span 12; } }
+
+    .tables { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    @media (max-width: 1100px) { .tables { grid-template-columns: 1fr; } }
+    .table-card { background: white; border: 1px solid #eef2f7; border-radius: 12px; overflow: hidden; }
+    .table-card header { padding: 12px 14px; background: #f9fafb; border-bottom: 1px solid #eef2f7; }
+    .table-card header h3 { font-size: 14px; color: #111827; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #eef2f7; text-align: left; font-size: 13px; }
+    th { background: #ffffff; color: #374151; position: sticky; top: 0; }
+    .table-scroll { max-height: 420px; overflow: auto; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .badge-v { background: rgba(167,139,250,0.15); color: #5b21b6; border: 1px solid rgba(167,139,250,0.25); }
+
+    .alert { margin-top: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <h1>📑 Report/Bilancio</h1>
+        <p>Report unificati ed export (MVP) — adattivo ai moduli attivi</p>
+      </div>
+      <div class="header-actions">
+        <a class="btn" href="../../../core/dashboard-standalone.html">← Dashboard</a>
+        <button class="btn btn-primary" id="btn-export-excel">📊 Esporta Excel</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="filters">
+        <div class="filter-group">
+          <label for="filtro-modulo">Modulo</label>
+          <select id="filtro-modulo">
+            <option value="all">Tutti (MVP)</option>
+          </select>
+          <div class="muted">Le sezioni compaiono solo se il modulo è attivo.</div>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-anno">Anno</label>
+          <select id="filtro-anno"></select>
+        </div>
+        <div class="filter-group" id="group-vigneto" style="display:none;">
+          <label for="filtro-vigneto">Vigneto</label>
+          <select id="filtro-vigneto">
+            <option value="">Tutti i vigneti</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="alert-container"></div>
+
+      <div id="content-vigneto" style="display:none;">
+        <div class="grid" id="vigneto-cards"></div>
+        <div class="tables">
+          <div class="table-card">
+            <header><h3>Vendemmie (anno selezionato)</h3></header>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Qli</th>
+                    <th>Ha</th>
+                    <th>€/Tot</th>
+                    <th>Dest.</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-vendemmie"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="table-card">
+            <header><h3>Lavori (completati)</h3></header>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Ore</th>
+                    <th>€</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-lavori"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="content-empty" class="alert alert-info" style="display:none;">
+        Nessun modulo con adapter report disponibile o modulo Report/Bilancio non attivo.
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Firebase config from external file -->
+  <script>
+    const configScript = document.createElement('script');
+    configScript.src = '../../../core/config/firebase-config.js';
+    configScript.onerror = function() {
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+      document.head.appendChild(fallbackScript);
+    };
+    document.head.appendChild(configScript);
+  </script>
+
+  <script type="module">
+    import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    function waitForConfig() {
+      return new Promise((resolve, reject) => {
+        if (typeof window.firebaseConfig !== 'undefined') {
+          resolve(window.firebaseConfig);
+          return;
+        }
+        let attempts = 0;
+        const maxAttempts = 50;
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (typeof window.firebaseConfig !== 'undefined') {
+            clearInterval(checkInterval);
+            resolve(window.firebaseConfig);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            reject(new Error('Firebase config not loaded after 5 seconds'));
+          }
+        }, 100);
+      });
+    }
+
+    const alertContainer = document.getElementById('alert-container');
+    function showAlert(message, type = 'info') {
+      alertContainer.innerHTML = `<div class="alert ${type === 'error' ? 'alert-error' : 'alert-info'}">${message}</div>`;
+    }
+    function clearAlert() { alertContainer.innerHTML = ''; }
+
+    function formatDate(d) {
+      if (!d) return '-';
+      const dateObj = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
+      if (Number.isNaN(dateObj.getTime())) return '-';
+      return dateObj.toLocaleDateString('it-IT');
+    }
+    function fmtNum(n, decimals = 2) {
+      const v = Number(n || 0);
+      return v.toLocaleString('it-IT', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    const firebaseConfig = await waitForConfig();
+    const { initializeFirebase, getAuthInstance } = await import('../../../core/services/firebase-service.js');
+    const { initializeTenantService, getCurrentTenant, getCurrentTenantId, getAvailableModules } = await import('../../../core/services/tenant-service.js');
+    const { hasReportModuleAccess } = await import('../services/report-service.js');
+
+    initializeFirebase(firebaseConfig);
+    const auth = getAuthInstance();
+    initializeTenantService();
+
+    // Adapter registry (MVP: vigneto)
+    const adapters = new Map();
+    async function loadAdapters(activeModules) {
+      adapters.clear();
+
+      if (activeModules.some(m => (m || '').toLowerCase() === 'vigneto')) {
+        try {
+          const { vignetoReportAdapter } = await import('../adapters/vigneto-adapter.js');
+          adapters.set('vigneto', vignetoReportAdapter);
+        } catch (e) {
+          // non bloccare tutto
+        }
+      }
+    }
+
+    // Elements
+    const selModulo = document.getElementById('filtro-modulo');
+    const selAnno = document.getElementById('filtro-anno');
+    const groupVigneto = document.getElementById('group-vigneto');
+    const selVigneto = document.getElementById('filtro-vigneto');
+    const contentVigneto = document.getElementById('content-vigneto');
+    const contentEmpty = document.getElementById('content-empty');
+    const cardsVigneto = document.getElementById('vigneto-cards');
+    const tbodyVendemmie = document.getElementById('tbody-vendemmie');
+    const tbodyLavori = document.getElementById('tbody-lavori');
+    const btnExportExcel = document.getElementById('btn-export-excel');
+
+    let cachedVignetoData = null;
+
+    function setModuleOptions() {
+      selModulo.innerHTML = `<option value="all">Tutti (MVP)</option>`;
+      for (const [id, a] of adapters.entries()) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `${a.icon} ${a.name}`;
+        selModulo.appendChild(opt);
+      }
+    }
+
+    async function loadVignetoFilters() {
+      const adapter = adapters.get('vigneto');
+      if (!adapter) return;
+      const f = await adapter.getFilters();
+
+      // anni
+      selAnno.innerHTML = '';
+      (f.anni || []).forEach(anno => {
+        const opt = document.createElement('option');
+        opt.value = String(anno);
+        opt.textContent = String(anno);
+        selAnno.appendChild(opt);
+      });
+      selAnno.value = String(new Date().getFullYear());
+
+      // vigneti
+      selVigneto.innerHTML = `<option value="">Tutti i vigneti</option>`;
+      (f.vigneti || []).forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        const label = [v.nome, v.varieta, v.terrenoNome].filter(Boolean).join(' - ') || v.id;
+        opt.textContent = label;
+        selVigneto.appendChild(opt);
+      });
+    }
+
+    function renderVigneto(stats, anno) {
+      const produzione = stats?.produzioneTotaleQli || 0;
+      const resa = stats?.resaMediaQliHa || 0;
+      const speseVendemmia = stats?.speseVendemmiaAnno || 0;
+      const speseTot = stats?.costoTotaleAnno ?? (speseVendemmia || 0);
+      const superficie = stats?.superficieTotale || 0;
+
+      cardsVigneto.innerHTML = `
+        <div class="card">
+          <h3>Produzione (Qli)</h3>
+          <div class="value">${fmtNum(produzione, 2)}</div>
+          <div class="sub">Anno ${anno}</div>
+        </div>
+        <div class="card">
+          <h3>Resa media (Qli/Ha)</h3>
+          <div class="value">${fmtNum(resa, 2)}</div>
+          <div class="sub">Superficie: ${fmtNum(superficie, 2)} ha</div>
+        </div>
+        <div class="card">
+          <h3>Costi totali (€)</h3>
+          <div class="value">${fmtNum(speseTot, 2)}</div>
+          <div class="sub">Vendemmia: €${fmtNum(speseVendemmia, 2)}</div>
+        </div>
+      `;
+    }
+
+    function renderVendemmie(vendemmie = []) {
+      if (!vendemmie.length) {
+        tbodyVendemmie.innerHTML = `<tr><td colspan="5" class="muted">Nessuna vendemmia trovata</td></tr>`;
+        return;
+      }
+      tbodyVendemmie.innerHTML = vendemmie.map(v => {
+        const dest = v.destinazione || v.destinazioneUva || '-';
+        return `
+          <tr>
+            <td>${formatDate(v.data)}</td>
+            <td>${fmtNum(v.quantitaQli, 2)}</td>
+            <td>${fmtNum(v.quantitaEttari, 2)}</td>
+            <td>${fmtNum(v.costoTotale, 2)}</td>
+            <td><span class="badge badge-v">${String(dest).slice(0, 20)}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderLavori(lavori = []) {
+      if (!lavori.length) {
+        tbodyLavori.innerHTML = `<tr><td colspan="4" class="muted">Nessun lavoro trovato</td></tr>`;
+        return;
+      }
+      tbodyLavori.innerHTML = lavori.map(l => {
+        const ore = l.oreImpiegate ?? l.oreValidate ?? (l.durataPrevista ? l.durataPrevista * 8 : 0);
+        const costo = l.costoTotale ?? l.costoManodopera ?? 0;
+        return `
+          <tr>
+            <td>${formatDate(l.dataInizio || l.data)}</td>
+            <td>${(l.tipoLavoro || l.nomeTipoLavoro || '-')}</td>
+            <td>${fmtNum(ore, 2)}</td>
+            <td>${fmtNum(costo, 2)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadData() {
+      clearAlert();
+      contentVigneto.style.display = 'none';
+      contentEmpty.style.display = 'none';
+      cachedVignetoData = null;
+
+      const moduleSel = selModulo.value;
+      const anno = Number(selAnno.value) || new Date().getFullYear();
+
+      // MVP: se c'è vigneto adapter, mostralo (anche in "Tutti")
+      const showVigneto = adapters.has('vigneto') && (moduleSel === 'all' || moduleSel === 'vigneto');
+      groupVigneto.style.display = adapters.has('vigneto') ? '' : 'none';
+
+      if (!showVigneto) {
+        contentEmpty.style.display = '';
+        return;
+      }
+
+      try {
+        const adapter = adapters.get('vigneto');
+        const vignetoId = selVigneto.value || null;
+        const data = await adapter.getReportData({ vignetoId, anno });
+        cachedVignetoData = data;
+
+        renderVigneto(data.stats, anno);
+        renderVendemmie(data.vendemmie || []);
+        renderLavori(data.lavori || []);
+        contentVigneto.style.display = '';
+      } catch (e) {
+        console.error(e);
+        showAlert(`Errore caricamento report: ${e.message || e}`, 'error');
+      }
+    }
+
+    async function exportExcel() {
+      if (typeof ExcelJS === 'undefined') {
+        showAlert('Libreria Excel non caricata. Ricarica la pagina.', 'error');
+        return;
+      }
+      if (!cachedVignetoData) {
+        showAlert('Nessun dato da esportare. Carica prima un report.', 'error');
+        return;
+      }
+
+      const { stats, vendemmie, lavori, anno } = cachedVignetoData;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'GFV Platform';
+      wb.created = new Date();
+
+      // Riepilogo
+      const ws1 = wb.addWorksheet('Riepilogo');
+      ws1.addRow(['Modulo', 'Vigneto']);
+      ws1.addRow(['Anno', anno]);
+      ws1.addRow([]);
+      ws1.addRow(['Produzione Totale (Qli)', stats?.produzioneTotaleQli || 0]);
+      ws1.addRow(['Resa Media (Qli/Ha)', stats?.resaMediaQliHa || 0]);
+      ws1.addRow(['Spese Vendemmia (€)', stats?.speseVendemmiaAnno || 0]);
+      ws1.addRow(['Costo Totale Anno (€)', stats?.costoTotaleAnno ?? 0]);
+      ws1.columns = [{ width: 32 }, { width: 18 }];
+      ws1.getColumn(2).numFmt = '#,##0.00';
+
+      // Vendemmie
+      const ws2 = wb.addWorksheet('Vendemmie');
+      ws2.addRow(['Data', 'Qli', 'Ha', 'Costo Totale', 'Destinazione', 'Varietà']);
+      (vendemmie || []).forEach(v => {
+        ws2.addRow([
+          formatDate(v.data),
+          Number(v.quantitaQli || 0),
+          Number(v.quantitaEttari || 0),
+          Number(v.costoTotale || 0),
+          v.destinazione || v.destinazioneUva || '',
+          v.varieta || ''
+        ]);
+      });
+      ws2.columns = [
+        { width: 14 },
+        { width: 10, style: { numFmt: '#,##0.00' } },
+        { width: 10, style: { numFmt: '#,##0.00' } },
+        { width: 14, style: { numFmt: '#,##0.00' } },
+        { width: 18 },
+        { width: 18 }
+      ];
+
+      // Lavori
+      const ws3 = wb.addWorksheet('Lavori');
+      ws3.addRow(['Data', 'Tipo Lavoro', 'Ore (stima)', 'Costo (stima)']);
+      (lavori || []).forEach(l => {
+        const ore = l.oreImpiegate ?? l.oreValidate ?? (l.durataPrevista ? l.durataPrevista * 8 : 0);
+        const costo = l.costoTotale ?? l.costoManodopera ?? 0;
+        ws3.addRow([
+          formatDate(l.dataInizio || l.data),
+          l.tipoLavoro || l.nomeTipoLavoro || '',
+          Number(ore || 0),
+          Number(costo || 0)
+        ]);
+      });
+      ws3.columns = [
+        { width: 14 },
+        { width: 28 },
+        { width: 14, style: { numFmt: '#,##0.00' } },
+        { width: 14, style: { numFmt: '#,##0.00' } }
+      ];
+
+      const dataStr = new Date().toISOString().split('T')[0];
+      const fileName = `report-bilancio-${dataStr}.xlsx`;
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showAlert(`Export completato: ${fileName}`, 'info');
+    }
+
+    // Boot
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '../../../core/auth/login-standalone.html';
+        return;
+      }
+
+      console.log('[REPORT] Verifica accesso modulo report...');
+      const hasAccess = await hasReportModuleAccess();
+      console.log('[REPORT] hasAccess:', hasAccess);
+      
+      if (!hasAccess) {
+        // Debug: verifica tenant e moduli
+        const tenantId = getCurrentTenantId();
+        console.log('[REPORT] tenantId:', tenantId);
+        try {
+          const tenant = await getCurrentTenant();
+          console.log('[REPORT] tenant modules:', tenant?.modules);
+        } catch (e) {
+          console.error('[REPORT] Errore lettura tenant:', e);
+        }
+        
+        showAlert('Il modulo Report/Bilancio non è attivo. Attivalo dalla pagina Abbonamento.', 'error');
+        setTimeout(() => {
+          window.location.href = '../../../core/admin/abbonamento-standalone.html';
+        }, 2500);
+        return;
+      }
+
+      const activeModules = await getAvailableModules();
+      await loadAdapters(activeModules);
+      setModuleOptions();
+
+      if (adapters.has('vigneto')) {
+        await loadVignetoFilters();
+      } else {
+        // fallback anno
+        const y = new Date().getFullYear();
+        selAnno.innerHTML = `<option value="${y}">${y}</option>`;
+      }
+
+      await loadData();
+    });
+
+    selModulo.addEventListener('change', loadData);
+    selAnno.addEventListener('change', loadData);
+    selVigneto.addEventListener('change', loadData);
+    btnExportExcel.addEventListener('click', exportExcel);
+  </script>
+</body>
+</html>
+

@@ -1,8 +1,8 @@
 # 📊 Riepilogo Completo Progetto GFV Platform
 
-**Data aggiornamento**: 2025-12-24  
-**Versione**: 1.0.0-alpha  
-**Stato generale**: ✅ **IN SVILUPPO ATTIVO - FUNZIONANTE E DEPLOYATO**
+**Data aggiornamento**: 2026-01-24 (Integrazione Lavori Impianto con Modulo Vigneto)  
+**Versione**: 1.1.1-alpha  
+**Stato generale**: ✅ **IN SVILUPPO ATTIVO - FUNZIONANTE E DEPLOYATO** - Core Base completo + 3 Moduli completi (Manodopera, Parco Macchine, Conto Terzi) + Modulo Vigneto ~80-85% completato
 
 ---
 
@@ -25,7 +25,54 @@
 
 ## ✅ COSA ABBIAMO FATTO - Dettaglio Completo
 
-### 🆕 Ultimo Aggiornamento: Link Impostazioni nell'Header (2025-12-24)
+### 🆕 Ultimo Aggiornamento: Integrazione Lavori Impianto con Modulo Vigneto (2026-01-24)
+
+#### Funzionalità
+- ✅ **Tipi Lavoro Impianto**: Aggiunti 3 nuovi tipi lavoro predefiniti (Impianto Nuovo Vigneto, Frutteto, Oliveto) con sottocategoria dedicata
+- ✅ **Form Vigneto Integrato**: Form completo per creazione vigneti direttamente nel modal creazione lavori
+- ✅ **Dropdown Pianificazioni**: Selezione pianificazioni confermate per pre-compilare dati vigneto
+- ✅ **Creazione Automatica Vigneto**: Creazione automatica vigneto quando si salva lavoro "Impianto Nuovo Vigneto" con pianificazione
+- ✅ **Formattazione Dati**: Superficie con 2 decimali, densità come numero intero
+- ✅ **Dropdown Coerenti**: Varietà e portainnesto come dropdown con stesse liste anagrafica vigneti
+- ✅ **Fix Errori**: Risolto errore FORME_ALLEVAMENTO_PREDEFINITE in vigneti-standalone.html
+
+#### File Modificati
+- `core/services/categorie-service.js` - Sottocategoria "Impianto"
+- `core/services/tipi-lavoro-service.js` - Tipi lavoro predefiniti
+- `core/admin/gestione-lavori-standalone.html` - Form vigneto integrato
+- `core/admin/js/gestione-lavori-events.js` - Creazione automatica vigneto
+- `core/models/Lavoro.js` - Campo `pianificazioneId`
+- `modules/vigneto/views/vigneti-standalone.html` - Fix errore
+
+#### Vantaggi
+- ✅ Workflow completo: Pianificazione → Conferma → Lavoro → Vigneto automatico
+- ✅ Riduzione errori manuali con pre-compilazione automatica
+- ✅ Coerenza dati tra pianificazione, lavoro e vigneto
+- ✅ Integrazione seamless tra moduli
+
+---
+
+### 🆕 Aggiornamento Precedente: Miglioramenti Gestione Lavori Conto Terzi (2026-01-19)
+
+#### Funzionalità
+- ✅ **Fix Errore Sintassi Preventivo**: Risolto errore variabile duplicata `colturePerCategoria` nella pagina nuovo preventivo
+- ✅ **Caricamento Terreni Clienti**: Dropdown terreni mostra solo terreni clienti quando si crea/modifica lavoro in modalità conto terzi
+- ✅ **Visualizzazione Responsabile**: Colonna "Caposquadra" mostra operaio autonomo quando presente, con differenziazione visiva (caposquadra in blu 👥, operaio normale 👤)
+- ✅ **Terreni Clienti in Tabella**: Terreni clienti vengono mostrati correttamente nella tabella lavori anche quando non sono nella lista iniziale (caricamento dinamico)
+
+#### File Modificati
+- `modules/conto-terzi/views/nuovo-preventivo-standalone.html`
+- `core/admin/js/gestione-lavori-controller.js`
+- `core/admin/gestione-lavori-standalone.html`
+
+#### Vantaggi
+- ✅ Migliore UX per lavori conto terzi
+- ✅ Chiarezza su chi ha eseguito il lavoro
+- ✅ Visualizzazione corretta di tutti i dati
+
+---
+
+### 🆕 Aggiornamento Precedente: Link Impostazioni nell'Header (2025-12-24)
 
 #### Funzionalità
 - ✅ **Link Impostazioni nell'Header**: Aggiunto link alle impostazioni con icona ingranaggio in 9 pagine chiave
@@ -215,6 +262,70 @@
 - ✅ **Preventivi Service** - CRUD preventivi con invio email
 - ✅ **Tariffe Service** - CRUD tariffe
 - ✅ **Poderi Clienti Service** - CRUD poderi clienti
+
+---
+
+### 4.1. Moduli Specializzati per Coltura 🍇 **IN SVILUPPO**
+
+#### Modulo Vigneto ✅ ~70-75% COMPLETATO (2026-01-18)
+
+**Stato**: ✅ **MVP Base + Funzionalità Avanzate Implementate**
+
+**Funzionalità Completate**:
+- ✅ **Anagrafica Vigneti COMPLETA** - CRUD completo con calcolo automatico densità, precompilazione tipo impianto, dropdown completi (50+ varietà, 20+ portainnesti, 20+ forme allevamento, 14+ tipi palo), sistema retrocompatibile
+- ✅ **Gestione Vendemmia COMPLETA** - Registrazione vendemmia, calcolo automatico resa qli/ha, tracciamento poligono area vendemmiata, tabella editabile operai, visualizzazione ore macchina, precompilazione automatica superficie
+- ✅ **Rilevamento Automatico Vendemmia** - Funzioni `createVendemmiaFromLavoro` e `createVendemmiaFromAttivita` implementate e chiamate da hook automatici
+- ✅ **Calcolo Compensi Vendemmia** - Funzione `calcolaCompensiVendemmia` implementata, calcola da ore validate del lavoro o da ore impiegate e tariffe
+- ✅ **Integrazione Sistema Lavori/Diario** - Servizio `lavori-vigneto-service.js` completo, calcolo automatico spese da ore validate, aggregazione annuale per categoria, aggiornamento automatico
+- ✅ **Sistema Spese/Costi COMPLETO** - Calcolo costi lavori manodopera+macchine, struttura gerarchica dinamica categorie, coerenza calcoli, ricalcolo automatico in background
+- ✅ **Tracciamento Poligono Area Vendemmiata** - Modal mappa interattivo per tracciare area vendemmiata, calcolo automatico superficie
+
+**Pagine Modulo (2 pagine)**:
+- ✅ **Anagrafica Vigneti** (`modules/vigneto/views/vigneti-standalone.html`)
+- ✅ **Gestione Vendemmia** (`modules/vigneto/views/vendemmia-standalone.html`)
+
+**Modelli Modulo (4 modelli)**:
+- ✅ **Vigneto Model** - Anagrafica vigneti completa
+- ✅ **Vendemmia Model** - Gestione vendemmia con poligono
+- ✅ **PotaturaVigneto Model** - Modello potatura (servizio pronto)
+- ✅ **TrattamentoVigneto Model** - Modello trattamento (servizio pronto)
+
+**Servizi Modulo (5 servizi)**:
+- ✅ **Vigneti Service** - CRUD vigneti
+- ✅ **Vendemmia Service** - CRUD vendemmie con calcolo compensi
+- ✅ **Lavori Vigneto Service** - Integrazione sistema lavori/diario
+- ✅ **Potatura Vigneto Service** - CRUD potature (modello/servizio pronti)
+- ✅ **Trattamenti Vigneto Service** - CRUD trattamenti (modello/servizio pronti)
+
+**Funzionalità Mancanti**:
+- 🚧 Filtri nelle viste (struttura HTML presente, logica mancante ~30 righe codice)
+- 📝 Viste Potatura/Trattamenti Standalone (modelli/servizi pronti, viste mancanti)
+- 📝 Diradamento Grappoli (pianificato)
+- 📝 Pianificazione Nuovi Impianti (reticolato pianificato)
+- 📝 Report Avanzati (PDF/Excel pianificati)
+- 📝 Integrazione Link da Pagina Terreni (pianificato)
+- 📝 Sezione Vigneto Dashboard Dettagliata (pianificato)
+
+**Completamento**: ~70-75%
+
+#### Modulo Frutteto 📝 **PIANIFICAZIONE**
+
+**Stato**: Pianificato, non ancora iniziato  
+**Priorità**: Media (Dopo completamento Vigneto)  
+**Tempo stimato**: 2 settimane (riutilizzando pattern Vigneto)
+
+#### Modulo Oliveto 📝 **PIANIFICAZIONE**
+
+**Stato**: Pianificato, non ancora iniziato  
+**Priorità**: Media (Dopo completamento Vigneto)  
+**Tempo stimato**: 2 settimane (riutilizzando pattern Vigneto)
+
+**Principio Architetturale**: Moduli opzionali pay-per-use che si integrano con il Core Base senza modificare funzionalità esistenti.
+
+**Documentazione**:
+- `PLAN_MODULI_COLTURA_SPECIALIZZATI.md` - Piano generale moduli specializzati
+- `PLAN_MODULO_VIGNETO_DETTAGLIATO.md` - Piano dettagliato modulo vigneto
+- `STATO_MODULI_SPECIALIZZATI_2026-01-18.md` - Stato aggiornato con verifica codice
 
 ---
 
@@ -520,6 +631,20 @@ firebase deploy --only storage:rules
 
 ### Moduli Implementati
 
+#### Moduli Completati (100%)
+- ✅ **Modulo Manodopera** - Gestione squadre, lavori, ore, compensi
+- ✅ **Modulo Parco Macchine** - Gestione trattori/attrezzi, guasti, manutenzioni
+- ✅ **Modulo Conto Terzi** - Gestione clienti, preventivi, tariffe
+
+#### Moduli in Sviluppo
+- 🚧 **Modulo Vigneto** - ~70-75% completato (Anagrafica ✅, Vendemmia ✅, Integrazione Lavori ✅, Sistema Spese ✅)
+
+#### Moduli Pianificati
+- 📝 **Modulo Frutteto** - Pianificato (priorità media)
+- 📝 **Modulo Oliveto** - Pianificato (priorità media)
+
+### Moduli Implementati (Vecchia Sezione)
+
 - ✅ **Core Base**: 100% completo
 - ✅ **Modulo Manodopera**: 100% completo
 - ✅ **Modulo Parco Macchine**: 100% completo
@@ -531,7 +656,7 @@ firebase deploy --only storage:rules
 
 - ✅ **Core**: ~15 pagine
 - ✅ **Admin**: ~15 pagine
-- ✅ **Moduli**: ~10 pagine
+- ✅ **Moduli**: ~12 pagine (Conto Terzi: 8, Vigneto: 2, altri: 2)
 - **Totale**: ~40 pagine funzionanti
 
 ### Test Coverage
@@ -648,7 +773,9 @@ L'applicazione GFV Platform ha:
 ## 📝 Note Finali
 
 Il progetto è in **ottimo stato** con:
-- ✅ **4 moduli completi** e funzionanti
+- ✅ **3 moduli completi** e funzionanti (Manodopera, Parco Macchine, Conto Terzi)
+- 🚧 **1 modulo in sviluppo** (Vigneto ~70-75%)
+- 📝 **2 moduli pianificati** (Frutteto, Oliveto)
 - ✅ **40+ pagine** implementate
 - ✅ **30.000+ righe** di codice
 - ✅ **67 file** di documentazione

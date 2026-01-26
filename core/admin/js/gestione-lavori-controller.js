@@ -143,7 +143,7 @@ export function setupManodoperaVisibility(hasManodoperaModule) {
  * @param {Function} populateTerrenoFilter - Callback per popolare filtro terreni
  * @param {Function} populateTerrenoDropdown - Callback per popolare dropdown terreni
  */
-export async function loadTerreni(currentTenantId, db, app, auth, terreniList, populateTerrenoFilter, populateTerrenoDropdown) {
+export async function loadTerreni(currentTenantId, db, app, auth, terreniList, populateTerrenoFilter, populateTerrenoDropdown, isContoTerziMode = false) {
     try {
         if (!currentTenantId) {
             console.warn('loadTerreni: currentTenantId non disponibile');
@@ -152,15 +152,61 @@ export async function loadTerreni(currentTenantId, db, app, auth, terreniList, p
         
         // Usa servizio centralizzato tramite helper
         const { loadTerreniViaService } = await import('../../services/service-helper.js');
-        const terreni = await loadTerreniViaService({
-            tenantId: currentTenantId,
-            firebaseInstances: { app, db, auth },
-            options: {
-                orderBy: 'nome',
-                orderDirection: 'asc',
-                clienteId: null // Solo terreni aziendali
+        
+        let terreni = [];
+        if (isContoTerziMode) {
+            // In modalità conto terzi, carica direttamente da Firestore tutti i terreni
+            // perché il servizio ha un default clienteId=null che filtra solo aziendali
+            try {
+                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const terreniCollection = collection(db, 'tenants', currentTenantId, 'terreni');
+                const querySnapshot = await getDocs(terreniCollection);
+                
+                const allTerreni = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    allTerreni.push({
+                        id: doc.id,
+                        nome: data.nome || '',
+                        superficie: data.superficie || 0,
+                        coordinate: data.coordinate || null,
+                        polygonCoords: data.polygonCoords || null,
+                        coltura: data.coltura || null,
+                        colturaCategoria: data.colturaCategoria || null,
+                        colturaSottocategoria: data.colturaSottocategoria || null,
+                        tipoCampo: data.tipoCampo || null,
+                        clienteId: data.clienteId || null, // IMPORTANTE: preserva clienteId
+                        ...data // Include tutti gli altri campi
+                    });
+                });
+                
+                // Filtra solo terreni clienti (con clienteId non nullo)
+                terreni = allTerreni.filter(t => t.clienteId != null && t.clienteId !== '');
+                
+                // Ordina per nome
+                terreni.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                console.log(`[GESTIONE LAVORI] Modalità conto terzi: ${terreni.length} terreni clienti caricati`);
+            } catch (error) {
+                console.error('[GESTIONE LAVORI] Errore caricamento terreni clienti:', error);
+                throw error;
             }
-        });
+        } else {
+            // In modalità normale, carica solo terreni aziendali
+            terreni = await loadTerreniViaService({
+                tenantId: currentTenantId,
+                firebaseInstances: { app, db, auth },
+                options: {
+                    orderBy: 'nome',
+                    orderDirection: 'asc',
+                    clienteId: null // Solo terreni aziendali
+                }
+            });
+        }
         
         terreniList.length = 0; // Pulisci array
         terreniList.push(...terreni);
@@ -1295,6 +1341,60 @@ export function populateTipoLavoroDropdown(
 
     // Usa i tipi filtrati passati come parametro, oppure filtra dalla lista completa
     let tipiFiltrati = tipiFiltratiPassati;
+    
+    // FILTRO DINAMICO VENDEMMIA: Se categoria è RACCOLTA e terreno è VITE, mostra solo tipi vendemmia
+    const terrenoSelect = document.getElementById('lavoro-terreno');
+    const terrenoId = terrenoSelect ? terrenoSelect.value : null;
+    
+    console.log('[GESTIONE-LAVORI] populateTipoLavoroDropdown - categoriaId:', categoriaId, 'terrenoId:', terrenoId);
+    
+    // Verifica se categoria è RACCOLTA (può essere categoria principale o sottocategoria)
+    const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
+    const categoriaNome = categoriaTrovata ? (categoriaTrovata.nome || '').toLowerCase() : '';
+    const categoriaParent = categoriaTrovata && categoriaTrovata.parentId 
+        ? categorieLavoriPrincipali.find(c => c.id === categoriaTrovata.parentId)
+        : null;
+    const categoriaParentNome = categoriaParent ? (categoriaParent.nome || '').toLowerCase() : '';
+    
+    // Verifica se è RACCOLTA: può essere categoria principale "Raccolta" o sottocategoria "Raccolta Manuale/Meccanica"
+    const isRaccolta = categoriaNome.includes('raccolta') || categoriaParentNome.includes('raccolta');
+    
+    console.log('[GESTIONE-LAVORI] Verifica categoria RACCOLTA:', {
+        categoriaId,
+        categoriaNome,
+        categoriaParentNome,
+        isRaccolta,
+        categoriaTrovata: categoriaTrovata ? categoriaTrovata.nome : 'non trovata'
+    });
+    
+    // Verifica se terreno è VITE (carica terreno se necessario)
+    let isTerrenoVite = false;
+    if (terrenoId && isRaccolta) {
+        try {
+            // Prova a recuperare terreno da terreniList se disponibile globalmente
+            let terreno = null;
+            if (typeof window.lavoriState !== 'undefined' && window.lavoriState.terreniList) {
+                terreno = window.lavoriState.terreniList.find(t => t.id === terrenoId);
+                console.log('[GESTIONE-LAVORI] Terreno trovato in lavoriState:', terreno ? terreno.nome : 'non trovato');
+            }
+            
+            // Se non trovato, carica direttamente dal servizio (async, ma non possiamo usare await qui)
+            // Per ora, se non trovato nella lista, non filtriamo (comportamento normale)
+            // Il filtro verrà applicato quando la lista terreni sarà disponibile
+            if (terreno && terreno.coltura) {
+                const colturaLower = terreno.coltura.toLowerCase();
+                // Verifica se la coltura contiene "vite" (può essere "Vite", "Vite da Vino", "Vite da Tavola", etc.)
+                if (colturaLower.includes('vite')) {
+                    isTerrenoVite = true;
+                    console.log('[GESTIONE-LAVORI] ✓ Terreno VITE rilevato (coltura:', terreno.coltura, '), applico filtro tipi vendemmia');
+                } else {
+                    console.log('[GESTIONE-LAVORI] Terreno non è VITE, coltura:', terreno.coltura);
+                }
+            }
+        } catch (error) {
+            console.warn('[GESTIONE-LAVORI] Errore verifica terreno VITE:', error);
+        }
+    }
     if (!tipiFiltrati) {
         // Fallback: filtra dalla lista completa (per retrocompatibilità)
         // Verifica se categoriaId è una sottocategoria o categoria principale
@@ -1362,6 +1462,43 @@ export function populateTipoLavoroDropdown(
         }
     }
     
+    // FILTRO VENDEMMIA: Se terreno è VITE e categoria è RACCOLTA, mostra solo tipi vendemmia
+    // APPLICATO DOPO aver filtrato per categoria, così funziona correttamente con la gerarchia
+    if (isTerrenoVite && isRaccolta && tipiFiltrati.length > 0) {
+        console.log('[GESTIONE-LAVORI] Applicando filtro vendemmia: mostro solo Vendemmia Manuale e Vendemmia Meccanica');
+        console.log('[GESTIONE-LAVORI] Tipi prima del filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
+        
+        tipiFiltrati = tipiFiltrati.filter(tipo => {
+            const nomeTipo = (tipo.nome || '').toLowerCase();
+            const includeVendemmia = nomeTipo.includes('vendemmia');
+            console.log('[GESTIONE-LAVORI] Tipo:', tipo.nome, 'include vendemmia?', includeVendemmia);
+            return includeVendemmia;
+        });
+        
+        console.log('[GESTIONE-LAVORI] Tipi dopo filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
+        
+        // Se non ci sono tipi vendemmia nella lista, aggiungi i predefiniti
+        if (tipiFiltrati.length === 0) {
+            console.log('[GESTIONE-LAVORI] Nessun tipo vendemmia trovato, aggiungo predefiniti');
+            // Trova la sottocategoria corretta per aggiungere i tipi predefiniti
+            const sottocatManuale = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+                sc.codice === 'raccolta_manuale' || sc.nome?.toLowerCase().includes('manuale')
+            );
+            const sottocatMeccanica = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+                sc.codice === 'raccolta_meccanica' || sc.nome?.toLowerCase().includes('meccanica')
+            );
+            
+            tipiFiltrati = [
+                { nome: 'Vendemmia Manuale', sottocategoriaId: sottocatManuale?.id || categoriaId, categoriaId: categoriaId },
+                { nome: 'Vendemmia Meccanica', sottocategoriaId: sottocatMeccanica?.id || categoriaId, categoriaId: categoriaId }
+            ];
+        }
+    } else if (isRaccolta && !terrenoId) {
+        console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non selezionato, mostro tutti i tipi raccolta');
+    } else if (isRaccolta && terrenoId && !isTerrenoVite) {
+        console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non è VITE, mostro tutti i tipi raccolta');
+    }
+    
     if (tipiFiltrati.length === 0) {
         const option = document.createElement('option');
         option.value = '';
@@ -1411,7 +1548,10 @@ export async function renderLavori(
     escapeHtml,
     getStatoFormattato,
     getStatoProgressoFormattato,
-    maybeAutoStartLavoriTour
+    maybeAutoStartLavoriTour,
+    operaiList = [],
+    currentTenantId = null,
+    db = null
 ) {
     const container = document.getElementById('lavori-container');
     const countEl = document.getElementById('lavori-count');
@@ -1434,12 +1574,13 @@ export async function renderLavori(
         return;
     }
 
-    // Carica dati terreno e caposquadra per ogni lavoro
+    // Carica dati terreno, caposquadra e operaio per ogni lavoro
     const terreniListToUse = terreniList || [];
     const caposquadraListToUse = caposquadraList || [];
     const squadreListToUse = squadreList || [];
     const trattoriListToUse = trattoriList || [];
     const attrezziListToUse = attrezziList || [];
+    const operaiListToUse = operaiList || [];
     
     // Debug: verifica che i terreni siano caricati
     if (terreniListToUse.length === 0) {
@@ -1447,17 +1588,45 @@ export async function renderLavori(
     
     const lavoriConDettagli = await Promise.all(
         filteredLavoriList.map(async (lavoro) => {
-            const terreno = terreniListToUse.find(t => t.id === lavoro.terrenoId);
-            if (lavoro.terrenoId && !terreno) {
+            let terreno = terreniListToUse.find(t => t.id === lavoro.terrenoId);
+            
+            // Se il terreno non è nella lista (può succedere per terreni clienti quando non siamo in modalità conto terzi),
+            // caricalo direttamente da Firestore
+            if (lavoro.terrenoId && !terreno && currentTenantId && db) {
+                try {
+                    const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
+                    if (terrenoDoc.exists()) {
+                        const terrenoData = terrenoDoc.data();
+                        terreno = {
+                            id: terrenoDoc.id,
+                            nome: terrenoData.nome || '',
+                            superficie: terrenoData.superficie || 0,
+                            coordinate: terrenoData.coordinate || null,
+                            polygonCoords: terrenoData.polygonCoords || null,
+                            coltura: terrenoData.coltura || null,
+                            colturaCategoria: terrenoData.colturaCategoria || null,
+                            colturaSottocategoria: terrenoData.colturaSottocategoria || null,
+                            tipoCampo: terrenoData.tipoCampo || null,
+                            clienteId: terrenoData.clienteId || null,
+                            ...terrenoData
+                        };
+                    }
+                } catch (error) {
+                    console.warn(`[GESTIONE LAVORI] Errore caricamento terreno ${lavoro.terrenoId}:`, error);
+                }
             }
+            
             const caposquadra = caposquadraListToUse.find(c => c.id === lavoro.caposquadraId);
             const squadra = squadreListToUse.find(s => s.caposquadraId === lavoro.caposquadraId);
+            const operaio = operaiListToUse.find(o => o.id === lavoro.operaioId);
             
             return { 
                 ...lavoro, 
                 terreno, 
                 caposquadra,
-                squadra
+                squadra,
+                operaio
             };
         })
     );
@@ -1541,9 +1710,18 @@ export async function renderLavori(
 
         lavoriInAttesa.forEach(lavoro => {
             const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
-            const caposquadraNome = lavoro.caposquadra 
-                ? `${lavoro.caposquadra.nome || ''} ${lavoro.caposquadra.cognome || ''}`.trim() || 'N/A'
-                : 'N/A';
+            
+            // Determina responsabile: caposquadra (lavoro squadra) o operaio autonomo
+            let responsabileHtml = 'N/A';
+            if (lavoro.caposquadra) {
+                // Lavoro di squadra: mostra caposquadra con icona e colore blu
+                const caposquadraNome = `${lavoro.caposquadra.nome || ''} ${lavoro.caposquadra.cognome || ''}`.trim() || 'N/A';
+                responsabileHtml = `<span class="caposquadra-name" style="color: #1976D2; font-weight: 500;">👥 ${escapeHtml(caposquadraNome)}</span>`;
+            } else if (lavoro.operaio) {
+                // Lavoro autonomo: mostra operaio con icona normale
+                const operaioNome = `${lavoro.operaio.nome || ''} ${lavoro.operaio.cognome || ''}`.trim() || 'N/A';
+                responsabileHtml = `👤 ${escapeHtml(operaioNome)}`;
+            }
             
             const superficieTotale = lavoro.terreno?.superficie || 0;
             // Usa superficieTotaleLavorata dal documento lavoro
@@ -1560,7 +1738,7 @@ export async function renderLavori(
                 <tr class="${rowClass}" style="${rowStyle}">
                     <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong></td>
                     <td>${escapeHtml(terrenoNome)}</td>
-                    ${hasManodoperaModule ? `<td>${escapeHtml(caposquadraNome)}</td>` : ''}
+                    ${hasManodoperaModule ? `<td>${responsabileHtml}</td>` : ''}
                     <td>
                         <div class="progress-bar-inline">
                             <div class="progress-fill-inline" style="width: ${Math.min(percentualeTracciata, 100)}%; background: #ffc107;">
@@ -1614,9 +1792,19 @@ export async function renderLavori(
 
     altriLavori.forEach(lavoro => {
         const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
-        const caposquadraNome = lavoro.caposquadra 
-            ? `${lavoro.caposquadra.nome || ''} ${lavoro.caposquadra.cognome || ''}`.trim() || 'N/A'
-            : 'N/A';
+        
+        // Determina responsabile: caposquadra (lavoro squadra) o operaio autonomo
+        let responsabileHtml = 'N/A';
+        if (lavoro.caposquadra) {
+            // Lavoro di squadra: mostra caposquadra con icona e colore blu
+            const caposquadraNome = `${lavoro.caposquadra.nome || ''} ${lavoro.caposquadra.cognome || ''}`.trim() || 'N/A';
+            responsabileHtml = `<span class="caposquadra-name" style="color: #1976D2; font-weight: 500;">👥 ${escapeHtml(caposquadraNome)}</span>`;
+        } else if (lavoro.operaio) {
+            // Lavoro autonomo: mostra operaio con icona normale
+            const operaioNome = `${lavoro.operaio.nome || ''} ${lavoro.operaio.cognome || ''}`.trim() || 'N/A';
+            responsabileHtml = `👤 ${escapeHtml(operaioNome)}`;
+        }
+        
         const dataInizioFormatted = lavoro.dataInizio 
             ? new Date(lavoro.dataInizio).toLocaleDateString('it-IT')
             : 'N/A';
@@ -1695,7 +1883,7 @@ export async function renderLavori(
             <tr class="${isContoTerzi ? 'lavoro-conto-terzi' : ''}">
                 <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong>${contoTerziBadge}${macchineInfo}</td>
                 <td>${escapeHtml(terrenoNome)}</td>
-                ${hasManodoperaModule ? `<td>${escapeHtml(caposquadraNome)}</td>` : ''}
+                ${hasManodoperaModule ? `<td>${responsabileHtml}</td>` : ''}
                 <td>${dataInizioFormatted}</td>
                 <td>${durata}</td>
                 <td class="progress-cell">${progressBar}</td>

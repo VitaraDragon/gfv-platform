@@ -57,10 +57,12 @@ const TIPI_LAVORO_PREDEFINITI = [
   { nome: 'Raccolta Manuale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta eseguita manualmente' },
   { nome: 'Raccolta con Cestini', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta manuale con cestini' },
   { nome: 'Raccolta con Scale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta manuale con scale' },
+  { nome: 'Vendemmia Manuale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Vendemmia eseguita manualmente (specifico per vigneti)' },
   // Raccolta - Meccanica
   { nome: 'Raccolta Meccanica', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta eseguita con macchine' },
   { nome: 'Raccolta con Scuotitore', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta meccanica con scuotitore' },
   { nome: 'Raccolta con Raccoglitrici', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta con macchine raccoglitrici' },
+  { nome: 'Vendemmia Meccanica', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Vendemmia eseguita con macchine (specifico per vigneti)' },
   // Gestione del Verde - Manuale
   { nome: 'Falciatura Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Taglio manuale dell\'erba' },
   { nome: 'Diserbo Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Eliminazione manuale delle erbe infestanti' },
@@ -92,6 +94,10 @@ const TIPI_LAVORO_PREDEFINITI = [
   { nome: 'Piantagione Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di piante eseguita con macchine' },
   { nome: 'Piantagione Alberi Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di alberi eseguita con macchine' },
   { nome: 'Piantagione Viti Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di viti eseguita con macchine' },
+  // Semina e Piantagione - Impianto
+  { nome: 'Impianto Nuovo Vigneto', sottocategoriaCodice: 'semina_piantagione_impianto', descrizione: 'Impianto completo di nuovo vigneto con struttura di sostegno (pali, fili, piante)' },
+  { nome: 'Impianto Nuovo Frutteto', sottocategoriaCodice: 'semina_piantagione_impianto', descrizione: 'Impianto completo di nuovo frutteto con struttura di sostegno' },
+  { nome: 'Impianto Nuovo Oliveto', sottocategoriaCodice: 'semina_piantagione_impianto', descrizione: 'Impianto completo di nuovo oliveto con struttura di sostegno' },
   // Diserbo - Manuale
   { nome: 'Diserbo Manuale', sottocategoriaCodice: 'diserbo_manuale', descrizione: 'Diserbo eseguito manualmente' },
   { nome: 'Diserbo Localizzato', sottocategoriaCodice: 'diserbo_manuale', descrizione: 'Diserbo localizzato manuale' },
@@ -241,8 +247,14 @@ export async function getAllTipiLavoro(options = {}) {
     
     return documents.map(doc => TipoLavoro.fromData(doc));
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero tipi lavoro:', error);
+      throw new Error(`Errore recupero tipi lavoro: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero tipi lavoro:', error);
-    throw new Error(`Errore recupero tipi lavoro: ${error.message}`);
+    return [];
   }
 }
 
@@ -272,8 +284,14 @@ export async function getTipiLavoroGerarchici() {
     
     return strutturaGerarchica;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {
+      console.error('Errore recupero tipi lavoro gerarchici:', error);
+      throw new Error(`Errore recupero tipi lavoro gerarchici: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna oggetto vuoto
     console.error('Errore recupero tipi lavoro gerarchici:', error);
-    throw new Error(`Errore recupero tipi lavoro gerarchici: ${error.message}`);
+    return {};
   }
 }
 

@@ -35,6 +35,8 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         createAbbonamentoCard,
         createAffittiScadenzaCard,
         createContoTerziCard,
+        createVignetoCard,
+        createReportCard,
         createManagerManodoperaSection,
         createDiarioDaLavoriSection,
         createCaposquadraSection,
@@ -115,6 +117,16 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 topLeft.appendChild(createContoTerziCard());
             }
             
+            const hasVigneto = availableModules && availableModules.includes('vigneto');
+            if (hasVigneto) {
+                topLeft.appendChild(createVignetoCard());
+            }
+            
+            const hasReport = availableModules && availableModules.includes('report');
+            if (hasReport) {
+                topLeft.appendChild(createReportCard());
+            }
+            
             // Carica dati affitti in scadenza
             setTimeout(() => {
                 loadAffittiInScadenza(dependencies);
@@ -164,6 +176,16 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
         if (hasContoTerzi) {
             topLeft.appendChild(createContoTerziCard());
+        }
+        
+        const hasVigneto = availableModules && availableModules.includes('vigneto');
+        if (hasVigneto) {
+            topLeft.appendChild(createVignetoCard());
+        }
+        
+        const hasReport = availableModules && availableModules.includes('report');
+        if (hasReport) {
+            topLeft.appendChild(createReportCard());
         }
         
         const affittiCard = createAffittiScadenzaCard();
@@ -236,6 +258,12 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
                 if (hasContoTerzi) {
                     container.appendChild(createContoTerziCard());
+                }
+                
+                // Card Vigneto (solo se modulo attivo) anche per Manager senza Manodopera
+                const hasVigneto = availableModules && availableModules.includes('vigneto');
+                if (hasVigneto) {
+                    container.appendChild(createVignetoCard());
                 }
                 
                 // Card Affitti in Scadenza anche per Manager senza Manodopera

@@ -865,6 +865,109 @@
                     </select>
                 </div>
 
+                <!-- Dropdown Pianificazione Impianto (solo per tipi Impianto) -->
+                <div class="form-group" id="pianificazione-impianto-group" style="display: none;">
+                    <label for="lavoro-pianificazione-impianto">Pianificazione Impianto</label>
+                    <select id="lavoro-pianificazione-impianto">
+                        <option value="">-- Seleziona pianificazione (opzionale) --</option>
+                    </select>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Seleziona una pianificazione confermata per pre-compilare i dati del vigneto/frutteto/oliveto
+                    </small>
+                </div>
+
+                <!-- Form Vigneto (solo per Impianto Nuovo Vigneto con pianificazione selezionata) -->
+                <div class="form-group" id="vigneto-form-group" style="display: none;">
+                    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; border: 1px solid #b0d4f1; margin-top: 10px;">
+                        <h4 style="margin: 0 0 15px 0; color: #2E8B57; font-size: 16px;">🌱 Dati Vigneto (pre-compilati dalla pianificazione)</h4>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vigneto-varieta">Varietà Uva *</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <select id="vigneto-varieta" required style="flex: 1;">
+                                        <option value="">Seleziona varietà</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddVarietaModal()" style="white-space: nowrap;">➕</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="vigneto-annata-impianto">Anno Impianto *</label>
+                                <input type="number" id="vigneto-annata-impianto" required min="1900" max="2100" value="">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vigneto-portainnesto">Portainnesto</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <select id="vigneto-portainnesto" style="flex: 1;">
+                                        <option value="">Seleziona portainnesto (opzionale)</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddPortainnestoModal()" style="white-space: nowrap;">➕</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="vigneto-forma-allevamento">Forma Allevamento *</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <select id="vigneto-forma-allevamento" required style="flex: 1;">
+                                        <option value="">Seleziona forma</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddFormaAllevamentoModal()" style="white-space: nowrap;">➕</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vigneto-distanza-file">Distanza File (m) *</label>
+                                <input type="number" id="vigneto-distanza-file" required step="0.1" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                            <div class="form-group">
+                                <label for="vigneto-distanza-unita">Distanza Unità (m) *</label>
+                                <input type="number" id="vigneto-distanza-unita" required step="0.1" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vigneto-superficie-ettari">Superficie (Ha) *</label>
+                                <input type="number" id="vigneto-superficie-ettari" required step="0.01" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                            <div class="form-group">
+                                <label for="vigneto-densita">Densità (ceppi/ha) *</label>
+                                <input type="number" id="vigneto-densita" required step="0.01" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vigneto-tipo-palo">Tipo Palo *</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <select id="vigneto-tipo-palo" required style="flex: 1;">
+                                        <option value="">Seleziona tipo palo</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddTipoPaloModal()" style="white-space: nowrap;">➕</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="vigneto-destinazione-uva">Destinazione Uva *</label>
+                                <select id="vigneto-destinazione-uva" required>
+                                    <option value="">Seleziona destinazione</option>
+                                    <option value="vino">Vino</option>
+                                    <option value="vendita_uva">Vendita Uva</option>
+                                    <option value="misto">Misto</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="vigneto-note">Note Vigneto</label>
+                            <textarea id="vigneto-note" rows="2" placeholder="Note opzionali sul vigneto..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Tipo Assegnazione *</label>
                     <div style="display: flex; gap: 20px; margin-top: 8px;">
@@ -1038,6 +1141,83 @@
         </div>
     </div>
 
+    <!-- Modali per aggiungere varietà, portainnesto, forma allevamento, tipo palo (per form vigneto) -->
+    <div id="add-varieta-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Aggiungi Nuova Varietà</h2>
+                <button class="close-btn" onclick="closeAddModal('add-varieta-modal')">&times;</button>
+            </div>
+            <form onsubmit="addNewVarieta(event)">
+                <div class="form-group">
+                    <label for="new-varieta">Nome Varietà *</label>
+                    <input type="text" id="new-varieta" required placeholder="es. Sangiovese">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-varieta-modal')">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-portainnesto-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Aggiungi Nuovo Portainnesto</h2>
+                <button class="close-btn" onclick="closeAddModal('add-portainnesto-modal')">&times;</button>
+            </div>
+            <form onsubmit="addNewPortainnesto(event)">
+                <div class="form-group">
+                    <label for="new-portainnesto">Nome Portainnesto *</label>
+                    <input type="text" id="new-portainnesto" required placeholder="es. 1103P">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-portainnesto-modal')">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-forma-allevamento-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Aggiungi Nuova Forma di Allevamento</h2>
+                <button class="close-btn" onclick="closeAddModal('add-forma-allevamento-modal')">&times;</button>
+            </div>
+            <form onsubmit="addNewFormaAllevamento(event)">
+                <div class="form-group">
+                    <label for="new-forma-allevamento">Nome Forma di Allevamento *</label>
+                    <input type="text" id="new-forma-allevamento" required placeholder="es. Guyot">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-forma-allevamento-modal')">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="add-tipo-palo-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Aggiungi Nuovo Tipo Palo</h2>
+                <button class="close-btn" onclick="closeAddModal('add-tipo-palo-modal')">&times;</button>
+            </div>
+            <form onsubmit="addNewTipoPalo(event)">
+                <div class="form-group">
+                    <label for="new-tipo-palo">Nome Tipo Palo *</label>
+                    <input type="text" id="new-tipo-palo" required placeholder="es. Cemento">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-tipo-palo-modal')">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Load Firebase config from external file -->
     <script>
         const configScript = document.createElement('script');
@@ -1174,6 +1354,32 @@
             buildLavoriTourSteps as buildLavoriTourStepsModule
         } from './js/gestione-lavori-tour.js';
 
+        // Import per modulo Vigneto (pianificazioni e forme allevamento)
+        let getAllPianificazioniModule = null;
+        let getFormeAllevamentoListModule = null;
+        let getNomeVisualizzatoModule = null;
+        let createVignetoModule = null;
+        
+        // Carica moduli vigneto solo se il modulo è attivo
+        async function loadVignetoModules() {
+            try {
+                const { getCurrentTenant } = await import('../services/tenant-service.js');
+                const tenant = await getCurrentTenant();
+                if (tenant && tenant.modules && tenant.modules.includes('vigneto')) {
+                    const pianificazioneModule = await import('../../modules/vigneto/services/pianificazione-impianto-service.js');
+                    const formeAllevamentoModule = await import('../../modules/vigneto/config/forme-allevamento.js');
+                    const vignetiModule = await import('../../modules/vigneto/services/vigneti-service.js');
+                    
+                    getAllPianificazioniModule = pianificazioneModule.getAllPianificazioni;
+                    getFormeAllevamentoListModule = formeAllevamentoModule.getFormeAllevamentoList;
+                    getNomeVisualizzatoModule = formeAllevamentoModule.getNomeVisualizzato;
+                    createVignetoModule = vignetiModule.createVigneto;
+                }
+            } catch (error) {
+                console.warn('Modulo Vigneto non disponibile:', error);
+            }
+        }
+
         // Attendi che le configurazioni siano caricate
         await waitForConfigModule();
 
@@ -1247,6 +1453,9 @@
         let squadreList = [];
         let lavoriList = [];
         let filteredLavoriList = [];
+        
+        // Esponi lavoriState globalmente per accesso da funzioni helper
+        window.lavoriState = lavoriState;
         let dettaglioMap = null;
         let dettaglioMapMarkers = [];
         let dettaglioMapPolygons = [];
@@ -1359,6 +1568,13 @@
 
         // Wrapper per loadTerreni
         async function loadTerreniWrapper() {
+            // Rileva se siamo in modalità conto terzi
+            const urlParams = new URLSearchParams(window.location.search);
+            const contoTerziFromUrl = urlParams.get('contoTerzi');
+            const statoFromUrl = urlParams.get('stato');
+            const isContoTerziMode = contoTerziFromUrl === 'true' || 
+                                    (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule);
+            
             await loadTerreniModule(
                 currentTenantId || lavoriState.currentTenantId,
                 db,
@@ -1366,7 +1582,8 @@
                 auth,
                 lavoriState.terreniList,
                 populateTerrenoFilterWrapper,
-                populateTerrenoDropdownWrapper
+                populateTerrenoDropdownWrapper,
+                isContoTerziMode
             );
             updateState({ terreniList: lavoriState.terreniList });
         }
@@ -1544,6 +1761,308 @@
             );
         }
 
+        // Setup handler per tipo lavoro Impianto
+        function setupTipoLavoroImpiantoHandler() {
+            const tipoLavoroSelect = document.getElementById('lavoro-tipo-lavoro');
+            const pianificazioneGroup = document.getElementById('pianificazione-impianto-group');
+            const vignetoFormGroup = document.getElementById('vigneto-form-group');
+            
+            if (!tipoLavoroSelect) return;
+            
+            tipoLavoroSelect.addEventListener('change', async function() {
+                const tipoLavoroNome = this.value;
+                const isImpianto = tipoLavoroNome && (
+                    tipoLavoroNome.includes('Impianto Nuovo Vigneto') ||
+                    tipoLavoroNome.includes('Impianto Nuovo Frutteto') ||
+                    tipoLavoroNome.includes('Impianto Nuovo Oliveto')
+                );
+                
+                if (isImpianto && getAllPianificazioniModule) {
+                    // Mostra dropdown pianificazioni
+                    if (pianificazioneGroup) pianificazioneGroup.style.display = 'block';
+                    
+                    // Carica pianificazioni confermate
+                    try {
+                        const pianificazioni = await getAllPianificazioniModule();
+                        const pianificazioniConfermate = pianificazioni.filter(p => 
+                            p.stato === 'confermato' && 
+                            ((tipoLavoroNome.includes('Vigneto') && p.tipoColtura === 'vigneto') ||
+                             (tipoLavoroNome.includes('Frutteto') && p.tipoColtura === 'frutteto') ||
+                             (tipoLavoroNome.includes('Oliveto') && p.tipoColtura === 'oliveto'))
+                        );
+                        
+                        const select = document.getElementById('lavoro-pianificazione-impianto');
+                        if (select) {
+                            select.innerHTML = '<option value="">-- Seleziona pianificazione (opzionale) --</option>';
+                            pianificazioniConfermate.forEach(p => {
+                                const terreno = lavoriState.terreniList.find(t => t.id === p.terrenoId);
+                                const terrenoNome = terreno ? terreno.nome : 'Terreno sconosciuto';
+                                const option = document.createElement('option');
+                                option.value = p.id;
+                                option.textContent = `${terrenoNome} - ${p.numeroFile || 0} file - ${(p.numeroUnitaTotale || 0).toLocaleString('it-IT')} unità`;
+                                option.dataset.pianificazione = JSON.stringify(p);
+                                select.appendChild(option);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Errore caricamento pianificazioni:', error);
+                        if (pianificazioneGroup) pianificazioneGroup.style.display = 'none';
+                    }
+                } else {
+                    // Nascondi dropdown e form vigneto
+                    if (pianificazioneGroup) pianificazioneGroup.style.display = 'none';
+                    if (vignetoFormGroup) vignetoFormGroup.style.display = 'none';
+                }
+            });
+            
+            // Handler per cambio pianificazione
+            const pianificazioneSelect = document.getElementById('lavoro-pianificazione-impianto');
+            if (pianificazioneSelect) {
+                pianificazioneSelect.addEventListener('change', function() {
+                    const pianificazioneId = this.value;
+                    if (pianificazioneId && this.selectedOptions[0] && this.selectedOptions[0].dataset.pianificazione) {
+                        const pianificazione = JSON.parse(this.selectedOptions[0].dataset.pianificazione);
+                        precompilaFormVignetoDaPianificazione(pianificazione);
+                    } else {
+                        if (vignetoFormGroup) vignetoFormGroup.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Liste predefinite per form vigneto (stesse dell'anagrafica vigneti)
+        const VARIETA_PREDEFINITE = [
+            // Varietà italiane rosse
+            'Sangiovese', 'Nebbiolo', 'Barbera', 'Montepulciano', 'Primitivo', 'Nero d\'Avola',
+            'Aglianico', 'Corvina', 'Negroamaro', 'Dolcetto', 'Cannonau', 'Ciliegiolo',
+            'Lagrein', 'Teroldego', 'Refosco', 'Raboso', 'Schiava', 'Marzemino',
+            // Varietà italiane bianche
+            'Trebbiano', 'Pinot Grigio', 'Chardonnay', 'Sauvignon Blanc', 'Vermentino',
+            'Fiano', 'Grechetto', 'Garganega', 'Cortese', 'Verdicchio', 'Pecorino',
+            'Falanghina', 'Glera', 'Moscato', 'Malvasia', 'Gewürztraminer', 'Riesling',
+            // Varietà internazionali
+            'Cabernet Sauvignon', 'Merlot', 'Syrah', 'Pinot Noir', 'Cabernet Franc',
+            'Grenache', 'Tempranillo', 'Zinfandel', 'Malbec', 'Carménère', 'Viognier',
+            'Sémillon', 'Chenin Blanc', 'Albariño', 'Pinot Bianco', 'Müller-Thurgau'
+        ];
+
+        const PORTAINNESTO_PREDEFINITI = [
+            '1103P', 'SO4', '140Ru', '110R', 'Kober 5BB', '420A', '41B', '3309C',
+            '101-14', '161-49', 'Riparia Gloire', 'MGT 101-14', 'MGT 161-49',
+            'MGT 3309C', 'MGT 420A', 'MGT 5BB', 'MGT 1103P', 'MGT 110R',
+            'Selvatico', 'Franco di piede', 'Rupestris du Lot', 'Berlandieri x Riparia'
+        ];
+
+        const TIPI_PALO_PREDEFINITI = [
+            'Cemento', 'Cemento armato', 'Ferro', 'Acciaio', 'Acciaio zincato',
+            'Ferro zincato a caldo', 'Ferro zincato a freddo',
+            'Legno', 'Legno trattato', 'Plastica', 'Fibra di vetro', 'PVC',
+            'Bambù', 'Alluminio', 'Misto cemento-ferro'
+        ];
+
+        // Carica valori personalizzati da localStorage
+        function loadCustomValues() {
+            return {
+                varieta: JSON.parse(localStorage.getItem('vigneto_varieta_custom') || '[]'),
+                portainnesto: JSON.parse(localStorage.getItem('vigneto_portainnesto_custom') || '[]'),
+                formaAllevamento: JSON.parse(localStorage.getItem('vigneto_forma_allevamento_custom') || '[]'),
+                tipoPalo: JSON.parse(localStorage.getItem('vigneto_tipo_palo_custom') || '[]')
+            };
+        }
+
+        // Salva valori personalizzati in localStorage
+        function saveCustomValue(type, value) {
+            const key = `vigneto_${type}_custom`;
+            const current = JSON.parse(localStorage.getItem(key) || '[]');
+            if (!current.includes(value)) {
+                current.push(value);
+                localStorage.setItem(key, JSON.stringify(current));
+            }
+        }
+
+        // Popola dropdown form vigneto (con supporto localStorage come anagrafica)
+        function popolaDropdownVigneto(selectId, listaPredefinita, customKey) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            const custom = loadCustomValues();
+            const customValues = custom[customKey] || [];
+            const allValues = [...listaPredefinita, ...customValues].sort();
+            
+            // Mantieni solo la prima opzione (placeholder)
+            const firstOption = select.querySelector('option');
+            select.innerHTML = '';
+            if (firstOption) {
+                select.appendChild(firstOption);
+            }
+            
+            // Aggiungi tutti i valori (predefiniti + custom)
+            allValues.forEach(valore => {
+                const option = document.createElement('option');
+                option.value = valore;
+                option.textContent = valore;
+                select.appendChild(option);
+            });
+        }
+
+        // Pre-compila form vigneto da pianificazione
+        async function precompilaFormVignetoDaPianificazione(pianificazione) {
+            if (!pianificazione || pianificazione.tipoColtura !== 'vigneto') return;
+            
+            const vignetoFormGroup = document.getElementById('vigneto-form-group');
+            if (!vignetoFormGroup) return;
+            
+            // Mostra form vigneto
+            vignetoFormGroup.style.display = 'block';
+            
+            // Popola dropdown con liste predefinite (con supporto localStorage)
+            popolaDropdownVigneto('vigneto-varieta', VARIETA_PREDEFINITE, 'varieta');
+            popolaDropdownVigneto('vigneto-portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
+            popolaDropdownVigneto('vigneto-tipo-palo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+            
+            // Pre-compila forma allevamento
+            if (getFormeAllevamentoListModule && getNomeVisualizzatoModule) {
+                const formaAllevamentoEl = document.getElementById('vigneto-forma-allevamento');
+                if (formaAllevamentoEl) {
+                    const formeList = getFormeAllevamentoListModule();
+                    formaAllevamentoEl.innerHTML = '<option value="">Seleziona forma</option>';
+                    formeList.forEach(nome => {
+                        const option = document.createElement('option');
+                        option.value = nome;
+                        option.textContent = nome;
+                        formaAllevamentoEl.appendChild(option);
+                    });
+                    
+                    // Seleziona forma dalla pianificazione
+                    if (pianificazione.formaAllevamento) {
+                        const nomeVisualizzato = getNomeVisualizzatoModule(pianificazione.formaAllevamento);
+                        if (nomeVisualizzato) {
+                            formaAllevamentoEl.value = nomeVisualizzato;
+                        }
+                    }
+                }
+            }
+            
+            // Pre-compila campi dalla pianificazione (readonly)
+            const distanzaFileEl = document.getElementById('vigneto-distanza-file');
+            const distanzaUnitaEl = document.getElementById('vigneto-distanza-unita');
+            const superficieEl = document.getElementById('vigneto-superficie-ettari');
+            const densitaEl = document.getElementById('vigneto-densita');
+            
+            if (distanzaFileEl && pianificazione.distanzaFile) {
+                distanzaFileEl.value = pianificazione.distanzaFile;
+            }
+            if (distanzaUnitaEl && pianificazione.distanzaUnita) {
+                distanzaUnitaEl.value = pianificazione.distanzaUnita;
+            }
+            // Formattazione superficie: 2 decimali
+            if (superficieEl && pianificazione.superficieNettaImpianto) {
+                superficieEl.value = parseFloat(pianificazione.superficieNettaImpianto).toFixed(2);
+            }
+            // Formattazione densità: numero intero
+            if (densitaEl && pianificazione.densitaEffettiva) {
+                densitaEl.value = Math.round(pianificazione.densitaEffettiva);
+            }
+            
+            // Pre-compila anno impianto con anno corrente
+            const annataEl = document.getElementById('vigneto-annata-impianto');
+            if (annataEl && !annataEl.value) {
+                annataEl.value = new Date().getFullYear();
+            }
+            
+            // Pre-compila terreno (già selezionato nel form lavoro)
+            const terrenoSelect = document.getElementById('lavoro-terreno');
+            if (terrenoSelect && pianificazione.terrenoId) {
+                terrenoSelect.value = pianificazione.terrenoId;
+            }
+        }
+
+        // Funzioni per gestire modali aggiunta valori personalizzati
+        window.openAddVarietaModal = function() {
+            document.getElementById('add-varieta-modal').classList.add('active');
+            setTimeout(() => document.getElementById('new-varieta').focus(), 100);
+        };
+
+        window.openAddPortainnestoModal = function() {
+            document.getElementById('add-portainnesto-modal').classList.add('active');
+            setTimeout(() => document.getElementById('new-portainnesto').focus(), 100);
+        };
+
+        window.openAddFormaAllevamentoModal = function() {
+            document.getElementById('add-forma-allevamento-modal').classList.add('active');
+            setTimeout(() => document.getElementById('new-forma-allevamento').focus(), 100);
+        };
+
+        window.openAddTipoPaloModal = function() {
+            document.getElementById('add-tipo-palo-modal').classList.add('active');
+            setTimeout(() => document.getElementById('new-tipo-palo').focus(), 100);
+        };
+
+        window.closeAddModal = function(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        };
+
+        window.addNewVarieta = function(e) {
+            e.preventDefault();
+            const value = document.getElementById('new-varieta').value.trim();
+            if (value) {
+                saveCustomValue('varieta', value);
+                popolaDropdownVigneto('vigneto-varieta', VARIETA_PREDEFINITE, 'varieta');
+                const select = document.getElementById('vigneto-varieta');
+                if (select) {
+                    select.value = value;
+                }
+                document.getElementById('new-varieta').value = '';
+                closeAddModal('add-varieta-modal');
+            }
+        };
+
+        window.addNewPortainnesto = function(e) {
+            e.preventDefault();
+            const value = document.getElementById('new-portainnesto').value.trim();
+            if (value) {
+                saveCustomValue('portainnesto', value);
+                popolaDropdownVigneto('vigneto-portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
+                const select = document.getElementById('vigneto-portainnesto');
+                if (select) {
+                    select.value = value;
+                }
+                document.getElementById('new-portainnesto').value = '';
+                closeAddModal('add-portainnesto-modal');
+            }
+        };
+
+        window.addNewFormaAllevamento = function(e) {
+            e.preventDefault();
+            const value = document.getElementById('new-forma-allevamento').value.trim();
+            if (value) {
+                const select = document.getElementById('vigneto-forma-allevamento');
+                if (select) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                    select.value = value;
+                }
+                closeAddModal('add-forma-allevamento-modal');
+            }
+        };
+
+        window.addNewTipoPalo = function(e) {
+            e.preventDefault();
+            const value = document.getElementById('new-tipo-palo').value.trim();
+            if (value) {
+                saveCustomValue('tipoPalo', value);
+                popolaDropdownVigneto('vigneto-tipo-palo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+                const select = document.getElementById('vigneto-tipo-palo');
+                if (select) {
+                    select.value = value;
+                }
+                document.getElementById('new-tipo-palo').value = '';
+                closeAddModal('add-tipo-palo-modal');
+            }
+        };
+
         // Wrapper per setupMacchineHandlers
         function setupMacchineHandlersWrapper(populateAttrezziDropdownCallback, populateOperatoreMacchinaDropdownCallback) {
             setupMacchineHandlersModule(
@@ -1589,14 +2108,27 @@
                 escapeHtmlUtil,
                 getStatoFormattatoUtil,
                 getStatoProgressoFormattatoUtil,
-                maybeAutoStartLavoriTourWrapper
+                maybeAutoStartLavoriTourWrapper,
+                lavoriState.operaiList,
+                currentTenantId || lavoriState.currentTenantId,
+                db
             );
         }
 
         // Wrapper per openCreaModal
         async function openCreaModalWrapper() {
+            // Rileva se siamo in modalità conto terzi
+            const urlParams = new URLSearchParams(window.location.search);
+            const contoTerziFromUrl = urlParams.get('contoTerzi');
+            const statoFromUrl = urlParams.get('stato');
+            const isContoTerziMode = contoTerziFromUrl === 'true' || 
+                                    (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule);
+            
             // Ricarica le liste necessarie prima di aprire il modal
             // per assicurarsi che siano aggiornate
+            // IMPORTANTE: Ricarica i terreni per assicurarsi che siano corretti per la modalità corrente
+            await loadTerreniWrapper();
+            
             if (lavoriState.hasManodoperaModule) {
                 await Promise.all([
                     loadCaposquadraWrapper(),
@@ -1633,6 +2165,24 @@
 
         // Wrapper per openModificaModal
         async function openModificaModalWrapper(lavoroId) {
+            // Trova il lavoro per determinare se è conto terzi
+            const lavoro = lavoriState.lavoriList.find(l => l.id === lavoroId);
+            const isLavoroContoTerzi = lavoro && lavoro.clienteId != null && lavoro.clienteId !== '';
+            
+            // Rileva se siamo in modalità conto terzi (da URL o dal lavoro stesso)
+            const urlParams = new URLSearchParams(window.location.search);
+            const contoTerziFromUrl = urlParams.get('contoTerzi');
+            const statoFromUrl = urlParams.get('stato');
+            const isContoTerziMode = contoTerziFromUrl === 'true' || 
+                                    (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule) ||
+                                    isLavoroContoTerzi;
+            
+            // IMPORTANTE: Ricarica i terreni per assicurarsi che siano corretti per la modalità corrente
+            // Se il lavoro è conto terzi, dobbiamo caricare terreni clienti
+            if (isLavoroContoTerzi || isContoTerziMode) {
+                await loadTerreniWrapper();
+            }
+            
             // Ricarica le liste necessarie prima di aprire il modal
             // per assicurarsi che siano aggiornate
             if (lavoriState.hasManodoperaModule) {
@@ -2069,6 +2619,17 @@
                         }
                     }
                     
+                    // Se c'è il parametro lavoroId nell'URL, apri automaticamente il modal dettaglio
+                    const lavoroIdFromUrl = urlParams.get('lavoroId');
+                    if (lavoroIdFromUrl) {
+                        // Attendi che i lavori siano caricati
+                        await loadLavoriWrapper();
+                        // Apri modal dettaglio
+                        setTimeout(async () => {
+                            await openDettaglioModalWrapper(lavoroIdFromUrl);
+                        }, 500);
+                    }
+                    
                     // Se stato=da_pianificare e modulo conto terzi attivo, imposta filtro anche senza Manodopera
                     if (statoFromUrl === 'da_pianificare' && hasContoTerziModule && !hasManodoperaModule) {
                         const filterStatoEl = document.getElementById('filter-stato');
@@ -2118,6 +2679,12 @@
                     
                     // Inizializza handler categoria lavoro
                     setupCategoriaLavoroHandlerWrapper();
+                    
+                    // Carica moduli vigneto se disponibili
+                    await loadVignetoModules();
+                    
+                    // Setup handler per tipo lavoro Impianto
+                    setupTipoLavoroImpiantoHandler();
                     
                     // Inizializza handler macchine se modulo attivo
                     // NOTA: setupMacchineHandlers è gestito dagli event handlers nei moduli

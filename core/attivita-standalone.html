@@ -1668,6 +1668,9 @@
             
             await Promise.all(loadPromises);
             
+            // Renderizza attività DOPO che tutte le promise sono completate (incluso loadMacchine)
+            renderAttivita();
+            
             // Popola filtri dopo che tutto è stato caricato
             populateFiltroColture();
             populateFiltroTipoLavoro();
@@ -1891,6 +1894,11 @@
                 isContoTerziMode,
                 populateColtureFromTerreni
             );
+            // Aggiorna terreniList globale per accesso da populateTipoLavoroDropdown
+            if (typeof window.attivitaState === 'undefined') {
+                window.attivitaState = {};
+            }
+            window.attivitaState.terreniList = terreni;
         }
         
         // Carica lavori conto terzi (solo se modalità Conto Terzi) - wrapper
@@ -2002,8 +2010,8 @@
                 categorieLavoriPrincipali,
                 sottocategorieLavoriMap,
                 updateTipiLavoroList: (val) => { tipiLavoroList = val; },
-                populateTipoLavoroDropdownCallback: (catId, selectedValue, tipiFiltrati) => {
-                    populateTipoLavoroDropdown(catId, selectedValue, tipiFiltrati);
+                populateTipoLavoroDropdownCallback: (catId, selectedValue, tipiFiltrati, categoriePrincipali) => {
+                    populateTipoLavoroDropdown(catId, selectedValue, tipiFiltrati, categoriePrincipali);
                 }
             });
         }
@@ -2209,13 +2217,17 @@
         }
 
         // Popola dropdown tipo lavoro nel form (filtrato per categoria) - wrapper
-        function populateTipoLavoroDropdown(categoriaId = null, selectedValue = null, tipiLavoroFiltratiParam = null) {
+        function populateTipoLavoroDropdown(categoriaId = null, selectedValue = null, tipiLavoroFiltratiParam = null, categorieLavoriPrincipaliParam = null) {
+            // Usa categorieLavoriPrincipaliParam se passato, altrimenti usa la variabile globale
+            const categorieDaUsare = categorieLavoriPrincipaliParam || categorieLavoriPrincipali;
+            console.log('[ATTIVITA] populateTipoLavoroDropdown chiamato con categoriaId:', categoriaId, 'categorie disponibili:', categorieDaUsare?.length || 0);
             populateTipoLavoroDropdownModule(
                 categoriaId,
                 tipiLavoroList,
                 sottocategorieLavoriMap,
                 selectedValue,
-                tipiLavoroFiltratiParam
+                tipiLavoroFiltratiParam,
+                categorieDaUsare
             );
         }
         
@@ -2605,9 +2617,31 @@
             });
         }
 
+        // Esponi terreni globalmente per accesso da populateTipoLavoroDropdown
+        if (typeof window.attivitaState === 'undefined') {
+            window.attivitaState = {};
+        }
+        window.attivitaState.terreniList = terreni;
+        
         // Listener per precompilare coltura quando si seleziona un terreno
         document.getElementById('attivita-terreno').addEventListener('change', async function() {
             const terrenoId = this.value;
+            
+            // Aggiorna terreniList globale
+            if (window.attivitaState) {
+                window.attivitaState.terreniList = terreni;
+            }
+            
+            // Se categoria RACCOLTA è già selezionata, ricarica tipi lavoro per applicare filtro vendemmia
+            const categoriaPrincipaleId = document.getElementById('attivita-categoria-principale')?.value;
+            const sottocategoriaId = document.getElementById('attivita-sottocategoria')?.value;
+            const categoriaId = sottocategoriaId || categoriaPrincipaleId;
+            
+            if (categoriaId && loadTipiLavoro) {
+                console.log('[ATTIVITA] Terreno cambiato, ricarico tipi lavoro per applicare filtro vendemmia');
+                await loadTipiLavoro(categoriaId);
+            }
+            
             if (terrenoId) {
                 const terreno = terreni.find(t => t.id === terrenoId);
                 if (terreno && terreno.coltura) {

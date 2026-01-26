@@ -625,35 +625,54 @@
 
             <!-- Tariffe Operai (solo Manager/Amministratore) -->
             <div class="card" id="tariffe-section" style="display: none;">
-                <h2>💰 Tariffe Operai</h2>
-                <p class="info-text" style="margin-bottom: 20px;">Configura le tariffe orarie di default per ogni tipo operaio. Queste tariffe verranno utilizzate per il calcolo compensi. Puoi anche impostare tariffe personalizzate per singoli operai nella pagina Gestione Operai.</p>
+                <h2>💰 Tariffe</h2>
                 
-                <div id="tariffe-list" class="list-container">
-                    <!-- Lista verrà popolata dinamicamente -->
+                <!-- Tariffe Operai (solo se modulo Manodopera attivo) -->
+                <div id="tariffe-operai-section" style="display: none;">
+                    <h3 style="margin-bottom: 15px;">👷 Tariffe Operai</h3>
+                    <p class="info-text" style="margin-bottom: 20px;">Configura le tariffe orarie di default per ogni tipo operaio. Queste tariffe verranno utilizzate per il calcolo compensi. Puoi anche impostare tariffe personalizzate per singoli operai nella pagina Gestione Operai.</p>
+                    
+                    <div id="tariffe-list" class="list-container">
+                        <!-- Lista verrà popolata dinamicamente -->
+                    </div>
+                </div>
+                
+                <!-- Tariffa Proprietario (sempre visibile) -->
+                <div id="tariffa-proprietario-section" style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                    <h3 style="margin-bottom: 15px;">👤 Tariffa Proprietario</h3>
+                    <p class="info-text" style="margin-bottom: 15px;">Configura la tariffa oraria per il calcolo dei costi. Questa tariffa verrà utilizzata per calcolare il costo della manodopera quando i lavori vengono tracciati nel Diario Attività, specialmente quando il modulo Manodopera non è attivo.</p>
+                    
+                    <div class="form-group" style="max-width: 300px;">
+                        <label for="tariffa-proprietario">Tariffa Oraria Proprietario (€/ora) *</label>
+                        <input type="number" id="tariffa-proprietario" step="0.01" min="0" placeholder="15.00" required>
+                        <small>Tariffa oraria utilizzata per calcolare i costi quando il proprietario svolge i lavori direttamente</small>
+                    </div>
+                    
+                    <button type="button" class="btn btn-primary" onclick="saveTariffaProprietario()">💾 Salva Tariffa Proprietario</button>
                 </div>
             </div>
 
             <!-- Coefficienti Morfologia Conto Terzi (solo Manager/Amministratore) -->
             <div class="card" id="coefficienti-morfologia-section" style="display: none;">
                 <h2>⛰️ Coefficienti Morfologia Terreni (Conto Terzi)</h2>
-                <p class="info-text" style="margin-bottom: 20px;">Configura i coefficienti moltiplicativi per le diverse morfologie del terreno. Questi coefficienti verranno utilizzati automaticamente quando crei tariffe per tutte le morfologie. La tariffa finale sarà calcolata come: Tariffa Base × Coefficiente.</p>
+                <p class="info-text" style="margin-bottom: 20px;">Configura le maggiorazioni percentuali per le diverse morfologie del terreno rispetto alla pianura. Questi coefficienti verranno utilizzati automaticamente quando crei tariffe per tutte le morfologie. La tariffa finale sarà calcolata come: Tariffa Base × (1 + Maggiorazione%).</p>
                 
                 <form id="coefficienti-morfologia-form" onsubmit="handleSaveCoefficientiMorfologia(event)">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="coeff-pianura">🏞️ Pianura</label>
-                            <input type="number" id="coeff-pianura" required step="0.01" min="0.1" value="1.0" placeholder="1.0">
-                            <small>Coefficiente per terreni in pianura (default: 1.0)</small>
+                            <input type="number" id="coeff-pianura" required step="1" min="0" max="1000" value="0" placeholder="0" readonly style="background-color: #f5f5f5;">
+                            <small>Base di riferimento (0% = nessuna maggiorazione)</small>
                         </div>
                         <div class="form-group">
                             <label for="coeff-collina">⛰️ Collina</label>
-                            <input type="number" id="coeff-collina" required step="0.01" min="0.1" value="1.2" placeholder="1.2">
-                            <small>Coefficiente per terreni in collina (default: 1.2)</small>
+                            <input type="number" id="coeff-collina" required step="1" min="0" max="1000" value="20" placeholder="20">
+                            <small>Maggiorazione percentuale rispetto alla pianura (es: 20% = +20%)</small>
                         </div>
                         <div class="form-group">
                             <label for="coeff-montagna">🏔️ Montagna</label>
-                            <input type="number" id="coeff-montagna" required step="0.01" min="0.1" value="1.5" placeholder="1.5">
-                            <small>Coefficiente per terreni in montagna (default: 1.5)</small>
+                            <input type="number" id="coeff-montagna" required step="1" min="0" max="1000" value="50" placeholder="50">
+                            <small>Maggiorazione percentuale rispetto alla pianura (es: 50% = +50%)</small>
                         </div>
                     </div>
 
@@ -872,12 +891,12 @@
                         document.getElementById('tariffe-section').style.display = 'block';
                         document.getElementById('coefficienti-morfologia-section').style.display = 'block';
                         
-                        // Carica coefficienti morfologia
-                        await loadCoefficientiMorfologia();
-                        
                         // Carica dati azienda
                         if (currentTenantId) {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            let hasManodoperaModule = false;
+                            let hasContoTerziModule = false;
+                            
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
                                 document.getElementById('azienda-nome').value = tenantData.nome || '';
@@ -891,6 +910,10 @@
                                 document.getElementById('azienda-email').value = tenantData.email || '';
                                 document.getElementById('azienda-note').value = tenantData.note || '';
                                 
+                                // Verifica moduli attivi
+                                hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                                hasContoTerziModule = tenantData.modules && tenantData.modules.includes('contoTerzi');
+                                
                                 // Carica logo esistente se presente
                                 if (tenantData.logoUrl) {
                                     document.getElementById('logo-current-img').src = tenantData.logoUrl;
@@ -898,10 +921,40 @@
                                 }
                             }
                             
+                            // Mostra/nascondi tariffe operai in base al modulo Manodopera
+                            const tariffeOperaiSection = document.getElementById('tariffe-operai-section');
+                            if (tariffeOperaiSection) {
+                                tariffeOperaiSection.style.display = hasManodoperaModule ? 'block' : 'none';
+                            }
+                            
+                            // Tariffa proprietario sempre visibile (serve anche senza manodopera)
+                            const tariffaProprietarioSection = document.getElementById('tariffa-proprietario-section');
+                            if (tariffaProprietarioSection) {
+                                tariffaProprietarioSection.style.display = 'block';
+                            }
+                            
+                            // Mostra/nascondi coefficienti morfologia in base al modulo Conto Terzi
+                            const coefficientiMorfologiaSection = document.getElementById('coefficienti-morfologia-section');
+                            if (coefficientiMorfologiaSection) {
+                                coefficientiMorfologiaSection.style.display = hasContoTerziModule ? 'block' : 'none';
+                            }
+                            
                             // Carica liste personalizzate, poderi e tariffe
                             await loadListe();
                             await loadPoderi();
-                            await loadTariffe();
+                            
+                            // Carica tariffe operai solo se modulo Manodopera attivo
+                            if (hasManodoperaModule) {
+                                await loadTariffe();
+                            }
+                            
+                            // Carica sempre tariffa proprietario
+                            await loadTariffaProprietario();
+                            
+                            // Carica coefficienti morfologia solo se modulo Conto Terzi attivo
+                            if (hasContoTerziModule) {
+                                await loadCoefficientiMorfologia();
+                            }
                         }
                     } else {
                         // Nascondi sezioni azienda per non-manager
@@ -2076,7 +2129,7 @@
             }
         }
         
-        // Aggiorna dropdown tipi lavoro predefiniti
+        // Aggiorna dropdown tipi lavoro predefiniti (ora usa servizio centralizzato)
         async function updateTipiLavoroPredefinitiDropdown() {
             const categoriaSelect = document.getElementById('tipo-lavoro-categoria-select');
             const sottocategoriaSelect = document.getElementById('tipo-lavoro-sottocategoria-select');
@@ -2087,148 +2140,88 @@
             const categoriaId = categoriaSelect.value;
             const sottocategoriaId = sottocategoriaSelect ? sottocategoriaSelect.value : null;
             
-            predeterminatoSelect.innerHTML = '<option value="">-- Seleziona un tipo lavoro predefinito (opzionale) --</option>';
+            predeterminatoSelect.innerHTML = '<option value="">-- Seleziona un tipo lavoro (opzionale) --</option>';
             
             if (!categoriaId) return;
             
-            // Carica tipi lavoro predefiniti esistenti per evitare duplicati
-            const tipiEsistenti = new Set();
-            if (tipiLavoroPerCategoria[categoriaId]) {
-                Object.values(tipiLavoroPerCategoria[categoriaId]).forEach(tipi => {
-                    tipi.forEach(tipo => {
-                        if (tipo.predefinito) {
-                            tipiEsistenti.add(tipo.nome.toLowerCase());
+            if (!currentTenantId) return;
+            
+            try {
+                // Assicura che Firebase sia inizializzato nel servizio
+                try {
+                    const { setFirebaseInstances } = await import('../services/firebase-service.js');
+                    setFirebaseInstances({ app, db, auth });
+                } catch (error) {
+                    console.warn('Impossibile impostare Firebase instances nel servizio:', error);
+                }
+                
+                // Assicura che il tenantId sia impostato nel servizio
+                try {
+                    const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                    if (currentTenantId) {
+                        setCurrentTenantId(currentTenantId);
+                    }
+                } catch (error) {
+                    console.warn('Impossibile impostare tenantId nel servizio:', error);
+                }
+                
+                // Carica tutti i tipi lavoro usando il servizio centralizzato
+                const { getAllTipiLavoro } = await import('../services/tipi-lavoro-service.js');
+                const allTipiLavoro = await getAllTipiLavoro({
+                    orderBy: 'nome',
+                    orderDirection: 'asc'
+                });
+                
+                // Carica sottocategorie per filtraggio corretto
+                const sottocategorieMap = new Map();
+                if (categoriaId) {
+                    const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
+                    const snapshot = await getDocs(categorieRef);
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.parentId === categoriaId) {
+                            sottocategorieMap.set(doc.id, { id: doc.id, ...data });
                         }
                     });
-                });
-            }
-            
-            // Lista tipi lavoro predefiniti (inlined per evitare CORS)
-            const TIPI_LAVORO_PREDEFINITI_LIST = [
-                // Lavorazione del Terreno - Generale
-                { nome: 'Aratura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
-                { nome: 'Erpicatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
-                { nome: 'Fresatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
-                { nome: 'Vangatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
-                { nome: 'Ripuntatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
-                { nome: 'Estirpatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
-                { nome: 'Rullatura', sottocategoriaCodice: 'lavorazione_terreno_generale' },
-                // Lavorazione del Terreno - Tra le File
-                { nome: 'Fresatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file' },
-                { nome: 'Erpicatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file' },
-                { nome: 'Ripasso Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file' },
-                // Lavorazione del Terreno - Sulla Fila
-                { nome: 'Vangatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila' },
-                { nome: 'Zappatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila' },
-                { nome: 'Diserbo Meccanico Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila' },
-                // Trattamenti - Manuale
-                { nome: 'Trattamento Manuale', sottocategoriaCodice: 'trattamenti_manuale' },
-                { nome: 'Trattamento Anticrittogamico Manuale', sottocategoriaCodice: 'trattamenti_manuale' },
-                { nome: 'Trattamento Insetticida Manuale', sottocategoriaCodice: 'trattamenti_manuale' },
-                // Trattamenti - Meccanico
-                { nome: 'Trattamento Meccanico', sottocategoriaCodice: 'trattamenti_meccanico' },
-                { nome: 'Trattamento Anticrittogamico Meccanico', sottocategoriaCodice: 'trattamenti_meccanico' },
-                { nome: 'Trattamento Insetticida Meccanico', sottocategoriaCodice: 'trattamenti_meccanico' },
-                // Potatura - Manuale
-                { nome: 'Potatura', sottocategoriaCodice: 'potatura_manuale' },
-                { nome: 'Potatura di Formazione', sottocategoriaCodice: 'potatura_manuale' },
-                { nome: 'Potatura di Produzione', sottocategoriaCodice: 'potatura_manuale' },
-                { nome: 'Potatura di Rinnovamento', sottocategoriaCodice: 'potatura_manuale' },
-                { nome: 'Innesto', sottocategoriaCodice: 'potatura_manuale' },
-                // Potatura - Meccanico
-                { nome: 'Pre-potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico' },
-                { nome: 'Potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico' },
-                // Raccolta - Manuale
-                { nome: 'Raccolta Manuale', sottocategoriaCodice: 'raccolta_manuale' },
-                { nome: 'Raccolta con Cestini', sottocategoriaCodice: 'raccolta_manuale' },
-                { nome: 'Raccolta con Scale', sottocategoriaCodice: 'raccolta_manuale' },
-                // Raccolta - Meccanica
-                { nome: 'Raccolta Meccanica', sottocategoriaCodice: 'raccolta_meccanica' },
-                { nome: 'Raccolta con Scuotitore', sottocategoriaCodice: 'raccolta_meccanica' },
-                { nome: 'Raccolta con Raccoglitrici', sottocategoriaCodice: 'raccolta_meccanica' },
-                // Gestione del Verde - Manuale
-                { nome: 'Falciatura Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
-                { nome: 'Diserbo Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
-                { nome: 'Taglio Siepi Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
-                { nome: 'Manutenzione Verde Manuale', sottocategoriaCodice: 'gestione_verde_manuale' },
-                { nome: 'Scacchiatura', sottocategoriaCodice: 'gestione_verde_manuale' },
-                { nome: 'Spollonatura', sottocategoriaCodice: 'gestione_verde_manuale' },
-                { nome: 'Sfemminellatura', sottocategoriaCodice: 'gestione_verde_manuale' },
-                { nome: 'Pettinatura', sottocategoriaCodice: 'gestione_verde_manuale' },
-                // Gestione del Verde - Meccanico
-                { nome: 'Potatura a Verde Meccanica', sottocategoriaCodice: 'gestione_verde_meccanico' },
-                { nome: 'Legatura', sottocategoriaCodice: 'gestione_verde_meccanico' },
-                { nome: 'Defogliatura', sottocategoriaCodice: 'gestione_verde_meccanico' },
-                { nome: 'Taglio Siepi Meccanico', sottocategoriaCodice: 'gestione_verde_meccanico' },
-                // Semina e Piantagione - Manuale
-                { nome: 'Semina Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                { nome: 'Semina Diretta Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                { nome: 'Semina in Semenzaio', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                { nome: 'Trapianto Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                { nome: 'Trapianto Ortaggi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                { nome: 'Piantagione Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                { nome: 'Piantagione Alberi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                { nome: 'Piantagione Viti Manuale', sottocategoriaCodice: 'semina_piantagione_manuale' },
-                // Semina e Piantagione - Meccanico
-                { nome: 'Semina Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
-                { nome: 'Semina Diretta Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
-                { nome: 'Trapianto Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico' },
-                { nome: 'Trapianto Ortaggi Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico' },
-                { nome: 'Piantagione Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
-                { nome: 'Piantagione Alberi Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
-                { nome: 'Piantagione Viti Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico' },
-                // Diserbo - Manuale
-                { nome: 'Diserbo Manuale', sottocategoriaCodice: 'diserbo_manuale' },
-                { nome: 'Diserbo Localizzato', sottocategoriaCodice: 'diserbo_manuale' },
-                // Diserbo - Meccanico
-                { nome: 'Diserbo a Pieno Campo', sottocategoriaCodice: 'diserbo_meccanico' },
-                { nome: 'Diserbo sulla Fila', sottocategoriaCodice: 'diserbo_meccanico' },
-                { nome: 'Diserbo Meccanico', sottocategoriaCodice: 'diserbo_meccanico' }
-            ];
-            
-            // Trova la categoria selezionata per ottenere il codice
-            const categoria = categorieTipiLavoroMap[categoriaId];
-            if (!categoria) return;
-            
-            // Carica sottocategorie per ottenere codice -> id
-            const sottocategorieMap = {};
-            let codiceSottocategoriaSelezionata = null;
-            
-            if (sottocategoriaId) {
-                const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-                const snapshot = await getDocs(categorieRef);
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (doc.id === sottocategoriaId && data.codice) {
-                        codiceSottocategoriaSelezionata = data.codice.toLowerCase();
-                        sottocategorieMap[codiceSottocategoriaSelezionata] = doc.id;
-                    }
-                });
-            }
-            
-            // Filtra tipi predefiniti per categoria/sottocategoria
-            const tipiFiltrati = TIPI_LAVORO_PREDEFINITI_LIST.filter(tipo => {
-                // Se c'è una sottocategoria selezionata, mostra SOLO i tipi di quella sottocategoria
-                if (sottocategoriaId && codiceSottocategoriaSelezionata) {
-                    if (!tipo.sottocategoriaCodice) {
-                        return false; // Se il tipo non ha sottocategoria, non mostrarlo quando una sottocategoria è selezionata
-                    }
-                    return tipo.sottocategoriaCodice.toLowerCase() === codiceSottocategoriaSelezionata;
                 }
-                // Se non c'è sottocategoria selezionata, mostra solo i tipi senza sottocategoria specifica
-                // o tutti i tipi della categoria (per ora mostriamo tutti)
-                return true;
-            });
-            
-            // Rimuovi duplicati già presenti
-            tipiFiltrati.forEach(tipo => {
-                if (!tipiEsistenti.has(tipo.nome.toLowerCase())) {
+                
+                // Filtra tipi lavoro per categoria e sottocategoria
+                let tipiFiltrati = allTipiLavoro.filter(tipo => {
+                    // Se c'è una sottocategoria selezionata, mostra SOLO i tipi di quella sottocategoria
+                    if (sottocategoriaId) {
+                        return tipo.sottocategoriaId === sottocategoriaId;
+                    }
+                    // Se non c'è sottocategoria selezionata, mostra i tipi della categoria principale
+                    // o delle sue sottocategorie
+                    if (tipo.categoriaId === categoriaId) {
+                        return true;
+                    }
+                    // Verifica se il tipo appartiene a una sottocategoria della categoria selezionata
+                    if (tipo.sottocategoriaId && sottocategorieMap.has(tipo.sottocategoriaId)) {
+                        return true;
+                    }
+                    return false;
+                });
+                
+                // Ordina per nome
+                tipiFiltrati.sort((a, b) => {
+                    const nomeA = (a.nome || '').toLowerCase();
+                    const nomeB = (b.nome || '').toLowerCase();
+                    return nomeA.localeCompare(nomeB);
+                });
+                
+                // Popola dropdown con i tipi filtrati
+                tipiFiltrati.forEach(tipo => {
                     const option = document.createElement('option');
                     option.value = tipo.nome;
                     option.textContent = tipo.nome;
                     predeterminatoSelect.appendChild(option);
-                }
-            });
+                });
+                
+            } catch (error) {
+                console.error('Errore caricamento tipi lavoro:', error);
+                showAlert('Errore caricamento tipi lavoro', 'error');
+            }
         }
         
         // Quando viene selezionato un tipo predefinito, popola il campo nome
@@ -3288,9 +3281,68 @@
                 }
                 
                 renderTariffe(tariffe);
+                
+                // Carica anche tariffa proprietario
+                await loadTariffaProprietario();
             } catch (error) {
                 console.error('Errore caricamento tariffe:', error);
                 showAlert('Errore caricamento tariffe', 'error');
+            }
+        }
+        
+        // Carica tariffa proprietario
+        async function loadTariffaProprietario() {
+            if (!currentTenantId) return;
+            
+            try {
+                const tariffeRef = doc(db, `tenants/${currentTenantId}/tariffe`, 'proprietario');
+                const tariffeSnap = await getDoc(tariffeRef);
+                
+                let tariffa = 15.0; // Default
+                if (tariffeSnap.exists()) {
+                    const data = tariffeSnap.data();
+                    tariffa = data.tariffaOraria || data.tariffa || 15.0;
+                }
+                
+                document.getElementById('tariffa-proprietario').value = tariffa;
+            } catch (error) {
+                console.error('Errore caricamento tariffa proprietario:', error);
+            }
+        }
+        
+        // Salva tariffa proprietario
+        async function saveTariffaProprietario() {
+            if (!currentTenantId) {
+                showAlert('Errore: tenant non disponibile', 'error');
+                return;
+            }
+            
+            const input = document.getElementById('tariffa-proprietario');
+            const valore = parseFloat(input.value);
+            
+            if (isNaN(valore) || valore < 0) {
+                showAlert('Inserisci un valore valido per la tariffa', 'error');
+                return;
+            }
+            
+            try {
+                const tariffeRef = doc(db, `tenants/${currentTenantId}/tariffe`, 'proprietario');
+                const tariffeSnap = await getDoc(tariffeRef);
+                
+                const tariffeData = {
+                    tariffaOraria: valore,
+                    updatedAt: serverTimestamp()
+                };
+                
+                if (!tariffeSnap.exists()) {
+                    tariffeData.createdAt = serverTimestamp();
+                }
+                
+                await setDoc(tariffeRef, tariffeData);
+                showAlert('Tariffa proprietario salvata con successo', 'success');
+            } catch (error) {
+                console.error('Errore salvataggio tariffa proprietario:', error);
+                showAlert('Errore durante il salvataggio: ' + error.message, 'error');
             }
         }
         
@@ -3354,9 +3406,18 @@
                 }
                 
                 console.log('Impostazione coefficienti nei campi:', coefficienti);
-                document.getElementById('coeff-pianura').value = coefficienti.pianura;
-                document.getElementById('coeff-collina').value = coefficienti.collina;
-                document.getElementById('coeff-montagna').value = coefficienti.montagna;
+                
+                // Converti decimali in percentuali (incremento rispetto a pianura)
+                // Pianura è sempre 0% (base)
+                // Collina: (1.2 - 1.0) * 100 = 20%
+                // Montagna: (1.5 - 1.0) * 100 = 50%
+                const pianuraBase = coefficienti.pianura || 1.0;
+                const percentualeCollina = Math.round(((coefficienti.collina || 1.2) - pianuraBase) * 100);
+                const percentualeMontagna = Math.round(((coefficienti.montagna || 1.5) - pianuraBase) * 100);
+                
+                document.getElementById('coeff-pianura').value = 0; // Sempre 0% (base)
+                document.getElementById('coeff-collina').value = percentualeCollina;
+                document.getElementById('coeff-montagna').value = percentualeMontagna;
             } catch (error) {
                 console.error('Errore caricamento coefficienti morfologia:', error);
                 showAlert('Errore caricamento coefficienti', 'error');
@@ -3377,21 +3438,43 @@
                 return;
             }
             
+            // Verifica che il modulo Conto Terzi sia attivo
+            try {
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (tenantDoc.exists()) {
+                    const tenantData = tenantDoc.data();
+                    const hasContoTerziModule = tenantData.modules && tenantData.modules.includes('contoTerzi');
+                    if (!hasContoTerziModule) {
+                        showAlert('Il modulo Conto Terzi non è attivo. Attiva il modulo per gestire i coefficienti morfologia.', 'error');
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Errore verifica modulo conto terzi:', error);
+            }
+            
             console.log('Tenant ID:', currentTenantId);
             
-            const coefficienti = {
-                pianura: parseFloat(document.getElementById('coeff-pianura').value),
-                collina: parseFloat(document.getElementById('coeff-collina').value),
-                montagna: parseFloat(document.getElementById('coeff-montagna').value)
-            };
+            // Leggi percentuali dall'input
+            const percentualeCollina = parseFloat(document.getElementById('coeff-collina').value);
+            const percentualeMontagna = parseFloat(document.getElementById('coeff-montagna').value);
             
-            // Validazione
-            if (isNaN(coefficienti.pianura) || coefficienti.pianura < 0.1 ||
-                isNaN(coefficienti.collina) || coefficienti.collina < 0.1 ||
-                isNaN(coefficienti.montagna) || coefficienti.montagna < 0.1) {
-                showAlert('Inserisci valori validi (>= 0.1) per tutti i coefficienti', 'error');
+            // Validazione percentuali
+            if (isNaN(percentualeCollina) || percentualeCollina < 0 ||
+                isNaN(percentualeMontagna) || percentualeMontagna < 0) {
+                showAlert('Inserisci valori percentuali validi (>= 0) per collina e montagna', 'error');
                 return;
             }
+            
+            // Converti percentuali in decimali per salvare nel database
+            // Pianura è sempre 1.0 (base)
+            // Collina: 1.0 + (20% / 100) = 1.2
+            // Montagna: 1.0 + (50% / 100) = 1.5
+            const coefficienti = {
+                pianura: 1.0, // Sempre base
+                collina: 1.0 + (percentualeCollina / 100),
+                montagna: 1.0 + (percentualeMontagna / 100)
+            };
             
             try {
                 console.log('Salvataggio coefficienti:', coefficienti);
@@ -3426,7 +3509,27 @@
                 return;
             }
             
+            // Verifica che il modulo Manodopera sia attivo
+            try {
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (tenantDoc.exists()) {
+                    const tenantData = tenantDoc.data();
+                    const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                    if (!hasManodoperaModule) {
+                        showAlert('Il modulo Manodopera non è attivo. Attiva il modulo per gestire le tariffe operai.', 'error');
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Errore verifica modulo manodopera:', error);
+            }
+            
             const input = document.getElementById(`tariffa-${tipoOperaio}`);
+            if (!input) {
+                showAlert('Campo tariffa non trovato', 'error');
+                return;
+            }
+            
             const valore = parseFloat(input.value);
             
             if (isNaN(valore) || valore < 0) {
@@ -3870,6 +3973,7 @@
         window.updateTipiLavoroPredefinitiDropdown = updateTipiLavoroPredefinitiDropdown;
         window.onTipoLavoroPredeterminatoChange = onTipoLavoroPredeterminatoChange;
         window.saveTariffa = saveTariffa;
+        window.saveTariffaProprietario = saveTariffaProprietario;
         window.openAddCategoriaTipoLavoroModal = function() {
             // TODO: Implementare modal per aggiungere categoria tipi lavoro
             showAlert('Funzionalità in sviluppo', 'info');

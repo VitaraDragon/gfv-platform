@@ -688,8 +688,9 @@ export async function loadTerreni(currentTenantId, auth, db, app, terreni, terre
  * @param {Array} terreni - Array tutti i terreni
  * @param {Array} terreniFiltrati - Array terreni filtrati
  * @param {Function} maybeAutoStartTerreniTourCallback - Callback per avviare tour (opzionale)
+ * @param {boolean} hasVignetoModule - Se il modulo vigneto è attivo (opzionale)
  */
-export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTourCallback) {
+export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTourCallback, hasVignetoModule = false) {
     const container = document.getElementById('terreni-container');
     if (!container) return;
     
@@ -786,6 +787,9 @@ export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTou
                     <div class="col-azioni" data-label="Azioni">
                         <button onclick="editTerreno('${terreno.id}')" class="btn-edit-small" title="Modifica">✏️</button>
                         <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="Elimina">🗑️</button>
+                        ${hasVignetoModule && escapedColtura && escapedColtura.toLowerCase().includes('vite') 
+                            ? `<button onclick="gestisciVigneto('${terreno.id}')" class="btn-vigneto-small" title="Gestisci Vigneto">🍇</button>` 
+                            : ''}
                     </div>
                 </div>
                 `;

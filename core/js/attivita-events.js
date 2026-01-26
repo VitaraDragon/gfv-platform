@@ -240,6 +240,27 @@ export async function confirmDeleteAttivita(
     
     try {
         const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        
+        // Gestione vendemmia collegata (se modulo vigneto attivo)
+        try {
+            const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+            const hasVignetoModule = await hasModuleAccess('vigneto');
+            
+            if (hasVignetoModule) {
+                const { findVendemmiaByAttivitaId, deleteVendemmia } = await import('../../modules/vigneto/services/vendemmia-service.js');
+                const vendemmiaCollegata = await findVendemmiaByAttivitaId(attivitaId);
+                
+                if (vendemmiaCollegata) {
+                    console.log('[ATTIVITA-EVENTS] Attività collegata a vendemmia, elimino vendemmia:', vendemmiaCollegata.vendemmiaId);
+                    await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
+                    console.log('[ATTIVITA-EVENTS] ✓ Vendemmia eliminata');
+                }
+            }
+        } catch (error) {
+            console.warn('[ATTIVITA-EVENTS] Errore eliminazione vendemmia collegata:', error);
+            // Non blocchiamo l'operazione principale
+        }
+        
         const attivitaCollection = await getAttivitaCollectionCallback(currentTenantId);
         const attivitaRef = doc(attivitaCollection, attivitaId);
         await deleteDoc(attivitaRef);
@@ -291,7 +312,10 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
             const categoriaPrincipaleId = this.value;
             if (categoriaPrincipaleId) {
                 if (populateSottocategorieLavoroCallback) populateSottocategorieLavoroCallback(categoriaPrincipaleId);
-                if (loadTipiLavoroCallback) loadTipiLavoroCallback(categoriaPrincipaleId);
+                if (loadTipiLavoroCallback) {
+                    console.log('[ATTIVITA-EVENTS] Categoria principale cambiata, ricarico tipi lavoro per applicare filtro vendemmia se necessario');
+                    loadTipiLavoroCallback(categoriaPrincipaleId);
+                }
             } else {
                 const sottocategoriaGroup = document.getElementById('attivita-sottocategoria-group');
                 const tipoLavoroGroup = document.getElementById('attivita-tipo-lavoro-gerarchico-group');
@@ -311,6 +335,7 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
             // Usa sottocategoria se selezionata, altrimenti categoria principale
             const categoriaId = sottocategoriaId || categoriaPrincipaleId;
             if (categoriaId && loadTipiLavoroCallback) {
+                console.log('[ATTIVITA-EVENTS] Sottocategoria cambiata, ricarico tipi lavoro per applicare filtro vendemmia se necessario');
                 loadTipiLavoroCallback(categoriaId);
             }
         });
@@ -942,13 +967,138 @@ export async function handleSaveAttivita(params) {
         
         if (currentAttivitaId) {
             // Aggiorna
+            // Gestione vendemmia collegata (se modulo vigneto attivo)
+            try {
+                const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                const hasVignetoModule = await hasModuleAccess('vigneto');
+                
+                if (hasVignetoModule) {
+                    const { findVendemmiaByAttivitaId, deleteVendemmia, updateVendemmia } = await import('../../modules/vigneto/services/vendemmia-service.js');
+                    const vendemmiaCollegata = await findVendemmiaByAttivitaId(currentAttivitaId);
+                    
+                    if (vendemmiaCollegata) {
+                        const attivitaOriginale = attivita.find(a => a.id === currentAttivitaId);
+                        const tipoLavoroOriginale = attivitaOriginale?.tipoLavoro || '';
+                        const tipoLavoroNuovo = attivitaData.tipoLavoro || '';
+                        const terrenoOriginaleId = attivitaOriginale?.terrenoId;
+                        const terrenoNuovoId = attivitaData.terrenoId;
+                        
+                        // Verifica se terreno originale era VITE
+                        let terrenoOriginaleEraVite = false;
+                        if (terrenoOriginaleId) {
+                            const terrenoOriginale = terreni.find(t => t.id === terrenoOriginaleId);
+                            terrenoOriginaleEraVite = terrenoOriginale?.coltura?.toLowerCase().includes('vite') || false;
+                        }
+                        
+                        // Verifica se terreno nuovo è VITE
+                        let terrenoNuovoEVite = false;
+                        if (terrenoNuovoId) {
+                            const terrenoNuovo = terreni.find(t => t.id === terrenoNuovoId);
+                            terrenoNuovoEVite = terrenoNuovo?.coltura?.toLowerCase().includes('vite') || false;
+                        }
+                        
+                        // Caso 1: Tipo lavoro cambiato da vendemmia a altro → elimina vendemmia
+                        if (tipoLavoroOriginale.toLowerCase().includes('vendemmia') && 
+                            !tipoLavoroNuovo.toLowerCase().includes('vendemmia')) {
+                            console.log('[ATTIVITA-EVENTS] Tipo lavoro cambiato da vendemmia a altro, elimino vendemmia collegata');
+                            await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
+                            console.log('[ATTIVITA-EVENTS] ✓ Vendemmia eliminata');
+                        }
+                        // Caso 2: Terreno cambiato da VITE a altro → scollega vendemmia
+                        else if (terrenoOriginaleEraVite && !terrenoNuovoEVite) {
+                            console.log('[ATTIVITA-EVENTS] Terreno cambiato da VITE a altro, scollego vendemmia');
+                            await updateVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId, {
+                                attivitaId: null
+                            });
+                            console.log('[ATTIVITA-EVENTS] ✓ Vendemmia scollegata dall\'attività');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('[ATTIVITA-EVENTS] Errore gestione vendemmia collegata:', error);
+                // Non blocchiamo l'operazione principale
+            }
+            
             const attivitaRef = doc(attivitaCollection, currentAttivitaId);
             await updateDoc(attivitaRef, attivitaData);
             showAlert('Attività aggiornata con successo!', 'success');
         } else {
             // Crea
             attivitaData.createdAt = serverTimestamp();
-            await addDoc(attivitaCollection, attivitaData);
+            const attivitaDocRef = await addDoc(attivitaCollection, attivitaData);
+            const attivitaId = attivitaDocRef.id;
+            
+            // Rilevamento automatico vendemmia: crea vendemmia se attività è di tipo vendemmia su terreno VITE
+            // Funziona sia per attività con lavoroId che per attività dirette (senza lavoroId)
+            console.log('[ATTIVITA-EVENTS] Verifica rilevamento vendemmia:', {
+                terrenoId,
+                tipoLavoro,
+                lavoroId,
+                attivitaId,
+                terrenoColtura: terreni.find(t => t.id === terrenoId)?.coltura
+            });
+            
+            if (terrenoId && tipoLavoro) {
+                try {
+                    const tipoLavoroLower = (tipoLavoro || '').toLowerCase();
+                    if (tipoLavoroLower.includes('vendemmia')) {
+                        console.log('[ATTIVITA-EVENTS] ✓ Rilevata attività vendemmia, verifica terreno VITE...');
+                        
+                        const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                        const hasVignetoModule = await hasModuleAccess('vigneto');
+                        console.log('[ATTIVITA-EVENTS] Modulo vigneto attivo?', hasVignetoModule);
+                        
+                        if (hasVignetoModule) {
+                            // Verifica coltura terreno
+                            const terreno = terreni.find(t => t.id === terrenoId);
+                            if (terreno && terreno.coltura && terreno.coltura.toLowerCase().includes('vite')) {
+                                console.log('[ATTIVITA-EVENTS] ✓ Terreno VITE confermato (coltura:', terreno.coltura, '), creo vendemmia automatica...');
+                                
+                                // Se l'attività ha un lavoroId, usa quello, altrimenti crea vendemmia da attività diretta
+                                if (lavoroId) {
+                                    // Attività collegata a lavoro: crea vendemmia dal lavoro
+                                    console.log('[ATTIVITA-EVENTS] Attività collegata a lavoro (lavoroId:', lavoroId, '), creo vendemmia dal lavoro...');
+                                    const { createVendemmiaFromLavoro } = await import('../../modules/vigneto/services/vendemmia-service.js');
+                                    const vendemmiaId = await createVendemmiaFromLavoro(lavoroId);
+                                    
+                                    if (vendemmiaId) {
+                                        console.log('[ATTIVITA-EVENTS] ✓✓✓ Vendemmia creata automaticamente da lavoro:', vendemmiaId);
+                                    } else {
+                                        console.warn('[ATTIVITA-EVENTS] ⚠ Vendemmia non creata (vigneto non trovato?)');
+                                    }
+                                } else {
+                                    // Attività diretta: crea vendemmia direttamente dall'attività
+                                    console.log('[ATTIVITA-EVENTS] Attività diretta vendemmia (senza lavoroId, attivitaId:', attivitaId, '), creo vendemmia dall\'attività...');
+                                    const { createVendemmiaFromAttivita } = await import('../../modules/vigneto/services/vendemmia-service.js');
+                                    const vendemmiaId = await createVendemmiaFromAttivita(attivitaId);
+                                    
+                                    if (vendemmiaId) {
+                                        console.log('[ATTIVITA-EVENTS] ✓✓✓ Vendemmia creata automaticamente dall\'attività:', vendemmiaId);
+                                    } else {
+                                        console.warn('[ATTIVITA-EVENTS] ⚠ Vendemmia non creata (vigneto non trovato?)');
+                                    }
+                                }
+                            } else {
+                                console.log('[ATTIVITA-EVENTS] Terreno non è VITE:', terreno?.coltura);
+                            }
+                        } else {
+                            console.log('[ATTIVITA-EVENTS] Modulo vigneto non attivo, skip rilevamento vendemmia');
+                        }
+                    } else {
+                        console.log('[ATTIVITA-EVENTS] Tipo lavoro non è vendemmia:', tipoLavoro);
+                    }
+                } catch (error) {
+                    console.error('[ATTIVITA-EVENTS] Errore rilevamento automatico vendemmia:', error);
+                    console.error('[ATTIVITA-EVENTS] Stack:', error.stack);
+                    // Non blocchiamo l'operazione principale
+                }
+            } else {
+                console.log('[ATTIVITA-EVENTS] Skip rilevamento vendemmia:', {
+                    hasTerrenoId: !!terrenoId,
+                    hasTipoLavoro: !!tipoLavoro
+                });
+            }
+            
             showAlert('Attività creata con successo!', 'success');
         }
         
@@ -1209,7 +1359,77 @@ export async function salvaAttivitaRapida({
         
         // Salva attività
         const attivitaCollection = getAttivitaCollection(currentTenantId, db);
-        await addDoc(attivitaCollection, attivitaData);
+        const attivitaDocRef = await addDoc(attivitaCollection, attivitaData);
+        const attivitaId = attivitaDocRef.id;
+        
+        // Rilevamento automatico vendemmia: crea vendemmia se attività è di tipo vendemmia su terreno VITE
+        // Funziona sia per attività con lavoroId che per attività dirette (senza lavoroId)
+        console.log('[ATTIVITA-EVENTS] Verifica rilevamento vendemmia:', {
+            terrenoId,
+            tipoLavoro,
+            lavoroIdValue,
+            attivitaId,
+            terrenoColtura: terreno?.coltura
+        });
+        
+        if (terrenoId && tipoLavoro) {
+            try {
+                const tipoLavoroLower = (tipoLavoro || '').toLowerCase();
+                if (tipoLavoroLower.includes('vendemmia')) {
+                    console.log('[ATTIVITA-EVENTS] ✓ Rilevata attività vendemmia, verifica terreno VITE...');
+                    
+                    const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                    const hasVignetoModule = await hasModuleAccess('vigneto');
+                    console.log('[ATTIVITA-EVENTS] Modulo vigneto attivo?', hasVignetoModule);
+                    
+                    if (hasVignetoModule) {
+                        // Verifica coltura terreno (già caricato sopra)
+                        if (terreno && terreno.coltura && terreno.coltura.toLowerCase().includes('vite')) {
+                            console.log('[ATTIVITA-EVENTS] Terreno VITE confermato (coltura:', terreno.coltura, '), creo vendemmia automatica...');
+                            
+                            // Se l'attività ha un lavoroId, usa quello, altrimenti crea vendemmia da attività diretta
+                            if (lavoroIdValue) {
+                                // Attività collegata a lavoro: crea vendemmia dal lavoro
+                                const { createVendemmiaFromLavoro } = await import('../../modules/vigneto/services/vendemmia-service.js');
+                                const vendemmiaId = await createVendemmiaFromLavoro(lavoroIdValue);
+                                
+                                if (vendemmiaId) {
+                                    console.log('[ATTIVITA-EVENTS] Vendemmia creata automaticamente da lavoro:', vendemmiaId);
+                                } else {
+                                    console.warn('[ATTIVITA-EVENTS] Vendemmia non creata (vigneto non trovato?)');
+                                }
+                            } else {
+                                // Attività diretta: crea vendemmia direttamente dall'attività
+                                console.log('[ATTIVITA-EVENTS] Attività diretta vendemmia (senza lavoroId, attivitaId:', attivitaId, '), creo vendemmia dall\'attività...');
+                                const { createVendemmiaFromAttivita } = await import('../../modules/vigneto/services/vendemmia-service.js');
+                                const vendemmiaId = await createVendemmiaFromAttivita(attivitaId);
+                                
+                                if (vendemmiaId) {
+                                    console.log('[ATTIVITA-EVENTS] ✓✓✓ Vendemmia creata automaticamente dall\'attività:', vendemmiaId);
+                                } else {
+                                    console.warn('[ATTIVITA-EVENTS] ⚠ Vendemmia non creata (vigneto non trovato?)');
+                                }
+                            }
+                        } else {
+                            console.log('[ATTIVITA-EVENTS] Terreno non è VITE:', terreno?.coltura);
+                        }
+                    } else {
+                        console.log('[ATTIVITA-EVENTS] Modulo vigneto non attivo, skip rilevamento vendemmia');
+                    }
+                } else {
+                    console.log('[ATTIVITA-EVENTS] Tipo lavoro non è vendemmia:', tipoLavoro);
+                }
+            } catch (error) {
+                console.error('[ATTIVITA-EVENTS] Errore rilevamento automatico vendemmia:', error);
+                console.error('[ATTIVITA-EVENTS] Stack:', error.stack);
+                // Non blocchiamo l'operazione principale
+            }
+        } else {
+            console.log('[ATTIVITA-EVENTS] Skip rilevamento vendemmia:', {
+                hasTerrenoId: !!terrenoId,
+                hasTipoLavoro: !!tipoLavoro
+            });
+        }
         
         // Se checkbox "lavoro terminato" è selezionato, aggiorna stato lavoro
         if (lavoroTerminato) {
@@ -1251,6 +1471,23 @@ export async function salvaAttivitaRapida({
                             await updateMacchinaStato(lavoro.attrezzoId, 'disponibile', currentTenantId, params.db, params.app, params.auth);
                         }
                     }
+                }
+                
+                // Aggiorna vigneti se modulo Vigneto attivo
+                try {
+                    const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                    const hasVignetoModule = await hasModuleAccess('vigneto');
+                    
+                    if (hasVignetoModule && lavoroOriginale?.terrenoId) {
+                        const { aggiornaVignetiDaTerreno } = await import('../../modules/vigneto/services/lavori-vigneto-service.js');
+                        const annoLavoro = lavoroOriginale.dataInizio?.toDate 
+                            ? lavoroOriginale.dataInizio.toDate().getFullYear() 
+                            : new Date().getFullYear();
+                        await aggiornaVignetiDaTerreno(lavoroOriginale.terrenoId, annoLavoro);
+                    }
+                } catch (error) {
+                    console.warn('[ATTIVITA-EVENTS] Errore aggiornamento vigneti:', error);
+                    // Non blocchiamo l'operazione principale
                 }
                 
                 showAlert('Attività creata e lavoro segnato come completato!', 'success');

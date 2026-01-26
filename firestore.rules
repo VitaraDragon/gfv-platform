@@ -370,6 +370,46 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Collection: vigneti (Modulo Vigneto)
+    match /tenants/{tenantId}/vigneti/{vignetoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Subcollection: vendemmie (sotto vigneti)
+    match /tenants/{tenantId}/vigneti/{vignetoId}/vendemmie/{vendemmiaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Subcollection: potature (sotto vigneti)
+    match /tenants/{tenantId}/vigneti/{vignetoId}/potature/{potaturaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Subcollection: trattamenti (sotto vigneti)
+    match /tenants/{tenantId}/vigneti/{vignetoId}/trattamenti/{trattamentoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: statistiche_vigneto (aggregazioni pre-calcolate per performance)
+    // NOTA: Permettiamo creazione/aggiornamento a tutti gli utenti autenticati del tenant
+    // perché le aggregazioni sono solo cache e vengono calcolate automaticamente
+    // La sicurezza è garantita dal fatto che contengono solo dati aggregati già accessibili
+    match /tenants/{tenantId}/statistiche_vigneto/{statsId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update: if isAuthenticated() && belongsToTenant(tenantId);
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: pianificazioni-impianti (pianificazioni nuovi impianti)
+    match /tenants/{tenantId}/pianificazioni-impianti/{pianificazioneId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
     // Subcollection: oreOperai (sotto lavori)
     match /tenants/{tenantId}/lavori/{lavoroId}/oreOperai/{oraId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);

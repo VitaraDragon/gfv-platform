@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Ore Service - Servizio per gestione ore lavorate
  * Gestisce CRUD ore lavorate come sub-collection di lavori
  * 
@@ -85,8 +85,14 @@ export async function getOreLavoro(lavoroId, options = {}) {
     
     return ore;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio') || error.message.includes('config')) {
+      console.error('Errore recupero ore:', error);
+      throw new Error(`Errore recupero ore: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero ore:', error);
-    throw new Error(`Errore recupero ore: ${error.message}`);
+    return [];
   }
 }
 
@@ -158,8 +164,14 @@ export async function getOreDaValidare(caposquadraId) {
     
     return oreDaValidare;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio') || error.message.includes('config')) {
+      console.error('Errore recupero ore da validare:', error);
+      throw new Error(`Errore recupero ore da validare: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero ore da validare:', error);
-    throw new Error(`Errore recupero ore da validare: ${error.message}`);
+    return [];
   }
 }
 
@@ -241,8 +253,14 @@ export async function getOreOperaio(operaioId, options = {}) {
     
     return oreOperaio;
   } catch (error) {
+    // Errori critici (validazione, autenticazione) -> lancia eccezione
+    if (error.message.includes('tenant') || error.message.includes('obbligatorio') || error.message.includes('config')) {
+      console.error('Errore recupero ore operaio:', error);
+      throw new Error(`Errore recupero ore operaio: ${error.message}`);
+    }
+    // Errori non critici (database, rete) -> ritorna array vuoto
     console.error('Errore recupero ore operaio:', error);
-    throw new Error(`Errore recupero ore operaio: ${error.message}`);
+    return [];
   }
 }
 
