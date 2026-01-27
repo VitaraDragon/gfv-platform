@@ -545,7 +545,6 @@
         }
 
         const firebaseConfig = await waitForConfig();
-        console.error('FIREBASE_CONFIG_LOADED', firebaseConfig);
 
         import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, addDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
