@@ -404,6 +404,43 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Collection: statistiche_frutteto (aggregazioni pre-calcolate per performance)
+    match /tenants/{tenantId}/statistiche_frutteto/{statsId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update: if isAuthenticated() && belongsToTenant(tenantId);
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: frutteti (Modulo Frutteto)
+    match /tenants/{tenantId}/frutteti/{fruttetoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Subcollection: raccolte (sotto frutteti)
+    match /tenants/{tenantId}/frutteti/{fruttetoId}/raccolte/{raccoltaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Subcollection: potature (sotto frutteti)
+    match /tenants/{tenantId}/frutteti/{fruttetoId}/potature/{potaturaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Subcollection: trattamenti (sotto frutteti)
+    match /tenants/{tenantId}/frutteti/{fruttetoId}/trattamenti/{trattamentoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: raccolteFrutta (raccolte frutta standalone, non sotto frutteti)
+    match /tenants/{tenantId}/raccolteFrutta/{raccoltaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: pianificazioni-impianti (pianificazioni nuovi impianti)
     match /tenants/{tenantId}/pianificazioni-impianti/{pianificazioneId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);

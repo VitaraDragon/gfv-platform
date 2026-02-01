@@ -234,7 +234,8 @@ export function mapColturaToCategoria(colturaNome) {
         nomeLower.includes('kiwi') || nomeLower.includes('mirtillo') ||
         nomeLower.includes('lampone') || nomeLower.includes('ribes') ||
         nomeLower.includes('mora') || nomeLower.includes('melograno') ||
-        nomeLower.includes('noce') || nomeLower.includes('pistacchio')) {
+        nomeLower.includes('noce') || nomeLower.includes('pistacchio') ||
+        nomeLower.includes('kaki') || nomeLower.includes('cachi')) {
         return 'Frutteto';
     }
     

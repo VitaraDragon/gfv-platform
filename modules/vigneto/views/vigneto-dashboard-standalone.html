@@ -264,6 +264,16 @@
             color: #666;
         }
 
+        .badge-diario {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #F3E5F5;
+            color: #6A1B9A;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
         .alert {
             padding: 15px;
             border-radius: 8px;
@@ -364,6 +374,11 @@
                     <div class="stat-subtitle" id="stat-spese-subtitle"></div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-value" id="stat-spese-totali">-</div>
+                    <div class="stat-label">Spese totali (€)</div>
+                    <div class="stat-subtitle" id="stat-spese-totali-subtitle"></div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-value" id="stat-numero-vigneti">-</div>
                     <div class="stat-label">Vigneti Totali</div>
                 </div>
@@ -389,17 +404,27 @@
                     <span class="action-title">Gestione Vendemmia</span>
                     <span class="action-description">Registra vendemmie e traccia produzione</span>
                 </a>
+                <a href="potatura-standalone.html" class="action-card">
+                    <span class="action-icon">✂️</span>
+                    <span class="action-title">Potatura</span>
+                    <span class="action-description">Registra potature (invernale, verde, rinnovo, spollonatura)</span>
+                </a>
+                <a href="trattamenti-standalone.html" class="action-card">
+                    <span class="action-icon">🧪</span>
+                    <span class="action-title">Trattamenti</span>
+                    <span class="action-description">Registra trattamenti fitosanitari e fertilizzanti</span>
+                </a>
                 <a href="vigneto-statistiche-standalone.html" class="action-card">
                     <span class="action-icon">📊</span>
                     <span class="action-title">Statistiche e Grafici</span>
                     <span class="action-description">Visualizza statistiche dettagliate e analisi grafiche</span>
                 </a>
-                <a href="pianifica-impianto-standalone.html" class="action-card">
+                <a href="pianifica-impianto-standalone.html?coltura=vigneto" class="action-card">
                     <span class="action-icon">📐</span>
                     <span class="action-title">Pianifica Nuovo Impianto</span>
                     <span class="action-description">Calcola file, ceppi, pali e materiali per nuovo impianto</span>
                 </a>
-                <a href="calcolo-materiali-standalone.html" class="action-card">
+                <a href="calcolo-materiali-standalone.html?coltura=vigneto" class="action-card">
                     <span class="action-icon">🔢</span>
                     <span class="action-title">Calcolo Materiali</span>
                     <span class="action-description">Calcola materiali necessari dalle pianificazioni salvate</span>
@@ -453,46 +478,13 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
-        }
-
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
         const firebaseConfig = await waitForConfig();
         
         // Importa servizi Firebase e Tenant
@@ -680,6 +672,8 @@
                 document.getElementById('stat-produzione').textContent = statistiche.produzioneTotaleQli.toFixed(2);
                 document.getElementById('stat-resa').textContent = statistiche.resaMediaQliHa.toFixed(2);
                 document.getElementById('stat-spese-vendemmia').textContent = statistiche.speseVendemmiaAnno.toFixed(2);
+                const costoTotale = statistiche.costoTotaleAnno ?? 0;
+                document.getElementById('stat-spese-totali').textContent = costoTotale > 0 ? costoTotale.toFixed(2) : '-';
                 document.getElementById('stat-numero-vigneti').textContent = statistiche.numeroVigneti;
                 document.getElementById('stat-numero-vendemmie').textContent = statistiche.numeroVendemmie;
                 
@@ -827,26 +821,25 @@
                 }
                 
                 lavoriCompletati.forEach(lavoro => {
-                    const dataInizio = lavoro.dataInizio instanceof Date 
-                        ? lavoro.dataInizio 
-                        : new Date(lavoro.dataInizio);
-                    const dataFormattata = dataInizio.toLocaleDateString('it-IT', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
-                        year: 'numeric' 
-                    });
-                    
+                    const dataVal = lavoro.dataInizio || lavoro.data;
+                    const dataInizio = dataVal instanceof Date 
+                        ? dataVal 
+                        : new Date(dataVal || 0);
+                    const dataFormattata = !isNaN(dataInizio.getTime()) 
+                        ? dataInizio.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : (lavoro.data || '-');
                     const statoFormattato = lavoro.stato === 'completato' ? '✅ Completato' : lavoro.stato;
-                    
+                    const isDiario = lavoro.source === 'diario';
+                    const dettaglioCell = isDiario 
+                        ? '<span class="badge-diario" title="Attività registrata dal Diario">Da diario</span>' 
+                        : `<a href="../../../core/admin/gestione-lavori-standalone.html?lavoroId=${lavoro.id}" class="btn-link">Dettaglio</a>`;
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${dataFormattata}</td>
                         <td>${lavoro.vignetoNome || 'Vigneto'}</td>
                         <td>${lavoro.tipoLavoro || 'N/A'}</td>
                         <td>${statoFormattato}</td>
-                        <td>
-                            <a href="../../../core/admin/gestione-lavori-standalone.html?lavoroId=${lavoro.id}" class="btn-link">Dettaglio</a>
-                        </td>
+                        <td>${dettaglioCell}</td>
                     `;
                     tbody.appendChild(row);
                 });
@@ -868,6 +861,7 @@
             document.getElementById('stat-produzione').textContent = '0';
             document.getElementById('stat-resa').textContent = '0';
             document.getElementById('stat-spese-vendemmia').textContent = '0';
+            document.getElementById('stat-spese-totali').textContent = '-';
             document.getElementById('stat-numero-vigneti').textContent = '0';
             document.getElementById('stat-numero-vendemmie').textContent = '0';
             document.getElementById('stat-ultima-vendemmia').textContent = '-';

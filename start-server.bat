@@ -11,7 +11,7 @@ echo   http://localhost:8000/core/admin/impostazioni-standalone.html
 echo.
 echo Premi CTRL+C per fermare il server
 echo.
-npx http-server -p 8000 -c-1
+npm start
 
 
 

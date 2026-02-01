@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Frutteto - GFV Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .filter-group select {
+            padding: 8px 12px;
+            border: 2px solid #FFCC80;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group select:hover {
+            border-color: #FF6F00;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #FF6F00;
+        }
+
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+            border: 2px solid #FF6F00;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF6F00;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat-subtitle {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .action-card {
+            background: white;
+            border: 2px solid #FF6F00;
+            border-radius: 12px;
+            padding: 25px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .action-card:hover {
+            background: #FFF3E0;
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .action-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .action-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FF6F00;
+            margin-bottom: 10px;
+        }
+
+        .action-description {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .section {
+            margin-top: 40px;
+        }
+
+        .section h2 {
+            color: #FF6F00;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #FFCC80;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        td {
+            font-size: 14px;
+            color: #333;
+        }
+
+        tbody tr:hover {
+            background: #FFF3E0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .header-actions {
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .badge-diario {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #FFF3E0;
+            color: #E65100;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍎 FRUTTETO</h1>
+            <p>Panoramica completa gestione frutteti e raccolta frutta</p>
+            <div class="header-actions">
+                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard Principale</a>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="filtro-frutteto">Frutteto</label>
+                <select id="filtro-frutteto">
+                    <option value="">Tutti i frutteti</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filtro-anno">Anno</label>
+                <select id="filtro-anno">
+                    <!-- Popolato dinamicamente -->
+                </select>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+
+            <h2 style="color: #FF6F00; margin-bottom: 20px;">Panoramica</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-produzione">-</div>
+                    <div class="stat-label">Produzione Anno (kg)</div>
+                    <div class="stat-subtitle" id="stat-produzione-subtitle"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-resa">-</div>
+                    <div class="stat-label">Resa Media (kg/Ha)</div>
+                    <div class="stat-subtitle" id="stat-resa-subtitle"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-spese-raccolta">-</div>
+                    <div class="stat-label">Spese Totali (€)</div>
+                    <div class="stat-subtitle" id="stat-spese-subtitle"></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-numero-frutteti">-</div>
+                    <div class="stat-label">Frutteti Totali</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-numero-raccolte">-</div>
+                    <div class="stat-label">Raccolte Anno</div>
+                </div>
+            </div>
+
+            <h2 style="color: #FF6F00; margin: 40px 0 20px 0;">Azioni Rapide</h2>
+            <div class="quick-actions">
+                <a href="frutteti-standalone.html" class="action-card">
+                    <span class="action-icon">🍎</span>
+                    <span class="action-title">Anagrafica Frutteti</span>
+                    <span class="action-description">Gestisci anagrafica frutteti e dati tecnici</span>
+                </a>
+                <a href="raccolta-frutta-standalone.html" class="action-card">
+                    <span class="action-icon">📦</span>
+                    <span class="action-title">Gestione Raccolta Frutta</span>
+                    <span class="action-description">Registra raccolte e traccia produzione frutta</span>
+                </a>
+                <a href="potatura-standalone.html" class="action-card">
+                    <span class="action-icon">✂️</span>
+                    <span class="action-title">Potatura</span>
+                    <span class="action-description">Registra potature (invernale, verde, formazione, rinnovo)</span>
+                </a>
+                <a href="trattamenti-standalone.html" class="action-card">
+                    <span class="action-icon">🧪</span>
+                    <span class="action-title">Trattamenti</span>
+                    <span class="action-description">Registra trattamenti fitosanitari e fertilizzanti</span>
+                </a>
+                <a href="../../vigneto/views/pianifica-impianto-standalone.html?coltura=frutteto" class="action-card">
+                    <span class="action-icon">📐</span>
+                    <span class="action-title">Pianifica Nuovo Impianto</span>
+                    <span class="action-description">Calcola file, piante e materiali per nuovo impianto</span>
+                </a>
+                <a href="../../vigneto/views/calcolo-materiali-standalone.html?coltura=frutteto" class="action-card">
+                    <span class="action-icon">🔢</span>
+                    <span class="action-title">Calcolo Materiali</span>
+                    <span class="action-description">Calcola materiali necessari dalle pianificazioni salvate</span>
+                </a>
+                <a href="frutteto-statistiche-standalone.html" class="action-card" id="link-statistiche-frutteto">
+                    <span class="action-icon">📊</span>
+                    <span class="action-title">Statistiche e Grafici</span>
+                    <span class="action-description">Visualizza statistiche dettagliate e analisi grafiche</span>
+                </a>
+            </div>
+
+            <div class="section">
+                <h2>Raccolte Recenti</h2>
+                <div id="raccolte-loading" class="loading">Caricamento raccolte...</div>
+                <div id="raccolte-empty" class="empty-state" style="display: none;">
+                    <div class="empty-state-icon">📦</div>
+                    <p>Nessuna raccolta trovata per i filtri selezionati.</p>
+                </div>
+                <div class="table-container" id="raccolte-table-container" style="display: none;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Frutteto</th>
+                                <th>Specie</th>
+                                <th>Quantità (kg)</th>
+                                <th>Resa (kg/Ha)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="raccolte-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Lavori Frutteto</h2>
+                <div class="table-container">
+                    <table id="table-lavori">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Frutteto</th>
+                                <th>Tipo Lavoro</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="loading">Caricamento lavori...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module">
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
+
+        // Import dinamici servizi core (come in frutteti-standalone)
+        function getBasePath() {
+            if (window.location.protocol === 'file:') {
+                return '';
+            }
+            const pathname = window.location.pathname;
+            const coreIndex = pathname.indexOf('/core/');
+            const modulesIndex = pathname.indexOf('/modules/');
+            if (coreIndex !== -1) {
+                return pathname.substring(0, coreIndex);
+            }
+            if (modulesIndex !== -1) {
+                return pathname.substring(0, modulesIndex);
+            }
+            return '/';
+        }
+
+        function resolvePath(relativePath) {
+            if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+                return relativePath;
+            }
+            const basePath = getBasePath();
+            if (relativePath.startsWith('/')) {
+                const pathWithoutSlash = relativePath.substring(1);
+                return basePath === '/' ? '/' + pathWithoutSlash : basePath + '/' + pathWithoutSlash;
+            }
+            const currentUrl = new URL(window.location.href);
+            const docPath = currentUrl.pathname;
+            const lastSlash = docPath.lastIndexOf('/');
+            const docDir = lastSlash !== -1 ? docPath.substring(0, lastSlash + 1) : '/';
+            const resolvedUrl = new URL(relativePath, currentUrl.origin + docDir);
+            let resolvedPath = resolvedUrl.pathname;
+            if (basePath && basePath !== '/' && !resolvedPath.startsWith(basePath)) {
+                const pathWithoutSlash = resolvedPath.startsWith('/') ? resolvedPath.substring(1) : resolvedPath;
+                const normalizedBasePath = basePath.endsWith('/') ? basePath : basePath + '/';
+                return normalizedBasePath + pathWithoutSlash;
+            }
+            return resolvedPath;
+        }
+
+        const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
+        const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+        const { initializeFirebase, getAuthInstance, getDb } = firebaseServiceModule;
+        const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        let db = null;
+        let tenantId = null;
+
+        function formatDate(d) {
+            if (!d) return '-';
+            const date = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleDateString('it-IT');
+        }
+
+        async function initDashboard() {
+            try {
+                const filtroFrutteto = document.getElementById('filtro-frutteto');
+                const filtroAnno = document.getElementById('filtro-anno');
+
+                // Import servizi statistiche frutteto
+                const { getStatisticheFrutteto, getRaccolteRecenti, getLavoriFrutteto } = await import('../services/frutteto-statistiche-service.js');
+                const { getAllFrutteti } = await import('../services/frutteti-service.js');
+
+                const frutteti = await getAllFrutteti();
+                frutteti.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.id;
+                    opt.textContent = f.specie || f.varieta || f.nome || 'Frutteto senza nome';
+                    filtroFrutteto.appendChild(opt);
+                });
+
+                // Popola dropdown anni (ultimi 5 anni + anno corrente)
+                const annoCorrente = new Date().getFullYear();
+                filtroAnno.innerHTML = '';
+                for (let i = 0; i < 5; i++) {
+                    const anno = annoCorrente - i;
+                    const opt = document.createElement('option');
+                    opt.value = String(anno);
+                    opt.textContent = anno;
+                    if (i === 0) {
+                        opt.selected = true;
+                    }
+                    filtroAnno.appendChild(opt);
+                }
+
+                let currentFruttetoId = null;
+                let currentAnno = annoCorrente;
+
+                async function aggiornaDashboard() {
+                    currentFruttetoId = filtroFrutteto.value || null;
+                    currentAnno = filtroAnno.value ? parseInt(filtroAnno.value, 10) : annoCorrente;
+
+                    // Carica statistiche aggregate
+                    const statistiche = await getStatisticheFrutteto(currentFruttetoId, currentAnno);
+
+                    // Aggiorna card statistiche
+                    const statProduzioneEl = document.getElementById('stat-produzione');
+                    const statProduzioneSubEl = document.getElementById('stat-produzione-subtitle');
+                    const statResaEl = document.getElementById('stat-resa');
+                    const statResaSubEl = document.getElementById('stat-resa-subtitle');
+                    const statSpeseEl = document.getElementById('stat-spese-raccolta');
+                    const statSpeseSubEl = document.getElementById('stat-spese-subtitle');
+                    const statNumFruttetiEl = document.getElementById('stat-numero-frutteti');
+                    const statNumRaccolteEl = document.getElementById('stat-numero-raccolte');
+
+                    statProduzioneEl.textContent = statistiche.produzioneTotaleKg > 0 
+                        ? statistiche.produzioneTotaleKg.toLocaleString('it-IT', { maximumFractionDigits: 0 })
+                        : '-';
+                    
+                    statResaEl.textContent = statistiche.resaMediaKgHa > 0 
+                        ? statistiche.resaMediaKgHa.toLocaleString('it-IT', { maximumFractionDigits: 1 })
+                        : '-';
+                    
+                    statSpeseEl.textContent = statistiche.speseTotaleAnno > 0 
+                        ? statistiche.speseTotaleAnno.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+                        : '-';
+                    
+                    statNumFruttetiEl.textContent = String(statistiche.numeroFrutteti);
+                    statNumRaccolteEl.textContent = String(statistiche.numeroRaccolte);
+
+                    // Sottotitoli statistiche
+                    if (statistiche.produzionePerMese && Object.keys(statistiche.produzionePerMese).length > 0) {
+                        const mesi = Object.keys(statistiche.produzionePerMese).sort();
+                        const ultimoMese = mesi[mesi.length - 1];
+                        const produzioneUltimoMese = statistiche.produzionePerMese[ultimoMese];
+                        statProduzioneSubEl.textContent = `Ultimo mese: ${produzioneUltimoMese.toFixed(0)} kg`;
+                    } else {
+                        statProduzioneSubEl.textContent = currentAnno ? `Anno ${currentAnno}` : '';
+                    }
+
+                    if (statistiche.resaPerSpecie && Object.keys(statistiche.resaPerSpecie).length > 0) {
+                        const specie = Object.keys(statistiche.resaPerSpecie);
+                        if (specie.length === 1) {
+                            statResaSubEl.textContent = specie[0];
+                        } else {
+                            statResaSubEl.textContent = `${specie.length} specie`;
+                        }
+                    } else {
+                        statResaSubEl.textContent = '';
+                    }
+
+                    if (statistiche.spesePerMese && Object.keys(statistiche.spesePerMese).length > 0) {
+                        const mesi = Object.keys(statistiche.spesePerMese).sort();
+                        const ultimoMese = mesi[mesi.length - 1];
+                        const speseUltimoMese = statistiche.spesePerMese[ultimoMese];
+                        statSpeseSubEl.textContent = `Ultimo mese: ${speseUltimoMese.toFixed(2)} €`;
+                    } else {
+                        statSpeseSubEl.textContent = '';
+                    }
+
+                    // Carica raccolte recenti
+                    await loadRaccolteRecenti(currentFruttetoId, currentAnno);
+                    
+                    // Carica lavori frutteto
+                    await loadLavoriFrutteto(currentFruttetoId, currentAnno);
+                }
+
+                async function loadRaccolteRecenti(fruttetoId, anno) {
+                    try {
+                        const raccolte = await getRaccolteRecenti(fruttetoId, anno, 10);
+                        
+                        const loadingEl = document.getElementById('raccolte-loading');
+                        const emptyEl = document.getElementById('raccolte-empty');
+                        const tableContainer = document.getElementById('raccolte-table-container');
+                        const tbody = document.getElementById('raccolte-tbody');
+
+                        loadingEl.style.display = 'none';
+                        tbody.innerHTML = '';
+
+                        if (raccolte.length === 0) {
+                            emptyEl.style.display = 'block';
+                            tableContainer.style.display = 'none';
+                            return;
+                        }
+
+                        emptyEl.style.display = 'none';
+                        tableContainer.style.display = 'block';
+
+                        raccolte.forEach(r => {
+                            const tr = document.createElement('tr');
+                            const dataRaccolta = r.data instanceof Date ? r.data : (r.data?.toDate ? r.data.toDate() : new Date(r.data));
+                            const resa = r.resaKgHa || (r.quantitaKg && r.superficieHa ? r.quantitaKg / r.superficieHa : null);
+                            tr.innerHTML = `
+                                <td>${formatDate(dataRaccolta)}</td>
+                                <td>${r.fruttetoNome || '-'}</td>
+                                <td>${r.specie || '-'}</td>
+                                <td>${(r.quantitaKg || 0).toLocaleString('it-IT', { maximumFractionDigits: 0 })}</td>
+                                <td>${resa ? resa.toLocaleString('it-IT', { maximumFractionDigits: 1 }) : '-'}</td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    } catch (error) {
+                        console.error('[FRUTTETO DASHBOARD] Errore caricamento raccolte:', error);
+                        const loadingEl = document.getElementById('raccolte-loading');
+                        const tbody = document.getElementById('raccolte-tbody');
+                        loadingEl.style.display = 'none';
+                        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Errore caricamento raccolte</td></tr>';
+                    }
+                }
+
+                async function loadLavoriFrutteto(fruttetoId, anno) {
+                    try {
+                        const lavoriCompletati = await getLavoriFrutteto(fruttetoId, anno, 'completato', 10);
+                        
+                        const tbody = document.querySelector('#table-lavori tbody');
+                        tbody.innerHTML = '';
+                        
+                        if (lavoriCompletati.length === 0) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="5" class="empty-state">
+                                        <div class="empty-state-icon">📋</div>
+                                        <div>Nessun lavoro completato trovato per i filtri selezionati</div>
+                                    </td>
+                                </tr>
+                            `;
+                            return;
+                        }
+                        
+                        lavoriCompletati.forEach(lavoro => {
+                            const dataVal = lavoro.dataInizio || lavoro.data;
+                            const dataInizio = dataVal instanceof Date 
+                                ? dataVal 
+                                : (dataVal?.toDate ? dataVal.toDate() : new Date(dataVal || 0));
+                            const dataFormattata = !isNaN(dataInizio.getTime()) 
+                                ? dataInizio.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                : (lavoro.data || '-');
+                            const statoFormattato = lavoro.stato === 'completato' ? '✅ Completato' : lavoro.stato;
+                            const isDiario = lavoro.source === 'diario';
+                            const dettaglioCell = isDiario 
+                                ? '<span class="badge-diario" title="Attività registrata dal Diario">Da diario</span>' 
+                                : `<a href="../../../core/admin/gestione-lavori-standalone.html?lavoroId=${lavoro.id}" class="btn-link">Dettaglio</a>`;
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${dataFormattata}</td>
+                                <td>${lavoro.fruttetoNome || 'Frutteto'}</td>
+                                <td>${lavoro.tipoLavoro || 'N/A'}</td>
+                                <td>${statoFormattato}</td>
+                                <td>${dettaglioCell}</td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    } catch (error) {
+                        console.error('[FRUTTETO DASHBOARD] Errore caricamento lavori:', error);
+                        const tbody = document.querySelector('#table-lavori tbody');
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="empty-state">
+                                    <div>Errore caricamento lavori</div>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
+
+                filtroFrutteto.addEventListener('change', aggiornaDashboard);
+                filtroAnno.addEventListener('change', aggiornaDashboard);
+
+                await aggiornaDashboard();
+            } catch (error) {
+                console.error('[FRUTTETO DASHBOARD] Errore inizializzazione:', error);
+                const alertContainer = document.getElementById('alert-container');
+                if (alertContainer) {
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-error">
+                            <strong>Errore:</strong> impossibile caricare i dati del frutteto.
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        async function init() {
+            try {
+                const firebaseConfig = await waitForConfig();
+                initializeFirebase(firebaseConfig);
+                const auth = getAuthInstance();
+                db = getDb();
+
+                initializeTenantService();
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (!user) {
+                        window.location.href = resolvePath('../../../core/auth/login-standalone.html');
+                        return;
+                    }
+
+                    const id = getCurrentTenantId();
+                    if (!id) {
+                        console.warn('[FRUTTETO DASHBOARD] Tenant non disponibile');
+                        return;
+                    }
+
+                    tenantId = id;
+                    // Per la dashboard frutteto non blocchiamo l'accesso anche se il modulo non risulta attivo,
+                    // per evitare di creare confusione se l'anagrafica frutteti è già utilizzabile.
+                    // Usiamo solo un warning in console.
+                    const tenant = await getCurrentTenant().catch(() => null);
+                    if (!tenant || !tenant.modules || !tenant.modules.includes('frutteto')) {
+                        console.warn('[FRUTTETO DASHBOARD] Modulo frutteto non risulta attivo nel tenant, ma procedo comunque a mostrare la dashboard.');
+                    }
+
+                    await initDashboard();
+                });
+            } catch (error) {
+                console.error('[FRUTTETO DASHBOARD] Errore init:', error);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
+

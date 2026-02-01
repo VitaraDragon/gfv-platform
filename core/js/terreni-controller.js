@@ -21,6 +21,24 @@
 // ============================================
 
 /**
+ * Verifica se una coltura è un frutteto
+ * @param {string} coltura - Nome della coltura
+ * @returns {boolean} true se è un frutteto
+ */
+function isColturaFrutteto(coltura) {
+    if (!coltura) return false;
+    const colturaLower = coltura.toLowerCase();
+    // Lista colture frutteto (basata su colture-service.js)
+    const coltureFrutteto = [
+        'pesco', 'melo', 'pero', 'albicocche', 'prugne', 'ciliegio', 'susino', 'fico',
+        'nocciolo', 'mandorlo', 'castagno', 'cotogno', 'sorbo', 'nespolo', 'giuggiolo',
+        'corbezzolo', 'gelso', 'mora', 'lampone', 'mirtillo', 'ribes', 'uva spina',
+        'kiwi', 'melograno', 'fico d\'india', 'kaki', 'noce', 'pistacchio', 'frutteto'
+    ];
+    return coltureFrutteto.some(f => colturaLower.includes(f));
+}
+
+/**
  * Attende che le configurazioni Firebase e Google Maps siano caricate
  * @returns {Promise<void>}
  */
@@ -689,8 +707,9 @@ export async function loadTerreni(currentTenantId, auth, db, app, terreni, terre
  * @param {Array} terreniFiltrati - Array terreni filtrati
  * @param {Function} maybeAutoStartTerreniTourCallback - Callback per avviare tour (opzionale)
  * @param {boolean} hasVignetoModule - Se il modulo vigneto è attivo (opzionale)
+ * @param {boolean} hasFruttetoModule - Se il modulo frutteto è attivo (opzionale)
  */
-export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTourCallback, hasVignetoModule = false) {
+export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTourCallback, hasVignetoModule = false, hasFruttetoModule = false) {
     const container = document.getElementById('terreni-container');
     if (!container) return;
     
@@ -789,6 +808,9 @@ export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTou
                         <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="Elimina">🗑️</button>
                         ${hasVignetoModule && escapedColtura && escapedColtura.toLowerCase().includes('vite') 
                             ? `<button onclick="gestisciVigneto('${terreno.id}')" class="btn-vigneto-small" title="Gestisci Vigneto">🍇</button>` 
+                            : ''}
+                        ${hasFruttetoModule && escapedColtura && isColturaFrutteto(escapedColtura)
+                            ? `<button onclick="gestisciFrutteto('${terreno.id}')" class="btn-frutteto-small" title="Gestisci Frutteto">🍎</button>` 
                             : ''}
                     </div>
                 </div>

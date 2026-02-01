@@ -13,6 +13,8 @@ export class TrattamentoVigneto extends Base {
    * @param {Object} data - Dati trattamento
    * @param {string} data.id - ID trattamento
    * @param {string} data.vignetoId - Riferimento vigneto (obbligatorio)
+   * @param {string} data.lavoroId - Riferimento lavoro (opzionale, se creato da lavoro)
+   * @param {string} data.attivitaId - Riferimento attività (opzionale, se creato da attività)
    * @param {Date|Timestamp} data.data - Data trattamento (obbligatorio)
    * @param {string} data.prodotto - Nome prodotto (obbligatorio)
    * @param {string} data.dosaggio - Dosaggio applicato (obbligatorio)
@@ -38,6 +40,8 @@ export class TrattamentoVigneto extends Base {
     
     // Dati base (obbligatori)
     this.vignetoId = data.vignetoId || null;
+    this.lavoroId = data.lavoroId || null;
+    this.attivitaId = data.attivitaId || null;
     this.data = data.data || null;
     this.prodotto = data.prodotto || '';
     this.dosaggio = data.dosaggio || '';
@@ -75,6 +79,7 @@ export class TrattamentoVigneto extends Base {
    */
   validate() {
     const errors = [];
+    const fromLavoroAttivita = this.lavoroId || this.attivitaId;
     
     if (!this.vignetoId || this.vignetoId.trim().length === 0) {
       errors.push('Vigneto obbligatorio');
@@ -84,33 +89,31 @@ export class TrattamentoVigneto extends Base {
       errors.push('Data trattamento obbligatoria');
     }
     
-    if (!this.prodotto || this.prodotto.trim().length === 0) {
-      errors.push('Prodotto obbligatorio');
-    }
-    
-    if (!this.dosaggio || this.dosaggio.trim().length === 0) {
-      errors.push('Dosaggio obbligatorio');
+    if (!fromLavoroAttivita) {
+      if (!this.prodotto || this.prodotto.trim().length === 0) {
+        errors.push('Prodotto obbligatorio');
+      }
+      if (!this.dosaggio || this.dosaggio.trim().length === 0) {
+        errors.push('Dosaggio obbligatorio');
+      }
+      if (!this.operatore || this.operatore.trim().length === 0) {
+        errors.push('Operatore obbligatorio');
+      }
+      if (this.superficieTrattata === null || this.superficieTrattata <= 0) {
+        errors.push('Superficie trattata obbligatoria e maggiore di zero');
+      }
+      if (this.costoProdotto === null || this.costoProdotto < 0) {
+        errors.push('Costo prodotto obbligatorio e non negativo');
+      }
     }
     
     if (!this.tipoTrattamento || this.tipoTrattamento.trim().length === 0) {
-      errors.push('Tipo trattamento obbligatorio');
+      if (!fromLavoroAttivita) errors.push('Tipo trattamento obbligatorio');
     } else {
       const tipiValidi = ['antifungino', 'insetticida', 'acaricida', 'fertilizzante', 'altro'];
       if (!tipiValidi.includes(this.tipoTrattamento)) {
         errors.push(`Tipo trattamento deve essere uno tra: ${tipiValidi.join(', ')}`);
       }
-    }
-    
-    if (!this.operatore || this.operatore.trim().length === 0) {
-      errors.push('Operatore obbligatorio');
-    }
-    
-    if (this.superficieTrattata === null || this.superficieTrattata <= 0) {
-      errors.push('Superficie trattata obbligatoria e maggiore di zero');
-    }
-    
-    if (this.costoProdotto === null || this.costoProdotto < 0) {
-      errors.push('Costo prodotto obbligatorio e non negativo');
     }
     
     // Validazione condizioni meteo (se presenti)

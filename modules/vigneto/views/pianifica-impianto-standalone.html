@@ -5,8 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pianificazione Nuovo Impianto - GFV Platform</title>
     <link rel="manifest" href="/gfv-platform/manifest.json">
-    <meta name="theme-color" content="#6A1B9A">
+    <meta name="theme-color" id="metaThemeColor" content="#6A1B9A">
+    <script>
+        (function() {
+            var coltura = (new URLSearchParams(window.location.search)).get('coltura');
+            var themes = {
+                frutteto: { bg: 'linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%)', header: 'linear-gradient(135deg, #FF6F00 0%, #E65100 100%)', accent: '#FF6F00', accentDark: '#E65100' },
+                oliveto: { bg: 'linear-gradient(135deg, #C8E6C9 0%, #2E7D32 100%)', header: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)', accent: '#2E7D32', accentDark: '#1B5E20' }
+            };
+            var t = coltura && themes[coltura.toLowerCase()];
+            if (t) {
+                document.documentElement.style.setProperty('--theme-bg', t.bg);
+                document.documentElement.style.setProperty('--theme-header', t.header);
+                document.documentElement.style.setProperty('--theme-accent', t.accent);
+                document.documentElement.style.setProperty('--theme-accent-dark', t.accentDark);
+                var meta = document.getElementById('metaThemeColor');
+                if (meta) meta.setAttribute('content', t.accent);
+            }
+        })();
+    </script>
     <style>
+        :root {
+            --theme-bg: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
+            --theme-header: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+            --theme-accent: #6A1B9A;
+            --theme-accent-dark: #4A148C;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -15,7 +39,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
+            background: var(--theme-bg);
             color: #333;
             min-height: 100vh;
         }
@@ -27,7 +51,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+            background: var(--theme-header);
             color: white;
             padding: 30px;
             border-radius: 12px;
@@ -137,7 +161,7 @@
         .section-title {
             font-size: 18px;
             font-weight: 600;
-            color: #6A1B9A;
+            color: var(--theme-accent);
             margin-bottom: 15px;
         }
 
@@ -165,7 +189,7 @@
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #6A1B9A;
+            border-color: var(--theme-accent);
         }
 
         .form-group small {
@@ -190,9 +214,9 @@
         .btn-rotation {
             width: 40px;
             height: 40px;
-            border: 2px solid #6A1B9A;
+            border: 2px solid var(--theme-accent);
             background: white;
-            color: #6A1B9A;
+            color: var(--theme-accent);
             border-radius: 8px;
             font-size: 24px;
             font-weight: bold;
@@ -205,7 +229,7 @@
         }
 
         .btn-rotation:hover {
-            background: #6A1B9A;
+            background: var(--theme-accent);
             color: white;
         }
 
@@ -236,13 +260,13 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #6A1B9A;
+            background: var(--theme-accent);
             cursor: pointer;
             transition: all 0.2s;
         }
 
         .rotation-slider::-webkit-slider-thumb:hover {
-            background: #4A148C;
+            background: var(--theme-accent-dark);
             transform: scale(1.2);
         }
 
@@ -250,14 +274,14 @@
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #6A1B9A;
+            background: var(--theme-accent);
             cursor: pointer;
             border: none;
             transition: all 0.2s;
         }
 
         .rotation-slider::-moz-range-thumb:hover {
-            background: #4A148C;
+            background: var(--theme-accent-dark);
             transform: scale(1.2);
         }
 
@@ -268,7 +292,7 @@
             gap: 8px;
             font-size: 16px;
             font-weight: 600;
-            color: #6A1B9A;
+            color: var(--theme-accent);
             padding: 5px 10px;
             background: #f8f9fa;
             border-radius: 6px;
@@ -277,6 +301,10 @@
         .rotation-compass {
             font-size: 18px;
             transition: transform 0.3s ease;
+        }
+
+        .btn-theme-principali {
+            background: var(--theme-accent) !important;
         }
 
         .calculations {
@@ -304,7 +332,7 @@
 
         .calc-value {
             font-weight: 600;
-            color: #6A1B9A;
+            color: var(--theme-accent);
         }
 
         .terreno-selector {
@@ -347,11 +375,11 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>📐 Pianificazione Nuovo Impianto</h1>
-                <p style="opacity: 0.9; margin-top: 5px;">Calcola automaticamente file, ceppi, pali e materiali necessari</p>
+                <h1 id="headerTitolo">📐 Pianificazione Nuovo Impianto</h1>
+                <p id="headerDescrizione" style="opacity: 0.9; margin-top: 5px;">Calcola automaticamente file, ceppi, pali e materiali necessari</p>
             </div>
             <div class="header-actions">
-                <a href="vigneto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+                <a id="linkDashboard" href="vigneto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
             </div>
         </div>
 
@@ -447,7 +475,7 @@
                                 
                                 <!-- Pulsanti selezione rapida -->
                                 <div style="margin-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-                                    <button type="button" id="btnSelezionaPrincipali" style="padding: 6px 12px; background: #6A1B9A; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">🎯 Principali (6m)</button>
+                                    <button type="button" id="btnSelezionaPrincipali" class="btn-theme-principali" style="padding: 6px 12px; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">🎯 Principali (6m)</button>
                                     <button type="button" id="btnSelezionaLaterali" style="padding: 6px 12px; background: #9C27B0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">↔️ Laterali (4m)</button>
                                     <button type="button" id="btnConfigurazioneTipica" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 500;">⚡ Configurazione Tipica</button>
                                 </div>
@@ -494,7 +522,7 @@
                                 <div style="margin-top: 12px;">
                                     <label for="distanzaUnita" style="font-size: 12px; font-weight: 500; color: #6c757d;">Distanza tra Unità (m) *</label>
                                     <input type="number" id="distanzaUnita" step="0.1" min="0.1" value="0.8">
-                                    <small>Distanza tra ceppi/piante nella fila</small>
+                                    <small id="smallDistanzaUnita">Distanza tra ceppi/piante nella fila</small>
                                 </div>
                             </div>
                         </div>
@@ -504,11 +532,11 @@
                             <h3 class="section-title">📊 Calcoli Automatici</h3>
                             <div class="calculations">
                                 <div class="calc-item">
-                                    <span class="calc-label">Numero File:</span>
+                                    <span class="calc-label" id="labelNumeroFile">Numero File:</span>
                                     <span class="calc-value" id="calcNumeroFile">-</span>
                                 </div>
                                 <div class="calc-item">
-                                    <span class="calc-label">Unità Totali:</span>
+                                    <span class="calc-label" id="labelUnitaTotali">Unità Totali:</span>
                                     <span class="calc-value" id="calcNumeroUnita">-</span>
                                 </div>
                                 <div class="calc-item">
@@ -602,72 +630,11 @@
         setTimeout(loadGoogleMapsAPI, 500);
     </script>
 
-    <!-- Load Firebase config -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-
-    <!-- Scripts -->
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
-        // Funzione per attendere il config Firebase
-        async function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                // Carica direttamente il config dal percorso corretto
-                const configScript = document.createElement('script');
-                configScript.src = '../../../core/config/firebase-config.js';
-                
-                configScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve(window.firebaseConfig);
-                        } else {
-                            loadFallbackConfig().then(resolve).catch(reject);
-                        }
-                    }, 100);
-                };
-                
-                configScript.onerror = function() {
-                    loadFallbackConfig().then(resolve).catch(reject);
-                };
-                
-                document.head.appendChild(configScript);
-            });
-        }
-        
-        function loadFallbackConfig() {
-            return new Promise((resolve, reject) => {
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-                
-                fallbackScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve(window.firebaseConfig);
-                        } else {
-                            reject(new Error('Firebase config non trovato'));
-                        }
-                    }, 100);
-                };
-                
-                fallbackScript.onerror = function() {
-                    reject(new Error('Errore caricamento config da GitHub'));
-                };
-                
-                document.head.appendChild(fallbackScript);
-            });
-        }
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
 
         // Calcola base path per GitHub Pages
         function getBasePath() {
@@ -716,6 +683,7 @@
         import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { createPianificazione, getPianificazione, updatePianificazione } from '../services/pianificazione-impianto-service.js';
         import { getFormeAllevamentoList, getChiaveTecnica, getNomeVisualizzato } from '../config/forme-allevamento.js';
+        import { getConfigColtura, getColturePerSelect, isColturaValida } from '../../../shared/config/pianificazione-impianto-colture.js';
         
         // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
         // Usa top-level await per caricare i moduli prima che vengano usati
@@ -723,12 +691,14 @@
         const tenantServiceModule = await import(resolvePath('../../../../core/services/tenant-service.js'));
         const authServiceModule = await import(resolvePath('../../../../core/services/auth-service.js'));
         const terreniServiceModule = await import(resolvePath('../../../../core/services/terreni-service.js'));
+        const attivitaUtilsModule = await import(resolvePath('../../../../core/js/attivita-utils.js'));
         
         // Estrai le funzioni dai moduli
         const { initializeFirebase, getAuthInstance, getDb } = firebaseServiceModule;
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
         const { initializeAuthService } = authServiceModule;
         const { getAllTerreni } = terreniServiceModule;
+        const { mapColturaToCategoria } = attivitaUtilsModule;
 
         // Variabili globali
         let map = null;
@@ -738,6 +708,48 @@
         let carraieLateraliPolygon = null; // Poligono per le carraie laterali (parallele ai filari)
         let carraiePerpendicolariPolygon = null; // Poligono per le carraie perpendicolari (estremità filari)
         let currentPianificazioneId = null; // ID pianificazione in modifica (se presente)
+        let currentConfig = null; // Config coltura (vigneto/frutteto/oliveto) da shared config
+
+        // Applica tema (colori) in base alla coltura
+        function applyTheme(config) {
+            if (!config || !config.theme) return;
+            const t = config.theme;
+            document.documentElement.style.setProperty('--theme-bg', t.bodyGradient);
+            document.documentElement.style.setProperty('--theme-header', t.headerGradient);
+            document.documentElement.style.setProperty('--theme-accent', t.themeColor);
+            document.documentElement.style.setProperty('--theme-accent-dark', t.themeColorDark);
+            document.body.style.background = t.bodyGradient;
+            const header = document.querySelector('.header');
+            if (header) header.style.background = t.headerGradient;
+            const metaTheme = document.getElementById('metaThemeColor');
+            if (metaTheme) metaTheme.setAttribute('content', t.themeColor);
+        }
+
+        // Applica etichette e default dalla config coltura
+        async function applyConfigToPage(config) {
+            if (!config) return;
+            currentConfig = config;
+            const h1 = document.getElementById('headerTitolo');
+            const desc = document.getElementById('headerDescrizione');
+            const linkDash = document.getElementById('linkDashboard');
+            if (h1) h1.textContent = '📐 ' + config.titolo;
+            if (desc) desc.textContent = config.descrizione;
+            if (linkDash) linkDash.href = config.backPath;
+            const smallUnita = document.getElementById('smallDistanzaUnita');
+            if (smallUnita) smallUnita.textContent = 'Distanza tra ' + config.etichettaUnitaNellaFila;
+            const labelFile = document.getElementById('labelNumeroFile');
+            if (labelFile) labelFile.textContent = config.etichettaFile + ':';
+            const labelUnita = document.getElementById('labelUnitaTotali');
+            if (labelUnita) labelUnita.textContent = config.etichettaUnitaPlurale + ':';
+            const distanzaFileEl = document.getElementById('distanzaFile');
+            const distanzaUnitaEl = document.getElementById('distanzaUnita');
+            if (distanzaFileEl && config.defaultDistanzaFile != null) distanzaFileEl.value = String(config.defaultDistanzaFile);
+            if (distanzaUnitaEl && config.defaultDistanzaUnita != null) distanzaUnitaEl.value = String(config.defaultDistanzaUnita);
+            const formaGroup = document.getElementById('formaAllevamentoGroup');
+            if (formaGroup) formaGroup.style.display = config.showFormaAllevamento ? 'block' : 'none';
+            applyTheme(config);
+            await populateFormaAllevamentoDropdown();
+        }
 
         // Inizializzazione
         async function init() {
@@ -769,49 +781,67 @@
                         
                         const userData = userDoc.data();
                         
-                        // 4. Verifica che il modulo vigneto sia attivo
+                        // 4. Leggi parametro coltura (default vigneto) e carica config
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const colturaFromUrl = (urlParams.get('coltura') || 'vigneto').toLowerCase();
+                        const coltura = isColturaValida(colturaFromUrl) ? colturaFromUrl : 'vigneto';
+                        const config = getConfigColtura(coltura);
+                        currentConfig = config;
+
+                        // Verifica che il modulo della coltura sia attivo
                         const tenantId = getCurrentTenantId();
-                        
                         if (tenantId) {
                             const tenant = await getCurrentTenant();
-                            if (!tenant || !tenant.modules || !tenant.modules.includes('vigneto')) {
-                                alert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.');
+                            const moduloRichiesto = config.moduloRequired;
+                            if (!tenant || !tenant.modules || !tenant.modules.includes(moduloRichiesto)) {
+                                alert('Il modulo ' + (moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto') + ' non è attivo. Attivalo dalla pagina Abbonamento.');
                                 window.location.href = '../../../../core/admin/abbonamento-standalone.html';
                                 return;
                             }
                         }
 
-                        // 5. Leggi parametro URL per modifica pianificazione
-                        const urlParams = new URLSearchParams(window.location.search);
+                        // 5. Leggi parametro URL per modifica pianificazione e precompilazione terreno
                         currentPianificazioneId = urlParams.get('pianificazioneId');
+                        const terrenoIdFromUrl = urlParams.get('terrenoId');
 
-                        // 6. Carica terreni e inizializza UI
-                        await loadTerreni();
+                        // 6. Applica config (etichette, back link, default, tema, forma allevamento)
+                        await applyConfigToPage(config);
 
-                        // 7. Se c'è un ID pianificazione, carica i dati
-                        if (currentPianificazioneId) {
-                            await loadPianificazionePerModifica(currentPianificazioneId);
-                        }
-
-                        // Popola dropdown forma allevamento
-                        populateFormaAllevamentoDropdown();
-                        
-                        // Gestisce cambio tipo coltura per mostrare/nascondere forma allevamento
+                        // Popola selettore tipo coltura e imposta valore da URL
                         const tipoColturaSelect = document.getElementById('tipoColtura');
                         if (tipoColturaSelect) {
-                            tipoColturaSelect.addEventListener('change', function() {
-                                const formaAllevamentoGroup = document.getElementById('formaAllevamentoGroup');
-                                if (formaAllevamentoGroup) {
-                                    formaAllevamentoGroup.style.display = 
-                                        tipoColturaSelect.value === 'vigneto' ? 'block' : 'none';
-                                }
+                            const opzioni = getColturePerSelect();
+                            tipoColturaSelect.innerHTML = '';
+                            opzioni.forEach(o => {
+                                const opt = document.createElement('option');
+                                opt.value = o.value;
+                                opt.textContent = o.label;
+                                tipoColturaSelect.appendChild(opt);
                             });
-                            // Mostra/nascondi all'inizio
-                            const formaAllevamentoGroup = document.getElementById('formaAllevamentoGroup');
-                            if (formaAllevamentoGroup) {
-                                formaAllevamentoGroup.style.display = 
-                                    tipoColturaSelect.value === 'vigneto' ? 'block' : 'none';
+                            tipoColturaSelect.value = coltura;
+                            tipoColturaSelect.addEventListener('change', async function() {
+                                const nuovaColtura = tipoColturaSelect.value;
+                                const nuovaConfig = getConfigColtura(nuovaColtura);
+                                await applyConfigToPage(nuovaConfig);
+                                if (typeof onParametriChanged === 'function') onParametriChanged();
+                            });
+                        }
+
+                        // 7. Carica terreni e inizializza UI
+                        await loadTerreni();
+
+                        // Precompilazione terreno da URL
+                        if (terrenoIdFromUrl && document.getElementById('terrenoSelect')) {
+                            const sel = document.getElementById('terrenoSelect');
+                            if (sel.querySelector('option[value="' + terrenoIdFromUrl + '"]')) {
+                                sel.value = terrenoIdFromUrl;
+                                onTerrenoSelected();
                             }
+                        }
+
+                        // 8. Se c'è un ID pianificazione, carica i dati
+                        if (currentPianificazioneId) {
+                            await loadPianificazionePerModifica(currentPianificazioneId);
                         }
 
                         // Inizializza event listeners
@@ -850,21 +880,41 @@
             }
         }
 
-        // Popola dropdown forma allevamento
-        function populateFormaAllevamentoDropdown() {
+        // Popola dropdown forma allevamento: vigneto = forme-allevamento.js; frutteto = specie-fruttifere.js + localStorage (stessa lista anagrafica frutteto)
+        async function populateFormaAllevamentoDropdown() {
             try {
                 const select = document.getElementById('formaAllevamento');
                 if (!select) return;
                 
-                const formeList = getFormeAllevamentoList();
                 select.innerHTML = '<option value="">Seleziona forma di allevamento</option>';
+                if (!currentConfig) return;
                 
-                formeList.forEach(nome => {
-                    const option = document.createElement('option');
-                    option.value = nome;
-                    option.textContent = nome;
-                    select.appendChild(option);
-                });
+                if (currentConfig.formeAllevamentoSource === 'vigneto') {
+                    const formeList = getFormeAllevamentoList();
+                    formeList.forEach(nome => {
+                        const option = document.createElement('option');
+                        option.value = nome;
+                        option.textContent = nome;
+                        select.appendChild(option);
+                    });
+                } else if (currentConfig.formeAllevamentoSource === 'frutteto') {
+                    const { FORME_ALLEVAMENTO_FRUTTETO } = await import('../../frutteto/config/specie-fruttifere.js');
+                    const custom = JSON.parse(localStorage.getItem('frutteto_forma_allevamento_custom') || '[]');
+                    const allValues = [...FORME_ALLEVAMENTO_FRUTTETO, ...custom].sort();
+                    allValues.forEach(nome => {
+                        const option = document.createElement('option');
+                        option.value = nome;
+                        option.textContent = nome;
+                        select.appendChild(option);
+                    });
+                } else if (currentConfig.formeAllevamento && Array.isArray(currentConfig.formeAllevamento)) {
+                    currentConfig.formeAllevamento.forEach(f => {
+                        const option = document.createElement('option');
+                        option.value = f.value;
+                        option.textContent = f.label;
+                        select.appendChild(option);
+                    });
+                }
             } catch (error) {
                 console.error('Errore popolamento dropdown forma allevamento:', error);
             }
@@ -888,15 +938,52 @@
                     return;
                 }
 
+                // Usa la stessa categorizzazione dei dropdown (attivita-utils: Vite da Vino → Vite, Grano/Orzo → Seminativo, ecc.)
+                function getCategoriaGruppo(coltura) {
+                    const cat = mapColturaToCategoria(coltura || '');
+                    if (cat === 'Default') return 'Altro';
+                    if (cat === 'Vite') return 'Vigneto';
+                    if (cat === 'Olivo') return 'Oliveto';
+                    return cat;
+                }
+
+                // Raggruppa per categoria ampia (tutti i frutteti insieme, tutti i vigneti, ecc.)
+                const perCategoria = {};
                 terreniMappati.forEach(terreno => {
-                    const option = document.createElement('option');
-                    option.value = terreno.id;
-                    // Formatta superficie con 2 decimali (es. 1,44 Ha)
-                    const superficieFormattata = terreno.superficie 
-                        ? parseFloat(terreno.superficie).toFixed(2).replace('.', ',')
-                        : 'N/A';
-                    option.textContent = `${terreno.nome} (${superficieFormattata} Ha)`;
-                    select.appendChild(option);
+                    const cat = getCategoriaGruppo(terreno.coltura);
+                    if (!perCategoria[cat]) perCategoria[cat] = [];
+                    perCategoria[cat].push(terreno);
+                });
+
+                // Ordine gruppi (stesse categorie usate in attività/dropdown)
+                const ordineCategorie = ['Frutteto', 'Oliveto', 'Seminativo', 'Vigneto', 'Orto', 'Prato', 'Agrumeto', 'Bosco', 'Altro'];
+                const categorie = Object.keys(perCategoria).sort((a, b) => {
+                    const ia = ordineCategorie.indexOf(a);
+                    const ib = ordineCategorie.indexOf(b);
+                    if (ia !== -1 && ib !== -1) return ia - ib;
+                    if (ia !== -1) return -1;
+                    if (ib !== -1) return 1;
+                    return a.localeCompare(b);
+                });
+
+                select.innerHTML = '<option value="">-- Seleziona un terreno --</option>';
+                categorie.forEach(cat => {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = cat;
+                    perCategoria[cat].forEach(terreno => {
+                        const option = document.createElement('option');
+                        option.value = terreno.id;
+                        const superficieFormattata = terreno.superficie
+                            ? parseFloat(terreno.superficie).toFixed(2).replace('.', ',')
+                            : 'N/A';
+                        let label = `${terreno.nome} (${superficieFormattata} Ha)`;
+                        if (terreno.podere && String(terreno.podere).trim()) {
+                            label += ` · ${terreno.podere.trim()}`;
+                        }
+                        option.textContent = label;
+                        optgroup.appendChild(option);
+                    });
+                    select.appendChild(optgroup);
                 });
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
@@ -2718,24 +2805,22 @@
                 const tipoColturaEl = document.getElementById('tipoColtura');
                 if (tipoColturaEl && pianificazione.tipoColtura) {
                     tipoColturaEl.value = pianificazione.tipoColtura;
-                    // Mostra/nascondi forma allevamento in base al tipo coltura
+                    // Mostra/nascondi forma allevamento in base alla config della coltura (vigneto/frutteto/oliveto)
                     const formaAllevamentoGroup = document.getElementById('formaAllevamentoGroup');
                     if (formaAllevamentoGroup) {
-                        formaAllevamentoGroup.style.display = 
-                            pianificazione.tipoColtura === 'vigneto' ? 'block' : 'none';
+                        const configColtura = getConfigColtura(pianificazione.tipoColtura);
+                        formaAllevamentoGroup.style.display = (configColtura && configColtura.showFormaAllevamento) ? 'block' : 'none';
                     }
                 }
 
-                // Precompila forma allevamento (se vigneto)
-                if (pianificazione.tipoColtura === 'vigneto' && pianificazione.formaAllevamento) {
+                // Precompila forma allevamento (vigneto: chiave → nome visualizzato; frutteto/oliveto: valore salvato)
+                if (pianificazione.formaAllevamento) {
                     const formaAllevamentoEl = document.getElementById('formaAllevamento');
                     if (formaAllevamentoEl) {
-                        // Converti chiave tecnica → nome visualizzato
-                        const nomeVisualizzato = getNomeVisualizzato(pianificazione.formaAllevamento);
-                        if (nomeVisualizzato) {
-                            formaAllevamentoEl.value = nomeVisualizzato;
+                        if (pianificazione.tipoColtura === 'vigneto') {
+                            const nomeVisualizzato = getNomeVisualizzato(pianificazione.formaAllevamento);
+                            formaAllevamentoEl.value = nomeVisualizzato || pianificazione.formaAllevamento;
                         } else {
-                            // Se non trovato, prova a usare direttamente la chiave
                             formaAllevamentoEl.value = pianificazione.formaAllevamento;
                         }
                     }
@@ -2855,13 +2940,15 @@
             const angoloRotazione = parseFloat(document.getElementById('angoloRotazione').value);
             const tipoColtura = document.getElementById('tipoColtura').value;
             
-            // Leggi forma allevamento (se vigneto) e converti nome visualizzato → chiave tecnica
+            // Leggi forma allevamento: vigneto → chiave tecnica; frutteto/oliveto → valore selezionato (label o value)
             let formaAllevamento = null;
-            if (tipoColtura === 'vigneto') {
-                const formaAllevamentoSelect = document.getElementById('formaAllevamento');
-                const nomeVisualizzato = formaAllevamentoSelect ? formaAllevamentoSelect.value : null;
-                if (nomeVisualizzato) {
-                    formaAllevamento = getChiaveTecnica(nomeVisualizzato);
+            const formaAllevamentoSelect = document.getElementById('formaAllevamento');
+            const formaAllevamentoVal = formaAllevamentoSelect ? formaAllevamentoSelect.value : null;
+            if (formaAllevamentoVal) {
+                if (tipoColtura === 'vigneto') {
+                    formaAllevamento = getChiaveTecnica(formaAllevamentoVal);
+                } else {
+                    formaAllevamento = formaAllevamentoVal; // frutteto/oliveto: nome visualizzato o value
                 }
             }
 
@@ -3044,8 +3131,9 @@
             const larghezzaCarraiaCEl = document.getElementById('larghezzaCarraiaC');
             const larghezzaCarraiaDEl = document.getElementById('larghezzaCarraiaD');
 
-            if (distanzaFileEl) distanzaFileEl.value = '2.5';
-            if (distanzaUnitaEl) distanzaUnitaEl.value = '0.8';
+            const cfg = currentConfig || getConfigColtura('vigneto');
+            if (distanzaFileEl) distanzaFileEl.value = String(cfg.defaultDistanzaFile ?? 2.5);
+            if (distanzaUnitaEl) distanzaUnitaEl.value = String(cfg.defaultDistanzaUnita ?? 0.8);
             if (larghezzaCarraiaAEl) larghezzaCarraiaAEl.value = '2.0';
             if (larghezzaCarraiaBEl) larghezzaCarraiaBEl.value = '2.0';
             if (larghezzaCarraiaCEl) larghezzaCarraiaCEl.value = '4.0';

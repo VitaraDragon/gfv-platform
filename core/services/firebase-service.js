@@ -86,38 +86,33 @@ export function getAuthInstance() {
 }
 
 /**
- * Ottieni riferimento a una collection (con supporto multi-tenant)
- * @param {string} collectionName - Nome della collection
- * @param {string} tenantId - ID del tenant (opzionale, se non fornito usa TenantService)
+ * Ottieni riferimento a una collection (con supporto multi-tenant).
+ * Firestore JS v9 richiede path come segmenti separati (es. collection(db, 'tenants', id, 'lavori')).
+ * @param {string} collectionName - Nome collection o path (es. "lavori" o "vigneti/xyz/potature")
+ * @param {string} tenantId - ID del tenant (opzionale)
  * @returns {CollectionReference} Riferimento alla collection
  */
 export function getCollection(collectionName, tenantId = null) {
   const dbInstance = getDb();
-  
-  // Se tenantId è fornito, usa struttura multi-tenant
-  if (tenantId) {
-    return collection(dbInstance, `tenants/${tenantId}/${collectionName}`);
-  }
-  
-  // Altrimenti usa collection globale (per users, inviti, etc.)
-  return collection(dbInstance, collectionName);
+  const fullPath = tenantId ? `tenants/${tenantId}/${collectionName}` : collectionName;
+  const segments = fullPath.split('/').filter(Boolean);
+  return collection(dbInstance, ...segments);
 }
 
 /**
- * Ottieni riferimento a un documento
- * @param {string} collectionName - Nome della collection
+ * Ottieni riferimento a un documento (path come segmenti per compatibilità Firestore v9).
+ * @param {string} collectionName - Nome collection o path (es. "lavori" o "vigneti/xyz/potature")
  * @param {string} documentId - ID del documento
  * @param {string} tenantId - ID del tenant (opzionale)
  * @returns {DocumentReference} Riferimento al documento
  */
 export function getDocument(collectionName, documentId, tenantId = null) {
   const dbInstance = getDb();
-  
-  if (tenantId) {
-    return doc(dbInstance, `tenants/${tenantId}/${collectionName}`, documentId);
-  }
-  
-  return doc(dbInstance, collectionName, documentId);
+  const fullPath = tenantId
+    ? `tenants/${tenantId}/${collectionName}/${documentId}`
+    : `${collectionName}/${documentId}`;
+  const segments = fullPath.split('/').filter(Boolean);
+  return doc(dbInstance, ...segments);
 }
 
 /**

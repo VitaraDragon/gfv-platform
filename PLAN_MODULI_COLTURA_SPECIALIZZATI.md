@@ -1,8 +1,8 @@
 # 📋 Piano Sviluppo: Moduli Specializzati per Coltura
 
 **Data creazione**: 2026-01-12  
-**Ultimo aggiornamento**: 2026-01-24  
-**Stato**: 📝 PIANIFICAZIONE - Modulo Vigneto: Funzionalità Vendemmia Completata + Tracciamento Poligono + Calcolo Materiali Impianto + **Integrazione Creazione Vigneti da Lavori Impianto**  
+**Ultimo aggiornamento**: 2026-02-01  
+**Stato**: 📝 PIANIFICAZIONE - Modulo Vigneto: Funzionalità Vendemmia Completata + Tracciamento Poligono + Calcolo Materiali Impianto + Integrazione Creazione Vigneti da Lavori Impianto. **Modulo Frutteto**: Tracciamento poligono area raccolta allineato a Vendemmia (cursore crosshair, snap, validazione, doppio clic) + Dropdown terreni/frutteti con nome e podere invece dell’id (2026-01-31). **Modulo Frutteto**: Allineamento al Vigneto (2026-02-01) – lavori con categorie spese (potatura, trattamenti, raccolta, ecc.), RaccoltaFrutta isCompleta(), modello Frutteto speseProdottiAnno/calcolaCostoTotaleAnno, API costoTotaleAnno. Precedente: Tracciamento poligono; Dropdown terreni/frutteti; Lista condivisa Calcolo materiali; forma allevamento Pianificazione frutteto; pali frutteto; Gestione lavori Impianto Frutteto; Pagine e card Potatura e Trattamenti (2026-01-31).
 **Priorità**: Media-Alta
 
 ---

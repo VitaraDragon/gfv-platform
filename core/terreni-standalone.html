@@ -263,7 +263,7 @@
             align-items: center;
         }
 
-        .btn-edit-small, .btn-delete-small, .btn-vigneto-small {
+        .btn-edit-small, .btn-delete-small, .btn-vigneto-small, .btn-frutteto-small {
             padding: 6px 12px;
             border: none;
             border-radius: 6px;
@@ -303,6 +303,17 @@
 
         .btn-vigneto-small:hover {
             background: #5a1490;
+            transform: translateY(-1px);
+        }
+
+        .btn-frutteto-small {
+            background: #2E8B57;
+            color: white;
+            font-size: 14px; /* allineato a edit/delete */
+        }
+
+        .btn-frutteto-small:hover {
+            background: #228B22;
             transform: translateY(-1px);
         }
 
@@ -933,29 +944,34 @@
             );
         }
 
-        // Variabile globale per modulo vigneto
+        // Variabili globali per moduli
         let hasVignetoModule = false;
+        let hasFruttetoModule = false;
 
-        // Verifica modulo vigneto (senza dipendenze da firebase-service.js)
-        async function checkVignetoModule() {
+        // Verifica moduli attivi (senza dipendenze da firebase-service.js)
+        async function checkModules() {
             try {
                 if (!terreniState.currentTenantId) {
                     hasVignetoModule = false;
+                    hasFruttetoModule = false;
                     return;
                 }
 
                 const tenantDoc = await getDoc(doc(db, 'tenants', terreniState.currentTenantId));
                 if (!tenantDoc.exists()) {
                     hasVignetoModule = false;
+                    hasFruttetoModule = false;
                     return;
                 }
 
                 const tenantData = tenantDoc.data();
                 const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
                 hasVignetoModule = modules.includes('vigneto');
+                hasFruttetoModule = modules.includes('frutteto');
             } catch (error) {
-                console.warn('Errore verifica modulo vigneto:', error);
+                console.warn('Errore verifica moduli:', error);
                 hasVignetoModule = false;
+                hasFruttetoModule = false;
             }
         }
 
@@ -965,7 +981,8 @@
                 terreni || terreniState.terreni,
                 terreniFiltrati || terreniState.terreniFiltrati,
                 () => maybeAutoStartTerreniTourWrapper(),
-                hasVignetoModule
+                hasVignetoModule,
+                hasFruttetoModule
             );
         }
 
@@ -1103,9 +1120,9 @@
         // Funzione per gestire click "Gestisci Vigneto"
         window.gestisciVigneto = async function(terrenoId) {
             try {
-                // Verifica modulo vigneto
+                // Verifica moduli
                 if (!hasVignetoModule) {
-                    await checkVignetoModule();
+                    await checkModules();
                 }
 
                 if (!hasVignetoModule) {
@@ -1119,6 +1136,28 @@
             } catch (error) {
                 console.error('Errore apertura gestione vigneto:', error);
                 alert('Errore nell\'apertura della gestione vigneto: ' + error.message);
+            }
+        };
+
+        // Funzione per gestire click "Gestisci Frutteto"
+        window.gestisciFrutteto = async function(terrenoId) {
+            try {
+                // Verifica moduli
+                if (!hasFruttetoModule) {
+                    await checkModules();
+                }
+
+                if (!hasFruttetoModule) {
+                    alert('Il modulo Frutteto non è attivo. Attivalo dalla pagina Abbonamento.');
+                    window.location.href = './admin/abbonamento-standalone.html';
+                    return;
+                }
+
+                // Apri pagina frutteti con terrenoId come parametro
+                window.location.href = `../modules/frutteto/views/frutteti-standalone.html?terrenoId=${terrenoId}`;
+            } catch (error) {
+                console.error('Errore apertura gestione frutteto:', error);
+                alert('Errore nell\'apertura della gestione frutteto: ' + error.message);
             }
         };
 
@@ -1235,8 +1274,8 @@
                         console.warn('Impossibile impostare tenantId nel servizio:', error);
                     }
                     
-                    // Verifica modulo vigneto
-                    await checkVignetoModule();
+                    // Verifica moduli attivi
+                    await checkModules();
                     
                     // Carica dati usando wrapper
                     await loadColtureWrapper();

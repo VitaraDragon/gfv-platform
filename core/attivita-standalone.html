@@ -2296,7 +2296,7 @@
         }
 
         // Carica attività
-        // Carica attività - wrapper
+        // Carica attività - wrapper (dopo il caricamento ridisegna sempre la lista)
         async function loadAttivita() {
             await loadAttivitaModule(
                 currentTenantId,
@@ -2312,6 +2312,8 @@
                 renderAttivita,
                 showAlertUtil
             );
+            // Ridisegna la lista così la nuova attività compare subito dopo creazione/modifica/eliminazione
+            await renderAttivita();
             // Aggiorna currentTenantId se è stato recuperato
             if (!currentTenantId && auth.currentUser) {
                 currentTenantId = await getTenantId(auth.currentUser.uid);

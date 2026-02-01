@@ -48,22 +48,15 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
-    <!-- Load JavaScript modules -->
+    <script src="https://unpkg.com/intro.js/minified/intro.min.js" defer></script>
     <script src="js/config-loader.js"></script>
     <script src="js/dashboard-utils.js"></script>
     <script src="js/dashboard-sections.js"></script>
     
-    <!-- Load Firebase and Google Maps config from external files -->
-    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
+    <!-- Carica Firebase e Google Maps config in parallelo (più veloce) -->
     <script>
-        // Carica il config prima di continuare
-        window.GFVConfigLoader.loadConfig().then(() => {
-            // Carica anche Google Maps config e poi carica l'API
-            return window.GFVConfigLoader.loadGoogleMapsConfig();
-        }).then(() => {
-            // Config caricato, ora possiamo inizializzare tutto
-            // NON chiamare loadGoogleMapsAPI() qui - viene chiamata nello script module dopo che Firebase è inizializzato
+        window.GFVConfigLoader.loadConfigAndMaps().then(() => {
+            // Config pronti; lo script module procederà con Firebase e Maps
         }).catch(error => {
             console.error('Errore caricamento config:', error);
             document.getElementById('dashboard-content').innerHTML = `
@@ -79,7 +72,7 @@
     <!-- Firebase SDK da CDN -->
     <script type="module">
         // Usa funzioni dai moduli caricati
-        const { waitForConfig, waitForGoogleMapsConfig, loadGoogleMapsAPI } = window.GFVConfigLoader;
+        const { waitForConfig, loadGoogleMapsAPI } = window.GFVConfigLoader;
         const { 
             roleNames, 
             normalizeRole, 
@@ -102,6 +95,7 @@
             createAffittiScadenzaCard,
             createContoTerziCard,
             createVignetoCard,
+            createFruttetoCard,
             createReportCard,
             createManagerManodoperaSection,
             createManagerLavoriSection,
@@ -167,14 +161,8 @@
         const auth = getAuthInstance();
         const db = getDb();
 
-        // Carica Google Maps API se disponibile (dopo che Firebase è inizializzato)
-        // Aspetta che anche il config Google Maps sia caricato
+        // Google Maps: caricamento in background (non blocca la prima visualizzazione)
         let googleMapsReady = false;
-        
-        // Aspetta che il config Google Maps sia caricato, poi carica l'API
-        await waitForGoogleMapsConfig();
-        
-        // Carica Google Maps API dopo che il config è stato caricato
         loadGoogleMapsAPI().then(() => {
             googleMapsReady = true;
         });
@@ -413,6 +401,7 @@
             createAffittiScadenzaCard,
             createContoTerziCard,
             createVignetoCard,
+            createFruttetoCard,
             createReportCard,
             createManagerManodoperaSection,
             createDiarioDaLavoriSection,

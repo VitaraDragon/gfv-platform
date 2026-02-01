@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trattamenti Frutteto - GFV Platform</title>
+    <meta name="theme-color" content="#FF6F00">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
+        .btn-primary:hover { background: rgba(255,255,255,0.3); }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 20px; background: #f8f9fa; border-radius: 8px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
+        .filter-group select { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; min-width: 180px; }
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background: #FFF3E0; font-weight: 600; color: #E65100; }
+        tbody tr:hover { background: #FFF8E1; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 30px; max-width: 640px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #FFCC80; }
+        .modal-header h2 { color: #FF6F00; font-size: 22px; }
+        .close { font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; border: none; background: none; }
+        .close:hover { color: #000; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #495057; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-actions { margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        .alert-success { background: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1>🧪 Trattamenti Frutteto</h1>
+                <p>I trattamenti provengono da lavori o attività (categoria Trattamenti). Completa qui i dati aggiuntivi (prodotto, dosaggio, giorni carenza, costi). Dati base in sola lettura.</p>
+            </div>
+            <div class="header-actions">
+                <a href="frutteto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+            </div>
+        </header>
+
+        <main class="content">
+            <div id="alert-container"></div>
+            <section class="filters">
+                <div class="filter-group">
+                    <label for="filter-frutteto">Frutteto *</label>
+                    <select id="filter-frutteto">
+                        <option value="">Seleziona frutteto</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-anno">Anno</label>
+                    <select id="filter-anno"></select>
+                </div>
+            </section>
+
+            <div id="loading" class="empty-state" style="display: none;">Caricamento trattamenti...</div>
+            <div id="table-wrap" class="table-container" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Prodotto</th>
+                            <th>Tipo</th>
+                            <th>Superficie (ha)</th>
+                            <th>Costo (€)</th>
+                            <th>Lavoro</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-trattamenti"></tbody>
+                </table>
+            </div>
+            <div id="empty-state" class="empty-state">
+                <p>Seleziona un frutteto per vedere i trattamenti oppure registrane uno nuovo.</p>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-trattamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Nuovo trattamento</h2>
+                <button type="button" class="close" id="close-modal">&times;</button>
+            </div>
+            <form id="form-trattamento">
+                <input type="hidden" id="trattamento-id">
+                <input type="hidden" id="trattamento-frutteto-id">
+                <div class="form-group">
+                    <label for="trattamento-frutteto">Frutteto *</label>
+                    <select id="trattamento-frutteto" required></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="trattamento-data">Data *</label>
+                        <input type="date" id="trattamento-data" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-tipo">Tipo trattamento *</label>
+                        <select id="trattamento-tipo" required>
+                            <option value="">Seleziona</option>
+                            <option value="antifungino">🦠 Antifungino</option>
+                            <option value="insetticida">🐛 Insetticida</option>
+                            <option value="acaricida">🕷️ Acaricida</option>
+                            <option value="fertilizzante">🌱 Fertilizzante</option>
+                            <option value="altro">📦 Altro</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-prodotto">Prodotto *</label>
+                    <input type="text" id="trattamento-prodotto" required placeholder="es. Rame 50">
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-dosaggio">Dosaggio *</label>
+                    <input type="text" id="trattamento-dosaggio" required placeholder="es. 3 kg/ha">
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-operatore">Operatore *</label>
+                    <input type="text" id="trattamento-operatore" required placeholder="Nome operatore">
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-superficie">Superficie trattata (ha) *</label>
+                    <input type="number" id="trattamento-superficie" min="0.01" step="0.01" required placeholder="es. 2.5">
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-costo-prodotto">Costo prodotto (€) *</label>
+                    <input type="number" id="trattamento-costo-prodotto" min="0" step="0.01" required placeholder="0">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="trattamento-costo-mano">Costo manodopera (€)</label>
+                        <input type="number" id="trattamento-costo-mano" min="0" step="0.01" value="0" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-costo-macchina">Costo macchina (€)</label>
+                        <input type="number" id="trattamento-costo-macchina" min="0" step="0.01" value="0" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-giorni-carenza">Giorni di carenza</label>
+                    <input type="number" id="trattamento-giorni-carenza" min="0" step="1" placeholder="Opzionale">
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-parcella">Parcella / blocco</label>
+                    <input type="text" id="trattamento-parcella" placeholder="Opzionale">
+                </div>
+                <div class="form-group">
+                    <label for="trattamento-note">Note</label>
+                    <textarea id="trattamento-note" rows="2" placeholder="Opzionale"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module">
+        function getBasePath() {
+            if (window.location.protocol === 'file:') return '';
+            const pathname = window.location.pathname;
+            const idx = pathname.indexOf('/modules/');
+            return idx !== -1 ? pathname.substring(0, idx) : '/';
+        }
+        function resolvePath(relativePath) {
+            if (relativePath.startsWith('http')) return relativePath;
+            const base = getBasePath();
+            if (relativePath.startsWith('/')) return base === '/' ? relativePath : base + relativePath.slice(1);
+            const url = new URL(relativePath, window.location.origin + window.location.pathname.replace(/\/[^/]+$/, '/'));
+            let path = url.pathname;
+            if (base && base !== '/' && !path.startsWith(base)) path = (base.endsWith('/') ? base : base + '/') + path.replace(/^\//, '');
+            return path;
+        }
+
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
+
+        function formatDate(d) {
+            if (!d) return '-';
+            const date = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
+            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('it-IT');
+        }
+
+        function showAlert(msg, type) {
+            const c = document.getElementById('alert-container');
+            c.innerHTML = `<div class="alert alert-${type === 'error' ? 'error' : 'success'}">${msg}</div>`;
+            setTimeout(() => { c.innerHTML = ''; }, 5000);
+        }
+
+        let frutteti = [];
+        let trattamenti = [];
+        let currentFruttetoId = null;
+        let currentAnno = null;
+
+        async function loadFrutteti() {
+            const { getAllFrutteti } = await import(resolvePath('../services/frutteti-service.js'));
+            frutteti = await getAllFrutteti();
+            const selFilter = document.getElementById('filter-frutteto');
+            const selModal = document.getElementById('trattamento-frutteto');
+            [selFilter, selModal].forEach(sel => {
+                if (!sel) return;
+                sel.innerHTML = sel === selFilter ? '<option value="">Seleziona frutteto</option>' : '<option value="">Seleziona frutteto</option>';
+                frutteti.forEach(f => {
+                    const opt = document.createElement('option');
+                    opt.value = f.id;
+                    opt.textContent = f.specie || f.varieta || f.nome || f.id;
+                    sel.appendChild(opt);
+                });
+            });
+            const annoCorrente = new Date().getFullYear();
+            const annoSel = document.getElementById('filter-anno');
+            annoSel.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                const y = annoCorrente - i;
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (i === 0) opt.selected = true;
+                annoSel.appendChild(opt);
+            }
+        }
+
+        async function loadTrattamenti() {
+            const fid = document.getElementById('filter-frutteto').value || null;
+            const annoVal = document.getElementById('filter-anno').value;
+            const anno = annoVal ? parseInt(annoVal, 10) : null;
+            currentFruttetoId = fid;
+            currentAnno = anno;
+
+            const loading = document.getElementById('loading');
+            const tableWrap = document.getElementById('table-wrap');
+            const empty = document.getElementById('empty-state');
+            const tbody = document.getElementById('tbody-trattamenti');
+
+            if (!fid) {
+                loading.style.display = 'none';
+                tableWrap.style.display = 'none';
+                empty.style.display = 'block';
+                empty.innerHTML = '<p>Seleziona un frutteto per vedere i trattamenti oppure registrane uno nuovo.</p>';
+                return;
+            }
+
+            loading.style.display = 'block';
+            tableWrap.style.display = 'none';
+            empty.style.display = 'none';
+
+            try {
+                const { getTrattamenti } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                trattamenti = await getTrattamenti(fid, { anno, orderBy: 'data', orderDirection: 'desc' });
+            } catch (e) {
+                console.error(e);
+                trattamenti = [];
+            }
+
+            loading.style.display = 'none';
+            if (trattamenti.length === 0) {
+                empty.style.display = 'block';
+                empty.innerHTML = '<p>Nessun trattamento per questo frutteto/anno. Crea un lavoro o un\'attività con categoria Trattamenti (Gestione lavori o Diario) su un terreno con frutteto.</p>';
+                return;
+            }
+
+            tableWrap.style.display = 'block';
+            const tipoLabels = { antifungino: '🦠 Antifungino', insetticida: '🐛 Insetticida', acaricida: '🕷️ Acaricida', fertilizzante: '🌱 Fertilizzante', altro: '📦 Altro' };
+            const basePath = getBasePath();
+            const gestioneLavoriUrl = (basePath ? basePath + '/' : '') + 'core/admin/gestione-lavori-standalone.html';
+            const attivitaUrl = (basePath ? basePath + '/' : '') + 'core/attivita-standalone.html';
+            tbody.innerHTML = trattamenti.map(t => {
+                const tipoLabel = tipoLabels[t.tipoTrattamento] || t.tipoTrattamento;
+                const costo = (t.costoTotale != null) ? t.costoTotale.toFixed(2) : '-';
+                const sup = (t.superficieTrattata != null) ? t.superficieTrattata.toFixed(2) : '-';
+                let lavoroCell = '-';
+                if (t.lavoroId) {
+                    lavoroCell = `<a href="${gestioneLavoriUrl}?lavoroId=${encodeURIComponent(t.lavoroId)}" target="_blank" class="link-lavoro">🔗 Vedi Lavoro</a>`;
+                } else if (t.attivitaId) {
+                    lavoroCell = `<a href="${attivitaUrl}?attivitaId=${encodeURIComponent(t.attivitaId)}" target="_blank" class="link-lavoro">🔗 Vedi Attività</a>`;
+                }
+                return `<tr>
+                    <td>${formatDate(t.data)}</td>
+                    <td>${t.prodotto || '-'}</td>
+                    <td>${tipoLabel}</td>
+                    <td>${sup}</td>
+                    <td>${costo}</td>
+                    <td>${lavoroCell}</td>
+                    <td>
+                        <button type="button" class="btn btn-primary btn-sm" data-edit="${t.id}">Modifica</button>
+                        <button type="button" class="btn btn-danger btn-sm" data-delete="${t.id}">Elimina</button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            tbody.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openModalEdit(fid, btn.getAttribute('data-edit'))));
+            tbody.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteTrattamentoConfirm(fid, btn.getAttribute('data-delete'))));
+        }
+
+        function openModalNew() {
+            document.getElementById('modal-title').textContent = 'Nuovo trattamento';
+            document.getElementById('trattamento-id').value = '';
+            document.getElementById('trattamento-frutteto-id').value = currentFruttetoId || '';
+            const sel = document.getElementById('trattamento-frutteto');
+            sel.value = currentFruttetoId || (frutteti.length ? frutteti[0].id : '');
+            document.getElementById('trattamento-data').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('trattamento-tipo').value = '';
+            document.getElementById('trattamento-prodotto').value = '';
+            document.getElementById('trattamento-dosaggio').value = '';
+            document.getElementById('trattamento-operatore').value = '';
+            document.getElementById('trattamento-superficie').value = '';
+            document.getElementById('trattamento-costo-prodotto').value = '';
+            document.getElementById('trattamento-costo-mano').value = '0';
+            document.getElementById('trattamento-costo-macchina').value = '0';
+            document.getElementById('trattamento-giorni-carenza').value = '';
+            document.getElementById('trattamento-parcella').value = '';
+            document.getElementById('trattamento-note').value = '';
+            document.getElementById('modal-trattamento').classList.add('active');
+        }
+
+        async function openModalEdit(fruttetoId, trattamentoId) {
+            const { getTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+            const t = await getTrattamento(fruttetoId, trattamentoId);
+            if (!t) { showAlert('Trattamento non trovato', 'error'); return; }
+            document.getElementById('modal-title').textContent = 'Modifica trattamento';
+            document.getElementById('trattamento-id').value = trattamentoId;
+            document.getElementById('trattamento-frutteto-id').value = fruttetoId;
+            document.getElementById('trattamento-frutteto').value = fruttetoId;
+            const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
+            document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
+            document.getElementById('trattamento-tipo').value = t.tipoTrattamento || '';
+            document.getElementById('trattamento-prodotto').value = t.prodotto || '';
+            document.getElementById('trattamento-dosaggio').value = t.dosaggio || '';
+            document.getElementById('trattamento-operatore').value = t.operatore || '';
+            document.getElementById('trattamento-superficie').value = t.superficieTrattata ?? '';
+            document.getElementById('trattamento-costo-prodotto').value = t.costoProdotto ?? '';
+            document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
+            document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
+            document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
+            document.getElementById('trattamento-parcella').value = t.parcella || '';
+            document.getElementById('trattamento-note').value = t.note || '';
+            document.getElementById('modal-trattamento').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-trattamento').classList.remove('active');
+        }
+
+        async function saveTrattamento(e) {
+            e.preventDefault();
+            const id = document.getElementById('trattamento-id').value.trim();
+            const fruttetoId = document.getElementById('trattamento-frutteto').value;
+            if (!fruttetoId) { showAlert('Seleziona un frutteto', 'error'); return; }
+
+            const giorniCarenzaVal = document.getElementById('trattamento-giorni-carenza').value.trim();
+            const data = {
+                data: new Date(document.getElementById('trattamento-data').value),
+                prodotto: document.getElementById('trattamento-prodotto').value.trim(),
+                dosaggio: document.getElementById('trattamento-dosaggio').value.trim(),
+                tipoTrattamento: document.getElementById('trattamento-tipo').value,
+                operatore: document.getElementById('trattamento-operatore').value.trim(),
+                superficieTrattata: parseFloat(document.getElementById('trattamento-superficie').value),
+                costoProdotto: parseFloat(document.getElementById('trattamento-costo-prodotto').value),
+                costoManodopera: parseFloat(document.getElementById('trattamento-costo-mano').value) || 0,
+                costoMacchina: parseFloat(document.getElementById('trattamento-costo-macchina').value) || 0,
+                giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
+                parcella: document.getElementById('trattamento-parcella').value.trim() || null,
+                note: document.getElementById('trattamento-note').value.trim() || null
+            };
+
+            try {
+                const { createTrattamento, updateTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                if (id) {
+                    await updateTrattamento(fruttetoId, id, data);
+                    showAlert('Trattamento aggiornato.', 'success');
+                } else {
+                    await createTrattamento(fruttetoId, data);
+                    showAlert('Trattamento registrato.', 'success');
+                }
+                closeModal();
+                await loadTrattamenti();
+            } catch (err) {
+                showAlert(err.message || 'Errore salvataggio', 'error');
+            }
+        }
+
+        async function deleteTrattamentoConfirm(fruttetoId, trattamentoId) {
+            if (!confirm('Eliminare questo trattamento?')) return;
+            try {
+                const { deleteTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                await deleteTrattamento(fruttetoId, trattamentoId);
+                showAlert('Trattamento eliminato.', 'success');
+                await loadTrattamenti();
+            } catch (err) {
+                showAlert(err.message || 'Errore eliminazione', 'error');
+            }
+        }
+
+        async function init() {
+            await waitForConfig();
+            const { initializeFirebase, getAuthInstance } = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { initializeTenantService, getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+            await initializeFirebase(window.firebaseConfig);
+            initializeTenantService();
+            const auth = getAuthInstance();
+            const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.href = resolvePath('../../../core/auth/login-standalone.html');
+                    return;
+                }
+                if (!getCurrentTenantId()) {
+                    showAlert('Nessun tenant selezionato.', 'error');
+                    return;
+                }
+                await loadFrutteti();
+                document.getElementById('filter-frutteto').addEventListener('change', loadTrattamenti);
+                document.getElementById('filter-anno').addEventListener('change', loadTrattamenti);
+                const btnNuovoTrattF = document.getElementById('btn-nuovo-trattamento');
+                if (btnNuovoTrattF) btnNuovoTrattF.addEventListener('click', openModalNew);
+                document.getElementById('close-modal').addEventListener('click', closeModal);
+                document.getElementById('cancel-btn').addEventListener('click', closeModal);
+                document.getElementById('form-trattamento').addEventListener('submit', saveTrattamento);
+                await loadTrattamenti();
+            });
+        }
+        init();
+    </script>
+</body>
+</html>

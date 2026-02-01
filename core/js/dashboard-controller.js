@@ -36,6 +36,7 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         createAffittiScadenzaCard,
         createContoTerziCard,
         createVignetoCard,
+        createFruttetoCard,
         createReportCard,
         createManagerManodoperaSection,
         createDiarioDaLavoriSection,
@@ -122,6 +123,11 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 topLeft.appendChild(createVignetoCard());
             }
             
+            const hasFrutteto = availableModules && availableModules.includes('frutteto');
+            if (hasFrutteto) {
+                topLeft.appendChild(createFruttetoCard());
+            }
+            
             const hasReport = availableModules && availableModules.includes('report');
             if (hasReport) {
                 topLeft.appendChild(createReportCard());
@@ -181,6 +187,11 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         const hasVigneto = availableModules && availableModules.includes('vigneto');
         if (hasVigneto) {
             topLeft.appendChild(createVignetoCard());
+        }
+        
+        const hasFrutteto = availableModules && availableModules.includes('frutteto');
+        if (hasFrutteto) {
+            topLeft.appendChild(createFruttetoCard());
         }
         
         const hasReport = availableModules && availableModules.includes('report');
@@ -264,6 +275,12 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 const hasVigneto = availableModules && availableModules.includes('vigneto');
                 if (hasVigneto) {
                     container.appendChild(createVignetoCard());
+                }
+                
+                // Card Frutteto (solo se modulo attivo) anche per Manager senza Manodopera
+                const hasFrutteto = availableModules && availableModules.includes('frutteto');
+                if (hasFrutteto) {
+                    container.appendChild(createFruttetoCard());
                 }
                 
                 // Card Affitti in Scadenza anche per Manager senza Manodopera

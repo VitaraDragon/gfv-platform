@@ -491,6 +491,35 @@ window.GFVDashboardSections.createVignetoCard = function createVignetoCard() {
 };
 
 /**
+ * Card Frutteto (design arancione, coerente con modulo frutteto)
+ */
+window.GFVDashboardSections.createFruttetoCard = function createFruttetoCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    section.style.background = 'linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%)';
+    section.style.border = '2px solid #FF6F00';
+    section.style.borderRadius = '12px';
+    
+    section.innerHTML = `
+        <h2 style="color: #FF6F00;"><span class="section-icon">🍎</span> Frutteto</h2>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+            Gestisci frutteti, raccolta frutta e statistiche dedicate
+        </p>
+        <div class="quick-actions">
+            <a href="../modules/frutteto/views/frutteto-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #FF6F00;">
+                <span class="action-icon" style="font-size: 48px;">🍎</span>
+                <span class="action-title" style="font-size: 18px; color: #FF6F00;">Apri Dashboard Frutteto</span>
+                <span class="action-description" style="color: #666;">
+                    Panoramica frutteti, raccolte frutta e azioni rapide
+                </span>
+            </a>
+        </div>
+    `;
+    
+    return section;
+};
+
+/**
  * Card Report/Bilancio (design scuro distintivo)
  */
 window.GFVDashboardSections.createReportCard = function createReportCard() {

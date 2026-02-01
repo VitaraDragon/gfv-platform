@@ -255,9 +255,28 @@ export async function confirmDeleteAttivita(
                     await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
                     console.log('[ATTIVITA-EVENTS] ✓ Vendemmia eliminata');
                 }
+                const { findPotaturaByAttivitaId, deletePotatura } = await import('../../modules/vigneto/services/potatura-vigneto-service.js');
+                const potaturaV = await findPotaturaByAttivitaId(attivitaId);
+                if (potaturaV) {
+                    await deletePotatura(potaturaV.vignetoId, potaturaV.potaturaId);
+                }
+                const { findTrattamentoByAttivitaId, deleteTrattamento } = await import('../../modules/vigneto/services/trattamenti-vigneto-service.js');
+                const trattamentoV = await findTrattamentoByAttivitaId(attivitaId);
+                if (trattamentoV) {
+                    await deleteTrattamento(trattamentoV.vignetoId, trattamentoV.trattamentoId);
+                }
+            }
+            const hasFruttetoModule = await hasModuleAccess('frutteto');
+            if (hasFruttetoModule) {
+                const { findPotaturaByAttivitaId, deletePotatura } = await import('../../modules/frutteto/services/potatura-frutteto-service.js');
+                const potaturaF = await findPotaturaByAttivitaId(attivitaId);
+                if (potaturaF) await deletePotatura(potaturaF.fruttetoId, potaturaF.potaturaId);
+                const { findTrattamentoByAttivitaId, deleteTrattamento } = await import('../../modules/frutteto/services/trattamenti-frutteto-service.js');
+                const trattamentoF = await findTrattamentoByAttivitaId(attivitaId);
+                if (trattamentoF) await deleteTrattamento(trattamentoF.fruttetoId, trattamentoF.trattamentoId);
             }
         } catch (error) {
-            console.warn('[ATTIVITA-EVENTS] Errore eliminazione vendemmia collegata:', error);
+            console.warn('[ATTIVITA-EVENTS] Errore eliminazione vendemmia/potatura/trattamento collegati:', error);
             // Non blocchiamo l'operazione principale
         }
         
@@ -1098,6 +1117,58 @@ export async function handleSaveAttivita(params) {
                     hasTipoLavoro: !!tipoLavoro
                 });
             }
+
+            // Rilevamento automatico raccolta frutta: crea raccolta e reindirizza a Gestione Raccolta con modal precompilato
+            if (terrenoId && tipoLavoro) {
+                try {
+                    const tipoLavoroLowerRacc = (tipoLavoro || '').toLowerCase();
+                    if (tipoLavoroLowerRacc.includes('raccolta')) {
+                        const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                        const hasFruttetoModule = await hasModuleAccess('frutteto');
+                        if (hasFruttetoModule) {
+                            const terrenoR = terreni.find(t => t.id === terrenoId);
+                            const { mapColturaToCategoria } = await import('../../core/js/attivita-utils.js');
+                            if (terrenoR && mapColturaToCategoria(terrenoR.coltura || '') === 'Frutteto') {
+                                let result = null;
+                                if (lavoroId) {
+                                    const { createRaccoltaFromLavoro } = await import('../../modules/frutteto/services/raccolta-frutta-service.js');
+                                    result = await createRaccoltaFromLavoro(lavoroId);
+                                } else {
+                                    const { createRaccoltaFromAttivita } = await import('../../modules/frutteto/services/raccolta-frutta-service.js');
+                                    result = await createRaccoltaFromAttivita(attivitaId);
+                                }
+                                if (result && result.raccoltaId && result.fruttetoId) {
+                                    const url = '../modules/frutteto/views/raccolta-frutta-standalone.html?fruttetoId=' + encodeURIComponent(result.fruttetoId) + '&raccoltaId=' + encodeURIComponent(result.raccoltaId) + '&openModal=1';
+                                    showAlert('Raccolta frutta creata. Apertura modulo per completare quantità e superficie...', 'success');
+                                    window.location.href = url;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('[ATTIVITA-EVENTS] Errore rilevamento automatico raccolta frutta:', error);
+                }
+            }
+            if (attivitaId && terrenoId) {
+                try {
+                    const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                    if (await hasModuleAccess('vigneto')) {
+                        const { createPotaturaFromAttivita } = await import('../../modules/vigneto/services/potatura-vigneto-service.js');
+                        const { createTrattamentoFromAttivita } = await import('../../modules/vigneto/services/trattamenti-vigneto-service.js');
+                        await createPotaturaFromAttivita(attivitaId);
+                        await createTrattamentoFromAttivita(attivitaId);
+                    }
+                    if (await hasModuleAccess('frutteto')) {
+                        const { createPotaturaFromAttivita } = await import('../../modules/frutteto/services/potatura-frutteto-service.js');
+                        const { createTrattamentoFromAttivita } = await import('../../modules/frutteto/services/trattamenti-frutteto-service.js');
+                        await createPotaturaFromAttivita(attivitaId);
+                        await createTrattamentoFromAttivita(attivitaId);
+                    }
+                } catch (error) {
+                    console.warn('[ATTIVITA-EVENTS] Errore rilevamento potatura/trattamenti:', error);
+                }
+            }
             
             showAlert('Attività creata con successo!', 'success');
         }
@@ -1429,6 +1500,55 @@ export async function salvaAttivitaRapida({
                 hasTerrenoId: !!terrenoId,
                 hasTipoLavoro: !!tipoLavoro
             });
+        }
+
+        // Rilevamento automatico raccolta frutta (stesso blocco che per creazione attività)
+        if (terrenoId && tipoLavoro) {
+            try {
+                const tipoLavoroLowerRacc = (tipoLavoro || '').toLowerCase();
+                if (tipoLavoroLowerRacc.includes('raccolta')) {
+                    const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                    const { mapColturaToCategoria } = await import('../../core/js/attivita-utils.js');
+                    const hasFruttetoModule = await hasModuleAccess('frutteto');
+                    if (hasFruttetoModule && terreno && mapColturaToCategoria(terreno.coltura || '') === 'Frutteto') {
+                        let result = null;
+                        if (lavoroIdValue) {
+                            const { createRaccoltaFromLavoro } = await import('../../modules/frutteto/services/raccolta-frutta-service.js');
+                            result = await createRaccoltaFromLavoro(lavoroIdValue);
+                        } else {
+                            const { createRaccoltaFromAttivita } = await import('../../modules/frutteto/services/raccolta-frutta-service.js');
+                            result = await createRaccoltaFromAttivita(attivitaId);
+                        }
+                        if (result && result.raccoltaId && result.fruttetoId) {
+                            const url = '../modules/frutteto/views/raccolta-frutta-standalone.html?fruttetoId=' + encodeURIComponent(result.fruttetoId) + '&raccoltaId=' + encodeURIComponent(result.raccoltaId) + '&openModal=1';
+                            showAlert('Raccolta frutta creata. Apertura modulo per completare quantità e superficie...', 'success');
+                            window.location.href = url;
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[ATTIVITA-EVENTS] Errore rilevamento automatico raccolta frutta:', error);
+            }
+        }
+        if (attivitaId && terrenoId) {
+            try {
+                const { hasModuleAccess } = await import('../../core/services/tenant-service.js');
+                if (await hasModuleAccess('vigneto')) {
+                    const { createPotaturaFromAttivita } = await import('../../modules/vigneto/services/potatura-vigneto-service.js');
+                    const { createTrattamentoFromAttivita } = await import('../../modules/vigneto/services/trattamenti-vigneto-service.js');
+                    await createPotaturaFromAttivita(attivitaId);
+                    await createTrattamentoFromAttivita(attivitaId);
+                }
+                if (await hasModuleAccess('frutteto')) {
+                    const { createPotaturaFromAttivita } = await import('../../modules/frutteto/services/potatura-frutteto-service.js');
+                    const { createTrattamentoFromAttivita } = await import('../../modules/frutteto/services/trattamenti-frutteto-service.js');
+                    await createPotaturaFromAttivita(attivitaId);
+                    await createTrattamentoFromAttivita(attivitaId);
+                }
+            } catch (error) {
+                console.warn('[ATTIVITA-EVENTS] Errore rilevamento potatura/trattamenti:', error);
+            }
         }
         
         // Se checkbox "lavoro terminato" è selezionato, aggiorna stato lavoro

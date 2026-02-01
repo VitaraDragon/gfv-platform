@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Config Loader - Carica configurazioni Firebase e Google Maps
  * Gestisce fallback per GitHub Pages
  */
@@ -6,35 +6,43 @@
 // Namespace per evitare conflitti
 window.GFVConfigLoader = window.GFVConfigLoader || {};
 
+/** Base path per pagine sotto modules/ (es. '../../../core'). Le pagine core lasciano vuoto. */
+function getConfigBase() {
+    const base = (window.GFV_CONFIG_BASE || '').replace(/\/$/, '');
+    return base;
+}
+
 window.GFVConfigLoader.loadConfig = async function loadConfig() {
     return new Promise((resolve, reject) => {
-        // Se già caricato, risolvi immediatamente
         if (typeof window.firebaseConfig !== 'undefined') {
             resolve();
             return;
         }
+        try {
+            const cached = sessionStorage.getItem('gfv_firebase_config');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                window.firebaseConfig = parsed;
+                resolve();
+                return;
+            }
+        } catch (_) {}
 
-        // Prova prima il percorso locale
+        const base = getConfigBase();
         const configScript = document.createElement('script');
-        configScript.src = 'config/firebase-config.js';
-        
+        configScript.src = base ? base + '/config/firebase-config.js' : 'config/firebase-config.js';
         configScript.onload = function() {
-            // Aspetta un po' per assicurarsi che lo script sia eseguito
-            setTimeout(() => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve();
-                } else {
-                    // Se non è stato definito, prova il fallback
-                    loadFallbackConfig().then(resolve).catch(reject);
-                }
-            }, 100);
+            // Nessun setTimeout: lo script è già eseguito al onload
+            if (typeof window.firebaseConfig !== 'undefined') {
+                try { sessionStorage.setItem('gfv_firebase_config', JSON.stringify(window.firebaseConfig)); } catch (_) {}
+                resolve();
+            } else {
+                loadFallbackConfig().then(resolve).catch(reject);
+            }
         };
-        
         configScript.onerror = function() {
-            // Se fallisce, prova il fallback
             loadFallbackConfig().then(resolve).catch(reject);
         };
-        
         document.head.appendChild(configScript);
     });
 }
@@ -43,21 +51,17 @@ function loadFallbackConfig() {
     return new Promise((resolve, reject) => {
         const fallbackScript = document.createElement('script');
         fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-        
         fallbackScript.onload = function() {
-            setTimeout(() => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve();
-                } else {
-                    reject(new Error('Firebase config not found even after loading from GitHub'));
-                }
-            }, 100);
+            if (typeof window.firebaseConfig !== 'undefined') {
+                try { sessionStorage.setItem('gfv_firebase_config', JSON.stringify(window.firebaseConfig)); } catch (_) {}
+                resolve();
+            } else {
+                reject(new Error('Firebase config not found even after loading from GitHub'));
+            }
         };
-        
         fallbackScript.onerror = function() {
             reject(new Error('Failed to load Firebase config from GitHub'));
         };
-        
         document.head.appendChild(fallbackScript);
     });
 }
@@ -68,27 +72,29 @@ window.GFVConfigLoader.loadGoogleMapsConfig = async function loadGoogleMapsConfi
             resolve();
             return;
         }
+        try {
+            const cached = sessionStorage.getItem('gfv_google_maps_key');
+            if (cached) {
+                window.GOOGLE_MAPS_API_KEY = cached;
+                resolve();
+                return;
+            }
+        } catch (_) {}
 
-        // Prova prima il percorso locale (stesso percorso di Firebase config)
+        const base = getConfigBase();
         const mapsConfigScript = document.createElement('script');
-        mapsConfigScript.src = 'config/google-maps-config.js';
-        
+        mapsConfigScript.src = base ? base + '/config/google-maps-config.js' : 'config/google-maps-config.js';
         mapsConfigScript.onload = function() {
-            setTimeout(() => {
-                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                    resolve();
-                } else {
-                    // Se non è stato definito, prova il fallback
-                    loadGoogleMapsConfigFallback().then(resolve).catch(reject);
-                }
-            }, 100);
+            if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                try { sessionStorage.setItem('gfv_google_maps_key', window.GOOGLE_MAPS_API_KEY); } catch (_) {}
+                resolve();
+            } else {
+                loadGoogleMapsConfigFallback().then(resolve).catch(reject);
+            }
         };
-        
         mapsConfigScript.onerror = function() {
-            // Se fallisce, prova il fallback
             loadGoogleMapsConfigFallback().then(resolve).catch(reject);
         };
-        
         document.head.appendChild(mapsConfigScript);
     });
 }
@@ -97,26 +103,27 @@ function loadGoogleMapsConfigFallback() {
     return new Promise((resolve, reject) => {
         const fallback = document.createElement('script');
         fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-        
         fallback.onload = function() {
-            setTimeout(() => {
-                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
-                    resolve();
-                } else {
-                    console.warn('Google Maps API key not found');
-                    resolve(); // Non bloccare il caricamento
-                }
-            }, 100);
+            if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                try { sessionStorage.setItem('gfv_google_maps_key', window.GOOGLE_MAPS_API_KEY); } catch (_) {}
+            }
+            resolve();
         };
-        
         fallback.onerror = function() {
             console.warn('Failed to load Google Maps config');
-            resolve(); // Non bloccare il caricamento
+            resolve();
         };
-        
         document.head.appendChild(fallback);
     });
 }
+
+/** Carica Firebase e Google Maps config in parallelo (più veloce quando servono entrambi). */
+window.GFVConfigLoader.loadConfigAndMaps = function loadConfigAndMaps() {
+    return Promise.all([
+        window.GFVConfigLoader.loadConfig(),
+        window.GFVConfigLoader.loadGoogleMapsConfig()
+    ]);
+};
 
 window.GFVConfigLoader.waitForConfig = function waitForConfig() {
     return new Promise((resolve, reject) => {
@@ -124,11 +131,8 @@ window.GFVConfigLoader.waitForConfig = function waitForConfig() {
             resolve(window.firebaseConfig);
             return;
         }
-        
-        // Aspetta fino a 5 secondi che il config sia caricato
         let attempts = 0;
-        const maxAttempts = 50; // 5 secondi (50 * 100ms)
-        
+        const maxAttempts = 100; // 5 secondi (100 * 50ms)
         const checkInterval = setInterval(() => {
             attempts++;
             if (typeof window.firebaseConfig !== 'undefined') {
@@ -138,7 +142,7 @@ window.GFVConfigLoader.waitForConfig = function waitForConfig() {
                 clearInterval(checkInterval);
                 reject(new Error('Firebase config not loaded after 5 seconds'));
             }
-        }, 100);
+        }, 50);
     });
 }
 
@@ -148,10 +152,8 @@ window.GFVConfigLoader.waitForGoogleMapsConfig = async function waitForGoogleMap
             resolve();
             return;
         }
-        
-        // Aspetta fino a 5 secondi
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 100;
         const checkInterval = setInterval(() => {
             attempts++;
             if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
@@ -160,9 +162,9 @@ window.GFVConfigLoader.waitForGoogleMapsConfig = async function waitForGoogleMap
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkInterval);
                 console.warn('Google Maps config non trovato dopo attesa');
-                resolve(); // Non bloccare
+                resolve();
             }
-        }, 100);
+        }, 50);
     });
 }
 
@@ -173,17 +175,11 @@ window.GFVConfigLoader.loadGoogleMapsAPI = function loadGoogleMapsAPI() {
             return;
         }
 
-        // Aspetta che il config sia caricato (max 5 secondi)
         let attempts = 0;
-        const maxAttempts = 50; // 50 tentativi x 100ms = 5 secondi
+        const maxAttempts = 100; // 100 x 50ms = 5 secondi
         const checkConfig = setInterval(() => {
             attempts++;
             const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY;
-            
-            if (attempts === 1) {
-
-            }
-            
             if (GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
                 clearInterval(checkConfig);
 
@@ -192,10 +188,9 @@ window.GFVConfigLoader.loadGoogleMapsAPI = function loadGoogleMapsAPI() {
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkConfig);
                 console.warn('⚠️ Google Maps API key not configured after waiting', attempts, 'attempts');
-                console.warn('Chiave disponibile?', typeof window.GOOGLE_MAPS_API_KEY !== 'undefined' ? window.GOOGLE_MAPS_API_KEY : 'undefined');
-                resolve(); // Non bloccare il caricamento
+                resolve();
             }
-        }, 100);
+        }, 50);
     });
 }
 

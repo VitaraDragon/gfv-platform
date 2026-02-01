@@ -844,6 +844,9 @@ export async function aggregaSpeseVignetoAnno(vignetoId, anno = null) {
       }
     }
     
+    // Totale generale (lavori + attività diario)
+    spese.costoTotaleAnno = spese.speseManodoperaAnno + spese.speseMacchineAnno + (spese.speseProdottiAnno || 0) + (spese.speseCantinaAnno || 0) + (spese.speseAltroAnno || 0);
+    
     // Arrotonda tutti i valori numerici a 2 decimali (escludi chiavi che terminano con _nome che contengono stringhe)
     Object.keys(spese).forEach(key => {
       // Salta chiavi che contengono nomi (non numeri)
@@ -867,7 +870,8 @@ export async function aggregaSpeseVignetoAnno(vignetoId, anno = null) {
       spesePotaturaAnno: 0,
       speseVendemmiaAnno: 0,
       speseMacchineAnno: 0,
-      speseAltroAnno: 0
+      speseAltroAnno: 0,
+      costoTotaleAnno: 0
     };
   }
 }
@@ -1257,10 +1261,123 @@ export async function getDettaglioSpeseVignetoAnno(vignetoId, anno = null) {
   }
 }
 
+/**
+ * Restituisce le attività dirette del diario (senza lavoroId) per un terreno/anno, con costo calcolato.
+ * Usata dalla dashboard per mostrare sia i lavori che le attività da diario nell'elenco.
+ * @param {string} terrenoId - ID terreno
+ * @param {number} anno - Anno
+ * @param {Array} lavori - Lista lavori già caricati per lo stesso terreno/anno (per escludere duplicati)
+ * @returns {Promise<Array>} Array di { id, data, tipoLavoro, costoTotale }
+ */
+export async function getAttivitaDirettePerTerreno(terrenoId, anno, lavori = []) {
+  try {
+    const tenantId = getCurrentTenantId();
+    const db = getDb();
+    if (!db || !tenantId) return [];
+
+    const annoInizio = `${anno}-01-01`;
+    const annoFine = `${anno}-12-31`;
+    let dataPrimoLavoro = null;
+    if (lavori.length > 0) {
+      const dateInizio = lavori.map(l => {
+        const raw = l._originalData || l;
+        const src = raw.dataInizio || l.dataInizio;
+        if (!src) return null;
+        const d = typeof src.toDate === 'function' ? src.toDate() : (src instanceof Date ? src : new Date(src));
+        return d && !isNaN(d.getTime()) ? d : null;
+      }).filter(d => d !== null);
+      if (dateInizio.length > 0) {
+        dataPrimoLavoro = new Date(Math.min(...dateInizio.map(d => d.getTime())));
+      }
+    }
+    const dataLimite = dataPrimoLavoro ? dataPrimoLavoro.toISOString().split('T')[0] : annoFine;
+
+    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const attivitaRef = collection(db, `tenants/${tenantId}/attivita`);
+    const attivitaQuery = query(attivitaRef, where('terrenoId', '==', terrenoId));
+    const attivitaSnapshot = await getDocs(attivitaQuery);
+
+    const tariffaProprietario = await getTariffaProprietario(tenantId);
+    let hasParcoMacchineModule = false;
+    try {
+      const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+      hasParcoMacchineModule = await hasModuleAccess('parcoMacchine');
+    } catch (_) {}
+
+    const risultati = [];
+    const getMacchinaCached = (() => {
+      const cache = {};
+      return async (macchinaId) => {
+        if (cache[macchinaId]) return cache[macchinaId];
+        try {
+          const { getMacchina } = await import('../../../modules/parco-macchine/services/macchine-service.js');
+          const m = await getMacchina(macchinaId);
+          cache[macchinaId] = m;
+          return m;
+        } catch (_) {
+          return null;
+        }
+      };
+    })();
+
+    for (const attivitaDoc of attivitaSnapshot.docs) {
+      const attivita = attivitaDoc.data();
+      if (attivita.lavoroId && attivita.lavoroId !== '') continue;
+      if (attivita.clienteId && attivita.clienteId !== '') continue;
+      if (!attivita.data || !attivita.tipoLavoro) continue;
+      if (attivita.data < annoInizio || attivita.data > annoFine) continue;
+
+      if (dataPrimoLavoro && attivita.data >= dataLimite) {
+        const lavoroDuplicato = lavori.find(l => {
+          const raw = l._originalData || l;
+          const src = raw.dataInizio || l.dataInizio;
+          if (!src) return false;
+          const dataInizio = typeof src.toDate === 'function' ? src.toDate() : (src instanceof Date ? src : new Date(src));
+          if (!dataInizio || isNaN(dataInizio.getTime())) return false;
+          const lavoroData = dataInizio.toISOString().split('T')[0];
+          return lavoroData === attivita.data && l.tipoLavoro === attivita.tipoLavoro;
+        });
+        if (lavoroDuplicato) continue;
+      }
+
+      const oreNette = attivita.oreNette || 0;
+      let costoTotale = oreNette * tariffaProprietario;
+      const oreMacchina = attivita.oreMacchina || 0;
+      const macchinaId = attivita.macchinaId;
+      const attrezzoId = attivita.attrezzoId;
+
+      if (hasParcoMacchineModule && oreMacchina > 0) {
+        if (macchinaId) {
+          const macchina = await getMacchinaCached(macchinaId);
+          if (macchina && macchina.costoOra) costoTotale += oreMacchina * macchina.costoOra;
+        }
+        if (attrezzoId) {
+          const attrezzo = await getMacchinaCached(attrezzoId);
+          if (attrezzo && attrezzo.costoOra) costoTotale += oreMacchina * attrezzo.costoOra;
+        }
+      }
+
+      risultati.push({
+        id: attivitaDoc.id,
+        data: attivita.data,
+        tipoLavoro: attivita.tipoLavoro,
+        costoTotale: parseFloat(costoTotale.toFixed(2))
+      });
+    }
+
+    console.log('[LAVORI-VIGNETO] getAttivitaDirettePerTerreno', terrenoId, anno, ':', risultati.length, 'attività dirette');
+    return risultati;
+  } catch (error) {
+    console.warn('[LAVORI-VIGNETO] Errore getAttivitaDirettePerTerreno:', error);
+    return [];
+  }
+}
+
 export default {
   calcolaCostiLavoro,
   getLavoriPerTerreno,
   aggregaSpeseVignetoAnno,
+  getAttivitaDirettePerTerreno,
   aggiornaSpeseVignetoDaLavori,
   aggiornaVignetiDaTerreno,
   ricalcolaSpeseVignetoAnno,

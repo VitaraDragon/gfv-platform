@@ -97,9 +97,8 @@ export const AVAILABLE_MODULES = [
     icon: '🍎',
     description: 'Gestione frutteti e raccolta',
     price: 3,
-    available: false, // Da sviluppare
-    category: 'colture',
-    badge: 'Prossimamente'
+      available: true,
+      category: 'colture'
   },
   {
     id: 'oliveto',

@@ -1,5 +1,246 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
+## ✅ Verifica caricamento dashboard vigneto – test su server locale (2026-02-01) - COMPLETATO
+
+### Obiettivo
+Verificare il caricamento della dashboard del modulo vigneto su ambiente locale e confermare il miglioramento dei tempi dopo le ottimizzazioni.
+
+### Cosa è stato fatto
+- **URL di test**: uso del server locale `http://127.0.0.1:8000/` (l’app online non è aggiornata; si lavora lato server).
+- **Pagina verificata**: `http://127.0.0.1:8000/modules/vigneto/views/vigneto-dashboard-standalone.html`.
+- **Flusso**: login manuale con credenziali; navigazione alla dashboard vigneto; verifica tramite browser (snapshot/screenshot) che statistiche e tabelle si popolino correttamente (sezione Panoramica: Produzione Anno, Resa media, Spese vendemmia, Spese totali, ecc.).
+- **Risultato**: caricamento confermato; nessun errore visibile; statistiche e card popolate.
+
+### Tempo di caricamento
+- **Prima** (riferimento utente): ~7 secondi per la dashboard vigneto.
+- **Dopo** (feedback utente): ~4 secondi — miglioramento di circa 3 secondi.
+
+### File / documentazione
+- Nessuna modifica al codice in questa sessione; solo verifica in browser e aggiornamento di COSA_ABBIAMO_FATTO e RIEPILOGO_LAVORI.
+
+### Nota
+- Per ulteriori riduzioni (es. sotto i 2–3 s) si può intervenire su: retry `tenantId`, letture duplicate utente/vigneti, caricamento parallelo di statistiche/vendemmie/lavori (già analizzato in precedenza).
+
+---
+
+## ✅ Allineamento modulo Frutteto al Vigneto: lavori, raccolta, modello (2026-02-01) - COMPLETATO
+
+### Obiettivo
+Allineare il modulo Frutteto al Vigneto su: aggregazione spese per categoria (potatura, trattamenti, raccolta, lavorazione terreno, ecc.), metodo `isCompleta()` su RaccoltaFrutta, modello Frutteto (spese prodotti e costi anno), naming API (`costoTotaleAnno`). Esclusa la sezione Trattamenti (da affrontare separatamente).
+
+### Implementazione
+
+#### Lavori Frutteto – Categorie di spesa
+- In `lavori-frutteto-service.js`: aggiunte **normalizzaTipoLavoro**, **getCategoriaManodoperaPerTipoLavoro** (mappatura tipo lavoro → categoria: potatura, trattamenti, raccolta, lavorazione_terreno, diserbo, semina_piantagione, gestione_verde, trasporto, manutenzione, altro) e **aggiungiManodoperaPerCategoria**.
+- **aggregaSpeseFruttetoAnno**: per ogni lavoro e per le attività dirette del diario si usa la categoria (non più solo “raccolta/frutta”); creazione chiavi dinamiche (manodoperaPotatura, manodoperaTrattamenti, manodoperaRaccolta, ecc.); in uscita vengono valorizzati spesePotaturaAnno, speseTrattamentiAnno, speseRaccoltaAnno dalle chiavi dinamiche; restituiti anche **costoTotaleAnno** (come nel vigneto); arrotondo a 2 decimali (escluse chiavi _nome).
+
+#### RaccoltaFrutta – isCompleta()
+- In `RaccoltaFrutta.js`: aggiunto metodo **isCompleta()** (true se valorizzati quantità kg, superficie ettari, specie e varietà), allineato al concetto di Vendemmia.
+
+#### Modello Frutteto
+- In `Frutteto.js`: aggiunto campo **speseProdottiAnno** nel costruttore; override **calcolaCostoTotaleAnno()** che include tutte le spese (manodopera, macchine, prodotti, trattamenti, potatura, raccolta, altro).
+
+#### Frutteti-service
+- Rimosso il workaround che copiava speseProdottiAnno in speseAltroAnno (il modello gestisce ora speseProdottiAnno e il costo anno).
+
+#### Statistiche
+- In `frutteto-statistiche-service.js`: per il singolo frutteto si usa **speseAgg.costoTotaleAnno ?? speseAgg.speseTotaleAnno** per coerenza con l’API di aggregazione.
+
+### File toccati
+- `modules/frutteto/services/lavori-frutteto-service.js` (categorizzazione tipo lavoro, aggregaSpese con categorie e costoTotaleAnno)
+- `modules/frutteto/models/RaccoltaFrutta.js` (isCompleta)
+- `modules/frutteto/models/Frutteto.js` (speseProdottiAnno, calcolaCostoTotaleAnno)
+- `modules/frutteto/services/frutteti-service.js` (rimozione workaround speseProdottiAnno)
+- `modules/frutteto/services/frutteto-statistiche-service.js` (uso costoTotaleAnno da aggregazione)
+
+### Risultato
+- Frutteto allineato al vigneto su: aggregazione spese per categoria (potatura, trattamenti, raccolta, lavorazione terreno, ecc.), API costoTotaleAnno, modello Frutteto con spese prodotti e costi anno, RaccoltaFrutta con isCompleta(). Sezione Trattamenti (es. isTroppoVicinoARaccolta) lasciata da parte come concordato.
+
+---
+
+## ✅ Potatura e Trattamenti: pagine e card Vigneto/Frutteto + piano da lavori (2026-01-31) - COMPLETATO
+
+### Obiettivo
+Allineare il modulo Vigneto al Frutteto con pagine dedicate **Potatura** e **Trattamenti** (liste + modal CRUD) e card nelle dashboard; pianificare l’evoluzione “Potatura/Trattamenti da lavori e attività” (dati base da lavoro/attività, dati aggiuntivi compilabili).
+
+### Implementazione
+
+#### Pagine Potatura e Trattamenti – Modulo Frutteto (già presenti)
+- **Potatura:** `modules/frutteto/views/potatura-standalone.html` – filtro frutteto/anno, tabella potature, modal Nuova/Modifica (tipo, parcella, piante potate, operai, ore, costi). Integrazione con `potatura-frutteto-service.js`.
+- **Trattamenti:** `modules/frutteto/views/trattamenti-standalone.html` – stessa struttura, modal con prodotto, dosaggio, tipo, operatore, superficie, costi, giorni di carenza. Integrazione con `trattamenti-frutteto-service.js`.
+- Dashboard Frutteto: card **Potatura** e **Trattamenti** nelle Azioni rapide.
+
+#### Pagine Potatura e Trattamenti – Modulo Vigneto (aggiunte)
+- **Potatura:** `modules/vigneto/views/potatura-standalone.html` – filtro vigneto/anno, tabella (tipo invernale/verde/rinnovo/spollonatura), ceppi potati, ore, costi; modal CRUD. Integrazione con `potatura-vigneto-service.js`.
+- **Trattamenti:** `modules/vigneto/views/trattamenti-standalone.html` – stessa logica del frutteto, tema vigneto, integrazione con `trattamenti-vigneto-service.js`.
+- Dashboard Vigneto: card **Potatura** e **Trattamenti** nelle Azioni rapide (dopo Vendemmia, prima Statistiche).
+
+#### Piano “Potatura e Trattamenti da lavori e attività”
+- Creato **`PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`** con: origine dati da Gestione lavori e Diario; riconoscimento per categoria (Potatura/Trattamenti); collegamento vigneto/frutteto tramite terreno (1:1); stesso procedimento di Vendemmia e Raccolta; creazione solo da lavoro/attività; dati base in sola lettura nelle pagine dedicate; dati aggiuntivi compilabili; implicazioni da definire in fase di analisi (dove salvare dati aggiuntivi, link lavoro ↔ record, campo categoria, relazione terreno–vigneto/frutteto).
+
+### File toccati
+- `modules/frutteto/views/potatura-standalone.html`, `modules/frutteto/views/trattamenti-standalone.html` (già presenti)
+- `modules/frutteto/views/frutteto-dashboard-standalone.html` (card Potatura e Trattamenti)
+- `modules/vigneto/views/potatura-standalone.html`, `modules/vigneto/views/trattamenti-standalone.html` (nuovi)
+- `modules/vigneto/views/vigneto-dashboard-standalone.html` (card Potatura e Trattamenti)
+- `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md` (nuovo)
+
+### Risultato
+- Moduli Vigneto e Frutteto allineati: entrambi hanno pagine Potatura e Trattamenti e card in dashboard (attualmente inserimento manuale).
+- Piano scritto per l’evoluzione “dati da lavori/attività + dati aggiuntivi compilabili, base in sola lettura” da implementare in seguito.
+
+---
+
+## ✅ Lista condivisa Calcolo materiali, forma allevamento Pianificazione frutteto, pali frutteto, Gestione lavori Impianto Frutteto (2026-01-31) - COMPLETATO
+
+### Obiettivo
+Allineare il Calcolo materiali e la Pianificazione alla stessa lista forma di allevamento; adattare i default distanza/altezza pali per il frutteto alla forma; dare all’Impianto Nuovo Frutteto in Gestione lavori lo stesso comportamento del vigneto (form dati + creazione anagrafica alla conferma).
+
+### Implementazione
+
+#### Lista condivisa forma di allevamento in Calcolo materiali
+- Il dropdown "Tipo impianto" in Calcolo materiali ora usa le **stesse liste** di Pianificazione nuovo impianto: **vigneto** = `getFormeAllevamentoList()`; **frutteto** = `FORME_ALLEVAMENTO_FRUTTETO` + custom da localStorage. Precompilazione da `pianificazione.formaAllevamento`; in invio al service si passa la chiave tecnica (`getChiaveTecnica` / `normalizeFormaAllevamentoToKey`). Descrizione e placeholder risolvono la config da valore selezionato (vigneto: `getConfigurazioneImpianto`).
+
+#### Forma di allevamento in Pianificazione nuovo impianto per frutteto
+- Il gruppo "Forma di allevamento" è mostrato anche per **frutteto** (e oliveto), in base a `showFormaAllevamento` nella config coltura. Precompilazione e salvataggio della forma anche per frutteto/oliveto (valore selezionato; per vigneto si continua a salvare la chiave tecnica).
+
+#### Calcolo materiali frutteto – Distanza e altezza pali per forma
+- In `TIPI_IMPIANTO_FRUTTETO` aggiunti **distanzaPali** e **altezzaPali** (metri) per forma: fusetto/leader 7 m / 3,2 m; palmetta/spalliera/cordone 4 m / 3,2 m; pergola 5 m / 3,5 m; vaso 6 m / 3 m; altro 5 m / 3 m. Nel modal Calcolo materiali, per frutteto/oliveto, al cambio forma vengono precompilati Distanza tra Pali e Altezza Pali.
+
+#### Gestione lavori – Impianto Nuovo Frutteto come vigneto
+- Scelta "Impianto Nuovo Frutteto" e pianificazione frutteto: compare il **form Dati Frutteto** (Specie, Varietà, Anno, Forma Allevamento, distanze/superficie/densità readonly, Note) con precompilazione dalla pianificazione e dropdown da `specie-fruttifere.js` + localStorage. Modali ➕ per specie/varietà/forma. Alla conferma del lavoro viene chiamata **creaFruttetoDaLavoro** che crea l’anagrafica frutteto con `createFrutteto()`. `setFruttetoFormRequired` evita che i campi del form nascosto blocchino il submit.
+
+### File toccati
+- `modules/vigneto/views/calcolo-materiali-standalone.html`, `modules/vigneto/services/calcolo-materiali-service.js`, `modules/vigneto/views/pianifica-impianto-standalone.html`
+- `core/admin/gestione-lavori-standalone.html`, `core/admin/js/gestione-lavori-events.js`
+
+### Risultato
+- Stessa lista forma di allevamento in Pianificazione e Calcolo materiali (vigneto e frutteto); precompilazione corretta dalla pianificazione.
+- Forma di allevamento visibile e salvata in Pianificazione anche per frutteto.
+- Default distanza/altezza pali nel Calcolo materiali frutteto coerenti con la forma scelta.
+- Impianto Nuovo Frutteto in Gestione lavori con form dati e creazione anagrafica alla conferma, come per il vigneto.
+
+---
+
+## ✅ Raccolta Frutta: sistemazione completa (zone lavorate, superficie, colonna Lavoro, Dashboard e pulsanti) (2026-01-31) - COMPLETATO
+
+### Obiettivo
+Sistemare la pagina Gestione Raccolta Frutta: sincronizzare la zona tracciata dal lavoro (zone lavorate), formattare correttamente la superficie, allineare la tabella alla Vendemmia con la colonna Lavoro e il link "Vedi Lavoro", completare la navigazione verso la dashboard del modulo Frutteto e allineare l’ordine dei pulsanti nell’header.
+
+### Implementazione
+
+#### Sincronizzazione zona da lavoro (zone lavorate)
+- La zona tracciata dagli operai/capisquadra (`zoneLavorate` nel documento lavoro) non era visibile nelle mappe di Gestione Raccolta Frutta.
+- Aggiunta la funzione `loadPoligonoFromZoneLavorate(lavoroId)` che recupera la prima zona chiusa dalla sottocollezione `zoneLavorate` del lavoro.
+- In `openEditRaccolta()`: se la raccolta è collegata a un `lavoroId` e non ha ancora un poligono proprio, viene richiamata `loadPoligonoFromZoneLavorate()` per pre-popolare `poligonoCoords` con la zona del lavoro. La zona tracciata dall’operaio/caposquadra appare così nella mappa e viene salvata sul documento di raccolta al primo salvataggio.
+
+#### Formattazione superficie (ha)
+- La "Superficie raccolta (ha)" nel modal di creazione/modifica non era formattata in modo uniforme. Ora il valore viene formattato con **due decimali** (`.toFixed(2)`) quando viene letto dai dati della raccolta o dalla superficie calcolata dal lavoro collegato.
+
+#### Colonna "Lavoro" e link "Vedi Lavoro"
+- Nella tabella lista vendemmie è presente il link "🔗 Vedi Lavoro" per le righe collegate a un lavoro; nella tabella raccolte mancava. Aggiunta la colonna **Lavoro** nella tabella raccolte: se la raccolta è collegata a un lavoro, viene mostrato il link "🔗 Vedi Lavoro" (stile a tema Frutteto) che apre la pagina gestione lavori filtrata per quel lavoro.
+
+#### Pulsante Dashboard e ordine pulsanti
+- **Pulsante Dashboard**: Il link "← Dashboard" aveva `href="#"`. Impostato `href="frutteto-dashboard-standalone.html"` e listener con `resolvePath('./frutteto-dashboard-standalone.html')`.
+- **Ordine pulsanti**: Allineato a Vendemmia: **Nuova raccolta** → **← Frutteti** → **← Dashboard**. Icona pulsante Frutteti uniformata da ⬅ a ←.
+
+### File toccati
+- `modules/frutteto/views/raccolta-frutta-standalone.html` (loadPoligonoFromZoneLavorate, sync in openEditRaccolta, superficie .toFixed(2), colonna Lavoro e link Vedi Lavoro, href Dashboard, listener resolvePath, ordine e stile pulsanti header).
+
+### Risultato
+- Zona tracciata dal lavoro visibile e sincronizzata nella mappa di modifica raccolta.
+- Superficie raccolta (ha) sempre mostrata con due decimali.
+- Tabella raccolte allineata alla Vendemmia con colonna Lavoro e link "🔗 Vedi Lavoro".
+- Navigazione alla dashboard Frutteto e ordine pulsanti come in Gestione Vendemmia.
+
+---
+
+## ✅ Tracciamento zona, cursore e dropdown terreni (2026-01-30) - COMPLETATO
+
+### Obiettivo
+Migliorare il tracciamento dell’area nella Gestione Raccolta Frutta (cursore crosshair come in Vendemmia, snap, validazione, doppio clic) e far mostrare nei dropdown il nome del terreno e il podere invece dell’id.
+
+### Implementazione
+
+#### Tracciamento zona – Cursore crosshair (Raccolta Frutta)
+- In Raccolta Frutta il CSS prevedeva il crosshair con `.modal-mappa-body.drawing-mode` ma la classe non veniva mai applicata.
+- Aggiunte funzioni `applicaCursoreCrosshair()` e `rimuoviCursoreCrosshair()` (classe + cursore su container e div/canvas Google Maps).
+- Chiamate in: avvio tracciamento, chiusura poligono (click vicino al primo punto), chiusura modal, elimina poligono.
+- Toggle "Pausa tracciamento": se già in tracciamento, un click sul pulsante mette in pausa senza cancellare il poligono.
+- Listener `remove_at` sul path del poligono per aggiornare superficie/punti quando si elimina un vertice.
+
+#### Allineamento tracciamento Raccolta Frutta a Vendemmia
+- **Snap**: costanti `SNAP_DISTANCE_METERS = 5`, `VERTEX_SNAP_DISTANCE_METERS = 8`; helper `findNearestVertex`, `findNearestPointOnBoundary`, `getClosestPointOnSegment`, `getDistanceToBoundary`, `movePointInsideBoundary`, `getPolygonCenterRaccolta`. Shift per disabilitare lo snap.
+- **Doppio clic**: due click entro 300 ms terminano il tracciamento (come "Pausa") senza chiudere il poligono.
+- **Validazione**: il punto deve essere dentro i confini del terreno; tolleranza 3 m; se agganciato al confine ma fuori, spostamento verso l’interno.
+- **Feedback visivo**: marker verde (cerchio) per ~1 s quando si applica lo snap.
+
+#### Dropdown terreni – Nome e podere al posto dell’id
+- **Pagina Frutteti** (`frutteti-standalone.html`): introdotta `getTerrenoLabel(t)` (nome, podere, mai id). Dropdown "Terreno" e filtro "Tutti i terreni" usano `getTerrenoLabel(t)`. `getTerrenoNome(terrenoId)` in tabella restituisce `getTerrenoLabel(t)`.
+- **Gestione Raccolta** (`raccolta-frutta-standalone.html`): caricamento terreni con `getAllTerreni()` in `loadFrutteti()`. Aggiunte `getTerrenoLabel(t)` e `getFruttetoOptionLabel(f)` (Specie Varietà – Nome terreno – Podere). Dropdown "Frutteto" e filtro mostrano questa label invece di `terrenoId`. Colonna Frutteto in tabella usa `getFruttetoOptionLabel(f)` tramite `getFruttetoLabel(fruttetoId)`.
+
+### File toccati
+- `modules/frutteto/views/raccolta-frutta-standalone.html` (cursore crosshair, helper snap/validazione, doppio clic, terreni e label dropdown/tabella).
+- `modules/frutteto/views/frutteti-standalone.html` (getTerrenoLabel, dropdown e tabella con nome/podere).
+
+### Risultato
+- Tracciamento area Raccolta Frutta allineato a Vendemmia (crosshair, snap, validazione, doppio clic, marker snap).
+- Nei dropdown e in tabella non compare più l’id del terreno; si vedono nome del terreno e podere (e, dove applicabile, specie/varietà).
+
+---
+
+## ✅ Allineamento moduli Frutteto e Vigneto (2026-01-29) - COMPLETATO
+
+### Obiettivo
+Allineare anagrafica e dashboard tra modulo Frutteto e modulo Vigneto: stesso comportamento per spese (lavori + attività da diario), elenco lavori con attività "Da diario", dettaglio spese con cambio anno automatico, totale spese sempre calcolato al volo.
+
+### Implementazione
+
+#### Dashboard – Totale spese e elenco lavori
+- **Frutteto**: Totale spese già calcolato con `aggregaSpeseFruttetoAnno` (lavori + attività dirette diario). Elenco lavori esteso con `getAttivitaDirettePerTerreno`: in tabella compaiono sia i lavori (link "Dettaglio") sia le attività da diario (badge "Da diario"). Servizio `getStatisticheFrutteto` usa `aggregaSpeseFruttetoAnno` per il totale.
+- **Vigneto**: Aggiunta card "Spese totali (€)" in dashboard; valore sempre calcolato al volo con `aggregaSpeseVignetoAnno` (non dipende da "Ricalcola spese"). Elenco lavori esteso con `getAttivitaDirettePerTerreno`: stessa tabella unificata con badge "Da diario" per attività da diario. In `lavori-vigneto-service.js` aggiunto `getAttivitaDirettePerTerreno` e `costoTotaleAnno` nel return di `aggregaSpeseVignetoAnno`; in `vigneto-statistiche-service.js` `getStatisticheVigneto` ora calcola sempre `costoTotaleAnno` al volo (singolo vigneto, tutti i vigneti, fallback).
+
+#### Anagrafica – Dettaglio spese e selettore anno
+- **Vigneto**: Sul select "Anno" del modal Dettaglio Spese aggiunto listener `change` che richiama `loadDettaglioSpese()`: cambiando anno i dettagli si ricaricano senza cliccare "Aggiorna".
+- **Frutteto**: Stesso comportamento: listener `change` sul select anno nel modal Dettaglio Spese per ricaricare automaticamente i dettagli.
+
+#### UI e documentazione
+- **Frutteto**: Icona card "Gestione Raccolta Frutta" cambiata da 🧺 a 📦 (casse di frutta); stesso icona per stato vuoto "Nessuna raccolta trovata".
+- **Documento indirizzo**: Creato `PIANIFICA_IMPIANTO_CALCOLO_MATERIALI_CONDIVISI.md` con decisioni per modulo condiviso Pianifica impianto e Calcolo materiali (opzione C, filtro coltura, precompilazione da terreno, modello dati unico, UX identica).
+
+### File toccati (allineamento)
+- Moduli Frutteto: `lavori-frutteto-service.js` (getAttivitaDirettePerTerreno, export), `frutteto-statistiche-service.js` (aggregaSpeseFruttetoAnno, getLavoriFrutteto con attività diario), `frutteto-dashboard-standalone.html` (tabella lavori con "Da diario", icona 📦), `frutteti-standalone.html` (listener change su select anno dettaglio spese).
+- Moduli Vigneto: `lavori-vigneto-service.js` (getAttivitaDirettePerTerreno, costoTotaleAnno in aggregaSpeseVignetoAnno), `vigneto-statistiche-service.js` (getAttivitaDirettePerTerreno, getLavoriVigneto con attività diario, costoTotaleAnno sempre al volo), `vigneto-dashboard-standalone.html` (card Spese totali, tabella lavori con "Da diario", stile .badge-diario), `vigneti-standalone.html` (listener change su select anno dettaglio spese).
+- Creato: `PIANIFICA_IMPIANTO_CALCOLO_MATERIALI_CONDIVISI.md`.
+
+### Risultato
+- Moduli Frutteto e Vigneto allineati su anagrafica e funzioni dashboard (totale spese lavori+diario, elenco lavori con "Da diario", dettaglio spese con anno che ricarica, totale sempre aggiornato senza "Ricalcola spese").
+- Direzione chiara per modulo condiviso Pianifica impianto / Calcolo materiali.
+
+---
+
+## ✅ Fase 1 – Base comune moduli Frutteto/Oliveto (2026-01-27) - COMPLETATO
+
+### Obiettivo
+Preparare l’architettura per i moduli Frutteto e Oliveto riutilizzando il vigneto tramite una classe base condivisa, senza clonare codice.
+
+### Implementazione
+- ✅ **BaseColtura** (`shared/models/BaseColtura.js`): classe base con campi e metodi comuni (anagrafica, tracciamento, rese, spese/costi, validate, calcoli margini/ROI) da `PLAN_MODULI_COLTURA_SPECIALIZZATI.md`.
+- ✅ **Vigneto** (`modules/vigneto/models/Vigneto.js`): ora estende `BaseColtura`; mantiene solo campi e logica specifici (tipoPalo, destinazioneUva, cantina, rese qli/ha, spese vendemmia/cantina/prodotti); compatibilità Firestore conservata (dataUltimaVendemmia, alias).
+- ✅ **Verifica**: test manuale su anagrafica vigneti e vendemmia; tutto funzionante.
+- ✅ **Tooling**: script `npm start` e `start-server.bat` aggiornati per usare `http-server` da dipendenze di progetto.
+
+### File toccati
+- Creato: `shared/models/BaseColtura.js`
+- Modificati: `modules/vigneto/models/Vigneto.js`, `package.json`, `start-server.bat`, `GUIDA_SVILUPPO_MODULI_FRUTTETO_OLIVETO.md`
+- Creato: `RIEPILOGO_LAVORI_2026-01-27.md`
+
+### Riferimenti
+- `GUIDA_SVILUPPO_MODULI_FRUTTETO_OLIVETO.md` (Fase 1 completata; prossimo: Fase 2 – Modulo Frutteto)
+- `PLAN_MODULI_COLTURA_SPECIALIZZATI.md`
+
+---
+
 ## ✅ Fix Precompilazione Coltura nei Preventivi (2026-01-05) - COMPLETATO
 
 ### Obiettivo

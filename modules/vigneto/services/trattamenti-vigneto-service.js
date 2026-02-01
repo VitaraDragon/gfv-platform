@@ -320,3 +320,200 @@ export async function getProssimiTrattamenti(vignetoId, dataVendemmiaPrevista = 
     return [];
   }
 }
+
+/**
+ * Verifica se il tipo lavoro appartiene alla categoria Trattamenti
+ * @param {string} tipoLavoroNome - Nome tipo lavoro
+ * @returns {Promise<boolean>}
+ */
+async function isTipoLavoroCategoriaTrattamenti(tipoLavoroNome) {
+  try {
+    if (!tipoLavoroNome) return false;
+    const { getTipoLavoroByNome } = await import('../../../core/services/tipi-lavoro-service.js');
+    const { getCategoria } = await import('../../../core/services/categorie-service.js');
+    const tipo = await getTipoLavoroByNome(tipoLavoroNome);
+    if (!tipo || !tipo.categoriaId) return false;
+    let cat = await getCategoria(tipo.categoriaId);
+    if (!cat) return false;
+    if (cat.parentId) {
+      cat = await getCategoria(cat.parentId);
+      if (!cat) return false;
+    }
+    return (cat.codice || '').toLowerCase() === 'trattamenti';
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Trova trattamento collegato a un lavoro
+ * @param {string} lavoroId - ID lavoro
+ * @returns {Promise<{vignetoId: string, trattamentoId: string, trattamento: TrattamentoVigneto}|null>}
+ */
+export async function findTrattamentoByLavoroId(lavoroId) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId || !lavoroId) return null;
+    const { getAllVigneti } = await import('./vigneti-service.js');
+    const vigneti = await getAllVigneti();
+    for (const vigneto of vigneti) {
+      const trattamenti = await getTrattamenti(vigneto.id);
+      const trattamento = trattamenti.find(t => t.lavoroId === lavoroId);
+      if (trattamento) {
+        return { vignetoId: vigneto.id, trattamentoId: trattamento.id, trattamento };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('[TRATTAMENTI-VIGNETO] findTrattamentoByLavoroId:', error);
+    return null;
+  }
+}
+
+/**
+ * Trova trattamento collegato a un'attività
+ * @param {string} attivitaId - ID attività
+ * @returns {Promise<{vignetoId: string, trattamentoId: string, trattamento: TrattamentoVigneto}|null>}
+ */
+export async function findTrattamentoByAttivitaId(attivitaId) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId || !attivitaId) return null;
+    const { getAllVigneti } = await import('./vigneti-service.js');
+    const vigneti = await getAllVigneti();
+    for (const vigneto of vigneti) {
+      const trattamenti = await getTrattamenti(vigneto.id);
+      const trattamento = trattamenti.find(t => t.attivitaId === attivitaId);
+      if (trattamento) {
+        return { vignetoId: vigneto.id, trattamentoId: trattamento.id, trattamento };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('[TRATTAMENTI-VIGNETO] findTrattamentoByAttivitaId:', error);
+    return null;
+  }
+}
+
+/**
+ * Crea un trattamento automaticamente da un lavoro (categoria Trattamenti, terreno con vigneto)
+ * @param {string} lavoroId - ID lavoro
+ * @returns {Promise<string|null>} ID trattamento creato o null
+ */
+export async function createTrattamentoFromLavoro(lavoroId) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) return null;
+    const { getLavoro } = await import('../../../core/services/lavori-service.js');
+    const lavoro = await getLavoro(lavoroId);
+    if (!lavoro) return null;
+    if (!(await isTipoLavoroCategoriaTrattamenti(lavoro.tipoLavoro || ''))) return null;
+    const { getTerreno } = await import('../../../core/services/terreni-service.js');
+    const terreno = await getTerreno(lavoro.terrenoId);
+    if (!terreno || !(terreno.coltura || '').toLowerCase().includes('vite')) return null;
+    const { getAllVigneti } = await import('./vigneti-service.js');
+    const vigneti = await getAllVigneti();
+    const vigneto = vigneti.find(v => v.terrenoId === terreno.id);
+    if (!vigneto) return null;
+    const trattamentiEsistenti = await getTrattamenti(vigneto.id);
+    const esistente = trattamentiEsistenti.find(t => t.lavoroId === lavoroId);
+    if (esistente) return esistente.id;
+    const dataTrattamento = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date());
+    const operatore = lavoro.caposquadraId || lavoro.operaioId || null;
+    const superficieTrattata = terreno.superficie ? parseFloat(terreno.superficie) : null;
+    const trattamentoData = {
+      vignetoId: vigneto.id,
+      lavoroId,
+      data: dataTrattamento,
+      prodotto: '',
+      dosaggio: '',
+      tipoTrattamento: '',
+      operatore,
+      superficieTrattata,
+      costoProdotto: 0,
+      note: `Trattamento creato da lavoro: ${lavoro.nome || lavoroId}`
+    };
+    const trattamento = new TrattamentoVigneto(trattamentoData);
+    trattamento.aggiornaCalcoli();
+    const collectionPath = getTrattamentiPath(vigneto.id);
+    const trattamentoId = await createDocument(collectionPath, trattamento.toFirestore(), tenantId);
+    await aggiornaVignetoDaTrattamento(vigneto.id, trattamento);
+    return trattamentoId;
+  } catch (error) {
+    console.error('[TRATTAMENTI-VIGNETO] createTrattamentoFromLavoro:', error);
+    return null;
+  }
+}
+
+/**
+ * Crea un trattamento automaticamente da un'attività (categoria Trattamenti, terreno con vigneto)
+ * @param {string} attivitaId - ID attività
+ * @returns {Promise<string|null>} ID trattamento creato o null
+ */
+export async function createTrattamentoFromAttivita(attivitaId) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) return null;
+    const { getAttivita } = await import('../../../core/services/attivita-service.js');
+    const attivita = await getAttivita(attivitaId);
+    if (!attivita) return null;
+    if (!(await isTipoLavoroCategoriaTrattamenti(attivita.tipoLavoro || ''))) return null;
+    const { getTerreno } = await import('../../../core/services/terreni-service.js');
+    const terreno = await getTerreno(attivita.terrenoId);
+    if (!terreno || !(terreno.coltura || '').toLowerCase().includes('vite')) return null;
+    const { getAllVigneti } = await import('./vigneti-service.js');
+    const vigneti = await getAllVigneti();
+    const vigneto = vigneti.find(v => v.terrenoId === terreno.id);
+    if (!vigneto) return null;
+    const trattamentiEsistenti = await getTrattamenti(vigneto.id);
+    const esistente = trattamentiEsistenti.find(t => t.attivitaId === attivitaId);
+    if (esistente) return esistente.id;
+    const dataTrattamento = attivita.data instanceof Date ? attivita.data : (attivita.data ? new Date(attivita.data) : new Date());
+    const trattamentoData = {
+      vignetoId: vigneto.id,
+      attivitaId,
+      data: dataTrattamento,
+      prodotto: '',
+      dosaggio: '',
+      tipoTrattamento: '',
+      operatore: null,
+      superficieTrattata: null,
+      costoProdotto: 0,
+      note: `Trattamento creato da attività: ${attivita.descrizione || attivitaId}`
+    };
+    const trattamento = new TrattamentoVigneto(trattamentoData);
+    trattamento.aggiornaCalcoli();
+    const collectionPath = getTrattamentiPath(vigneto.id);
+    const trattamentoId = await createDocument(collectionPath, trattamento.toFirestore(), tenantId);
+    await aggiornaVignetoDaTrattamento(vigneto.id, trattamento);
+    return trattamentoId;
+  } catch (error) {
+    console.error('[TRATTAMENTI-VIGNETO] createTrattamentoFromAttivita:', error);
+    return null;
+  }
+}
+
+/**
+ * Sincronizza dati base trattamento dal lavoro (data, operatore, superficie)
+ * @param {string} lavoroId - ID lavoro
+ * @returns {Promise<string|null>} trattamentoId sincronizzato o null
+ */
+export async function syncTrattamentoFromLavoro(lavoroId) {
+  try {
+    const found = await findTrattamentoByLavoroId(lavoroId);
+    if (!found) return null;
+    const { getLavoro } = await import('../../../core/services/lavori-service.js');
+    const lavoro = await getLavoro(lavoroId);
+    if (!lavoro) return null;
+    const operatore = lavoro.caposquadraId || lavoro.operaioId || null;
+    const { getTerreno } = await import('../../../core/services/terreni-service.js');
+    const terreno = await getTerreno(lavoro.terrenoId);
+    const superficieTrattata = terreno && terreno.superficie ? parseFloat(terreno.superficie) : null;
+    const dataTrattamento = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date());
+    await updateTrattamento(found.vignetoId, found.trattamentoId, { data: dataTrattamento, operatore, superficieTrattata });
+    return found.trattamentoId;
+  } catch (error) {
+    console.error('[TRATTAMENTI-VIGNETO] syncTrattamentoFromLavoro:', error);
+    return null;
+  }
+}

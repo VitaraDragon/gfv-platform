@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiche Frutteto - GFV Platform</title>
+    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <meta name="theme-color" content="#FF6F00">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .header h1 { font-size: 36px; margin-bottom: 10px; }
+        .header p { font-size: 18px; opacity: 0.9; }
+        .header-actions { margin-top: 20px; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.3); }
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 14px; color: #666; font-weight: 500; }
+        .filter-group select {
+            padding: 8px 12px;
+            border: 2px solid #FFCC80;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        .filter-group select:hover { border-color: #FF6F00; }
+        .filter-group select:focus { outline: none; border-color: #FF6F00; }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .chart-card {
+            background: white;
+            border: 2px solid #FFCC80;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-card h3 { color: #FF6F00; margin-bottom: 15px; font-size: 18px; }
+        .chart-container { position: relative; height: 300px; }
+        .chart-container.full-height { height: 400px; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 200px;
+        }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .empty-state-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .filters { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Statistiche Frutteto</h1>
+            <p>Analisi dettagliate e grafici produzione, qualit&agrave; e costi</p>
+            <div class="header-actions">
+                <a href="frutteto-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="filtro-frutteto">Frutteto</label>
+                <select id="filtro-frutteto">
+                    <option value="">Tutti i frutteti</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filtro-anno">Anno</label>
+                <select id="filtro-anno"></select>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Produzione nel Tempo (Ultimi 3 Anni) - kg</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-produzione-tempo"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Resa per Specie (kg/Ha)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-resa-specie"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Produzione Mensile (kg)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-produzione-mensile"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Calibro frutta (kg)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-calibro"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Grado maturazione (kg)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-maturazione"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Colore frutta (kg)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-colore"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Scarto nel tempo (kg)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-scarto-tempo"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Scarto per categoria (kg)</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-scarto-categoria"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card" style="grid-column: 1 / -1;">
+                    <h3>Costi nel Tempo (Ultimi 3 Anni)</h3>
+                    <div class="chart-container full-height">
+                        <canvas id="chart-costi-tempo"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Spese per Categoria</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-spese-categoria"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Trend Spese Mensili</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-spese-mensili"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module">
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
+        const firebaseConfig = await waitForConfig();
+        const { initializeFirebase, getAuthInstance, getDb } = await import('../../../core/services/firebase-service.js');
+        const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = await import('../../../core/services/tenant-service.js');
+        initializeFirebase(firebaseConfig);
+        const auth = getAuthInstance();
+        const db = getDb();
+        initializeTenantService();
+
+        let currentUser = null;
+        let currentTenantId = null;
+        let currentFruttetoId = null;
+        let currentAnno = null;
+        let charts = {};
+        let debounceTimer = null;
+        const CACHE_TTL = 5 * 60 * 1000;
+        const CACHE_PREFIX = 'frutteto_stats_';
+
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        const chartOrder = [
+            'chart-produzione-tempo', 'chart-resa-specie', 'chart-produzione-mensile',
+            'chart-calibro', 'chart-maturazione', 'chart-colore',
+            'chart-scarto-tempo', 'chart-scarto-categoria',
+            'chart-costi-tempo', 'chart-spese-categoria', 'chart-spese-mensili'
+        ];
+
+        function ensureCanvas(chartId) {
+            const index = chartOrder.indexOf(chartId);
+            if (index < 0) return null;
+            const cards = document.querySelectorAll('.chart-card');
+            if (index >= cards.length) return null;
+            const card = cards[index];
+            const container = card.querySelector('.chart-container');
+            if (!container) return null;
+            const existingKey = Object.keys(charts).find(k => charts[k] && charts[k].canvas && charts[k].canvas.id === chartId);
+            if (existingKey && charts[existingKey]) {
+                try { charts[existingKey].destroy(); } catch (e) {}
+                delete charts[existingKey];
+            }
+            let canvas = document.getElementById(chartId);
+            if (canvas && !container.contains(canvas)) { canvas.remove(); canvas = null; }
+            if (container.innerHTML.includes('empty-state') || container.innerHTML.includes('Caricamento')) {
+                container.innerHTML = '';
+            }
+            if (!canvas || canvas.tagName !== 'CANVAS') {
+                container.innerHTML = `<canvas id="${chartId}"></canvas>`;
+                canvas = document.getElementById(chartId);
+            }
+            return canvas;
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../../../core/auth/login-standalone.html';
+                return;
+            }
+            try {
+                const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    window.location.href = '../../../core/auth/login-standalone.html';
+                    return;
+                }
+                const userData = userDoc.data();
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => {
+                    const l = (r || '').toLowerCase();
+                    return l.includes('manager') || l.includes('amministratore');
+                });
+                if (!isManager) {
+                    showAlert('Permessi insufficienti', 'error');
+                    setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                let tenantId = getCurrentTenantId() || userData.tenantId;
+                if (!tenantId) {
+                    for (let i = 0; i < 10; i++) {
+                        await new Promise(r => setTimeout(r, 100));
+                        tenantId = getCurrentTenantId();
+                        if (tenantId) break;
+                    }
+                }
+                currentTenantId = tenantId;
+                if (!tenantId) {
+                    showAlert('Nessun tenant disponibile', 'error');
+                    setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                const tenant = await getCurrentTenant();
+                if (!tenant) {
+                    showAlert('Tenant non trovato', 'error');
+                    setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                const modules = (tenant.modules || []).map(m => (m || '').toLowerCase());
+                if (!modules.includes('frutteto')) {
+                    showAlert('Modulo Frutteto non attivo', 'error');
+                    setTimeout(() => { window.location.href = '../../../core/admin/abbonamento-standalone.html'; }, 3000);
+                    return;
+                }
+                await initFilters();
+                await loadCharts();
+            } catch (err) {
+                showAlert('Errore: ' + err.message, 'error');
+            }
+        });
+
+        async function initFilters() {
+            const { getAllFrutteti } = await import('../services/frutteti-service.js');
+            const frutteti = await getAllFrutteti();
+            const sel = document.getElementById('filtro-frutteto');
+            sel.innerHTML = '<option value="">Tutti i frutteti</option>';
+            frutteti.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f.id;
+                opt.textContent = f.specie || f.varieta || 'Frutteto';
+                sel.appendChild(opt);
+            });
+            const annoSelect = document.getElementById('filtro-anno');
+            const annoCorrente = new Date().getFullYear();
+            for (let i = 0; i < 10; i++) {
+                const a = annoCorrente - i;
+                const opt = document.createElement('option');
+                opt.value = a;
+                opt.textContent = a;
+                if (i === 0) opt.selected = true;
+                annoSelect.appendChild(opt);
+            }
+            currentAnno = annoCorrente;
+            sel.addEventListener('change', (e) => {
+                currentFruttetoId = e.target.value || null;
+                debouncedLoadCharts();
+            });
+            annoSelect.addEventListener('change', (e) => {
+                currentAnno = parseInt(e.target.value);
+                debouncedLoadCharts();
+            });
+        }
+
+        function debouncedLoadCharts() {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => loadCharts(), 400);
+        }
+
+        function getCacheKey(fruttetoId, anno, type) {
+            return `${CACHE_PREFIX}${fruttetoId || 'all'}_${anno}_${type}`;
+        }
+        function getCached(key) {
+            try {
+                const s = sessionStorage.getItem(key);
+                if (!s) return null;
+                const { data, timestamp } = JSON.parse(s);
+                if (Date.now() - timestamp > CACHE_TTL) {
+                    sessionStorage.removeItem(key);
+                    return null;
+                }
+                return data;
+            } catch (e) { return null; }
+        }
+        function setCached(key, data) {
+            try {
+                sessionStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+            } catch (e) {}
+        }
+
+        async function loadCharts() {
+            try {
+                document.querySelectorAll('.chart-container').forEach(c => {
+                    if (!c.querySelector('canvas')) c.innerHTML = '<div class="loading">Caricamento...</div>';
+                });
+                const {
+                    getStatisticheFrutteto,
+                    getProduzioneTemporale,
+                    getQualitaFrutta,
+                    getCostiTemporale,
+                    getScartoTemporale
+                } = await import('../services/frutteto-statistiche-service.js');
+
+                const kStats = getCacheKey(currentFruttetoId, currentAnno, 'stats');
+                const kProd = getCacheKey(currentFruttetoId, currentAnno, 'produzione');
+                const kQual = getCacheKey(currentFruttetoId, currentAnno, 'qualita');
+                const kCosti = getCacheKey(currentFruttetoId, currentAnno, 'costi');
+                const kScarto = getCacheKey(currentFruttetoId, currentAnno, 'scarto');
+
+                let stats = getCached(kStats);
+                let produzioneTemporale = getCached(kProd);
+                let qualitaFrutta = getCached(kQual);
+                let costiTemporale = getCached(kCosti);
+                let scartoTemporale = getCached(kScarto);
+
+                function hasQualitaData(qf) {
+                    if (!qf || typeof qf !== 'object') return false;
+                    return Object.values(qf).some(q => {
+                        if (!q || typeof q !== 'object') return false;
+                        return Object.keys(q.calibro || {}).length > 0 || Object.keys(q.gradoMaturazione || {}).length > 0 || Object.keys(q.colore || {}).length > 0;
+                    });
+                }
+                if (qualitaFrutta && !hasQualitaData(qualitaFrutta)) qualitaFrutta = null;
+
+                const promises = [];
+                if (!stats) promises.push(getStatisticheFrutteto(currentFruttetoId, currentAnno).then(d => { stats = d; setCached(kStats, d); }));
+                if (!produzioneTemporale) promises.push(getProduzioneTemporale(currentFruttetoId, 3).then(d => { produzioneTemporale = d; setCached(kProd, d); }));
+                if (!qualitaFrutta) promises.push(getQualitaFrutta(currentFruttetoId, currentAnno).then(d => { qualitaFrutta = d; setCached(kQual, d); }));
+                if (!costiTemporale) promises.push(getCostiTemporale(currentFruttetoId, 3).then(d => { costiTemporale = d; setCached(kCosti, d); }));
+                if (!scartoTemporale) promises.push(getScartoTemporale(currentFruttetoId, 3).then(d => { scartoTemporale = d; setCached(kScarto, d); }));
+                if (promises.length) await Promise.all(promises);
+
+                if (produzioneTemporale) updateChartProduzioneTempo(produzioneTemporale);
+                if (stats) {
+                    updateChartResaSpecie(stats.resaPerSpecie);
+                    updateChartProduzioneMensile(stats.produzionePerMese, currentAnno);
+                    updateChartSpeseCategoria(stats);
+                    updateChartSpeseMensili(stats.spesePerMese, currentAnno);
+                    updateChartScartoCategoria(stats.scartoPerCategoria || {});
+                }
+                if (scartoTemporale) updateChartScartoTempo(scartoTemporale);
+                if (qualitaFrutta) {
+                    updateChartCalibro(qualitaFrutta);
+                    updateChartMaturazione(qualitaFrutta);
+                    updateChartColore(qualitaFrutta);
+                }
+                if (costiTemporale) updateChartCostiTempo(costiTemporale);
+            } catch (err) {
+                showAlert('Errore caricamento grafici: ' + err.message, 'error');
+            }
+        }
+
+        function updateChartProduzioneTempo(data) {
+            if (charts.produzioneTempo) { try { charts.produzioneTempo.destroy(); } catch (e) {} charts.produzioneTempo = null; }
+            const canvas = ensureCanvas('chart-produzione-tempo');
+            if (!canvas) return;
+            if (!data || !data.anni || data.anni.length === 0 || (data.produzione && data.produzione.every(v => v === 0))) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.produzioneTempo = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.anni.map(a => a.toString()),
+                    datasets: [{
+                        label: 'Produzione (kg)',
+                        data: data.produzione,
+                        borderColor: '#FF6F00',
+                        backgroundColor: 'rgba(255, 111, 0, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(0) + ' kg' } } }
+                }
+            });
+        }
+
+        function updateChartResaSpecie(data) {
+            if (charts.resaSpecie) { try { charts.resaSpecie.destroy(); } catch (e) {} charts.resaSpecie = null; }
+            const canvas = ensureCanvas('chart-resa-specie');
+            if (!canvas) return;
+            if (!data || typeof data !== 'object') {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍎</div><p>Nessun dato</p></div>';
+                return;
+            }
+            const specie = Object.keys(data);
+            if (specie.length === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍎</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.resaSpecie = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: specie,
+                    datasets: [{
+                        label: 'Resa (kg/Ha)',
+                        data: specie.map(s => data[s].resaKgHa || 0),
+                        backgroundColor: '#FF6F00',
+                        borderColor: '#E65100',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(1) + ' kg/Ha' } } }
+                }
+            });
+        }
+
+        function updateChartProduzioneMensile(data, anno) {
+            if (charts.produzioneMensile) { try { charts.produzioneMensile.destroy(); } catch (e) {} charts.produzioneMensile = null; }
+            const canvas = ensureCanvas('chart-produzione-mensile');
+            if (!canvas) return;
+            const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+            const valori = [];
+            for (let i = 1; i <= 12; i++) {
+                const k = `${anno}-${String(i).padStart(2,'0')}`;
+                valori.push((data && data[k]) || 0);
+            }
+            if (valori.every(v => v === 0)) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.produzioneMensile = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: mesi,
+                    datasets: [{ label: 'Produzione (kg)', data: valori, backgroundColor: '#FF6F00', borderColor: '#E65100', borderWidth: 1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function flattenQualita(qualitaFrutta, key) {
+            const out = {};
+            if (!qualitaFrutta || typeof qualitaFrutta !== 'object') return out;
+            Object.values(qualitaFrutta).forEach(q => {
+                const obj = q[key];
+                if (obj && typeof obj === 'object') {
+                    Object.keys(obj).forEach(k => { out[k] = (out[k] || 0) + (obj[k] || 0); });
+                }
+            });
+            return out;
+        }
+
+        function updateChartCalibro(qualitaFrutta) {
+            if (charts.calibro) { try { charts.calibro.destroy(); } catch (e) {} charts.calibro = null; }
+            const canvas = ensureCanvas('chart-calibro');
+            if (!canvas) return;
+            const flat = flattenQualita(qualitaFrutta, 'calibro');
+            const labels = Object.keys(flat);
+            if (labels.length === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📏</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.calibro = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'kg', data: labels.map(l => flat[l]), backgroundColor: '#FFB74D', borderColor: '#FF6F00', borderWidth: 1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function updateChartMaturazione(qualitaFrutta) {
+            if (charts.maturazione) { try { charts.maturazione.destroy(); } catch (e) {} charts.maturazione = null; }
+            const canvas = ensureCanvas('chart-maturazione');
+            if (!canvas) return;
+            const flat = flattenQualita(qualitaFrutta, 'gradoMaturazione');
+            const labels = Object.keys(flat);
+            if (labels.length === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍎</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.maturazione = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'kg', data: labels.map(l => flat[l]), backgroundColor: '#FFCC80', borderColor: '#FF6F00', borderWidth: 1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function updateChartColore(qualitaFrutta) {
+            if (charts.colore) { try { charts.colore.destroy(); } catch (e) {} charts.colore = null; }
+            const canvas = ensureCanvas('chart-colore');
+            if (!canvas) return;
+            const flat = flattenQualita(qualitaFrutta, 'colore');
+            const labels = Object.keys(flat);
+            if (labels.length === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎨</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.colore = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'kg', data: labels.map(l => flat[l]), backgroundColor: '#FFA726', borderColor: '#FF6F00', borderWidth: 1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        const SCARTO_CATEGORIE_LABELS = {
+            dannoFisico: 'Danno fisico',
+            calibroFuoriNorma: 'Calibro fuori norma',
+            marciume: 'Marciume',
+            maturazioneNonIdonea: 'Maturazione non idonea',
+            altro: 'Altro'
+        };
+
+        function updateChartScartoTempo(data) {
+            if (charts.scartoTempo) { try { charts.scartoTempo.destroy(); } catch (e) {} charts.scartoTempo = null; }
+            const canvas = ensureCanvas('chart-scarto-tempo');
+            if (!canvas) return;
+            if (!data || !data.anni || data.anni.length === 0 || (data.scarto && data.scarto.every(v => v === 0))) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.scartoTempo = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.anni.map(a => a.toString()),
+                    datasets: [{
+                        label: 'Scarto (kg)',
+                        data: data.scarto || [],
+                        borderColor: '#FF6F00',
+                        backgroundColor: 'rgba(255, 111, 0, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(0) + ' kg' } } }
+                }
+            });
+        }
+
+        function updateChartScartoCategoria(scartoPerCategoria) {
+            if (charts.scartoCategoria) { try { charts.scartoCategoria.destroy(); } catch (e) {} charts.scartoCategoria = null; }
+            const canvas = ensureCanvas('chart-scarto-categoria');
+            if (!canvas) return;
+            if (!scartoPerCategoria || typeof scartoPerCategoria !== 'object') {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>Nessun dato</p></div>';
+                return;
+            }
+            const labels = [];
+            const values = [];
+            Object.keys(scartoPerCategoria).forEach(key => {
+                const v = parseFloat(scartoPerCategoria[key]) || 0;
+                if (v > 0) {
+                    labels.push(SCARTO_CATEGORIE_LABELS[key] || key);
+                    values.push(v);
+                }
+            });
+            if (labels.length === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>Nessun dato</p></div>';
+                return;
+            }
+            const colors = ['#FF6F00', '#FFB74D', '#FFCC80', '#FFA726', '#E65100'];
+            charts.scartoCategoria = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{ label: 'kg', data: values, backgroundColor: labels.map((_, i) => colors[i % colors.length]), borderColor: '#E65100', borderWidth: 1 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: v => v.toFixed(0) + ' kg' } } } }
+            });
+        }
+
+        function updateChartCostiTempo(data) {
+            if (charts.costiTempo) { try { charts.costiTempo.destroy(); } catch (e) {} charts.costiTempo = null; }
+            const canvas = ensureCanvas('chart-costi-tempo');
+            if (!canvas) return;
+            if (!data || !data.anni || data.anni.length === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Nessun dato</p></div>';
+                return;
+            }
+            const hasData = (data.totale && data.totale.some(v => v > 0)) || (data.manodopera && data.manodopera.some(v => v > 0)) || (data.macchine && data.macchine.some(v => v > 0)) || (data.prodotti && data.prodotti.some(v => v > 0));
+            if (!hasData) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.costiTempo = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.anni.map(a => a.toString()),
+                    datasets: [
+                        { label: 'Manodopera', data: data.manodopera || [], borderColor: '#2E8B57', tension: 0.4, fill: false },
+                        { label: 'Macchine', data: data.macchine || [], borderColor: '#007bff', tension: 0.4, fill: false },
+                        { label: 'Prodotti', data: data.prodotti || [], borderColor: '#ffc107', tension: 0.4, fill: false },
+                        { label: 'Totale', data: data.totale || [], borderColor: '#FF6F00', tension: 0.4, fill: false }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true, position: 'top' } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => '€' + v.toFixed(0) } } }
+                }
+            });
+        }
+
+        function updateChartSpeseCategoria(stats) {
+            if (charts.speseCategoria) { try { charts.speseCategoria.destroy(); } catch (e) {} charts.speseCategoria = null; }
+            const canvas = ensureCanvas('chart-spese-categoria');
+            if (!canvas) return;
+            const raccolta = stats.speseRaccoltaAnno || 0;
+            const totale = stats.costoTotaleAnno ?? stats.speseTotaleAnno ?? 0;
+            const altri = Math.max(0, totale - raccolta);
+            if (totale === 0 && raccolta === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💳</div><p>Nessun dato</p></div>';
+                return;
+            }
+            const labels = [];
+            const values = [];
+            if (raccolta > 0) { labels.push('Raccolta'); values.push(raccolta); }
+            if (altri > 0) { labels.push('Altri costi'); values.push(altri); }
+            if (labels.length === 0) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💳</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.speseCategoria = new Chart(canvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: ['#FF6F00', '#FFCC80'],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: { callbacks: { label: ctx => ctx.label + ': €' + ctx.parsed.toFixed(2) } }
+                    }
+                }
+            });
+        }
+
+        function updateChartSpeseMensili(data, anno) {
+            if (charts.speseMensili) { try { charts.speseMensili.destroy(); } catch (e) {} charts.speseMensili = null; }
+            const canvas = ensureCanvas('chart-spese-mensili');
+            if (!canvas) return;
+            if (!data || typeof data !== 'object') {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato</p></div>';
+                return;
+            }
+            const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+            const valori = [];
+            for (let i = 1; i <= 12; i++) {
+                const k = `${anno}-${String(i).padStart(2,'0')}`;
+                valori.push((data[k]) || 0);
+            }
+            if (valori.every(v => v === 0)) {
+                canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato</p></div>';
+                return;
+            }
+            charts.speseMensili = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: mesi,
+                    datasets: [{
+                        label: 'Spese (€)',
+                        data: valori,
+                        borderColor: '#FF6F00',
+                        backgroundColor: 'rgba(255, 111, 0, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => '€' + v.toFixed(0) } } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

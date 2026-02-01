@@ -5,7 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calcolo Materiali Impianto - GFV Platform</title>
     <link rel="manifest" href="/gfv-platform/manifest.json">
-    <meta name="theme-color" content="#6A1B9A">
+    <meta name="theme-color" id="metaThemeColor" content="#6A1B9A">
+    <script>
+        (function() {
+            var coltura = (new URLSearchParams(window.location.search)).get('coltura');
+            var themes = {
+                frutteto: { bg: 'linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%)', header: 'linear-gradient(135deg, #FF6F00 0%, #E65100 100%)', accent: '#FF6F00', accentDark: '#E65100' },
+                oliveto: { bg: 'linear-gradient(135deg, #C8E6C9 0%, #2E7D32 100%)', header: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)', accent: '#2E7D32', accentDark: '#1B5E20' }
+            };
+            var t = coltura && themes[coltura.toLowerCase()];
+            if (t) {
+                document.documentElement.style.setProperty('--theme-bg', t.bg);
+                document.documentElement.style.setProperty('--theme-header', t.header);
+                document.documentElement.style.setProperty('--theme-accent', t.accent);
+                document.documentElement.style.setProperty('--theme-accent-dark', t.accentDark);
+                var meta = document.getElementById('metaThemeColor');
+                if (meta) meta.setAttribute('content', t.accent);
+            }
+        })();
+    </script>
     <!-- jsPDF per esportazione PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -15,9 +33,15 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --theme-bg: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
+            --theme-header: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+            --theme-accent: #6A1B9A;
+            --theme-accent-dark: #4A148C;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
+            background: var(--theme-bg);
             color: #333;
             min-height: 100vh;
         }
@@ -29,7 +53,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+            background: var(--theme-header);
             color: white;
             padding: 30px;
             border-radius: 12px;
@@ -109,7 +133,7 @@
         }
 
         .section-title {
-            color: #6A1B9A;
+            color: var(--theme-accent);
             font-size: 20px;
             margin-bottom: 20px;
             padding-bottom: 10px;
@@ -128,14 +152,14 @@
         }
 
         thead {
-            background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+            background: var(--theme-header);
             color: white;
         }
 
         th, td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #E1BEE7;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
         }
 
         th {
@@ -296,7 +320,7 @@
                 <p>Calcola i materiali necessari per realizzare l'impianto pianificato</p>
             </div>
             <div class="header-actions">
-                <a href="vigneto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+                <a id="linkDashboard" href="vigneto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
             </div>
         </div>
 
@@ -337,32 +361,10 @@
 
             <div class="config-section">
                 <div class="form-group">
-                    <label for="tipoImpianto">Tipo Impianto *</label>
+                    <label for="tipoImpianto" id="labelTipoImpianto">Tipo Impianto *</label>
                     <select id="tipoImpianto" required>
                         <option value="">Seleziona tipo impianto</option>
-                        <optgroup label="Sistemi a Spalliera">
-                            <option value="guyot">Guyot</option>
-                            <option value="cordone_speronato">Cordone Speronato</option>
-                            <option value="cordone_libero">Cordone Libero</option>
-                            <option value="cordone_doppio">Cordone Doppio</option>
-                            <option value="spalliera">Spalliera</option>
-                            <option value="spalliera_doppia">Spalliera Doppia</option>
-                            <option value="sylvoz">Sylvoz</option>
-                            <option value="casarsa">Casarsa</option>
-                            <option value="doppio_capovolto">Doppio Capovolto</option>
-                            <option value="raggiera">Raggiera</option>
-                            <option value="scott_henry">Scott Henry</option>
-                        </optgroup>
-                        <optgroup label="Sistemi Sopraelevati">
-                            <option value="pergola">Pergola</option>
-                            <option value="tendone">Tendone</option>
-                            <option value="gdc">GDC (Geneva Double Curtain)</option>
-                            <option value="lyre">Lyre</option>
-                        </optgroup>
-                        <optgroup label="Sistemi Tradizionali">
-                            <option value="alberello">Alberello</option>
-                            <option value="vite_maritata">Vite Maritata</option>
-                        </optgroup>
+                        <!-- Popolato da populateTipoImpiantoSelect(currentColtura) -->
                     </select>
                     <small style="color: #666; margin-top: 5px; display: block;" id="tipo-impianto-desc"></small>
                 </div>
@@ -381,65 +383,143 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="numeroFiliPortata">Numero Fili di Portata (override tipo impianto)</label>
+                        <label for="numeroFiliPortata" id="labelNumeroFiliPortata">Numero Fili di Portata (override tipo impianto)</label>
                         <input type="number" id="numeroFiliPortata" min="0" max="6" step="1" placeholder="Auto (da tipo impianto)">
-                        <small style="color: #666; margin-top: 5px; display: block;">Fili di sostegno principale. Lascia vuoto per usare il valore predefinito</small>
+                        <small style="color: #666; margin-top: 5px; display: block;" id="smallNumeroFiliPortata">Fili di sostegno principale. Lascia vuoto per usare il valore predefinito</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="numeroFiliVegetazione">Numero Fili di Vegetazione (override tipo impianto)</label>
+                        <label for="numeroFiliVegetazione" id="labelNumeroFiliVegetazione">Numero Fili di Vegetazione (override tipo impianto)</label>
                         <input type="number" id="numeroFiliVegetazione" min="0" max="6" step="1" placeholder="Auto (da tipo impianto)">
-                        <small style="color: #666; margin-top: 5px; display: block;">Fili per contenimento chioma. Lascia vuoto per usare il valore predefinito</small>
+                        <small style="color: #666; margin-top: 5px; display: block;" id="smallNumeroFiliVegetazione">Fili per contenimento chioma. Lascia vuoto per usare il valore predefinito</small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="diametroFiloPortata">Diametro Fili di Portata (mm)</label>
+                        <label for="diametroFiloPortata" id="labelDiametroFiloPortata">Diametro Fili di Portata (mm)</label>
                         <input type="number" id="diametroFiloPortata" min="3" max="6" step="0.1" placeholder="Auto (da tipo impianto)">
-                        <small style="color: #666; margin-top: 5px; display: block;">Tipicamente 4-5mm. Lascia vuoto per usare il valore predefinito</small>
+                        <small style="color: #666; margin-top: 5px; display: block;" id="smallDiametroFiloPortata">Tipicamente 4-5mm. Lascia vuoto per usare il valore predefinito</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="diametroFiloVegetazione">Diametro Fili di Vegetazione (mm)</label>
+                        <label for="diametroFiloVegetazione" id="labelDiametroFiloVegetazione">Diametro Fili di Vegetazione (mm)</label>
                         <input type="number" id="diametroFiloVegetazione" min="1.5" max="4" step="0.1" placeholder="Auto (da tipo impianto)">
-                        <small style="color: #666; margin-top: 5px; display: block;">Tipicamente 2-2.5mm. Lascia vuoto per usare il valore predefinito</small>
+                        <small style="color: #666; margin-top: 5px; display: block;" id="smallDiametroFiloVegetazione">Tipicamente 2-2.5mm. Lascia vuoto per usare il valore predefinito</small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="usaTutori">Usa Braccetti</label>
+                        <label for="usaTutori" id="labelUsaTutori">Usa Braccetti</label>
                         <select id="usaTutori">
                             <option value="">Auto (da tipo impianto)</option>
                             <option value="true">Sì</option>
                             <option value="false">No</option>
                         </select>
-                        <small style="color: #666; margin-top: 5px; display: block;">
-                            Braccetti strutturali per pali (2 per palo) - necessari per pergole, tendoni, GDC, Lyre
-                        </small>
+                        <small style="color: #666; margin-top: 5px; display: block;" id="smallUsaTutori">Braccetti strutturali per pali (2 per palo) - necessari per pergole, tendoni, GDC, Lyre</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="usaAncore">Usa Ancore</label>
+                        <label for="usaAncore" id="labelUsaAncore">Usa Ancore</label>
                         <select id="usaAncore">
                             <option value="">Auto (da tipo impianto)</option>
                             <option value="true">Sì</option>
                             <option value="false">No</option>
                         </select>
+                        <small style="color: #666; margin-top: 5px; display: block;" id="smallUsaAncore">Ancore per pali di testata. Necessarie per strutture sopraelevate</small>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="fissaggioTutori">Fissaggio Tutori al Filo Portata</label>
+                        <label for="fissaggioTutori" id="labelFissaggioTutori">Fissaggio Tutori al Filo Portata</label>
                         <select id="fissaggioTutori">
                             <option value="legacci">Legacci (legare tutori al filo)</option>
                             <option value="gancetti">Gancetti (fissaggio meccanico)</option>
                         </select>
-                        <small style="color: #666; margin-top: 5px; display: block;">
-                            Scegli come fissare i tutori al filo di portata. I legacci sono gli stessi usati per legare le piante ai fili.
-                        </small>
+                        <small style="color: #666; margin-top: 5px; display: block;" id="smallFissaggioTutori">Scegli come fissare i tutori al filo di portata. I legacci sono gli stessi usati per legare le piante ai fili.</small>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="usaAntigrandine" style="width: 18px; height: 18px;">
+                        <span>Impianto reti antigrandine</span>
+                    </label>
+                </div>
+
+                <div id="config-antigrandine" style="display: none; margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--theme-accent);">Configurazione Reti Antigrandine</h3>
+                    <div class="form-group">
+                        <label for="tipoStrutturaAntigrandine">Tipo struttura</label>
+                        <select id="tipoStrutturaAntigrandine">
+                            <option value="rete_piana">Rete piana</option>
+                            <option value="capannina">Capannina</option>
+                            <option value="sistema_v">Sistema a V</option>
+                        </select>
+                        <small style="color: #666; margin-top: 5px; display: block;">Rete piana: più economica, 8 m tra pali. Capannina: struttura più alta, 10 m tra pali.</small>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="distanzaPaliAntigrandine">Distanza tra pali (m)</label>
+                            <input type="number" id="distanzaPaliAntigrandine" min="4" max="12" step="0.5" value="8">
+                        </div>
+                        <div class="form-group">
+                            <label for="altezzaPaliAntigrandine">Altezza pali fuori terra (m)</label>
+                            <input type="number" id="altezzaPaliAntigrandine" min="3" max="6" step="0.1" value="4">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="diametroCaviAntigrandine">Diametro cavi/funi (mm)</label>
+                            <select id="diametroCaviAntigrandine">
+                                <option value="5">5 mm</option>
+                                <option value="6" selected>6 mm</option>
+                                <option value="7">7 mm</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="usaTirantiAntigrandine">Usa tiranti/ancore</label>
+                            <select id="usaTirantiAntigrandine">
+                                <option value="true" selected>Sì</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="marginePercentualeAntigrandine">Margine superficie rete (%)</label>
+                            <input type="number" id="marginePercentualeAntigrandine" min="5" max="20" step="1" value="10" title="10-15% consigliato per sovrapposizioni e margini">
+                            <small style="color: #666; margin-top: 5px; display: block;">Consigliato 10-15% per sovrapposizioni e margini. Lascia 10 se non sicuro.</small>
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ddd;">
+                        <small style="color: #666; display: block; margin-bottom: 8px;">Override accessori (lascia vuoto per calcolo automatico)</small>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="overrideCopripaliAntigrandine">Copripali (pezzi)</label>
+                                <input type="number" id="overrideCopripaliAntigrandine" min="0" step="1" placeholder="Auto (1 per palo)">
+                            </div>
+                            <div class="form-group">
+                                <label for="overridePlacchetteAntigrandine">Placchette (pezzi)</label>
+                                <input type="number" id="overridePlacchetteAntigrandine" min="0" step="1" placeholder="Auto (~1 ogni 2 m cavi)">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="overrideStaffeAntigrandine">Staffe fermafune (pezzi)</label>
+                                <input type="number" id="overrideStaffeAntigrandine" min="0" step="1" placeholder="Auto (2 per palo testata)">
+                            </div>
+                            <div class="form-group">
+                                <label for="overrideTendifuniAntigrandine">Tendifuni (pezzi)</label>
+                                <input type="number" id="overrideTendifuniAntigrandine" min="0" step="1" placeholder="Auto (2 per filare)">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="overrideSuperficieReteAntigrandine">Superficie rete (m²) override</label>
+                            <input type="number" id="overrideSuperficieReteAntigrandine" min="0" step="1" placeholder="Vuoto = calcolo da superficie + margine %">
+                        </div>
                     </div>
                 </div>
 
@@ -460,18 +540,9 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
         // Calcola base path per GitHub Pages
         function getBasePath() {
@@ -518,8 +589,9 @@
         import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { getAllPianificazioni, deletePianificazione, confermaPianificazione } from '../services/pianificazione-impianto-service.js';
-        import { calcolaMateriali, formattaMaterialiPerTabella, TIPI_IMPIANTO } from '../services/calcolo-materiali-service.js';
-        import { getChiaveTecnica, getNomeVisualizzato } from '../config/forme-allevamento.js';
+        import { calcolaMateriali, formattaMaterialiPerTabella, TIPI_IMPIANTO, getTipiImpiantoPerColtura, getDefaultTipoImpiantoPerColtura, normalizeFormaAllevamentoToKey } from '../services/calcolo-materiali-service.js';
+        import { getFormeAllevamentoList, getChiaveTecnica, getNomeVisualizzato, getConfigurazioneImpianto } from '../config/forme-allevamento.js';
+        import { getConfigColtura, isColturaValida } from '../../../shared/config/pianificazione-impianto-colture.js';
         
         // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
         const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
@@ -528,35 +600,15 @@
         const { getCurrentTenantId, getCurrentTenant } = tenantServiceModule;
         const { getAllTerreni } = terreniServiceModule;
 
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
-        }
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
 
         let db, auth;
         let pianificazioni = [];
         let terreni = [];
         let pianificazioneSelezionata = null;
         let materialiCalcolati = null; // Memorizza i materiali calcolati per l'export PDF
+        let currentColtura = 'vigneto'; // coltura da URL (?coltura=)
+        let currentConfig = null;      // config da shared (backPath, moduloRequired, theme)
 
         async function init() {
             try {
@@ -590,16 +642,21 @@
 
                         const userData = userDoc.data();
 
-                        // Verifica modulo vigneto attivo
-                        // Attendi che il tenant service sia inizializzato (con retry)
-                        let tenantId = getCurrentTenantId();
-                        
-                        // Se non disponibile, prova a usare tenantId dall'utente (fallback)
-                        if (!tenantId && userData.tenantId) {
-                            tenantId = userData.tenantId;
+                        // Leggi parametro coltura (default vigneto) e carica config
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const colturaFromUrl = (urlParams.get('coltura') || 'vigneto').toLowerCase();
+                        currentColtura = isColturaValida(colturaFromUrl) ? colturaFromUrl : 'vigneto';
+                        currentConfig = getConfigColtura(currentColtura);
+
+                        // Link Dashboard dalla config (backPath)
+                        const linkDash = document.getElementById('linkDashboard');
+                        if (linkDash && currentConfig && currentConfig.backPath) {
+                            linkDash.href = currentConfig.backPath;
                         }
-                        
-                        // Retry per ottenere tenantId dal servizio (se non disponibile)
+
+                        // Verifica modulo della coltura attivo
+                        let tenantId = getCurrentTenantId();
+                        if (!tenantId && userData.tenantId) tenantId = userData.tenantId;
                         if (!tenantId) {
                             for (let i = 0; i < 10; i++) {
                                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -607,36 +664,33 @@
                                 if (tenantId) break;
                             }
                         }
-                        
                         if (tenantId) {
                             const tenant = await getCurrentTenant();
-                            
                             if (!tenant) {
                                 showAlert('Errore: tenant non trovato', 'error');
-                                setTimeout(() => {
-                                    window.location.href = '../../../core/dashboard-standalone.html';
-                                }, 2000);
+                                setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
                                 return;
                             }
-                            
-                            // Verifica modulo vigneto (case-insensitive)
+                            const moduloRichiesto = currentConfig.moduloRequired;
                             const modules = tenant.modules || [];
-                            const hasVignetoModule = modules.some(m => m && m.toLowerCase() === 'vigneto');
-                            
-                            if (!hasVignetoModule) {
-                                showAlert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.', 'error');
-                                setTimeout(() => {
-                                    window.location.href = '../../../core/admin/abbonamento-standalone.html';
-                                }, 3000);
+                            const hasModule = modules.some(m => m && m.toLowerCase() === moduloRichiesto.toLowerCase());
+                            if (!hasModule) {
+                                const nomeModulo = moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto';
+                                showAlert('Il modulo ' + nomeModulo + ' non è attivo. Attivalo dalla pagina Abbonamento.', 'error');
+                                setTimeout(() => { window.location.href = '../../../core/admin/abbonamento-standalone.html'; }, 3000);
                                 return;
                             }
                         } else {
                             showAlert('Nessun tenant disponibile', 'error');
-                            setTimeout(() => {
-                                window.location.href = '../../../core/dashboard-standalone.html';
-                            }, 2000);
+                            setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
                             return;
                         }
+
+                        // Popola dropdown tipo impianto in base alla coltura
+                        await populateTipoImpiantoSelect(currentColtura);
+
+                        // Applica etichette del modal Calcolo Materiali (vigneto vs frutteto/oliveto)
+                        applyCalcoloMaterialiLabels(currentConfig);
 
                         // Carica dati
                         await loadTerreni();
@@ -655,6 +709,65 @@
             }
         }
 
+        /** Popola il dropdown Tipo impianto con la stessa lista usata in Pianificazione nuovo impianto (vigneto/frutteto) per coerenza UX. */
+        async function populateTipoImpiantoSelect(coltura) {
+            const select = document.getElementById('tipoImpianto');
+            if (!select) return;
+            select.innerHTML = '<option value="">Seleziona tipo impianto</option>';
+
+            if (coltura === 'vigneto') {
+                const formeList = getFormeAllevamentoList();
+                formeList.forEach(nome => {
+                    const opt = document.createElement('option');
+                    opt.value = nome;
+                    opt.textContent = nome;
+                    select.appendChild(opt);
+                });
+            } else if (coltura === 'frutteto') {
+                const { FORME_ALLEVAMENTO_FRUTTETO } = await import('../../frutteto/config/specie-fruttifere.js');
+                const custom = JSON.parse(localStorage.getItem('frutteto_forma_allevamento_custom') || '[]');
+                const allValues = [...FORME_ALLEVAMENTO_FRUTTETO, ...custom].sort();
+                allValues.forEach(nome => {
+                    const opt = document.createElement('option');
+                    opt.value = nome;
+                    opt.textContent = nome;
+                    select.appendChild(opt);
+                });
+            } else {
+                const tipiImpianto = getTipiImpiantoPerColtura(coltura);
+                const defaultKey = getDefaultTipoImpiantoPerColtura(coltura);
+                Object.keys(tipiImpianto).forEach(key => {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = tipiImpianto[key].nome;
+                    select.appendChild(opt);
+                });
+            }
+            select.value = '';
+        }
+
+        /** Applica etichette e descrizioni del modal Calcolo Materiali dalla config coltura (vigneto/frutteto/oliveto). */
+        function applyCalcoloMaterialiLabels(config) {
+            if (!config || !config.calcoloMateriali) return;
+            const cm = config.calcoloMateriali;
+            const set = (id, text) => { const el = document.getElementById(id); if (el && text != null) el.textContent = text; };
+            set('labelTipoImpianto', cm.labelTipoImpianto);
+            set('labelNumeroFiliPortata', cm.labelFiliPortata);
+            set('labelNumeroFiliVegetazione', cm.labelFiliVegetazione);
+            set('smallNumeroFiliPortata', cm.smallFiliPortata);
+            set('smallNumeroFiliVegetazione', cm.smallFiliVegetazione);
+            set('labelDiametroFiloPortata', cm.labelDiametroPortata);
+            set('labelDiametroFiloVegetazione', cm.labelDiametroVegetazione);
+            set('smallDiametroFiloPortata', cm.smallDiametroPortata);
+            set('smallDiametroFiloVegetazione', cm.smallDiametroVegetazione);
+            set('labelUsaTutori', cm.labelBraccetti);
+            set('smallUsaTutori', cm.smallBraccetti);
+            set('labelUsaAncore', cm.labelAncore);
+            set('smallUsaAncore', cm.smallAncore);
+            set('labelFissaggioTutori', cm.labelFissaggioTutori);
+            set('smallFissaggioTutori', cm.smallFissaggioTutori);
+        }
+
         async function loadTerreni() {
             try {
                 terreni = await getAllTerreni();
@@ -668,13 +781,13 @@
             console.log('[CALCOLO-MATERIALI] Inizio caricamento pianificazioni...');
             try {
                 console.log('[CALCOLO-MATERIALI] Chiamata getAllPianificazioni con opzioni:', {
-                    tipoColtura: 'vigneto',
+                    tipoColtura: currentColtura,
                     orderBy: 'createdAt',
                     orderDirection: 'desc'
                 });
                 
                 pianificazioni = await getAllPianificazioni({
-                    tipoColtura: 'vigneto',
+                    tipoColtura: currentColtura,
                     orderBy: 'createdAt',
                     orderDirection: 'desc'
                 });
@@ -692,7 +805,7 @@
                         stato: pianificazioni[0].stato
                     });
                 } else {
-                    console.warn('[CALCOLO-MATERIALI] Nessuna pianificazione trovata con filtro tipoColtura=vigneto');
+                    console.warn('[CALCOLO-MATERIALI] Nessuna pianificazione trovata con filtro tipoColtura=' + currentColtura);
                     console.log('[CALCOLO-MATERIALI] Provo a caricare tutte le pianificazioni senza filtro...');
                     
                     // Prova senza filtro tipoColtura per vedere se ci sono pianificazioni
@@ -729,14 +842,15 @@
                 return;
             }
             
-            if (pianificazioni.length === 0) {
+                if (pianificazioni.length === 0) {
+                const linkPianifica = 'pianifica-impianto-standalone.html?coltura=' + encodeURIComponent(currentColtura);
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="empty-state">
                             <div class="empty-state-icon">📋</div>
                             <p>Nessuna pianificazione salvata</p>
                             <p style="margin-top: 10px; font-size: 12px;">
-                                <a href="pianifica-impianto-standalone.html" style="color: #6A1B9A;">Crea una nuova pianificazione</a>
+                                <a href="${linkPianifica}" style="color: var(--theme-accent);">Crea una nuova pianificazione</a>
                             </p>
                         </td>
                     </tr>
@@ -856,18 +970,22 @@
                 calcolaBtn.title = '';
             }
             
-            // Pre-compila tipo impianto se presente nella pianificazione
-            if (pianificazioneSelezionata.formaAllevamento) {
-                const tipoImpiantoSelect = document.getElementById('tipoImpianto');
-                if (tipoImpiantoSelect) {
-                    // La pianificazione ha la chiave tecnica (es. "guyot")
-                    // Il dropdown tipoImpianto usa le stesse chiavi
-                    tipoImpiantoSelect.value = pianificazioneSelezionata.formaAllevamento;
-                    
-                    // Trigger evento change per pre-compilare i campi
-                    if (tipoImpiantoSelect.value && TIPI_IMPIANTO[tipoImpiantoSelect.value]) {
-                        tipoImpiantoSelect.dispatchEvent(new Event('change'));
-                    }
+            // Pre-compila forma di allevamento dalla pianificazione (stesso valore salvato in Pianificazione nuovo impianto)
+            const tipoImpiantoSelect = document.getElementById('tipoImpianto');
+            if (tipoImpiantoSelect && pianificazioneSelezionata.formaAllevamento) {
+                const displayName = pianificazioneSelezionata.formaAllevamento;
+                const optionExists = Array.from(tipoImpiantoSelect.options).some(o => o.value === displayName);
+                if (optionExists) {
+                    tipoImpiantoSelect.value = displayName;
+                    tipoImpiantoSelect.dispatchEvent(new Event('change'));
+                } else {
+                    // Valore custom o non in lista: aggiungi opzione così l'utente vede lo stesso testo
+                    const opt = document.createElement('option');
+                    opt.value = displayName;
+                    opt.textContent = displayName;
+                    tipoImpiantoSelect.appendChild(opt);
+                    tipoImpiantoSelect.value = displayName;
+                    tipoImpiantoSelect.dispatchEvent(new Event('change'));
                 }
             }
             
@@ -876,13 +994,16 @@
         };
 
         function setupEventListeners() {
-            // Aggiorna descrizione e precompila valori quando cambia tipo impianto
+            const tipiImpianto = getTipiImpiantoPerColtura(currentColtura);
+            const defaultKey = getDefaultTipoImpiantoPerColtura(currentColtura);
+            // Aggiorna descrizione e precompila valori quando cambia tipo impianto (valore = label per vigneto/frutteto, key per oliveto)
             document.getElementById('tipoImpianto').addEventListener('change', function() {
-                const tipo = this.value;
+                const rawTipo = this.value;
+                const key = currentColtura === 'vigneto' ? getChiaveTecnica(rawTipo) : (currentColtura === 'frutteto' ? normalizeFormaAllevamentoToKey(rawTipo) : rawTipo);
+                const config = currentColtura === 'vigneto' ? getConfigurazioneImpianto(rawTipo) : (tipiImpianto[key] || tipiImpianto[defaultKey]);
                 const descEl = document.getElementById('tipo-impianto-desc');
                 
-                if (tipo && TIPI_IMPIANTO[tipo]) {
-                    const config = TIPI_IMPIANTO[tipo];
+                if (rawTipo && config) {
                     descEl.textContent = config.descrizione;
                     
                     // Elementi del form
@@ -945,6 +1066,17 @@
                     if (config.necessitaAncore !== undefined) {
                         usaAncoreEl.value = config.necessitaAncore ? 'true' : 'false';
                     }
+                    // Frutteto/oliveto: precompila distanza e altezza pali dalla forma di allevamento
+                    if (currentColtura === 'frutteto' || currentColtura === 'oliveto') {
+                        if (config.distanzaPali != null) {
+                            const distEl = document.getElementById('distanzaPali');
+                            if (distEl) distEl.value = config.distanzaPali;
+                        }
+                        if (config.altezzaPali != null) {
+                            const altEl = document.getElementById('altezzaPali');
+                            if (altEl) altEl.value = config.altezzaPali;
+                        }
+                    }
                 } else {
                     descEl.textContent = '';
                     // Reset campi se nessun tipo selezionato
@@ -965,10 +1097,11 @@
                 if (numFili > 0) {
                     diamFiloPortataEl.disabled = false;
                     if (!diamFiloPortataEl.value) {
-                        // Se vuoto, ripristina placeholder
-                        const tipo = document.getElementById('tipoImpianto').value;
-                        if (tipo && TIPI_IMPIANTO[tipo]) {
-                            diamFiloPortataEl.placeholder = `Default: ${TIPI_IMPIANTO[tipo].diametroFiloPortata}mm`;
+                        const rawTipo = document.getElementById('tipoImpianto').value;
+                        const key = currentColtura === 'vigneto' ? getChiaveTecnica(rawTipo) : (currentColtura === 'frutteto' ? normalizeFormaAllevamentoToKey(rawTipo) : rawTipo);
+                        const configForPlaceholder = currentColtura === 'vigneto' ? getConfigurazioneImpianto(rawTipo) : (tipiImpianto[key] || null);
+                        if (rawTipo && configForPlaceholder && configForPlaceholder.diametroFiloPortata) {
+                            diamFiloPortataEl.placeholder = `Default: ${configForPlaceholder.diametroFiloPortata}mm`;
                         } else {
                             diamFiloPortataEl.placeholder = 'Auto (da tipo impianto)';
                         }
@@ -988,10 +1121,11 @@
                 if (numFili > 0) {
                     diamFiloVegetazioneEl.disabled = false;
                     if (!diamFiloVegetazioneEl.value) {
-                        // Se vuoto, ripristina placeholder
-                        const tipo = document.getElementById('tipoImpianto').value;
-                        if (tipo && TIPI_IMPIANTO[tipo]) {
-                            diamFiloVegetazioneEl.placeholder = `Default: ${TIPI_IMPIANTO[tipo].diametroFiloVegetazione}mm`;
+                        const rawTipo = document.getElementById('tipoImpianto').value;
+                        const key = currentColtura === 'vigneto' ? getChiaveTecnica(rawTipo) : (currentColtura === 'frutteto' ? normalizeFormaAllevamentoToKey(rawTipo) : rawTipo);
+                        const configForPlaceholder = currentColtura === 'vigneto' ? getConfigurazioneImpianto(rawTipo) : (tipiImpianto[key] || null);
+                        if (rawTipo && configForPlaceholder && configForPlaceholder.diametroFiloVegetazione) {
+                            diamFiloVegetazioneEl.placeholder = `Default: ${configForPlaceholder.diametroFiloVegetazione}mm`;
                         } else {
                             diamFiloVegetazioneEl.placeholder = 'Auto (da tipo impianto)';
                         }
@@ -1002,6 +1136,28 @@
                     diamFiloVegetazioneEl.placeholder = 'Non applicabile (nessun filo vegetazione)';
                 }
             });
+
+            // Checkbox reti antigrandine: mostra/nascondi sottosezione
+            const usaAntigrandineEl = document.getElementById('usaAntigrandine');
+            const configAntigrandineEl = document.getElementById('config-antigrandine');
+            if (usaAntigrandineEl && configAntigrandineEl) {
+                usaAntigrandineEl.addEventListener('change', function() {
+                    configAntigrandineEl.style.display = this.checked ? 'block' : 'none';
+                });
+            }
+
+            // Tipo struttura antigrandine: aggiorna default distanza e altezza
+            const tipoStrutturaAntigrandineEl = document.getElementById('tipoStrutturaAntigrandine');
+            const antigrandineDefaults = { rete_piana: { distanza: 8, altezza: 4 }, capannina: { distanza: 10, altezza: 4.5 }, sistema_v: { distanza: 8, altezza: 4 } };
+            if (tipoStrutturaAntigrandineEl) {
+                tipoStrutturaAntigrandineEl.addEventListener('change', function() {
+                    const def = antigrandineDefaults[this.value] || antigrandineDefaults.rete_piana;
+                    const distEl = document.getElementById('distanzaPaliAntigrandine');
+                    const altEl = document.getElementById('altezzaPaliAntigrandine');
+                    if (distEl) distEl.value = def.distanza;
+                    if (altEl) altEl.value = def.altezza;
+                });
+            }
         }
 
         window.calcolaMateriali = function() {
@@ -1022,11 +1178,14 @@
                 return;
             }
 
-            const tipoImpianto = document.getElementById('tipoImpianto').value;
-            if (!tipoImpianto) {
+            const tipoImpiantoRaw = document.getElementById('tipoImpianto').value;
+            if (!tipoImpiantoRaw) {
                 showAlert('Seleziona un tipo di impianto', 'warning');
                 return;
             }
+            // Passa al service la chiave tecnica (vigneto/frutteto dalla lista condivisa usano il label come value)
+            const tipoImpianto = currentColtura === 'vigneto' ? (getChiaveTecnica(tipoImpiantoRaw) || tipoImpiantoRaw)
+                : (currentColtura === 'frutteto' ? normalizeFormaAllevamentoToKey(tipoImpiantoRaw) : tipoImpiantoRaw);
 
             const distanzaPali = parseFloat(document.getElementById('distanzaPali').value);
             const altezzaPali = parseFloat(document.getElementById('altezzaPali').value);
@@ -1052,8 +1211,36 @@
             // Fissaggio tutori
             const fissaggioTutori = document.getElementById('fissaggioTutori').value || 'legacci';
 
+            const usaAntigrandine = document.getElementById('usaAntigrandine') && document.getElementById('usaAntigrandine').checked;
+            let antigrandine = null;
+            if (usaAntigrandine) {
+                const v = (id) => document.getElementById(id) ? document.getElementById(id).value.trim() : '';
+                const n = (id, def) => { const val = v(id); return val === '' ? def : parseFloat(val); };
+                const ni = (id) => { const val = v(id); return val === '' ? null : parseInt(val, 10); };
+                antigrandine = {
+                    attivo: true,
+                    tipoStruttura: (document.getElementById('tipoStrutturaAntigrandine') && document.getElementById('tipoStrutturaAntigrandine').value) || 'rete_piana',
+                    distanzaPali: n('distanzaPaliAntigrandine', 8),
+                    altezzaPali: n('altezzaPaliAntigrandine', 4),
+                    diametroCavi: document.getElementById('diametroCaviAntigrandine') ? parseInt(document.getElementById('diametroCaviAntigrandine').value, 10) : 6,
+                    usaTiranti: document.getElementById('usaTirantiAntigrandine') ? document.getElementById('usaTirantiAntigrandine').value === 'true' : true,
+                    marginePercentuale: n('marginePercentualeAntigrandine', 10)
+                };
+                const supOverride = ni('overrideSuperficieReteAntigrandine');
+                if (supOverride != null) antigrandine.superficieReteOverride = supOverride;
+                const copOverride = ni('overrideCopripaliAntigrandine');
+                if (copOverride != null) antigrandine.copripaliOverride = copOverride;
+                const placOverride = ni('overridePlacchetteAntigrandine');
+                if (placOverride != null) antigrandine.placchetteOverride = placOverride;
+                const staffOverride = ni('overrideStaffeAntigrandine');
+                if (staffOverride != null) antigrandine.staffeFermafuneOverride = staffOverride;
+                const tendOverride = ni('overrideTendifuniAntigrandine');
+                if (tendOverride != null) antigrandine.tendifuniOverride = tendOverride;
+            }
+
             const configurazione = {
                 tipoImpianto,
+                coltura: currentColtura,
                 distanzaPali,
                 altezzaPali,
                 numeroFiliPortata,
@@ -1062,7 +1249,8 @@
                 diametroFiloVegetazione,
                 usaTutori,
                 usaAncore,
-                fissaggioTutori
+                fissaggioTutori,
+                antigrandine
             };
 
             try {
@@ -1422,6 +1610,23 @@
             document.getElementById('usaTutori').value = '';
             document.getElementById('usaAncore').value = '';
             document.getElementById('fissaggioTutori').value = 'legacci';
+
+            // Reset reti antigrandine
+            const usaAntigrandineEl = document.getElementById('usaAntigrandine');
+            const configAntigrandineEl = document.getElementById('config-antigrandine');
+            if (usaAntigrandineEl) { usaAntigrandineEl.checked = false; }
+            if (configAntigrandineEl) { configAntigrandineEl.style.display = 'none'; }
+            if (document.getElementById('tipoStrutturaAntigrandine')) document.getElementById('tipoStrutturaAntigrandine').value = 'rete_piana';
+            if (document.getElementById('distanzaPaliAntigrandine')) document.getElementById('distanzaPaliAntigrandine').value = '8';
+            if (document.getElementById('altezzaPaliAntigrandine')) document.getElementById('altezzaPaliAntigrandine').value = '4';
+            if (document.getElementById('diametroCaviAntigrandine')) document.getElementById('diametroCaviAntigrandine').value = '6';
+            if (document.getElementById('usaTirantiAntigrandine')) document.getElementById('usaTirantiAntigrandine').value = 'true';
+            if (document.getElementById('marginePercentualeAntigrandine')) document.getElementById('marginePercentualeAntigrandine').value = '10';
+            if (document.getElementById('overrideCopripaliAntigrandine')) document.getElementById('overrideCopripaliAntigrandine').value = '';
+            if (document.getElementById('overridePlacchetteAntigrandine')) document.getElementById('overridePlacchetteAntigrandine').value = '';
+            if (document.getElementById('overrideStaffeAntigrandine')) document.getElementById('overrideStaffeAntigrandine').value = '';
+            if (document.getElementById('overrideTendifuniAntigrandine')) document.getElementById('overrideTendifuniAntigrandine').value = '';
+            if (document.getElementById('overrideSuperficieReteAntigrandine')) document.getElementById('overrideSuperficieReteAntigrandine').value = '';
             
             // Reset descrizione
             document.getElementById('tipo-impianto-desc').textContent = '';
@@ -1445,9 +1650,8 @@
                 showAlert('ID pianificazione non valido', 'error');
                 return;
             }
-            
             // Reindirizza alla pagina di pianificazione con parametro URL
-            window.location.href = `pianifica-impianto-standalone.html?pianificazioneId=${pianificazioneId}`;
+            window.location.href = `pianifica-impianto-standalone.html?coltura=${encodeURIComponent(currentColtura)}&pianificazioneId=${pianificazioneId}`;
         };
 
         // Funzione per confermare eliminazione pianificazione

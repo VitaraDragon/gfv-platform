@@ -8,7 +8,7 @@
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { getAllVigneti, getVigneto } from './vigneti-service.js';
 import { getVendemmie } from './vendemmia-service.js';
-import { getLavoriPerTerreno } from './lavori-vigneto-service.js';
+import { getLavoriPerTerreno, getAttivitaDirettePerTerreno, aggregaSpeseVignetoAnno } from './lavori-vigneto-service.js';
 import { 
   getCollectionData,
   getDb,
@@ -53,6 +53,7 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
         produzioneTotaleQli: 0,
         resaMediaQliHa: 0,
         speseVendemmiaAnno: 0,
+        costoTotaleAnno: 0,
         numeroVigneti: 0,
         numeroVendemmie: 0,
         dataUltimaVendemmia: null,
@@ -63,7 +64,7 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
     }
     
     // OTTIMIZZAZIONE: Usa aggregazioni pre-calcolate se disponibili
-    // Per singolo vigneto, usa direttamente le aggregazioni
+    // Per singolo vigneto, usa direttamente le aggregazioni (eccetto costoTotaleAnno: sempre calcolato al volo)
     if (vignetoId && vigneti.length === 1) {
       try {
         const stats = await getStatisticheAggregate(vignetoId, annoTarget, false);
@@ -72,11 +73,14 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
         const resaMediaQliHa = superficieTotale > 0 
           ? parseFloat((stats.produzioneTotaleQli / superficieTotale).toFixed(2))
           : 0;
-        
+        // Spese totali sempre calcolate al volo (lavori + attività diario) così la dashboard non dipende da "Ricalcola spese"
+        const speseAgg = await aggregaSpeseVignetoAnno(vignetoId, annoTarget);
+        const costoTotaleAnno = speseAgg.costoTotaleAnno ?? 0;
         return {
           produzioneTotaleQli: stats.produzioneTotaleQli || 0,
           resaMediaQliHa: resaMediaQliHa,
           speseVendemmiaAnno: stats.speseVendemmiaAnno || 0,
+          costoTotaleAnno: parseFloat(costoTotaleAnno.toFixed(2)),
           numeroVigneti: 1,
           numeroVendemmie: stats.numeroVendemmie || 0,
           dataUltimaVendemmia: stats.dataUltimaVendemmia ? (stats.dataUltimaVendemmia.toDate ? stats.dataUltimaVendemmia.toDate() : new Date(stats.dataUltimaVendemmia)) : null,
@@ -105,7 +109,19 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
     
     // Se abbiamo aggregazioni per tutti i vigneti, combina i dati
     if (hasAggregates) {
-      // Combina aggregazioni di tutti i vigneti
+      // Spese totali sempre calcolate al volo per ogni vigneto (così la dashboard non dipende da "Ricalcola spese")
+      let costoTotaleAnnoAgg = 0;
+      try {
+        const promesseSpese = vigneti.map(v => aggregaSpeseVignetoAnno(v.id, annoTarget));
+        const spesePerVigneto = await Promise.all(promesseSpese);
+        spesePerVigneto.forEach(sp => { costoTotaleAnnoAgg += sp.costoTotaleAnno ?? 0; });
+      } catch (e) {
+        console.warn('[VIGNETO-STATISTICHE] Calcolo spese totali al volo fallito, uso aggregate:', e);
+        risultatiStats.forEach(({ stats }) => {
+          if (stats) costoTotaleAnnoAgg += stats.costoTotaleAnno ?? 0;
+        });
+      }
+      // Combina aggregazioni di tutti i vigneti (resto dai documenti aggregate)
       let produzioneTotaleQliAgg = 0;
       let speseVendemmiaAnnoAgg = 0;
       let numeroVendemmieAgg = 0;
@@ -172,6 +188,7 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
         produzioneTotaleQli: parseFloat(produzioneTotaleQliAgg.toFixed(2)),
         resaMediaQliHa: resaMediaQliHaAgg,
         speseVendemmiaAnno: parseFloat(speseVendemmiaAnnoAgg.toFixed(2)),
+        costoTotaleAnno: parseFloat(costoTotaleAnnoAgg.toFixed(2)),
         numeroVigneti: vigneti.length,
         numeroVendemmie: numeroVendemmieAgg,
         dataUltimaVendemmia: dataUltimaVendemmiaAgg,
@@ -237,10 +254,20 @@ export async function getStatisticheVigneto(vignetoId = null, anno = null) {
       ? parseFloat((produzioneTotaleQli / superficieTotale).toFixed(2))
       : 0;
     
+    // Spese totali sempre calcolate al volo anche in fallback (lavori + attività diario)
+    let costoTotaleAnnoFallback = 0;
+    try {
+      const spesePerVigneto = await Promise.all(vigneti.map(v => aggregaSpeseVignetoAnno(v.id, annoTarget)));
+      spesePerVigneto.forEach(sp => { costoTotaleAnnoFallback += sp.costoTotaleAnno ?? 0; });
+    } catch (e) {
+      console.warn('[VIGNETO-STATISTICHE] Calcolo spese totali in fallback fallito:', e);
+    }
+    
     return {
       produzioneTotaleQli: parseFloat(produzioneTotaleQli.toFixed(2)),
       resaMediaQliHa: resaMediaQliHa,
       speseVendemmiaAnno: parseFloat(speseVendemmiaAnno.toFixed(2)),
+      costoTotaleAnno: parseFloat(costoTotaleAnnoFallback.toFixed(2)),
       numeroVigneti: vigneti.length,
       numeroVendemmie: numeroVendemmie,
       dataUltimaVendemmia: dataUltimaVendemmia,
@@ -315,12 +342,12 @@ export async function getVendemmieRecenti(vignetoId = null, anno = null, limit =
 }
 
 /**
- * Ottieni lavori collegati a un vigneto (tramite terreno)
+ * Ottieni lavori e attività dirette del diario collegati a un vigneto (tramite terreno)
  * @param {string} vignetoId - ID vigneto (opzionale, se null carica da tutti i vigneti)
  * @param {number} anno - Anno (opzionale, default: anno corrente)
  * @param {string} stato - Stato lavori ('in_corso' | 'completato', default: 'completato')
- * @param {number} limit - Numero massimo di lavori (opzionale)
- * @returns {Promise<Array>} Array di lavori con dati vigneto
+ * @param {number} limit - Numero massimo di elementi (opzionale)
+ * @returns {Promise<Array>} Array di lavori e attività con dati vigneto (source: 'lavoro' | 'diario')
  */
 export async function getLavoriVigneto(vignetoId = null, anno = null, stato = 'completato', limit = null) {
   try {
@@ -331,8 +358,6 @@ export async function getLavoriVigneto(vignetoId = null, anno = null, stato = 'c
     
     const annoTarget = anno || new Date().getFullYear();
     
-    // Se vignetoId specificato, carica solo da quel vigneto
-    // Altrimenti carica da tutti i vigneti
     let vigneti = [];
     if (vignetoId) {
       const vigneto = await getVigneto(vignetoId);
@@ -343,37 +368,50 @@ export async function getLavoriVigneto(vignetoId = null, anno = null, stato = 'c
       vigneti = await getAllVigneti();
     }
     
-    // Carica lavori per ogni vigneto (tramite terreno)
     const tuttiLavori = [];
     for (const vigneto of vigneti) {
+      if (!vigneto.terrenoId) continue;
+
       const lavori = await getLavoriPerTerreno(vigneto.terrenoId, {
         anno: annoTarget,
         stato: stato
       });
       
-      // Aggiungi informazioni vigneto a ogni lavoro
       lavori.forEach(lavoro => {
         tuttiLavori.push({
           ...lavoro,
           vignetoNome: vigneto.varieta || 'Vigneto',
-          vignetoId: vigneto.id
+          vignetoId: vigneto.id,
+          source: 'lavoro'
+        });
+      });
+      
+      const attivitaDirette = await getAttivitaDirettePerTerreno(vigneto.terrenoId, annoTarget, lavori);
+      attivitaDirette.forEach(att => {
+        tuttiLavori.push({
+          id: att.id,
+          data: att.data,
+          dataInizio: att.data,
+          tipoLavoro: att.tipoLavoro,
+          stato: 'completato',
+          costi: { costoTotale: att.costoTotale },
+          vignetoNome: vigneto.varieta || 'Vigneto',
+          vignetoId: vigneto.id,
+          source: 'diario'
         });
       });
     }
     
     // Ordina per data (più recente prima)
     tuttiLavori.sort((a, b) => {
-      if (!a.dataInizio || !b.dataInizio) return 0;
-      const dataA = a.dataInizio instanceof Date ? a.dataInizio : new Date(a.dataInizio);
-      const dataB = b.dataInizio instanceof Date ? b.dataInizio : new Date(b.dataInizio);
+      const dataA = (a.dataInizio || a.data) ? (a.dataInizio instanceof Date ? a.dataInizio : new Date(a.dataInizio || a.data || 0)) : new Date(0);
+      const dataB = (b.dataInizio || b.data) ? (b.dataInizio instanceof Date ? b.dataInizio : new Date(b.dataInizio || b.data || 0)) : new Date(0);
       return dataB - dataA;
     });
     
-    // Limita se specificato
     if (limit) {
       return tuttiLavori.slice(0, limit);
     }
-    
     return tuttiLavori;
   } catch (error) {
     return [];

@@ -828,61 +828,11 @@
         setTimeout(loadGoogleMapsAPI, 500);
     </script>
 
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
-        // Funzione per attendere il config (con percorso corretto da modules/vigneto/views/)
-        async function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                // Carica direttamente il config dal percorso corretto
-                const configScript = document.createElement('script');
-                // Percorso relativo da modules/vigneto/views/ a core/config/
-                configScript.src = '../../../core/config/firebase-config.js';
-                
-                configScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve(window.firebaseConfig);
-                        } else {
-                            // Fallback: prova GitHub
-                            loadFallbackConfig().then(resolve).catch(reject);
-                        }
-                    }, 100);
-                };
-                
-                configScript.onerror = function() {
-                    loadFallbackConfig().then(resolve).catch(reject);
-                };
-                
-                document.head.appendChild(configScript);
-            });
-        }
-        
-        function loadFallbackConfig() {
-            return new Promise((resolve, reject) => {
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-                
-                fallbackScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve(window.firebaseConfig);
-                        } else {
-                            reject(new Error('Firebase config non trovato neanche su GitHub'));
-                        }
-                    }, 100);
-                };
-                
-                fallbackScript.onerror = function() {
-                    reject(new Error('Errore caricamento config da GitHub'));
-                };
-                
-                document.head.appendChild(fallbackScript);
-            });
-        }
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
 
         // Calcola base path per GitHub Pages
         function getBasePath() {
@@ -1485,6 +1435,13 @@
                     if (poligonoInfo) {
                         poligonoInfo.style.display = 'none';
                     }
+                    if (vendemmia.lavoroId) {
+                        const fromLavoro = await loadPoligonoFromZoneLavorate(vendemmia.lavoroId);
+                        if (fromLavoro && fromLavoro.length >= 3) {
+                            poligonoCoords = fromLavoro.map(c => ({ lat: c.lat, lng: c.lng }));
+                            if (poligonoInfo) poligonoInfo.style.display = 'block';
+                        }
+                    }
                 }
                 
                 document.getElementById('gradazione').value = vendemmia.gradazione || '';
@@ -1536,11 +1493,42 @@
             }
         };
 
+        /**
+         * Carica la prima zona chiusa (poligono) tracciata nel lavoro (operaio/caposquadra).
+         * Usata per sync: se la vendemmia è collegata a un lavoro e non ha ancora poligono, mostra la zona del lavoro.
+         * @param {string} lavoroId - ID lavoro
+         * @returns {Promise<Array<{lat: number, lng: number}>|null>} Coordinate della prima zona chiusa o null
+         */
+        async function loadPoligonoFromZoneLavorate(lavoroId) {
+            const tenantId = getCurrentTenantId();
+            const db = getDb();
+            if (!tenantId || !lavoroId) return null;
+            try {
+                const zoneRef = collection(db, 'tenants', tenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const snap = await getDocs(zoneRef);
+                for (const docSnap of snap.docs) {
+                    const data = docSnap.data();
+                    if (!data.coordinate || data.coordinate.length < 3) continue;
+                    const isChiuso = data.isChiuso === true || data.tipo === 'poligono';
+                    if (!isChiuso) continue;
+                    const coords = data.coordinate.map(c => {
+                        const lat = typeof c.lat === 'function' ? c.lat() : (c.lat ?? c._lat);
+                        const lng = typeof c.lng === 'function' ? c.lng() : (c.lng ?? c._lng);
+                        return { lat: Number(lat), lng: Number(lng) };
+                    });
+                    if (coords.length >= 3) return coords;
+                }
+            } catch (e) {
+                console.warn('[VENDEMMIA] loadPoligonoFromZoneLavorate:', e);
+            }
+            return null;
+        }
+
         async function loadDatiLavoro(lavoroId) {
             try {
                 const tenantId = getCurrentTenantId();
                 if (!tenantId) return;
-                
+
                 const db = getDb();
                 const lavoro = await getLavoro(lavoroId);
                 if (!lavoro) return;

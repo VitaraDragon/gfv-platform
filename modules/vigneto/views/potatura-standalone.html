@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potatura Vigneto - GFV Platform</title>
+    <meta name="theme-color" content="#6A1B9A">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
+        .btn-primary:hover { background: rgba(255,255,255,0.3); }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 20px; background: #f8f9fa; border-radius: 8px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
+        .filter-group select { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; min-width: 180px; }
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background: #F3E5F5; font-weight: 600; color: #4A148C; }
+        tbody tr:hover { background: #F3E5F5; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 12px; padding: 30px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #E1BEE7; }
+        .modal-header h2 { color: #6A1B9A; font-size: 22px; }
+        .close { font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; border: none; background: none; }
+        .close:hover { color: #000; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #495057; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .error-message { color: #dc3545; font-size: 12px; margin-top: 5px; }
+        .info-box { background: #E8F5E9; padding: 12px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #6A1B9A; }
+        .form-actions { margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-info { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+        .link-lavoro { color: #6A1B9A; text-decoration: none; font-weight: 600; }
+        .link-lavoro:hover { text-decoration: underline; }
+        .dati-lavoro-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #6A1B9A; }
+        .dati-lavoro-section h3 { color: #6A1B9A; margin-bottom: 15px; font-size: 18px; }
+        .dati-lavoro-section table { width: 100%; margin-top: 10px; }
+        .dati-lavoro-section table th { background: #e9ecef; padding: 8px; font-size: 12px; }
+        .dati-lavoro-section table td { padding: 8px; font-size: 12px; }
+        .table-editabile td, .table-editabile th { padding: 8px; border: 1px solid #ddd; }
+        .modal .btn-primary { background: #007bff; color: white; border: 1px solid #007bff; }
+        .modal .btn-primary:hover { background: #0056b3; }
+        .modal-mappa { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .modal-mappa.active { display: flex !important; }
+        .modal-mappa-content { background: white; border-radius: 12px; padding: 20px; max-width: 95%; width: 100%; max-height: 95vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .modal-mappa-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .modal-mappa-body.drawing-mode #mappa-potatura-container { cursor: crosshair !important; }
+        .modal-mappa-body.drawing-mode #mappa-potatura-container * { cursor: crosshair !important; }
+        .modal-mappa-body.drawing-mode #mappa-potatura-container div { cursor: crosshair !important; }
+        .modal-mappa-body.drawing-mode #mappa-potatura-container canvas { cursor: crosshair !important; }
+        #mappa-potatura-container { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; border: 2px solid #e9ecef; margin-bottom: 15px; }
+        .mappa-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .mappa-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .mappa-info-item { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .mappa-info-label { font-weight: 600; color: #495057; }
+        .mappa-info-value { color: #6A1B9A; font-weight: 600; }
+        .modal-mappa-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e9ecef; }
+        .modal-mappa-header h3 { color: #6A1B9A; margin: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div>
+                <h1>✂️ Potatura Vigneto</h1>
+                <p>Le potature provengono da lavori o attività (categoria Potatura). Completa qui i dati aggiuntivi (tipo, ceppi potati, costi). Dati base in sola lettura.</p>
+            </div>
+            <div class="header-actions">
+                <a href="vigneto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+            </div>
+        </header>
+
+        <main class="content">
+            <div id="alert-container"></div>
+            <section class="filters">
+                <div class="filter-group">
+                    <label for="filter-anno">Anno</label>
+                    <select id="filter-anno"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-vigneto">Filtra per vigneto</label>
+                    <select id="filter-vigneto">
+                        <option value="">Tutti i vigneti</option>
+                    </select>
+                </div>
+            </section>
+
+            <div id="loading" class="empty-state" style="display: none;">Caricamento potature...</div>
+            <div id="table-wrap" class="table-container" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Vigneto</th>
+                            <th>Tipo</th>
+                            <th>Ceppi potati</th>
+                            <th>Ore</th>
+                            <th>Costo (€)</th>
+                            <th>Lavoro</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-potature"></tbody>
+                </table>
+            </div>
+            <div id="empty-state" class="empty-state">
+                <p>Caricamento elenco potature...</p>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-potatura" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Nuova potatura</h2>
+                <button type="button" class="close" id="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="form-potatura">
+                <input type="hidden" id="potatura-id">
+                <input type="hidden" id="potatura-vigneto-id">
+                <input type="hidden" id="lavoro-id-hidden">
+                <input type="hidden" id="attivita-id-hidden">
+                <!-- Sezione Dati Lavoro (sola lettura, se potatura collegata a lavoro) -->
+                <div id="dati-lavoro-section" class="dati-lavoro-section" style="display: none;">
+                    <h3>📋 Dati Lavoro (sola consultazione)</h3>
+                    <div id="dati-lavoro-content">
+                        <p><strong>Nota:</strong> Questi dati provengono dal lavoro collegato. Per modificarli, vai alla pagina del lavoro.</p>
+                        <div id="dati-lavoro-tabelle"></div>
+                        <div style="margin-top: 15px;">
+                            <a id="link-lavoro" href="#" target="_blank" class="btn btn-primary">🔗 Vedi Dettagli Lavoro</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="potatura-vigneto">Vigneto *</label>
+                    <select id="potatura-vigneto" required></select>
+                    <div class="error-message" id="potatura-vigneto-error"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="potatura-data">Data *</label>
+                        <input type="date" id="potatura-data" required>
+                        <div class="error-message" id="potatura-data-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="potatura-tipo">Tipo potatura *</label>
+                        <select id="potatura-tipo" required>
+                            <option value="">Seleziona</option>
+                            <option value="invernale">❄️ Invernale</option>
+                            <option value="verde">🌿 Verde</option>
+                            <option value="rinnovo">🔄 Rinnovo</option>
+                            <option value="spollonatura">🌱 Spollonatura</option>
+                        </select>
+                        <div class="error-message" id="potatura-tipo-error"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="potatura-ceppi">Numero ceppi potati *</label>
+                        <input type="number" id="potatura-ceppi" min="1" required placeholder="es. 5000 (calcolato da superficie × densità se da lavoro)">
+                        <div class="error-message" id="potatura-ceppi-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="potatura-superficie-ha">Superficie potata (ha)</label>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="number" id="potatura-superficie-ha" min="0" step="0.01" placeholder="es. 1.5" style="flex: 1;">
+                            <button type="button" class="btn btn-sm btn-primary" id="btn-traccia-area-potatura" onclick="apriMappaTracciamentoPotatura()" title="Traccia area potata sulla mappa">🗺️ Traccia</button>
+                        </div>
+                        <small style="color: #6c757d; display: block; margin-top: 5px;" id="poligono-info-potatura" style="display: none;">✓ Area tracciata sulla mappa</small>
+                    </div>
+                </div>
+                <div class="info-box" id="potatura-ceppi-info" style="display: none;">
+                    <strong>Ceppi calcolati:</strong> <span id="potatura-ceppi-calcolati">-</span> (da superficie × densità)
+                </div>
+
+                <!-- Operai: tabella editabile (come Raccolta Frutta quando non collegata a lavoro) -->
+                <div id="operai-tabella-section" class="form-group" style="display: none;">
+                    <label>Operai coinvolti *</label>
+                    <div style="margin-bottom: 10px;">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="aggiungiRigaOperaioPotaturaVigneto()">➕ Aggiungi operaio</button>
+                    </div>
+                    <table id="operai-tabella-potatura-vigneto" class="table-editabile" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Data</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Nome operaio</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Ore</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operai-tabella-body-potatura-vigneto"></tbody>
+                        <tfoot id="operai-tabella-footer-potatura-vigneto" style="display: none;">
+                            <tr style="background: #e9ecef; font-weight: bold;">
+                                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;" colspan="2">Totale ore:</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;" id="totale-ore-operai-potatura-vigneto">0.0</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">Inserisci manualmente i dati degli operai coinvolti nella potatura</small>
+                </div>
+
+                <!-- Macchine (sola lettura quando collegata a lavoro/attività) -->
+                <div id="macchine-tabella-section" class="form-group" style="display: none;">
+                    <label>Macchine utilizzate</label>
+                    <table id="macchine-tabella-potatura-vigneto" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Tipo</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Nome</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; background: #f5f5f5;">Ore</th>
+                            </tr>
+                        </thead>
+                        <tbody id="macchine-tabella-body-potatura-vigneto"></tbody>
+                    </table>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">Dati presi dal lavoro/attività collegata</small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="potatura-ore">Ore impiegate *</label>
+                        <input type="number" id="potatura-ore" min="0.1" step="0.1" required placeholder="es. 8">
+                        <div class="error-message" id="potatura-ore-error"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="potatura-costo-mano">Costo manodopera (€)</label>
+                        <input type="number" id="potatura-costo-mano" min="0" step="0.01" value="0" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="potatura-costo-macchina">Costo macchina (€)</label>
+                    <input type="number" id="potatura-costo-macchina" min="0" step="0.01" value="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="potatura-note">Note</label>
+                    <textarea id="potatura-note" rows="3" placeholder="Note aggiuntive sulla potatura"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-mappa-potatura" class="modal-mappa">
+        <div class="modal-mappa-content">
+            <div class="modal-mappa-header">
+                <h3>🗺️ Traccia Area Potata</h3>
+                <button type="button" class="close" onclick="window.chiudiMappaTracciamentoPotatura && window.chiudiMappaTracciamentoPotatura()" style="font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; border: none; background: none;">&times;</button>
+            </div>
+            <div class="modal-mappa-body">
+                <div id="mappa-potatura-solo-consultazione" class="alert alert-info" style="display: none; margin-bottom: 15px;">La zona è tracciata nel lavoro collegato (Gestione Lavori) – sola consultazione. Per modificarla vai alla Gestione Lavori.</div>
+                <div class="mappa-controls">
+                    <button type="button" class="btn btn-primary" id="btn-draw-polygon-potatura" onclick="window.iniziaTracciamentoPoligonoPotatura && window.iniziaTracciamentoPoligonoPotatura()">✏️ Traccia Poligono</button>
+                    <button type="button" class="btn btn-secondary" id="btn-clear-polygon-potatura" onclick="window.eliminaPoligonoPotatura && window.eliminaPoligonoPotatura()" style="display: none;">🗑️ Elimina</button>
+                    <button type="button" class="btn btn-success" id="btn-save-polygon-potatura" onclick="window.salvaPoligonoPotatura && window.salvaPoligonoPotatura()" style="display: none;">💾 Salva Area</button>
+                </div>
+                <div class="mappa-info" id="mappa-info-potatura" style="display: none;">
+                    <div class="mappa-info-item">
+                        <span class="mappa-info-label">Superficie tracciata:</span>
+                        <span class="mappa-info-value" id="superficie-calcolata-potatura">0.00 ha</span>
+                    </div>
+                    <div class="mappa-info-item">
+                        <span class="mappa-info-label">Punti tracciati:</span>
+                        <span class="mappa-info-value" id="punti-tracciati-potatura">0</span>
+                    </div>
+                </div>
+                <div id="mappa-potatura-container"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="window.chiudiMappaTracciamentoPotatura && window.chiudiMappaTracciamentoPotatura()">Annulla</button>
+                    <button type="button" class="btn btn-success" id="btn-conferma-polygon-potatura" onclick="window.confermaPoligonoPotatura && window.confermaPoligonoPotatura()" style="display: none;">✓ Conferma e Applica</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            if (typeof google !== 'undefined' && google.maps) return;
+            if (document.querySelector('script[src*="maps.googleapis.com"]')) return;
+            var apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+            var s = document.createElement('script');
+            s.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=geometry&loading=async';
+            s.async = true;
+            document.head.appendChild(s);
+        })();
+    </script>
+    <script>
+        (function() {
+            var base = (function() {
+                if (window.location.protocol === 'file:') return '';
+                var pathname = window.location.pathname;
+                var idx = pathname.indexOf('/modules/');
+                return idx !== -1 ? pathname.substring(0, idx) : '/';
+            })();
+            var src = base ? (base + '/core/config/google-maps-config.js').replace(/\/+/g, '/') : '../../../core/config/google-maps-config.js';
+            var s = document.createElement('script');
+            s.src = src;
+            s.onerror = function() {
+                var f = document.createElement('script');
+                f.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
+                document.head.appendChild(f);
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module">
+        function getBasePath() {
+            if (window.location.protocol === 'file:') return '';
+            const pathname = window.location.pathname;
+            const idx = pathname.indexOf('/modules/');
+            return idx !== -1 ? pathname.substring(0, idx) : '/';
+        }
+        function resolvePath(relativePath) {
+            if (relativePath.startsWith('http')) return relativePath;
+            const base = getBasePath();
+            if (relativePath.startsWith('/')) return base === '/' ? relativePath : base + relativePath.slice(1);
+            const url = new URL(relativePath, window.location.origin + window.location.pathname.replace(/\/[^/]+$/, '/'));
+            let path = url.pathname;
+            if (base && base !== '/' && !path.startsWith(base)) path = (base.endsWith('/') ? base : base + '/') + path.replace(/^\//, '');
+            return path;
+        }
+
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
+
+        function formatDate(d) {
+            if (!d) return '-';
+            const date = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
+            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('it-IT');
+        }
+
+        function showAlert(msg, type) {
+            const c = document.getElementById('alert-container');
+            c.innerHTML = `<div class="alert alert-${type === 'error' ? 'error' : 'success'}">${msg}</div>`;
+            setTimeout(() => { c.innerHTML = ''; }, 5000);
+        }
+
+        let vigneti = [];
+        let potature = [];
+        let currentVignetoId = null;
+        let currentAnno = null;
+        let hasManodoperaModule = false;
+        /** true se la potatura è da attività (diario, senza lavoro da Gestione Lavori): mappa tracciabile */
+        let potaturaFromAttivitaOnly = false;
+
+        let poligonoCoords = [];
+        let mappaPotatura = null;
+        let poligonoPotaturaPoly = null;
+        let terrenoPolygonPotatura = null;
+        let terrenoBoundaryCoordsPotatura = [];
+        let firstPointPotatura = null;
+        let isDrawingPolygonPotatura = false;
+
+        // Costanti per snap e tolleranza (allineate a vendemmia)
+        const SNAP_DISTANCE_METERS = 5; // Distanza massima per snap al confine (5 metri)
+        const VERTEX_SNAP_DISTANCE_METERS = 8; // Distanza massima per snap ai vertici (8 metri)
+
+        // ========== FUNZIONI HELPER PER SNAP E TOLLERANZA (allineate a vendemmia) ==========
+        
+        // Trova il vertice più vicino del terreno entro la distanza massima
+        function findNearestVertexPotatura(point, boundaryCoords, maxDistance) {
+            let nearestVertex = null;
+            let minDistance = maxDistance;
+            
+            boundaryCoords.forEach(vertex => {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, vertex);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestVertex = vertex;
+                }
+            });
+            
+            return nearestVertex;
+        }
+        
+        // Trova il punto più vicino sul confine del terreno (su un segmento di linea)
+        function findNearestPointOnBoundaryPotatura(point, boundaryCoords, maxDistance) {
+            let nearestPoint = null;
+            let minDistance = maxDistance;
+            
+            // Itera su tutti i segmenti del confine
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length]; // Ultimo punto si collega al primo
+                
+                // Calcola punto più vicino su questo segmento
+                const closestPoint = getClosestPointOnSegmentPotatura(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestPoint = closestPoint;
+                }
+            }
+            
+            return nearestPoint;
+        }
+        
+        // Calcola il punto più vicino su un segmento di linea
+        function getClosestPointOnSegmentPotatura(point, segmentStart, segmentEnd) {
+            const A = point.lat();
+            const B = point.lng();
+            const C = segmentStart.lat();
+            const D = segmentStart.lng();
+            const E = segmentEnd.lat();
+            const F = segmentEnd.lng();
+            
+            // Calcola vettore del segmento
+            const dx = E - C;
+            const dy = F - D;
+            const lengthSquared = dx * dx + dy * dy;
+            
+            if (lengthSquared === 0) {
+                // Segmento degenere (punto)
+                return segmentStart;
+            }
+            
+            // Calcola parametro t (0 = start, 1 = end)
+            const t = Math.max(0, Math.min(1, ((A - C) * dx + (B - D) * dy) / lengthSquared));
+            
+            // Calcola punto più vicino
+            const closestLat = C + t * dx;
+            const closestLng = D + t * dy;
+            
+            return new google.maps.LatLng(closestLat, closestLng);
+        }
+        
+        // Calcola distanza minima da un punto al confine del terreno
+        function getDistanceToBoundaryPotatura(point, boundaryCoords) {
+            let minDistance = Infinity;
+            
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length];
+                const closestPoint = getClosestPointOnSegmentPotatura(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                minDistance = Math.min(minDistance, distance);
+            }
+            
+            return minDistance;
+        }
+        
+        // Sposta un punto leggermente dentro il confine del terreno
+        function movePointInsideBoundaryPotatura(point, boundaryCoords) {
+            // Trova il punto più vicino sul confine
+            const nearestBoundaryPoint = findNearestPointOnBoundaryPotatura(point, boundaryCoords, 100);
+            if (!nearestBoundaryPoint) return point;
+            
+            // Calcola vettore dal confine verso il centro del terreno
+            const center = getPolygonCenterPotatura(boundaryCoords);
+            const dx = center.lat() - nearestBoundaryPoint.lat();
+            const dy = center.lng() - nearestBoundaryPoint.lng();
+            const length = Math.sqrt(dx * dx + dy * dy);
+            
+            if (length === 0) return point;
+            
+            // Normalizza e sposta di 1 metro verso l'interno
+            const moveDistance = 1 / 111000; // Circa 1 metro in gradi (approssimazione)
+            const normalizedDx = dx / length;
+            const normalizedDy = dy / length;
+            
+            return new google.maps.LatLng(
+                nearestBoundaryPoint.lat() + normalizedDx * moveDistance,
+                nearestBoundaryPoint.lng() + normalizedDy * moveDistance
+            );
+        }
+        
+        // Calcola centro di un poligono
+        function getPolygonCenterPotatura(coords) {
+            let sumLat = 0, sumLng = 0;
+            coords.forEach(coord => {
+                sumLat += coord.lat();
+                sumLng += coord.lng();
+            });
+            return new google.maps.LatLng(sumLat / coords.length, sumLng / coords.length);
+        }
+
+        async function loadPoligonoFromZoneLavoratePotatura(lavoroId) {
+            const tenantId = (await import(resolvePath('../../../core/services/tenant-service.js'))).getCurrentTenantId();
+            const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const db = getDb();
+            if (!tenantId || !lavoroId || !db) return null;
+            try {
+                const zoneRef = collection(db, 'tenants', tenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const snap = await getDocs(zoneRef);
+                for (const docSnap of snap.docs) {
+                    const data = docSnap.data();
+                    if (!data.coordinate || data.coordinate.length < 3) continue;
+                    const isChiuso = data.isChiuso === true || data.tipo === 'poligono';
+                    if (!isChiuso) continue;
+                    const coords = data.coordinate.map(c => {
+                        const lat = typeof c.lat === 'function' ? c.lat() : (c.lat ?? c._lat);
+                        const lng = typeof c.lng === 'function' ? c.lng() : (c.lng ?? c._lng);
+                        return { lat: Number(lat), lng: Number(lng) };
+                    });
+                    if (coords.length >= 3) return coords;
+                }
+            } catch (e) { console.warn('[POTATURA] loadPoligonoFromZoneLavorate:', e); }
+            return null;
+        }
+
+        async function loadDatiLavoroPotatura(lavoroId) {
+            const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+            const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { getLavoro } = await import(resolvePath('../../../core/services/lavori-service.js'));
+            const { getTerreno } = await import(resolvePath('../../../core/services/terreni-service.js'));
+            const { collection, query, where, getDocs, getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const tenantId = getCurrentTenantId();
+            if (!tenantId || !lavoroId) return null;
+            const db = getDb();
+            if (!db) return null;
+            const lavoro = await getLavoro(lavoroId);
+            if (!lavoro) return null;
+            const linkEl = document.getElementById('link-lavoro');
+            if (linkEl) linkEl.href = resolvePath('../../../core/admin/gestione-lavori-standalone.html') + '?lavoroId=' + lavoroId;
+            let superficie = null;
+            if (lavoro.superficieTotaleLavorata && lavoro.superficieTotaleLavorata > 0) superficie = lavoro.superficieTotaleLavorata;
+            else if (lavoro.terrenoId && lavoro.percentualeCompletamento) {
+                const terrenoDoc = await getDoc(doc(db, 'tenants/' + tenantId + '/terreni', lavoro.terrenoId));
+                if (terrenoDoc.exists()) {
+                    const supTot = terrenoDoc.data().superficie || 0;
+                    if (supTot > 0) superficie = (lavoro.percentualeCompletamento / 100) * supTot;
+                }
+            }
+            let macchine = [];
+            try {
+                const { getAllMacchine } = await import(resolvePath('../../../modules/parco-macchine/services/macchine-service.js'));
+                macchine = await getAllMacchine();
+            } catch (e) { console.warn('[POTATURA-VIGNETO] loadMacchine:', e); }
+            const oreRef = collection(db, 'tenants/' + tenantId + '/lavori/' + lavoroId + '/oreOperai');
+            const q = query(oreRef, where('stato', '==', 'validate'));
+            const snap = await getDocs(q);
+            const operaiMap = {};
+            const macchineMap = {};
+            for (const oraDoc of snap.docs) {
+                const ora = oraDoc.data();
+                if (ora.operaioId) {
+                    const userDoc = await getDoc(doc(db, 'users', ora.operaioId));
+                    if (userDoc.exists()) {
+                        const u = userDoc.data();
+                        const nome = (u.nome || '') + ' ' + (u.cognome || '').trim() || u.email || ora.operaioId;
+                        if (!operaiMap[ora.operaioId]) operaiMap[ora.operaioId] = { nome, oreTotali: 0 };
+                        operaiMap[ora.operaioId].oreTotali += ora.oreNette || 0;
+                    }
+                }
+                const oreMac = ora.oreMacchina || 0;
+                if (ora.macchinaId && oreMac > 0) {
+                    const m = macchine.find(x => x.id === ora.macchinaId);
+                    if (!macchineMap[ora.macchinaId]) macchineMap[ora.macchinaId] = { tipo: 'Trattore', nome: m ? (m.nome || m.marca) : ora.macchinaId, oreTotali: 0 };
+                    macchineMap[ora.macchinaId].oreTotali += oreMac;
+                }
+                if (ora.attrezzoId && oreMac > 0) {
+                    const a = macchine.find(x => x.id === ora.attrezzoId);
+                    if (!macchineMap[ora.attrezzoId]) macchineMap[ora.attrezzoId] = { tipo: 'Attrezzo', nome: a ? (a.nome || a.marca) : ora.attrezzoId, oreTotali: 0 };
+                    macchineMap[ora.attrezzoId].oreTotali += oreMac;
+                }
+            }
+            let html = '';
+            if (Object.keys(operaiMap).length > 0) {
+                html += '<h4 style="margin-top:15px;margin-bottom:10px;">Operai coinvolti</h4><table><thead><tr><th>Nome</th><th>Ore</th></tr></thead><tbody>';
+                Object.values(operaiMap).forEach(op => { html += '<tr><td>' + (op.nome || '') + '</td><td>' + (op.oreTotali || 0).toFixed(2) + 'h</td></tr>'; });
+                html += '</tbody></table>';
+            }
+            const macchineList = Object.values(macchineMap);
+            if (macchineList.length > 0) {
+                html += '<h4 style="margin-top:15px;margin-bottom:10px;">Macchine utilizzate</h4><table><thead><tr><th>Tipo</th><th>Nome</th><th>Ore</th></tr></thead><tbody>';
+                macchineList.forEach(m => { html += '<tr><td>' + (m.tipo || '') + '</td><td>' + (m.nome || '') + '</td><td>' + (m.oreTotali || 0).toFixed(2) + 'h</td></tr>'; });
+                html += '</tbody></table>';
+            }
+            const container = document.getElementById('dati-lavoro-tabelle');
+            if (container) container.innerHTML = html;
+            return superficie;
+        }
+
+        async function loadMacchinePotaturaVigneto() {
+            try {
+                const mod = await import(resolvePath('../../../modules/parco-macchine/services/macchine-service.js'));
+                return await mod.getAllMacchine();
+            } catch (e) {
+                return [];
+            }
+        }
+
+        window.aggiungiRigaOperaioPotaturaVigneto = function() {
+            const tbody = document.getElementById('operai-tabella-body-potatura-vigneto');
+            if (!tbody) return;
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td><input type="date" class="input-data-operaio-potatura-vigneto"></td><td><input type="text" placeholder="Nome" class="input-nome-operaio-potatura-vigneto"></td><td><input type="number" step="0.01" min="0" value="0" class="input-ore-operaio-potatura-vigneto"></td><td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest(\'tr\').remove(); aggiornaTotaleOreOperaiPotaturaVigneto();">Elimina</button></td>';
+            tbody.appendChild(tr);
+            tr.querySelector('.input-ore-operaio-potatura-vigneto').addEventListener('input', aggiornaTotaleOreOperaiPotaturaVigneto);
+            aggiornaTotaleOreOperaiPotaturaVigneto();
+        };
+
+        function aggiornaTotaleOreOperaiPotaturaVigneto() {
+            const tbody = document.getElementById('operai-tabella-body-potatura-vigneto');
+            const footer = document.getElementById('operai-tabella-footer-potatura-vigneto');
+            if (!tbody) return;
+            const righe = tbody.querySelectorAll('tr');
+            let tot = 0;
+            righe.forEach(r => {
+                const inp = r.querySelector('.input-ore-operaio-potatura-vigneto');
+                if (inp) tot += parseFloat(inp.value) || 0;
+            });
+            const totEl = document.getElementById('totale-ore-operai-potatura-vigneto');
+            if (totEl) totEl.textContent = tot.toFixed(1);
+            if (footer) footer.style.display = righe.length > 0 ? 'table-footer-group' : 'none';
+        }
+
+        function popolaTabellaOperaiPotaturaVigneto(operaiData) {
+            const tbody = document.getElementById('operai-tabella-body-potatura-vigneto');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            (operaiData || []).forEach(op => {
+                const tr = document.createElement('tr');
+                const dataStr = op.data ? (op.data instanceof Date ? op.data.toISOString().slice(0, 10) : op.data) : '';
+                tr.innerHTML = '<td><input type="date" class="input-data-operaio-potatura-vigneto" value="' + dataStr + '"></td><td><input type="text" placeholder="Nome" class="input-nome-operaio-potatura-vigneto" value="' + (op.nome || '') + '"></td><td><input type="number" step="0.01" min="0" class="input-ore-operaio-potatura-vigneto" value="' + (op.ore || 0) + '"></td><td><button type="button" class="btn btn-danger btn-sm">Elimina</button></td>';
+                tr.querySelector('button').addEventListener('click', function() { tr.remove(); aggiornaTotaleOreOperaiPotaturaVigneto(); });
+                tr.querySelector('.input-ore-operaio-potatura-vigneto').addEventListener('input', aggiornaTotaleOreOperaiPotaturaVigneto);
+                tbody.appendChild(tr);
+            });
+            if (operaiData.length === 0) window.aggiungiRigaOperaioPotaturaVigneto();
+            else aggiornaTotaleOreOperaiPotaturaVigneto();
+        }
+
+        function popolaTabellaMacchinePotaturaVigneto(macchineData) {
+            const tbody = document.getElementById('macchine-tabella-body-potatura-vigneto');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            (macchineData || []).forEach(m => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + (m.tipo || '-') + '</td><td>' + (m.nome || '-') + '</td><td>' + (m.ore !== undefined ? Number(m.ore).toFixed(2) : '-') + '</td>';
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function caricaMacchinePerPotaturaVigneto(potatura) {
+            await loadMacchinePotaturaVigneto();
+            let macchine = await loadMacchinePotaturaVigneto();
+            let macchineData = [];
+            
+            // Se c'è un lavoro collegato, carica macchine dal lavoro
+            if (potatura.lavoroId) {
+                try {
+                    const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+                    const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+                    const { collection, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const tenantId = getCurrentTenantId();
+                    const db = getDb();
+                    if (tenantId && db) {
+                        const oreRef = collection(db, `tenants/${tenantId}/lavori/${potatura.lavoroId}/oreOperai`);
+                        const q = query(oreRef, where('stato', '==', 'validate'));
+                        const snap = await getDocs(q);
+                        const macchineMap = {};
+                        snap.forEach(oraDoc => {
+                            const ora = oraDoc.data();
+                            const oreMac = ora.oreMacchina || 0;
+                            if (ora.macchinaId && oreMac > 0) {
+                                const m = macchine.find(x => x.id === ora.macchinaId);
+                                if (!macchineMap[ora.macchinaId]) macchineMap[ora.macchinaId] = { tipo: 'Trattore', nome: m ? (m.nome || m.marca) : ora.macchinaId, oreTotali: 0 };
+                                macchineMap[ora.macchinaId].oreTotali += oreMac;
+                            }
+                            if (ora.attrezzoId && oreMac > 0) {
+                                const a = macchine.find(x => x.id === ora.attrezzoId);
+                                if (!macchineMap[ora.attrezzoId]) macchineMap[ora.attrezzoId] = { tipo: 'Attrezzo', nome: a ? (a.nome || a.marca) : ora.attrezzoId, oreTotali: 0 };
+                                macchineMap[ora.attrezzoId].oreTotali += oreMac;
+                            }
+                        });
+                        macchineData = Object.values(macchineMap);
+                    }
+                } catch (e) {
+                    console.warn('[POTATURA-VIGNETO] caricaMacchinePerPotaturaVigneto da lavoro:', e);
+                }
+            }
+            
+            // Se c'è un'attività collegata (senza lavoro), carica macchine dall'attività
+            if (potatura.attivitaId && !potatura.lavoroId) {
+                const { getAttivita } = await import(resolvePath('../../../core/services/attivita-service.js'));
+                const att = await getAttivita(potatura.attivitaId);
+                if (att) {
+                    if (att.macchinaId) {
+                        const m = macchine.find(x => x.id === att.macchinaId);
+                        macchineData.push({ tipo: 'Trattore', nome: m ? (m.nome || m.marca) : att.macchinaId, ore: att.oreMacchina || att.oreNette || 0 });
+                    }
+                    if (att.attrezzoId) {
+                        const a = macchine.find(x => x.id === att.attrezzoId);
+                        macchineData.push({ tipo: 'Attrezzo', nome: a ? (a.nome || a.marca) : att.attrezzoId, ore: att.oreMacchina || att.oreNette || 0 });
+                    }
+                }
+            }
+            
+            // Se ci sono macchine salvate direttamente nella potatura
+            if (potatura.macchine && Array.isArray(potatura.macchine) && potatura.macchine.length > 0 && macchineData.length === 0) {
+                potatura.macchine.forEach(m => {
+                    if (typeof m === 'object' && m.nome) macchineData.push({ tipo: m.tipo || 'Trattore', nome: m.nome, ore: m.ore || m.oreTotali || 0 });
+                });
+            }
+            
+            popolaTabellaMacchinePotaturaVigneto(macchineData);
+        }
+
+        async function loadVigneti() {
+            const { getAllVigneti } = await import(resolvePath('../services/vigneti-service.js'));
+            vigneti = await getAllVigneti();
+            const selFilter = document.getElementById('filter-vigneto');
+            const selModal = document.getElementById('potatura-vigneto');
+            [selFilter, selModal].forEach(sel => {
+                if (!sel) return;
+                sel.innerHTML = sel === selFilter ? '<option value="">Tutti i vigneti</option>' : '<option value="">Seleziona vigneto</option>';
+                vigneti.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    opt.textContent = v.varieta || v.nome || v.id;
+                    sel.appendChild(opt);
+                });
+            });
+            const annoCorrente = new Date().getFullYear();
+            const annoSel = document.getElementById('filter-anno');
+            annoSel.innerHTML = '';
+            for (let i = 0; i < 6; i++) {
+                const y = annoCorrente - i;
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (i === 0) opt.selected = true;
+                annoSel.appendChild(opt);
+            }
+        }
+
+        async function loadPotature() {
+            const vid = document.getElementById('filter-vigneto').value || null;
+            const annoVal = document.getElementById('filter-anno').value;
+            const anno = annoVal ? parseInt(annoVal, 10) : null;
+            currentVignetoId = vid;
+            currentAnno = anno;
+
+            const loading = document.getElementById('loading');
+            const tableWrap = document.getElementById('table-wrap');
+            const empty = document.getElementById('empty-state');
+            const tbody = document.getElementById('tbody-potature');
+
+            loading.style.display = 'block';
+            tableWrap.style.display = 'none';
+            empty.style.display = 'none';
+
+            try {
+                const { getAllPotatureVigneti } = await import(resolvePath('../services/potatura-vigneto-service.js'));
+                potature = await getAllPotatureVigneti({
+                    anno: anno || new Date().getFullYear(),
+                    vignetoId: vid || null
+                });
+            } catch (e) {
+                console.error(e);
+                potature = [];
+            }
+
+            loading.style.display = 'none';
+            if (potature.length === 0) {
+                empty.style.display = 'block';
+                empty.innerHTML = '<p>Nessuna potatura per l\'anno selezionato. Crea un lavoro o un\'attività con categoria Potatura (Gestione lavori o Diario) su un terreno con vigneto.</p>';
+                return;
+            }
+
+            try {
+                const { getDatiPrecompilazionePotatura } = await import(resolvePath('../services/potatura-vigneto-service.js'));
+                const potatureConDisplay = await Promise.all(potature.map(async (p) => {
+                    let tipoDisplay = p.tipo;
+                    let ceppiDisplay = p.ceppiPotati;
+                    let costoDisplay = p.costoTotale;
+                    if (p.lavoroId || p.attivitaId) {
+                        try {
+                            const prefill = await getDatiPrecompilazionePotatura(p.vignetoId, p);
+                            if (prefill.tipoPotatura) tipoDisplay = prefill.tipoPotatura;
+                            if (prefill.ceppiPotati != null) ceppiDisplay = prefill.ceppiPotati;
+                            if (prefill.costoManodopera != null || prefill.costoMacchina != null) {
+                                costoDisplay = (prefill.costoManodopera || 0) + (prefill.costoMacchina || 0);
+                            }
+                        } catch (e) {
+                            console.warn('[Potatura lista] prefill per', p.id, e);
+                        }
+                    }
+                    return { ...p, tipoDisplay, ceppiDisplay, costoDisplay };
+                }));
+
+                empty.style.display = 'none';
+                tableWrap.style.display = 'block';
+                const tipoLabels = { invernale: '❄️ Invernale', verde: '🌿 Verde', rinnovo: '🔄 Rinnovo', spollonatura: '🌱 Spollonatura' };
+                const gestioneLavoriUrl = resolvePath('../../../core/admin/gestione-lavori-standalone.html');
+                const attivitaUrl = resolvePath('../../../core/attivita-standalone.html');
+                tbody.innerHTML = potatureConDisplay.map(p => {
+                    const vignetoNome = vigneti.find(v => v.id === p.vignetoId);
+                    const vignetoLabel = vignetoNome ? (vignetoNome.varieta || vignetoNome.nome || p.vignetoId) : p.vignetoId || '-';
+                    const tipoLabel = tipoLabels[p.tipoDisplay] || p.tipoDisplay || '-';
+                    const costo = (p.costoDisplay != null && p.costoDisplay !== '') ? Number(p.costoDisplay).toFixed(2) : '-';
+                    let lavoroCell = '-';
+                    if (p.lavoroId) {
+                        lavoroCell = `<a href="${gestioneLavoriUrl}?lavoroId=${encodeURIComponent(p.lavoroId)}" target="_blank" class="link-lavoro">🔗 Vedi Lavoro</a>`;
+                    } else if (p.attivitaId) {
+                        lavoroCell = `<a href="${attivitaUrl}?attivitaId=${encodeURIComponent(p.attivitaId)}" target="_blank" class="link-lavoro">🔗 Vedi Attività</a>`;
+                    }
+                    const vignetoId = p.vignetoId;
+                    return `<tr>
+                        <td>${formatDate(p.data)}</td>
+                        <td>${vignetoLabel}</td>
+                        <td>${tipoLabel}</td>
+                        <td>${(p.ceppiDisplay != null && p.ceppiDisplay !== '') ? Number(p.ceppiDisplay) : '-'}</td>
+                        <td>${p.oreImpiegate != null ? p.oreImpiegate : '-'}</td>
+                        <td>${costo}</td>
+                        <td>${lavoroCell}</td>
+                        <td>
+                            <button type="button" class="btn btn-secondary btn-sm" data-edit="${p.id}" data-vigneto-id="${vignetoId}">Modifica</button>
+                            <button type="button" class="btn btn-danger btn-sm" data-delete="${p.id}" data-vigneto-id="${vignetoId}">Elimina</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+                tbody.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openModalEdit(btn.getAttribute('data-vigneto-id'), btn.getAttribute('data-edit'))));
+                tbody.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deletePotaturaConfirm(btn.getAttribute('data-vigneto-id'), btn.getAttribute('data-delete'))));
+            } catch (err) {
+                console.error('Errore rendering elenco potature:', err);
+                tableWrap.style.display = 'none';
+                empty.style.display = 'block';
+                empty.innerHTML = '<p>Errore nel caricamento dell\'elenco. Controlla la console per dettagli.</p>';
+            }
+        }
+
+        let currentPotaturaOperaiIds = null;
+
+        function openModalNew() {
+            currentPotaturaOperaiIds = null;
+            potaturaFromAttivitaOnly = true;
+            document.getElementById('modal-title').textContent = 'Nuova potatura';
+            document.getElementById('potatura-id').value = '';
+            document.getElementById('potatura-vigneto-id').value = currentVignetoId || '';
+            document.getElementById('lavoro-id-hidden').value = '';
+            document.getElementById('attivita-id-hidden').value = '';
+            document.getElementById('dati-lavoro-section').style.display = 'none';
+            poligonoCoords = [];
+            const poligonoInfo = document.getElementById('poligono-info-potatura');
+            if (poligonoInfo) poligonoInfo.style.display = 'none';
+            const sel = document.getElementById('potatura-vigneto');
+            sel.value = currentVignetoId || (vigneti.length ? vigneti[0].id : '');
+            document.getElementById('potatura-data').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('potatura-tipo').value = '';
+            document.getElementById('potatura-ceppi').value = '';
+            const tbodyOp = document.getElementById('operai-tabella-body-potatura-vigneto');
+            if (tbodyOp) { tbodyOp.innerHTML = ''; window.aggiungiRigaOperaioPotaturaVigneto(); }
+            document.getElementById('operai-tabella-section').style.display = 'block';
+            document.getElementById('macchine-tabella-section').style.display = 'none';
+            document.getElementById('potatura-ore').value = '';
+            document.getElementById('potatura-costo-mano').value = '0';
+            document.getElementById('potatura-costo-macchina').value = '0';
+            document.getElementById('potatura-note').value = '';
+            const btnTraccia = document.getElementById('btn-traccia-area-potatura');
+            if (btnTraccia) { btnTraccia.textContent = 'Traccia'; btnTraccia.title = 'Traccia area potata sulla mappa'; }
+            document.getElementById('modal-potatura').classList.add('active');
+        }
+
+        async function openModalEdit(vignetoId, potaturaId) {
+            const { getPotatura, getDatiPrecompilazionePotatura } = await import(resolvePath('../services/potatura-vigneto-service.js'));
+            const p = await getPotatura(vignetoId, potaturaId);
+            if (!p) { showAlert('Potatura non trovata', 'error'); return; }
+            document.getElementById('modal-title').textContent = 'Modifica potatura';
+            document.getElementById('potatura-id').value = potaturaId;
+            document.getElementById('potatura-vigneto-id').value = vignetoId;
+            document.getElementById('potatura-vigneto').value = vignetoId;
+            const dataVal = p.data instanceof Date ? p.data : (p.data?.toDate ? p.data.toDate() : new Date(p.data));
+            document.getElementById('potatura-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
+            document.getElementById('potatura-tipo').value = p.tipo || '';
+            document.getElementById('potatura-ceppi').value = p.ceppiPotati ?? '';
+            document.getElementById('potatura-ore').value = p.oreImpiegate ?? '';
+            document.getElementById('potatura-costo-mano').value = p.costoManodopera ?? 0;
+            document.getElementById('potatura-costo-macchina').value = p.costoMacchina ?? 0;
+            document.getElementById('potatura-note').value = p.note || '';
+
+            document.getElementById('lavoro-id-hidden').value = p.lavoroId || '';
+            document.getElementById('attivita-id-hidden').value = p.attivitaId || '';
+
+            const datiLavoroSection = document.getElementById('dati-lavoro-section');
+            const operaiTabellaSection = document.getElementById('operai-tabella-section');
+            const macchineTabellaSection = document.getElementById('macchine-tabella-section');
+
+            let superficieDalLavoro = null;
+            if (p.lavoroId) {
+                datiLavoroSection.style.display = 'block';
+                await loadMacchinePotaturaVigneto();
+                superficieDalLavoro = await loadDatiLavoroPotatura(p.lavoroId);
+                operaiTabellaSection.style.display = 'none';
+            } else {
+                datiLavoroSection.style.display = 'none';
+                operaiTabellaSection.style.display = 'block';
+                if (p.operai && Array.isArray(p.operai) && p.operai.length > 0) {
+                    const opData = p.operai.map(op => typeof op === 'object' && op.nome !== undefined ? op : { nome: '', data: null, ore: 0 });
+                    popolaTabellaOperaiPotaturaVigneto(opData);
+                } else window.aggiungiRigaOperaioPotaturaVigneto();
+            }
+
+            if (p.lavoroId || p.attivitaId) {
+                macchineTabellaSection.style.display = 'block';
+                await caricaMacchinePerPotaturaVigneto(p);
+            } else {
+                macchineTabellaSection.style.display = 'none';
+            }
+
+            potaturaFromAttivitaOnly = !!(p.attivitaId && !p.lavoroId);
+            const btnTraccia = document.getElementById('btn-traccia-area-potatura');
+            if (btnTraccia) {
+                btnTraccia.textContent = p.lavoroId ? 'Visualizza zona' : 'Traccia';
+                btnTraccia.title = p.lavoroId ? 'Visualizza zona tracciata nel lavoro collegato (sola consultazione)' : 'Traccia area potata sulla mappa';
+            }
+            if (p.poligonoPotatura && p.poligonoPotatura.length >= 3) {
+                poligonoCoords = p.poligonoPotatura.map(c => ({ lat: c.lat, lng: c.lng }));
+                const poligonoInfo = document.getElementById('poligono-info-potatura');
+                if (poligonoInfo) poligonoInfo.style.display = 'block';
+            } else if (p.lavoroId) {
+                const fromLavoro = await loadPoligonoFromZoneLavoratePotatura(p.lavoroId);
+                if (fromLavoro && fromLavoro.length >= 3) {
+                    poligonoCoords = fromLavoro;
+                    const poligonoInfo = document.getElementById('poligono-info-potatura');
+                    if (poligonoInfo) poligonoInfo.style.display = 'block';
+                } else {
+                    poligonoCoords = [];
+                    const poligonoInfo = document.getElementById('poligono-info-potatura');
+                    if (poligonoInfo) poligonoInfo.style.display = 'none';
+                }
+            } else {
+                poligonoCoords = [];
+                const poligonoInfo = document.getElementById('poligono-info-potatura');
+                if (poligonoInfo) poligonoInfo.style.display = 'none';
+            }
+
+            try {
+                const prefill = await getDatiPrecompilazionePotatura(vignetoId, p, { hasManodoperaModule });
+                if (prefill.tipoPotatura) document.getElementById('potatura-tipo').value = prefill.tipoPotatura;
+                if (prefill.ceppiPotati != null) document.getElementById('potatura-ceppi').value = prefill.ceppiPotati;
+                document.getElementById('potatura-costo-mano').value = prefill.costoManodopera ?? 0;
+                document.getElementById('potatura-costo-macchina').value = prefill.costoMacchina ?? 0;
+            } catch (e) { console.warn('Precompilazione potatura:', e); }
+
+            currentPotaturaOperaiIds = Array.isArray(p.operai) ? p.operai : null;
+            document.getElementById('modal-potatura').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-potatura').classList.remove('active');
+        }
+
+        async function savePotatura(e) {
+            e.preventDefault();
+            const id = document.getElementById('potatura-id').value.trim();
+            const vignetoId = document.getElementById('potatura-vigneto').value;
+            if (!vignetoId) { showAlert('Seleziona un vigneto', 'error'); return; }
+
+            let operaiPayload = [];
+            const opSection = document.getElementById('operai-tabella-section');
+            if (opSection && opSection.style.display !== 'none') {
+                const tbody = document.getElementById('operai-tabella-body-potatura-vigneto');
+                if (tbody) {
+                    tbody.querySelectorAll('tr').forEach(tr => {
+                        const dataInp = tr.querySelector('.input-data-operaio-potatura-vigneto');
+                        const nomeInp = tr.querySelector('.input-nome-operaio-potatura-vigneto');
+                        const oreInp = tr.querySelector('.input-ore-operaio-potatura-vigneto');
+                        const nome = nomeInp ? nomeInp.value.trim() : '';
+                        const ore = oreInp ? parseFloat(oreInp.value) || 0 : 0;
+                        if (nome || ore > 0) {
+                            let dataVal = null;
+                            if (dataInp && dataInp.value) {
+                                const [yy, mm, dd] = dataInp.value.split('-').map(Number);
+                                dataVal = new Date(yy, mm - 1, dd);
+                            }
+                            operaiPayload.push({ data: dataVal, nome, ore });
+                        }
+                    });
+                }
+            } else if (currentPotaturaOperaiIds && currentPotaturaOperaiIds.length > 0) {
+                operaiPayload = currentPotaturaOperaiIds;
+            }
+
+            const lavoroIdVal = document.getElementById('lavoro-id-hidden').value.trim();
+            const attivitaIdVal = document.getElementById('attivita-id-hidden').value.trim();
+            let costoManodopera = parseFloat(document.getElementById('potatura-costo-mano').value) || 0;
+            let costoMacchina = parseFloat(document.getElementById('potatura-costo-macchina').value) || 0;
+            
+            // Se costo manodopera o macchina è 0 ma c'è un lavoro collegato, ricalcola automaticamente
+            if (lavoroIdVal && (costoManodopera === 0 || costoMacchina === 0)) {
+                try {
+                    const { calcolaCostiLavoro } = await import(resolvePath('../services/lavori-vigneto-service.js'));
+                    const { getLavoro } = await import(resolvePath('../../../core/services/lavori-service.js'));
+                    const lavoro = await getLavoro(lavoroIdVal);
+                    if (lavoro) {
+                        const costi = await calcolaCostiLavoro(lavoroIdVal, lavoro);
+                        if (costoManodopera === 0 && costi.costoManodopera) {
+                            costoManodopera = costi.costoManodopera;
+                        }
+                        if (costoMacchina === 0 && costi.costoMacchine) {
+                            costoMacchina = costi.costoMacchine;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[POTATURA-VIGNETO] Ricalcolo costo da lavoro:', e);
+                }
+            }
+            
+            // Se costo manodopera è 0 ma c'è un'attività collegata, ricalcola automaticamente
+            if (costoManodopera === 0 && attivitaIdVal && !lavoroIdVal) {
+                try {
+                    const { getAttivita } = await import(resolvePath('../../../core/services/attivita-service.js'));
+                    const attivita = await getAttivita(attivitaIdVal);
+                    if (attivita) {
+                        const oreNette = attivita.oreNette || 0;
+                        if (oreNette > 0) {
+                            const { getTariffaProprietario } = await import(resolvePath('../../../core/services/calcolo-compensi-service.js'));
+                            const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+                            const tenantId = getCurrentTenantId();
+                            const tariffaProprietario = await getTariffaProprietario(tenantId);
+                            costoManodopera = oreNette * tariffaProprietario;
+                        }
+                        
+                        // Ricalcola anche costo macchina se presente
+                        const oreMacchina = attivita.oreMacchina || 0;
+                        if (oreMacchina > 0 && costoMacchina === 0 && (attivita.macchinaId || attivita.attrezzoId)) {
+                            try {
+                                const { hasModuleAccess } = await import(resolvePath('../../../core/services/tenant-service.js'));
+                                const hasParcoMacchineModule = await hasModuleAccess('parcoMacchine');
+                                if (hasParcoMacchineModule) {
+                                    const { getMacchina } = await import(resolvePath('../../../modules/parco-macchine/services/macchine-service.js'));
+                                    const macchinaId = attivita.macchinaId || attivita.attrezzoId;
+                                    if (macchinaId) {
+                                        const macchina = await getMacchina(macchinaId);
+                                        if (macchina && macchina.costoOra) {
+                                            costoMacchina = oreMacchina * parseFloat(macchina.costoOra);
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('[POTATURA-VIGNETO] Ricalcolo costo macchina:', e);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[POTATURA-VIGNETO] Ricalcolo costo da attività:', e);
+                }
+            }
+            
+            const data = {
+                data: new Date(document.getElementById('potatura-data').value),
+                tipo: document.getElementById('potatura-tipo').value,
+                parcella: null,
+                ceppiPotati: parseInt(document.getElementById('potatura-ceppi').value, 10),
+                operai: operaiPayload,
+                oreImpiegate: parseFloat(document.getElementById('potatura-ore').value),
+                costoManodopera,
+                costoMacchina,
+                note: document.getElementById('potatura-note').value.trim() || null
+            };
+            if (lavoroIdVal) data.lavoroId = lavoroIdVal;
+            if (attivitaIdVal) data.attivitaId = attivitaIdVal;
+            if (poligonoCoords && poligonoCoords.length >= 3) {
+                data.poligonoPotatura = poligonoCoords.map(c => typeof c.lat === 'function' ? { lat: c.lat(), lng: c.lng() } : { lat: c.lat, lng: c.lng });
+            }
+
+            try {
+                const { createPotatura, updatePotatura } = await import(resolvePath('../services/potatura-vigneto-service.js'));
+                if (id) {
+                    await updatePotatura(vignetoId, id, data);
+                    showAlert('Potatura aggiornata.', 'success');
+                } else {
+                    await createPotatura(vignetoId, data);
+                    showAlert('Potatura registrata.', 'success');
+                }
+                closeModal();
+                await loadPotature();
+            } catch (err) {
+                showAlert(err.message || 'Errore salvataggio', 'error');
+            }
+        }
+
+        async function deletePotaturaConfirm(vignetoId, potaturaId) {
+            if (!confirm('Eliminare questa potatura?')) return;
+            try {
+                const { deletePotatura } = await import(resolvePath('../services/potatura-vigneto-service.js'));
+                await deletePotatura(vignetoId, potaturaId);
+                showAlert('Potatura eliminata.', 'success');
+                await loadPotature();
+            } catch (err) {
+                showAlert(err.message || 'Errore eliminazione', 'error');
+            }
+        }
+
+        function loadGoogleMapsPotatura() {
+            return new Promise((resolve) => {
+                if (typeof google !== 'undefined' && google.maps) { resolve(); return; }
+                if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+                    let n = 0;
+                    const t = setInterval(() => {
+                        if (typeof google !== 'undefined' && google.maps) { clearInterval(t); resolve(); }
+                        else if (++n > 50) { clearInterval(t); resolve(); }
+                    }, 100);
+                    return;
+                }
+                const key = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+                const s = document.createElement('script');
+                s.src = 'https://maps.googleapis.com/maps/api/js?key=' + key + '&libraries=geometry&loading=async';
+                s.async = true;
+                s.onload = () => resolve();
+                s.onerror = () => resolve();
+                document.head.appendChild(s);
+            });
+        }
+
+        async function initMappaPotatura(terreno) {
+            try {
+                const container = document.getElementById('mappa-potatura-container');
+                if (!container) return;
+                
+                // Inizializza mappa centrata sul terreno
+                const center = terreno.polygonCoords && terreno.polygonCoords.length > 0
+                    ? { lat: terreno.polygonCoords[0].lat, lng: terreno.polygonCoords[0].lng }
+                    : { lat: 43.7228, lng: 10.4017 }; // Default Toscana
+                
+                mappaPotatura = new google.maps.Map(container, {
+                    center: center,
+                    zoom: 15,
+                    mapTypeId: 'satellite',
+                    mapTypeControl: true,
+                    streetViewControl: false
+                });
+                
+                // Carica terreno sulla mappa
+                await caricaTerrenoSullaMappaPotatura(terreno);
+                
+            } catch (error) {
+                console.error('Errore inizializzazione mappa:', error);
+                alert('Errore nel caricamento della mappa: ' + error.message);
+            }
+        }
+        
+        async function caricaTerrenoSullaMappaPotatura(terreno) {
+            if (!mappaPotatura || !terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) return;
+            
+            // Rimuovi poligono terreno precedente se presente
+            if (terrenoPolygonPotatura) {
+                terrenoPolygonPotatura.setMap(null);
+            }
+            
+            // Crea poligono terreno
+            const terrenoCoords = terreno.polygonCoords.map(c => 
+                new google.maps.LatLng(c.lat, c.lng)
+            );
+            
+            terrenoPolygonPotatura = new google.maps.Polygon({
+                paths: terrenoCoords,
+                fillColor: '#2E8B57',
+                fillOpacity: 0.2,
+                strokeColor: '#2E8B57',
+                strokeWeight: 3,
+                strokeOpacity: 0.8,
+                editable: false,
+                clickable: false, // IMPORTANTE: false per non intercettare i click
+                zIndex: 1 // Sotto al poligono potatura
+            });
+            
+            terrenoPolygonPotatura.setMap(mappaPotatura);
+            
+            // Salva coordinate del confine per lo snap
+            terrenoBoundaryCoordsPotatura = terrenoCoords;
+            
+            // Centra mappa sul terreno
+            const bounds = new google.maps.LatLngBounds();
+            terrenoCoords.forEach(coord => bounds.extend(coord));
+            mappaPotatura.fitBounds(bounds);
+        }
+
+        function aggiornaInfoPoligonoPotatura() {
+            const infoDiv = document.getElementById('mappa-info-potatura');
+            const superficieDiv = document.getElementById('superficie-calcolata-potatura');
+            const puntiDiv = document.getElementById('punti-tracciati-potatura');
+            const btnClear = document.getElementById('btn-clear-polygon-potatura');
+            const btnSave = document.getElementById('btn-save-polygon-potatura');
+            const btnConferma = document.getElementById('btn-conferma-polygon-potatura');
+            
+            if (poligonoCoords.length >= 3) {
+                // Calcola superficie
+                const areaMq = google.maps.geometry.spherical.computeArea(poligonoCoords);
+                const areaHa = areaMq / 10000; // Converti in ettari
+                
+                superficieDiv.textContent = areaHa.toFixed(2) + ' ha';
+                puntiDiv.textContent = poligonoCoords.length;
+                
+                infoDiv.style.display = 'block';
+                btnClear.style.display = 'inline-block';
+                btnSave.style.display = 'inline-block';
+                btnConferma.style.display = 'inline-block';
+            } else {
+                infoDiv.style.display = 'none';
+                btnClear.style.display = 'none';
+                btnSave.style.display = 'none';
+                btnConferma.style.display = 'none';
+            }
+        }
+
+        function aggiornaPoligonoSullaMappaPotatura() {
+            if (!mappaPotatura || poligonoCoords.length < 2) return;
+            
+            // Rimuovi poligono precedente
+            if (poligonoPotaturaPoly) {
+                poligonoPotaturaPoly.setMap(null);
+            }
+            
+            // Crea nuovo poligono
+            poligonoPotaturaPoly = new google.maps.Polygon({
+                paths: poligonoCoords,
+                fillColor: '#6A1B9A', // Viola per potatura
+                fillOpacity: 0.4,
+                strokeColor: '#4A148C', // Viola scuro per bordo
+                strokeWeight: 4,
+                strokeOpacity: 1.0,
+                editable: true,
+                draggable: false
+            });
+            
+            poligonoPotaturaPoly.setMap(mappaPotatura);
+            
+            // Listener per modifiche poligono (drag dei vertici)
+            google.maps.event.addListener(poligonoPotaturaPoly.getPath(), 'set_at', function() {
+                poligonoCoords = poligonoPotaturaPoly.getPath().getArray();
+                aggiornaInfoPoligonoPotatura();
+            });
+            
+            google.maps.event.addListener(poligonoPotaturaPoly.getPath(), 'insert_at', function() {
+                poligonoCoords = poligonoPotaturaPoly.getPath().getArray();
+                aggiornaInfoPoligonoPotatura();
+            });
+            
+            google.maps.event.addListener(poligonoPotaturaPoly.getPath(), 'remove_at', function() {
+                poligonoCoords = poligonoPotaturaPoly.getPath().getArray();
+                aggiornaInfoPoligonoPotatura();
+            });
+        }
+
+        function caricaPoligonoEsistentePotatura(coordinate, soloConsultazione) {
+            if (!coordinate || coordinate.length < 3 || !mappaPotatura) return;
+            
+            // Converti coordinate in LatLng se necessario
+            if (typeof coordinate[0] === 'object' && coordinate[0].lat !== undefined) {
+                poligonoCoords = coordinate.map(c => 
+                    new google.maps.LatLng(c.lat, c.lng)
+                );
+            } else {
+                // Già LatLng
+                poligonoCoords = coordinate;
+            }
+            
+            // Se solo consultazione, mostra poligono non editabile
+            if (soloConsultazione) {
+                if (poligonoPotaturaPoly) {
+                    poligonoPotaturaPoly.setMap(null);
+                }
+                poligonoPotaturaPoly = new google.maps.Polygon({
+                    paths: poligonoCoords,
+                    fillColor: '#6A1B9A',
+                    fillOpacity: 0.4,
+                    strokeColor: '#4A148C',
+                    strokeWeight: 4,
+                    strokeOpacity: 1.0,
+                    editable: false,
+                    draggable: false,
+                    map: mappaPotatura
+                });
+                aggiornaInfoPoligonoPotatura();
+                return;
+            }
+            
+            // Aggiorna poligono sulla mappa (editabile)
+            aggiornaPoligonoSullaMappaPotatura();
+            aggiornaInfoPoligonoPotatura();
+        }
+
+        window.apriMappaTracciamentoPotatura = async function apriMappaTracciamentoPotatura() {
+            // Verifica che Google Maps sia caricato (allineato a vendemmia)
+            if (typeof google === 'undefined' || !google.maps) {
+                // Aspetta che Google Maps sia caricato
+                let attempts = 0;
+                const maxAttempts = 50;
+                while (attempts < maxAttempts && (typeof google === 'undefined' || !google.maps)) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (typeof google === 'undefined' || !google.maps) {
+                    alert('Google Maps non è ancora caricato. Attendi qualche secondo e riprova.');
+                    return;
+                }
+            }
+            
+            const lavoroId = document.getElementById('lavoro-id-hidden').value.trim();
+            const soloConsultazione = lavoroId !== '' && !potaturaFromAttivitaOnly;
+            window.potaturaMappaSoloConsultazione = soloConsultazione;
+
+            const vignetoId = document.getElementById('potatura-vigneto').value;
+            if (!vignetoId) {
+                alert('Seleziona prima un vigneto');
+                return;
+            }
+            
+            const vigneto = vigneti.find(v => v.id === vignetoId);
+            if (!vigneto || !vigneto.terrenoId) {
+                alert('Vigneto senza terreno associato');
+                return;
+            }
+            
+            // Carica terreno per visualizzare confini
+            const { getTerreno } = await import(resolvePath('../../../core/services/terreni-service.js'));
+            const terreno = await getTerreno(vigneto.terrenoId);
+            if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) {
+                alert('Il terreno selezionato non ha confini tracciati. Traccia prima i confini del terreno.');
+                return;
+            }
+            
+            // Apri modal mappa
+            document.getElementById('modal-mappa-potatura').classList.add('active');
+            
+            // Inizializza mappa se non già inizializzata
+            if (!mappaPotatura) {
+                await initMappaPotatura(terreno);
+            } else {
+                // Ricarica terreno se necessario
+                await caricaTerrenoSullaMappaPotatura(terreno);
+            }
+            
+            // Carica poligono esistente se presente
+            // Priorità: 1) poligono tracciato nella sessione corrente, 2) poligono salvato nella potatura
+            setTimeout(async () => {
+                if (!mappaPotatura) return;
+                
+                // Se c'è già un poligono tracciato nella sessione, usalo
+                if (poligonoCoords && poligonoCoords.length >= 3) {
+                    // Converti in LatLng se necessario
+                    if (typeof poligonoCoords[0] === 'object' && poligonoCoords[0].lat !== undefined && typeof poligonoCoords[0].lat !== 'function') {
+                        // Sono oggetti {lat, lng}, converti in LatLng
+                        poligonoCoords = poligonoCoords.map(c => new google.maps.LatLng(c.lat, c.lng));
+                    }
+                    caricaPoligonoEsistentePotatura(poligonoCoords, soloConsultazione);
+                    aggiornaInfoPoligonoPotatura();
+                } else {
+                    // Altrimenti, carica poligono salvato nella potatura (se si sta modificando)
+                    const potaturaId = document.getElementById('potatura-id').value;
+                    if (potaturaId && vignetoId) {
+                        try {
+                            const { getPotatura } = await import(resolvePath('../services/potatura-vigneto-service.js'));
+                            const potaturaEsistente = await getPotatura(vignetoId, potaturaId);
+                            if (potaturaEsistente && potaturaEsistente.poligonoPotatura && potaturaEsistente.poligonoPotatura.length > 0) {
+                                caricaPoligonoEsistentePotatura(potaturaEsistente.poligonoPotatura, soloConsultazione);
+                            }
+                        } catch (error) {
+                            console.error('Errore caricamento potatura esistente:', error);
+                        }
+                    }
+                }
+            }, 500);
+
+            if (soloConsultazione) {
+                document.getElementById('mappa-potatura-solo-consultazione').style.display = 'block';
+                document.getElementById('btn-draw-polygon-potatura').style.display = 'none';
+                document.getElementById('btn-clear-polygon-potatura').style.display = 'none';
+                document.getElementById('btn-save-polygon-potatura').style.display = 'none';
+                document.getElementById('btn-conferma-polygon-potatura').style.display = 'none';
+            } else {
+                document.getElementById('mappa-potatura-solo-consultazione').style.display = 'none';
+                document.getElementById('btn-draw-polygon-potatura').style.display = 'inline-block';
+            }
+        };
+
+        window.chiudiMappaTracciamentoPotatura = function() {
+            // Termina tracciamento se attivo (allineato a vendemmia)
+            if (isDrawingPolygonPotatura) {
+                isDrawingPolygonPotatura = false;
+                const mapContainer = document.querySelector('#modal-mappa-potatura .modal-mappa-body');
+                if (mapContainer) {
+                    mapContainer.classList.remove('drawing-mode');
+                    // Rimuovi anche il cursore via JavaScript
+                    const mappaElement = document.getElementById('mappa-potatura-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = '';
+                        const mapDivs = mappaElement.querySelectorAll('div');
+                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                        mapDivs.forEach(div => {
+                            div.style.cursor = '';
+                        });
+                        mapCanvas.forEach(canvas => {
+                            canvas.style.cursor = '';
+                        });
+                    }
+                }
+                const btn = document.getElementById('btn-draw-polygon-potatura');
+                if (btn) {
+                    btn.textContent = '✏️ Traccia Poligono';
+                    btn.style.background = '#17a2b8';
+                }
+                if (mappaPotatura && mappaPotatura.clickListenerPotatura) {
+                    google.maps.event.removeListener(mappaPotatura.clickListenerPotatura);
+                    mappaPotatura.clickListenerPotatura = null;
+                }
+            }
+            
+            // Chiudi modal
+            if (isDrawingPolygonPotatura) {
+                isDrawingPolygonPotatura = false;
+                document.getElementById('btn-draw-polygon-potatura').textContent = '✏️ Traccia Poligono';
+                document.getElementById('btn-draw-polygon-potatura').style.background = '#17a2b8';
+                
+                if (mappaPotatura && mappaPotatura.clickListenerPotatura) {
+                    google.maps.event.removeListener(mappaPotatura.clickListenerPotatura);
+                    mappaPotatura.clickListenerPotatura = null;
+                }
+            }
+            
+            document.getElementById('modal-mappa-potatura').classList.remove('active');
+            
+            // NOTA: Non eliminiamo il poligono tracciato, così l'utente può riaprire la mappa
+            // e vedere/modificare il poligono. Verrà salvato solo quando si conferma con "Conferma e Applica"
+        };
+
+        window.salvaPoligonoPotatura = function() {
+            if (poligonoCoords.length < 3) {
+                alert('Traccia almeno 3 punti per creare un poligono valido');
+                return;
+            }
+            alert('Poligono tracciato! Clicca "Conferma e Applica" per salvare e applicare la superficie.');
+        };
+
+        window.confermaPoligonoPotatura = function() {
+            if (poligonoCoords.length < 3) {
+                alert('Traccia almeno 3 punti per creare un poligono valido');
+                return;
+            }
+            
+            // Calcola superficie
+            const areaMq = google.maps.geometry.spherical.computeArea(poligonoCoords);
+            const areaHa = areaMq / 10000; // Converti in ettari
+            
+            // Compila campo superficie
+            const supInput = document.getElementById('potatura-superficie-ha');
+            if (supInput) {
+                supInput.value = areaHa.toFixed(2);
+            }
+            
+            // Calcola ceppi se densità disponibile
+            const vignetoId = document.getElementById('potatura-vigneto').value;
+            const vigneto = vigneti.find(v => v.id === vignetoId);
+            const densita = vigneto ? (vigneto.densita ?? vigneto.densitaCepi) : null;
+            if (densita != null && densita > 0) {
+                const ceppi = Math.round(areaHa * densita);
+                const ceppiInput = document.getElementById('potatura-ceppi');
+                if (ceppiInput) ceppiInput.value = ceppi > 0 ? ceppi : '';
+                const infoBox = document.getElementById('potatura-ceppi-info');
+                const spanCalc = document.getElementById('potatura-ceppi-calcolati');
+                if (infoBox && spanCalc) {
+                    spanCalc.textContent = ceppi + ' (superficie ' + areaHa.toFixed(2) + ' ha × ' + densita + ' ceppi/ha)';
+                    infoBox.style.display = 'block';
+                }
+            }
+            
+            // Mostra info poligono salvato
+            const poligonoInfo = document.getElementById('poligono-info-potatura');
+            if (poligonoInfo) {
+                poligonoInfo.style.display = 'block';
+            }
+            
+            // Termina tracciamento se attivo
+            if (isDrawingPolygonPotatura) {
+                isDrawingPolygonPotatura = false;
+                document.getElementById('btn-draw-polygon-potatura').textContent = '✏️ Traccia Poligono';
+                document.getElementById('btn-draw-polygon-potatura').style.background = '#17a2b8';
+                
+                if (mappaPotatura && mappaPotatura.clickListenerPotatura) {
+                    google.maps.event.removeListener(mappaPotatura.clickListenerPotatura);
+                    mappaPotatura.clickListenerPotatura = null;
+                }
+            }
+            
+            // Chiudi modal
+            chiudiMappaTracciamentoPotatura();
+        };
+
+        window.eliminaPoligonoPotatura = function(resetDrawingMode = true) {
+            if (poligonoPotaturaPoly) {
+                poligonoPotaturaPoly.setMap(null);
+                poligonoPotaturaPoly = null;
+            }
+            poligonoCoords = [];
+            firstPointPotatura = null;
+            
+            // Resetta isDrawingPolygonPotatura solo se esplicitamente richiesto
+            if (resetDrawingMode) {
+                isDrawingPolygonPotatura = false;
+                const mapContainer = document.querySelector('#modal-mappa-potatura .modal-mappa-body');
+                if (mapContainer) {
+                    mapContainer.classList.remove('drawing-mode');
+                    // Rimuovi anche il cursore via JavaScript
+                    const mappaElement = document.getElementById('mappa-potatura-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = '';
+                        const mapDivs = mappaElement.querySelectorAll('div');
+                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                        mapDivs.forEach(div => {
+                            div.style.cursor = '';
+                        });
+                        mapCanvas.forEach(canvas => {
+                            canvas.style.cursor = '';
+                        });
+                    }
+                }
+                const btn = document.getElementById('btn-draw-polygon-potatura');
+                if (btn) {
+                    btn.textContent = '✏️ Traccia Poligono';
+                    btn.style.background = '#17a2b8';
+                }
+                if (mappaPotatura && mappaPotatura.clickListenerPotatura) {
+                    google.maps.event.removeListener(mappaPotatura.clickListenerPotatura);
+                    mappaPotatura.clickListenerPotatura = null;
+                }
+            }
+            aggiornaInfoPoligonoPotatura();
+        };
+
+        window.iniziaTracciamentoPoligonoPotatura = function() {
+            if (!mappaPotatura) {
+                alert('Mappa non inizializzata');
+                return;
+            }
+            
+            if (isDrawingPolygonPotatura) {
+                // Termina tracciamento
+                isDrawingPolygonPotatura = false;
+                document.getElementById('btn-draw-polygon-potatura').textContent = '✏️ Traccia Poligono';
+                document.getElementById('btn-draw-polygon-potatura').style.background = '#17a2b8';
+                
+                // Rimuovi classe drawing-mode
+                const mapContainer = document.querySelector('#modal-mappa-potatura .modal-mappa-body');
+                if (mapContainer) {
+                    mapContainer.classList.remove('drawing-mode');
+                    
+                    // Rimuovi anche il cursore via JavaScript
+                    const mappaElement = document.getElementById('mappa-potatura-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = '';
+                        const mapDivs = mappaElement.querySelectorAll('div');
+                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                        mapDivs.forEach(div => {
+                            div.style.cursor = '';
+                        });
+                        mapCanvas.forEach(canvas => {
+                            canvas.style.cursor = '';
+                        });
+                    }
+                }
+                
+                // Rimuovi listener click
+                if (mappaPotatura.clickListenerPotatura) {
+                    google.maps.event.removeListener(mappaPotatura.clickListenerPotatura);
+                    mappaPotatura.clickListenerPotatura = null;
+                }
+            } else {
+                // Inizia tracciamento
+                // IMPORTANTE: Elimina poligono PRIMA di impostare isDrawingPolygonPotatura = true
+                // per evitare che eliminaPoligonoPotatura() resetti il flag
+                
+                // Elimina poligono precedente se presente (senza resettare isDrawingPolygonPotatura)
+                if (poligonoPotaturaPoly) {
+                    poligonoPotaturaPoly.setMap(null);
+                    poligonoPotaturaPoly = null;
+                }
+                poligonoCoords = [];
+                firstPointPotatura = null;
+                
+                // Rimuovi listener precedente se presente
+                if (mappaPotatura.clickListenerPotatura) {
+                    google.maps.event.removeListener(mappaPotatura.clickListenerPotatura);
+                    mappaPotatura.clickListenerPotatura = null;
+                }
+                
+                // ORA imposta il flag a true
+                isDrawingPolygonPotatura = true;
+                
+                document.getElementById('btn-draw-polygon-potatura').textContent = '⏸️ Pausa Tracciamento';
+                document.getElementById('btn-draw-polygon-potatura').style.background = '#dc3545';
+                
+                // Aggiungi classe drawing-mode per cursore crosshair
+                const mapContainer = document.querySelector('#modal-mappa-potatura .modal-mappa-body');
+                if (mapContainer) {
+                    mapContainer.classList.add('drawing-mode');
+                    
+                    // Forza anche il cursore via JavaScript per Google Maps
+                    const mappaElement = document.getElementById('mappa-potatura-container');
+                    if (mappaElement) {
+                        mappaElement.style.cursor = 'crosshair';
+                        
+                        // Prova anche sugli elementi interni
+                        setTimeout(() => {
+                            const mapDivs = mappaElement.querySelectorAll('div');
+                            const mapCanvas = mappaElement.querySelectorAll('canvas');
+                            mapDivs.forEach(div => {
+                                div.style.cursor = 'crosshair';
+                            });
+                            mapCanvas.forEach(canvas => {
+                                canvas.style.cursor = 'crosshair';
+                            });
+                        }, 100);
+                    }
+                }
+                
+                // Listener click sulla mappa con gestione doppio clic e snap
+                let clickTimeout = null;
+                mappaPotatura.clickListenerPotatura = mappaPotatura.addListener('click', (event) => {
+                    if (!isDrawingPolygonPotatura) {
+                        return;
+                    }
+                    
+                    // Gestisci doppio clic per terminare tracciamento
+                    if (clickTimeout) {
+                        clearTimeout(clickTimeout);
+                        clickTimeout = null;
+                        // Doppio clic: termina tracciamento
+                        if (poligonoCoords.length >= 3) {
+                            isDrawingPolygonPotatura = false;
+                            const btn = document.getElementById('btn-draw-polygon-potatura');
+                            const mapContainer = document.querySelector('#modal-mappa-potatura .modal-mappa-body');
+                            btn.textContent = '✏️ Traccia Poligono';
+                            btn.style.background = '#17a2b8';
+                            if (mapContainer) {
+                                mapContainer.classList.remove('drawing-mode');
+                                // Rimuovi anche il cursore via JavaScript
+                                const mappaElement = document.getElementById('mappa-potatura-container');
+                                if (mappaElement) {
+                                    mappaElement.style.cursor = '';
+                                    const mapDivs = mappaElement.querySelectorAll('div');
+                                    const mapCanvas = mappaElement.querySelectorAll('canvas');
+                                    mapDivs.forEach(div => {
+                                        div.style.cursor = '';
+                                    });
+                                    mapCanvas.forEach(canvas => {
+                                        canvas.style.cursor = '';
+                                    });
+                                }
+                            }
+                            alert('Tracciamento completato. Puoi modificare il poligono trascinando i punti.');
+                            return;
+                        }
+                        return;
+                    }
+                    
+                    // Singolo clic: aggiungi punto con snap
+                    clickTimeout = setTimeout(() => {
+                        clickTimeout = null;
+                        
+                        // Applica snap: prima ai vertici, poi al confine
+                        // Tieni premuto Shift per disabilitare lo snap temporaneamente
+                        const disableSnap = event.domEvent && event.domEvent.shiftKey;
+                        let snappedPoint = event.latLng;
+                        let snapApplied = false;
+                        
+                        if (!disableSnap && terrenoBoundaryCoordsPotatura.length > 0) {
+                            // 1. Snap ai vertici del terreno (solo se molto vicino)
+                            const vertexSnap = findNearestVertexPotatura(snappedPoint, terrenoBoundaryCoordsPotatura, VERTEX_SNAP_DISTANCE_METERS);
+                            if (vertexSnap) {
+                                const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(snappedPoint, vertexSnap);
+                                if (snapDistance <= VERTEX_SNAP_DISTANCE_METERS) {
+                                    snappedPoint = vertexSnap;
+                                    snapApplied = true;
+                                }
+                            }
+                            
+                            // 2. Snap al confine del terreno (solo se non già agganciato a un vertice)
+                            if (!snapApplied) {
+                                const boundarySnap = findNearestPointOnBoundaryPotatura(snappedPoint, terrenoBoundaryCoordsPotatura, SNAP_DISTANCE_METERS);
+                                if (boundarySnap) {
+                                    const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(snappedPoint, boundarySnap);
+                                    if (snapDistance <= SNAP_DISTANCE_METERS) {
+                                        snappedPoint = boundarySnap;
+                                        snapApplied = true;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Feedback visivo quando applica lo snap
+                        if (snapApplied) {
+                            const snapMarker = new google.maps.Marker({
+                                position: snappedPoint,
+                                map: mappaPotatura,
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: 8,
+                                    fillColor: '#00ff00',
+                                    fillOpacity: 0.8,
+                                    strokeColor: '#ffffff',
+                                    strokeWeight: 2
+                                },
+                                zIndex: 2000
+                            });
+                            setTimeout(() => {
+                                if (snapMarker) snapMarker.setMap(null);
+                            }, 1000);
+                        }
+                        
+                        // Valida che il punto sia dentro i confini del terreno (con tolleranza)
+                        if (terrenoPolygonPotatura) {
+                            const isInside = google.maps.geometry.poly.containsLocation(snappedPoint, terrenoPolygonPotatura);
+                            const distanceToBoundary = getDistanceToBoundaryPotatura(snappedPoint, terrenoBoundaryCoordsPotatura);
+                            
+                            // Permetti punto se è dentro O se è molto vicino al confine (entro 3 metri)
+                            if (!isInside && distanceToBoundary > 3) {
+                                alert('Il punto deve essere dentro i confini del terreno!');
+                                return;
+                            }
+                            
+                            // Se il punto è stato agganciato al confine ma è leggermente fuori, spostalo leggermente dentro
+                            if (!isInside && distanceToBoundary <= 3) {
+                                snappedPoint = movePointInsideBoundaryPotatura(snappedPoint, terrenoBoundaryCoordsPotatura);
+                            }
+                        }
+                        
+                        // Salva il primo punto per la chiusura automatica
+                        if (poligonoCoords.length === 0) {
+                            firstPointPotatura = snappedPoint;
+                        }
+                        
+                        // Verifica se il click è vicino al primo punto (per chiudere il poligono)
+                        if (firstPointPotatura && poligonoCoords.length >= 3) {
+                            const distanzaDalPrimo = google.maps.geometry.spherical.computeDistanceBetween(
+                                snappedPoint,
+                                firstPointPotatura
+                            );
+                            // Se il click è entro 20 metri dal primo punto, chiudi il poligono
+                            if (distanzaDalPrimo < 20) {
+                                poligonoCoords.push(firstPointPotatura);
+                                
+                                // Termina tracciamento
+                                isDrawingPolygonPotatura = false;
+                                const btn = document.getElementById('btn-draw-polygon-potatura');
+                                const mapContainer = document.querySelector('#modal-mappa-potatura .modal-mappa-body');
+                                btn.textContent = '✏️ Traccia Poligono';
+                                btn.style.background = '#17a2b8';
+                                if (mapContainer) {
+                                    mapContainer.classList.remove('drawing-mode');
+                                    // Rimuovi anche il cursore via JavaScript
+                                    const mappaElement = document.getElementById('mappa-potatura-container');
+                                    if (mappaElement) {
+                                        mappaElement.style.cursor = '';
+                                        const mapDivs = mappaElement.querySelectorAll('div');
+                                        const mapCanvas = mappaElement.querySelectorAll('canvas');
+                                        mapDivs.forEach(div => {
+                                            div.style.cursor = '';
+                                        });
+                                        mapCanvas.forEach(canvas => {
+                                            canvas.style.cursor = '';
+                                        });
+                                    }
+                                }
+                                alert('Poligono chiuso! Puoi modificarlo trascinando i punti.');
+                                
+                                aggiornaPoligonoSullaMappaPotatura();
+                                aggiornaInfoPoligonoPotatura();
+                                return;
+                            }
+                        }
+                        
+                        poligonoCoords.push(snappedPoint);
+                        
+                        // Aggiorna poligono sulla mappa
+                        aggiornaPoligonoSullaMappaPotatura();
+                        
+                        // Aggiorna info
+                        aggiornaInfoPoligonoPotatura();
+                    }, 300); // Timeout per distinguere singolo da doppio clic
+                });
+            }
+        };
+
+        async function init() {
+            await waitForConfig();
+            const { initializeFirebase, getAuthInstance } = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { initializeTenantService, getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+            await initializeFirebase(window.firebaseConfig);
+            initializeTenantService();
+            const auth = getAuthInstance();
+            const { onAuthStateChanged } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+            onAuthStateChanged(auth, async (user) => {
+                const loadingEl = document.getElementById('loading');
+                const emptyEl = document.getElementById('empty-state');
+                const tableWrapEl = document.getElementById('table-wrap');
+                if (!user) {
+                    window.location.href = resolvePath('../../../core/auth/login-standalone.html');
+                    return;
+                }
+                const tenantId = getCurrentTenantId();
+                if (!tenantId) {
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (tableWrapEl) tableWrapEl.style.display = 'none';
+                    if (emptyEl) {
+                        emptyEl.style.display = 'block';
+                        emptyEl.innerHTML = '<p>Nessun tenant selezionato. Seleziona un tenant per vedere l\'elenco potature.</p>';
+                    }
+                    showAlert('Nessun tenant selezionato.', 'error');
+                    return;
+                }
+                try {
+                    const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+                    const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const db = getDb();
+                    if (db) {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                        if (tenantDoc.exists()) {
+                            const tenantData = tenantDoc.data();
+                            hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        }
+                    }
+                } catch (err) { console.warn('Verifica modulo manodopera:', err); }
+                const operaiGroup = document.getElementById('potatura-operai-form-group');
+                const proprietarioMsg = document.getElementById('potatura-proprietario-message');
+                if (operaiGroup) operaiGroup.style.display = hasManodoperaModule ? 'block' : 'none';
+                if (proprietarioMsg) proprietarioMsg.style.display = hasManodoperaModule ? 'none' : 'block';
+                await loadVigneti();
+                document.getElementById('filter-vigneto').addEventListener('change', loadPotature);
+                document.getElementById('filter-anno').addEventListener('change', loadPotature);
+                const btnNuova = document.getElementById('btn-nuova-potatura');
+                if (btnNuova) btnNuova.addEventListener('click', openModalNew);
+                document.getElementById('close-modal').addEventListener('click', closeModal);
+                document.getElementById('cancel-btn').addEventListener('click', closeModal);
+                document.getElementById('form-potatura').addEventListener('submit', savePotatura);
+                await loadPotature();
+            });
+        }
+        init();
+    </script>
+</body>
+</html>

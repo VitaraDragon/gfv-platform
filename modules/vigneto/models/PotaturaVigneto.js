@@ -13,6 +13,8 @@ export class PotaturaVigneto extends Base {
    * @param {Object} data - Dati potatura
    * @param {string} data.id - ID potatura
    * @param {string} data.vignetoId - Riferimento vigneto (obbligatorio)
+   * @param {string} data.lavoroId - Riferimento lavoro (opzionale, se creata da lavoro)
+   * @param {string} data.attivitaId - Riferimento attività (opzionale, se creata da attività)
    * @param {Date|Timestamp} data.data - Data potatura (obbligatorio)
    * @param {string} data.tipo - Tipo potatura: "invernale" | "verde" | "rinnovo" | "spollonatura" (obbligatorio)
    * @param {string} data.parcella - Parcella/blocco potato (opzionale)
@@ -23,6 +25,7 @@ export class PotaturaVigneto extends Base {
    * @param {string} data.macchinaId - ID macchina utilizzata (opzionale)
    * @param {number} data.costoMacchina - Costo macchina in € (calcolato)
    * @param {number} data.costoTotale - Costo totale in € (calcolato)
+   * @param {Array<{lat: number, lng: number}>} data.poligonoPotatura - Coordinate area potata (zone lavorate, come vendemmia)
    * @param {string} data.note - Note (opzionale)
    */
   constructor(data = {}) {
@@ -30,6 +33,8 @@ export class PotaturaVigneto extends Base {
     
     // Dati base (obbligatori)
     this.vignetoId = data.vignetoId || null;
+    this.lavoroId = data.lavoroId || null;
+    this.attivitaId = data.attivitaId || null;
     this.data = data.data || null;
     this.tipo = data.tipo || '';
     this.parcella = data.parcella || null;
@@ -45,6 +50,9 @@ export class PotaturaVigneto extends Base {
     this.costoMacchina = data.costoMacchina !== undefined ? parseFloat(data.costoMacchina) : 0;
     this.costoTotale = data.costoTotale !== undefined ? parseFloat(data.costoTotale) : 0;
     
+    // Zone lavorate: poligono area potata (come vendemmia/raccolta)
+    this.poligonoPotatura = Array.isArray(data.poligonoPotatura) ? data.poligonoPotatura : null;
+    
     // Note
     this.note = data.note || '';
   }
@@ -55,6 +63,7 @@ export class PotaturaVigneto extends Base {
    */
   validate() {
     const errors = [];
+    const fromLavoroAttivita = this.lavoroId || this.attivitaId;
     
     if (!this.vignetoId || this.vignetoId.trim().length === 0) {
       errors.push('Vigneto obbligatorio');
@@ -65,7 +74,7 @@ export class PotaturaVigneto extends Base {
     }
     
     if (!this.tipo || this.tipo.trim().length === 0) {
-      errors.push('Tipo potatura obbligatorio');
+      if (!fromLavoroAttivita) errors.push('Tipo potatura obbligatorio');
     } else {
       const tipiValidi = ['invernale', 'verde', 'rinnovo', 'spollonatura'];
       if (!tipiValidi.includes(this.tipo)) {
@@ -73,15 +82,13 @@ export class PotaturaVigneto extends Base {
       }
     }
     
-    if (this.ceppiPotati === null || this.ceppiPotati <= 0) {
+    if (!fromLavoroAttivita && (this.ceppiPotati === null || this.ceppiPotati <= 0)) {
       errors.push('Numero ceppi potati obbligatorio e maggiore di zero');
     }
-    
-    if (!this.operai || this.operai.length === 0) {
+    if (!fromLavoroAttivita && (!this.operai || this.operai.length === 0)) {
       errors.push('Almeno un operaio coinvolto obbligatorio');
     }
-    
-    if (this.oreImpiegate === null || this.oreImpiegate <= 0) {
+    if (!fromLavoroAttivita && (this.oreImpiegate === null || this.oreImpiegate <= 0)) {
       errors.push('Ore impiegate obbligatorie e maggiori di zero');
     }
     

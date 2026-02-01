@@ -200,6 +200,193 @@ export const TIPI_IMPIANTO = {
 };
 
 /**
+ * Tipi impianto per frutteto (forme di allevamento fruttifere)
+ * Chiavi normalizzate da FORME_ALLEVAMENTO_FRUTTETO (lowercase, spazi → underscore)
+ */
+/**
+ * Distanza e altezza pali per forma (metri): da letteratura tecnica frutteti.
+ * Spalliera/palmetta: 3-6 m (4 m), h 3-4 m. Fusetto: 6-8 m (7 m), h ~3,2 m. Pergola/kiwi: 5 m, h 3,5 m. Vaso: sesto più ampio.
+ */
+export const TIPI_IMPIANTO_FRUTTETO = {
+  fusetto: {
+    nome: 'Fusetto',
+    numeroFiliPortata: 1,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.3,
+    distanzaPali: 7,
+    altezzaPali: 3.2,
+    descrizione: 'Forma in parete con asta centrale. 1 filo portata + 2 fili vegetazione. Pali ogni 6-8 m.'
+  },
+  leader_centrale: {
+    nome: 'Leader centrale',
+    numeroFiliPortata: 1,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.3,
+    distanzaPali: 7,
+    altezzaPali: 3.2,
+    descrizione: 'Forma con asta centrale. 1 filo portata + 2 fili vegetazione. Pali ogni 6-8 m.'
+  },
+  palmetta: {
+    nome: 'Palmetta',
+    numeroFiliPortata: 1,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.4,
+    distanzaPali: 4,
+    altezzaPali: 3.2,
+    descrizione: 'Forma in parete a palmetta. 1 filo portata + 2 fili vegetazione. Pali ogni 3-5 m.'
+  },
+  palmetta_libera: {
+    nome: 'Palmetta libera',
+    numeroFiliPortata: 1,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.4,
+    distanzaPali: 4,
+    altezzaPali: 3.2,
+    descrizione: 'Palmetta libera. 1 filo portata + 2 fili vegetazione. Pali ogni 3-5 m.'
+  },
+  spalliera: {
+    nome: 'Spalliera',
+    numeroFiliPortata: 1,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.4,
+    distanzaPali: 4,
+    altezzaPali: 3.2,
+    descrizione: 'Spalliera frutteto. 1 filo portata + 2 fili vegetazione. Pali ogni 3-5 m (max 5-6 m).'
+  },
+  cordone: {
+    nome: 'Cordone',
+    numeroFiliPortata: 1,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.3,
+    distanzaPali: 4,
+    altezzaPali: 3.2,
+    descrizione: 'Cordone orizzontale. 1 filo portata + 2 fili vegetazione. Pali ogni 3-5 m.'
+  },
+  pergola: {
+    nome: 'Pergola',
+    numeroFiliPortata: 2,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: true,
+    necessitaAncore: true,
+    lunghezzaLegaturaPerUnita: 0.5,
+    distanzaPali: 5,
+    altezzaPali: 3.5,
+    descrizione: 'Pergola (es. kiwi). 2 fili portata + 2 fili vegetazione. Pali tipicamente 5 m (tendone kiwi).'
+  },
+  vaso: {
+    nome: 'Vaso',
+    numeroFiliPortata: 0,
+    numeroFiliVegetazione: 0,
+    diametroFiloPortata: 0,
+    diametroFiloVegetazione: 0,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.2,
+    distanzaPali: 6,
+    altezzaPali: 3,
+    descrizione: 'Forma a vaso, solo pali di sostegno. Nessun filo necessario. Sesto più ampio.'
+  },
+  vaso_globoso: {
+    nome: 'Vaso globoso',
+    numeroFiliPortata: 0,
+    numeroFiliVegetazione: 0,
+    diametroFiloPortata: 0,
+    diametroFiloVegetazione: 0,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.2,
+    distanzaPali: 6,
+    altezzaPali: 3,
+    descrizione: 'Vaso globoso, solo pali. Nessun filo. Sesto più ampio.'
+  },
+  altro: {
+    nome: 'Altro',
+    numeroFiliPortata: 1,
+    numeroFiliVegetazione: 2,
+    diametroFiloPortata: 4.0,
+    diametroFiloVegetazione: 2.5,
+    necessitaTutori: false,
+    necessitaAncore: false,
+    lunghezzaLegaturaPerUnita: 0.35,
+    distanzaPali: 5,
+    altezzaPali: 3,
+    descrizione: 'Forma generica. 1 filo portata + 2 fili vegetazione (modificabile).'
+  }
+};
+
+/**
+ * Restituisce l'oggetto tipi impianto per la coltura indicata.
+ * @param {string} coltura - 'vigneto' | 'frutteto' | 'oliveto'
+ * @returns {Object} Oggetto tipi impianto (chiave -> config)
+ */
+export function getTipiImpiantoPerColtura(coltura) {
+  const c = (coltura || 'vigneto').toLowerCase();
+  if (c === 'frutteto') return TIPI_IMPIANTO_FRUTTETO;
+  if (c === 'oliveto') return TIPI_IMPIANTO_FRUTTETO; // riuso stesso set per oliveto (vaso, ecc.)
+  return TIPI_IMPIANTO;
+}
+
+/**
+ * Restituisce il tipo impianto di default per la coltura.
+ * @param {string} coltura - 'vigneto' | 'frutteto' | 'oliveto'
+ * @returns {string} Chiave tipo impianto default
+ */
+export function getDefaultTipoImpiantoPerColtura(coltura) {
+  const c = (coltura || 'vigneto').toLowerCase();
+  if (c === 'frutteto' || c === 'oliveto') return 'fusetto';
+  return 'guyot';
+}
+
+/**
+ * Normalizza il nome forma di allevamento (es. "Fusetto", "Vaso globoso") in chiave tecnica (fusetto, vaso_globoso).
+ * @param {string} formaAllevamento - Nome visualizzato
+ * @returns {string} Chiave normalizzata (lowercase, spazi → underscore)
+ */
+export function normalizeFormaAllevamentoToKey(formaAllevamento) {
+  if (!formaAllevamento || typeof formaAllevamento !== 'string') return '';
+  return formaAllevamento.trim().toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[àáâãä]/g, 'a')
+    .replace(/[èéêë]/g, 'e')
+    .replace(/[ìíîï]/g, 'i')
+    .replace(/[òóôõö]/g, 'o')
+    .replace(/[ùúûü]/g, 'u');
+}
+
+/** Default per tipo struttura antigrandine (distanza pali m, altezza pali m) */
+const ANTIGRANDINE_DEFAULT = {
+  rete_piana: { distanzaPali: 8, altezzaPali: 4 },
+  capannina: { distanzaPali: 10, altezzaPali: 4.5 },
+  sistema_v: { distanzaPali: 8, altezzaPali: 4 }
+};
+
+/**
  * Calcola materiali necessari per l'impianto
  * @param {Object} pianificazione - Oggetto PianificazioneImpianto
  * @param {Object} configurazione - Configurazione calcolo materiali
@@ -213,11 +400,19 @@ export const TIPI_IMPIANTO = {
  * @param {boolean} configurazione.usaTutori - Usa braccetti strutturali (override tipo impianto, opzionale)
  * @param {boolean} configurazione.usaAncore - Usa ancore (override tipo impianto, opzionale)
  * @param {string} configurazione.fissaggioTutori - Metodo fissaggio tutori: 'legacci' | 'gancetti' (default: 'legacci')
- * @returns {Object} Oggetto con elenco materiali calcolati
+ * @param {Object} [configurazione.antigrandine] - Config reti antigrandine (opzionale)
+ * @param {boolean} configurazione.antigrandine.attivo - Se true calcola anche materiali antigrandine
+ * @param {string} configurazione.antigrandine.tipoStruttura - 'rete_piana' | 'capannina' | 'sistema_v'
+ * @param {number} configurazione.antigrandine.distanzaPali - Distanza tra pali antigrandine (m)
+ * @param {number} configurazione.antigrandine.altezzaPali - Altezza pali fuori terra (m)
+ * @param {number} configurazione.antigrandine.diametroCavi - Diametro cavi/funi (mm)
+ * @param {boolean} configurazione.antigrandine.usaTiranti - Usa tiranti/ancore
+ * @returns {Object} Oggetto con elenco materiali calcolati (+ antigrandine se attivo)
  */
 export function calcolaMateriali(pianificazione, configurazione = {}) {
   const {
-    tipoImpianto = 'guyot',
+    tipoImpianto: tipoImpiantoFromConfig = null,
+    coltura: colturaFromConfig = null,
     distanzaPali = 5.0,
     numeroFiliPortata = null,
     numeroFiliVegetazione = null,
@@ -226,11 +421,22 @@ export function calcolaMateriali(pianificazione, configurazione = {}) {
     altezzaPali = 2.5,
     usaTutori = null,
     usaAncore = null,
-    fissaggioTutori = 'legacci' // 'legacci' o 'gancetti'
+    fissaggioTutori = 'legacci', // 'legacci' o 'gancetti'
+    antigrandine: configAntigrandine = null
   } = configurazione;
 
-  // Recupera configurazione tipo impianto
-  const tipoImpiantoConfig = TIPI_IMPIANTO[tipoImpianto] || TIPI_IMPIANTO['guyot'];
+  // Coltura: da config, da pianificazione o default vigneto
+  const coltura = (colturaFromConfig || (pianificazione && pianificazione.tipoColtura) || 'vigneto').toLowerCase();
+  const tipiImpianto = getTipiImpiantoPerColtura(coltura);
+  const defaultKey = getDefaultTipoImpiantoPerColtura(coltura);
+
+  // Chiave tipo impianto: da config, da forma allevamento pianificazione (normalizzata) o default
+  const tipoImpiantoKey = tipoImpiantoFromConfig
+    || (pianificazione && pianificazione.formaAllevamento && normalizeFormaAllevamentoToKey(pianificazione.formaAllevamento))
+    || defaultKey;
+
+  // Recupera configurazione tipo impianto dal set della coltura
+  const tipoImpiantoConfig = tipiImpianto[tipoImpiantoKey] || tipiImpianto[defaultKey];
   
   // Usa override se specificati, altrimenti usa configurazione tipo impianto
   const numFiliPortata = numeroFiliPortata !== null ? numeroFiliPortata : tipoImpiantoConfig.numeroFiliPortata;
@@ -281,7 +487,81 @@ export function calcolaMateriali(pianificazione, configurazione = {}) {
   const numeroLegacciTutori = (fissaggioTutori === 'legacci') ? numeroTutori : 0; // Legacci per fissare tutori al filo portata
   const numeroGancettiTutori = (fissaggioTutori === 'gancetti') ? numeroTutori : 0; // Gancetti per fissare tutori al filo portata
   
-  const numeroGanci = necessitaTutori ? numeroPali * 2 : 0; // Ganci per braccetti (2 per palo)
+    const numeroGanci = necessitaTutori ? numeroPali * 2 : 0; // Ganci per braccetti (2 per palo)
+
+  // Calcolo materiali antigrandine (se attivo)
+  let antigrandine = null;
+  if (configAntigrandine && configAntigrandine.attivo && numeroFile > 0) {
+    const tipoStruttura = configAntigrandine.tipoStruttura || 'rete_piana';
+    const def = ANTIGRANDINE_DEFAULT[tipoStruttura] || ANTIGRANDINE_DEFAULT.rete_piana;
+    const distanzaPaliAntigrandine = configAntigrandine.distanzaPali != null ? configAntigrandine.distanzaPali : def.distanzaPali;
+    const altezzaPaliAntigrandine = configAntigrandine.altezzaPali != null ? configAntigrandine.altezzaPali : def.altezzaPali;
+    const diametroCavi = configAntigrandine.diametroCavi != null ? configAntigrandine.diametroCavi : 6;
+    const usaTirantiAntigrandine = configAntigrandine.usaTiranti !== false;
+
+    const paliPerFilaAntigrandine = Math.ceil(lunghezzaMediaFila / distanzaPaliAntigrandine) + 2;
+    const numeroPaliAntigrandine = numeroFile * paliPerFilaAntigrandine;
+    const numeroPaliTestataAntigrandine = numeroFile * 2;
+    const numeroPaliIntermediAntigrandine = numeroPaliAntigrandine - numeroPaliTestataAntigrandine;
+
+    const lunghezzaColmo = numeroFile * lunghezzaMediaFila;
+    const distanzaFile = pianificazione.distanzaFile != null ? pianificazione.distanzaFile : 3;
+    const lunghezzaCaviTrasversali = (paliPerFilaAntigrandine - 1) * Math.max(0, numeroFile - 1) * distanzaFile;
+    const lunghezzaCaviTotaleAntigrandine = lunghezzaColmo + lunghezzaCaviTrasversali;
+
+    const numeroAncoreAntigrandine = usaTirantiAntigrandine ? numeroPaliTestataAntigrandine : 0;
+
+    const superficieNettaM2 = (pianificazione.superficieNettaImpianto || 0) * 10000;
+    const marginePercentuale = configAntigrandine.marginePercentuale != null ? configAntigrandine.marginePercentuale : 10;
+    const fattoreMargine = 1 + marginePercentuale / 100;
+    const superficieReteM2 = configAntigrandine.superficieReteOverride != null
+      ? configAntigrandine.superficieReteOverride
+      : Math.round(superficieNettaM2 * fattoreMargine);
+
+    // Accessori: valori precompilati da letteratura (1 copripalo per palo, placchette ~1 ogni 2 m cavi, staffe 2 per palo testata, tendifuni 2 per filare)
+    const copripali = configAntigrandine.copripaliOverride != null ? configAntigrandine.copripaliOverride : numeroPaliAntigrandine;
+    const placchetteStimate = Math.ceil(lunghezzaCaviTotaleAntigrandine / 2);
+    const placchette = configAntigrandine.placchetteOverride != null ? configAntigrandine.placchetteOverride : placchetteStimate;
+    const staffeFermafuneStimate = numeroPaliTestataAntigrandine * 2;
+    const staffeFermafune = configAntigrandine.staffeFermafuneOverride != null ? configAntigrandine.staffeFermafuneOverride : staffeFermafuneStimate;
+    const tendifuniStimati = numeroFile * 2;
+    const tendifuni = configAntigrandine.tendifuniOverride != null ? configAntigrandine.tendifuniOverride : tendifuniStimati;
+
+    antigrandine = {
+      pali: {
+        totale: numeroPaliAntigrandine,
+        testata: numeroPaliTestataAntigrandine,
+        intermedi: numeroPaliIntermediAntigrandine,
+        altezza: altezzaPaliAntigrandine,
+        unitaMisura: 'pezzi',
+        descrizione: `Pali antigrandine (cemento/ferro), h = ${altezzaPaliAntigrandine}m fuori terra`
+      },
+      cavi: {
+        lunghezza: lunghezzaCaviTotaleAntigrandine,
+        lunghezzaColmo,
+        lunghezzaTrasversali: lunghezzaCaviTrasversali,
+        diametro: diametroCavi,
+        unitaMisura: 'metri',
+        descrizione: `Cavi/funi acciaio zincato Ø ${diametroCavi}mm per struttura antigrandine`
+      },
+      ancore: usaTirantiAntigrandine ? {
+        totale: numeroAncoreAntigrandine,
+        unitaMisura: 'pezzi',
+        descrizione: 'Tiranti/ancore per pali di testata antigrandine'
+      } : null,
+      rete: {
+        superficieM2: superficieReteM2,
+        unitaMisura: 'm²',
+        descrizione: `Rete antigrandine HDPE (m²) - margine ${marginePercentuale}%`
+      },
+      accessori: {
+        copripali: { totale: copripali, unitaMisura: 'pezzi', descrizione: 'Copripali (protezione rete sui pali)' },
+        placchette: { totale: placchette, unitaMisura: 'pezzi', descrizione: 'Placchette fissaggio rete al cavo (es. PL4, 1 ogni ~2 m)' },
+        staffeFermafune: { totale: staffeFermafune, unitaMisura: 'pezzi', descrizione: 'Staffe fermafune (blocco funi su pali testata)' },
+        tendifuni: { totale: tendifuni, unitaMisura: 'pezzi', descrizione: 'Tendifuni/tirafuni (tensionamento cavi)' }
+      }
+    };
+  }
 
   // Risultato
   return {
@@ -331,7 +611,9 @@ export function calcolaMateriali(pianificazione, configurazione = {}) {
     tutori: {
       totale: numeroTutori,
       unitaMisura: 'pezzi',
-      descrizione: 'Tutori (sostegno per pianta di vite per farla crescere eretta)'
+      descrizione: coltura === 'frutteto' || coltura === 'oliveto'
+        ? 'Tutori (sostegno per pianta per farla crescere eretta)'
+        : 'Tutori (sostegno per pianta di vite per farla crescere eretta)'
     },
     
     // Ancore (se necessari)
@@ -371,7 +653,10 @@ export function calcolaMateriali(pianificazione, configurazione = {}) {
       numeroFiliVegetazione: numFiliVegetazione,
       diametroFiloPortata: diamFiloPortata,
       diametroFiloVegetazione: diamFiloVegetazione
-    }
+    },
+
+    // Reti antigrandine (solo se config.antigrandine.attivo)
+    antigrandine
   };
 }
 
@@ -504,6 +789,62 @@ export function formattaMaterialiPerTabella(materiali) {
       descrizione: materiali.gancettiTutori.descrizione
     });
   }
-  
+
+  // Reti antigrandine (se presente)
+  if (materiali.antigrandine) {
+    const ag = materiali.antigrandine;
+    righe.push({
+      categoria: 'Reti antigrandine',
+      materiale: 'Pali antigrandine (testata)',
+      quantita: ag.pali.testata,
+      unitaMisura: ag.pali.unitaMisura,
+      descrizione: ag.pali.descrizione + ' (testata)'
+    });
+    righe.push({
+      categoria: 'Reti antigrandine',
+      materiale: 'Pali antigrandine (intermedi)',
+      quantita: ag.pali.intermedi,
+      unitaMisura: ag.pali.unitaMisura,
+      descrizione: ag.pali.descrizione + ' (intermedi)'
+    });
+    righe.push({
+      categoria: 'Reti antigrandine',
+      materiale: 'Pali antigrandine (totale)',
+      quantita: ag.pali.totale,
+      unitaMisura: ag.pali.unitaMisura,
+      descrizione: ag.pali.descrizione + ' (totale)',
+      isTotal: true
+    });
+    righe.push({
+      categoria: 'Reti antigrandine',
+      materiale: 'Cavi/funi struttura',
+      quantita: ag.cavi.lunghezza.toFixed(2),
+      unitaMisura: ag.cavi.unitaMisura,
+      descrizione: ag.cavi.descrizione
+    });
+    if (ag.ancore) {
+      righe.push({
+        categoria: 'Reti antigrandine',
+        materiale: 'Tiranti/ancore',
+        quantita: ag.ancore.totale,
+        unitaMisura: ag.ancore.unitaMisura,
+        descrizione: ag.ancore.descrizione
+      });
+    }
+    righe.push({
+      categoria: 'Reti antigrandine',
+      materiale: 'Rete antigrandine',
+      quantita: ag.rete.superficieM2,
+      unitaMisura: ag.rete.unitaMisura,
+      descrizione: ag.rete.descrizione
+    });
+    if (ag.accessori) {
+      righe.push({ categoria: 'Reti antigrandine', materiale: 'Copripali', quantita: ag.accessori.copripali.totale, unitaMisura: ag.accessori.copripali.unitaMisura, descrizione: ag.accessori.copripali.descrizione });
+      righe.push({ categoria: 'Reti antigrandine', materiale: 'Placchette fissaggio', quantita: ag.accessori.placchette.totale, unitaMisura: ag.accessori.placchette.unitaMisura, descrizione: ag.accessori.placchette.descrizione });
+      righe.push({ categoria: 'Reti antigrandine', materiale: 'Staffe fermafune', quantita: ag.accessori.staffeFermafune.totale, unitaMisura: ag.accessori.staffeFermafune.unitaMisura, descrizione: ag.accessori.staffeFermafune.descrizione });
+      righe.push({ categoria: 'Reti antigrandine', materiale: 'Tendifuni/tirafuni', quantita: ag.accessori.tendifuni.totale, unitaMisura: ag.accessori.tendifuni.unitaMisura, descrizione: ag.accessori.tendifuni.descrizione });
+    }
+  }
+
   return righe;
 }

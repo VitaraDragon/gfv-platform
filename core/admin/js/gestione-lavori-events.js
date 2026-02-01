@@ -758,9 +758,36 @@ export async function openEliminaModal(
                         await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
                         console.log('[GESTIONE-LAVORI] ✓ Vendemmia eliminata');
                     }
+                    const { findPotaturaByLavoroId, deletePotatura } = await import('../../../modules/vigneto/services/potatura-vigneto-service.js');
+                    const potaturaCollegata = await findPotaturaByLavoroId(lavoroId);
+                    if (potaturaCollegata) {
+                        await deletePotatura(potaturaCollegata.vignetoId, potaturaCollegata.potaturaId);
+                        console.log('[GESTIONE-LAVORI] ✓ Potatura vigneto eliminata');
+                    }
+                    const { findTrattamentoByLavoroId, deleteTrattamento } = await import('../../../modules/vigneto/services/trattamenti-vigneto-service.js');
+                    const trattamentoCollegato = await findTrattamentoByLavoroId(lavoroId);
+                    if (trattamentoCollegato) {
+                        await deleteTrattamento(trattamentoCollegato.vignetoId, trattamentoCollegato.trattamentoId);
+                        console.log('[GESTIONE-LAVORI] ✓ Trattamento vigneto eliminato');
+                    }
+                }
+                const hasFruttetoModule = await hasModuleAccess('frutteto');
+                if (hasFruttetoModule) {
+                    const { findPotaturaByLavoroId, deletePotatura } = await import('../../../modules/frutteto/services/potatura-frutteto-service.js');
+                    const potaturaF = await findPotaturaByLavoroId(lavoroId);
+                    if (potaturaF) {
+                        await deletePotatura(potaturaF.fruttetoId, potaturaF.potaturaId);
+                        console.log('[GESTIONE-LAVORI] ✓ Potatura frutteto eliminata');
+                    }
+                    const { findTrattamentoByLavoroId, deleteTrattamento } = await import('../../../modules/frutteto/services/trattamenti-frutteto-service.js');
+                    const trattamentoF = await findTrattamentoByLavoroId(lavoroId);
+                    if (trattamentoF) {
+                        await deleteTrattamento(trattamentoF.fruttetoId, trattamentoF.trattamentoId);
+                        console.log('[GESTIONE-LAVORI] ✓ Trattamento frutteto eliminato');
+                    }
                 }
             } catch (error) {
-                console.warn('[GESTIONE-LAVORI] Errore eliminazione vendemmia collegata:', error);
+                console.warn('[GESTIONE-LAVORI] Errore eliminazione vendemmia/potatura/trattamento collegati:', error);
                 // Non blocchiamo l'operazione principale
             }
             
@@ -1411,6 +1438,54 @@ async function creaVignetoDaLavoro(lavoroId, pianificazioneId, terrenoId, curren
     }
 }
 
+/**
+ * Crea frutteto da lavoro di tipo "Impianto Nuovo Frutteto"
+ * @param {string} lavoroId - ID lavoro creato
+ * @param {string} pianificazioneId - ID pianificazione
+ * @param {string} terrenoId - ID terreno
+ * @param {string} currentTenantId - ID tenant
+ * @param {Object} db - Istanza Firestore
+ */
+async function creaFruttetoDaLavoro(lavoroId, pianificazioneId, terrenoId, currentTenantId, db) {
+    try {
+        const { getPianificazione } = await import('../../../modules/vigneto/services/pianificazione-impianto-service.js');
+        const { createFrutteto } = await import('../../../modules/frutteto/services/frutteti-service.js');
+        const pianificazione = await getPianificazione(pianificazioneId);
+        if (!pianificazione || pianificazione.tipoColtura !== 'frutteto') {
+            throw new Error('Pianificazione non valida o non per frutteto');
+        }
+        const specie = document.getElementById('frutteto-specie')?.value.trim();
+        const varieta = document.getElementById('frutteto-varieta')?.value.trim();
+        const annataImpianto = parseInt(document.getElementById('frutteto-annata-impianto')?.value);
+        const formaAllevamento = document.getElementById('frutteto-forma-allevamento')?.value.trim();
+        const note = document.getElementById('frutteto-note')?.value.trim() || '';
+        if (!specie) throw new Error('Specie obbligatoria');
+        if (!varieta) throw new Error('Varietà obbligatoria');
+        if (!annataImpianto || annataImpianto < 1900 || annataImpianto > new Date().getFullYear() + 1) {
+            throw new Error('Anno impianto obbligatorio e valido');
+        }
+        if (!formaAllevamento) throw new Error('Forma di allevamento obbligatoria');
+        const fruttetoData = {
+            terrenoId: terrenoId,
+            specie: specie,
+            varieta: varieta,
+            annataImpianto: annataImpianto,
+            formaAllevamento: formaAllevamento,
+            densita: Math.round(pianificazione.densitaEffettiva || 0),
+            superficieEttari: parseFloat((pianificazione.superficieNettaImpianto || 0).toFixed(2)),
+            distanzaFile: pianificazione.distanzaFile || 0,
+            distanzaUnita: pianificazione.distanzaUnita || 0,
+            note: note
+        };
+        const fruttetoId = await createFrutteto(fruttetoData);
+        console.log('[GESTIONE-LAVORI] Frutteto creato da lavoro impianto:', fruttetoId);
+        showAlert('Frutteto creato con successo dal lavoro di impianto!', 'success');
+    } catch (error) {
+        console.error('Errore creazione frutteto da lavoro:', error);
+        throw error;
+    }
+}
+
 export async function handleSalvaLavoro(
     event,
     state,
@@ -1625,6 +1700,13 @@ export async function handleSalvaLavoro(
                 const hasVignetoModule = await hasModuleAccess('vigneto');
                 
                 if (hasVignetoModule) {
+                    const terrenoNuovoId = lavoroData.terrenoId;
+                    let terrenoNuovoEVite = false;
+                    if (terrenoNuovoId) {
+                        const { getTerreno } = await import('../../../core/services/terreni-service.js');
+                        const terrenoNuovo = await getTerreno(terrenoNuovoId);
+                        terrenoNuovoEVite = terrenoNuovo?.coltura?.toLowerCase().includes('vite') || false;
+                    }
                     const { findVendemmiaByLavoroId, deleteVendemmia, updateVendemmia } = await import('../../../modules/vigneto/services/vendemmia-service.js');
                     const vendemmiaCollegata = await findVendemmiaByLavoroId(state.currentLavoroId);
                     
@@ -1632,7 +1714,6 @@ export async function handleSalvaLavoro(
                         const tipoLavoroOriginale = lavoroOriginale?.tipoLavoro || '';
                         const tipoLavoroNuovo = lavoroData.tipoLavoro || '';
                         const terrenoOriginaleId = lavoroOriginale?.terrenoId;
-                        const terrenoNuovoId = lavoroData.terrenoId;
                         
                         // Verifica se terreno originale era VITE
                         let terrenoOriginaleEraVite = false;
@@ -1640,14 +1721,6 @@ export async function handleSalvaLavoro(
                             const { getTerreno } = await import('../../../core/services/terreni-service.js');
                             const terrenoOriginale = await getTerreno(terrenoOriginaleId);
                             terrenoOriginaleEraVite = terrenoOriginale?.coltura?.toLowerCase().includes('vite') || false;
-                        }
-                        
-                        // Verifica se terreno nuovo è VITE
-                        let terrenoNuovoEVite = false;
-                        if (terrenoNuovoId) {
-                            const { getTerreno } = await import('../../../core/services/terreni-service.js');
-                            const terrenoNuovo = await getTerreno(terrenoNuovoId);
-                            terrenoNuovoEVite = terrenoNuovo?.coltura?.toLowerCase().includes('vite') || false;
                         }
                         
                         // Caso 1: Tipo lavoro cambiato da vendemmia a altro → elimina vendemmia
@@ -1671,6 +1744,24 @@ export async function handleSalvaLavoro(
                             const { syncVendemmiaFromLavoro } = await import('../../../modules/vigneto/services/vendemmia-service.js');
                             await syncVendemmiaFromLavoro(state.currentLavoroId);
                             console.log('[GESTIONE-LAVORI] ✓ Sync vendemmia completato');
+                        }
+                    }
+                    const { findPotaturaByLavoroId, deletePotatura, syncPotaturaFromLavoro } = await import('../../../modules/vigneto/services/potatura-vigneto-service.js');
+                    const { findTrattamentoByLavoroId, deleteTrattamento, syncTrattamentoFromLavoro } = await import('../../../modules/vigneto/services/trattamenti-vigneto-service.js');
+                    const potaturaV = await findPotaturaByLavoroId(state.currentLavoroId);
+                    const trattamentoV = await findTrattamentoByLavoroId(state.currentLavoroId);
+                    if (potaturaV) {
+                        if (!terrenoNuovoEVite) {
+                            await deletePotatura(potaturaV.vignetoId, potaturaV.potaturaId);
+                        } else {
+                            await syncPotaturaFromLavoro(state.currentLavoroId);
+                        }
+                    }
+                    if (trattamentoV) {
+                        if (!terrenoNuovoEVite) {
+                            await deleteTrattamento(trattamentoV.vignetoId, trattamentoV.trattamentoId);
+                        } else {
+                            await syncTrattamentoFromLavoro(state.currentLavoroId);
                         }
                     }
                 }
@@ -1699,6 +1790,15 @@ export async function handleSalvaLavoro(
                 } catch (error) {
                     console.error('Errore creazione vigneto da lavoro:', error);
                     showAlert('Lavoro creato ma errore nella creazione del vigneto: ' + error.message, 'warning');
+                }
+            }
+            // Se è un lavoro di tipo "Impianto Nuovo Frutteto" con pianificazione, crea anche il frutteto
+            if (tipoLavoro.includes('Impianto Nuovo Frutteto') && pianificazioneId) {
+                try {
+                    await creaFruttetoDaLavoro(nuovoLavoroId, pianificazioneId, terrenoId, currentTenantId, db);
+                } catch (error) {
+                    console.error('Errore creazione frutteto da lavoro:', error);
+                    showAlert('Lavoro creato ma errore nella creazione del frutteto: ' + error.message, 'warning');
                 }
             }
         }
@@ -1759,6 +1859,53 @@ export async function handleSalvaLavoro(
                     }
                 } else {
                     console.log('[GESTIONE-LAVORI] Tipo lavoro non è vendemmia:', tipoLavoro);
+                }
+
+                // Rilevamento automatico raccolta frutta: crea raccolta se lavoro tipo "Raccolta" su terreno Frutteto
+                if (tipoLavoro.toLowerCase().includes('raccolta') && lavoroData.terrenoId) {
+                    try {
+                        const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                        const { mapColturaToCategoria } = await import('../../../core/js/attivita-utils.js');
+                        const hasFruttetoModule = await hasModuleAccess('frutteto');
+                        if (hasFruttetoModule) {
+                            const { getTerreno } = await import('../../../core/services/terreni-service.js');
+                            const terrenoR = await getTerreno(lavoroData.terrenoId);
+                            if (terrenoR && mapColturaToCategoria(terrenoR.coltura || '') === 'Frutteto') {
+                                const lavoroIdPerRaccolta = nuovoLavoroId || state.currentLavoroId;
+                                const { createRaccoltaFromLavoro } = await import('../../../modules/frutteto/services/raccolta-frutta-service.js');
+                                const result = await createRaccoltaFromLavoro(lavoroIdPerRaccolta);
+                                if (result && result.raccoltaId && result.fruttetoId) {
+                                    console.log('[GESTIONE-LAVORI] Raccolta frutta creata automaticamente:', result.raccoltaId);
+                                    const url = '../../modules/frutteto/views/raccolta-frutta-standalone.html?fruttetoId=' + encodeURIComponent(result.fruttetoId) + '&raccoltaId=' + encodeURIComponent(result.raccoltaId) + '&openModal=1';
+                                    window.location.href = url;
+                                    return;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[GESTIONE-LAVORI] Errore rilevamento automatico raccolta frutta:', error);
+                    }
+                }
+                // Rilevamento automatico potatura/trattamenti vigneto e frutteto (categoria Potatura o Trattamenti)
+                try {
+                    const lavoroIdPerDet = nuovoLavoroId || state.currentLavoroId;
+                    if (lavoroIdPerDet && lavoroData.terrenoId) {
+                        const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                        if (await hasModuleAccess('vigneto')) {
+                            const { createPotaturaFromLavoro } = await import('../../../modules/vigneto/services/potatura-vigneto-service.js');
+                            const { createTrattamentoFromLavoro } = await import('../../../modules/vigneto/services/trattamenti-vigneto-service.js');
+                            await createPotaturaFromLavoro(lavoroIdPerDet);
+                            await createTrattamentoFromLavoro(lavoroIdPerDet);
+                        }
+                        if (await hasModuleAccess('frutteto')) {
+                            const { createPotaturaFromLavoro } = await import('../../../modules/frutteto/services/potatura-frutteto-service.js');
+                            const { createTrattamentoFromLavoro } = await import('../../../modules/frutteto/services/trattamenti-frutteto-service.js');
+                            await createPotaturaFromLavoro(lavoroIdPerDet);
+                            await createTrattamentoFromLavoro(lavoroIdPerDet);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('[GESTIONE-LAVORI] Errore rilevamento potatura/trattamenti:', error);
                 }
             } catch (error) {
                 console.error('[GESTIONE-LAVORI] Errore rilevamento automatico vendemmia:', error);

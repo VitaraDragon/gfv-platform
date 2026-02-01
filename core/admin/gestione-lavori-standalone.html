@@ -968,6 +968,72 @@
                     </div>
                 </div>
 
+                <!-- Form Frutteto (solo per Impianto Nuovo Frutteto con pianificazione selezionata) -->
+                <div class="form-group" id="frutteto-form-group" style="display: none;">
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ffcc80; margin-top: 10px;">
+                        <h4 style="margin: 0 0 15px 0; color: #E65100; font-size: 16px;">🍎 Dati Frutteto (pre-compilati dalla pianificazione)</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frutteto-specie">Specie *</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <select id="frutteto-specie" required style="flex: 1;">
+                                        <option value="">Seleziona specie</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddFruttetoSpecieModal()" style="white-space: nowrap;">➕</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="frutteto-varieta">Varietà *</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <select id="frutteto-varieta" required style="flex: 1;">
+                                        <option value="">Seleziona varietà</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddFruttetoVarietaModal()" style="white-space: nowrap;">➕</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frutteto-annata-impianto">Anno Impianto *</label>
+                                <input type="number" id="frutteto-annata-impianto" required min="1900" max="2100" value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="frutteto-forma-allevamento">Forma Allevamento *</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <select id="frutteto-forma-allevamento" required style="flex: 1;">
+                                        <option value="">Seleziona forma</option>
+                                    </select>
+                                    <button type="button" class="btn btn-info btn-sm" onclick="openAddFruttetoFormaAllevamentoModal()" style="white-space: nowrap;">➕</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frutteto-distanza-file">Distanza File (m) *</label>
+                                <input type="number" id="frutteto-distanza-file" required step="0.1" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                            <div class="form-group">
+                                <label for="frutteto-distanza-unita">Distanza Unità (m) *</label>
+                                <input type="number" id="frutteto-distanza-unita" required step="0.1" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frutteto-superficie-ettari">Superficie (Ha) *</label>
+                                <input type="number" id="frutteto-superficie-ettari" required step="0.01" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                            <div class="form-group">
+                                <label for="frutteto-densita">Densità (piante/ha) *</label>
+                                <input type="number" id="frutteto-densita" required step="0.01" min="0" readonly style="background: #e9ecef;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="frutteto-note">Note Frutteto</label>
+                            <textarea id="frutteto-note" rows="2" placeholder="Note opzionali sul frutteto..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Tipo Assegnazione *</label>
                     <div style="display: flex; gap: 20px; margin-top: 8px;">
@@ -1212,6 +1278,62 @@
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-tipo-palo-modal')">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modali per form frutteto (specie, varietà, forma allevamento) -->
+    <div id="add-frutteto-specie-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Aggiungi Nuova Specie</h2>
+                <button class="close-btn" onclick="closeAddModal('add-frutteto-specie-modal')">&times;</button>
+            </div>
+            <form onsubmit="addNewFruttetoSpecie(event)">
+                <div class="form-group">
+                    <label for="new-frutteto-specie">Nome Specie *</label>
+                    <input type="text" id="new-frutteto-specie" required placeholder="es. Melo">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-frutteto-specie-modal')">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="add-frutteto-varieta-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Aggiungi Nuova Varietà</h2>
+                <button class="close-btn" onclick="closeAddModal('add-frutteto-varieta-modal')">&times;</button>
+            </div>
+            <form onsubmit="addNewFruttetoVarieta(event)">
+                <div class="form-group">
+                    <label for="new-frutteto-varieta">Nome Varietà *</label>
+                    <input type="text" id="new-frutteto-varieta" required placeholder="es. Gala">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-frutteto-varieta-modal')">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="add-frutteto-forma-allevamento-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Aggiungi Nuova Forma di Allevamento</h2>
+                <button class="close-btn" onclick="closeAddModal('add-frutteto-forma-allevamento-modal')">&times;</button>
+            </div>
+            <form onsubmit="addNewFruttetoFormaAllevamento(event)">
+                <div class="form-group">
+                    <label for="new-frutteto-forma-allevamento">Nome Forma *</label>
+                    <input type="text" id="new-frutteto-forma-allevamento" required placeholder="es. Fusetto">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal('add-frutteto-forma-allevamento-modal')">Annulla</button>
                     <button type="submit" class="btn btn-success">Aggiungi</button>
                 </div>
             </form>
@@ -1809,22 +1931,30 @@
                         if (pianificazioneGroup) pianificazioneGroup.style.display = 'none';
                     }
                 } else {
-                    // Nascondi dropdown e form vigneto
+                    // Nascondi dropdown e form vigneto/frutteto
                     if (pianificazioneGroup) pianificazioneGroup.style.display = 'none';
                     if (vignetoFormGroup) vignetoFormGroup.style.display = 'none';
+                    const fruttetoFormGroup = document.getElementById('frutteto-form-group');
+                    if (fruttetoFormGroup) fruttetoFormGroup.style.display = 'none';
+                    setVignetoFormRequired(false);
+                    setFruttetoFormRequired(false);
                 }
             });
             
             // Handler per cambio pianificazione
             const pianificazioneSelect = document.getElementById('lavoro-pianificazione-impianto');
+            const fruttetoFormGroup = document.getElementById('frutteto-form-group');
             if (pianificazioneSelect) {
                 pianificazioneSelect.addEventListener('change', function() {
                     const pianificazioneId = this.value;
                     if (pianificazioneId && this.selectedOptions[0] && this.selectedOptions[0].dataset.pianificazione) {
                         const pianificazione = JSON.parse(this.selectedOptions[0].dataset.pianificazione);
-                        precompilaFormVignetoDaPianificazione(pianificazione);
+                        precompilaFormImpiantoDaPianificazione(pianificazione);
                     } else {
                         if (vignetoFormGroup) vignetoFormGroup.style.display = 'none';
+                        if (fruttetoFormGroup) fruttetoFormGroup.style.display = 'none';
+                        setVignetoFormRequired(false);
+                        setFruttetoFormRequired(false);
                     }
                 });
             }
@@ -1905,15 +2035,78 @@
             });
         }
 
-        // Pre-compila form vigneto da pianificazione
+        // Gestisce l'attributo required per i campi del form vigneto.
+        // Obiettivo: evitare che campi required dentro un blocco nascosto (#vigneto-form-group)
+        // blocchino il submit quando il lavoro NON è un impianto vigneto.
+        function setVignetoFormRequired(isRequired) {
+            const fieldIds = [
+                'vigneto-varieta',
+                'vigneto-annata-impianto',
+                'vigneto-forma-allevamento',
+                'vigneto-distanza-file',
+                'vigneto-distanza-unita',
+                'vigneto-superficie-ettari',
+                'vigneto-densita',
+                'vigneto-tipo-palo',
+                'vigneto-destinazione-uva'
+            ];
+
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (isRequired) {
+                    el.setAttribute('required', '');
+                } else {
+                    el.removeAttribute('required');
+                }
+            });
+        }
+
+        // Gestisce required per i campi del form frutteto (come per vigneto)
+        function setFruttetoFormRequired(isRequired) {
+            const fieldIds = [
+                'frutteto-specie',
+                'frutteto-varieta',
+                'frutteto-annata-impianto',
+                'frutteto-forma-allevamento',
+                'frutteto-distanza-file',
+                'frutteto-distanza-unita',
+                'frutteto-superficie-ettari',
+                'frutteto-densita'
+            ];
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (isRequired) el.setAttribute('required', '');
+                else el.removeAttribute('required');
+            });
+        }
+
+        // Mostra e pre-compila il form corretto (vigneto o frutteto) in base a pianificazione.tipoColtura
+        async function precompilaFormImpiantoDaPianificazione(pianificazione) {
+            if (!pianificazione) return;
+            const vignetoFormGroup = document.getElementById('vigneto-form-group');
+            const fruttetoFormGroup = document.getElementById('frutteto-form-group');
+            if (vignetoFormGroup) vignetoFormGroup.style.display = 'none';
+            if (fruttetoFormGroup) fruttetoFormGroup.style.display = 'none';
+            setVignetoFormRequired(false);
+            setFruttetoFormRequired(false);
+            if (pianificazione.tipoColtura === 'vigneto') {
+                await precompilaFormVignetoDaPianificazione(pianificazione);
+            } else if (pianificazione.tipoColtura === 'frutteto') {
+                await precompilaFormFruttetoDaPianificazione(pianificazione);
+            }
+        }
+
+        // Pre-compila form vigneto da pianificazione (solo vigneto)
         async function precompilaFormVignetoDaPianificazione(pianificazione) {
             if (!pianificazione || pianificazione.tipoColtura !== 'vigneto') return;
             
             const vignetoFormGroup = document.getElementById('vigneto-form-group');
             if (!vignetoFormGroup) return;
             
-            // Mostra form vigneto
             vignetoFormGroup.style.display = 'block';
+            setVignetoFormRequired(true);
             
             // Popola dropdown con liste predefinite (con supporto localStorage)
             popolaDropdownVigneto('vigneto-varieta', VARIETA_PREDEFINITE, 'varieta');
@@ -1974,6 +2167,73 @@
             const terrenoSelect = document.getElementById('lavoro-terreno');
             if (terrenoSelect && pianificazione.terrenoId) {
                 terrenoSelect.value = pianificazione.terrenoId;
+            }
+        }
+
+        // Pre-compila form frutteto da pianificazione (solo frutteto)
+        async function precompilaFormFruttetoDaPianificazione(pianificazione) {
+            if (!pianificazione || pianificazione.tipoColtura !== 'frutteto') return;
+            const fruttetoFormGroup = document.getElementById('frutteto-form-group');
+            if (!fruttetoFormGroup) return;
+            fruttetoFormGroup.style.display = 'block';
+            setFruttetoFormRequired(true);
+            try {
+                const { SPECIE_FRUTTIFERE, FORME_ALLEVAMENTO_FRUTTETO, VARIETA_PER_SPECIE } = await import('../../modules/frutteto/config/specie-fruttifere.js');
+                const customSpecie = JSON.parse(localStorage.getItem('frutteto_specie_custom') || '[]');
+                const customVarieta = JSON.parse(localStorage.getItem('frutteto_varieta_custom') || '[]');
+                const customForma = JSON.parse(localStorage.getItem('frutteto_forma_allevamento_custom') || '[]');
+                const specieSelect = document.getElementById('frutteto-specie');
+                const varietaSelect = document.getElementById('frutteto-varieta');
+                const formaSelect = document.getElementById('frutteto-forma-allevamento');
+                if (specieSelect) {
+                    specieSelect.innerHTML = '<option value="">Seleziona specie</option>';
+                    [...SPECIE_FRUTTIFERE, ...customSpecie].forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.textContent = s;
+                        specieSelect.appendChild(opt);
+                    });
+                }
+                if (formaSelect) {
+                    formaSelect.innerHTML = '<option value="">Seleziona forma</option>';
+                    [...FORME_ALLEVAMENTO_FRUTTETO, ...customForma].sort().forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        opt.textContent = f;
+                        formaSelect.appendChild(opt);
+                    });
+                    if (pianificazione.formaAllevamento) formaSelect.value = pianificazione.formaAllevamento;
+                }
+                function popolaVarieta(specie) {
+                    if (!varietaSelect) return;
+                    const varietaList = (specie && VARIETA_PER_SPECIE[specie]) ? VARIETA_PER_SPECIE[specie] : [];
+                    varietaSelect.innerHTML = '<option value="">Seleziona varietà</option>';
+                    [...varietaList, ...customVarieta].forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.textContent = v;
+                        varietaSelect.appendChild(opt);
+                    });
+                }
+                if (!specieSelect.dataset.varietaListener) {
+                    specieSelect.dataset.varietaListener = '1';
+                    specieSelect.addEventListener('change', function() { popolaVarieta(this.value); });
+                }
+                popolaVarieta(specieSelect.value);
+                const distanzaFileEl = document.getElementById('frutteto-distanza-file');
+                const distanzaUnitaEl = document.getElementById('frutteto-distanza-unita');
+                const superficieEl = document.getElementById('frutteto-superficie-ettari');
+                const densitaEl = document.getElementById('frutteto-densita');
+                if (distanzaFileEl && pianificazione.distanzaFile) distanzaFileEl.value = pianificazione.distanzaFile;
+                if (distanzaUnitaEl && pianificazione.distanzaUnita) distanzaUnitaEl.value = pianificazione.distanzaUnita;
+                if (superficieEl && pianificazione.superficieNettaImpianto) superficieEl.value = parseFloat(pianificazione.superficieNettaImpianto).toFixed(2);
+                if (densitaEl && pianificazione.densitaEffettiva) densitaEl.value = Math.round(pianificazione.densitaEffettiva);
+                const annataEl = document.getElementById('frutteto-annata-impianto');
+                if (annataEl && !annataEl.value) annataEl.value = new Date().getFullYear();
+                const terrenoSelect = document.getElementById('lavoro-terreno');
+                if (terrenoSelect && pianificazione.terrenoId) terrenoSelect.value = pianificazione.terrenoId;
+            } catch (err) {
+                console.error('Errore precompilazione form frutteto:', err);
             }
         }
 
@@ -2061,6 +2321,39 @@
                 document.getElementById('new-tipo-palo').value = '';
                 closeAddModal('add-tipo-palo-modal');
             }
+        };
+
+        window.openAddFruttetoSpecieModal = function() {
+            document.getElementById('add-frutteto-specie-modal').classList.add('active');
+            setTimeout(() => document.getElementById('new-frutteto-specie').focus(), 100);
+        };
+        window.openAddFruttetoVarietaModal = function() {
+            document.getElementById('add-frutteto-varieta-modal').classList.add('active');
+            setTimeout(() => document.getElementById('new-frutteto-varieta').focus(), 100);
+        };
+        window.openAddFruttetoFormaAllevamentoModal = function() {
+            document.getElementById('add-frutteto-forma-allevamento-modal').classList.add('active');
+            setTimeout(() => document.getElementById('new-frutteto-forma-allevamento').focus(), 100);
+        };
+        function saveFruttetoCustom(key, value) {
+            const k = 'frutteto_' + key + '_custom';
+            const arr = JSON.parse(localStorage.getItem(k) || '[]');
+            if (!arr.includes(value)) { arr.push(value); localStorage.setItem(k, JSON.stringify(arr)); }
+        }
+        window.addNewFruttetoSpecie = function(e) {
+            e.preventDefault();
+            const v = document.getElementById('new-frutteto-specie').value.trim();
+            if (v) { saveFruttetoCustom('specie', v); const sel = document.getElementById('frutteto-specie'); if (sel) { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); sel.value = v; } document.getElementById('new-frutteto-specie').value = ''; closeAddModal('add-frutteto-specie-modal'); }
+        };
+        window.addNewFruttetoVarieta = function(e) {
+            e.preventDefault();
+            const v = document.getElementById('new-frutteto-varieta').value.trim();
+            if (v) { saveFruttetoCustom('varieta', v); const sel = document.getElementById('frutteto-varieta'); if (sel) { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); sel.value = v; } document.getElementById('new-frutteto-varieta').value = ''; closeAddModal('add-frutteto-varieta-modal'); }
+        };
+        window.addNewFruttetoFormaAllevamento = function(e) {
+            e.preventDefault();
+            const v = document.getElementById('new-frutteto-forma-allevamento').value.trim();
+            if (v) { saveFruttetoCustom('forma_allevamento', v); const sel = document.getElementById('frutteto-forma-allevamento'); if (sel) { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); sel.value = v; } document.getElementById('new-frutteto-forma-allevamento').value = ''; closeAddModal('add-frutteto-forma-allevamento-modal'); }
         };
 
         // Wrapper per setupMacchineHandlers
@@ -2685,6 +2978,11 @@
                     
                     // Setup handler per tipo lavoro Impianto
                     setupTipoLavoroImpiantoHandler();
+
+                    // All'avvio, i campi dei form vigneto/frutteto non devono bloccare il submit
+                    // quando i blocco sono nascosti. Diventano required solo quando mostriamo il form corrispondente.
+                    setVignetoFormRequired(false);
+                    setFruttetoFormRequired(false);
                     
                     // Inizializza handler macchine se modulo attivo
                     // NOTA: setupMacchineHandlers è gestito dagli event handlers nei moduli

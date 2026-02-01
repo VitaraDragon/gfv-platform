@@ -669,61 +669,12 @@
         </div>
     </div>
 
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
-        // Funzione per attendere il config (con percorso corretto da modules/vigneto/views/)
-        async function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                // Carica direttamente il config dal percorso corretto
-                const configScript = document.createElement('script');
-                // Percorso relativo da modules/vigneto/views/ a core/config/
-                configScript.src = '../../../core/config/firebase-config.js';
-                
-                configScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve(window.firebaseConfig);
-                        } else {
-                            // Fallback: prova GitHub
-                            loadFallbackConfig().then(resolve).catch(reject);
-                        }
-                    }, 100);
-                };
-                
-                configScript.onerror = function() {
-                    loadFallbackConfig().then(resolve).catch(reject);
-                };
-                
-                document.head.appendChild(configScript);
-            });
-        }
-        
-        function loadFallbackConfig() {
-            return new Promise((resolve, reject) => {
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-                
-                fallbackScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve(window.firebaseConfig);
-                        } else {
-                            reject(new Error('Firebase config non trovato neanche su GitHub'));
-                        }
-                    }, 100);
-                };
-                
-                fallbackScript.onerror = function() {
-                    reject(new Error('Errore caricamento config da GitHub'));
-                };
-                
-                document.head.appendChild(fallbackScript);
-            });
-        }
+        // Config: usa loader centralizzato (cache + caricamento parallelo)
+        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
 
         // Calcola base path per GitHub Pages
         function getBasePath() {
@@ -953,7 +904,7 @@
 
         async function init() {
             try {
-                // 1. Carica e inizializza Firebase
+                // 1. Carica e inizializza Firebase (config da loader centralizzato)
                 const firebaseConfig = await waitForConfig();
                 initializeFirebase(firebaseConfig);
                 const auth = getAuthInstance();
@@ -1656,6 +1607,11 @@
                 loadingDiv.innerHTML = `<div style="color: red; padding: 20px;">Errore nel caricamento dei dettagli: ${error.message}</div>`;
             }
         };
+
+        // Cambio anno: ricarica automaticamente i dettagli spese (senza dover cliccare "Aggiorna")
+        document.getElementById('dettaglio-spese-anno').addEventListener('change', function() {
+            if (currentDettaglioVignetoId) loadDettaglioSpese();
+        });
 
         // Funzione per renderizzare i dettagli spese
         function renderDettaglioSpese(dettaglio) {

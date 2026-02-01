@@ -1,8 +1,8 @@
 # 🍇 Piano Dettagliato: Modulo Vigneto
 
 **Data creazione**: 2026-01-12  
-**Ultimo aggiornamento**: 2026-01-24 (Integrazione Lavori Impianto con Creazione Automatica Vigneti)  
-**Stato**: ✅ IMPLEMENTATO - Funzionalità Vendemmia Completata + Tracciamento Poligono Avanzato + Rilevamento Automatico + Calcolo Compensi + Pianificazione Nuovi Impianti (Base) + **Calcolo Materiali Impianto + Integrazione Creazione Vigneti da Lavori**  
+**Ultimo aggiornamento**: 2026-01-31 (Raccolta Frutta; lista condivisa Calcolo materiali; forma allevamento Pianificazione frutteto; pali frutteto; Gestione lavori Impianto Frutteto; **Pagine e card Potatura e Trattamenti vigneto**)
+**Stato**: ✅ IMPLEMENTATO - Funzionalità Vendemmia Completata + Tracciamento Poligono Avanzato + Rilevamento Automatico + Calcolo Compensi + Pianificazione Nuovi Impianti (Base) + Calcolo Materiali Impianto + Integrazione Creazione Vigneti da Lavori + Allineamento Frutteto + Tracciamento Raccolta Frutta + Calcolo materiali: lista forma allevamento condivisa; Pianificazione: forma allevamento visibile e salvata anche per frutteto/oliveto + **Pagine standalone Potatura e Trattamenti + card in dashboard; evoluzione “da lavori/attività” pianificata in PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md**
 **Priorità**: Alta  
 **Riferimento**: `PLAN_MODULI_COLTURA_SPECIALIZZATI.md`
 
@@ -263,7 +263,7 @@ tenants/{tenantId}/
 
 ### 3. Gestione Potatura
 
-**Nota Architetturale**: Le potature vengono tracciate tramite il sistema Lavori/Diario (fonte unica di verità). I modelli e servizi `PotaturaVigneto.js` e `potatura-vigneto-service.js` sono pronti per uso futuro, ma **non è prevista una vista standalone** per evitare duplicazione di dati. Eventualmente migliorare la pagina Lavori esistente con filtri specifici per potature vigneto.
+**Nota Architetturale**: I modelli e servizi `PotaturaVigneto.js` e `potatura-vigneto-service.js` sono implementati. **Pagine standalone e card dashboard** (2026-01-31): `potatura-standalone.html` – filtro vigneto/anno, tabella potature, modal CRUD (tipo invernale/verde/rinnovo/spollonatura, ceppi potati, operai, ore, costi); card “Potatura” nella dashboard vigneto. Evoluzione **“Potatura da lavori/attività”** (dati base da Gestione lavori/Diario, dati aggiuntivi compilabili, base in sola lettura) pianificata in `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`.
 
 #### 3.1. Tipi Potatura
 
@@ -359,7 +359,7 @@ Il diradamento dei grappoli è una pratica per progetti di alta qualità che rid
 
 ### 5. Gestione Trattamenti
 
-**Nota Architetturale**: I trattamenti verranno gestiti da un **modulo Trattamenti dedicato futuro** (generale, non solo vigneto) che coprirà tutte le colture. I modelli e servizi `TrattamentoVigneto.js` e `trattamenti-vigneto-service.js` sono pronti per uso futuro, ma **non è prevista una vista standalone nel modulo vigneto**. Sviluppare una vista standalone adesso sarebbe lavoro parziale che poi va rifatto.
+**Nota Architetturale**: I modelli e servizi `TrattamentoVigneto.js` e `trattamenti-vigneto-service.js` sono implementati. **Pagine standalone e card dashboard** (2026-01-31): `trattamenti-standalone.html` – filtro vigneto/anno, tabella trattamenti, modal CRUD (prodotto, dosaggio, tipo, operatore, superficie, costi, giorni di carenza); card “Trattamenti” nella dashboard vigneto. Evoluzione **“Trattamenti da lavori/attività”** (dati base da Gestione lavori/Diario, dati aggiuntivi compilabili, base in sola lettura) pianificata in `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`.
 
 #### 5.1. Piano Trattamenti
 
@@ -715,27 +715,15 @@ Il diradamento dei grappoli è una pratica per progetti di alta qualità che rid
 3. Sistema calcola automaticamente: resa, costi, compensi
 4. Salvataggio → aggiornamento automatico anagrafica vigneto
 
-### 3. Pagina Gestione Potatura ❌ NON NECESSARIA
+### 3. Pagina Gestione Potatura ✅ **IMPLEMENTATA (2026-01-31)**
 
-**Decisione**: Le potature vengono già tracciate completamente nel sistema Lavori/Diario (fonte unica di verità). Una vista standalone sarebbe duplicazione di dati.
+- Vista `potatura-standalone.html`: filtro vigneto/anno, tabella potature, modal Nuova/Modifica. Card “Potatura” in dashboard vigneto.
+- Evoluzione “da lavori/attività” pianificata in `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`.
 
-**Alternativa**: Eventualmente migliorare la pagina Lavori esistente con:
-- Filtri specifici per tipo lavoro "Potatura" + terreno "Vite"
-- Vista tabella/calendario dedicata per potature
-- Statistiche potature aggregate
+### 4. Pagina Gestione Trattamenti ✅ **IMPLEMENTATA (2026-01-31)**
 
-**Stato**: ❌ **NON IMPLEMENTARE** - Dati già disponibili nel sistema Lavori
-
-### 4. Pagina Gestione Trattamenti ❌ RIMANDATA A MODULO DEDICATO
-
-**Decisione**: I trattamenti verranno gestiti da un modulo dedicato futuro (generale, non solo vigneto) che coprirà tutte le colture.
-
-**Motivazione**: 
-- Un modulo Trattamenti sarà probabilmente generale (non solo vigneto)
-- Sviluppare una vista standalone adesso sarebbe lavoro parziale che poi va rifatto
-- Meglio aspettare il modulo completo dedicato
-
-**Stato**: ❌ **NON IMPLEMENTARE** - Rimandato a modulo Trattamenti dedicato futuro
+- Vista `trattamenti-standalone.html`: filtro vigneto/anno, tabella trattamenti, modal Nuova/Modifica. Card “Trattamenti” in dashboard vigneto.
+- Evoluzione “da lavori/attività” pianificata in `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`.
 
 ### 5. Pagina Pianificazione Impianto ✅ **IMPLEMENTATO (2026-01-21 → 2026-01-22)**
 
