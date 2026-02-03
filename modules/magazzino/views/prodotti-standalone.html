@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anagrafica Prodotti - Prodotti e Magazzino - GFV Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .header h1 { font-size: 28px; }
+        .header-actions { display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #2E7D32; color: white; }
+        .btn-primary:hover { background: #1B5E20; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
+        .filter-group select, .filter-group input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-header h2 { color: #2E7D32; font-size: 24px; }
+        .prodotti-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .prodotti-table th, .prodotti-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        .prodotti-table th { background: #E8F5E9; font-weight: 600; color: #495057; }
+        .prodotti-table tr:hover { background: #f1f8e9; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .badge-sotto-scorta { background: #fff3cd; color: #856404; }
+        .badge-attivo { background: #d4edda; color: #155724; }
+        .badge-disattivo { background: #e2e3e5; color: #383d41; }
+        .action-buttons { display: flex; gap: 5px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { color: #2E7D32; font-size: 20px; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .form-group { margin-bottom: 20px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #495057; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        .form-hint { display: block; font-size: 12px; color: #6c757d; margin-top: 4px; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📋 Anagrafica Prodotti</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Gestisci prodotti e scorte minime</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="btn-nuovo-prodotto">➕ Nuovo Prodotto</button>
+                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Prodotti e Magazzino</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Stato</label>
+                    <select id="filter-attivo">
+                        <option value="">Tutti</option>
+                        <option value="true">Attivi</option>
+                        <option value="false">Disattivati</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Categoria</label>
+                    <select id="filter-categoria">
+                        <option value="">Tutte</option>
+                        <option value="fitofarmaci">Fitofarmaci</option>
+                        <option value="fertilizzanti">Fertilizzanti</option>
+                        <option value="materiale_impianto">Materiale impianto</option>
+                        <option value="ricambi">Ricambi</option>
+                        <option value="sementi">Sementi</option>
+                        <option value="altro">Altro</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Cerca</label>
+                    <input type="text" id="filter-search" placeholder="Nome, codice...">
+                </div>
+                <div class="filter-group" style="align-self: flex-end;">
+                    <button class="btn btn-secondary" id="btn-reset-filtri">Pulisci Filtri</button>
+                </div>
+            </div>
+            <div class="section-header">
+                <h2>Elenco Prodotti</h2>
+                <div id="prodotti-count">0 prodotti</div>
+            </div>
+            <div id="prodotti-container">
+                <div class="loading">Caricamento prodotti...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="prodotto-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Nuovo Prodotto</h3>
+                <button class="close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <form id="prodotto-form">
+                <input type="hidden" id="prodotto-id">
+                <div class="form-group">
+                    <label for="prodotto-codice">Codice</label>
+                    <input type="text" id="prodotto-codice" placeholder="Codice interno (opzionale)">
+                </div>
+                <div class="form-group">
+                    <label for="prodotto-nome">Nome *</label>
+                    <input type="text" id="prodotto-nome" required placeholder="Nome prodotto">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-categoria">Categoria</label>
+                        <select id="prodotto-categoria">
+                            <option value="fitofarmaci">Fitofarmaci</option>
+                            <option value="fertilizzanti">Fertilizzanti</option>
+                            <option value="materiale_impianto">Materiale impianto</option>
+                            <option value="ricambi">Ricambi</option>
+                            <option value="sementi">Sementi</option>
+                            <option value="altro">Altro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-unita">Unità di misura</label>
+                        <select id="prodotto-unita">
+                            <option value="kg">kg</option>
+                            <option value="L">L</option>
+                            <option value="pezzi">Pezzi</option>
+                            <option value="m">m</option>
+                            <option value="m2">m²</option>
+                            <option value="confezione">Confezione</option>
+                            <option value="sacchi">Sacchi</option>
+                            <option value="altro">Altro</option>
+                        </select>
+                        <span class="form-hint">Per dosi frazionarie (es. trattamenti) usa L o kg.</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-scorta-minima">Scorta minima</label>
+                        <input type="number" id="prodotto-scorta-minima" min="0" step="0.01" value="0" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-prezzo">Prezzo unitario (€)</label>
+                        <input type="number" id="prodotto-prezzo" min="0" step="0.01" placeholder="Opzionale">
+                        <span class="form-hint">Per trattamenti: €/kg o €/L secondo unità di misura.</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-dosaggio-min">Dosaggio min (per ha)</label>
+                        <input type="number" id="prodotto-dosaggio-min" min="0" step="0.01" placeholder="Es. 0,5">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-dosaggio-max">Dosaggio max (per ha)</label>
+                        <input type="number" id="prodotto-dosaggio-max" min="0" step="0.01" placeholder="Es. 1">
+                        <span class="form-hint">Range per ettaro nella stessa unità (es. 0,5–1 L/ha oppure 2–5 kg/ha).</span>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-giorni-carenza">Giorni di carenza</label>
+                        <input type="number" id="prodotto-giorni-carenza" min="0" step="1" placeholder="Opzionale">
+                        <span class="form-hint">Giorni prima della raccolta consentita (es. 30).</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="prodotto-note">Note</label>
+                    <textarea id="prodotto-note" placeholder="Note..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-annulla-modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') { resolve(window.firebaseConfig); return; }
+                let attempts = 0;
+                const iv = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') { clearInterval(iv); resolve(window.firebaseConfig); }
+                    else if (attempts >= 50) { clearInterval(iv); reject(new Error('Config timeout')); }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentTenantId = null;
+        let prodotti = [];
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                const userData = userDoc.data();
+                currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => ((r || '').toLowerCase()).includes('manager') || ((r || '').toLowerCase()).includes('amministratore'));
+                if (!isManager) {
+                    showAlert('Solo Manager o Amministratore.', 'error');
+                    setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                document.getElementById('btn-nuovo-prodotto').onclick = openModal;
+                document.getElementById('btn-close-modal').onclick = closeModal;
+                document.getElementById('btn-annulla-modal').onclick = closeModal;
+                document.getElementById('btn-reset-filtri').onclick = resetFilters;
+                document.getElementById('filter-attivo').onchange = renderProdotti;
+                document.getElementById('filter-categoria').onchange = renderProdotti;
+                document.getElementById('filter-search').oninput = renderProdotti;
+                document.getElementById('prodotto-form').onsubmit = saveProdotto;
+                await loadProdotti();
+            } catch (e) {
+                console.error(e);
+                showAlert('Errore caricamento', 'error');
+            }
+        });
+
+        async function loadProdotti() {
+            const container = document.getElementById('prodotti-container');
+            container.innerHTML = '<div class="loading">Caricamento prodotti...</div>';
+            try {
+                if (!currentTenantId) { container.innerHTML = '<div class="empty-state">Nessun tenant</div>'; return; }
+                const q = query(collection(db, 'tenants', currentTenantId, 'prodotti'), orderBy('nome'));
+                const snapshot = await getDocs(q);
+                prodotti = [];
+                snapshot.forEach(d => prodotti.push({ id: d.id, ...d.data() }));
+                renderProdotti();
+            } catch (err) {
+                console.error(err);
+                showAlert('Errore: ' + err.message, 'error');
+                container.innerHTML = '<div class="empty-state">Errore caricamento</div>';
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-attivo').value = '';
+            document.getElementById('filter-categoria').value = '';
+            document.getElementById('filter-search').value = '';
+            renderProdotti();
+        }
+
+        function filterProdotti() {
+            const attivo = document.getElementById('filter-attivo').value;
+            const categoria = document.getElementById('filter-categoria').value;
+            const search = (document.getElementById('filter-search').value || '').toLowerCase();
+            return prodotti.filter(p => {
+                if (attivo === 'true' && !p.attivo) return false;
+                if (attivo === 'false' && p.attivo !== false) return false;
+                if (categoria && p.categoria !== categoria) return false;
+                if (search && !((p.nome || '').toLowerCase().includes(search) || (p.codice || '').toLowerCase().includes(search))) return false;
+                return true;
+            });
+        }
+
+        function renderProdotti() {
+            const filtered = filterProdotti();
+            document.getElementById('prodotti-count').textContent = filtered.length + ' prodotti';
+            const container = document.getElementById('prodotti-container');
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nessun prodotto trovato</div>';
+                return;
+            }
+            const html = `
+                <table class="prodotti-table">
+                    <thead><tr>
+                        <th>Codice</th><th>Nome</th><th>Categoria</th><th>Um</th><th>Giacenza</th><th>Scorta min.</th><th>Stato</th><th>Azioni</th>
+                    </tr></thead>
+                    <tbody>
+                        ${filtered.map(p => {
+                            const sottoScorta = (p.scortaMinima != null && p.scortaMinima > 0 && (p.giacenza == null || p.giacenza < p.scortaMinima));
+                            return `<tr>
+                                <td>${escapeHtml(p.codice || '-')}</td>
+                                <td>${escapeHtml(p.nome || '-')}</td>
+                                <td>${escapeHtml(p.categoria || '-')}</td>
+                                <td>${escapeHtml(p.unitaMisura || '-')}</td>
+                                <td>${formatNum(p.giacenza)}</td>
+                                <td>${formatNum(p.scortaMinima)}</td>
+                                <td>${sottoScorta ? '<span class="badge badge-sotto-scorta">Sotto scorta</span>' : ''} ${p.attivo === false ? '<span class="badge badge-disattivo">Disattivo</span>' : '<span class="badge badge-attivo">Attivo</span>'}</td>
+                                <td class="action-buttons">
+                                    <button class="btn btn-primary btn-sm" onclick="window.editProdotto('${p.id}')">Modifica</button>
+                                    ${p.attivo !== false ? `<button class="btn btn-danger btn-sm" onclick="window.disattivaProdotto('${p.id}', '${escapeHtml(p.nome || '')}')">Disattiva</button>` : `<button class="btn btn-primary btn-sm" onclick="window.riattivaProdotto('${p.id}')">Riattiva</button>`}
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>`;
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+        function formatNum(n) {
+            if (n == null) return '-';
+            return Number(n);
+        }
+
+        window.editProdotto = function(id) {
+            const p = prodotti.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('modal-title').textContent = 'Modifica Prodotto';
+            document.getElementById('prodotto-id').value = p.id;
+            document.getElementById('prodotto-codice').value = p.codice || '';
+            document.getElementById('prodotto-nome').value = p.nome || '';
+            document.getElementById('prodotto-categoria').value = p.categoria || 'altro';
+            document.getElementById('prodotto-unita').value = p.unitaMisura || 'pezzi';
+            document.getElementById('prodotto-scorta-minima').value = p.scortaMinima != null ? p.scortaMinima : 0;
+            document.getElementById('prodotto-prezzo').value = p.prezzoUnitario != null ? p.prezzoUnitario : '';
+            document.getElementById('prodotto-dosaggio-min').value = p.dosaggioMin != null ? p.dosaggioMin : '';
+            document.getElementById('prodotto-dosaggio-max').value = p.dosaggioMax != null ? p.dosaggioMax : '';
+            document.getElementById('prodotto-giorni-carenza').value = p.giorniCarenza != null ? p.giorniCarenza : '';
+            document.getElementById('prodotto-note').value = p.note || '';
+            document.getElementById('prodotto-modal').classList.add('active');
+        };
+
+        window.disattivaProdotto = async function(id, nome) {
+            if (!confirm('Disattivare il prodotto "' + nome + '"? Resta nello storico.')) return;
+            try {
+                await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id), { attivo: false, updatedAt: serverTimestamp() });
+                showAlert('Prodotto disattivato.', 'success');
+                await loadProdotti();
+            } catch (e) {
+                showAlert('Errore: ' + e.message, 'error');
+            }
+        };
+
+        window.riattivaProdotto = async function(id) {
+            try {
+                await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id), { attivo: true, updatedAt: serverTimestamp() });
+                showAlert('Prodotto riattivato.', 'success');
+                await loadProdotti();
+            } catch (e) {
+                showAlert('Errore: ' + e.message, 'error');
+            }
+        };
+
+        function openModal() {
+            document.getElementById('modal-title').textContent = 'Nuovo Prodotto';
+            document.getElementById('prodotto-form').reset();
+            document.getElementById('prodotto-id').value = '';
+            document.getElementById('prodotto-scorta-minima').value = 0;
+            document.getElementById('prodotto-dosaggio-min').value = '';
+            document.getElementById('prodotto-dosaggio-max').value = '';
+            document.getElementById('prodotto-giorni-carenza').value = '';
+            document.getElementById('prodotto-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('prodotto-modal').classList.remove('active');
+        }
+
+        async function saveProdotto(e) {
+            e.preventDefault();
+            const id = document.getElementById('prodotto-id').value;
+            const dosaggioMinVal = document.getElementById('prodotto-dosaggio-min').value.trim();
+            const dosaggioMaxVal = document.getElementById('prodotto-dosaggio-max').value.trim();
+            const giorniCarenzaVal = document.getElementById('prodotto-giorni-carenza').value.trim();
+            const dosaggioMin = dosaggioMinVal ? parseFloat(dosaggioMinVal) : null;
+            const dosaggioMax = dosaggioMaxVal ? parseFloat(dosaggioMaxVal) : null;
+            if (dosaggioMin != null && dosaggioMax != null && dosaggioMin > dosaggioMax) {
+                showAlert('Il dosaggio massimo deve essere >= dosaggio minimo.', 'error');
+                return;
+            }
+            const data = {
+                codice: (document.getElementById('prodotto-codice').value || '').trim(),
+                nome: (document.getElementById('prodotto-nome').value || '').trim(),
+                categoria: document.getElementById('prodotto-categoria').value || 'altro',
+                unitaMisura: document.getElementById('prodotto-unita').value || 'pezzi',
+                scortaMinima: parseFloat(document.getElementById('prodotto-scorta-minima').value) || 0,
+                prezzoUnitario: document.getElementById('prodotto-prezzo').value ? parseFloat(document.getElementById('prodotto-prezzo').value) : null,
+                dosaggioMin,
+                dosaggioMax,
+                giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
+                note: (document.getElementById('prodotto-note').value || '').trim(),
+                attivo: true
+            };
+            if (!data.nome) { showAlert('Nome obbligatorio.', 'error'); return; }
+            try {
+                if (id) {
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id), { ...data, updatedAt: serverTimestamp() });
+                    showAlert('Prodotto aggiornato.', 'success');
+                } else {
+                    await addDoc(collection(db, 'tenants', currentTenantId, 'prodotti'), { ...data, giacenza: 0, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+                    showAlert('Prodotto creato.', 'success');
+                }
+                closeModal();
+                await loadProdotti();
+            } catch (err) {
+                showAlert('Errore: ' + err.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

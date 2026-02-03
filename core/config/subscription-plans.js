@@ -111,6 +111,15 @@ export const AVAILABLE_MODULES = [
     badge: 'Prossimamente'
   },
   {
+    id: 'magazzino',
+    name: 'Prodotti e Magazzino',
+    icon: '📦',
+    description: 'Anagrafica prodotti, giacenze e movimenti (entrate/uscite)',
+    price: 3,
+    available: true,
+    category: 'utility'
+  },
+  {
     id: 'report',
     name: 'Report/Bilancio',
     icon: '📑',

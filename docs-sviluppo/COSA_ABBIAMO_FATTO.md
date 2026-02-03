@@ -1,5 +1,44 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
+## ✅ Trattamenti Vigneto/Frutteto: alert dosaggio, bollino verde, pulsante Modifica, costi in dashboard (2026-02-03) - COMPLETATO
+
+### Obiettivo
+Rendere i trattamenti coerenti con la specifica (avviso dosaggio fuori range), migliorare la UX (bollino verde se tutto ok, pulsante Modifica visibile) e correggere le statistiche dashboard (inclusione costi prodotti dei trattamenti nel totale spese).
+
+### Implementazione
+
+#### Alert dosaggio (Vigneto e Frutteto)
+- In `trattamenti-standalone.html` (Vigneto e Frutteto): funzione **validaDosaggiProdotti(rowsProdotti)** che confronta il dosaggio inserito con dosaggioMin/dosaggioMax in anagrafica prodotto; restituisce messaggio "Dosaggio superiore/inferiore al consigliato per [nome]".
+- In **salvataggio**: se il dosaggio è fuori range non si blocca più il salvataggio; viene mostrato un **confirm** "Attenzione: [messaggio]. Salvare comunque?"; l’utente può confermare e salvare ugualmente.
+- In **lista**: colonna **Avvisi** con icona ⚠️ se almeno un prodotto ha dosaggio fuori range (tooltip con dettaglio); **bollino verde** (stile come affitti/contratti: `.alert-badge.green`) se tutto ok; "-" per righe senza trattamento (Completa).
+
+#### Pulsante Modifica visibile (Vigneto e Frutteto)
+- Allineamento al modulo Potatura: in lista il pulsante "Modifica" è passato da **btn-primary** a **btn-secondary** (grigio, visibile in tabella).
+- Aggiunta regola **`.modal .btn-primary`** (background #007bff, hover #0056b3) in entrambe le view trattamenti, così i pulsanti primari nel modal sono blu solidi e leggibili.
+
+#### Costi trattamenti nelle statistiche dashboard
+- **Problema**: in `aggregaSpeseVignetoAnno` il campo `speseProdottiAnno` era inizializzato a 0 e mai popolato; in `aggregaSpeseFruttetoAnno` i costi prodotti arrivavano solo da `lavoro.costoProdotti` (non valorizzato dai trattamenti). I costi dei trattamenti (documenti in vigneti/{id}/trattamenti e frutteti/{id}/trattamenti) non entravano nel totale spese della dashboard.
+- **Vigneto** (`lavori-vigneto-service.js`): prima del calcolo di `costoTotaleAnno` viene caricata la lista trattamenti per vigneto e anno (`getTrattamenti(vignetoId, { anno })`); per ogni trattamento si somma il costo prodotti (somma `prodotti[].costo` o `costoProdotto`) in `spese.speseProdottiAnno`.
+- **Frutteto** (`lavori-frutteto-service.js`): stessa logica; caricamento trattamenti per frutteto e anno e somma costi prodotti in `spese.speseProdottiAnno`.
+- Le card "Spese totali" (e dettaglio spese) nelle dashboard Vigneto e Frutteto includono ora correttamente i costi prodotti dei trattamenti.
+
+#### Documentazione
+- `documentazione-utente/04-FUNZIONALITA/TRATTAMENTI_VIGNETO_FRUTTETO.md`: aggiornato il paragrafo sul dosaggio (avviso in salvataggio con conferma, colonna Avvisi e bollino verde in lista).
+
+### File toccati
+- `modules/vigneto/views/trattamenti-standalone.html` (validaDosaggiProdotti, avvisoDosaggioTrattamento, colonna Avvisi, bollino verde, CSS alert-badge; save con confirm; Modifica btn-secondary; .modal .btn-primary)
+- `modules/frutteto/views/trattamenti-standalone.html` (stesse modifiche)
+- `modules/vigneto/services/lavori-vigneto-service.js` (aggregaSpeseVignetoAnno: caricamento trattamenti e somma costi prodotti in speseProdottiAnno)
+- `modules/frutteto/services/lavori-frutteto-service.js` (aggregaSpeseFruttetoAnno: caricamento trattamenti e somma costi prodotti in speseProdottiAnno)
+- `documentazione-utente/04-FUNZIONALITA/TRATTAMENTI_VIGNETO_FRUTTETO.md`
+
+### Risultato
+- Alert dosaggio: l’utente è avvisato se il dosaggio è fuori range ma può salvare; in lista si vede subito quali trattamenti hanno avvisi (⚠️) e quali sono ok (bollino verde).
+- Pulsante Modifica visibile in lista trattamenti (come in Potatura).
+- Le statistiche "Spese totali" nelle dashboard Vigneto e Frutteto includono i costi prodotti dei trattamenti.
+
+---
+
 ## ✅ Verifica caricamento dashboard vigneto – test su server locale (2026-02-01) - COMPLETATO
 
 ### Obiettivo

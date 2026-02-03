@@ -1,6 +1,6 @@
 # 📊 Stato Moduli Specializzati - Riepilogo Completo
 
-**Data aggiornamento**: 2026-02-01 (**Allineamento modulo Frutteto al Vigneto**: lavori con categorie spese, RaccoltaFrutta isCompleta(), modello Frutteto spese/costi, API costoTotaleAnno) | 2026-01-31 (Raccolta Frutta; lista condivisa Calcolo materiali; forma allevamento Pianificazione frutteto; pali frutteto; Gestione lavori Impianto Frutteto; Pagine e card Potatura e Trattamenti – Vigneto e Frutteto; piano Potatura/Trattamenti da lavori)  
+**Data aggiornamento**: 2026-02-03 (Trattamenti Vigneto/Frutteto: alert dosaggio, bollino verde in lista, pulsante Modifica visibile, costi trattamenti nelle statistiche dashboard) | 2026-02-01 (**Allineamento modulo Frutteto al Vigneto**: lavori con categorie spese, RaccoltaFrutta isCompleta(), modello Frutteto spese/costi, API costoTotaleAnno) | 2026-01-31 (Raccolta Frutta; lista condivisa Calcolo materiali; forma allevamento Pianificazione frutteto; pali frutteto; Gestione lavori Impianto Frutteto; Pagine e card Potatura e Trattamenti – Vigneto e Frutteto; piano Potatura/Trattamenti da lavori)  
 **Focus**: Modulo Vigneto, Modulo Frutteto, Allineamento moduli, Moduli Specializzati per Coltura, Modulo Report/Bilancio Cross-Moduli
 
 ---

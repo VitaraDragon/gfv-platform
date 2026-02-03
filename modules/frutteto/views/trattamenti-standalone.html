@@ -15,6 +15,8 @@
         .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
         .btn-primary { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); }
         .btn-primary:hover { background: rgba(255,255,255,0.3); }
+        .modal .btn-primary { background: #007bff; color: white; border: 1px solid #007bff; }
+        .modal .btn-primary:hover { background: #0056b3; }
         .btn-success { background: #28a745; color: white; }
         .btn-success:hover { background: #218838; }
         .btn-secondary { background: #6c757d; color: white; }
@@ -46,6 +48,23 @@
         .alert { padding: 12px; border-radius: 8px; margin-bottom: 20px; }
         .alert-error { background: #f8d7da; color: #721c24; }
         .alert-success { background: #d4edda; color: #155724; }
+        .alert-info { background: #cce5ff; color: #004085; border: 1px solid #b8daff; }
+        .alert-badge { width: 20px; height: 20px; border-radius: 50%; display: inline-block; vertical-align: middle; cursor: help; }
+        .alert-badge.green { background: #28a745; }
+        .avviso-dosaggio { cursor: help; vertical-align: middle; }
+        .modal-mappa { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .modal-mappa.active { display: flex !important; }
+        .modal-mappa-content { background: white; border-radius: 12px; padding: 20px; max-width: 95%; width: 100%; max-height: 95vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .modal-mappa-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .modal-mappa-body.drawing-mode #mappa-trattamento-container { cursor: crosshair !important; }
+        #mappa-trattamento-container { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; border: 2px solid #e9ecef; margin-bottom: 15px; }
+        .mappa-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .mappa-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .mappa-info-item { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .mappa-info-label { font-weight: 600; color: #495057; }
+        .mappa-info-value { color: #FF6F00; font-weight: 600; }
+        .modal-mappa-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e9ecef; }
+        .modal-mappa-header h3 { color: #FF6F00; margin: 0; }
     </style>
 </head>
 <body>
@@ -64,9 +83,9 @@
             <div id="alert-container"></div>
             <section class="filters">
                 <div class="filter-group">
-                    <label for="filter-frutteto">Frutteto *</label>
+                    <label for="filter-frutteto">Frutteto (filtro)</label>
                     <select id="filter-frutteto">
-                        <option value="">Seleziona frutteto</option>
+                        <option value="">Tutti i frutteti</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -81,11 +100,14 @@
                     <thead>
                         <tr>
                             <th>Data</th>
+                            <th>Frutteto</th>
+                            <th>Lavoro / Attività</th>
+                            <th>Terreno</th>
                             <th>Prodotto</th>
-                            <th>Tipo</th>
                             <th>Superficie (ha)</th>
                             <th>Costo (€)</th>
-                            <th>Lavoro</th>
+                            <th>Riferimento</th>
+                            <th>Avvisi</th>
                             <th>Azioni</th>
                         </tr>
                     </thead>
@@ -93,7 +115,7 @@
                 </table>
             </div>
             <div id="empty-state" class="empty-state">
-                <p>Seleziona un frutteto per vedere i trattamenti oppure registrane uno nuovo.</p>
+                <p>Seleziona un anno per vedere i lavori e le attività (categoria Trattamenti). Completa i dati aggiuntivi dalla lista.</p>
             </div>
         </main>
     </div>
@@ -107,46 +129,72 @@
             <form id="form-trattamento">
                 <input type="hidden" id="trattamento-id">
                 <input type="hidden" id="trattamento-frutteto-id">
-                <div class="form-group">
-                    <label for="trattamento-frutteto">Frutteto *</label>
-                    <select id="trattamento-frutteto" required></select>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="trattamento-data">Data *</label>
-                        <input type="date" id="trattamento-data" required>
+                <input type="hidden" id="trattamento-lavoro-id">
+                <input type="hidden" id="trattamento-attivita-id">
+                <div id="dati-lavoro-section" class="form-group" style="display: none;">
+                    <label>Dati da lavoro/attività (sola lettura)</label>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border-left: 4px solid #FF6F00;">
+                        <table style="width: 100%; font-size: 14px;">
+                            <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Data</td><td id="dati-base-data">-</td></tr>
+                            <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Terreno</td><td id="dati-base-terreno">-</td></tr>
+                            <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Riferimento</td><td id="dati-base-riferimento">-</td></tr>
+                        </table>
+                        <div id="macchine-tabella-section" style="margin-top: 12px; display: none;">
+                            <strong style="font-size: 14px;">Macchine impiegate</strong>
+                            <table style="width: 100%; font-size: 13px; margin-top: 6px; border-collapse: collapse;">
+                                <thead><tr style="background: #e9ecef;"><th style="padding: 6px 8px; text-align: left;">Tipo</th><th style="padding: 6px 8px; text-align: left;">Nome</th><th style="padding: 6px 8px; text-align: left;">Ore</th></tr></thead>
+                                <tbody id="macchine-tabella-body"></tbody>
+                            </table>
+                            <p id="macchine-nessuna" style="display: none; margin-top: 6px; color: #6c757d; font-size: 13px;">Nessuna macchina</p>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="trattamento-tipo">Tipo trattamento *</label>
-                        <select id="trattamento-tipo" required>
-                            <option value="">Seleziona</option>
-                            <option value="antifungino">🦠 Antifungino</option>
-                            <option value="insetticida">🐛 Insetticida</option>
-                            <option value="acaricida">🕷️ Acaricida</option>
-                            <option value="fertilizzante">🌱 Fertilizzante</option>
-                            <option value="altro">📦 Altro</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="trattamento-prodotto">Prodotto *</label>
-                    <input type="text" id="trattamento-prodotto" required placeholder="es. Rame 50">
-                </div>
-                <div class="form-group">
-                    <label for="trattamento-dosaggio">Dosaggio *</label>
-                    <input type="text" id="trattamento-dosaggio" required placeholder="es. 3 kg/ha">
-                </div>
-                <div class="form-group">
-                    <label for="trattamento-operatore">Operatore *</label>
-                    <input type="text" id="trattamento-operatore" required placeholder="Nome operatore">
                 </div>
                 <div class="form-group">
                     <label for="trattamento-superficie">Superficie trattata (ha) *</label>
-                    <input type="number" id="trattamento-superficie" min="0.01" step="0.01" required placeholder="es. 2.5">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input type="number" id="trattamento-superficie" min="0.01" step="0.01" required placeholder="es. 5,65" style="flex: 1; min-width: 120px;">
+                        <button type="button" class="btn btn-sm btn-primary" id="btn-traccia-zona-trattamento" title="Traccia o visualizza zona trattata sulla mappa">🗺️ Traccia</button>
+                    </div>
+                    <small id="poligono-info-trattamento" style="display: none; color: #6c757d; margin-top: 4px;">✓ Zona tracciata sulla mappa</small>
+                </div>
+                <div id="form-campi-base" class="form-group" style="display: none;">
+                    <label for="trattamento-frutteto">Frutteto *</label>
+                    <select id="trattamento-frutteto"></select>
+                </div>
+                <div id="form-campi-data-row" class="form-row" style="display: none;">
+                    <div class="form-group">
+                        <label for="trattamento-data">Data *</label>
+                        <input type="date" id="trattamento-data">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="trattamento-costo-prodotto">Costo prodotto (€) *</label>
-                    <input type="number" id="trattamento-costo-prodotto" min="0" step="0.01" required placeholder="0">
+                    <label>Prodotti *</label>
+                    <div style="margin-bottom: 8px;">
+                        <button type="button" class="btn btn-sm btn-primary" id="btn-aggiungi-prodotto-trattamento">➕ Aggiungi prodotto</button>
+                    </div>
+                    <div class="table-container" style="overflow-x: auto;">
+                        <table style="width: 100%; font-size: 13px;">
+                            <thead>
+                                <tr style="background: #FFF3E0;">
+                                    <th style="padding: 6px 8px;">Prodotto</th>
+                                    <th style="padding: 6px 8px; width: 75px;">Dosaggio (per ha)</th>
+                                    <th style="padding: 6px 8px;">Unità</th>
+                                    <th style="padding: 6px 8px;">Quantità</th>
+                                    <th style="padding: 6px 8px; min-width: 100px;">Costo (€)</th>
+                                    <th style="padding: 6px 8px; width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-prodotti-trattamento"></tbody>
+                        </table>
+                    </div>
+                    <p id="totale-costo-prodotti-trattamento" style="margin-top: 8px; font-weight: 600; color: #E65100;">Totale costo prodotti: 0 €</p>
+                </div>
+                <div id="trattamento-operatore-group" class="form-group">
+                    <label for="trattamento-operatore">Operatore *</label>
+                    <input type="text" id="trattamento-operatore" required placeholder="Nome operatore">
+                </div>
+                <div id="trattamento-proprietario-message" class="form-group" style="display: none;">
+                    <small style="color: #6c757d;">Lavoro svolto dal proprietario (modulo Manodopera non attivo).</small>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -160,11 +208,7 @@
                 </div>
                 <div class="form-group">
                     <label for="trattamento-giorni-carenza">Giorni di carenza</label>
-                    <input type="number" id="trattamento-giorni-carenza" min="0" step="1" placeholder="Opzionale">
-                </div>
-                <div class="form-group">
-                    <label for="trattamento-parcella">Parcella / blocco</label>
-                    <input type="text" id="trattamento-parcella" placeholder="Opzionale">
+                    <input type="number" id="trattamento-giorni-carenza" min="0" step="1" placeholder="Max dai prodotti (precompilato)">
                 </div>
                 <div class="form-group">
                     <label for="trattamento-note">Note</label>
@@ -178,6 +222,42 @@
         </div>
     </div>
 
+    <div id="modal-mappa-trattamento" class="modal-mappa">
+        <div class="modal-mappa-content">
+            <div class="modal-mappa-header">
+                <h3>🗺️ Zona trattata</h3>
+                <button type="button" class="close" id="close-mappa-trattamento" style="font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; border: none; background: none;">&times;</button>
+            </div>
+            <div class="modal-mappa-body">
+                <div id="mappa-trattamento-solo-consultazione" class="alert alert-info" style="display: none; margin-bottom: 15px;">La zona è tracciata nel lavoro collegato (Gestione Lavori) – sola consultazione. Per modificarla vai alla Gestione Lavori.</div>
+                <div class="mappa-controls">
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-draw-polygon-trattamento">✏️ Traccia Poligono</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-polygon-trattamento" style="display: none;">🗑️ Elimina</button>
+                    <button type="button" class="btn btn-success btn-sm" id="btn-conferma-polygon-trattamento" style="display: none;">✓ Conferma e Applica</button>
+                </div>
+                <div class="mappa-info" id="mappa-info-trattamento" style="display: none;">
+                    <div class="mappa-info-item"><span class="mappa-info-label">Superficie:</span><span class="mappa-info-value" id="superficie-calcolata-trattamento">0.00 ha</span></div>
+                    <div class="mappa-info-item"><span class="mappa-info-label">Punti:</span><span class="mappa-info-value" id="punti-tracciati-trattamento">0</span></div>
+                </div>
+                <div id="mappa-trattamento-container"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" id="btn-annulla-mappa-trattamento">Annulla</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            if (typeof google !== 'undefined' && google.maps) return;
+            if (document.querySelector('script[src*="maps.googleapis.com"]')) return;
+            var apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+            var s = document.createElement('script');
+            s.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=geometry&loading=async';
+            s.async = true;
+            document.head.appendChild(s);
+        })();
+    </script>
     <script>window.GFV_CONFIG_BASE = '../../../core';</script>
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
@@ -213,9 +293,673 @@
         }
 
         let frutteti = [];
-        let trattamenti = [];
+        let listRows = [];
         let currentFruttetoId = null;
         let currentAnno = null;
+        let trattamentoFromAttivitaOnly = false;
+        let poligonoCoordsTrattamento = [];
+        let mappaTrattamento = null;
+        let poligonoTrattamentoPoly = null;
+        let terrenoPolygonTrattamento = null;
+        let terrenoBoundaryCoordsTrattamento = [];
+        let firstPointTrattamento = null;
+        let isDrawingPolygonTrattamento = false;
+        const SNAP_DISTANCE_METERS_TRATTAMENTO = 5;
+        const VERTEX_SNAP_DISTANCE_METERS_TRATTAMENTO = 8;
+        let listProdottiAnagrafica = [];
+
+        async function loadProdottiAnagrafica() {
+            try {
+                const { getAllProdotti } = await import(resolvePath('../../../modules/magazzino/services/prodotti-service.js'));
+                listProdottiAnagrafica = await getAllProdotti({ soloAttivi: true }) || [];
+            } catch (e) {
+                console.warn('[TRATTAMENTI-FRUTTETO] Anagrafica prodotti non disponibile:', e);
+                listProdottiAnagrafica = [];
+            }
+        }
+
+        async function getDisplayNameForUserId(userId) {
+            if (!userId || typeof userId !== 'string') return '';
+            try {
+                const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+                const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const db = getDb();
+                if (!db) return userId;
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (!userDoc.exists()) return userId;
+                const u = userDoc.data();
+                return `${(u.nome || '').trim()} ${(u.cognome || '').trim()}`.trim() || u.email || userId;
+            } catch (e) { return userId; }
+        }
+
+        function renderProdottiTrattamento(rows, prodottiAnagrafica) {
+            const tbody = document.getElementById('tbody-prodotti-trattamento');
+            if (!tbody) return;
+            const superficie = parseFloat(document.getElementById('trattamento-superficie')?.value) || 0;
+            prodottiAnagrafica = prodottiAnagrafica || listProdottiAnagrafica;
+            tbody.innerHTML = rows.map((r, idx) => {
+                const qta = (r.dosaggio != null && !isNaN(r.dosaggio) && superficie > 0) ? (r.dosaggio * superficie) : (r.quantita != null ? r.quantita : null);
+                const prezzoUnit = r.prezzoUnitario != null ? r.prezzoUnitario : (prodottiAnagrafica.find(p => p.id === r.prodottoId)?.prezzoUnitario);
+                const costo = (qta != null && prezzoUnit != null && prezzoUnit > 0) ? (qta * prezzoUnit) : (r.costo != null ? r.costo : 0);
+                const unita = r.unitaDosaggio || prodottiAnagrafica.find(p => p.id === r.prodottoId)?.unitaMisura || '-';
+                const opts = prodottiAnagrafica.map(p => `<option value="${p.id}" ${r.prodottoId === p.id ? 'selected' : ''}>${(p.nome || p.codice || p.id)}</option>`).join('');
+                const isAltro = !r.prodottoId && r.prodotto;
+                return `<tr data-idx="${idx}">
+                    <td style="padding: 6px 8px;">
+                        <select class="prodotto-select" data-idx="${idx}" style="width: 100%; max-width: 180px;">
+                            <option value="">— Seleziona o Altro —</option>${opts}
+                        </select>
+                        <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${isAltro ? (r.prodotto || '').replace(/"/g, '&quot;') : ''}" style="margin-top: 4px; width: 100%; max-width: 180px; display: ${isAltro ? 'block' : 'none'};">
+                    </td>
+                    <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${r.dosaggio != null ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
+                    <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
+                    <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${qta != null ? qta.toFixed(2) : '-'}</span></td>
+                    <td style="padding: 6px 8px;"><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" style="width: 100px; min-width: 100px; box-sizing: border-box;" ${r.prodottoId && prezzoUnit ? 'readonly' : ''} title="${r.prodottoId ? 'Calcolato da anagrafica' : 'Inserisci manuale'}"></td>
+                    <td style="padding: 6px 8px;"><button type="button" class="btn btn-sm btn-danger rimuovi-prodotto" data-idx="${idx}">🗑️</button></td>
+                </tr>`;
+            }).join('');
+            tbody.querySelectorAll('.prodotto-select').forEach(sel => {
+                sel.addEventListener('change', function() {
+                    const idx = parseInt(this.getAttribute('data-idx'), 10);
+                    const opt = listProdottiAnagrafica.find(p => p.id === this.value);
+                    const nomeAltro = tbody.querySelector(`.prodotto-nome-altro[data-idx="${idx}"]`);
+                    if (nomeAltro) nomeAltro.style.display = this.value ? 'none' : 'block';
+                    if (opt) {
+                        const dosaggioInput = tbody.querySelector(`.prodotto-dosaggio[data-idx="${idx}"]`);
+                        if (dosaggioInput && (opt.dosaggioMin != null || opt.dosaggioMax != null)) {
+                            const v = opt.dosaggioMin != null ? opt.dosaggioMin : opt.dosaggioMax;
+                            dosaggioInput.value = v;
+                        }
+                        const unitaSpan = tbody.querySelector(`.prodotto-unita[data-idx="${idx}"]`);
+                        if (unitaSpan) unitaSpan.textContent = opt.unitaMisura || '-';
+                    }
+                    ricalcolaQuantitaCostoProdotti();
+                });
+            });
+            tbody.querySelectorAll('.prodotto-dosaggio').forEach(inp => { inp.addEventListener('input', () => ricalcolaQuantitaCostoProdotti()); });
+            tbody.querySelectorAll('.prodotto-costo').forEach(inp => { inp.addEventListener('input', () => aggiornaTotaleCostoProdotti()); });
+            tbody.querySelectorAll('.rimuovi-prodotto').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.getAttribute('data-idx'), 10);
+                    const currentRows = getProdottiRowsFromTable();
+                    currentRows.splice(idx, 1);
+                    renderProdottiTrattamento(currentRows.length ? currentRows : [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }]);
+                });
+            });
+            aggiornaTotaleCostoProdotti();
+            aggiornaGiorniCarenzaDaProdotti();
+        }
+
+        function getProdottiRowsFromTable() {
+            const tbody = document.getElementById('tbody-prodotti-trattamento');
+            if (!tbody) return [];
+            const superficie = parseFloat(document.getElementById('trattamento-superficie')?.value) || 0;
+            const rows = [];
+            tbody.querySelectorAll('tr[data-idx]').forEach((tr, i) => {
+                const idx = tr.getAttribute('data-idx');
+                const sel = tr.querySelector('.prodotto-select');
+                const nomeAltro = tr.querySelector('.prodotto-nome-altro');
+                const dosaggioInp = tr.querySelector('.prodotto-dosaggio');
+                const costoInp = tr.querySelector('.prodotto-costo');
+                const prodottoId = sel?.value || null;
+                const prodotto = prodottoId ? (listProdottiAnagrafica.find(p => p.id === prodottoId)?.nome || prodottoId) : (nomeAltro?.value?.trim() || '');
+                const dosaggio = dosaggioInp?.value !== '' ? parseFloat(dosaggioInp.value) : null;
+                const costo = costoInp?.value !== '' ? parseFloat(costoInp.value) : 0;
+                const quantita = (dosaggio != null && superficie > 0) ? dosaggio * superficie : null;
+                const prodAnag = listProdottiAnagrafica.find(p => p.id === prodottoId);
+                const unitaDosaggio = prodAnag?.unitaMisura || null;
+                rows.push({ prodottoId: prodottoId || null, prodotto, dosaggio, unitaDosaggio, quantita, costo });
+            });
+            return rows;
+        }
+
+        /**
+         * Verifica che i dosaggi inseriti siano nel range consigliato (dosaggioMin/dosaggioMax) in anagrafica.
+         * @param {Array} rowsProdotti - Righe prodotti da getProdottiRowsFromTable()
+         * @returns {{ valid: boolean, message?: string }}
+         */
+        function validaDosaggiProdotti(rowsProdotti) {
+            for (const r of rowsProdotti) {
+                if (!r.prodottoId || r.dosaggio == null || isNaN(r.dosaggio)) continue;
+                const prod = listProdottiAnagrafica.find(p => p.id === r.prodottoId);
+                if (!prod) continue;
+                const nome = (r.prodotto || prod.nome || prod.codice || '').trim() || 'Prodotto';
+                if (prod.dosaggioMax != null && r.dosaggio > prod.dosaggioMax) {
+                    return { valid: false, message: 'Dosaggio superiore al consigliato per ' + nome + '.' };
+                }
+                if (prod.dosaggioMin != null && r.dosaggio < prod.dosaggioMin) {
+                    return { valid: false, message: 'Dosaggio inferiore al consigliato per ' + nome + '.' };
+                }
+            }
+            return { valid: true };
+        }
+
+        /**
+         * Verifica se un trattamento in lista ha dosaggi fuori range (per colonna Avvisi).
+         * @param {Object} row - Riga lista (row.trattamento.prodotti)
+         * @returns {{ hasWarning: boolean, tooltip: string }}
+         */
+        function avvisoDosaggioTrattamento(row) {
+            const t = row && row.trattamento;
+            if (!t || !t.prodotti || !listProdottiAnagrafica.length) return { hasWarning: false, tooltip: '' };
+            const messaggi = [];
+            for (const p of t.prodotti) {
+                if (!p.prodottoId || p.dosaggio == null || isNaN(p.dosaggio)) continue;
+                const prod = listProdottiAnagrafica.find(pr => pr.id === p.prodottoId);
+                if (!prod) continue;
+                const nome = (p.prodotto || prod.nome || prod.codice || '').trim() || 'Prodotto';
+                if (prod.dosaggioMax != null && p.dosaggio > prod.dosaggioMax) messaggi.push('Dosaggio superiore al consigliato per ' + nome);
+                if (prod.dosaggioMin != null && p.dosaggio < prod.dosaggioMin) messaggi.push('Dosaggio inferiore al consigliato per ' + nome);
+            }
+            return { hasWarning: messaggi.length > 0, tooltip: messaggi.join('; ') };
+        }
+
+        function ricalcolaQuantitaCostoProdotti() {
+            const rows = getProdottiRowsFromTable();
+            const superficie = parseFloat(document.getElementById('trattamento-superficie')?.value) || 0;
+            const tbody = document.getElementById('tbody-prodotti-trattamento');
+            if (!tbody) return;
+            tbody.querySelectorAll('tr[data-idx]').forEach((tr, i) => {
+                const r = rows[i];
+                if (!r) return;
+                const qta = (r.dosaggio != null && superficie > 0) ? r.dosaggio * superficie : null;
+                const prodAnag = listProdottiAnagrafica.find(p => p.id === r.prodottoId);
+                const prezzoUnit = prodAnag?.prezzoUnitario;
+                const costoCalc = (qta != null && prezzoUnit != null && prezzoUnit > 0) ? qta * prezzoUnit : r.costo;
+                const unitaSpan = tr.querySelector('.prodotto-unita');
+                const quantitaSpan = tr.querySelector('.prodotto-quantita');
+                const costoInp = tr.querySelector('.prodotto-costo');
+                if (unitaSpan) unitaSpan.textContent = prodAnag?.unitaMisura || '-';
+                if (quantitaSpan) quantitaSpan.textContent = qta != null ? qta.toFixed(2) : '-';
+                if (costoInp) {
+                    costoInp.value = (Number(costoCalc) || 0).toFixed(2);
+                    costoInp.readOnly = !!(r.prodottoId && prezzoUnit != null);
+                }
+            });
+            aggiornaTotaleCostoProdotti();
+            aggiornaGiorniCarenzaDaProdotti();
+        }
+
+        function aggiornaTotaleCostoProdotti() {
+            const rows = getProdottiRowsFromTable();
+            const totale = rows.reduce((s, r) => s + (Number(r.costo) || 0), 0);
+            const el = document.getElementById('totale-costo-prodotti-trattamento');
+            if (el) el.textContent = 'Totale costo prodotti: ' + totale.toFixed(2) + ' €';
+        }
+
+        function aggiornaGiorniCarenzaDaProdotti() {
+            const rows = getProdottiRowsFromTable();
+            let maxCarenza = null;
+            rows.forEach(r => {
+                if (r.prodottoId) {
+                    const p = listProdottiAnagrafica.find(pr => pr.id === r.prodottoId);
+                    if (p && p.giorniCarenza != null && p.giorniCarenza > 0) {
+                        if (maxCarenza == null || p.giorniCarenza > maxCarenza) maxCarenza = p.giorniCarenza;
+                    }
+                }
+            });
+            const inp = document.getElementById('trattamento-giorni-carenza');
+            if (inp) inp.value = maxCarenza != null ? maxCarenza : '';
+        }
+
+        function aggiungiRigaProdottoTrattamento() {
+            const rows = getProdottiRowsFromTable();
+            rows.push({ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 });
+            renderProdottiTrattamento(rows);
+        }
+
+        async function loadPoligonoFromZoneLavorateTrattamento(lavoroId) {
+            const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+            const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const tenantId = getCurrentTenantId();
+            const db = getDb();
+            if (!tenantId || !lavoroId || !db) return null;
+            try {
+                const zoneRef = collection(db, 'tenants', tenantId, 'lavori', lavoroId, 'zoneLavorate');
+                const snap = await getDocs(zoneRef);
+                for (const docSnap of snap.docs) {
+                    const data = docSnap.data();
+                    if (!data.coordinate || data.coordinate.length < 3) continue;
+                    const isChiuso = data.isChiuso === true || data.tipo === 'poligono';
+                    if (!isChiuso) continue;
+                    const coords = data.coordinate.map(c => {
+                        const lat = typeof c.lat === 'function' ? c.lat() : (c.lat ?? c._lat);
+                        const lng = typeof c.lng === 'function' ? c.lng() : (c.lng ?? c._lng);
+                        return { lat: Number(lat), lng: Number(lng) };
+                    });
+                    if (coords.length >= 3) return coords;
+                }
+            } catch (e) { console.warn('[TRATTAMENTI-FRUTTETO] loadPoligonoFromZoneLavorate:', e); }
+            return null;
+        }
+
+        async function initMappaTrattamento(terreno) {
+            const container = document.getElementById('mappa-trattamento-container');
+            if (!container) return;
+            const center = terreno.polygonCoords && terreno.polygonCoords.length > 0
+                ? { lat: terreno.polygonCoords[0].lat, lng: terreno.polygonCoords[0].lng }
+                : { lat: 43.7228, lng: 10.4017 };
+            mappaTrattamento = new google.maps.Map(container, {
+                center,
+                zoom: 15,
+                mapTypeId: 'satellite',
+                mapTypeControl: true,
+                streetViewControl: false
+            });
+            await caricaTerrenoSullaMappaTrattamento(terreno);
+        }
+
+        async function caricaTerrenoSullaMappaTrattamento(terreno) {
+            if (!mappaTrattamento || !terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) return;
+            if (terrenoPolygonTrattamento) terrenoPolygonTrattamento.setMap(null);
+            const terrenoCoords = terreno.polygonCoords.map(c => new google.maps.LatLng(c.lat, c.lng));
+            terrenoPolygonTrattamento = new google.maps.Polygon({
+                paths: terrenoCoords,
+                fillColor: '#2E8B57',
+                fillOpacity: 0.2,
+                strokeColor: '#2E8B57',
+                strokeWeight: 3,
+                editable: false,
+                clickable: false,
+                zIndex: 1
+            });
+            terrenoPolygonTrattamento.setMap(mappaTrattamento);
+            terrenoBoundaryCoordsTrattamento = terrenoCoords;
+            const bounds = new google.maps.LatLngBounds();
+            terrenoCoords.forEach(coord => bounds.extend(coord));
+            mappaTrattamento.fitBounds(bounds);
+        }
+
+        function aggiornaInfoPoligonoTrattamento() {
+            const infoDiv = document.getElementById('mappa-info-trattamento');
+            const superficieDiv = document.getElementById('superficie-calcolata-trattamento');
+            const puntiDiv = document.getElementById('punti-tracciati-trattamento');
+            const btnClear = document.getElementById('btn-clear-polygon-trattamento');
+            const btnConferma = document.getElementById('btn-conferma-polygon-trattamento');
+            if (poligonoCoordsTrattamento.length >= 3) {
+                const areaMq = google.maps.geometry.spherical.computeArea(poligonoCoordsTrattamento);
+                const areaHa = areaMq / 10000;
+                if (superficieDiv) superficieDiv.textContent = areaHa.toFixed(2) + ' ha';
+                if (puntiDiv) puntiDiv.textContent = poligonoCoordsTrattamento.length;
+                if (infoDiv) infoDiv.style.display = 'block';
+                if (btnClear) btnClear.style.display = 'inline-block';
+                if (btnConferma) btnConferma.style.display = 'inline-block';
+            } else {
+                if (infoDiv) infoDiv.style.display = 'none';
+                if (btnClear) btnClear.style.display = 'none';
+                if (btnConferma) btnConferma.style.display = 'none';
+            }
+        }
+
+        function aggiornaPoligonoSullaMappaTrattamento() {
+            if (!mappaTrattamento || poligonoCoordsTrattamento.length < 2) return;
+            if (poligonoTrattamentoPoly) { poligonoTrattamentoPoly.setMap(null); poligonoTrattamentoPoly = null; }
+            poligonoTrattamentoPoly = new google.maps.Polygon({
+                paths: poligonoCoordsTrattamento,
+                fillColor: '#FF6F00',
+                fillOpacity: 0.4,
+                strokeColor: '#E65100',
+                strokeWeight: 4,
+                editable: true,
+                draggable: false
+            });
+            poligonoTrattamentoPoly.setMap(mappaTrattamento);
+            google.maps.event.addListener(poligonoTrattamentoPoly.getPath(), 'set_at', () => { poligonoCoordsTrattamento = poligonoTrattamentoPoly.getPath().getArray(); aggiornaInfoPoligonoTrattamento(); });
+            google.maps.event.addListener(poligonoTrattamentoPoly.getPath(), 'insert_at', () => { poligonoCoordsTrattamento = poligonoTrattamentoPoly.getPath().getArray(); aggiornaInfoPoligonoTrattamento(); });
+            google.maps.event.addListener(poligonoTrattamentoPoly.getPath(), 'remove_at', () => { poligonoCoordsTrattamento = poligonoTrattamentoPoly.getPath().getArray(); aggiornaInfoPoligonoTrattamento(); });
+        }
+
+        function caricaPoligonoEsistenteTrattamento(coordinate, soloConsultazione) {
+            if (!coordinate || coordinate.length < 3 || !mappaTrattamento) return;
+            if (typeof coordinate[0] === 'object' && coordinate[0].lat !== undefined) {
+                poligonoCoordsTrattamento = coordinate.map(c => new google.maps.LatLng(c.lat, c.lng));
+            } else {
+                poligonoCoordsTrattamento = coordinate;
+            }
+            if (soloConsultazione) {
+                if (poligonoTrattamentoPoly) poligonoTrattamentoPoly.setMap(null);
+                poligonoTrattamentoPoly = new google.maps.Polygon({
+                    paths: poligonoCoordsTrattamento,
+                    fillColor: '#FF6F00',
+                    fillOpacity: 0.4,
+                    strokeColor: '#E65100',
+                    strokeWeight: 4,
+                    editable: false,
+                    draggable: false,
+                    map: mappaTrattamento
+                });
+                aggiornaInfoPoligonoTrattamento();
+                return;
+            }
+            aggiornaPoligonoSullaMappaTrattamento();
+            aggiornaInfoPoligonoTrattamento();
+        }
+
+        window.apriMappaTracciamentoTrattamento = async function apriMappaTracciamentoTrattamento() {
+            if (typeof google === 'undefined' || !google.maps) {
+                let attempts = 0;
+                while (attempts < 50 && (typeof google === 'undefined' || !google.maps)) {
+                    await new Promise(r => setTimeout(r, 100));
+                    attempts++;
+                }
+                if (typeof google === 'undefined' || !google.maps) {
+                    alert('Google Maps non è ancora caricato. Attendi e riprova.');
+                    return;
+                }
+            }
+            const lavoroId = document.getElementById('trattamento-lavoro-id').value.trim();
+            const soloConsultazione = lavoroId !== '' && !trattamentoFromAttivitaOnly;
+            const fruttetoId = document.getElementById('trattamento-frutteto-id').value || document.getElementById('trattamento-frutteto').value;
+            if (!fruttetoId) { alert('Seleziona un frutteto'); return; }
+            const frutteto = frutteti.find(f => f.id === fruttetoId);
+            if (!frutteto || !frutteto.terrenoId) { alert('Frutteto senza terreno associato'); return; }
+            const { getTerreno } = await import(resolvePath('../../../core/services/terreni-service.js'));
+            const terreno = await getTerreno(frutteto.terrenoId);
+            if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) {
+                alert('Il terreno non ha confini tracciati. Traccia prima i confini del terreno.');
+                return;
+            }
+            document.getElementById('modal-mappa-trattamento').classList.add('active');
+            if (!mappaTrattamento) await initMappaTrattamento(terreno);
+            else await caricaTerrenoSullaMappaTrattamento(terreno);
+            setTimeout(async () => {
+                if (!mappaTrattamento) return;
+                if (poligonoCoordsTrattamento && poligonoCoordsTrattamento.length >= 3) {
+                    const coords = poligonoCoordsTrattamento[0].lat !== undefined ? poligonoCoordsTrattamento : poligonoCoordsTrattamento.map(c => new google.maps.LatLng(c.lat, c.lng));
+                    caricaPoligonoEsistenteTrattamento(coords, soloConsultazione);
+                } else if (lavoroId) {
+                    const fromLavoro = await loadPoligonoFromZoneLavorateTrattamento(lavoroId);
+                    if (fromLavoro && fromLavoro.length >= 3) {
+                        poligonoCoordsTrattamento = fromLavoro.map(c => new google.maps.LatLng(c.lat, c.lng));
+                        caricaPoligonoEsistenteTrattamento(poligonoCoordsTrattamento, true);
+                    }
+                } else {
+                    const trattamentoId = document.getElementById('trattamento-id').value;
+                    if (trattamentoId && fruttetoId) {
+                        try {
+                            const { getTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                            const t = await getTrattamento(fruttetoId, trattamentoId);
+                            if (t && t.poligonoTrattamento && t.poligonoTrattamento.length >= 3) {
+                                caricaPoligonoEsistenteTrattamento(t.poligonoTrattamento, soloConsultazione);
+                            }
+                        } catch (e) { console.warn(e); }
+                    }
+                }
+                aggiornaInfoPoligonoTrattamento();
+            }, 300);
+            if (soloConsultazione) {
+                document.getElementById('mappa-trattamento-solo-consultazione').style.display = 'block';
+                document.getElementById('btn-draw-polygon-trattamento').style.display = 'none';
+                document.getElementById('btn-clear-polygon-trattamento').style.display = 'none';
+                document.getElementById('btn-conferma-polygon-trattamento').style.display = 'none';
+            } else {
+                document.getElementById('mappa-trattamento-solo-consultazione').style.display = 'none';
+                document.getElementById('btn-draw-polygon-trattamento').style.display = 'inline-block';
+            }
+        };
+
+        window.chiudiMappaTracciamentoTrattamento = function() {
+            if (isDrawingPolygonTrattamento && mappaTrattamento && mappaTrattamento.clickListenerTrattamento) {
+                google.maps.event.removeListener(mappaTrattamento.clickListenerTrattamento);
+                mappaTrattamento.clickListenerTrattamento = null;
+            }
+            isDrawingPolygonTrattamento = false;
+            const mapContainer = document.querySelector('#modal-mappa-trattamento .modal-mappa-body');
+            if (mapContainer) mapContainer.classList.remove('drawing-mode');
+            const mappaElement = document.getElementById('mappa-trattamento-container');
+            if (mappaElement) {
+                mappaElement.style.cursor = '';
+                mappaElement.querySelectorAll('div').forEach(d => { d.style.cursor = ''; });
+                mappaElement.querySelectorAll('canvas').forEach(c => { c.style.cursor = ''; });
+            }
+            const btn = document.getElementById('btn-draw-polygon-trattamento');
+            if (btn) { btn.textContent = '✏️ Traccia Poligono'; btn.style.background = '#17a2b8'; }
+            document.getElementById('modal-mappa-trattamento').classList.remove('active');
+        };
+
+        window.eliminaPoligonoTrattamento = function(resetDrawingMode = true) {
+            if (poligonoTrattamentoPoly) { poligonoTrattamentoPoly.setMap(null); poligonoTrattamentoPoly = null; }
+            poligonoCoordsTrattamento = [];
+            firstPointTrattamento = null;
+            if (resetDrawingMode) {
+                isDrawingPolygonTrattamento = false;
+                const mapContainer = document.querySelector('#modal-mappa-trattamento .modal-mappa-body');
+                if (mapContainer) mapContainer.classList.remove('drawing-mode');
+                const mappaElement = document.getElementById('mappa-trattamento-container');
+                if (mappaElement) {
+                    mappaElement.style.cursor = '';
+                    mappaElement.querySelectorAll('div').forEach(d => { d.style.cursor = ''; });
+                    mappaElement.querySelectorAll('canvas').forEach(c => { c.style.cursor = ''; });
+                }
+                const btn = document.getElementById('btn-draw-polygon-trattamento');
+                if (btn) { btn.textContent = '✏️ Traccia Poligono'; btn.style.background = '#17a2b8'; }
+                if (mappaTrattamento && mappaTrattamento.clickListenerTrattamento) {
+                    google.maps.event.removeListener(mappaTrattamento.clickListenerTrattamento);
+                    mappaTrattamento.clickListenerTrattamento = null;
+                }
+            }
+            aggiornaInfoPoligonoTrattamento();
+        };
+
+        window.confermaPoligonoTrattamento = function() {
+            if (poligonoCoordsTrattamento.length < 3) { alert('Traccia almeno 3 punti per creare un poligono valido'); return; }
+            const areaMq = google.maps.geometry.spherical.computeArea(poligonoCoordsTrattamento);
+            const areaHa = areaMq / 10000;
+            const supInput = document.getElementById('trattamento-superficie');
+            if (supInput) supInput.value = areaHa.toFixed(2);
+            const poligonoInfo = document.getElementById('poligono-info-trattamento');
+            if (poligonoInfo) poligonoInfo.style.display = 'block';
+            chiudiMappaTracciamentoTrattamento();
+        };
+
+        function findNearestVertexTrattamento(point, boundaryCoords, maxDistance) {
+            let nearestVertex = null;
+            let minDistance = maxDistance;
+            boundaryCoords.forEach(vertex => {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, vertex);
+                if (distance < minDistance) { minDistance = distance; nearestVertex = vertex; }
+            });
+            return nearestVertex;
+        }
+        function findNearestPointOnBoundaryTrattamento(point, boundaryCoords, maxDistance) {
+            let nearestPoint = null;
+            let minDistance = maxDistance;
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length];
+                const closestPoint = getClosestPointOnSegmentTrattamento(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                if (distance < minDistance) { minDistance = distance; nearestPoint = closestPoint; }
+            }
+            return nearestPoint;
+        }
+        function getClosestPointOnSegmentTrattamento(point, segmentStart, segmentEnd) {
+            const A = point.lat(), B = point.lng();
+            const C = segmentStart.lat(), D = segmentStart.lng();
+            const E = segmentEnd.lat(), F = segmentEnd.lng();
+            const dx = E - C, dy = F - D;
+            const lengthSquared = dx * dx + dy * dy;
+            if (lengthSquared === 0) return segmentStart;
+            const t = Math.max(0, Math.min(1, ((A - C) * dx + (B - D) * dy) / lengthSquared));
+            return new google.maps.LatLng(C + t * dx, D + t * dy);
+        }
+        function getDistanceToBoundaryTrattamento(point, boundaryCoords) {
+            let minDistance = Infinity;
+            for (let i = 0; i < boundaryCoords.length; i++) {
+                const start = boundaryCoords[i];
+                const end = boundaryCoords[(i + 1) % boundaryCoords.length];
+                const closestPoint = getClosestPointOnSegmentTrattamento(point, start, end);
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, closestPoint);
+                minDistance = Math.min(minDistance, distance);
+            }
+            return minDistance;
+        }
+        function movePointInsideBoundaryTrattamento(point, boundaryCoords) {
+            const nearestBoundaryPoint = findNearestPointOnBoundaryTrattamento(point, boundaryCoords, 100);
+            if (!nearestBoundaryPoint) return point;
+            const center = getPolygonCenterTrattamento(boundaryCoords);
+            const dx = center.lat() - nearestBoundaryPoint.lat();
+            const dy = center.lng() - nearestBoundaryPoint.lng();
+            const length = Math.sqrt(dx * dx + dy * dy);
+            if (length === 0) return point;
+            const moveDistance = 1 / 111000;
+            const normalizedDx = dx / length, normalizedDy = dy / length;
+            return new google.maps.LatLng(
+                nearestBoundaryPoint.lat() + normalizedDx * moveDistance,
+                nearestBoundaryPoint.lng() + normalizedDy * moveDistance
+            );
+        }
+        function getPolygonCenterTrattamento(coords) {
+            let sumLat = 0, sumLng = 0;
+            coords.forEach(coord => { sumLat += coord.lat(); sumLng += coord.lng(); });
+            return new google.maps.LatLng(sumLat / coords.length, sumLng / coords.length);
+        }
+
+        window.iniziaTracciamentoPoligonoTrattamento = function() {
+            if (!mappaTrattamento) return;
+
+            if (isDrawingPolygonTrattamento) {
+                isDrawingPolygonTrattamento = false;
+                const btn = document.getElementById('btn-draw-polygon-trattamento');
+                if (btn) { btn.textContent = '✏️ Traccia Poligono'; btn.style.background = '#17a2b8'; }
+                const mapContainer = document.querySelector('#modal-mappa-trattamento .modal-mappa-body');
+                if (mapContainer) mapContainer.classList.remove('drawing-mode');
+                const mappaElement = document.getElementById('mappa-trattamento-container');
+                if (mappaElement) {
+                    mappaElement.style.cursor = '';
+                    mappaElement.querySelectorAll('div').forEach(d => { d.style.cursor = ''; });
+                    mappaElement.querySelectorAll('canvas').forEach(c => { c.style.cursor = ''; });
+                }
+                if (mappaTrattamento.clickListenerTrattamento) {
+                    google.maps.event.removeListener(mappaTrattamento.clickListenerTrattamento);
+                    mappaTrattamento.clickListenerTrattamento = null;
+                }
+                aggiornaInfoPoligonoTrattamento();
+                return;
+            }
+
+            if (poligonoTrattamentoPoly) { poligonoTrattamentoPoly.setMap(null); poligonoTrattamentoPoly = null; }
+            poligonoCoordsTrattamento = [];
+            firstPointTrattamento = null;
+            if (mappaTrattamento.clickListenerTrattamento) {
+                google.maps.event.removeListener(mappaTrattamento.clickListenerTrattamento);
+                mappaTrattamento.clickListenerTrattamento = null;
+            }
+            isDrawingPolygonTrattamento = true;
+            const btn = document.getElementById('btn-draw-polygon-trattamento');
+            if (btn) { btn.textContent = '⏸️ Pausa Tracciamento'; btn.style.background = '#dc3545'; }
+            const mapContainer = document.querySelector('#modal-mappa-trattamento .modal-mappa-body');
+            if (mapContainer) mapContainer.classList.add('drawing-mode');
+            const mappaElement = document.getElementById('mappa-trattamento-container');
+            if (mappaElement) {
+                mappaElement.style.cursor = 'crosshair';
+                setTimeout(() => {
+                    mappaElement.querySelectorAll('div').forEach(d => { d.style.cursor = 'crosshair'; });
+                    mappaElement.querySelectorAll('canvas').forEach(c => { c.style.cursor = 'crosshair'; });
+                }, 100);
+            }
+
+            let clickTimeout = null;
+            mappaTrattamento.clickListenerTrattamento = mappaTrattamento.addListener('click', (event) => {
+                if (!isDrawingPolygonTrattamento) return;
+                if (clickTimeout) {
+                    clearTimeout(clickTimeout);
+                    clickTimeout = null;
+                    if (poligonoCoordsTrattamento.length >= 3) {
+                        isDrawingPolygonTrattamento = false;
+                        if (btn) { btn.textContent = '✏️ Traccia Poligono'; btn.style.background = '#17a2b8'; }
+                        if (mapContainer) mapContainer.classList.remove('drawing-mode');
+                        if (mappaElement) {
+                            mappaElement.style.cursor = '';
+                            mappaElement.querySelectorAll('div').forEach(d => { d.style.cursor = ''; });
+                            mappaElement.querySelectorAll('canvas').forEach(c => { c.style.cursor = ''; });
+                        }
+                        if (mappaTrattamento.clickListenerTrattamento) {
+                            google.maps.event.removeListener(mappaTrattamento.clickListenerTrattamento);
+                            mappaTrattamento.clickListenerTrattamento = null;
+                        }
+                        aggiornaPoligonoSullaMappaTrattamento();
+                        aggiornaInfoPoligonoTrattamento();
+                        alert('Tracciamento completato. Puoi modificare il poligono trascinando i punti.');
+                        return;
+                    }
+                    return;
+                }
+                clickTimeout = setTimeout(() => {
+                    clickTimeout = null;
+                    const disableSnap = event.domEvent && event.domEvent.shiftKey;
+                    let snappedPoint = event.latLng;
+                    let snapApplied = false;
+
+                    if (!disableSnap && terrenoBoundaryCoordsTrattamento.length > 0) {
+                        const vertexSnap = findNearestVertexTrattamento(snappedPoint, terrenoBoundaryCoordsTrattamento, VERTEX_SNAP_DISTANCE_METERS_TRATTAMENTO);
+                        if (vertexSnap) {
+                            const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(snappedPoint, vertexSnap);
+                            if (snapDistance <= VERTEX_SNAP_DISTANCE_METERS_TRATTAMENTO) { snappedPoint = vertexSnap; snapApplied = true; }
+                        }
+                        if (!snapApplied) {
+                            const boundarySnap = findNearestPointOnBoundaryTrattamento(snappedPoint, terrenoBoundaryCoordsTrattamento, SNAP_DISTANCE_METERS_TRATTAMENTO);
+                            if (boundarySnap) {
+                                const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(snappedPoint, boundarySnap);
+                                if (snapDistance <= SNAP_DISTANCE_METERS_TRATTAMENTO) { snappedPoint = boundarySnap; snapApplied = true; }
+                            }
+                        }
+                    }
+
+                    if (snapApplied) {
+                        const snapMarker = new google.maps.Marker({
+                            position: snappedPoint,
+                            map: mappaTrattamento,
+                            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: '#00ff00', fillOpacity: 0.8, strokeColor: '#ffffff', strokeWeight: 2 },
+                            zIndex: 2000
+                        });
+                        setTimeout(() => { if (snapMarker) snapMarker.setMap(null); }, 1000);
+                    }
+
+                    if (terrenoPolygonTrattamento) {
+                        const isInside = google.maps.geometry.poly.containsLocation(snappedPoint, terrenoPolygonTrattamento);
+                        const distanceToBoundary = getDistanceToBoundaryTrattamento(snappedPoint, terrenoBoundaryCoordsTrattamento);
+                        if (!isInside && distanceToBoundary > 3) {
+                            alert('Il punto deve essere dentro i confini del terreno!');
+                            return;
+                        }
+                        if (!isInside && distanceToBoundary <= 3) {
+                            snappedPoint = movePointInsideBoundaryTrattamento(snappedPoint, terrenoBoundaryCoordsTrattamento);
+                        }
+                    }
+
+                    if (poligonoCoordsTrattamento.length === 0) firstPointTrattamento = snappedPoint;
+
+                    if (firstPointTrattamento && poligonoCoordsTrattamento.length >= 3) {
+                        const distanzaDalPrimo = google.maps.geometry.spherical.computeDistanceBetween(snappedPoint, firstPointTrattamento);
+                        if (distanzaDalPrimo < 20) {
+                            poligonoCoordsTrattamento.push(firstPointTrattamento);
+                            isDrawingPolygonTrattamento = false;
+                            if (btn) { btn.textContent = '✏️ Traccia Poligono'; btn.style.background = '#17a2b8'; }
+                            if (mapContainer) mapContainer.classList.remove('drawing-mode');
+                            if (mappaElement) {
+                                mappaElement.style.cursor = '';
+                                mappaElement.querySelectorAll('div').forEach(d => { d.style.cursor = ''; });
+                                mappaElement.querySelectorAll('canvas').forEach(c => { c.style.cursor = ''; });
+                            }
+                            if (mappaTrattamento.clickListenerTrattamento) {
+                                google.maps.event.removeListener(mappaTrattamento.clickListenerTrattamento);
+                                mappaTrattamento.clickListenerTrattamento = null;
+                            }
+                            aggiornaPoligonoSullaMappaTrattamento();
+                            aggiornaInfoPoligonoTrattamento();
+                            alert('Poligono chiuso! Puoi modificarlo trascinando i punti.');
+                            return;
+                        }
+                    }
+
+                    poligonoCoordsTrattamento.push(snappedPoint);
+                    aggiornaPoligonoSullaMappaTrattamento();
+                    aggiornaInfoPoligonoTrattamento();
+                }, 300);
+            });
+        };
 
         async function loadFrutteti() {
             const { getAllFrutteti } = await import(resolvePath('../services/frutteti-service.js'));
@@ -224,7 +968,7 @@
             const selModal = document.getElementById('trattamento-frutteto');
             [selFilter, selModal].forEach(sel => {
                 if (!sel) return;
-                sel.innerHTML = sel === selFilter ? '<option value="">Seleziona frutteto</option>' : '<option value="">Seleziona frutteto</option>';
+                sel.innerHTML = sel === selFilter ? '<option value="">Tutti i frutteti</option>' : '<option value="">Seleziona frutteto</option>';
                 frutteti.forEach(f => {
                     const opt = document.createElement('option');
                     opt.value = f.id;
@@ -257,11 +1001,12 @@
             const empty = document.getElementById('empty-state');
             const tbody = document.getElementById('tbody-trattamenti');
 
-            if (!fid) {
+            const annoEffettivo = anno || new Date().getFullYear();
+            if (!annoEffettivo) {
                 loading.style.display = 'none';
                 tableWrap.style.display = 'none';
                 empty.style.display = 'block';
-                empty.innerHTML = '<p>Seleziona un frutteto per vedere i trattamenti oppure registrane uno nuovo.</p>';
+                empty.innerHTML = '<p>Seleziona un anno per vedere i lavori e le attività (categoria Trattamenti).</p>';
                 return;
             }
 
@@ -270,95 +1015,214 @@
             empty.style.display = 'none';
 
             try {
-                const { getTrattamenti } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
-                trattamenti = await getTrattamenti(fid, { anno, orderBy: 'data', orderDirection: 'desc' });
+                const svc = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                if (fid) {
+                    listRows = await svc.getLavoriAttivitaTrattamentiPerFrutteto(fid, annoEffettivo);
+                } else {
+                    listRows = await svc.getLavoriAttivitaTrattamentiTuttiFrutteti(annoEffettivo);
+                }
             } catch (e) {
-                console.error(e);
-                trattamenti = [];
+                console.error('[TRATTAMENTI-FRUTTETO] loadTrattamenti errore:', e);
+                listRows = [];
             }
 
             loading.style.display = 'none';
-            if (trattamenti.length === 0) {
+            if (listRows.length === 0) {
                 empty.style.display = 'block';
-                empty.innerHTML = '<p>Nessun trattamento per questo frutteto/anno. Crea un lavoro o un\'attività con categoria Trattamenti (Gestione lavori o Diario) su un terreno con frutteto.</p>';
+                empty.innerHTML = fid
+                    ? '<p>Nessun lavoro o attività con categoria Trattamenti per questo frutteto/anno. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Trattamenti su un terreno con frutteto.</p>'
+                    : '<p>Nessun lavoro o attività con categoria Trattamenti per l\'anno selezionato. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Trattamenti su un terreno con frutteto.</p>';
                 return;
             }
 
             tableWrap.style.display = 'block';
-            const tipoLabels = { antifungino: '🦠 Antifungino', insetticida: '🐛 Insetticida', acaricida: '🕷️ Acaricida', fertilizzante: '🌱 Fertilizzante', altro: '📦 Altro' };
             const basePath = getBasePath();
             const gestioneLavoriUrl = (basePath ? basePath + '/' : '') + 'core/admin/gestione-lavori-standalone.html';
             const attivitaUrl = (basePath ? basePath + '/' : '') + 'core/attivita-standalone.html';
-            tbody.innerHTML = trattamenti.map(t => {
-                const tipoLabel = tipoLabels[t.tipoTrattamento] || t.tipoTrattamento;
-                const costo = (t.costoTotale != null) ? t.costoTotale.toFixed(2) : '-';
-                const sup = (t.superficieTrattata != null) ? t.superficieTrattata.toFixed(2) : '-';
-                let lavoroCell = '-';
-                if (t.lavoroId) {
-                    lavoroCell = `<a href="${gestioneLavoriUrl}?lavoroId=${encodeURIComponent(t.lavoroId)}" target="_blank" class="link-lavoro">🔗 Vedi Lavoro</a>`;
-                } else if (t.attivitaId) {
-                    lavoroCell = `<a href="${attivitaUrl}?attivitaId=${encodeURIComponent(t.attivitaId)}" target="_blank" class="link-lavoro">🔗 Vedi Attività</a>`;
+            tbody.innerHTML = listRows.map((row, idx) => {
+                const t = row.trattamento;
+                const costo = t && t.costoTotale != null ? t.costoTotale.toFixed(2) : '-';
+                const sup = t && t.superficieTrattata != null ? t.superficieTrattata.toFixed(2) : '-';
+                let refCell = '-';
+                if (row.lavoroId) {
+                    refCell = `<a href="${gestioneLavoriUrl}?lavoroId=${encodeURIComponent(row.lavoroId)}" target="_blank" class="link-lavoro">🔗 Vedi Lavoro</a>`;
+                } else if (row.attivitaId) {
+                    refCell = `<a href="${attivitaUrl}?attivitaId=${encodeURIComponent(row.attivitaId)}" target="_blank" class="link-lavoro">🔗 Vedi Attività</a>`;
                 }
+                const avviso = avvisoDosaggioTrattamento(row);
+                const hasTrattamento = !!t;
+                const avvisiCell = !hasTrattamento ? '-'
+                    : avviso.hasWarning
+                        ? `<span class="avviso-dosaggio" title="${(avviso.tooltip || '').replace(/"/g, '&quot;')}" aria-label="Avviso dosaggio">⚠️</span>`
+                        : `<span class="alert-badge green" title="Dosaggi nel range consigliato" aria-label="Tutto ok"></span>`;
+                const azioni = hasTrattamento
+                    ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
+                       <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
+                    : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`;
+                const fruttetoLabel = row.fruttetoNome || (frutteti.find(f => f.id === row.fruttetoId) && (frutteti.find(f => f.id === row.fruttetoId).specie || frutteti.find(f => f.id === row.fruttetoId).varieta || frutteti.find(f => f.id === row.fruttetoId).nome)) || row.fruttetoId || '-';
                 return `<tr>
-                    <td>${formatDate(t.data)}</td>
-                    <td>${t.prodotto || '-'}</td>
-                    <td>${tipoLabel}</td>
+                    <td>${formatDate(row.data)}</td>
+                    <td>${fruttetoLabel}</td>
+                    <td>${(row.lavoroLabel || '').substring(0, 40)}${(row.lavoroLabel && row.lavoroLabel.length > 40) ? '…' : ''}</td>
+                    <td>${row.terrenoLabel || '-'}</td>
+                    <td>${t ? (t.prodotti && t.prodotti.length ? t.prodotti.map(p => (p.prodotto || '-').trim()).filter(Boolean).join(', ') || '-' : (t.prodotto || '-')) : '-'}</td>
                     <td>${sup}</td>
                     <td>${costo}</td>
-                    <td>${lavoroCell}</td>
-                    <td>
-                        <button type="button" class="btn btn-primary btn-sm" data-edit="${t.id}">Modifica</button>
-                        <button type="button" class="btn btn-danger btn-sm" data-delete="${t.id}">Elimina</button>
-                    </td>
+                    <td>${refCell}</td>
+                    <td>${avvisiCell}</td>
+                    <td>${azioni}</td>
                 </tr>`;
             }).join('');
 
-            tbody.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openModalEdit(fid, btn.getAttribute('data-edit'))));
-            tbody.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteTrattamentoConfirm(fid, btn.getAttribute('data-delete'))));
+            tbody.querySelectorAll('[data-edit-row]').forEach(btn => btn.addEventListener('click', () => openModalEditRow(parseInt(btn.getAttribute('data-edit-row'), 10))));
+            tbody.querySelectorAll('[data-delete-row]').forEach(btn => btn.addEventListener('click', () => deleteTrattamentoConfirmRow(parseInt(btn.getAttribute('data-delete-row'), 10))));
+            tbody.querySelectorAll('[data-completa-row]').forEach(btn => btn.addEventListener('click', () => openModalCompleta(parseInt(btn.getAttribute('data-completa-row'), 10))));
         }
 
-        function openModalNew() {
-            document.getElementById('modal-title').textContent = 'Nuovo trattamento';
-            document.getElementById('trattamento-id').value = '';
-            document.getElementById('trattamento-frutteto-id').value = currentFruttetoId || '';
-            const sel = document.getElementById('trattamento-frutteto');
-            sel.value = currentFruttetoId || (frutteti.length ? frutteti[0].id : '');
-            document.getElementById('trattamento-data').value = new Date().toISOString().slice(0, 10);
-            document.getElementById('trattamento-tipo').value = '';
-            document.getElementById('trattamento-prodotto').value = '';
-            document.getElementById('trattamento-dosaggio').value = '';
-            document.getElementById('trattamento-operatore').value = '';
-            document.getElementById('trattamento-superficie').value = '';
-            document.getElementById('trattamento-costo-prodotto').value = '';
-            document.getElementById('trattamento-costo-mano').value = '0';
-            document.getElementById('trattamento-costo-macchina').value = '0';
-            document.getElementById('trattamento-giorni-carenza').value = '';
-            document.getElementById('trattamento-parcella').value = '';
-            document.getElementById('trattamento-note').value = '';
-            document.getElementById('modal-trattamento').classList.add('active');
+        function setDatiBaseReadOnly(data, terrenoLabel, riferimentoLabel) {
+            document.getElementById('dati-lavoro-section').style.display = 'block';
+            document.getElementById('dati-base-data').textContent = formatDate(data);
+            document.getElementById('dati-base-terreno').textContent = terrenoLabel || '-';
+            document.getElementById('dati-base-riferimento').textContent = riferimentoLabel || '-';
+            document.getElementById('form-campi-base').style.display = 'none';
+            document.getElementById('form-campi-data-row').style.display = 'none';
         }
 
-        async function openModalEdit(fruttetoId, trattamentoId) {
-            const { getTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
-            const t = await getTrattamento(fruttetoId, trattamentoId);
-            if (!t) { showAlert('Trattamento non trovato', 'error'); return; }
-            document.getElementById('modal-title').textContent = 'Modifica trattamento';
+        function popolaTabellaMacchineTrattamento(macchineData) {
+            const section = document.getElementById('macchine-tabella-section');
+            const tbody = document.getElementById('macchine-tabella-body');
+            const nessuna = document.getElementById('macchine-nessuna');
+            if (!section || !tbody) return;
+            section.style.display = 'block';
+            if (!macchineData || macchineData.length === 0) {
+                tbody.innerHTML = '';
+                if (nessuna) nessuna.style.display = 'block';
+                return;
+            }
+            if (nessuna) nessuna.style.display = 'none';
+            tbody.innerHTML = macchineData.map(m => '<tr><td style="padding:6px 8px;">' + (m.tipo || '-') + '</td><td style="padding:6px 8px;">' + (m.nome || '-') + '</td><td style="padding:6px 8px;">' + (typeof m.ore === 'number' ? m.ore.toFixed(2) : (m.ore || '-')) + '</td></tr>').join('');
+        }
+
+        async function openModalCompleta(idx) {
+            const row = listRows[idx];
+            if (!row) return;
+            if (row.trattamento) { openModalEditRow(idx); return; }
+            try {
+                const svc = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                if (row.lavoroId) {
+                    await svc.createTrattamentoFromLavoro(row.lavoroId);
+                } else if (row.attivitaId) {
+                    await svc.createTrattamentoFromAttivita(row.attivitaId);
+                } else { showAlert('Riga senza lavoro/attività', 'error'); return; }
+                const found = row.lavoroId ? await svc.findTrattamentoByLavoroId(row.lavoroId) : await svc.findTrattamentoByAttivitaId(row.attivitaId);
+                if (!found || found.fruttetoId !== row.fruttetoId) { showAlert('Trattamento creato ma non trovato per questo frutteto', 'error'); await loadTrattamenti(); return; }
+                row.trattamento = found.trattamento;
+                document.getElementById('modal-title').textContent = 'Completa dati trattamento';
+                setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
+                document.getElementById('trattamento-id').value = found.trattamentoId;
+                document.getElementById('trattamento-frutteto-id').value = row.fruttetoId;
+                document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
+                document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
+                const t = found.trattamento;
+                const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
+                document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
+                document.getElementById('trattamento-operatore').value = t.operatore || '';
+                document.getElementById('trattamento-superficie').value = (t.superficieTrattata != null && t.superficieTrattata !== '') ? Number(t.superficieTrattata).toFixed(2) : '';
+                document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
+                document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
+                document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
+                document.getElementById('trattamento-note').value = t.note || '';
+                if (t.operatore) {
+                    const operatoreNome = await getDisplayNameForUserId(t.operatore);
+                    document.getElementById('trattamento-operatore').value = operatoreNome || t.operatore;
+                }
+                document.getElementById('trattamento-operatore').removeAttribute('required');
+                document.getElementById('trattamento-superficie').removeAttribute('required');
+                let rowsProdotti = (t.prodotti && t.prodotti.length) ? t.prodotti.map(r => ({ prodottoId: r.prodottoId || null, prodotto: r.prodotto || '', dosaggio: r.dosaggio, unitaDosaggio: r.unitaDosaggio || null, quantita: r.quantita, costo: r.costo })) : [{ prodottoId: null, prodotto: t.prodotto || '', dosaggio: t.dosaggio != null && t.dosaggio !== '' ? parseFloat(t.dosaggio) : null, unitaDosaggio: null, quantita: null, costo: t.costoProdotto ?? 0 }];
+                if (!rowsProdotti.length) rowsProdotti = [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }];
+                renderProdottiTrattamento(rowsProdotti);
+                try {
+                    const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                    const prefill = await getDatiPrecompilazioneTrattamento(row.fruttetoId, found.trattamento);
+                    document.getElementById('trattamento-costo-mano').value = prefill.costoManodopera ?? 0;
+                    document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? 0;
+                    popolaTabellaMacchineTrattamento(prefill.macchine || []);
+                } catch (e) {
+                    console.warn('[TRATTAMENTI-FRUTTETO] prefill costi/macchine:', e);
+                    popolaTabellaMacchineTrattamento([]);
+                }
+                trattamentoFromAttivitaOnly = !!(row.attivitaId && !row.lavoroId);
+                const btnZona = document.getElementById('btn-traccia-zona-trattamento');
+                if (btnZona) btnZona.textContent = row.lavoroId ? '🗺️ Visualizza zona' : '🗺️ Traccia';
+                poligonoCoordsTrattamento = (found.trattamento.poligonoTrattamento && found.trattamento.poligonoTrattamento.length >= 3)
+                    ? found.trattamento.poligonoTrattamento.map(c => ({ lat: c.lat, lng: c.lng }))
+                    : [];
+                const poligonoInfo = document.getElementById('poligono-info-trattamento');
+                if (poligonoInfo) poligonoInfo.style.display = poligonoCoordsTrattamento.length >= 3 ? 'block' : 'none';
+                document.getElementById('modal-trattamento').classList.add('active');
+            } catch (err) {
+                showAlert(err.message || 'Errore creazione trattamento', 'error');
+                await loadTrattamenti();
+            }
+        }
+
+        async function openModalEditRow(idx) {
+            const row = listRows[idx];
+            if (!row || !row.trattamento) return;
+            const t = row.trattamento;
+            const fruttetoId = row.fruttetoId;
+            const trattamentoId = t.id;
+            document.getElementById('modal-title').textContent = 'Modifica dati trattamento';
+            setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
             document.getElementById('trattamento-id').value = trattamentoId;
             document.getElementById('trattamento-frutteto-id').value = fruttetoId;
-            document.getElementById('trattamento-frutteto').value = fruttetoId;
+            document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
+            document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
             const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
             document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
-            document.getElementById('trattamento-tipo').value = t.tipoTrattamento || '';
-            document.getElementById('trattamento-prodotto').value = t.prodotto || '';
-            document.getElementById('trattamento-dosaggio').value = t.dosaggio || '';
             document.getElementById('trattamento-operatore').value = t.operatore || '';
-            document.getElementById('trattamento-superficie').value = t.superficieTrattata ?? '';
-            document.getElementById('trattamento-costo-prodotto').value = t.costoProdotto ?? '';
+            document.getElementById('trattamento-superficie').value = (t.superficieTrattata != null && t.superficieTrattata !== '') ? Number(t.superficieTrattata).toFixed(2) : '';
             document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
             document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
             document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
-            document.getElementById('trattamento-parcella').value = t.parcella || '';
             document.getElementById('trattamento-note').value = t.note || '';
+            if (t.operatore) {
+                const operatoreNome = await getDisplayNameForUserId(t.operatore);
+                document.getElementById('trattamento-operatore').value = operatoreNome || t.operatore;
+            }
+            if (row.lavoroId || row.attivitaId) {
+                document.getElementById('trattamento-operatore').removeAttribute('required');
+                document.getElementById('trattamento-superficie').removeAttribute('required');
+            } else {
+                document.getElementById('trattamento-operatore').setAttribute('required', '');
+                document.getElementById('trattamento-superficie').setAttribute('required', '');
+            }
+            let rowsProdotti = (t.prodotti && t.prodotti.length) ? t.prodotti.map(r => ({ prodottoId: r.prodottoId || null, prodotto: r.prodotto || '', dosaggio: r.dosaggio, unitaDosaggio: r.unitaDosaggio || null, quantita: r.quantita, costo: r.costo })) : [{ prodottoId: null, prodotto: t.prodotto || '', dosaggio: t.dosaggio != null && t.dosaggio !== '' ? parseFloat(t.dosaggio) : null, unitaDosaggio: null, quantita: null, costo: t.costoProdotto ?? 0 }];
+            if (!rowsProdotti.length) rowsProdotti = [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }];
+            renderProdottiTrattamento(rowsProdotti);
+            try {
+                const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                const prefill = await getDatiPrecompilazioneTrattamento(fruttetoId, t);
+                document.getElementById('trattamento-costo-mano').value = prefill.costoManodopera ?? t.costoManodopera ?? 0;
+                document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? t.costoMacchina ?? 0;
+                popolaTabellaMacchineTrattamento(prefill.macchine || []);
+            } catch (e) {
+                console.warn('[TRATTAMENTI-FRUTTETO] prefill costi/macchine:', e);
+                popolaTabellaMacchineTrattamento([]);
+            }
+            trattamentoFromAttivitaOnly = !!(row.attivitaId && !row.lavoroId);
+            const btnZona = document.getElementById('btn-traccia-zona-trattamento');
+            if (btnZona) btnZona.textContent = row.lavoroId ? '🗺️ Visualizza zona' : '🗺️ Traccia';
+            if (t.poligonoTrattamento && t.poligonoTrattamento.length >= 3) {
+                poligonoCoordsTrattamento = t.poligonoTrattamento.map(c => ({ lat: c.lat, lng: c.lng }));
+            } else if (row.lavoroId) {
+                const fromLavoro = await loadPoligonoFromZoneLavorateTrattamento(row.lavoroId);
+                poligonoCoordsTrattamento = fromLavoro ? fromLavoro.map(c => ({ lat: c.lat, lng: c.lng })) : [];
+            } else {
+                poligonoCoordsTrattamento = [];
+            }
+            const poligonoInfo = document.getElementById('poligono-info-trattamento');
+            if (poligonoInfo) poligonoInfo.style.display = poligonoCoordsTrattamento.length >= 3 ? 'block' : 'none';
             document.getElementById('modal-trattamento').classList.add('active');
         }
 
@@ -369,34 +1233,73 @@
         async function saveTrattamento(e) {
             e.preventDefault();
             const id = document.getElementById('trattamento-id').value.trim();
-            const fruttetoId = document.getElementById('trattamento-frutteto').value;
-            if (!fruttetoId) { showAlert('Seleziona un frutteto', 'error'); return; }
+            const fruttetoIdFromHidden = document.getElementById('trattamento-frutteto-id').value;
+            const fruttetoIdFromSelect = document.getElementById('trattamento-frutteto').value;
+            const fruttetoId = fruttetoIdFromHidden || fruttetoIdFromSelect;
+            if (!fruttetoId) { showAlert('Frutteto mancante', 'error'); return; }
 
+            let costoManodopera = parseFloat(document.getElementById('trattamento-costo-mano').value) || 0;
+            let costoMacchina = parseFloat(document.getElementById('trattamento-costo-macchina').value) || 0;
+            const lavoroIdVal = document.getElementById('trattamento-lavoro-id').value.trim();
+            const attivitaIdVal = document.getElementById('trattamento-attivita-id').value.trim();
+            if ((lavoroIdVal || attivitaIdVal) && costoManodopera === 0 && costoMacchina === 0) {
+                try {
+                    const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                    const prefill = await getDatiPrecompilazioneTrattamento(fruttetoId, { lavoroId: lavoroIdVal || null, attivitaId: attivitaIdVal || null });
+                    costoManodopera = prefill.costoManodopera ?? 0;
+                    costoMacchina = prefill.costoMacchina ?? 0;
+                } catch (err) {
+                    console.warn('[TRATTAMENTI-FRUTTETO] ricalcolo costi in salvataggio:', err);
+                }
+            }
+
+            const rowsProdotti = getProdottiRowsFromTable();
+            if (!rowsProdotti.length || !rowsProdotti.some(r => (r.prodotto || '').trim())) {
+                showAlert('Aggiungi almeno una riga prodotto con nome.', 'error');
+                return;
+            }
+            const checkDosaggi = validaDosaggiProdotti(rowsProdotti);
+            if (!checkDosaggi.valid && !confirm('Attenzione: ' + checkDosaggi.message + ' Salvare comunque?')) {
+                return;
+            }
+            const costoProdottoTotale = rowsProdotti.reduce((s, r) => s + (Number(r.costo) || 0), 0);
+            const dataVal = document.getElementById('trattamento-data').value;
             const giorniCarenzaVal = document.getElementById('trattamento-giorni-carenza').value.trim();
             const data = {
-                data: new Date(document.getElementById('trattamento-data').value),
-                prodotto: document.getElementById('trattamento-prodotto').value.trim(),
-                dosaggio: document.getElementById('trattamento-dosaggio').value.trim(),
-                tipoTrattamento: document.getElementById('trattamento-tipo').value,
-                operatore: document.getElementById('trattamento-operatore').value.trim(),
-                superficieTrattata: parseFloat(document.getElementById('trattamento-superficie').value),
-                costoProdotto: parseFloat(document.getElementById('trattamento-costo-prodotto').value),
-                costoManodopera: parseFloat(document.getElementById('trattamento-costo-mano').value) || 0,
-                costoMacchina: parseFloat(document.getElementById('trattamento-costo-macchina').value) || 0,
+                data: dataVal ? new Date(dataVal) : new Date(),
+                prodotti: rowsProdotti.map(r => ({
+                    prodottoId: r.prodottoId || null,
+                    prodotto: (r.prodotto || '').trim(),
+                    dosaggio: r.dosaggio,
+                    unitaDosaggio: r.unitaDosaggio || null,
+                    quantita: r.quantita,
+                    costo: Number(r.costo) || 0
+                })),
+                costoProdotto: costoProdottoTotale,
+                tipoTrattamento: '',
+                operatore: (document.getElementById('trattamento-operatore-group') && document.getElementById('trattamento-operatore-group').style.display !== 'none')
+                    ? document.getElementById('trattamento-operatore').value.trim()
+                    : '',
+                superficieTrattata: (() => { const v = document.getElementById('trattamento-superficie').value; const n = parseFloat(v); return isNaN(n) ? null : Math.round(n * 100) / 100; })(),
+                costoManodopera,
+                costoMacchina,
                 giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
-                parcella: document.getElementById('trattamento-parcella').value.trim() || null,
+                parcella: null,
                 note: document.getElementById('trattamento-note').value.trim() || null
             };
+            if (poligonoCoordsTrattamento && poligonoCoordsTrattamento.length >= 3) {
+                data.poligonoTrattamento = poligonoCoordsTrattamento.map(c =>
+                    typeof c.lat === 'function' ? { lat: c.lat(), lng: c.lng() } : { lat: c.lat, lng: c.lng }
+                );
+            }
+            if (lavoroIdVal) data.lavoroId = lavoroIdVal;
+            if (attivitaIdVal) data.attivitaId = attivitaIdVal;
 
             try {
-                const { createTrattamento, updateTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
-                if (id) {
-                    await updateTrattamento(fruttetoId, id, data);
-                    showAlert('Trattamento aggiornato.', 'success');
-                } else {
-                    await createTrattamento(fruttetoId, data);
-                    showAlert('Trattamento registrato.', 'success');
-                }
+                const { updateTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                if (!id) { showAlert('Trattamento non trovato', 'error'); return; }
+                await updateTrattamento(fruttetoId, id, data);
+                showAlert('Trattamento aggiornato.', 'success');
                 closeModal();
                 await loadTrattamenti();
             } catch (err) {
@@ -404,12 +1307,14 @@
             }
         }
 
-        async function deleteTrattamentoConfirm(fruttetoId, trattamentoId) {
-            if (!confirm('Eliminare questo trattamento?')) return;
+        async function deleteTrattamentoConfirmRow(idx) {
+            const row = listRows[idx];
+            if (!row || !row.trattamento) return;
+            if (!confirm('Eliminare i dati trattamento? Il lavoro/attività resterà; potrai completare di nuovo dalla lista.')) return;
             try {
                 const { deleteTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
-                await deleteTrattamento(fruttetoId, trattamentoId);
-                showAlert('Trattamento eliminato.', 'success');
+                await deleteTrattamento(row.fruttetoId, row.trattamento.id);
+                showAlert('Trattamento eliminato. La riga resta come "da completare".', 'success');
                 await loadTrattamenti();
             } catch (err) {
                 showAlert(err.message || 'Errore eliminazione', 'error');
@@ -433,14 +1338,40 @@
                     showAlert('Nessun tenant selezionato.', 'error');
                     return;
                 }
+                let hasManodoperaModule = false;
+                try {
+                    const tenantId = getCurrentTenantId();
+                    const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
+                    const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const db = getDb();
+                    if (db && tenantId) {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                        if (tenantDoc.exists()) {
+                            const tenantData = tenantDoc.data();
+                            hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        }
+                    }
+                } catch (err) { console.warn('Verifica modulo manodopera:', err); }
+                const operatoreGroup = document.getElementById('trattamento-operatore-group');
+                const proprietarioMsg = document.getElementById('trattamento-proprietario-message');
+                if (operatoreGroup) operatoreGroup.style.display = hasManodoperaModule ? 'block' : 'none';
+                if (proprietarioMsg) proprietarioMsg.style.display = hasManodoperaModule ? 'none' : 'block';
                 await loadFrutteti();
+                await loadProdottiAnagrafica();
+                document.getElementById('btn-aggiungi-prodotto-trattamento').addEventListener('click', aggiungiRigaProdottoTrattamento);
+                document.getElementById('trattamento-superficie').addEventListener('input', ricalcolaQuantitaCostoProdotti);
                 document.getElementById('filter-frutteto').addEventListener('change', loadTrattamenti);
                 document.getElementById('filter-anno').addEventListener('change', loadTrattamenti);
-                const btnNuovoTrattF = document.getElementById('btn-nuovo-trattamento');
-                if (btnNuovoTrattF) btnNuovoTrattF.addEventListener('click', openModalNew);
                 document.getElementById('close-modal').addEventListener('click', closeModal);
                 document.getElementById('cancel-btn').addEventListener('click', closeModal);
                 document.getElementById('form-trattamento').addEventListener('submit', saveTrattamento);
+                const btnTraccia = document.getElementById('btn-traccia-zona-trattamento');
+                if (btnTraccia) btnTraccia.addEventListener('click', () => window.apriMappaTracciamentoTrattamento && window.apriMappaTracciamentoTrattamento());
+                document.getElementById('close-mappa-trattamento').addEventListener('click', () => window.chiudiMappaTracciamentoTrattamento && window.chiudiMappaTracciamentoTrattamento());
+                document.getElementById('btn-annulla-mappa-trattamento').addEventListener('click', () => window.chiudiMappaTracciamentoTrattamento && window.chiudiMappaTracciamentoTrattamento());
+                document.getElementById('btn-draw-polygon-trattamento').addEventListener('click', () => window.iniziaTracciamentoPoligonoTrattamento && window.iniziaTracciamentoPoligonoTrattamento());
+                document.getElementById('btn-clear-polygon-trattamento').addEventListener('click', () => window.eliminaPoligonoTrattamento && window.eliminaPoligonoTrattamento());
+                document.getElementById('btn-conferma-polygon-trattamento').addEventListener('click', () => window.confermaPoligonoTrattamento && window.confermaPoligonoTrattamento());
                 await loadTrattamenti();
             });
         }

@@ -843,8 +843,22 @@ export async function aggregaSpeseVignetoAnno(vignetoId, anno = null) {
         // Non blocchiamo il calcolo, continuiamo con i lavori completati
       }
     }
-    
-    // Totale generale (lavori + attività diario)
+
+    // Costi prodotti da trattamenti (vigneti/{vignetoId}/trattamenti) per l'anno
+    try {
+      const { getTrattamenti } = await import('./trattamenti-vigneto-service.js');
+      const trattamenti = await getTrattamenti(vignetoId, { anno: annoTarget });
+      for (const t of trattamenti) {
+        const costoProdotti = (t.prodotti && t.prodotti.length)
+          ? t.prodotti.reduce((s, r) => s + (Number(r.costo) || 0), 0)
+          : (Number(t.costoProdotto) || 0);
+        spese.speseProdottiAnno += costoProdotti;
+      }
+    } catch (error) {
+      console.warn('[LAVORI-VIGNETO] Errore caricamento costi prodotti da trattamenti:', error);
+    }
+
+    // Totale generale (lavori + attività diario + prodotti trattamenti)
     spese.costoTotaleAnno = spese.speseManodoperaAnno + spese.speseMacchineAnno + (spese.speseProdottiAnno || 0) + (spese.speseCantinaAnno || 0) + (spese.speseAltroAnno || 0);
     
     // Arrotonda tutti i valori numerici a 2 decimali (escludi chiavi che terminano con _nome che contengono stringhe)

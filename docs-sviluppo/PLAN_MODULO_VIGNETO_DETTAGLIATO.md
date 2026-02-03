@@ -1,7 +1,7 @@
 # 🍇 Piano Dettagliato: Modulo Vigneto
 
 **Data creazione**: 2026-01-12  
-**Ultimo aggiornamento**: 2026-01-31 (Raccolta Frutta; lista condivisa Calcolo materiali; forma allevamento Pianificazione frutteto; pali frutteto; Gestione lavori Impianto Frutteto; **Pagine e card Potatura e Trattamenti vigneto**)
+**Ultimo aggiornamento**: 2026-02-03 (Trattamenti: alert dosaggio con conferma salvataggio, colonna Avvisi con bollino verde/⚠️, pulsante Modifica visibile; costi prodotti trattamenti inclusi in statistiche dashboard) | 2026-01-31 (Raccolta Frutta; lista condivisa Calcolo materiali; forma allevamento Pianificazione frutteto; pali frutteto; Gestione lavori Impianto Frutteto; **Pagine e card Potatura e Trattamenti vigneto**)
 **Stato**: ✅ IMPLEMENTATO - Funzionalità Vendemmia Completata + Tracciamento Poligono Avanzato + Rilevamento Automatico + Calcolo Compensi + Pianificazione Nuovi Impianti (Base) + Calcolo Materiali Impianto + Integrazione Creazione Vigneti da Lavori + Allineamento Frutteto + Tracciamento Raccolta Frutta + Calcolo materiali: lista forma allevamento condivisa; Pianificazione: forma allevamento visibile e salvata anche per frutteto/oliveto + **Pagine standalone Potatura e Trattamenti + card in dashboard; evoluzione “da lavori/attività” pianificata in PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md**
 **Priorità**: Alta  
 **Riferimento**: `PLAN_MODULI_COLTURA_SPECIALIZZATI.md`
@@ -359,7 +359,7 @@ Il diradamento dei grappoli è una pratica per progetti di alta qualità che rid
 
 ### 5. Gestione Trattamenti
 
-**Nota Architetturale**: I modelli e servizi `TrattamentoVigneto.js` e `trattamenti-vigneto-service.js` sono implementati. **Pagine standalone e card dashboard** (2026-01-31): `trattamenti-standalone.html` – filtro vigneto/anno, tabella trattamenti, modal CRUD (prodotto, dosaggio, tipo, operatore, superficie, costi, giorni di carenza); card “Trattamenti” nella dashboard vigneto. Evoluzione **“Trattamenti da lavori/attività”** (dati base da Gestione lavori/Diario, dati aggiuntivi compilabili, base in sola lettura) pianificata in `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`.
+**Nota Architetturale**: I modelli e servizi `TrattamentoVigneto.js` e `trattamenti-vigneto-service.js` sono implementati. **Pagine standalone e card dashboard** (2026-01-31): `trattamenti-standalone.html` – filtro vigneto/anno, tabella trattamenti, modal CRUD (prodotto, dosaggio, tipo, operatore, superficie, costi, giorni di carenza). **Miglioramenti 2026-02-03**: (1) Alert dosaggio (validazione vs dosaggioMin/dosaggioMax anagrafica; confirm "Salvare comunque?" in salvataggio); (2) Colonna Avvisi in lista (bollino verde se ok, ⚠️ con tooltip se dosaggio fuori range); (3) Pulsante Modifica visibile (btn-secondary come Potatura, .modal .btn-primary); (4) Costi prodotti trattamenti inclusi in `aggregaSpeseVignetoAnno` → Spese totali dashboard. Card “Trattamenti” nella dashboard vigneto. Evoluzione **“Trattamenti da lavori/attività”** (dati base da Gestione lavori/Diario, dati aggiuntivi compilabili, base in sola lettura) pianificata in `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`.
 
 #### 5.1. Piano Trattamenti
 

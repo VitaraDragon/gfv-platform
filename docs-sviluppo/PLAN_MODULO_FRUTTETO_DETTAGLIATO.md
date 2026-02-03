@@ -1,7 +1,7 @@
 # 🍎 Piano Dettagliato: Modulo Frutteto
 
 **Data creazione**: 2026-01-27  
-**Ultimo aggiornamento**: 2026-01-31 (Zone lavorate; lista condivisa Calcolo materiali; pali per forma; Gestione lavori Impianto Frutteto; **Pagine e card Potatura e Trattamenti frutteto**)
+**Ultimo aggiornamento**: 2026-02-03 (Trattamenti: alert dosaggio con conferma salvataggio, colonna Avvisi con bollino verde/⚠️, pulsante Modifica visibile; costi prodotti trattamenti inclusi in statistiche dashboard) | 2026-01-31 (Zone lavorate; lista condivisa Calcolo materiali; pali per forma; Gestione lavori Impianto Frutteto; **Pagine e card Potatura e Trattamenti frutteto**)
 **Stato**: ✅ IMPLEMENTATO (Fase Base + Dashboard + Allineamento) - Anagrafica Frutteti + Raccolta Frutta + Dashboard + Statistiche + Integrazione Lavori + Attività da Diario + Dettaglio spese cambio anno + Tracciamento poligono + Dropdown terreni/frutteti con nome e podere + Sync zona da lavoro, superficie 2 decimali, colonna Lavoro, Dashboard e pulsanti + Calcolo materiali: lista forma allevamento condivisa; distanza/altezza pali per forma; Gestione lavori Impianto Nuovo Frutteto: form Dati Frutteto e creazione anagrafica (creaFruttetoDaLavoro) + **Pagine standalone Potatura e Trattamenti + card in dashboard; evoluzione “da lavori/attività” in PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md**
 **Priorità**: Alta  
 **Riferimento**: `PLAN_MODULI_COLTURA_SPECIALIZZATI.md`, `GUIDA_SVILUPPO_MODULI_FRUTTETO_OLIVETO.md`
@@ -539,9 +539,10 @@ firestore.rules                          ✅ Regole frutteti + raccolte
 
 ### Fase 3 - Trattamenti
 
-1. ✅ **Gestione Trattamenti** (2026-01-31)
+1. ✅ **Gestione Trattamenti** (2026-01-31; miglioramenti 2026-02-03)
    - Modello `TrattamentoFrutteto.js` e servizio `trattamenti-frutteto-service.js` implementati
-   - Vista `trattamenti-standalone.html` e card “Trattamenti” in dashboard frutteto
+   - Vista `trattamenti-standalone.html` e card "Trattamenti" in dashboard frutteto
+   - **2026-02-03**: Alert dosaggio (conferma "Salvare comunque?" se fuori range); colonna Avvisi in lista (bollino verde se ok, ⚠️ con tooltip se dosaggio fuori range); pulsante Modifica visibile (btn-secondary); costi prodotti trattamenti inclusi in `aggregaSpeseFruttetoAnno` → Spese totali dashboard “Trattamenti” in dashboard frutteto
    - Evoluzione “da lavori/attività” in `PIANO_POTATURA_TRATTAMENTI_DA_LAVORI.md`
 
 ### Fase 4 - Pianificazione Impianti

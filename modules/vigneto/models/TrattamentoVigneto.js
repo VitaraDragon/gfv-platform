@@ -16,8 +16,9 @@ export class TrattamentoVigneto extends Base {
    * @param {string} data.lavoroId - Riferimento lavoro (opzionale, se creato da lavoro)
    * @param {string} data.attivitaId - Riferimento attività (opzionale, se creato da attività)
    * @param {Date|Timestamp} data.data - Data trattamento (obbligatorio)
-   * @param {string} data.prodotto - Nome prodotto (obbligatorio)
-   * @param {string} data.dosaggio - Dosaggio applicato (obbligatorio)
+   * @param {string} data.prodotto - Nome prodotto (legacy; usato se prodotti[] assente)
+   * @param {string} data.dosaggio - Dosaggio applicato (legacy)
+   * @param {Array<{prodottoId?: string, prodotto: string, dosaggio: number, unitaDosaggio?: string, quantita?: number, costo?: number}>} data.prodotti - Righe prodotto (nuovo formato)
    * @param {string} data.tipoTrattamento - Tipo: "antifungino" | "insetticida" | "acaricida" | "fertilizzante" | "altro" (obbligatorio)
    * @param {string} data.condizioniMeteo - Condizioni meteo (opzionale)
    * @param {number} data.temperatura - Temperatura in °C (opzionale)
@@ -25,8 +26,9 @@ export class TrattamentoVigneto extends Base {
    * @param {number} data.velocitaVento - Velocità vento in km/h (opzionale)
    * @param {string} data.operatore - ID operatore che ha eseguito (obbligatorio)
    * @param {string} data.macchinaId - ID macchina utilizzata (opzionale)
-   * @param {number} data.superficieTrattata - Superficie trattata in ettari (obbligatorio)
-   * @param {number} data.costoProdotto - Costo prodotto in € (obbligatorio)
+ * @param {number} data.superficieTrattata - Superficie trattata in ettari (obbligatorio)
+ * @param {Array<{lat: number, lng: number}>} data.poligonoTrattamento - Coordinate zona trattata (opzionale, da mappa)
+ * @param {number} data.costoProdotto - Costo prodotto in € (obbligatorio)
    * @param {number} data.costoManodopera - Costo manodopera in € (calcolato)
    * @param {number} data.costoMacchina - Costo macchina in € (calcolato)
    * @param {number} data.costoTotale - Costo totale in € (calcolato)
@@ -45,6 +47,27 @@ export class TrattamentoVigneto extends Base {
     this.data = data.data || null;
     this.prodotto = data.prodotto || '';
     this.dosaggio = data.dosaggio || '';
+    // Righe prodotto: nuovo formato. Retrocompat: se assente, costruisci una riga da prodotto/dosaggio/costoProdotto
+    if (Array.isArray(data.prodotti) && data.prodotti.length > 0) {
+      this.prodotti = data.prodotti.map(r => ({
+        prodottoId: r.prodottoId || null,
+        prodotto: r.prodotto != null ? String(r.prodotto) : '',
+        dosaggio: r.dosaggio !== undefined && r.dosaggio !== '' ? parseFloat(r.dosaggio) : null,
+        unitaDosaggio: r.unitaDosaggio || null,
+        quantita: r.quantita !== undefined && r.quantita !== '' ? parseFloat(r.quantita) : null,
+        costo: r.costo !== undefined && r.costo !== '' ? parseFloat(r.costo) : null
+      }));
+    } else {
+      const costoProdottoVal = data.costoProdotto !== undefined ? parseFloat(data.costoProdotto) : null;
+      this.prodotti = [{
+        prodottoId: null,
+        prodotto: data.prodotto || '',
+        dosaggio: data.dosaggio != null && data.dosaggio !== '' ? parseFloat(data.dosaggio) : (typeof data.dosaggio === 'string' ? null : data.dosaggio),
+        unitaDosaggio: null,
+        quantita: null,
+        costo: costoProdottoVal
+      }];
+    }
     this.tipoTrattamento = data.tipoTrattamento || '';
     
     // Condizioni meteo (opzionale)
@@ -57,6 +80,7 @@ export class TrattamentoVigneto extends Base {
     this.operatore = data.operatore || null;
     this.macchinaId = data.macchinaId || null;
     this.superficieTrattata = data.superficieTrattata !== undefined ? parseFloat(data.superficieTrattata) : null;
+    this.poligonoTrattamento = Array.isArray(data.poligonoTrattamento) ? data.poligonoTrattamento : null;
     
     // Costi
     this.costoProdotto = data.costoProdotto !== undefined ? parseFloat(data.costoProdotto) : null;
@@ -90,20 +114,20 @@ export class TrattamentoVigneto extends Base {
     }
     
     if (!fromLavoroAttivita) {
-      if (!this.prodotto || this.prodotto.trim().length === 0) {
-        errors.push('Prodotto obbligatorio');
-      }
-      if (!this.dosaggio || this.dosaggio.trim().length === 0) {
-        errors.push('Dosaggio obbligatorio');
+      if (!this.prodotti || this.prodotti.length === 0) {
+        errors.push('Aggiungi almeno una riga prodotto');
+      } else {
+        this.prodotti.forEach((r, i) => {
+          if (!r.prodotto || String(r.prodotto).trim().length === 0) errors.push(`Riga prodotto ${i + 1}: Prodotto obbligatorio`);
+          if (r.dosaggio == null || (typeof r.dosaggio === 'number' && isNaN(r.dosaggio)) || r.dosaggio < 0) errors.push(`Riga prodotto ${i + 1}: Dosaggio obbligatorio e ≥ 0`);
+          if (r.costo != null && r.costo < 0) errors.push(`Riga prodotto ${i + 1}: Costo non negativo`);
+        });
       }
       if (!this.operatore || this.operatore.trim().length === 0) {
         errors.push('Operatore obbligatorio');
       }
       if (this.superficieTrattata === null || this.superficieTrattata <= 0) {
         errors.push('Superficie trattata obbligatoria e maggiore di zero');
-      }
-      if (this.costoProdotto === null || this.costoProdotto < 0) {
-        errors.push('Costo prodotto obbligatorio e non negativo');
       }
     }
     
@@ -140,7 +164,8 @@ export class TrattamentoVigneto extends Base {
    * @returns {number} Costo totale in €
    */
   calcolaCostoTotale() {
-    return this.costoProdotto + this.costoManodopera + this.costoMacchina;
+    const totProdotti = (this.prodotti && this.prodotti.length) ? this.prodotti.reduce((s, r) => s + (Number(r.costo) || 0), 0) : (Number(this.costoProdotto) || 0);
+    return totProdotti + this.costoManodopera + this.costoMacchina;
   }
   
   /**

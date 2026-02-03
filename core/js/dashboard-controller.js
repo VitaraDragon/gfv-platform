@@ -37,6 +37,7 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         createContoTerziCard,
         createVignetoCard,
         createFruttetoCard,
+        createMagazzinoCard,
         createReportCard,
         createManagerManodoperaSection,
         createDiarioDaLavoriSection,
@@ -127,6 +128,12 @@ export async function renderDashboard(userData, availableModules = [], callbacks
             if (hasFrutteto) {
                 topLeft.appendChild(createFruttetoCard());
             }
+
+            const hasMagazzino = availableModules && availableModules.includes('magazzino');
+            if (hasMagazzino) {
+                const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
+                topLeft.appendChild(createMagazzinoCard(sottoScortaCount));
+            }
             
             const hasReport = availableModules && availableModules.includes('report');
             if (hasReport) {
@@ -192,6 +199,12 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         const hasFrutteto = availableModules && availableModules.includes('frutteto');
         if (hasFrutteto) {
             topLeft.appendChild(createFruttetoCard());
+        }
+
+        const hasMagazzino = availableModules && availableModules.includes('magazzino');
+        if (hasMagazzino) {
+            const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
+            topLeft.appendChild(createMagazzinoCard(sottoScortaCount));
         }
         
         const hasReport = availableModules && availableModules.includes('report');
@@ -281,6 +294,12 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 const hasFrutteto = availableModules && availableModules.includes('frutteto');
                 if (hasFrutteto) {
                     container.appendChild(createFruttetoCard());
+                }
+
+                const hasMagazzino = availableModules && availableModules.includes('magazzino');
+                if (hasMagazzino) {
+                    const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
+                    container.appendChild(createMagazzinoCard(sottoScortaCount));
                 }
                 
                 // Card Affitti in Scadenza anche per Manager senza Manodopera

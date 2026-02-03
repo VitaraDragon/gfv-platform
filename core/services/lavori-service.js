@@ -19,6 +19,28 @@ import { Lavoro } from '../models/Lavoro.js';
 const COLLECTION_NAME = 'lavori';
 
 /**
+ * Ottieni i lavori per terreno (solo where terrenoId, senza orderBy, per evitare indice composito Firestore).
+ * Filtrare/ordinare per anno e dataInizio in memoria.
+ * @param {string} terrenoId - ID terreno
+ * @returns {Promise<Array<Lavoro>>}
+ */
+export async function getLavoriByTerreno(terrenoId) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) return [];
+    if (!terrenoId) return [];
+    const documents = await getCollectionData(COLLECTION_NAME, {
+      tenantId,
+      where: [['terrenoId', '==', terrenoId]]
+    });
+    return documents.map(doc => Lavoro.fromData(doc));
+  } catch (error) {
+    console.error('Errore getLavoriByTerreno:', error);
+    return [];
+  }
+}
+
+/**
  * Ottieni tutti i lavori del tenant corrente
  * @param {Object} options - Opzioni di query
  * @param {string} options.orderBy - Campo per ordinamento (default: 'dataInizio')

@@ -226,6 +226,18 @@ service cloud.firestore {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
+
+    // Collection: prodotti (modulo Prodotti e Magazzino)
+    match /tenants/{tenantId}/prodotti/{prodottoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: movimentiMagazzino (modulo Prodotti e Magazzino)
+    match /tenants/{tenantId}/movimentiMagazzino/{movimentoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
     
     // Collection: terreni (già esistente, ma assicuriamoci che funzioni)
     match /tenants/{tenantId}/terreni/{terrenoId} {

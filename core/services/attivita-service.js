@@ -18,6 +18,28 @@ import { Attivita } from '../models/Attivita.js';
 const COLLECTION_NAME = 'attivita';
 
 /**
+ * Ottieni le attività per terreno (solo where terrenoId, senza orderBy/filtro data, per evitare indice composito Firestore).
+ * Filtrare/ordinare per anno e data in memoria.
+ * @param {string} terrenoId - ID terreno
+ * @returns {Promise<Array<Attivita>>}
+ */
+export async function getAttivitaByTerreno(terrenoId) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) return [];
+    if (!terrenoId) return [];
+    const documents = await getCollectionData(COLLECTION_NAME, {
+      tenantId,
+      where: [['terrenoId', '==', terrenoId]]
+    });
+    return documents.map(doc => Attivita.fromData(doc));
+  } catch (error) {
+    console.error('Errore getAttivitaByTerreno:', error);
+    return [];
+  }
+}
+
+/**
  * Ottieni tutte le attività del tenant corrente con filtri opzionali
  * @param {Object} filters - Filtri opzionali
  * @param {string} filters.terrenoId - Filtra per terreno

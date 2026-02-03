@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimenti Magazzino - Prodotti e Magazzino - GFV Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .header h1 { font-size: 28px; }
+        .header-actions { display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #2E7D32; color: white; }
+        .btn-primary:hover { background: #1B5E20; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #fd7e14; color: white; }
+        .btn-warning:hover { background: #e96a00; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
+        .filter-group select, .filter-group input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-header h2 { color: #2E7D32; font-size: 24px; }
+        .movimenti-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .movimenti-table th, .movimenti-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        .movimenti-table th { background: #E8F5E9; font-weight: 600; color: #495057; }
+        .movimenti-table tr:hover { background: #f1f8e9; }
+        .badge-entrata { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .badge-uscita { background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { color: #2E7D32; font-size: 20px; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #495057; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .form-group textarea { min-height: 60px; resize: vertical; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        .alert-warning { background: #fff3cd; color: #856404; }
+        #prezzo-group { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📥 Movimenti Magazzino</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Registra entrate e uscite</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="btn-nuovo-movimento">➕ Nuovo Movimento</button>
+                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Prodotti e Magazzino</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Tipo</label>
+                    <select id="filter-tipo">
+                        <option value="">Tutti</option>
+                        <option value="entrata">Entrata</option>
+                        <option value="uscita">Uscita</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Prodotto</label>
+                    <select id="filter-prodotto">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+            </div>
+            <div class="section-header">
+                <h2>Elenco Movimenti</h2>
+                <div id="movimenti-count">0 movimenti</div>
+            </div>
+            <div id="movimenti-container">
+                <div class="loading">Caricamento movimenti...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="movimento-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Nuovo Movimento</h3>
+                <button class="close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <form id="movimento-form">
+                <div class="form-group">
+                    <label for="mov-prodotto">Prodotto *</label>
+                    <select id="mov-prodotto" required>
+                        <option value="">Seleziona prodotto</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mov-data">Data *</label>
+                    <input type="date" id="mov-data" required>
+                </div>
+                <div class="form-group">
+                    <label for="mov-tipo">Tipo *</label>
+                    <select id="mov-tipo" required>
+                        <option value="entrata">➕ Entrata</option>
+                        <option value="uscita">➖ Uscita</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mov-quantita" id="label-mov-quantita">Quantità *</label>
+                    <input type="number" id="mov-quantita" required min="0" step="0.01" placeholder="Es. 10">
+                </div>
+                <div class="form-group">
+                    <label for="mov-confezione">Confezione (opzionale)</label>
+                    <input type="text" id="mov-confezione" placeholder="Es. 1 bidone 5 L, 2 sacchi 25 kg">
+                </div>
+                <div class="form-group" id="prezzo-group">
+                    <label for="mov-prezzo">Prezzo unitario (€)</label>
+                    <input type="number" id="mov-prezzo" min="0" step="0.01" placeholder="Opzionale">
+                </div>
+                <div class="form-group">
+                    <label for="mov-note">Note</label>
+                    <textarea id="mov-note" placeholder="Note..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="mov-lavoro">Lavoro (opzionale)</label>
+                    <select id="mov-lavoro">
+                        <option value="">Nessuno</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mov-attivita">Attività (opzionale)</label>
+                    <select id="mov-attivita">
+                        <option value="">Nessuna</option>
+                    </select>
+                </div>
+                <div id="alert-giacenza" class="alert alert-warning" style="display: none;">
+                    La giacenza diventerà negativa. Lo scarico è comunque permesso.
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-annulla-modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') { resolve(window.firebaseConfig); return; }
+                let attempts = 0;
+                const iv = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') { clearInterval(iv); resolve(window.firebaseConfig); }
+                    else if (attempts >= 50) { clearInterval(iv); reject(new Error('Config timeout')); }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentTenantId = null;
+        let prodotti = [];
+        let movimenti = [];
+        let lavori = [];
+        let attivita = [];
+        let editingMovimentoId = null;
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function formatData(d) {
+            if (!d) return '-';
+            const date = d.toDate ? d.toDate() : new Date(d);
+            return date.toLocaleDateString('it-IT');
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                const userData = userDoc.data();
+                currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => ((r || '').toLowerCase()).includes('manager') || ((r || '').toLowerCase()).includes('amministratore'));
+                if (!isManager) {
+                    showAlert('Solo Manager o Amministratore.', 'error');
+                    setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                document.getElementById('btn-nuovo-movimento').onclick = openModal;
+                document.getElementById('btn-close-modal').onclick = closeModal;
+                document.getElementById('btn-annulla-modal').onclick = closeModal;
+                document.getElementById('mov-tipo').onchange = function() {
+                    document.getElementById('prezzo-group').style.display = document.getElementById('mov-tipo').value === 'entrata' ? 'block' : 'none';
+                    checkGiacenzaAlert();
+                };
+                document.getElementById('mov-prodotto').onchange = function() { updateQuantitaLabel(); checkGiacenzaAlert(); };
+                document.getElementById('mov-quantita').oninput = checkGiacenzaAlert;
+                document.getElementById('movimento-form').onsubmit = saveMovimento;
+                document.getElementById('filter-tipo').onchange = renderMovimenti;
+                document.getElementById('filter-prodotto').onchange = renderMovimenti;
+                await loadProdotti();
+                await loadLavori();
+                await loadAttivita();
+                await loadMovimenti();
+            } catch (e) {
+                console.error(e);
+                showAlert('Errore caricamento', 'error');
+            }
+        });
+
+        async function loadProdotti() {
+            if (!currentTenantId) return;
+            const q = query(collection(db, 'tenants', currentTenantId, 'prodotti'), orderBy('nome'));
+            const snapshot = await getDocs(q);
+            prodotti = [];
+            snapshot.forEach(d => {
+                const data = d.data();
+                if (data.attivo !== false) prodotti.push({ id: d.id, ...data });
+            });
+            const selProdotto = document.getElementById('mov-prodotto');
+            const selFilter = document.getElementById('filter-prodotto');
+            selProdotto.innerHTML = '<option value="">Seleziona prodotto</option>' + prodotti.map(p => `<option value="${p.id}">${(p.nome || p.codice || p.id)} (${p.unitaMisura || '-'})</option>`).join('');
+            selFilter.innerHTML = '<option value="">Tutti</option>' + prodotti.map(p => `<option value="${p.id}">${(p.nome || p.codice || p.id)}</option>`).join('');
+        }
+
+        async function loadLavori() {
+            if (!currentTenantId) return;
+            try {
+                const q = query(collection(db, 'tenants', currentTenantId, 'lavori'), orderBy('dataInizio', 'desc'));
+                const snapshot = await getDocs(q);
+                lavori = [];
+                snapshot.forEach(d => lavori.push({ id: d.id, ...d.data() }));
+                const sel = document.getElementById('mov-lavoro');
+                sel.innerHTML = '<option value="">Nessuno</option>' + lavori.map(l => {
+                    const dataStr = l.dataInizio && (l.dataInizio.toDate ? l.dataInizio.toDate().toLocaleDateString('it-IT') : l.dataInizio);
+                    return `<option value="${l.id}">${(l.nome || l.id)}${dataStr ? ' – ' + dataStr : ''}</option>`;
+                }).join('');
+            } catch (err) {
+                console.warn('Lavori non caricati:', err);
+                lavori = [];
+            }
+        }
+
+        async function loadAttivita() {
+            if (!currentTenantId) return;
+            try {
+                const q = query(collection(db, 'tenants', currentTenantId, 'attivita'), orderBy('data', 'desc'));
+                const snapshot = await getDocs(q);
+                attivita = [];
+                snapshot.forEach(d => attivita.push({ id: d.id, ...d.data() }));
+                const sel = document.getElementById('mov-attivita');
+                sel.innerHTML = '<option value="">Nessuna</option>' + attivita.map(a => {
+                    const label = [a.data, a.tipoLavoro || '', a.terrenoNome || ''].filter(Boolean).join(' – ');
+                    return `<option value="${a.id}">${label || a.id}</option>`;
+                }).join('');
+            } catch (err) {
+                console.warn('Attività non caricate:', err);
+                attivita = [];
+            }
+        }
+
+        async function loadMovimenti() {
+            const container = document.getElementById('movimenti-container');
+            container.innerHTML = '<div class="loading">Caricamento movimenti...</div>';
+            try {
+                if (!currentTenantId) { container.innerHTML = '<div class="empty-state">Nessun tenant</div>'; return; }
+                const q = query(collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'), orderBy('data', 'desc'));
+                const snapshot = await getDocs(q);
+                movimenti = [];
+                snapshot.forEach(d => movimenti.push({ id: d.id, ...d.data() }));
+                renderMovimenti();
+            } catch (err) {
+                console.error(err);
+                showAlert('Errore: ' + err.message, 'error');
+                container.innerHTML = '<div class="empty-state">Errore caricamento</div>';
+            }
+        }
+
+        function filterMovimenti() {
+            const tipo = document.getElementById('filter-tipo').value;
+            const prodottoId = document.getElementById('filter-prodotto').value;
+            return movimenti.filter(m => {
+                if (tipo && m.tipo !== tipo) return false;
+                if (prodottoId && m.prodottoId !== prodottoId) return false;
+                return true;
+            });
+        }
+
+        function getProdottoNome(id) {
+            const p = prodotti.find(x => x.id === id);
+            return p ? (p.nome || p.codice || id) : id;
+        }
+
+        function getProdottoUnita(id) {
+            const p = prodotti.find(x => x.id === id);
+            return p && p.unitaMisura ? p.unitaMisura : '';
+        }
+
+        function getLavoroNome(id) {
+            if (!id) return '-';
+            const l = lavori.find(x => x.id === id);
+            return l ? (l.nome || l.id) : id;
+        }
+
+        function getAttivitaLabel(id) {
+            if (!id) return '-';
+            const a = attivita.find(x => x.id === id);
+            if (!a) return id;
+            const parts = [a.data, a.tipoLavoro, a.terrenoNome].filter(Boolean);
+            return parts.length ? parts.join(' – ') : a.id;
+        }
+
+        function updateQuantitaLabel() {
+            const prodottoId = document.getElementById('mov-prodotto').value;
+            const label = document.getElementById('label-mov-quantita');
+            const unita = getProdottoUnita(prodottoId);
+            label.textContent = unita ? `Quantità (${unita}) *` : 'Quantità *';
+        }
+
+        function renderMovimenti() {
+            const filtered = filterMovimenti();
+            document.getElementById('movimenti-count').textContent = filtered.length + ' movimenti';
+            const container = document.getElementById('movimenti-container');
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nessun movimento trovato</div>';
+                return;
+            }
+            container.innerHTML = `
+                <table class="movimenti-table">
+                    <thead><tr>
+                        <th>Data</th><th>Prodotto</th><th>Tipo</th><th>Quantità</th><th>Confezione</th><th>Prezzo unit. (€)</th><th>Prezzo tot. (€)</th><th>Lavoro</th><th>Attività</th><th>Note</th><th>Azioni</th>
+                    </tr></thead>
+                    <tbody>
+                        ${filtered.map(m => `
+                            <tr>
+                                <td>${formatData(m.data)}</td>
+                                <td>${getProdottoNome(m.prodottoId)}</td>
+                                <td><span class="badge-${m.tipo === 'entrata' ? 'entrata' : 'uscita'}">${m.tipo === 'entrata' ? '➕ Entrata' : '➖ Uscita'}</span></td>
+                                <td>${Number(m.quantita)} ${getProdottoUnita(m.prodottoId) || ''}</td>
+                                <td>${(m.confezione || '').substring(0, 25)}${(m.confezione || '').length > 25 ? '...' : ''}</td>
+                                <td>${m.prezzoUnitario != null ? Number(m.prezzoUnitario).toFixed(2) : '-'}</td>
+                                <td>${m.prezzoUnitario != null && m.quantita != null ? (Number(m.prezzoUnitario) * Number(m.quantita)).toFixed(2) : '-'}</td>
+                                <td>${getLavoroNome(m.lavoroId)}</td>
+                                <td>${getAttivitaLabel(m.attivitaId)}</td>
+                                <td>${(m.note || '').substring(0, 30)}${(m.note || '').length > 30 ? '...' : ''}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm" onclick="window.modificaMovimento('${m.id}')">Modifica</button>
+                                    <button class="btn btn-danger btn-sm" onclick="window.eliminaMovimento('${m.id}')">Elimina</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        function checkGiacenzaAlert() {
+            const tipo = document.getElementById('mov-tipo').value;
+            const prodottoId = document.getElementById('mov-prodotto').value;
+            const quantita = parseFloat(document.getElementById('mov-quantita').value) || 0;
+            if (tipo !== 'uscita' || !prodottoId || quantita <= 0) {
+                document.getElementById('alert-giacenza').style.display = 'none';
+                return;
+            }
+            const p = prodotti.find(x => x.id === prodottoId);
+            const giacenza = p && (p.giacenza != null) ? p.giacenza : 0;
+            if (quantita > giacenza) {
+                document.getElementById('alert-giacenza').style.display = 'block';
+            } else {
+                document.getElementById('alert-giacenza').style.display = 'none';
+            }
+        }
+
+        function dataToInputValue(d) {
+            if (!d) return '';
+            const date = d.toDate ? d.toDate() : new Date(d);
+            return date.toISOString().slice(0, 10);
+        }
+
+        window.modificaMovimento = function(movimentoId) {
+            const m = movimenti.find(x => x.id === movimentoId);
+            if (!m) return;
+            editingMovimentoId = movimentoId;
+            document.getElementById('modal-title').textContent = 'Modifica Movimento';
+            document.getElementById('mov-prodotto').value = m.prodottoId || '';
+            document.getElementById('mov-data').value = dataToInputValue(m.data);
+            document.getElementById('mov-tipo').value = m.tipo || 'entrata';
+            document.getElementById('mov-quantita').value = m.quantita != null ? m.quantita : '';
+            document.getElementById('mov-confezione').value = m.confezione || '';
+            document.getElementById('mov-prezzo').value = m.prezzoUnitario != null ? m.prezzoUnitario : '';
+            document.getElementById('mov-note').value = m.note || '';
+            document.getElementById('mov-lavoro').value = m.lavoroId || '';
+            document.getElementById('mov-attivita').value = m.attivitaId || '';
+            document.getElementById('prezzo-group').style.display = (m.tipo || 'entrata') === 'entrata' ? 'block' : 'none';
+            document.getElementById('alert-giacenza').style.display = 'none';
+            updateQuantitaLabel();
+            document.getElementById('movimento-modal').classList.add('active');
+        };
+
+        window.eliminaMovimento = async function(movimentoId) {
+            if (!confirm('Eliminare questo movimento? La giacenza del prodotto verrà ripristinata.')) return;
+            try {
+                const mov = movimenti.find(m => m.id === movimentoId);
+                if (!mov) return;
+                const prodRef = doc(db, 'tenants', currentTenantId, 'prodotti', mov.prodottoId);
+                const prodSnap = await getDoc(prodRef);
+                const delta = mov.tipo === 'entrata' ? -mov.quantita : mov.quantita;
+                const nuovaGiacenza = (prodSnap.exists() ? (prodSnap.data().giacenza || 0) : 0) + delta;
+                await deleteDoc(doc(db, 'tenants', currentTenantId, 'movimentiMagazzino', movimentoId));
+                await updateDoc(prodRef, { giacenza: nuovaGiacenza, updatedAt: serverTimestamp() });
+                showAlert('Movimento eliminato. Giacenza ripristinata.', 'success');
+                await loadProdotti();
+                await loadMovimenti();
+            } catch (e) {
+                showAlert('Errore: ' + e.message, 'error');
+            }
+        };
+
+        function openModal() {
+            editingMovimentoId = null;
+            document.getElementById('modal-title').textContent = 'Nuovo Movimento';
+            document.getElementById('movimento-form').reset();
+            document.getElementById('mov-data').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('prezzo-group').style.display = document.getElementById('mov-tipo').value === 'entrata' ? 'block' : 'none';
+            document.getElementById('alert-giacenza').style.display = 'none';
+            document.getElementById('label-mov-quantita').textContent = 'Quantità *';
+            document.getElementById('mov-lavoro').value = '';
+            document.getElementById('mov-attivita').value = '';
+            document.getElementById('movimento-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('movimento-modal').classList.remove('active');
+        }
+
+        async function saveMovimento(e) {
+            e.preventDefault();
+            const prodottoId = document.getElementById('mov-prodotto').value;
+            const dataVal = document.getElementById('mov-data').value;
+            const tipo = document.getElementById('mov-tipo').value;
+            const quantita = parseFloat(document.getElementById('mov-quantita').value);
+            const prezzoUnitario = document.getElementById('mov-prezzo').value ? parseFloat(document.getElementById('mov-prezzo').value) : null;
+            const confezione = (document.getElementById('mov-confezione').value || '').trim();
+            const note = (document.getElementById('mov-note').value || '').trim();
+            const lavoroId = (document.getElementById('mov-lavoro').value || '').trim() || null;
+            const attivitaId = (document.getElementById('mov-attivita').value || '').trim() || null;
+            if (!prodottoId || !dataVal || !tipo || !quantita || quantita <= 0) {
+                showAlert('Compila tutti i campi obbligatori e una quantità positiva.', 'error');
+                return;
+            }
+            try {
+                const movimentoData = {
+                    prodottoId,
+                    data: Timestamp.fromDate(new Date(dataVal)),
+                    tipo,
+                    quantita,
+                    prezzoUnitario: tipo === 'entrata' ? prezzoUnitario : null,
+                    confezione: confezione || null,
+                    note,
+                    lavoroId,
+                    attivitaId,
+                    userId: auth.currentUser?.uid || null,
+                    updatedAt: serverTimestamp()
+                };
+
+                if (editingMovimentoId) {
+                    const movRef = doc(db, 'tenants', currentTenantId, 'movimentiMagazzino', editingMovimentoId);
+                    const movOld = movimenti.find(x => x.id === editingMovimentoId);
+                    const deltaOld = movOld.tipo === 'entrata' ? -movOld.quantita : movOld.quantita;
+                    const deltaNew = tipo === 'entrata' ? quantita : -quantita;
+
+                    const prodOldRef = doc(db, 'tenants', currentTenantId, 'prodotti', movOld.prodottoId);
+                    const prodOldSnap = await getDoc(prodOldRef);
+                    const giacenzaOld = prodOldSnap.exists() ? (prodOldSnap.data().giacenza || 0) : 0;
+                    await updateDoc(prodOldRef, { giacenza: giacenzaOld + deltaOld, updatedAt: serverTimestamp() });
+
+                    if (prodottoId !== movOld.prodottoId) {
+                        const prodNewRef = doc(db, 'tenants', currentTenantId, 'prodotti', prodottoId);
+                        const prodNewSnap = await getDoc(prodNewRef);
+                        const giacenzaNew = prodNewSnap.exists() ? (prodNewSnap.data().giacenza || 0) : 0;
+                        await updateDoc(prodNewRef, { giacenza: giacenzaNew + deltaNew, updatedAt: serverTimestamp() });
+                    } else {
+                        const prodRef = doc(db, 'tenants', currentTenantId, 'prodotti', prodottoId);
+                        const prodSnap = await getDoc(prodRef);
+                        const giacenza = prodSnap.exists() ? (prodSnap.data().giacenza || 0) : 0;
+                        await updateDoc(prodRef, { giacenza: giacenza + deltaNew, updatedAt: serverTimestamp() });
+                    }
+
+                    await updateDoc(movRef, movimentoData);
+                    showAlert('Movimento aggiornato.', 'success');
+                } else {
+                    movimentoData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'), movimentoData);
+
+                    const prodRef = doc(db, 'tenants', currentTenantId, 'prodotti', prodottoId);
+                    const prodSnap = await getDoc(prodRef);
+                    const delta = tipo === 'entrata' ? quantita : -quantita;
+                    const nuovaGiacenza = (prodSnap.exists() ? (prodSnap.data().giacenza || 0) : 0) + delta;
+                    await updateDoc(prodRef, { giacenza: nuovaGiacenza, updatedAt: serverTimestamp() });
+
+                    showAlert('Movimento registrato.', 'success');
+                }
+
+                closeModal();
+                editingMovimentoId = null;
+                await loadProdotti();
+                await loadMovimenti();
+            } catch (err) {
+                showAlert('Errore: ' + err.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

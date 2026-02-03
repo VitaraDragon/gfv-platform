@@ -11,7 +11,8 @@ import {
   createDocument,
   updateDocument,
   deleteDocument,
-  dateToTimestamp
+  dateToTimestamp,
+  getDb
 } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { TrattamentoFrutteto } from '../models/TrattamentoFrutteto.js';
@@ -185,6 +186,235 @@ async function isTipoLavoroCategoriaTrattamenti(tipoLavoroNome) {
     if (cat.parentId) { cat = await getCategoria(cat.parentId); if (!cat) return false; }
     return (cat.codice || '').toLowerCase() === 'trattamenti';
   } catch (e) { return false; }
+}
+
+/**
+ * Lista lavori e attività (categoria Trattamenti) per un frutteto e anno, con eventuale trattamento collegato.
+ * Solo righe da Gestione lavori / Diario; esclude lavori/attività già collegati a un altro frutteto sullo stesso terreno.
+ * @param {string} fruttetoId - ID frutteto
+ * @param {number} anno - Anno (es. 2026)
+ * @returns {Promise<Array<{source: string, lavoroId?: string, attivitaId?: string, data: Date, lavoroLabel: string, terrenoLabel: string, fruttetoId: string, trattamento?: TrattamentoFrutteto|null}>>}
+ */
+export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) return [];
+    if (!fruttetoId || !anno) return [];
+
+    const { getFrutteto } = await import('./frutteti-service.js');
+    const frutteto = await getFrutteto(fruttetoId);
+    if (!frutteto || !frutteto.terrenoId) return [];
+
+    const { getTerreno } = await import('../../../core/services/terreni-service.js');
+    const { getLavoriByTerreno } = await import('../../../core/services/lavori-service.js');
+    const { getAttivitaByTerreno } = await import('../../../core/services/attivita-service.js');
+
+    const terreno = await getTerreno(frutteto.terrenoId);
+    const terrenoLabel = terreno ? (terreno.nome || frutteto.terrenoId) : frutteto.terrenoId;
+
+    const dataDaStr = `${anno}-01-01`;
+    const dataAStr = `${anno}-12-31`;
+
+    const [lavoriRaw, attivitaRawAll] = await Promise.all([
+      getLavoriByTerreno(frutteto.terrenoId),
+      getAttivitaByTerreno(frutteto.terrenoId)
+    ]);
+
+    const attivitaRaw = attivitaRawAll.filter(att => {
+      const dataStr = typeof att.data === 'string' ? att.data : (att.data?.toDate ? att.data.toDate().toISOString().slice(0, 10) : '');
+      return dataStr >= dataDaStr && dataStr <= dataAStr;
+    });
+
+    const lavori = [];
+    for (const l of lavoriRaw) {
+      const dataInizio = l.dataInizio instanceof Date ? l.dataInizio : (l.dataInizio?.toDate ? l.dataInizio.toDate() : new Date(l.dataInizio));
+      if (dataInizio.getFullYear() !== anno) continue;
+      if (await isTipoLavoroCategoriaTrattamenti(l.tipoLavoro || '')) lavori.push(l);
+    }
+
+    const attivitaFiltrate = [];
+    for (const att of attivitaRaw) {
+      const ok = await isTipoLavoroCategoriaTrattamenti(att.tipoLavoro || '');
+      if (ok) attivitaFiltrate.push(att);
+    }
+
+    const rows = [];
+
+    for (const lavoro of lavori) {
+      const found = await findTrattamentoByLavoroId(lavoro.id);
+      if (found && found.fruttetoId !== fruttetoId) continue;
+      const dataInizio = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio));
+      const trattamento = found && found.fruttetoId === fruttetoId ? found.trattamento : null;
+      rows.push({
+        source: 'lavoro',
+        lavoroId: lavoro.id,
+        attivitaId: null,
+        data: dataInizio,
+        lavoroLabel: lavoro.tipoLavoro || lavoro.nome || lavoro.id,
+        terrenoLabel,
+        fruttetoId,
+        trattamento
+      });
+    }
+
+    for (const att of attivitaFiltrate) {
+      const found = await findTrattamentoByAttivitaId(att.id);
+      if (found && found.fruttetoId !== fruttetoId) continue;
+      const dataAtt = att.data && (typeof att.data.toDate === 'function') ? att.data.toDate() : (att.data ? new Date(att.data) : new Date());
+      const trattamento = found && found.fruttetoId === fruttetoId ? found.trattamento : null;
+      rows.push({
+        source: 'attivita',
+        lavoroId: null,
+        attivitaId: att.id,
+        data: dataAtt,
+        lavoroLabel: att.note || att.tipoLavoro || 'Attività',
+        terrenoLabel,
+        fruttetoId,
+        trattamento
+      });
+    }
+
+    rows.sort((a, b) => (b.data.getTime ? b.data.getTime() : 0) - (a.data.getTime ? a.data.getTime() : 0));
+    return rows;
+  } catch (error) {
+    console.error('[TRATTAMENTI-FRUTTETO] getLavoriAttivitaTrattamentiPerFrutteto:', error);
+    return [];
+  }
+}
+
+/**
+ * Lista lavori e attività (categoria Trattamenti) per TUTTI i frutteti e anno.
+ * Usata quando non è selezionato un frutteto; il frutteto serve poi come filtro in UI.
+ * @param {number} anno - Anno (es. 2026)
+ * @returns {Promise<Array<{source: string, lavoroId?: string, attivitaId?: string, data: Date, lavoroLabel: string, terrenoLabel: string, fruttetoId: string, fruttetoNome?: string, trattamento?: TrattamentoFrutteto|null}>>}
+ */
+export async function getLavoriAttivitaTrattamentiTuttiFrutteti(anno) {
+  try {
+    const { getAllFrutteti } = await import('./frutteti-service.js');
+    const frutteti = await getAllFrutteti();
+    if (!frutteti || frutteti.length === 0) return [];
+
+    const allRows = [];
+    for (const f of frutteti) {
+      const rows = await getLavoriAttivitaTrattamentiPerFrutteto(f.id, anno);
+      const fruttetoNome = f.specie || f.varieta || f.nome || f.id;
+      for (const row of rows) {
+        allRows.push({ ...row, fruttetoNome });
+      }
+    }
+    allRows.sort((a, b) => (b.data.getTime ? b.data.getTime() : 0) - (a.data.getTime ? a.data.getTime() : 0));
+    return allRows;
+  } catch (error) {
+    console.error('[TRATTAMENTI-FRUTTETO] getLavoriAttivitaTrattamentiTuttiFrutteti:', error);
+    return [];
+  }
+}
+
+/**
+ * Dati per precompilare il modal trattamento da lavoro/attività: costi (manodopera, macchina) e macchine impiegate.
+ * @param {string} fruttetoId - ID frutteto (non usato per calcolo, per coerenza API)
+ * @param {TrattamentoFrutteto|Object} trattamento - Trattamento con lavoroId o attivitaId
+ * @returns {Promise<{costoManodopera: number, costoMacchina: number, macchine: Array<{tipo: string, nome: string, ore: number}>}>}
+ */
+export async function getDatiPrecompilazioneTrattamento(fruttetoId, trattamento) {
+  const out = {
+    costoManodopera: trattamento.costoManodopera ?? 0,
+    costoMacchina: trattamento.costoMacchina ?? 0,
+    macchine: []
+  };
+  const lavoroId = trattamento.lavoroId || null;
+  const attivitaId = trattamento.attivitaId || null;
+
+  if (lavoroId) {
+    try {
+      const { getLavoro } = await import('../../../core/services/lavori-service.js');
+      const lavoro = await getLavoro(lavoroId);
+      if (lavoro) {
+        const { calcolaCostiLavoro } = await import('./lavori-frutteto-service.js');
+        const costi = await calcolaCostiLavoro(lavoroId, lavoro);
+        if (costi) {
+          out.costoManodopera = costi.costoManodopera ?? 0;
+          out.costoMacchina = costi.costoMacchine ?? 0;
+        }
+      }
+      const tenantId = getCurrentTenantId();
+      const db = getDb();
+      if (tenantId && db) {
+        const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+        const q = query(oreRef, where('stato', '==', 'validate'));
+        const snap = await getDocs(q);
+        const macchineMap = {};
+        snap.forEach(oraDoc => {
+          const ora = oraDoc.data();
+          const oreMac = ora.oreMacchina || 0;
+          if (ora.macchinaId && oreMac > 0) {
+            if (!macchineMap[ora.macchinaId]) macchineMap[ora.macchinaId] = { tipo: 'Trattore', nome: ora.macchinaId, oreTotali: 0 };
+            macchineMap[ora.macchinaId].oreTotali += oreMac;
+          }
+          if (ora.attrezzoId && oreMac > 0) {
+            if (!macchineMap[ora.attrezzoId]) macchineMap[ora.attrezzoId] = { tipo: 'Attrezzo', nome: ora.attrezzoId, oreTotali: 0 };
+            macchineMap[ora.attrezzoId].oreTotali += oreMac;
+          }
+        });
+        try {
+          const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+          if (await hasModuleAccess('parcoMacchine')) {
+            const { getMacchina } = await import('../../../modules/parco-macchine/services/macchine-service.js');
+            for (const [macId, dati] of Object.entries(macchineMap)) {
+              try {
+                const mac = await getMacchina(macId);
+                if (mac) dati.nome = mac.nome || mac.marca || macId;
+              } catch (_) { /* keep id as name */ }
+            }
+          }
+        } catch (_) { /* no parco macchine */ }
+        out.macchine = Object.values(macchineMap).map(m => ({ tipo: m.tipo, nome: m.nome, ore: m.oreTotali || 0 }));
+      }
+    } catch (e) {
+      console.warn('[TRATTAMENTI-FRUTTETO] getDatiPrecompilazioneTrattamento da lavoro:', e);
+    }
+    return out;
+  }
+
+  if (attivitaId && !lavoroId) {
+    try {
+      const { getAttivita } = await import('../../../core/services/attivita-service.js');
+      const attivita = await getAttivita(attivitaId);
+      if (attivita) {
+        const oreNette = attivita.oreNette || 0;
+        if (oreNette > 0) {
+          const { getTariffaProprietario } = await import('../../../core/services/calcolo-compensi-service.js');
+          const tariffa = await getTariffaProprietario(getCurrentTenantId());
+          out.costoManodopera = oreNette * tariffa;
+        }
+        const oreMacchina = attivita.oreMacchina || attivita.oreNette || 0;
+        let getMacchinaFn = null;
+        try {
+          const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+          if (await hasModuleAccess('parcoMacchine')) {
+            const mod = await import('../../../modules/parco-macchine/services/macchine-service.js');
+            getMacchinaFn = mod.getMacchina;
+          }
+        } catch (_) { /* ignore */ }
+        if (attivita.macchinaId && oreMacchina > 0) {
+          const mac = getMacchinaFn ? await getMacchinaFn(attivita.macchinaId).catch(() => null) : null;
+          out.macchine.push({ tipo: 'Trattore', nome: mac ? (mac.nome || mac.marca) : attivita.macchinaId, ore: oreMacchina });
+          if (mac && mac.costoOra) out.costoMacchina += oreMacchina * parseFloat(mac.costoOra);
+        }
+        if (attivita.attrezzoId && oreMacchina > 0) {
+          const att = getMacchinaFn ? await getMacchinaFn(attivita.attrezzoId).catch(() => null) : null;
+          out.macchine.push({ tipo: 'Attrezzo', nome: att ? (att.nome || att.marca) : attivita.attrezzoId, ore: oreMacchina });
+          if (att && att.costoOra) out.costoMacchina += oreMacchina * parseFloat(att.costoOra);
+        }
+      }
+    } catch (e) {
+      console.warn('[TRATTAMENTI-FRUTTETO] getDatiPrecompilazioneTrattamento da attività:', e);
+    }
+    return out;
+  }
+
+  return out;
 }
 
 export async function findTrattamentoByLavoroId(lavoroId) {

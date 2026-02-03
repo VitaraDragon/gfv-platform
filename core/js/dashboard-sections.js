@@ -520,6 +520,40 @@ window.GFVDashboardSections.createFruttetoCard = function createFruttetoCard() {
 };
 
 /**
+ * Card Prodotti e Magazzino (design verde distintivo)
+ */
+window.GFVDashboardSections.createMagazzinoCard = function createMagazzinoCard(sottoScortaCount) {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    section.style.background = 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)';
+    section.style.border = '2px solid #2E7D32';
+    section.style.borderRadius = '12px';
+
+    const alertBadge = (sottoScortaCount != null && sottoScortaCount > 0)
+        ? `<p style="color: #856404; background: #fff3cd; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px;"><strong>⚠️ ${sottoScortaCount} prodotto/i sotto scorta minima</strong></p>`
+        : '';
+
+    section.innerHTML = `
+        <h2 style="color: #2E7D32;"><span class="section-icon">📦</span> Prodotti e Magazzino</h2>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+            Anagrafica prodotti, giacenze e movimenti (entrate/uscite)
+        </p>
+        ${alertBadge}
+        <div class="quick-actions">
+            <a href="../modules/magazzino/views/magazzino-home-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #2E7D32;">
+                <span class="action-icon" style="font-size: 48px;">📦</span>
+                <span class="action-title" style="font-size: 18px; color: #2E7D32;">Apri Prodotti e Magazzino</span>
+                <span class="action-description" style="color: #666;">
+                    Gestisci prodotti, movimenti e alert scorta minima
+                </span>
+            </a>
+        </div>
+    `;
+
+    return section;
+};
+
+/**
  * Card Report/Bilancio (design scuro distintivo)
  */
 window.GFVDashboardSections.createReportCard = function createReportCard() {

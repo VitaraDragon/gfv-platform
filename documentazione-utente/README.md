@@ -23,6 +23,8 @@ Benvenuto nella documentazione completa di GFV Platform!
 ### 3. Funzionalità Principali
 - [Gestione Terreni](04-FUNZIONALITA/GESTIONE_TERRENI.md)
 - [Gestione Lavori](04-FUNZIONALITA/GESTIONE_LAVORI.md)
+- [Prodotti e Magazzino](04-FUNZIONALITA/PRODOTTI_E_MAGAZZINO.md)
+- [Trattamenti Vigneto e Frutteto](04-FUNZIONALITA/TRATTAMENTI_VIGNETO_FRUTTETO.md)
 - [Segnatura Ore](04-FUNZIONALITA/SEGNATURA_ORE.md)
 - [Mappa Aziendale](04-FUNZIONALITA/MAPPA_AZIENDALE.md)
 - [Parco Macchine](04-FUNZIONALITA/PARCO_MACCHINE.md)
@@ -37,7 +39,8 @@ Benvenuto nella documentazione completa di GFV Platform!
 ### Gestione Operativa
 - Creare e gestire lavori
 - Assegnare lavori a squadre
-- Tracciare zone lavorate
+- Tracciare zone lavorate (mappa con snap e validazione)
+- Completare trattamenti (Vigneto/Frutteto) con mappa e tabella prodotti
 - Validare ore operai
 
 ### Amministrazione
@@ -67,6 +70,6 @@ Per assistenza:
 
 ---
 
-**Ultimo aggiornamento**: Gennaio 2025  
-**Versione documentazione**: 1.0
+**Ultimo aggiornamento**: Febbraio 2025  
+**Versione documentazione**: 1.1
 

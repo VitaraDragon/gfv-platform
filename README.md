@@ -70,7 +70,8 @@ gfv-platform/
 
 - [Setup Firebase](core/SETUP_FIREBASE.md) - Configurazione progetto Firebase
 - [Core Documentation](core/README.md) - Documentazione servizi core
-- [Cursor Rules](.cursorrules) - Regole di sviluppo e architettura
+- [Documentazione utente](documentazione-utente/) - Guide per gli utenti finali
+- [Documenti di sviluppo](docs-sviluppo/) - Analisi, piani e riepiloghi creati durante lo sviluppo
 
 ## 🛠️ Tecnologie
 
@@ -133,9 +134,3 @@ gfv-platform/
 
 **Versione:** 1.0.0-alpha  
 **Stato:** In sviluppo attivo
-
-
-
-
-
-

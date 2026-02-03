@@ -2164,3 +2164,37 @@ export function renderComunicazioneRapidaForm() {
     `;
 }
 
+/**
+ * Carica il numero di prodotti sotto scorta minima (modulo Prodotti e Magazzino)
+ * Per mostrare l'alert nella dashboard Manager
+ * @param {Object} dependencies - db, auth, getDoc, doc, collection, getDocs
+ * @returns {Promise<number>} Numero di prodotti sotto scorta minima (0 se modulo non attivo o errore)
+ */
+export async function loadMagazzinoSottoScortaCount(dependencies) {
+    try {
+        const { db, auth, getDoc, doc, collection, getDocs } = dependencies;
+        const user = auth?.currentUser;
+        if (!user) return 0;
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (!userDoc.exists()) return 0;
+        const userData = userDoc.data();
+        const tenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+        if (!tenantId) return 0;
+        const prodottiRef = collection(db, 'tenants', tenantId, 'prodotti');
+        const snapshot = await getDocs(prodottiRef);
+        let count = 0;
+        snapshot.forEach((d) => {
+            const data = d.data();
+            if (data.attivo === false) return;
+            const scortaMinima = data.scortaMinima != null ? parseFloat(data.scortaMinima) : 0;
+            if (scortaMinima <= 0) return;
+            const giacenza = data.giacenza != null ? parseFloat(data.giacenza) : 0;
+            if (giacenza < scortaMinima) count++;
+        });
+        return count;
+    } catch (err) {
+        console.warn('loadMagazzinoSottoScortaCount:', err);
+        return 0;
+    }
+}
+

@@ -365,8 +365,22 @@ export async function aggregaSpeseFruttetoAnno(fruttetoId, anno = null) {
         // Non blocchiamo il calcolo, continuiamo con i lavori completati
       }
     }
-    
-    // Ricalcola speseTotaleAnno dopo aver aggiunto le attività dirette
+
+    // Costi prodotti da trattamenti (frutteti/{fruttetoId}/trattamenti) per l'anno
+    try {
+      const { getTrattamenti } = await import('./trattamenti-frutteto-service.js');
+      const trattamenti = await getTrattamenti(fruttetoId, { anno: annoTarget });
+      for (const t of trattamenti) {
+        const costoProdotti = (t.prodotti && t.prodotti.length)
+          ? t.prodotti.reduce((s, r) => s + (Number(r.costo) || 0), 0)
+          : (Number(t.costoProdotto) || 0);
+        spese.speseProdottiAnno += costoProdotti;
+      }
+    } catch (error) {
+      console.warn('[LAVORI-FRUTTETO] Errore caricamento costi prodotti da trattamenti:', error);
+    }
+
+    // Ricalcola speseTotaleAnno dopo aver aggiunto le attività dirette e i prodotti trattamenti
     spese.speseTotaleAnno = spese.speseManodoperaAnno + spese.speseMacchineAnno + spese.speseProdottiAnno;
 
     // Mappa categorie dinamiche su campi legacy (allineato a vigneto)

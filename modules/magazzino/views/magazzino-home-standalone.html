@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prodotti e Magazzino - GFV Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .header h1 { font-size: 36px; margin-bottom: 10px; }
+        .header p { font-size: 18px; opacity: 0.9; }
+        .header-actions { margin-top: 0; }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border: 2px solid #2E7D32;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .stat-value { font-size: 32px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; }
+        .stat-label { font-size: 14px; color: #666; }
+        .stat-card.alert-card {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%);
+            border-color: #ffc107;
+        }
+        .stat-card.alert-card .stat-value { color: #856404; }
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .action-card {
+            background: white;
+            border: 2px solid #2E7D32;
+            border-radius: 12px;
+            padding: 25px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .action-card:hover {
+            background: #E8F5E9;
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .action-icon { font-size: 48px; margin-bottom: 15px; }
+        .action-title { font-size: 18px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; }
+        .action-description { font-size: 14px; color: #666; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+        }
+        .alert a { color: #856404; font-weight: bold; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        h2 { color: #2E7D32; margin-bottom: 20px; }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .quick-actions { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📦 Prodotti e Magazzino</h1>
+                <p>Anagrafica prodotti, giacenze e movimenti</p>
+            </div>
+            <div class="header-actions">
+                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+
+            <div id="alert-sotto-scorta" class="alert alert-warning" style="display: none;">
+                <strong>⚠️ Prodotti sotto scorta minima:</strong>
+                <span id="alert-sotto-scorta-list"></span>
+                <a href="prodotti-standalone.html" id="alert-link-prodotti">Vai ad Anagrafica prodotti</a>
+            </div>
+
+            <h2>Panoramica</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-prodotti">-</div>
+                    <div class="stat-label">Prodotti attivi</div>
+                </div>
+                <a href="movimenti-standalone.html" class="stat-card" style="text-decoration: none; color: inherit;">
+                    <div class="stat-value" id="stat-movimenti">-</div>
+                    <div class="stat-label">Movimenti (ultimi 30 gg)</div>
+                </a>
+                <div class="stat-card alert-card" id="stat-sotto-scorta-card">
+                    <div class="stat-value" id="stat-sotto-scorta">0</div>
+                    <div class="stat-label">Sotto scorta minima</div>
+                </div>
+            </div>
+
+            <h2 style="margin-top: 40px;">Azioni Rapide</h2>
+            <div class="quick-actions">
+                <a href="prodotti-standalone.html" class="action-card">
+                    <span class="action-icon">📋</span>
+                    <span class="action-title">Anagrafica Prodotti</span>
+                    <span class="action-description">Gestisci prodotti, categorie e scorte minime</span>
+                </a>
+                <a href="movimenti-standalone.html" class="action-card">
+                    <span class="action-icon">📥</span>
+                    <span class="action-title">Movimenti</span>
+                    <span class="action-description">Registra entrate e uscite di magazzino</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, query, where, orderBy, limit, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                let attempts = 0;
+                const maxAttempts = 50;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(checkInterval);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        reject(new Error('Firebase config not loaded'));
+                    }
+                }, 100);
+            });
+        }
+
+        const firebaseConfig = await waitForConfig();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentTenantId = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../../../core/auth/login-standalone.html';
+                return;
+            }
+            try {
+                const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    window.location.href = '../../../core/auth/login-standalone.html';
+                    return;
+                }
+                const userData = userDoc.data();
+                currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => {
+                    const rl = (r || '').toLowerCase();
+                    return rl.includes('manager') || rl.includes('amministratore');
+                });
+                if (!isManager) {
+                    showAlert('Solo Manager o Amministratore possono accedere a Prodotti e Magazzino.', 'error');
+                    setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                await loadStats();
+            } catch (e) {
+                console.error(e);
+                showAlert('Errore caricamento dati', 'error');
+            }
+        });
+
+        async function loadStats() {
+            if (!currentTenantId) return;
+            try {
+                const prodottiRef = collection(db, 'tenants', currentTenantId, 'prodotti');
+                const prodottiSnap = await getDocs(prodottiRef);
+                const prodottiAttivi = prodottiSnap.docs.filter(d => d.data().attivo !== false);
+                document.getElementById('stat-prodotti').textContent = prodottiAttivi.length;
+
+                const trentaGiorniFa = new Date();
+                trentaGiorniFa.setDate(trentaGiorniFa.getDate() - 30);
+                const movimentiRef = collection(db, 'tenants', currentTenantId, 'movimentiMagazzino');
+                const q = query(movimentiRef, orderBy('data', 'desc'), limit(500));
+                const movSnap = await getDocs(q);
+                const movimentiRecenti = movSnap.docs.filter(d => {
+                    const data = d.data().data;
+                    const date = data && (data.toDate ? data.toDate() : new Date(data));
+                    return date >= trentaGiorniFa;
+                });
+                document.getElementById('stat-movimenti').textContent = movimentiRecenti.length;
+
+                const sottoScorta = prodottiAttivi.filter(d => {
+                    const g = d.data().giacenza;
+                    const sm = d.data().scortaMinima;
+                    return sm != null && sm > 0 && (g == null || g < sm);
+                });
+                document.getElementById('stat-sotto-scorta').textContent = sottoScorta.length;
+                if (sottoScorta.length > 0) {
+                    document.getElementById('alert-sotto-scorta').style.display = 'block';
+                    document.getElementById('alert-sotto-scorta-list').textContent =
+                        sottoScorta.map(d => d.data().nome || d.data().codice || d.id).join(', ');
+                }
+            } catch (err) {
+                console.warn('Errore statistiche magazzino:', err);
+                document.getElementById('stat-prodotti').textContent = '0';
+                document.getElementById('stat-movimenti').textContent = '0';
+                document.getElementById('stat-sotto-scorta').textContent = '0';
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type === 'error' ? 'error' : 'info'}`;
+            alert.style.background = type === 'error' ? '#f8d7da' : '#d1ecf1';
+            alert.style.color = type === 'error' ? '#721c24' : '#0c5460';
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+    </script>
+</body>
+</html>
