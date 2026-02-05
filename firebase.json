@@ -1,18 +1,9 @@
 {
-  "firestore": {
-    "rules": "firestore.rules"
-  },
-  "storage": {
-    "rules": "storage.rules"
+  "firestore": {"rules": "firestore.rules"},
+  "storage": {"rules": "storage.rules"},
+  "functions": {"source": "functions"},
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/functions/**", "**/docs-sviluppo/**", "**/documentazione-utente/**"]
   }
 }
-
-
-
-
-
-
-
-
-
-
