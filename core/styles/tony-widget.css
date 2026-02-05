@@ -1,0 +1,360 @@
+/* Tony Widget - Assistente IA (Fase 5 UI) */
+
+.tony-widget-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9998;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(46, 139, 87, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tony-widget-fab:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(46, 139, 87, 0.5);
+}
+
+.tony-widget-fab:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.tony-widget-panel {
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
+    z-index: 9999;
+    width: 380px;
+    max-width: calc(100vw - 48px);
+    max-height: 520px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.tony-widget-panel.is-open {
+    display: flex;
+}
+
+.tony-widget-header {
+    background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.tony-widget-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tony-widget-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.tony-widget-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.tony-widget-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 200px;
+    max-height: 340px;
+}
+
+.tony-msg {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.45;
+    word-wrap: break-word;
+}
+
+.tony-msg.user {
+    align-self: flex-end;
+    background: #2E8B57;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.tony-msg.tony {
+    align-self: flex-start;
+    background: #f0f4f2;
+    color: #333;
+    border: 1px solid #e0e8e4;
+    border-bottom-left-radius: 4px;
+}
+
+.tony-msg.error {
+    align-self: flex-start;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.tony-msg.typing {
+    align-self: flex-start;
+    color: #666;
+    font-style: italic;
+}
+
+.tony-widget-voice-confirm {
+    padding: 10px 16px;
+    background: #e8f5e9;
+    border-top: 1px solid #c8e6c9;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tony-widget-voice-confirm .tony-voice-confirm-text {
+    font-size: 13px;
+    color: #2e7d32;
+}
+
+.tony-widget-voice-confirm .tony-voice-confirm-text em {
+    font-style: normal;
+    font-weight: 500;
+}
+
+.tony-widget-voice-confirm-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.tony-voice-confirm-cancel,
+.tony-voice-confirm-ok {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+}
+
+.tony-voice-confirm-cancel {
+    background: #f0f4f2;
+    color: #333;
+}
+
+.tony-voice-confirm-ok {
+    background: #2E8B57;
+    color: white;
+}
+
+.tony-widget-mic {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 8px;
+    background: #f0f4f2;
+    border: 1px solid #dee2e6;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.tony-widget-mic:hover:not(:disabled) {
+    background: #e0e8e4;
+    border-color: #2E8B57;
+}
+
+.tony-widget-mic.tony-mic-active {
+    background: #ffebee;
+    border-color: #e57373;
+    animation: tony-mic-pulse 1s ease-in-out infinite;
+}
+
+.tony-widget-mic:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@keyframes tony-mic-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.tony-widget-input-row {
+    padding: 12px 16px;
+    border-top: 1px solid #e9ecef;
+    background: #fafafa;
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.tony-widget-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    min-height: 42px;
+    max-height: 100px;
+}
+
+.tony-widget-input:focus {
+    outline: none;
+    border-color: #2E8B57;
+    box-shadow: 0 0 0 2px rgba(46, 139, 87, 0.2);
+}
+
+.tony-widget-send {
+    padding: 10px 16px;
+    background: #2E8B57;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.tony-widget-send:hover:not(:disabled) {
+    background: #228B22;
+}
+
+.tony-widget-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Dialog conferma apertura pagina (stile Tony) */
+.tony-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.tony-confirm-box {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    max-width: 360px;
+    width: 100%;
+    padding: 20px 24px;
+}
+
+.tony-confirm-title {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.tony-confirm-message {
+    margin: 0 0 20px 0;
+    font-size: 15px;
+    color: #555;
+    line-height: 1.45;
+}
+
+.tony-confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.tony-confirm-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.tony-confirm-cancel {
+    background: #f0f4f2;
+    color: #333;
+    border: 1px solid #dee2e6;
+}
+
+.tony-confirm-cancel:hover {
+    background: #e0e8e4;
+}
+
+.tony-confirm-ok {
+    background: #2E8B57;
+    color: white;
+}
+
+.tony-confirm-ok:hover {
+    background: #228B22;
+}
+
+@media (max-width: 480px) {
+    .tony-widget-panel {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        max-width: 100%;
+        max-height: 70vh;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .tony-widget-fab {
+        bottom: 16px;
+        right: 16px;
+    }
+}
