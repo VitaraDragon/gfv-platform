@@ -254,7 +254,7 @@ export async function calcolaCostiLavoro(lavoroId, lavoro) {
     let costoMacchine = 0;
     
     // Carica ore validate per questo lavoro
-    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
     const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
     const oreQuery = query(oreRef, where('stato', '==', 'validate'));
     const oreSnapshot = await getDocs(oreQuery);
@@ -649,7 +649,7 @@ export async function aggregaSpeseVignetoAnno(vignetoId, anno = null) {
       console.warn('[LAVORI-VIGNETO] Database o tenantId non disponibili per caricare attività dirette');
     } else {
       try {
-        const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
         const attivitaRef = collection(db, `tenants/${tenantId}/attivita`);
         
         // Recupera tutte le attività per il terreno (filtro lato client per lavoroId null)
@@ -1059,7 +1059,7 @@ export async function getDettaglioSpeseVignetoAnno(vignetoId, anno = null) {
     
     if (db && tenantId) {
       try {
-        const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
         const attivitaRef = collection(db, `tenants/${tenantId}/attivita`);
         const attivitaQuery = query(
           attivitaRef,
@@ -1306,7 +1306,7 @@ export async function getAttivitaDirettePerTerreno(terrenoId, anno, lavori = [])
     }
     const dataLimite = dataPrimoLavoro ? dataPrimoLavoro.toISOString().split('T')[0] : annoFine;
 
-    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
     const attivitaRef = collection(db, `tenants/${tenantId}/attivita`);
     const attivitaQuery = query(attivitaRef, where('terrenoId', '==', terrenoId));
     const attivitaSnapshot = await getDocs(attivitaQuery);

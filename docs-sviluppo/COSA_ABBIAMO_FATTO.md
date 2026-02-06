@@ -1,5 +1,133 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
+## ✅ Tony: comportamento risposta/conferma, dialog custom, widget su tutte le pagine (2026-02-05) - COMPLETATO
+
+### Obiettivo
+Migliorare l’esperienza con Tony: (1) risposta prima e apertura pagina solo dopo conferma utente quando la richiesta non è esplicita di navigazione; (2) sostituire il popup nativo di conferma con un dialog in stile app; (3) rendere Tony disponibile su tutte le pagine dell’app (non solo in dashboard) tramite un loader unico.
+
+### Implementazione
+
+#### Comportamento risposta / conferma apertura pagina
+- **System instruction** (in `core/services/tony-service.js` e `functions/index.js`): per domande tipo “come fare” (es. “Come si crea un terreno?”) Tony deve **prima spiegare i passi** (usando la guida app) e **non** includere `APRI_PAGINA` nella stessa risposta; può solo proporre in testo: “Se vuoi andare alla pagina [X], dimmi ‘apri’ o ‘sì’ e te la apro.” L’apertura avviene solo quando l’utente conferma in un messaggio successivo. Per richieste **esplicite** di navigazione (“Portami ai terreni”, “Apri gestione lavori”) Tony continua a includere subito `APRI_PAGINA`.
+- Stessa logica per suggerimenti (es. “Dove vedo la produzione uva?”): risposta testuale + invito, senza azione nella stessa risposta.
+
+#### Dialog conferma (al posto di `confirm()`)
+- In **dashboard** (poi centralizzato nel loader): sostituito `confirm()` con un **dialog custom** in stile Tony: overlay semitrasparente, box con messaggio “Aprire la pagina «Terreni»?” e pulsanti **Annulla** / **Apri**. Stili in `core/styles/tony-widget.css` (`.tony-confirm-overlay`, `.tony-confirm-box`, `.tony-confirm-btn`). La navigazione avviene solo se l’utente clicca **Apri**; click su overlay o Annulla chiude senza navigare.
+
+#### Tony su tutte le pagine (loader standalone)
+- Creato **`core/js/tony-widget-standalone.js`**: loader unico che (1) inietta il CSS da `../styles/tony-widget.css` (rispetto allo script), (2) inietta nel DOM FAB, pannello chat e dialog conferma, (3) imposta la logica chat (appendMessage, send, open/close), (4) imposta il dialog di conferma e `window.showTonyConfirmDialog(message)`, (5) calcola gli URL di navigazione in base a `window.location.pathname` (mappa target → path da root, poi path relativo dalla pagina corrente), (6) fa polling per `getAppInstance()` (fino a ~10 s) e poi inizializza Tony, registra `onAction` per `APRI_PAGINA` con conferma e navigazione.
+- **Dashboard**: rimossi FAB, pannello, dialog e tutto lo script Tony inline; lasciati solo `<link href="styles/tony-widget.css">` e `<script type="module" src="js/tony-widget-standalone.js">`.
+- **Altre pagine**: aggiunto lo stesso snippet (link CSS + script module) con path relativo a `core/`:
+  - **Core** (stesso livello di dashboard): `terreni-standalone`, `attivita-standalone`, `statistiche-standalone`, `segnatura-ore-standalone` → `styles/tony-widget.css`, `js/tony-widget-standalone.js`.
+  - **Core/admin**: tutte le standalone (gestione-lavori, amministrazione, gestione-guasti, segnalazione-guasti, gestisci-utenti, gestione-operai, gestione-squadre, compensi-operai, gestione-macchine, statistiche-manodopera, validazione-ore, abbonamento, impostazioni, lavori-caposquadra, report) → `../styles/tony-widget.css`, `../js/tony-widget-standalone.js`.
+  - **Modules**: tutte le view standalone di vigneto, frutteto, magazzino, conto-terzi, report → `../../../core/styles/tony-widget.css`, `../../../core/js/tony-widget-standalone.js`.
+- **Escluse** (nessuno snippet Tony): login, registrazione, reset-password, registrazione-invito, fix-utente-mancante, accetta-preventivo (opzionale; lo snippet è stato aggiunto per coerenza).
+
+### File toccati
+- `core/services/tony-service.js` (system instruction: “SPIEGA PRIMA, CHIEDI CONFERMA PER APRIRE”, no APRI_PAGINA per “come fare”)
+- `functions/index.js` (stessa system instruction)
+- `core/styles/tony-widget.css` (stili dialog conferma)
+- `core/dashboard-standalone.html` (rimozione HTML/script Tony, aggiunta loader; rimosso blocco init/dialog dal modulo script)
+- **Nuovo:** `core/js/tony-widget-standalone.js` (loader: inject DOM/CSS, chat UI, confirm dialog, getUrlForTarget, init Tony con polling)
+- **Core:** `terreni-standalone.html`, `attivita-standalone.html`, `statistiche-standalone.html`, `segnatura-ore-standalone.html`
+- **Core/admin:** tutte le *-standalone.html elencate sopra
+- **Modules:** tutte le view *-standalone.html di vigneto, frutteto, magazzino, conto-terzi, report
+
+### Documentazione aggiornata
+- `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (questa sezione)
+- `docs-sviluppo/CHECKLIST_TONY.md` (voci conferma, dialog, widget globale)
+- `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` (comportamento, dialog, Tony su tutte le pagine, file loader)
+
+### Risultato
+- Tony risponde prima e propone l’apertura pagina solo in testo quando la richiesta non è esplicita; l’utente conferma con “sì”/“apri” nel turno successivo. Conferma lato client sempre tramite dialog in stile app (no popup nativo). Tony è disponibile su tutte le pagine dell’app (FAB in basso a destra) tramite un unico loader che risolve gli URL in base al pathname.
+
+---
+
+## ✅ Migrazione Firebase 11 e firebase-service (2026-02-05) - COMPLETATO
+
+### Obiettivo
+Eliminare gli errori in console tipo *"Expected first argument to collection() to be a CollectionReference, a DocumentReference or FirebaseFirestore"* unificando l’uso del Firebase SDK: tutta l’app usa **Firebase 11** e si appoggia a **`core/services/firebase-service.js`** per inizializzazione e operazioni Firestore/Auth. Nessuna pagina o modulo deve più importare o inizializzare Firebase 10.7.1 in modo locale.
+
+### Implementazione
+
+#### Pagine HTML (core, admin, moduli)
+- **Core:** `registrazione-standalone`, `reset-password-standalone`, `segnatura-ore-standalone`, `login.html` (reset password).
+- **Admin:** `validazione-ore`, `statistiche-manodopera`, `gestione-macchine`, `gestione-guasti`, `segnalazione-guasti`, `gestione-lavori`, `abbonamento`, `lavori-caposquadra`, `gestione-squadre`, `gestione-operai`, `compensi-operai`, `fix-utente-mancante`, `amministrazione`, `gestisci-utenti`.
+- **Auth:** `registrazione-invito-standalone`.
+- **Moduli:** tutte le view standalone di **vigneto** (pianifica-impianto, vendemmia, statistiche, calcolo-materiali, vigneti, dashboard, potatura, trattamenti), **frutteto** (statistiche, frutteti, raccolta-frutta, dashboard, potatura, trattamenti), **conto-terzi** (clienti, preventivi, accetta-preventivo, mappa-clienti, home, nuovo-preventivo, terreni-clienti, tariffe), **magazzino** (home, prodotti, movimenti), **report**.
+
+In tutte le pagine: rimossi gli import CDN Firebase 10.7.1; inizializzazione sostituita con `initializeFirebase(firebaseConfig)` e `getAppInstance()`, `getAuthInstance()`, `getDb()`; funzioni Auth non esportate dal service (es. `signInWithEmailAndPassword`, `sendPasswordResetEmail`, `createUserWithEmailAndPassword`) importate da **firebase-auth.js 11.0.0**; import dinamici 10.7.1 sostituiti con `firebase-service.js` o funzioni già in pagina.
+
+#### File JavaScript
+- **Core:** `tenant-service.js`, `auth-service.js` (Auth 11 + firebase-service), `terreni-controller.js`, `attivita-events.js`, `attivita-controller.js`, `terreni-events.js`.
+- **Admin:** `gestione-lavori-controller.js`, `gestione-lavori-maps.js`, `gestione-lavori-events.js`.
+- **Servizi core:** `ore-service.js`, `calcolo-compensi-service.js` (uso di `getDb()` al posto di `initializeApp` + `getFirestore`).
+- **Moduli:** servizi vigneto (trattamenti, lavori, potatura, vendemmia, statistiche aggregate), frutteto (lavori, statistiche aggregate, potatura, trattamenti), **parco-macchine** `macchine-utilizzo-service.js` (Firebase 11 + `getDb` da firebase-service).
+
+Tutti gli import dinamici da `https://www.gstatic.com/firebasejs/10.7.1/...` sono stati sostituiti con import da `firebase-service.js` (path relativo in base alla cartella del file) o con Auth/Storage 11.0.0 dove il service non re-esporta quelle funzioni.
+
+### File toccati (riepilogo)
+- **Core:** `core/services/tenant-service.js`, `core/services/auth-service.js`, `core/services/ore-service.js`, `core/services/calcolo-compensi-service.js`, `core/js/terreni-controller.js`, `core/js/attivita-events.js`, `core/js/attivita-controller.js`, `core/js/terreni-events.js`, tutte le HTML standalone e auth in `core/` e `core/admin/`.
+- **Moduli:** view e servizi in `modules/vigneto/`, `modules/frutteto/`, `modules/conto-terzi/`, `modules/magazzino/`, `modules/report/`, `modules/parco-macchine/services/macchine-utilizzo-service.js`.
+
+### Documentazione aggiornata
+- `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (questa sezione)
+- `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` (riferimento stack Firebase 11)
+- `docs-sviluppo/CHECKLIST_TONY.md` (voce dipendenze Firebase 11)
+
+### Risultato
+- Nessun riferimento residuo a Firebase 10.7.1 in `.html` e `.js`. L’app usa un solo SDK (Firebase 11) e un solo punto di inizializzazione (`firebase-service.js`), evitando il conflitto tra istanze Firestore 10 e 11 che generava l’errore in console.
+
+---
+
+## ✅ Tony (assistente IA): Cloud Function, regione, GEMINI_API_KEY, manifest, test (2026-02-05) - COMPLETATO
+
+### Obiettivo
+Completare il deploy della Cloud Function **tonyAsk** (Gemini) per Tony, risolvere CORS/regione, documentare dove impostare la chiave API e come provare Tony. Correggere il 404 del manifest.json.
+
+### Implementazione
+
+#### Deploy Cloud Function
+- **tonyAsk** (callable) deployata in **europe-west1**, Node.js 20, Firebase Functions v2 (`firebase-functions/v2/https`).
+- Funzione: riceve `message` e `context`, verifica `request.auth`, chiama API REST Gemini con system instruction Tony, restituisce `{ text }`.
+- File: `functions/index.js`, `functions/package.json` (engines node 20).
+
+#### Regione e CORS
+- Il client chiamava `us-central1` (default di `getFunctions(app)`); la function è in **europe-west1** → CORS/404.
+- In **tony-service.js**: `getFunctions(app)` sostituito con **`getFunctions(app, 'europe-west1')`** così le chiamate vanno alla function corretta.
+
+#### Chiave Gemini (GEMINI_API_KEY)
+- Impostata come **variabile d'ambiente** nella revisione Cloud Run (la function v2 gira su Cloud Run).
+- Percorso: **Google Cloud Console** → Cloud Run → servizio **tonyask** → Modifica nuova revisione → Container → Variabili e secret → Aggiungi variabile: Nome `GEMINI_API_KEY`, Valore (API key da [Google AI Studio](https://aistudio.google.com/apikey)) → Distribuisci.
+- In alternativa (futuro): Secret Manager + `defineSecret` nel codice function.
+
+#### Manifest.json 404
+- I link in tutte le pagine puntavano a `/gfv-platform/manifest.json`; con server root = cartella progetto il path non esisteva.
+- Sostituito **`/gfv-platform/manifest.json`** con **`/manifest.json`** in: `core/dashboard-standalone.html`, `index.html`, `core/attivita-standalone.html`, `core/terreni-standalone.html`, `core/auth/login-standalone.html`, `core/statistiche-standalone.html`, tutte le view standalone di frutteto e vigneto (raccolta, frutteti, vigneti, calcolo-materiali, statistiche, vendemmia, pianifica-impianto).
+
+#### Come provare Tony
+- Dashboard caricata e utente loggato → in console: **`await Tony.ask("Ciao")`** o **`await Tony.ask("Apri il modulo attività")`**.
+- Tony risponde con testo + eventuale azione in JSON (es. `{"action": "apri_modulo", "params": {"modulo": "attività"}}`). L’esecuzione effettiva delle azioni (navigazione, ecc.) richiede `Tony.onAction(callback)` da collegare in un secondo momento.
+
+#### Cleanup policy (opzionale)
+- Al primo deploy la CLI ha chiesto i giorni di retention per le immagini container; impostati 7 giorni. Se la policy non si applica: `firebase functions:artifacts:setpolicy` o `firebase deploy --only functions --force`.
+
+### File toccati
+- `core/services/tony-service.js` (getFunctions con region `europe-west1`)
+- `core/dashboard-standalone.html`, `index.html`, `core/attivita-standalone.html`, `core/terreni-standalone.html`, `core/auth/login-standalone.html`, `core/statistiche-standalone.html`
+- `modules/frutteto/views/raccolta-frutta-standalone.html`, `frutteti-standalone.html`, `frutteto-statistiche-standalone.html`
+- `modules/vigneto/views/vigneti-standalone.html`, `calcolo-materiali-standalone.html`, `vigneto-statistiche-standalone.html`, `vendemmia-standalone.html`, `pianifica-impianto-standalone.html`
+
+### Documentazione aggiornata
+- `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` (sezione implementazione, regione, GEMINI_API_KEY, come provare)
+- `functions/README.md` (regione europe-west1, dove impostare GEMINI_API_KEY in Cloud Run)
+- `README.md` (menzione assistente Tony)
+
+### Risultato
+- Tony operativo via Cloud Function in europe-west1; chiave Gemini configurata in Cloud Run; client con regione corretta; manifest non più 404. Test da console con `await Tony.ask("...")` funzionante.
+
+---
+
 ## ✅ Trattamenti Vigneto/Frutteto: alert dosaggio, bollino verde, pulsante Modifica, costi in dashboard (2026-02-03) - COMPLETATO
 
 ### Obiettivo

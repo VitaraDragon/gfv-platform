@@ -13,6 +13,7 @@ GFV Platform è una piattaforma modulare pay-per-use per la gestione completa di
 - **Ruoli e Permessi**: Sistema completo di gestione accessi
 - **Real-time**: Sincronizzazione dati in tempo reale
 - **Scalabile**: Architettura pronta per crescita
+- **Tony (assistente IA)**: Capocantiere digitale integrato (Gemini via Cloud Function); risponde a domande e comandi testuali; estensibile a voce e azioni nell’app. Vedi `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` e `functions/README.md`.
 
 ## 🏗️ Architettura
 
@@ -72,6 +73,8 @@ gfv-platform/
 - [Core Documentation](core/README.md) - Documentazione servizi core
 - [Documentazione utente](documentazione-utente/) - Guide per gli utenti finali
 - [Documenti di sviluppo](docs-sviluppo/) - Analisi, piani e riepiloghi creati durante lo sviluppo
+- [Guida sviluppo Tony](docs-sviluppo/GUIDA_SVILUPPO_TONY.md) - Assistente IA (Gemini), architettura, come provare
+- [Cloud Functions (Tony)](functions/README.md) - Deploy tonyAsk, GEMINI_API_KEY, regione europe-west1
 
 ## 🛠️ Tecnologie
 

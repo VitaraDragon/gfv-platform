@@ -103,38 +103,20 @@ async function fallbackDirectFirestore(serviceName, options) {
     }
     
     try {
-        const { collection, getDocs, query, orderBy: orderByFn, where: whereFn } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-        const collectionRef = collection(db, 'tenants', tenantId, collectionName);
+        const { getCollectionData } = await import('./firebase-service.js');
+        const whereArray = (whereFilters || []).filter(f => {
+            const hasClienteIdFilter = whereFilters && whereFilters.some(x => x[0] === 'clienteId');
+            const useClientSideFilter = hasClienteIdFilter && orderBy;
+            if (useClientSideFilter && f[0] === 'clienteId') return false;
+            return true;
+        });
+        const useClientSideFilter = whereFilters && whereFilters.some(f => f[0] === 'clienteId') && orderBy;
         
-        // Verifica se c'è un filtro clienteId (richiede indice composito con orderBy)
-        // In tal caso, carica tutti e filtra/ordina lato client
-        const hasClienteIdFilter = whereFilters && whereFilters.some(f => f[0] === 'clienteId');
-        const useClientSideFilter = hasClienteIdFilter && orderBy;
-        
-        // Costruisci query
-        let q = collectionRef;
-        
-        // Aggiungi filtri where se presenti (escludi clienteId se filtriamo lato client)
-        if (whereFilters && whereFilters.length > 0) {
-            whereFilters.forEach(filter => {
-                const [field, operator, value] = filter;
-                // Salta filtro clienteId se filtriamo lato client
-                if (useClientSideFilter && field === 'clienteId') {
-                    return;
-                }
-                q = query(q, whereFn(field, operator, value));
-            });
-        }
-        
-        // Aggiungi ordinamento solo se non filtriamo lato client
-        if (orderBy && !useClientSideFilter) {
-            q = query(q, orderByFn(orderBy, orderDirection || 'asc'));
-        }
-        
-        const snapshot = await getDocs(q);
-        const results = [];
-        snapshot.forEach(doc => {
-            results.push({ id: doc.id, ...doc.data() });
+        const results = await getCollectionData(collectionName, {
+            tenantId,
+            orderBy: orderBy && !useClientSideFilter ? orderBy : undefined,
+            orderDirection: orderDirection || 'asc',
+            where: whereArray.length > 0 ? whereArray : undefined
         });
         
         // Filtra lato client se necessario

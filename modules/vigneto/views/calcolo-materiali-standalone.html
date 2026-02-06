@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calcolo Materiali Impianto - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" id="metaThemeColor" content="#6A1B9A">
     <script>
         (function() {
@@ -586,17 +586,17 @@
             return resolvedPath;
         }
         
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { getAllPianificazioni, deletePianificazione, confermaPianificazione } from '../services/pianificazione-impianto-service.js';
         import { calcolaMateriali, formattaMaterialiPerTabella, TIPI_IMPIANTO, getTipiImpiantoPerColtura, getDefaultTipoImpiantoPerColtura, normalizeFormaAllevamentoToKey } from '../services/calcolo-materiali-service.js';
         import { getFormeAllevamentoList, getChiaveTecnica, getNomeVisualizzato, getConfigurazioneImpianto } from '../config/forme-allevamento.js';
         import { getConfigColtura, isColturaValida } from '../../../shared/config/pianificazione-impianto-colture.js';
         
         // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
+        const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
         const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
         const terreniServiceModule = await import(resolvePath('../../../core/services/terreni-service.js'));
         
+        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = firebaseServiceModule;
         const { getCurrentTenantId, getCurrentTenant } = tenantServiceModule;
         const { getAllTerreni } = terreniServiceModule;
 
@@ -614,17 +614,10 @@
             try {
                 // Carica configurazione Firebase
                 const firebaseConfig = await waitForConfig();
-                
-                // Importa servizi Firebase e Tenant con risoluzione percorsi
-                const { initializeFirebase, getAuthInstance, getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
                 const { initializeTenantService } = await import(resolvePath('../../../core/services/tenant-service.js'));
-                
-                // Inizializza Firebase PRIMA di tutto
-                await initializeFirebase(firebaseConfig);
+                initializeFirebase(firebaseConfig);
                 auth = getAuthInstance();
                 db = getDb();
-                
-                // Inizializza servizi tenant DOPO Firebase
                 initializeTenantService();
 
                 onAuthStateChanged(auth, async (user) => {
@@ -1745,6 +1738,24 @@
 
         // Avvia inizializzazione
         init();
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

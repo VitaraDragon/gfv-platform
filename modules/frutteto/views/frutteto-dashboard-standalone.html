@@ -501,10 +501,8 @@
 
         const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
         const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
-        const { initializeFirebase, getAuthInstance, getDb } = firebaseServiceModule;
+        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where } = firebaseServiceModule;
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { collection, getDocs, query, where } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         let db = null;
         let tenantId = null;
@@ -772,6 +770,24 @@
         }
 
         init();
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

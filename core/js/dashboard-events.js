@@ -4,10 +4,23 @@
  * @module core/js/dashboard-events
  */
 
+import {
+    signOut,
+    doc,
+    updateDoc,
+    getDoc,
+    Timestamp,
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc,
+    serverTimestamp
+} from '../services/firebase-service.js';
+
 // ============================================
 // IMPORTS
 // ============================================
-// Le importazioni Firebase verranno fatte nel file HTML principale
 
 // ============================================
 // FUNZIONI EVENT HANDLERS
@@ -38,7 +51,6 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
         const user = auth.currentUser;
         if (user) {
             try {
-                const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                 const userDocRef = doc(db, 'users', user.uid);
                 await updateDoc(userDocRef, {
                     isOnline: false
@@ -52,7 +64,6 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
         sessionStorage.removeItem('gfv_expected_user_id');
         sessionStorage.removeItem('gfv_user_just_registered');
         
-        const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
         await signOut(auth);
         window.location.href = './auth/login-standalone.html';
     } catch (error) {
@@ -73,7 +84,6 @@ export async function confermaComunicazione(comunicazioneId, auth, db, loadComun
         const user = auth.currentUser;
         if (!user) return;
         
-        const { getDoc, doc, updateDoc, Timestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (!userDoc.exists()) return;
         
@@ -170,7 +180,6 @@ export async function handleSendComunicazioneRapida(e, auth, db, lavoriAttiviCap
             return;
         }
         
-        const { getDoc, doc, collection, query, where, getDocs, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (!userDoc.exists()) {
             console.error('handleSendComunicazioneRapida: documento utente non trovato');

@@ -239,7 +239,7 @@ export async function confirmDeleteAttivita(
     }
     
     try {
-        const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, deleteDoc } = await import('../services/firebase-service.js');
         
         // Gestione vendemmia collegata (se modulo vigneto attivo)
         try {

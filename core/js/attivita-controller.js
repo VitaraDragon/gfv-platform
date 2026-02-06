@@ -52,7 +52,7 @@ export async function getTenantId(userId, db, currentTenantId = null) {
     if (currentTenantId) return currentTenantId;
     
     try {
-        const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { getDoc, doc } = await import('../services/firebase-service.js');
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
             const userData = userDoc.data();
@@ -78,7 +78,7 @@ export async function getTenantId(userId, db, currentTenantId = null) {
  */
 export async function getAttivitaCollection(tenantId, db) {
     if (!tenantId) throw new Error('Tenant ID non disponibile');
-    const { collection } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { collection } = await import('../services/firebase-service.js');
     return collection(db, `tenants/${tenantId}/attivita`);
 }
 
@@ -90,7 +90,7 @@ export async function getAttivitaCollection(tenantId, db) {
  */
 export async function getTerreniCollection(tenantId, db) {
     if (!tenantId) throw new Error('Tenant ID non disponibile');
-    const { collection } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { collection } = await import('../services/firebase-service.js');
     return collection(db, `tenants/${tenantId}/terreni`);
 }
 
@@ -120,7 +120,7 @@ export async function generaVoceDiarioContoTerzi(
 
     // Verifica se già esiste una voce diario per questo lavoro
     try {
-        const { collection, query, getDocs, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, where } = await import('../services/firebase-service.js');
         const attivitaQuery = query(
             collection(db, 'tenants', currentTenantId, 'attivita'),
             where('lavoroId', '==', lavoroId)
@@ -135,7 +135,7 @@ export async function generaVoceDiarioContoTerzi(
     }
 
     try {
-        const { doc, getDoc, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc, collection, addDoc, serverTimestamp } = await import('../services/firebase-service.js');
         
         // Carica dati terreno
         const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoroData.terrenoId));
@@ -235,7 +235,7 @@ export async function updateMacchinaStato(macchinaId, nuovoStato, currentTenantI
         } catch (serviceError) {
             // Fallback: aggiorna direttamente da Firestore
             console.warn('Fallback: aggiornamento diretto Firestore per macchina', serviceError);
-            const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { doc, updateDoc, serverTimestamp } = await import('../services/firebase-service.js');
             const macchinaRef = doc(db, 'tenants', currentTenantId, 'macchine', macchinaId);
             await updateDoc(macchinaRef, {
                 stato: nuovoStato,
@@ -627,7 +627,7 @@ export async function loadTerreni(
         // carichiamo anche direttamente i terreni clienti (fallback)
         if (isContoTerziMode) {
             try {
-                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const { collection, getDocs } = await import('../services/firebase-service.js');
                 const terreniCollection = await getTerreniCollection(currentTenantId, db);
                 const querySnapshot = await getDocs(terreniCollection);
                 
@@ -716,7 +716,7 @@ export async function loadLavoriContoTerzi(
     try {
         if (!currentTenantId || !isContoTerziMode) return;
 
-        const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs } = await import('../services/firebase-service.js');
         // Carica tutti i lavori e filtra client-side per evitare indice composto
         const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
         const snapshot = await getDocs(lavoriRef);
@@ -768,7 +768,7 @@ export async function loadClienti(
     try {
         if (!currentTenantId || !isContoTerziMode) return;
 
-        const { collection, query, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, orderBy } = await import('../services/firebase-service.js');
         const clientiRef = collection(db, 'tenants', currentTenantId, 'clienti');
         const q = query(clientiRef, orderBy('ragioneSociale', 'asc'));
         const snapshot = await getDocs(q);
@@ -833,7 +833,7 @@ export async function loadAttivita(
             throw new Error('Tenant ID non disponibile');
         }
 
-        const { query, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { query, getDocs, orderBy } = await import('../services/firebase-service.js');
         const attivitaCollection = await getAttivitaCollection(tenantId, db);
         // Usa solo orderBy su data per evitare bisogno di indice composito
         const q = query(attivitaCollection, orderBy('data', 'desc'));

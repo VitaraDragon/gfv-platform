@@ -158,7 +158,7 @@ export async function loadTerreni(currentTenantId, db, app, auth, terreniList, p
             // In modalità conto terzi, carica direttamente da Firestore tutti i terreni
             // perché il servizio ha un default clienteId=null che filtra solo aziendali
             try {
-                const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const { collection, getDocs } = await import('../../services/firebase-service.js');
                 const terreniCollection = collection(db, 'tenants', currentTenantId, 'terreni');
                 const querySnapshot = await getDocs(terreniCollection);
                 
@@ -230,7 +230,7 @@ export async function loadTerreni(currentTenantId, db, app, auth, terreniList, p
  */
 export async function loadCaposquadra(currentTenantId, db, caposquadraList, populateCaposquadraFilter, populateCaposquadraDropdown) {
     try {
-        const { collection, query, getDocs, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, where } = await import('../../services/firebase-service.js');
         const usersRef = collection(db, 'users');
         const q = query(
             usersRef,
@@ -263,7 +263,7 @@ export async function loadCaposquadra(currentTenantId, db, caposquadraList, popu
  */
 export async function loadOperai(currentTenantId, db, operaiList, populateOperaiDropdown) {
     try {
-        const { collection, query, getDocs, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, where } = await import('../../services/firebase-service.js');
         const usersRef = collection(db, 'users');
         const q = query(
             usersRef,
@@ -298,7 +298,7 @@ export async function loadSquadre(currentTenantId, db, squadreList) {
             console.warn('loadSquadre: currentTenantId non disponibile');
             return;
         }
-        const { collection, query, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, orderBy } = await import('../../services/firebase-service.js');
         const squadreRef = collection(db, 'tenants', currentTenantId, 'squadre');
         const q = query(squadreRef, orderBy('nome', 'asc'));
         const snapshot = await getDocs(q);
@@ -322,7 +322,7 @@ export async function loadSquadre(currentTenantId, db, squadreList) {
  */
 export async function loadProgressiLavoro(lavoroId, currentTenantId, db) {
     try {
-        const { doc, getDoc, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc, collection, getDocs } = await import('../../services/firebase-service.js');
         // Prima prova a usare il campo del documento lavoro (più veloce)
         const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
         if (lavoroDoc.exists()) {
@@ -366,7 +366,7 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
     }
 
     try {
-        const { collection, query, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, orderBy } = await import('../../services/firebase-service.js');
         const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
         let snapshot;
         
@@ -426,7 +426,7 @@ export async function loadCategorieLavori(currentTenantId, db, categorieLavoriPr
     try {
         if (!currentTenantId) return;
         
-        const { collection, query, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, orderBy } = await import('../../services/firebase-service.js');
         const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
         
         // Carica tutte le categorie
@@ -534,7 +534,7 @@ export async function loadTipiLavoro(
         if (isFileProtocol) {
             // Fallback per ambiente file://: carica direttamente da Firestore
             console.warn('Ambiente file:// rilevato, uso fallback diretto da Firestore');
-            const { collection, query, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { collection, query, getDocs, orderBy } = await import('../../services/firebase-service.js');
             const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
             const snapshot = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
             tipiLavoroList.length = 0; // Pulisci array
@@ -664,7 +664,7 @@ export async function loadStatistics(currentTenantId, db, lavoriList) {
             return;
         }
         
-        const { collection, getDocs, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, doc, getDoc } = await import('../../services/firebase-service.js');
         
         let totaleLavori = lavoriList.length;
         let lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso').length;
@@ -810,7 +810,7 @@ export async function updateMacchinaStato(macchinaId, nuovoStato, currentTenantI
             return;
         }
 
-        const { doc, getDoc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc, updateDoc, serverTimestamp } = await import('../../services/firebase-service.js');
         const macchinaRef = doc(db, 'tenants', currentTenantId, 'macchine', macchinaId);
         
         // Verifica stato attuale prima di aggiornare
@@ -845,7 +845,7 @@ export async function correggiMacchineLavoriCompletati(currentTenantId, db, lavo
             return;
         }
         
-        const { doc, getDoc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc, updateDoc, serverTimestamp } = await import('../../services/firebase-service.js');
 
         const lavoriCompletati = lavoriList.filter(l => 
             (l.stato === 'completato' || l.stato === 'completato_da_approvare') && 
@@ -1032,7 +1032,7 @@ export async function loadAttrezzi(currentTenantId, db, app, auth, attrezziList)
  */
 export async function loadCategorieAttrezzi(currentTenantId, db, categorieAttrezziList) {
     try {
-        const { collection, query, getDocs, orderBy } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, getDocs, orderBy } = await import('../../services/firebase-service.js');
         const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
         const q = query(categorieRef, orderBy('ordine', 'asc'));
         const snapshot = await getDocs(q);
@@ -1594,7 +1594,7 @@ export async function renderLavori(
             // caricalo direttamente da Firestore
             if (lavoro.terrenoId && !terreno && currentTenantId && db) {
                 try {
-                    const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                    const { doc, getDoc } = await import('../../services/firebase-service.js');
                     const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
                     if (terrenoDoc.exists()) {
                         const terrenoData = terrenoDoc.data();
@@ -2106,7 +2106,7 @@ export async function loadDettaglioOverview(
     container.innerHTML = '<div class="loading">Caricamento dettagli...</div>';
 
     try {
-        const { collection, getDocs, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, doc, getDoc } = await import('../../services/firebase-service.js');
         
         const lavoro = lavoriList.find(l => l.id === lavoroId);
         if (!lavoro) {
@@ -2291,7 +2291,7 @@ export async function loadDettaglioOre(
     container.innerHTML = '<div class="loading">Caricamento statistiche ore...</div>';
 
     try {
-        const { collection, getDocs, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, doc, getDoc } = await import('../../services/firebase-service.js');
         
         const lavoro = lavoriList.find(l => l.id === lavoroId);
         if (!lavoro) {

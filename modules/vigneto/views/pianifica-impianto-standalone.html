@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pianificazione Nuovo Impianto - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" id="metaThemeColor" content="#6A1B9A">
     <script>
         (function() {
@@ -678,9 +678,7 @@
             return resolvedPath;
         }
         
-        // Import moduli esterni (CDN)
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        // Import moduli esterni
         import { createPianificazione, getPianificazione, updatePianificazione } from '../services/pianificazione-impianto-service.js';
         import { getFormeAllevamentoList, getChiaveTecnica, getNomeVisualizzato } from '../config/forme-allevamento.js';
         import { getConfigColtura, getColturePerSelect, isColturaValida } from '../../../shared/config/pianificazione-impianto-colture.js';
@@ -693,8 +691,8 @@
         const terreniServiceModule = await import(resolvePath('../../../../core/services/terreni-service.js'));
         const attivitaUtilsModule = await import(resolvePath('../../../../core/js/attivita-utils.js'));
         
-        // Estrai le funzioni dai moduli
-        const { initializeFirebase, getAuthInstance, getDb } = firebaseServiceModule;
+        // Estrai le funzioni dai moduli (Firebase 11 da firebase-service)
+        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = firebaseServiceModule;
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
         const { initializeAuthService } = authServiceModule;
         const { getAllTerreni } = terreniServiceModule;
@@ -3159,6 +3157,24 @@
 
         // Avvia inizializzazione
         init();
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

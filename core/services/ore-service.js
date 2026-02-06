@@ -30,17 +30,9 @@ export async function getOreLavoro(lavoroId, options = {}) {
     }
 
     // Import dinamico per evitare problemi di circolarità
-    const { getFirestore, collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    // Carica config Firebase
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, collection, getDocs, query, where } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase non inizializzato');
     
     const { operaioId = null, stato = null } = options;
     
@@ -113,15 +105,9 @@ export async function getOreDaValidare(caposquadraId) {
     }
 
     // Import dinamico
-    const { getFirestore, collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, collection, getDocs, query, where } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase non inizializzato');
     
     // Ottieni tutti i lavori del caposquadra
     const lavoriRef = collection(db, 'tenants', tenantId, 'lavori');
@@ -194,15 +180,9 @@ export async function getOreOperaio(operaioId, options = {}) {
     }
 
     // Import dinamico
-    const { getFirestore, collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, collection, getDocs, query, where } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase non inizializzato');
     
     // Ottieni tutti i lavori del tenant
     const lavoriRef = collection(db, 'tenants', tenantId, 'lavori');
@@ -409,16 +389,9 @@ export async function createOra(lavoroId, oraData) {
     }
     
     // Import dinamico
-    const { getFirestore, collection, addDoc, Timestamp, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, collection, addDoc, Timestamp, serverTimestamp, getDoc, doc } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase non inizializzato');
     
     // Verifica che il lavoro esista
     const lavoroDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId));
@@ -485,15 +458,9 @@ export async function validaOra(lavoroId, oraId) {
     }
     
     // Import dinamico
-    const { getFirestore, doc, getDoc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, doc, getDoc, updateDoc, serverTimestamp } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase non inizializzato');
     
     // Verifica che il lavoro esista e sia assegnato al caposquadra
     const lavoroDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId));
@@ -564,15 +531,9 @@ export async function rifiutaOra(lavoroId, oraId, motivoRifiuto) {
     }
     
     // Import dinamico
-    const { getFirestore, doc, getDoc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, doc, getDoc, updateDoc, serverTimestamp } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase non inizializzato');
     
     // Verifica che il lavoro esista e sia assegnato al caposquadra
     const lavoroDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId));

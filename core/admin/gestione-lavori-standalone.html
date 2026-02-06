@@ -3347,15 +3347,21 @@
         // Usa i wrapper: applyContoTerziStylesUtil, updateDashboardLinkUtil
     </script>
     <!-- Tony widget (assistente su tutte le pagine) -->
-    <link rel="stylesheet" href="../styles/tony-widget.css">
     <script>
-      (function() {
-        var base = (window.location.pathname || '').indexOf('/gfv-platform/') >= 0 ? '/gfv-platform/core' : '../';
-        var s = document.createElement('script');
-        s.type = 'module';
-        s.src = base + (base === '../' ? 'js/tony-widget-standalone.js' : '/js/tony-widget-standalone.js');
-        document.body.appendChild(s);
-      })();
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

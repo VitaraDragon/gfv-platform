@@ -279,7 +279,7 @@ export async function createPotaturaFromLavoro(lavoroId) {
     if (lavoro.caposquadraId) {
       try {
         const { getDb } = await import('../../../core/services/firebase-service.js');
-        const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
         const db = getDb();
         if (db) {
           const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
@@ -557,7 +557,7 @@ export async function syncPotaturaFromLavoro(lavoroId) {
     if (lavoro.caposquadraId) {
       try {
         const { getDb } = await import('../../../core/services/firebase-service.js');
-        const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
         const db = getDb();
         if (db) {
           const squadreRef = collection(db, `tenants/${getCurrentTenantId()}/squadre`);

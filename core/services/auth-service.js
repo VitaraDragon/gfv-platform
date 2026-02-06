@@ -6,16 +6,13 @@
  */
 
 import { 
-  getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
   sendPasswordResetEmail,
   updatePassword,
   updateProfile
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getAuthInstance } from './firebase-service.js';
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getAuthInstance, signOut, onAuthStateChanged } from './firebase-service.js';
 import { getDocumentData, createDocument, updateDocument } from './firebase-service.js';
 import { getCurrentTenantId, setCurrentTenantId, getUserTenants } from './tenant-service.js';
 

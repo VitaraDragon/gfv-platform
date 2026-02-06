@@ -120,7 +120,7 @@ export async function loadDettaglioMap(
         state.dettaglioMap.fitBounds(bounds);
 
         // Carica zone lavorate
-        const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs } = await import('../../services/firebase-service.js');
         const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
         const zoneSnapshot = await getDocs(zoneRef);
         

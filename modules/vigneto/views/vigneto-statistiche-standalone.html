@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistiche Vigneto - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#6A1B9A">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
@@ -330,13 +330,11 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-
         const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
         const firebaseConfig = await waitForConfig();
         
-        // Importa servizi Firebase e Tenant
-        const { initializeFirebase, getAuthInstance, getDb } = await import('../../../core/services/firebase-service.js');
+        // Importa servizi Firebase e Tenant (Firebase 11)
+        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = await import('../../../core/services/firebase-service.js');
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = await import('../../../core/services/tenant-service.js');
         
         // Inizializza Firebase PRIMA di tutto
@@ -374,7 +372,6 @@
             if (user) {
                 currentUser = user;
                 try {
-                    const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
@@ -1410,6 +1407,24 @@
                 }
             });
         }
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

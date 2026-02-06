@@ -252,7 +252,7 @@ export async function handleSaveTerreno(
     const canoneInput = document.getElementById('terreno-canone-affitto');
     const canoneAffitto = canoneInput ? canoneInput.value : '';
     
-    const { serverTimestamp, Timestamp, doc, setDoc, addDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { serverTimestamp, Timestamp, doc, setDoc, addDoc } = await import('../services/firebase-service.js');
     
     // Prepara dati terreno
     const terrenoData = {
@@ -419,7 +419,7 @@ export async function confirmDeleteTerreno(
     }
     
     try {
-        const { collection, query, where, getDocs, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, where, getDocs, doc, deleteDoc } = await import('../services/firebase-service.js');
         
         // Verifica se terreno è usato in attività usando il servizio
         let numAttivita = 0;

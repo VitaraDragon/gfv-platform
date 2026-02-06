@@ -126,7 +126,7 @@ export async function calcolaEAggiornaStatistiche(fruttetoId, anno) {
       scartoPerCategoria: { ...scartoPerCategoria }
     };
 
-    const { setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { setDoc, serverTimestamp } = await import('../../../core/services/firebase-service.js');
     const docId = `${fruttetoId}_${anno}`;
     const docRef = getDocument(STATS_COLLECTION, docId, tenantId);
     await setDoc(docRef, { ...statsData, updatedAt: serverTimestamp() }, { merge: true });

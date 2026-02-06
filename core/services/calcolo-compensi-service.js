@@ -26,15 +26,9 @@ export async function getTariffaOperaio(tenantId, operaio) {
     }
     
     // Carica tariffe dal tenant
-    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, doc, getDoc } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase config non disponibile');
     
     const tariffeRef = doc(db, `tenants/${tenantId}/tariffe`, 'operai');
     const tariffeSnap = await getDoc(tariffeRef);
@@ -74,15 +68,9 @@ export async function getTariffaOperaio(tenantId, operaio) {
  */
 export async function calcolaCompensi(tenantId, dataInizio, dataFine, options = {}) {
   try {
-    const { getFirestore, collection, getDocs, query, where, Timestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, collection, getDocs, query, where, Timestamp } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase config non disponibile');
     
     // Carica tutti i lavori
     const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
@@ -229,15 +217,9 @@ export function formattaOre(ore) {
 export async function getTariffaProprietario(tenantId) {
   try {
     // Carica tariffa dal tenant
-    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      throw new Error('Firebase config non disponibile');
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, doc, getDoc } = await import('./firebase-service.js');
+    const db = getDb();
+    if (!db) throw new Error('Firebase config non disponibile');
     
     // Prova a recuperare da tenants/{tenantId}/tariffe/proprietario
     const tariffeRef = doc(db, `tenants/${tenantId}/tariffe`, 'proprietario');

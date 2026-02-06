@@ -177,8 +177,7 @@ export async function calcolaEAggiornaStatistiche(vignetoId, anno) {
     // Salva/aggiorna documento statistiche
     // Usa setDoc direttamente con merge per creare o aggiornare in un'unica operazione
     // Questo evita problemi di permessi quando si verifica se il documento esiste
-    const { getDocument } = await import('../../../core/services/firebase-service.js');
-    const { setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+    const { getDocument, setDoc, serverTimestamp } = await import('../../../core/services/firebase-service.js');
     const docId = `${vignetoId}_${anno}`;
     const docRef = getDocument(STATS_COLLECTION, docId, tenantId);
     

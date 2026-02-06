@@ -494,7 +494,7 @@ export async function getDatiPrecompilazioneTrattamento(vignetoId, trattamento) 
       const tenantId = getCurrentTenantId();
       const db = getDb();
       if (tenantId && db) {
-        const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
         const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
         const q = query(oreRef, where('stato', '==', 'validate'));
         const snap = await getDocs(q);

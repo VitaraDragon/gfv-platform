@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -545,10 +545,9 @@
     </div>
 
     <script type="module">
-        // Import Firebase SDK (devono essere al top-level del modulo)
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
+        import { onAuthStateChanged } from '../services/firebase-service.js';
 
         // Carica Firebase config
         let firebaseConfig = {};
@@ -576,9 +575,10 @@
         }
 
         async function initApp() {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+            initializeFirebase(firebaseConfig);
+            app = getAppInstance();
+            auth = getAuthInstance();
+            db = getDb();
 
             let currentUser = null;
             let currentTenantId = null;
@@ -1323,6 +1323,24 @@
                 }, 5000);
             }
         }
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

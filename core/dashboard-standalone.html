@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="styles/tour.css">
@@ -47,6 +47,24 @@
             <div class="loading">Caricamento dashboard...</div>
         </div>
     </div>
+
+    <!-- Tony: widget globale (FAB + chat) – URL assoluti su GitHub Pages per evitare problemi online -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
+    </script>
 
     <script src="https://unpkg.com/intro.js/minified/intro.min.js" defer></script>
     <script src="js/config-loader.js"></script>
@@ -154,14 +172,33 @@
         // Carica configurazione
         const firebaseConfig = await waitForConfig();
 
-        import { signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getDoc, doc, updateDoc, setDoc, serverTimestamp, collection, getDocs, query, where, orderBy, limit, addDoc, Timestamp, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
-        // Inizializza Firebase usando il service condiviso (per tenant-service e inviti)
-        const { initializeFirebase, getAuthInstance, getDb } = await import('./services/firebase-service.js');
+        // Inizializza Firebase usando il service condiviso (tutto da firebase-service = stesso SDK 11)
+        const {
+            initializeFirebase,
+            getAuthInstance,
+            getDb,
+            getAppInstance,
+            signOut,
+            onAuthStateChanged,
+            getDoc,
+            doc,
+            updateDoc,
+            setDoc,
+            serverTimestamp,
+            collection,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            limit,
+            addDoc,
+            Timestamp,
+            onSnapshot
+        } = await import('./services/firebase-service.js');
         initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
+        console.log('[Tony] Firebase OK. Tony widget caricato da tony-widget-standalone.js.');
 
         // Google Maps: caricamento in background (non blocca la prima visualizzazione)
         let googleMapsReady = false;
@@ -525,6 +562,38 @@
         // segnaLavoroCompletato è già definita come funzione globale nel file (riga ~4485)
         // Non serve esportarla dal modulo
 
+        // Carica contesto vigneto per Tony (produzione per anno) se modulo attivo
+        async function loadTonyVignetoContext(availableModules) {
+            if (!availableModules || !availableModules.includes('vigneto') || !window.Tony || !window.Tony.isReady()) return;
+            try {
+                const { getStatisticheVigneto } = await import('../modules/vigneto/services/vigneto-statistiche-service.js');
+                const annoCorrente = new Date().getFullYear();
+                const anni = [annoCorrente, annoCorrente - 1, annoCorrente - 2];
+                const produzionePerAnno = {};
+                let numeroVigneti = 0;
+                for (const anno of anni) {
+                    const stats = await getStatisticheVigneto(null, anno);
+                    produzionePerAnno[anno] = {
+                        produzioneTotaleQli: stats.produzioneTotaleQli ?? 0,
+                        numeroVendemmie: stats.numeroVendemmie ?? 0,
+                        resaMediaQliHa: stats.resaMediaQliHa
+                    };
+                    if (anno === annoCorrente && stats.numeroVigneti != null) numeroVigneti = stats.numeroVigneti;
+                }
+                const riepilogo = anni.map(a => {
+                    const q = produzionePerAnno[a].produzioneTotaleQli;
+                    return `Nel ${a}: ${q} qli di uva` + (produzionePerAnno[a].numeroVendemmie ? ` (${produzionePerAnno[a].numeroVendemmie} vendemmie)` : '');
+                }).join('. ');
+                window.Tony.setContext('vigneto', {
+                    produzione_per_anno: produzionePerAnno,
+                    numero_vigneti: numeroVigneti,
+                    riepilogo_produzione: riepilogo
+                });
+            } catch (e) {
+                console.warn('[Tony] Caricamento contesto vigneto non disponibile:', e);
+            }
+        }
+
         // Renderizza dashboard in base ai ruoli e moduli (usa modulo)
         async function renderDashboard(userData, availableModules = []) {
             await renderDashboardModule(userData, availableModules, callbacks, dependencies);
@@ -584,7 +653,7 @@
                 // Se questa scheda non è appena stata usata per registrazione, fai logout
                 const justRegistered = sessionStorage.getItem('gfv_user_just_registered');
                 if (!justRegistered) {
-                    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+                    const { signOut } = await import('./services/firebase-service.js');
                     await signOut(auth);
                     sessionStorage.removeItem('gfv_expected_user_id');
                     window.location.href = './auth/login-standalone.html';
@@ -720,6 +789,15 @@
                             
                             // Renderizza dashboard
                             await renderDashboard(userDataNormalized, availableModules);
+                            // Nutre Tony con contesto dashboard (tenant corrente)
+                            if (window.Tony && Tony.isReady()) {
+                                Tony.setContext('dashboard', {
+                                    info_azienda: { moduli_attivi: availableModules },
+                                    utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
+                                    moduli_attivi: availableModules
+                                });
+                                loadTonyVignetoContext(availableModules);
+                            }
                             return; // Esci qui per non eseguire il codice sotto
                         }
                     } catch (error) {
@@ -812,6 +890,15 @@
                     
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
+                    // Nutre Tony con contesto dashboard (tenant corrente)
+                    if (window.Tony && Tony.isReady()) {
+                        Tony.setContext('dashboard', {
+                            info_azienda: { moduli_attivi: availableModules },
+                            utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
+                            moduli_attivi: availableModules
+                        });
+                        loadTonyVignetoContext(availableModules);
+                    }
                 }
             } catch (error) {
                 console.error('Errore caricamento dati utente:', error);

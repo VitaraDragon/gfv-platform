@@ -1,30 +1,54 @@
 /**
  * Firebase Service - Servizio base per tutte le operazioni Firebase
  * Gestisce connessione, operazioni CRUD e supporto multi-tenant
- * 
+ * Usa Firebase 11 da CDN gstatic (stesso build = servizi disponibili)
  * @module core/services/firebase-service
  */
 
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDocs, 
-  getDoc, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  where, 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  getDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  where,
   limit,
   setDoc,
   Timestamp,
   serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+// Re-export per moduli che importano da firebase-service (stesso SDK, niente "different Firestore SDK")
+export { signOut, onAuthStateChanged };
+export {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  getDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  where,
+  limit,
+  setDoc,
+  Timestamp,
+  serverTimestamp
+};
 
 // Configurazione Firebase (da centralizzare)
 let firebaseConfig = null;
@@ -83,6 +107,17 @@ export function getAuthInstance() {
     throw new Error('Firebase non inizializzato. Chiama initializeFirebase() prima.');
   }
   return auth;
+}
+
+/**
+ * Ottieni istanza App Firebase (per moduli che richiedono l'app, es. Tony / AI Logic)
+ * @returns {FirebaseApp} Istanza App Firebase
+ */
+export function getAppInstance() {
+  if (!app) {
+    throw new Error('Firebase non inizializzato. Chiama initializeFirebase() prima.');
+  }
+  return app;
 }
 
 /**
@@ -408,6 +443,7 @@ export default {
   initializeFirebase,
   getDb,
   getAuthInstance,
+  getAppInstance,
   getCollection,
   getDocument,
   createDocument,

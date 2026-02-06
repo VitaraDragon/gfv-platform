@@ -81,7 +81,7 @@ export async function getTenantId(userId, db, currentTenantId = null) {
     if (currentTenantId) return currentTenantId;
     
     try {
-        const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { getDoc, doc } = await import('../services/firebase-service.js');
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
             const userData = userDoc.data();
@@ -99,10 +99,10 @@ export async function getTenantId(userId, db, currentTenantId = null) {
  * @param {Object} db - Istanza Firestore
  * @returns {Promise<Object>} Collection reference
  */
-export async function getTerreniCollection(tenantId, db) {
+export async function getTerreniCollection(tenantId, _db) {
     if (!tenantId) throw new Error('Tenant ID non disponibile');
-    const { collection } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    return collection(db, `tenants/${tenantId}/terreni`);
+    const { getCollection } = await import('../services/firebase-service.js');
+    return getCollection('terreni', tenantId);
 }
 
 // ============================================
@@ -115,21 +115,22 @@ export async function getTerreniCollection(tenantId, db) {
  * @param {Object} db - Istanza Firestore
  * @param {Array} poderi - Array poderi (modificato in place)
  */
-export async function loadPoderi(currentTenantId, db, poderi) {
+export async function loadPoderi(currentTenantId, _db, poderi) {
     try {
         if (!currentTenantId) return;
         
-        const { collection, query, orderBy, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-        const poderiCollection = collection(db, `tenants/${currentTenantId}/poderi`);
-        const q = query(poderiCollection, orderBy('nome', 'asc'));
-        const querySnapshot = await getDocs(q);
+        const { getCollectionData } = await import('../services/firebase-service.js');
+        const documents = await getCollectionData('poderi', {
+            tenantId: currentTenantId,
+            orderBy: 'nome',
+            orderDirection: 'asc'
+        });
         
         poderi.length = 0; // Svuota array
-        querySnapshot.forEach((docSnap) => {
-            const data = docSnap.data();
+        documents.forEach((doc) => {
             poderi.push({
-                id: docSnap.id,
-                nome: data.nome || ''
+                id: doc.id,
+                nome: doc.nome || ''
             });
         });
         
@@ -170,7 +171,7 @@ export async function initializeColturePredefiniteTerreni(currentTenantId, db) {
     try {
         if (!currentTenantId) return;
 
-        const { collection, getDocs, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, getDocs, addDoc, serverTimestamp } = await import('../services/firebase-service.js');
         
         // Carica categorie per ottenere gli ID
         const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
@@ -304,7 +305,7 @@ export async function loadCategorieColtureTerreni(currentTenantId, db, app, auth
         
         if (isFileProtocol) {
             // Fallback: carica direttamente da Firestore
-            const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { collection, getDocs } = await import('../services/firebase-service.js');
             const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
             const categorieSnapshot = await getDocs(categorieRef);
             
@@ -378,7 +379,7 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
         
         if (isFileProtocol) {
             // Fallback: carica direttamente da Firestore
-            const { collection, getDocs, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { collection, getDocs, doc, getDoc } = await import('../services/firebase-service.js');
             const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
             let coltureSnapshot = await getDocs(coltureRef);
             
@@ -485,7 +486,7 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
         console.error('Errore caricamento colture:', error);
         // Fallback: usa ListePersonalizzate se colture non disponibile
         console.warn('Impossibile caricare da colture, uso ListePersonalizzate:', error.message);
-        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc } = await import('../services/firebase-service.js');
         const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
         const listeSnap = await getDoc(listeRef);
         
@@ -571,7 +572,7 @@ async function calcolaSuperficieDaMappa(terreno, terrenoId, terreniCollection) {
             if (superficie > 0 && superficie < 10000 && terreniCollection) {
                 setTimeout(async () => {
                     try {
-                        const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                        const { doc, updateDoc, serverTimestamp } = await import('../services/firebase-service.js');
                         const terrenoRef = doc(terreniCollection, terrenoId);
                         await updateDoc(terrenoRef, { 
                             superficie: parseFloat(superficie.toFixed(2)),
@@ -614,7 +615,7 @@ async function calcolaSuperficieDaMappa(terreno, terrenoId, terreniCollection) {
                 if (superficie > 0 && superficie < 10000 && terreniCollection) {
                     setTimeout(async () => {
                         try {
-                            const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                            const { doc, updateDoc, serverTimestamp } = await import('../services/firebase-service.js');
                             const terrenoRef = doc(terreniCollection, terrenoId);
                             await updateDoc(terrenoRef, { 
                                 superficie: parseFloat(superficie.toFixed(2)),

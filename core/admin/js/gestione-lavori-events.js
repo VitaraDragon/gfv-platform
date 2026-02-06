@@ -732,7 +732,7 @@ export async function openEliminaModal(
     
     if (confirm(`Sei sicuro di voler eliminare il lavoro "${lavoro.nome}"?\n\nQuesta azione non può essere annullata.`)) {
         try {
-            const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { doc, deleteDoc } = await import('../../services/firebase-service.js');
             
             // Libera macchine se assegnate (solo se modulo Parco Macchine attivo)
             if (hasParcoMacchineModule && updateMacchinaStatoCallback) {
@@ -852,7 +852,7 @@ export async function approvaLavoro(
     if (!conferma) return;
     
     try {
-        const { doc, getDoc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc, updateDoc, serverTimestamp } = await import('../../services/firebase-service.js');
         const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
         const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
         const terreno = terrenoDoc.exists() ? terrenoDoc.data() : null;
@@ -944,7 +944,7 @@ export async function rifiutaLavoro(
     if (motivo === null) return; // Utente ha annullato
     
     try {
-        const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, updateDoc, serverTimestamp } = await import('../../services/firebase-service.js');
         const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
         
         // Riporta stato a "in_corso" per permettere al caposquadra di continuare
@@ -1014,7 +1014,7 @@ export async function handleSalvaCategoriaLavoro(
     }
 
     try {
-        const { collection, query, where, getDocs, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { collection, query, where, getDocs, addDoc, serverTimestamp } = await import('../../services/firebase-service.js');
         
         // Genera codice dal nome
         const codice = nome
@@ -1172,7 +1172,7 @@ export async function handleSalvaTipoLavoro(
     }
 
     try {
-        const { doc, getDoc, collection, getDocs, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc, collection, getDocs, addDoc, serverTimestamp } = await import('../../services/firebase-service.js');
         
         // Verifica che la categoria esista (nella collezione unificata)
         const categoriaDoc = await getDoc(doc(db, `tenants/${currentTenantId}/categorie`, categoriaId));
@@ -1273,7 +1273,7 @@ export async function generaVoceDiarioContoTerzi(
 
     // Verifica se già esiste una voce diario per questo lavoro
     try {
-        const { query, collection, where, getDocs } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { query, collection, where, getDocs } = await import('../../services/firebase-service.js');
         const attivitaQuery = query(
             collection(db, 'tenants', currentTenantId, 'attivita'),
             where('lavoroId', '==', lavoroId)
@@ -1288,7 +1288,7 @@ export async function generaVoceDiarioContoTerzi(
     }
 
     try {
-        const { doc, getDoc, collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { doc, getDoc, collection, addDoc, serverTimestamp } = await import('../../services/firebase-service.js');
         
         // Carica dati terreno
         const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoroData.terrenoId));
@@ -1577,7 +1577,7 @@ export async function handleSalvaLavoro(
     }
     
     try {
-        const { Timestamp, serverTimestamp, doc, collection, addDoc, updateDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const { Timestamp, serverTimestamp, doc, collection, addDoc, updateDoc, getDoc } = await import('../../services/firebase-service.js');
         
         // Se il lavoro era "da_pianificare" e ora ha tutti i campi necessari, passa automaticamente a "assegnato"
         const lavoroOriginale = state.currentLavoroId ? state.lavoriList.find(l => l.id === state.currentLavoroId) : null;

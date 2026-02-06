@@ -7,7 +7,7 @@
  */
 
 import { getDocumentData, getCollectionData, createDocument, updateDocument, getAuthInstance, getCollection } from './firebase-service.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { onAuthStateChanged } from './firebase-service.js';
 
 // Cache tenant corrente
 let currentTenantId = null;

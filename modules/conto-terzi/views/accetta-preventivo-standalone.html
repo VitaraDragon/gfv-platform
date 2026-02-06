@@ -252,8 +252,8 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, query, where, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { initializeFirebase, getDb } from '../../../core/services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, updateDoc, query, where, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
 
         // Variabili globali per le funzioni di accettazione/rifiuto
         let preventivoData = null;
@@ -386,8 +386,8 @@
         } else {
             try {
                 const firebaseConfig = await waitForConfig();
-                const app = initializeApp(firebaseConfig);
-                dbInstance = getFirestore(app);
+                initializeFirebase(firebaseConfig);
+                dbInstance = getDb();
 
                 // Cerca preventivo per token
                 let preventivo = null;
@@ -482,6 +482,24 @@
                 document.getElementById('loading').innerHTML = '<div class="alert alert-error">Errore caricamento preventivo: ' + error.message + '</div>';
             }
         }
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

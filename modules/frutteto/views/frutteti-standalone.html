@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anagrafica Frutteti - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#FF6F00">
     <style>
         * {
@@ -702,13 +702,11 @@
 
         const { getAllTerreni } = terreniServiceModule;
         const { populateVarietaDropdown, addVarietaPersonalizzata } = varietaFruttetoServiceModule;
-        const { initializeFirebase, getAuthInstance, getDb } = firebaseServiceModule;
+        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = firebaseServiceModule;
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
         const { initializeAuthService } = authServiceModule;
         const { getAllColture } = coltureServiceModule;
         const { getAllCategorie } = categorieServiceModule;
-        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         let terreni = [];
         let allFrutteti = [];
@@ -1676,6 +1674,24 @@
 
         // Avvio
         init();
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>

@@ -4,6 +4,8 @@
  * @module core/js/dashboard-data
  */
 
+import { query, where } from '../services/firebase-service.js';
+
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
@@ -487,7 +489,6 @@ export async function loadManagerManodoperaStats(dependencies) {
         // 4. Conta operai online (TUTTI gli operai del tenant, non solo quelli in squadre)
         let operaiOnline = 0;
         try {
-            const { query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
             const usersRef = collection(db, 'users');
             const operaiQuery = query(
                 usersRef,
@@ -584,9 +585,6 @@ async function loadOreDaValidareManager(tenantId, dependencies) {
     const { db, collection, getDocs } = dependencies;
     
     try {
-        // Importa query e where dinamicamente
-        const { query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-        
         // Carica tutti i lavori del tenant
         const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
         const lavoriSnapshot = await getDocs(lavoriCollection);
@@ -2197,4 +2195,3 @@ export async function loadMagazzinoSottoScortaCount(dependencies) {
         return 0;
     }
 }
-

@@ -6,8 +6,7 @@
  * @module modules/parco-macchine/services/macchine-utilizzo-service
  */
 
-import { getDoc, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getDb, getDoc, doc, updateDoc } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 
 /**
@@ -39,7 +38,7 @@ export async function aggiornaOreMacchinaDaUtilizzo({
   }
   
   try {
-    const db = getFirestore();
+    const db = getDb();
     const currentTenantId = tenantId || getCurrentTenantId();
     
     if (!currentTenantId) {

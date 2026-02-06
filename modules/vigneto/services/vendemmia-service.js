@@ -611,12 +611,9 @@ export async function createVendemmiaFromLavoro(lavoroId) {
     const operai = [];
     if (lavoro.caposquadraId) {
       // Se ha caposquadra, carica operai dalla squadra
-      const { getFirestore, collection, getDocs, query, where, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-      
-      if (typeof window.firebaseConfig !== 'undefined') {
-        const app = initializeApp(window.firebaseConfig);
-        const db = getFirestore(app);
+      const { getDb, collection, getDocs, query, where, doc, getDoc } = await import('../../../core/services/firebase-service.js');
+      const db = getDb();
+      if (db) {
         
         // Cerca squadra del caposquadra
         const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
@@ -874,11 +871,9 @@ export async function syncVendemmiaFromLavoro(lavoroId) {
     const operai = [];
     if (lavoro.caposquadraId) {
       try {
-        const { getFirestore, collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-        if (typeof window.firebaseConfig !== 'undefined') {
-          const app = initializeApp(window.firebaseConfig);
-          const db = getFirestore(app);
+        const { getDb, collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
+        const db = getDb();
+        if (db) {
 
           const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
           const squadreQuery = query(squadreRef, where('caposquadraId', '==', lavoro.caposquadraId));
@@ -943,15 +938,9 @@ async function calcolaCompensiVendemmia(vendemmia) {
       return;
     }
     
-    const { getFirestore, collection, getDocs, query, where, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    
-    if (typeof window.firebaseConfig === 'undefined') {
-      return;
-    }
-    
-    const app = initializeApp(window.firebaseConfig);
-    const db = getFirestore(app);
+    const { getDb, collection, getDocs, query, where, doc, getDoc } = await import('../../../core/services/firebase-service.js');
+    const db = getDb();
+    if (!db) return;
     
     let costoManodopera = 0;
     

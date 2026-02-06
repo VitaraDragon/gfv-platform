@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Terreni - GFV Platform</title>
-    <link rel="manifest" href="/gfv-platform/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
     <link rel="stylesheet" href="./styles/tour.css">
@@ -781,30 +781,33 @@
 
         const firebaseConfig = window.firebaseConfig;
         const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
-        
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { 
-            getFirestore, 
-            getDoc, 
-            doc, 
-            collection, 
-            addDoc, 
+
+        // Inizializza Firebase con il service condiviso (stesso SDK 11 di dashboard e servizi)
+        const {
+            initializeFirebase,
+            getAuthInstance,
+            getDb,
+            getAppInstance,
+            signOut,
+            onAuthStateChanged,
+            getDoc,
+            doc,
+            collection,
+            addDoc,
             updateDoc,
-            setDoc, 
-            deleteDoc, 
-            getDocs, 
-            query, 
-            orderBy, 
+            setDoc,
+            deleteDoc,
+            getDocs,
+            query,
+            orderBy,
             where,
             serverTimestamp,
             Timestamp
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
-        // Inizializza Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        } = await import('./services/firebase-service.js');
+        initializeFirebase(firebaseConfig);
+        const app = getAppInstance();
+        const auth = getAuthInstance();
+        const db = getDb();
 
         // ============================================
         // STATE OBJECT
@@ -1610,6 +1613,23 @@
                     });
             });
         }
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
     </script>
 </body>
 </html>
