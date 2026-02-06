@@ -132,6 +132,26 @@
             if (typing) typing.remove();
         }
 
+        /**
+         * Pulisce il testo per TTS: rimuove emoji, markdown e blocchi JSON.
+         * Da applicare al testo completo finale prima di speechSynthesis.speak().
+         * @param {string} testo - Testo grezzo da pulire
+         * @returns {string} Testo adatto alla sintesi vocale
+         */
+        function pulisciTestoPerVoce(testo) {
+            if (!testo || typeof testo !== 'string') return '';
+            var t = testo;
+            t = t.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '');
+            t = t.replace(/\*\*(.*?)\*\*/g, '$1');
+            t = t.replace(/\*(.*?)\*/g, '$1');
+            t = t.replace(/_(.*?)_/g, '$1');
+            t = t.replace(/\{.*?\}/g, '');
+            t = t.replace(/[*_]/g, '');
+            t = t.replace(/[""«»]/g, '');
+            t = t.replace(/\b(asterisco|virgolette)\b/gi, '');
+            return t.replace(/\s{2,}/g, ' ').trim();
+        }
+
         fab.addEventListener('click', function() {
             panel.classList.add('is-open');
             if (messagesEl.children.length === 0) {
@@ -148,6 +168,27 @@
             if (vc) vc.style.display = 'none';
         });
 
+        function speakWithTTS(testo, opts) {
+            if (!opts.fromVoice || !testo || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            var testoPulito = pulisciTestoPerVoce(testo);
+            if (!testoPulito) return;
+            var u = new SpeechSynthesisUtterance(testoPulito);
+            u.lang = 'it-IT';
+            u.rate = 1.05;
+            u.pitch = 0.9;
+            var voices = window.speechSynthesis.getVoices();
+            var n = function(v) { return v.name.toLowerCase(); };
+            var it = function(v) { return v.lang === 'it-IT' || v.lang.indexOf('it') === 0; };
+            var male = function(v) { var x = n(v); return x.indexOf('paolo') !== -1 || x.indexOf('luca') !== -1 || x.indexOf('male') !== -1 || x.indexOf('uomo') !== -1; };
+            var tonyVoice = voices.find(function(v) { return it(v) && male(v) && (n(v).indexOf('google') !== -1 || n(v).indexOf('natural') !== -1); })
+                || voices.find(function(v) { return it(v) && male(v); })
+                || voices.find(function(v) { return it(v) && (n(v).indexOf('google') !== -1 || n(v).indexOf('natural') !== -1); })
+                || voices.find(function(v) { return it(v); });
+            if (tonyVoice) u.voice = tonyVoice;
+            window.speechSynthesis.speak(u);
+        }
+
         function sendMessage(overrideText, opts) {
             opts = opts || {};
             var text = (overrideText != null ? String(overrideText).trim() : (inputEl.value || '').trim());
@@ -156,31 +197,55 @@
                 appendMessage('Tony non è ancora pronto. Attendi qualche secondo e riprova.', 'error');
                 return;
             }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
             inputEl.value = '';
             appendMessage(text, 'user');
             sendBtn.disabled = true;
             inputEl.disabled = true;
             if (document.getElementById('tony-mic')) document.getElementById('tony-mic').disabled = true;
             appendMessage('Sto pensando...', 'typing');
-            window.Tony.ask(text).then(function(response) {
+
+            var useStream = typeof window.Tony.askStream === 'function';
+            var streamingMsgEl = null;
+
+            function onComplete(response) {
                 removeTyping();
+                if (streamingMsgEl) streamingMsgEl.remove();
                 appendMessage(response || 'Nessuna risposta.', 'tony');
-                if (opts.fromVoice && response && window.speechSynthesis) {
-                    var u = new SpeechSynthesisUtterance(response);
-                    u.lang = 'it-IT';
-                    u.rate = 0.95;
-                    window.speechSynthesis.speak(u);
-                }
-            }).catch(function(err) {
+                speakWithTTS(response, opts);
+            }
+
+            function onError(err) {
                 removeTyping();
+                if (streamingMsgEl) streamingMsgEl.remove();
                 appendMessage('Errore: ' + (err && err.message ? err.message : 'Riprova più tardi.'), 'error');
-            }).finally(function() {
+            }
+
+            function onFinally() {
                 sendBtn.disabled = false;
                 inputEl.disabled = false;
                 var micBtn = document.getElementById('tony-mic');
                 if (micBtn) micBtn.disabled = false;
                 inputEl.focus();
-            });
+            }
+
+            if (useStream) {
+                window.Tony.askStream(text, {
+                    onChunk: function(chunk) {
+                        if (!streamingMsgEl) {
+                            removeTyping();
+                            streamingMsgEl = document.createElement('div');
+                            streamingMsgEl.className = 'tony-msg tony streaming';
+                            messagesEl.appendChild(streamingMsgEl);
+                            messagesEl.scrollTop = messagesEl.scrollHeight;
+                        }
+                        streamingMsgEl.textContent = (streamingMsgEl.textContent || '') + chunk;
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    }
+                }).then(onComplete).catch(onError).finally(onFinally);
+            } else {
+                window.Tony.ask(text).then(onComplete).catch(onError).finally(onFinally);
+            }
         }
 
         sendBtn.addEventListener('click', function() { sendMessage(); });
