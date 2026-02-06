@@ -1507,18 +1507,19 @@
 
         const firebaseConfig = window.firebaseConfig;
 
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        
+        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../services/firebase-service.js';
+        import { onAuthStateChanged } from '../services/firebase-service.js';
+
         // Verifica che Google Maps API sia caricata
         if (typeof window.GOOGLE_MAPS_API_KEY === 'undefined') {
             console.warn('Google Maps API Key non trovata. La visualizzazione mappa potrebbe non funzionare.');
         }
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        initializeFirebase(firebaseConfig);
+        const app = getAppInstance();
+        const auth = getAuthInstance();
+        const db = getDb();
 
         // ============================================
         // STATE OBJECT
@@ -3344,6 +3345,17 @@
         
         // Funzioni applyContoTerziStyles e updateDashboardLink sono state estratte nel modulo gestione-lavori-utils.js
         // Usa i wrapper: applyContoTerziStylesUtil, updateDashboardLinkUtil
+    </script>
+    <!-- Tony widget (assistente su tutte le pagine) -->
+    <link rel="stylesheet" href="../styles/tony-widget.css">
+    <script>
+      (function() {
+        var base = (window.location.pathname || '').indexOf('/gfv-platform/') >= 0 ? '/gfv-platform/core' : '../';
+        var s = document.createElement('script');
+        s.type = 'module';
+        s.src = base + (base === '../' ? 'js/tony-widget-standalone.js' : '/js/tony-widget-standalone.js');
+        document.body.appendChild(s);
+      })();
     </script>
 </body>
 </html>
