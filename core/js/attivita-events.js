@@ -809,9 +809,13 @@ export async function handleSaveAttivita(params) {
         coltura = ''; // Non obbligatorio in modalità Conto Terzi
     } else {
         terrenoId = document.getElementById('attivita-terreno').value;
-        // Sempre usa struttura gerarchica
-        tipoLavoro = document.getElementById('attivita-tipo-lavoro-gerarchico').value;
-        coltura = document.getElementById('attivita-coltura-gerarchica').value;
+        // Preferisci struttura gerarchica; fallback su campi piatto (es. compilati da Tony)
+        const tipoGerarchico = document.getElementById('attivita-tipo-lavoro-gerarchico');
+        const colturaGerarchica = document.getElementById('attivita-coltura-gerarchica');
+        const tipoPiatto = document.getElementById('attivita-tipo-lavoro');
+        const colturaPiatto = document.getElementById('attivita-coltura');
+        tipoLavoro = (tipoGerarchico && tipoGerarchico.value) || (tipoPiatto && tipoPiatto.value) || '';
+        coltura = (colturaGerarchica && colturaGerarchica.value) || (colturaPiatto && colturaPiatto.value) || '';
         orarioInizio = document.getElementById('attivita-orario-inizio').value;
         orarioFine = document.getElementById('attivita-orario-fine').value;
         pauseMinuti = parseInt(document.getElementById('attivita-pause').value) || 0;

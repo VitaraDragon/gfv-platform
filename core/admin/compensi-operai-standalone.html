@@ -454,7 +454,28 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodopera = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                        const hasManodopera = modules.includes('manodopera');
+                        
+                        // Inizializza context Tony con i moduli attivi usando helper
+                        if (window.Tony && window.Tony.initContextWithModules) {
+                            window.Tony.initContextWithModules(modules);
+                        } else {
+                            var initTonyContext = function(retries) {
+                                retries = retries || 0;
+                                if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                    window.Tony.setContext('dashboard', {
+                                        info_azienda: { moduli_attivi: modules },
+                                        moduli_attivi: modules
+                                    });
+                                    console.log('[Compensi Operai] Context Tony inizializzato con moduli:', modules);
+                                } else if (retries < 10) {
+                                    setTimeout(function() { initTonyContext(retries + 1); }, 500);
+                                }
+                            };
+                            initTonyContext();
+                        }
+                        
                         if (!hasManodopera) {
                             alert('Questa pagina è disponibile solo con il modulo Manodopera attivo.');
                             window.location.href = '../dashboard-standalone.html';

@@ -1,12 +1,1 @@
-{
-  "name": "gfv-platform-functions",
-  "description": "Cloud Functions per GFV Platform (Tony / Gemini)",
-  "main": "index.js",
-  "engines": {
-    "node": "20"
-  },
-  "dependencies": {
-    "firebase-admin": "^13.6.1",
-    "firebase-functions": "^7.0.5"
-  }
-}
+{"name":"gfv-platform-functions","description":"Cloud Functions per GFV Platform (Tony / Gemini)","main":"index.js","engines":{"node":"20"},"dependencies":{"@google-cloud/text-to-speech":"^5.0.0","firebase-admin":"^13.6.1","firebase-functions":"^7.0.5"}}

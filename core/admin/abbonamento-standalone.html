@@ -642,6 +642,32 @@
                 // Carica dati tenant e moduli
                 await loadTenantData();
                 
+                // Inizializza context Tony con i moduli attivi caricati
+                if (window.Tony && typeof window.Tony.setContext === 'function') {
+                    window.Tony.setContext('dashboard', {
+                        info_azienda: { moduli_attivi: activeModules },
+                        moduli_attivi: activeModules
+                    });
+                    console.log('[Abbonamento] Context Tony inizializzato all\'avvio con moduli:', activeModules);
+                } else {
+                    // Retry se Tony non è ancora disponibile
+                    var initTonyContext = function(retries) {
+                        retries = retries || 0;
+                        if (window.Tony && typeof window.Tony.setContext === 'function') {
+                            window.Tony.setContext('dashboard', {
+                                info_azienda: { moduli_attivi: activeModules },
+                                moduli_attivi: activeModules
+                            });
+                            console.log('[Abbonamento] Context Tony inizializzato (retry) con moduli:', activeModules);
+                        } else if (retries < 10) {
+                            setTimeout(function() {
+                                initTonyContext(retries + 1);
+                            }, 500);
+                        }
+                    };
+                    initTonyContext();
+                }
+                
                 // Verifica scadenza abbonamento
                 checkExpiryStatus();
                 
@@ -686,6 +712,11 @@
                 
                 activeModules = currentTenantData.modules || [];
                 activeBundles = currentTenantData.activeBundles || [];
+                
+                // DEBUG: Verifica moduli nel database
+                console.log('[Abbonamento] DEBUG - Moduli dal database:', activeModules);
+                console.log('[Abbonamento] DEBUG - Modulo "tony" presente?', activeModules.includes('tony'));
+                console.log('[Abbonamento] DEBUG - currentTenantData.modules:', currentTenantData.modules);
                 
                 // Aggiorna piano corrente (supporta sia 'plan' che 'piano' per retrocompatibilità)
                 // Retrocompatibilità: se trova 'starter'/'professional'/'enterprise', migra a 'base'
@@ -883,6 +914,10 @@
             const section = document.getElementById('active-modules-section');
             if (!container || !section) return;
             
+            // DEBUG: Verifica stato moduli prima del rendering
+            console.log('[Abbonamento] DEBUG renderActiveModules - activeModules:', activeModules);
+            console.log('[Abbonamento] DEBUG renderActiveModules - Modulo "tony" presente?', activeModules.includes('tony'));
+            
             // Trova moduli coperti da bundle
             const modulesCoveredByBundles = new Set();
             const activeBundlesList = [];
@@ -949,6 +984,10 @@
             
             // Moduli singoli attivi
             if (singleActiveModules.length > 0) {
+                // DEBUG: Verifica moduli che verranno renderizzati
+                console.log('[Abbonamento] DEBUG renderActiveModules - singleActiveModules:', singleActiveModules);
+                console.log('[Abbonamento] DEBUG renderActiveModules - "tony" in singleActiveModules?', singleActiveModules.includes('tony'));
+                
                 html += `
                     <div>
                         <h3 style="color: #ff9800; font-size: 16px; margin-bottom: 10px;">🔧 Moduli Singoli Attivi</h3>
@@ -958,6 +997,10 @@
                 singleActiveModules.forEach(modId => {
                     const mod = getModuleConfig(modId);
                     if (mod) {
+                        // DEBUG: Log per ogni modulo renderizzato
+                        if (modId === 'tony') {
+                            console.log('[Abbonamento] DEBUG renderActiveModules - Rendering modulo TONY:', modId, mod);
+                        }
                         html += `
                             <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #ff9800;">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
@@ -1764,6 +1807,32 @@
                     `Modulo "${module.name}" ${isActive ? 'disattivato' : 'attivato'} con successo!`,
                     'success'
                 );
+
+                // Aggiorna context Tony con i nuovi moduli attivi (con retry)
+                var updateTonyContext = function(retries) {
+                    retries = retries || 0;
+                    if (window.Tony && typeof window.Tony.setContext === 'function') {
+                        window.Tony.setContext('dashboard', {
+                            info_azienda: { moduli_attivi: newModules },
+                            moduli_attivi: newModules
+                        });
+                        console.log('[Abbonamento] Context Tony aggiornato con moduli:', newModules);
+                    } else if (retries < 5) {
+                        // Retry dopo 500ms se Tony non è ancora disponibile
+                        setTimeout(function() {
+                            updateTonyContext(retries + 1);
+                        }, 500);
+                    }
+                };
+                updateTonyContext();
+                
+                // Emetti evento per notificare altri componenti (es. widget Tony)
+                setTimeout(function() {
+                    window.dispatchEvent(new CustomEvent('tony-module-updated', {
+                        detail: { modules: newModules }
+                    }));
+                    console.log('[Abbonamento] Evento tony-module-updated emesso con moduli:', newModules);
+                }, 100);
 
                 // Se hai disattivato Manodopera, avvisa che alcune pagine non saranno più accessibili
                 if (isActive && moduleId === 'manodopera') {

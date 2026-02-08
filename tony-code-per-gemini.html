@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tony - Codice completo per Gemini</title>
+    <style>
+        body { font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.5; margin: 20px; max-width: 1200px; background: #1e1e1e; color: #d4d4d4; }
+        h1 { color: #4ec9b0; font-size: 1.2em; margin-top: 2em; border-bottom: 1px solid #444; padding-bottom: 4px; }
+        h1:first-of-type { margin-top: 0; }
+        pre { background: #252526; padding: 16px; overflow-x: auto; border-radius: 6px; margin: 8px 0; white-space: pre-wrap; word-wrap: break-word; }
+        .file-label { color: #9cdcfe; font-weight: bold; margin-bottom: 4px; }
+        .copy-hint { color: #6a9955; font-size: 11px; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+<h1>=== functions/index.js (Cloud Functions: tonyAsk + getTonyAudio) ===</h1>
+<div class="file-label">functions/index.js</div>
+<div class="copy-hint">Seleziona e copia tutto il blocco sotto per incollarlo in Gemini</div>
+<pre id="functions-index"><code>/**
+ * Cloud Functions per GFV Platform - Tony (Gemini) via callable
+ * La chiave API Gemini va impostata con: firebase functions:config:set gemini.api_key="TUA_CHIAVE"
+ * Oppure (Firebase v2): definisci un secret GEMINI_API_KEY
+ */
+
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const textToSpeech = require("@google-cloud/text-to-speech");
+
+const ttsClient = new textToSpeech.TextToSpeechClient();
+
+const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico, non un software.
+
+TONO E VOCABOLARIO:
+- Usa verbi attivi e colloquiali: invece di "È possibile visualizzare", usa "Dagli un'occhiata" o "Ti mostro".
+- Invece di "Procedura completata", usa "Ecco fatto!" o "Tutto a posto".
+- Interiezioni naturali: "Bene, allora...", "Certamente!", "Dunque...".
+- Rivolgiti all'utente in modo diretto, come un capocantiere che parla con un amico.
+
+FORMATO OUTPUT VOCALE (le risposte vengono lette da TTS):
+- Genera testo puro. VIETATO grassetto (**), corsivo (*), elenchi puntati con trattini o asterischi.
+- Evita virgolette doppie; se necessario usa l'apostrofo.
+- Per elenchi usa parole: "Primo...", "Poi...", "Infine...".
+- Scrivi "più" invece di +, "percento" invece di %.
+
+PAUSE E PUNTEGGIATURA (il TTS le interpreta come timing):
+- Virgola: pausa breve. Dopo connettivi come "Allora", "Quindi".
+- Punto: pausa media con abbassamento di tono.
+- Punti di sospensione (...): pausa lunga e riflessiva. Usali prima di proporre un'azione per dare tempo all'utente.
+- Punto interrogativo: alza l'intonazione, rende Tony più umano.
+- Punto esclamativo: enfasi e energia.
+
+Regole operative:
+1. Usa SOLO JSON [CONTESTO_AZIENDALE]. No invenzioni.
+2. Info mancanti? Indica il modulo corretto.
+3. Domande "Come fare": Spiega passi -> Chiedi "Aprire pagina?" -> Includi { "action": "APRI_PAGINA" } SOLO dopo conferma utente ("sì", "apri").
+4. Richieste esplicite ("Vai a..."): Includi subito { "action": "APRI_PAGINA", "params": {"target": "..."} }.
+5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali impianto → calcolo materiali; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo. (g) SE segnare ore / registrare ore: PRIMA chiedi i dati necessari (terreno, data, tipo lavoro, orario inizio/fine, pause, macchina se usata). Elenca cosa serve e ricorda all'utente di averli pronti, poi proponi l'apertura. Non aprire subito senza aver raccolto o indicato i dati.
+6. Altre azioni (SEGNA_ORE, GUASTO): Conferma + JSON azione.
+7. MEMORIA VOCALE: Se l'utente risponde con poche parole (es. "Sì", "Vai", "Ok apri"), guarda l'ultimo messaggio che hai scritto per capire a cosa si riferisce e agisci di conseguenza.
+
+**[CONTESTO_AZIENDALE]**
+{CONTESTO_PLACEHOLDER}
+**[/CONTESTO_AZIENDALE]**`;
+
+/**
+ * Callable: tonyAsk - Chiama Gemini con messaggio e contesto. Richiede utente autenticato.
+ * Body: { message: string, context?: object }
+ */
+exports.tonyAsk = onCall(
+  { region: "europe-west1" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Utente non autenticato.");
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Chiave Gemini non configurata. Imposta GEMINI_API_KEY (secret o env) e ridistribuisci le functions."
+      );
+    }
+
+    const { message, context = {}, history = [] } = request.data || {};
+    if (!message || typeof message !== "string") {
+      throw new HttpsError("invalid-argument", "Campo 'message' (stringa) obbligatorio.");
+    }
+
+    const contextJson = JSON.stringify(context, null, 2);
+    const systemInstruction = SYSTEM_INSTRUCTION_BASE.replace(
+      "{CONTESTO_PLACEHOLDER}",
+      contextJson || '"Nessun dato contestuale fornito."'
+    );
+
+    const historyFormatted =
+      Array.isArray(history) && history.length > 0
+        ? history
+            .map((m) => {
+              const label = m.role === "user" ? "Utente" : "Tony";
+              const text = m.parts?.[0]?.text ?? "";
+              return `${label}: ${text}`;
+            })
+            .join("\n")
+        : "";
+    const fullPrompt = historyFormatted
+      ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}`
+      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const body = {
+      contents: [{ parts: [{ text: fullPrompt }] }],
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      },
+    };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Gemini API error:", res.status, errText);
+      throw new HttpsError("internal", "Errore chiamata Gemini: " + (res.statusText || res.status));
+    }
+
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (text == null) {
+      throw new HttpsError("internal", "Risposta Gemini vuota o non valida.");
+    }
+
+    return { text };
+  }
+);
+
+/**
+ * Callable: getTonyAudio - Sintesi vocale neurale per Tony.
+ * Riceve { text: string }, restituisce { audioContent: string } (base64 MP3).
+ * Richiede utente autenticato. Abilita "Cloud Text-to-Speech API" in Google Cloud Console.
+ */
+exports.getTonyAudio = onCall(
+  { region: "europe-west1" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Utente non autenticato.");
+    }
+
+    const text = request.data?.text;
+    if (!text || typeof text !== "string") {
+      throw new HttpsError("invalid-argument", "Campo 'text' (stringa) obbligatorio.");
+    }
+
+    const [response] = await ttsClient.synthesizeSpeech({
+      input: { text },
+      voice: {
+        languageCode: "it-IT",
+        name: "it-IT-Wavenet-D",
+      },
+      audioConfig: {
+        audioEncoding: "MP3",
+        pitch: -3.0,
+        speakingRate: 0.95,
+      },
+    });
+
+    const audioContent = response.audioContent.toString("base64");
+    return { audioContent };
+  }
+);</code></pre>
+
+<h1>=== core/js/tony-widget-standalone.js ===</h1>
+<div class="file-label">core/js/tony-widget-standalone.js</div>
+<div class="copy-hint">Widget FAB, chat, microfono, speakWithTTS (chiama getTonyAudio Cloud Function)</div>
+<pre id="tony-widget"><code>/**
+ * Tony Widget – loader per pagine standalone.
+ * Inietta FAB, pannello chat e dialog conferma; inizializza Tony quando Firebase è pronto.
+ * Includere con: <link rel="stylesheet" href="PATH_TO_CORE/styles/tony-widget.css">
+ *                <script type="module" src="PATH_TO_CORE/js/tony-widget-standalone.js"></script>
+ * @module core/js/tony-widget-standalone
+ */
+
+(function() {
+    'use strict';
+
+    var scriptBase = typeof import.meta !== 'undefined' && import.meta.url
+        ? import.meta.url
+        : (document.currentScript && document.currentScript.src);
+    if (scriptBase) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = new URL('../styles/tony-widget.css', scriptBase).href;
+        document.head.appendChild(link);
+    }
+
+    var TONY_PAGE_MAP = {
+        'dashboard': 'core/dashboard-standalone.html',
+        'terreni': 'core/terreni-standalone.html',
+        'attivita': 'core/attivita-standalone.html', 'attività': 'core/attivita-standalone.html',
+        'lavori': 'core/admin/gestione-lavori-standalone.html', 'gestione lavori': 'core/admin/gestione-lavori-standalone.html',
+        'segnatura ore': 'core/segnatura-ore-standalone.html', 'segnare ore': 'core/segnatura-ore-standalone.html',
+        'validazione ore': 'core/admin/validazione-ore-standalone.html', 'validare ore': 'core/admin/validazione-ore-standalone.html',
+        'lavori caposquadra': 'core/admin/lavori-caposquadra-standalone.html', 'i miei lavori': 'core/admin/lavori-caposquadra-standalone.html',
+        'statistiche': 'core/statistiche-standalone.html',
+        'statistiche manodopera': 'core/admin/statistiche-manodopera-standalone.html', 'statistiche ore': 'core/admin/statistiche-manodopera-standalone.html',
+        'gestisci utenti': 'core/admin/gestisci-utenti-standalone.html', 'utenti': 'core/admin/gestisci-utenti-standalone.html',
+        'gestione squadre': 'core/admin/gestione-squadre-standalone.html', 'squadre': 'core/admin/gestione-squadre-standalone.html',
+        'gestione operai': 'core/admin/gestione-operai-standalone.html', 'operai': 'core/admin/gestione-operai-standalone.html',
+        'compensi operai': 'core/admin/compensi-operai-standalone.html', 'compensi': 'core/admin/compensi-operai-standalone.html',
+        'gestione macchine': 'core/admin/gestione-macchine-standalone.html', 'macchine': 'core/admin/gestione-macchine-standalone.html',
+        'magazzino': 'modules/magazzino/views/magazzino-home-standalone.html',
+        'prodotti': 'modules/magazzino/views/prodotti-standalone.html', 'anagrafica prodotti': 'modules/magazzino/views/prodotti-standalone.html',
+        'movimenti': 'modules/magazzino/views/movimenti-standalone.html', 'movimenti magazzino': 'modules/magazzino/views/movimenti-standalone.html',
+        'vigneto': 'modules/vigneto/views/vigneto-dashboard-standalone.html',
+        'vigneti': 'modules/vigneto/views/vigneti-standalone.html',
+        'statistiche vigneto': 'modules/vigneto/views/vigneto-statistiche-standalone.html',
+        'vigneto statistiche': 'modules/vigneto/views/vigneto-statistiche-standalone.html',
+        'vendemmia': 'modules/vigneto/views/vendemmia-standalone.html',
+        'potatura vigneto': 'modules/vigneto/views/potatura-standalone.html',
+        'trattamenti vigneto': 'modules/vigneto/views/trattamenti-standalone.html',
+        'calcolo materiali': 'modules/vigneto/views/calcolo-materiali-standalone.html?coltura=vigneto',
+        'calcolo materiali frutteto': 'modules/vigneto/views/calcolo-materiali-standalone.html?coltura=frutteto',
+        'pianificazione impianto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=vigneto',
+        'pianifica impianto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=vigneto',
+        'impianto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=vigneto',
+        'frutteto': 'modules/frutteto/views/frutteto-dashboard-standalone.html',
+        'frutteti': 'modules/frutteto/views/frutteti-standalone.html',
+        'statistiche frutteto': 'modules/frutteto/views/frutteto-statistiche-standalone.html',
+        'frutteto statistiche': 'modules/frutteto/views/frutteto-statistiche-standalone.html',
+        'raccolta frutta': 'modules/frutteto/views/raccolta-frutta-standalone.html',
+        'potatura frutteto': 'modules/frutteto/views/potatura-standalone.html',
+        'trattamenti frutteto': 'modules/frutteto/views/trattamenti-standalone.html',
+        'conto terzi': 'modules/conto-terzi/views/conto-terzi-home-standalone.html',
+        'contoterzi': 'modules/conto-terzi/views/conto-terzi-home-standalone.html',
+        'clienti': 'modules/conto-terzi/views/clienti-standalone.html',
+        'preventivi': 'modules/conto-terzi/views/preventivi-standalone.html',
+        'tariffe': 'modules/conto-terzi/views/tariffe-standalone.html',
+        'terreni clienti': 'modules/conto-terzi/views/terreni-clienti-standalone.html',
+        'mappa clienti': 'modules/conto-terzi/views/mappa-clienti-standalone.html',
+        'report': 'modules/report/views/report-standalone.html',
+        'amministrazione': 'core/admin/amministrazione-standalone.html',
+        'guasti': 'core/admin/gestione-guasti-standalone.html',
+        'segnalazione guasti': 'core/admin/segnalazione-guasti-standalone.html',
+        'abbonamento': 'core/admin/abbonamento-standalone.html',
+        'impostazioni': 'core/admin/impostazioni-standalone.html',
+        'diario': 'core/attivita-standalone.html'
+    };
+
+    var TONY_LABEL_MAP = {
+        'dashboard': 'Dashboard', 'terreni': 'Terreni', 'attivita': 'Diario Attività', 'attività': 'Diario Attività',
+        'lavori': 'Gestione Lavori', 'gestione lavori': 'Gestione Lavori',
+        'segnatura ore': 'Segnatura Ore', 'segnare ore': 'Segnatura Ore',
+        'validazione ore': 'Validazione Ore', 'validare ore': 'Validazione Ore',
+        'lavori caposquadra': 'I miei Lavori', 'i miei lavori': 'I miei Lavori',
+        'statistiche': 'Statistiche', 'statistiche manodopera': 'Statistiche Manodopera', 'statistiche ore': 'Statistiche Manodopera',
+        'gestisci utenti': 'Gestisci Utenti', 'utenti': 'Gestisci Utenti',
+        'gestione squadre': 'Gestione Squadre', 'squadre': 'Gestione Squadre',
+        'gestione operai': 'Gestione Operai', 'operai': 'Gestione Operai',
+        'compensi operai': 'Compensi Operai', 'compensi': 'Compensi Operai',
+        'gestione macchine': 'Gestione Macchine', 'macchine': 'Gestione Macchine',
+        'magazzino': 'Magazzino', 'prodotti': 'Prodotti', 'anagrafica prodotti': 'Prodotti',
+        'movimenti': 'Movimenti', 'movimenti magazzino': 'Movimenti',
+        'vigneto': 'Vigneto', 'vigneti': 'Vigneti',
+        'statistiche vigneto': 'Statistiche Vigneto', 'vigneto statistiche': 'Statistiche Vigneto',
+        'vendemmia': 'Vendemmia', 'potatura vigneto': 'Potatura Vigneto', 'trattamenti vigneto': 'Trattamenti Vigneto',
+        'calcolo materiali': 'Calcolo Materiali', 'calcolo materiali frutteto': 'Calcolo Materiali Frutteto',
+        'pianificazione impianto': 'Pianificazione Impianto', 'pianifica impianto': 'Pianificazione Impianto', 'impianto': 'Pianificazione Impianto',
+        'frutteto': 'Frutteto', 'frutteti': 'Frutteti',
+        'statistiche frutteto': 'Statistiche Frutteto', 'frutteto statistiche': 'Statistiche Frutteto',
+        'raccolta frutta': 'Raccolta Frutta', 'potatura frutteto': 'Potatura Frutteto', 'trattamenti frutteto': 'Trattamenti Frutteto',
+        'conto terzi': 'Conto Terzi', 'contoterzi': 'Conto Terzi',
+        'clienti': 'Clienti', 'preventivi': 'Preventivi', 'tariffe': 'Tariffe',
+        'terreni clienti': 'Terreni Clienti', 'mappa clienti': 'Mappa Clienti',
+        'report': 'Report', 'amministrazione': 'Amministrazione', 'guasti': 'Gestione Guasti',
+        'segnalazione guasti': 'Segnalazione Guasti', 'abbonamento': 'Abbonamento',
+        'impostazioni': 'Impostazioni', 'diario': 'Diario Attività'
+    };
+
+    function getUrlForTarget(target, pathname) {
+        pathname = pathname || (typeof window !== 'undefined' && window.location && window.location.pathname) || '';
+        var pathFromRoot = TONY_PAGE_MAP[target];
+        if (!pathFromRoot) return null;
+        var dir = pathname.replace(/\/[^/]*$/, '') || '/';
+        var segments = dir.split('/').filter(Boolean);
+        var depth = segments.length;
+        var up = depth ? '../'.repeat(depth) : '';
+        return up + pathFromRoot;
+    }
+
+    function injectWidget() {
+        if (document.getElementById('tony-fab')) return;
+
+        var tonyIconUrl = scriptBase ? new URL('../images/tony-icon.png', scriptBase).href : '';
+
+        var fab = document.createElement('button');
+        fab.type = 'button';
+        fab.className = 'tony-widget-fab';
+        fab.id = 'tony-fab';
+        fab.title = 'Chiedi a Tony';
+        fab.setAttribute('aria-label', 'Apri assistente Tony');
+        if (tonyIconUrl) {
+            var fabImg = document.createElement('img');
+            fabImg.src = tonyIconUrl;
+            fabImg.alt = 'Tony';
+            fabImg.className = 'tony-fab-icon';
+            fabImg.onerror = function() { fab.innerHTML = ''; fab.textContent = '\uD83E\uDD16'; };
+            fab.appendChild(fabImg);
+        } else {
+            fab.textContent = '\uD83E\uDD16';
+        }
+
+        var panel = document.createElement('div');
+        panel.className = 'tony-widget-panel';
+        panel.id = 'tony-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'Chat con Tony');
+        var headerContent = tonyIconUrl
+            ? '<img src="' + tonyIconUrl + '" alt="" class="tony-header-icon" onerror="this.style.display=\'none\'"> Tony – Assistente'
+            : '\uD83E\uDD16 Tony – Assistente';
+        panel.innerHTML = '<div class="tony-widget-header">' +
+            '<h2>' + headerContent + '</h2>' +
+            '<button type="button" class="tony-widget-close" id="tony-close" aria-label="Chiudi">×</button>' +
+            '</div>' +
+            '<div class="tony-widget-messages" id="tony-messages"></div>' +
+            '<div class="tony-widget-voice-confirm" id="tony-voice-confirm" style="display:none">' +
+            '<span class="tony-voice-confirm-text">Hai detto: «<em id="tony-voice-transcript"></em>»</span>' +
+            '<div class="tony-voice-confirm-actions">' +
+            '<button type="button" class="tony-voice-confirm-cancel" id="tony-voice-cancel">Annulla</button>' +
+            '<button type="button" class="tony-voice-confirm-ok" id="tony-voice-ok">Invia</button>' +
+            '</div></div>' +
+            '<div class="tony-widget-input-row">' +
+            '<button type="button" class="tony-widget-mic" id="tony-mic" title="Tieni premuto per parlare" aria-label="Microfono">🎤</button>' +
+            '<input type="text" class="tony-widget-input" id="tony-input" placeholder="Scrivi un messaggio..." autocomplete="off" maxlength="2000">' +
+            '<button type="button" class="tony-widget-send" id="tony-send">Invia</button>' +
+            '</div>';
+
+        var overlay = document.createElement('div');
+        overlay.className = 'tony-confirm-overlay';
+        overlay.id = 'tony-confirm-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-labelledby', 'tony-confirm-title');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.style.display = 'none';
+        overlay.innerHTML = '<div class="tony-confirm-box">' +
+            '<h3 class="tony-confirm-title" id="tony-confirm-title">Aprire pagina?</h3>' +
+            '<p class="tony-confirm-message" id="tony-confirm-message"></p>' +
+            '<div class="tony-confirm-actions">' +
+            '<button type="button" class="tony-confirm-btn tony-confirm-cancel" id="tony-confirm-cancel">Annulla</button>' +
+            '<button type="button" class="tony-confirm-btn tony-confirm-ok" id="tony-confirm-ok">Apri</button>' +
+            '</div></div>';
+
+        document.body.appendChild(fab);
+        document.body.appendChild(panel);
+        document.body.appendChild(overlay);
+
+        var messagesEl = document.getElementById('tony-messages');
+        var inputEl = document.getElementById('tony-input');
+        var sendBtn = document.getElementById('tony-send');
+        var closeBtn = document.getElementById('tony-close');
+
+        function appendMessage(text, type) {
+            type = type || 'tony';
+            var div = document.createElement('div');
+            div.className = 'tony-msg ' + type;
+            div.textContent = text;
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function removeTyping() {
+            var typing = messagesEl.querySelector('.tony-msg.typing');
+            if (typing) typing.remove();
+        }
+
+        function pulisciTestoPerVoce(testo) {
+            if (!testo || typeof testo !== 'string') return '';
+            var t = testo;
+            t = t.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '');
+            t = t.replace(/\{[\s\S]*?\}/g, '');
+            t = t.replace(/[#*>_~`]/g, '');
+            t = t.replace(/\*\*(.*?)\*\*/g, '$1');
+            t = t.replace(/\*(.*?)\*/g, '$1');
+            t = t.replace(/_(.*?)_/g, '$1');
+            t = t.replace(/[""«»]/g, '');
+            t = t.replace(/(\w+)-(\w+)/g, '$1 $2');
+            t = t.replace(/\b(asterisco|virgolette)\b/gi, '');
+            return t.replace(/\s{2,}/g, ' ').trim();
+        }
+
+        function nascondiJsonDaStreaming(testo) {
+            var t = testo.replace(/\{[\s\S]*?\}/g, '');
+            return t.replace(/\{[^}]*$/, '');
+        }
+
+        fab.addEventListener('click', function() {
+            panel.classList.add('is-open');
+            if (messagesEl.children.length === 0) {
+                appendMessage('Ciao! Sono Tony, il tuo assistente. Chiedimi di aprire un modulo, di mostrarti dati o di aiutarti con le attività. Prova ad esempio: "Apri il modulo attività" o "Portami ai terreni".', 'tony');
+            }
+            inputEl.focus();
+        });
+
+        var pendingVoiceText = null;
+        closeBtn.addEventListener('click', function() {
+            panel.classList.remove('is-open');
+            pendingVoiceText = null;
+            var vc = document.getElementById('tony-voice-confirm');
+            if (vc) vc.style.display = 'none';
+        });
+
+        function speakWithTTS(testo, opts) {
+            if (!opts.fromVoice || !testo) return;
+            var testoPulito = pulisciTestoPerVoce(testo);
+            if (!testoPulito) return;
+            if (window.currentTonyAudio) {
+                window.currentTonyAudio.pause();
+                window.currentTonyAudio = null;
+            }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            (async function() {
+                try {
+                    var firebaseService = await import('../services/firebase-service.js');
+                    var app = firebaseService.getAppInstance && firebaseService.getAppInstance();
+                    if (!app) throw new Error('Firebase non pronto');
+                    var firebaseFunctions = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
+                    var functions = firebaseFunctions.getFunctions(app, 'europe-west1');
+                    var getTonyAudio = firebaseFunctions.httpsCallable(functions, 'getTonyAudio');
+                    var result = await getTonyAudio({ text: testoPulito });
+                    var audioSrc = 'data:audio/mp3;base64,' + result.data.audioContent;
+                    window.currentTonyAudio = new Audio(audioSrc);
+                    window.currentTonyAudio.play();
+                } catch (err) {
+                    console.warn('[Tony] Audio neurale non disponibile:', err);
+                }
+            })();
+        }
+
+        function sendMessage(overrideText, opts) {
+            opts = opts || {};
+            var text = (overrideText != null ? String(overrideText).trim() : (inputEl.value || '').trim());
+            if (!text) return;
+            if (!window.Tony || !window.Tony.isReady()) {
+                appendMessage('Tony non è ancora pronto. Attendi qualche secondo e riprova.', 'error');
+                return;
+            }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            inputEl.value = '';
+            appendMessage(text, 'user');
+            sendBtn.disabled = true;
+            inputEl.disabled = true;
+            if (document.getElementById('tony-mic')) document.getElementById('tony-mic').disabled = true;
+            appendMessage('Sto pensando...', 'typing');
+
+            var useStream = typeof window.Tony.askStream === 'function';
+            var streamingMsgEl = null;
+
+            function onComplete(response) {
+                removeTyping();
+                if (streamingMsgEl) streamingMsgEl.remove();
+                appendMessage(response || 'Nessuna risposta.', 'tony');
+                speakWithTTS(response, opts);
+            }
+
+            function onError(err) {
+                removeTyping();
+                if (streamingMsgEl) streamingMsgEl.remove();
+                appendMessage('Errore: ' + (err && err.message ? err.message : 'Riprova più tardi.'), 'error');
+            }
+
+            function onFinally() {
+                sendBtn.disabled = false;
+                inputEl.disabled = false;
+                var micBtn = document.getElementById('tony-mic');
+                if (micBtn) micBtn.disabled = false;
+                inputEl.focus();
+            }
+
+            if (useStream) {
+                var streamingAccum = '';
+                window.Tony.askStream(text, {
+                    onChunk: function(chunk) {
+                        streamingAccum += chunk;
+                        var daMostrare = nascondiJsonDaStreaming(streamingAccum);
+                        if (!streamingMsgEl) {
+                            removeTyping();
+                            streamingMsgEl = document.createElement('div');
+                            streamingMsgEl.className = 'tony-msg tony streaming';
+                            messagesEl.appendChild(streamingMsgEl);
+                            messagesEl.scrollTop = messagesEl.scrollHeight;
+                        }
+                        streamingMsgEl.textContent = daMostrare;
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    }
+                }).then(onComplete).catch(onError).finally(onFinally);
+            } else {
+                window.Tony.ask(text).then(onComplete).catch(onError).finally(onFinally);
+            }
+        }
+
+        sendBtn.addEventListener('click', function() { sendMessage(); });
+        inputEl.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        var voiceConfirmEl = document.getElementById('tony-voice-confirm');
+        var voiceTranscriptEl = document.getElementById('tony-voice-transcript');
+        var voiceCancelBtn = document.getElementById('tony-voice-cancel');
+        var voiceOkBtn = document.getElementById('tony-voice-ok');
+        var micBtn = document.getElementById('tony-mic');
+
+        if (SpeechRecognition && micBtn && voiceConfirmEl) {
+            var recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'it-IT';
+
+            recognition.onresult = function(e) {
+                var transcript = '';
+                for (var i = e.resultIndex; i < e.results.length; i++) {
+                    transcript += e.results[i][0].transcript;
+                }
+                if (transcript.trim()) {
+                    pendingVoiceText = transcript.trim();
+                    voiceTranscriptEl.textContent = pendingVoiceText;
+                    voiceConfirmEl.style.display = 'flex';
+                }
+            };
+            recognition.onerror = function(e) {
+                if (e.error !== 'aborted' && e.error !== 'no-speech') {
+                    appendMessage('Microfono: ' + (e.error === 'not-allowed' ? 'permesso negato' : e.error), 'error');
+                }
+            };
+
+            function startListening() {
+                if (!window.Tony || !window.Tony.isReady()) return;
+                pendingVoiceText = null;
+                voiceConfirmEl.style.display = 'none';
+                try {
+                    recognition.start();
+                    micBtn.classList.add('tony-mic-active');
+                } catch (err) { /* già in esecuzione */ }
+            }
+            function stopListening() {
+                try { recognition.stop(); } catch (err) {}
+                micBtn.classList.remove('tony-mic-active');
+            }
+
+            micBtn.addEventListener('mousedown', function(e) { e.preventDefault(); startListening(); });
+            micBtn.addEventListener('mouseup', stopListening);
+            micBtn.addEventListener('mouseleave', stopListening);
+            micBtn.addEventListener('touchstart', function(e) { e.preventDefault(); startListening(); }, { passive: false });
+            micBtn.addEventListener('touchend', function(e) { e.preventDefault(); stopListening(); }, { passive: false });
+
+            voiceCancelBtn.addEventListener('click', function() {
+                pendingVoiceText = null;
+                voiceConfirmEl.style.display = 'none';
+            });
+            voiceOkBtn.addEventListener('click', function() {
+                if (pendingVoiceText) {
+                    var t = pendingVoiceText;
+                    pendingVoiceText = null;
+                    voiceConfirmEl.style.display = 'none';
+                    sendMessage(t, { fromVoice: true });
+                }
+            });
+        } else if (micBtn) {
+            micBtn.style.display = 'none';
+        }
+
+        var tonyConfirmOverlay = document.getElementById('tony-confirm-overlay');
+        var tonyConfirmMessage = document.getElementById('tony-confirm-message');
+        var tonyConfirmCancel = document.getElementById('tony-confirm-cancel');
+        var tonyConfirmOk = document.getElementById('tony-confirm-ok');
+        var tonyConfirmResolve = null;
+
+        tonyConfirmCancel.addEventListener('click', function() {
+            if (tonyConfirmResolve) { tonyConfirmResolve(false); tonyConfirmResolve = null; }
+            tonyConfirmOverlay.style.display = 'none';
+        });
+        tonyConfirmOk.addEventListener('click', function() {
+            if (tonyConfirmResolve) { tonyConfirmResolve(true); tonyConfirmResolve = null; }
+            tonyConfirmOverlay.style.display = 'none';
+        });
+        tonyConfirmOverlay.addEventListener('click', function(e) {
+            if (e.target === tonyConfirmOverlay && tonyConfirmResolve) {
+                tonyConfirmResolve(false);
+                tonyConfirmResolve = null;
+                tonyConfirmOverlay.style.display = 'none';
+            }
+        });
+
+        window.showTonyConfirmDialog = function(message) {
+            return new Promise(function(resolve) {
+                tonyConfirmResolve = resolve;
+                tonyConfirmMessage.textContent = message;
+                tonyConfirmOverlay.style.display = 'flex';
+            });
+        };
+    }
+
+    injectWidget();
+
+    async function initTonyWhenReady() {
+        var maxAttempts = 40;
+        var interval = 250;
+        for (var i = 0; i < maxAttempts; i++) {
+            try {
+                var firebaseService = await import('../services/firebase-service.js');
+                var app = firebaseService.getAppInstance && firebaseService.getAppInstance();
+                if (app) {
+                    var Tony = (await import('../services/tony-service.js')).Tony;
+                    window.Tony = Tony;
+                    await Tony.init(app);
+                    Tony.setContext('session', {
+                        current_page: {
+                            path: window.location.pathname,
+                            title: document.title,
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+                    Tony.onAction(function(actionName, params) {
+                        if (actionName !== 'APRI_PAGINA' && actionName !== 'apri_modulo') return;
+                        var target = (params.target || params.modulo || '').toString().toLowerCase().trim().replace(/\s+/g, ' ');
+                        var url = getUrlForTarget(target);
+                        if (!url) {
+                            console.warn('[Tony] Pagina non mappata per target:', target, params);
+                            return;
+                        }
+                        var label = TONY_LABEL_MAP[target] || target;
+                        window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
+                            if (ok) window.location.href = url;
+                        });
+                    });
+                    console.log('[Tony] Pronto (widget standalone).');
+                    return;
+                }
+            } catch (e) {
+                if (i === maxAttempts - 1) console.warn('[Tony] Init non disponibile (Firebase non pronto o assente).', e);
+            }
+            await new Promise(function(r) { setTimeout(r, interval); });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { initTonyWhenReady(); });
+    } else {
+        initTonyWhenReady();
+    }
+})();</code></pre>
+
+<h1>=== core/services/tony-service.js ===</h1>
+<div class="file-label">core/services/tony-service.js</div>
+<div class="copy-hint">Service Tony: Gemini, ask, askStream, contesto, azioni</div>
+<pre id="tony-service"><code>/**
+ * Tony Service - Assistente IA (Gemini) per GFV Platform
+ * Modulo dedicato: Singleton + Event Bus. Solo questo modulo parla con Gemini.
+ * @see docs-sviluppo/GUIDA_SVILUPPO_TONY.md
+ * @module core/services/tony-service
+ */
+
+import { GUIDA_APP_PER_TONY } from './tony-guida-app.js';
+
+/** Elenco file della guida app (percorso relativo a docs-sviluppo/guida-app/) */
+const GUIDA_APP_FILES = [
+  'core.md',
+  'intersezioni-moduli.md',
+  'moduli/terreni.md',
+  'moduli/lavori-attivita.md',
+  'moduli/vigneto.md',
+  'moduli/frutteto.md',
+  'moduli/magazzino.md',
+  'moduli/conto-terzi.md'
+];
+
+async function loadGuidaAppFull() {
+  const scriptBase = new URL(import.meta.url);
+  const basesToTry = [
+    new URL('../guida-app/', scriptBase).href,
+    new URL('../../docs-sviluppo/guida-app/', scriptBase).href
+  ];
+  for (const base of basesToTry) {
+    try {
+      const parts = await Promise.all(
+        GUIDA_APP_FILES.map(async (file) => {
+          const res = await fetch(base + file, { cache: 'no-store' });
+          if (!res.ok) return '';
+          return res.text();
+        })
+      );
+      const full = parts.filter(Boolean).join('\n\n---\n\n');
+      if (full.length > 100) return full;
+    } catch (_) { /* prova base successiva */ }
+  }
+  console.warn('[Tony] Guida completa non caricabile (uso versione condensata).');
+  return null;
+}
+
+const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico, non un software.
+
+TONO E VOCABOLARIO:
+- Usa verbi attivi e colloquiali: invece di "È possibile visualizzare", usa "Dagli un'occhiata" o "Ti mostro".
+- Invece di "Procedura completata", usa "Ecco fatto!" o "Tutto a posto".
+- Interiezioni naturali: "Bene, allora...", "Certamente!", "Dunque...".
+- Rivolgiti all'utente in modo diretto, come un capocantiere che parla con un amico.
+
+FORMATO OUTPUT VOCALE (le risposte vengono lette da TTS):
+- Genera testo puro. VIETATO grassetto (**), corsivo (*), elenchi puntati con trattini o asterischi.
+- Evita virgolette doppie; se necessario usa l'apostrofo.
+- Per elenchi usa parole: "Primo...", "Poi...", "Infine...".
+- Scrivi "più" invece di +, "percento" invece di %.
+
+PAUSE E PUNTEGGIATURA (il TTS le interpreta come timing):
+- Virgola: pausa breve. Dopo connettivi come "Allora", "Quindi".
+- Punto: pausa media con abbassamento di tono.
+- Punti di sospensione (...): pausa lunga e riflessiva. Usali prima di proporre un'azione per dare tempo all'utente.
+- Punto interrogativo: alza l'intonazione, rende Tony più umano.
+- Punto esclamativo: enfasi e energia.
+
+Regole operative:
+1. Usa SOLO JSON [CONTESTO_AZIENDALE]. No invenzioni.
+2. Info mancanti? Indica il modulo corretto.
+3. Domande "Come fare": Spiega passi -> Chiedi "Aprire pagina?" -> Includi { "action": "APRI_PAGINA" } SOLO dopo conferma utente ("sì", "apri").
+4. Richieste esplicite ("Vai a..."): Includi subito { "action": "APRI_PAGINA", "params": {"target": "..."} }.
+5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali impianto → calcolo materiali; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo. (g) SE segnare ore / registrare ore: PRIMA chiedi i dati necessari (terreno, data, tipo lavoro, orario inizio/fine, pause, macchina se usata). Elenca cosa serve e ricorda all'utente di averli pronti, poi proponi l'apertura. Non aprire subito senza aver raccolto o indicato i dati.
+6. Altre azioni (SEGNA_ORE, GUASTO): Conferma + JSON azione.
+7. MEMORIA VOCALE: Se l'utente risponde con poche parole (es. "Sì", "Vai", "Ok apri"), guarda l'ultimo messaggio che hai scritto per capire a cosa si riferisce e agisci di conseguenza.
+
+**[CONTESTO_AZIENDALE]**
+{CONTESTO_PLACEHOLDER}
+**[/CONTESTO_AZIENDALE]**`;
+
+const CHAT_HISTORY_MAX = 8;
+
+class TonyService {
+  constructor() {
+    this.model = null;
+    this.ai = null;
+    this.app = null;
+    this._tonyAskCallable = null;
+    this.context = {};
+    this.onActionCallbacks = [];
+    this._ready = false;
+    this._useCallable = false;
+    this._initPromise = null;
+    this.chatHistory = [];
+  }
+
+  _formatHistoryForPrompt(history) {
+    if (!history || !history.length) return '';
+    return history
+      .map((m) => {
+        const label = m.role === 'user' ? 'Utente' : 'Tony';
+        const text = m.parts && m.parts[0] ? m.parts[0].text : '';
+        return `${label}: ${text}`;
+      })
+      .join('\n');
+  }
+
+  async init(app) {
+    if (this._ready && (this.model || this._useCallable)) return;
+    if (this._initPromise) return this._initPromise;
+    this.app = app;
+    this.context.guida_app = GUIDA_APP_PER_TONY;
+    this._initPromise = (async () => {
+      try {
+        const fullGuida = await loadGuidaAppFull();
+        if (fullGuida) { this.context.guida_app = fullGuida; console.log('[Tony] Guida app completa caricata.'); }
+      } catch (_) {}
+      try {
+        const { getAI, getGenerativeModel, GoogleAIBackend } = await import('https://esm.sh/firebase@11/ai');
+        this._getGenerativeModel = getGenerativeModel;
+        this.ai = getAI(app, { backend: new GoogleAIBackend() });
+        this._buildModel();
+        this._ready = true;
+        return;
+      } catch (err) {
+        const useCallable = err?.message?.includes('Service AI is not available') || err?.message?.includes('not available');
+        if (useCallable) {
+          try {
+            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
+            const functions = getFunctions(app, 'europe-west1');
+            this._tonyAskCallable = httpsCallable(functions, 'tonyAsk');
+            this._useCallable = true;
+            this._ready = true;
+            console.log('[Tony] Uso Cloud Function tonyAsk (getAI non disponibile in questo build).');
+            return;
+          } catch (callableErr) { console.warn('[Tony] Callable non disponibile:', callableErr); }
+        }
+        console.error('[Tony] Errore inizializzazione AI:', err);
+        this._initPromise = null;
+        throw err;
+      }
+    })();
+    return this._initPromise;
+  }
+
+  _buildModel(contextOverride) {
+    if (!this._getGenerativeModel || !this.ai) return;
+    const ctx = contextOverride !== undefined ? contextOverride : this.context;
+    const contextJson = JSON.stringify(ctx, null, 2);
+    const systemInstruction = SYSTEM_INSTRUCTION_BASE.replace('{CONTESTO_PLACEHOLDER}', contextJson || '"Placeholder: nessun dato ancora iniettato"');
+    this.model = this._getGenerativeModel(this.ai, { model: 'gemini-2.0-flash', systemInstruction });
+  }
+
+  _getContextForPrompt() {
+    if (this.chatHistory.length === 0) return this.context;
+    const { guida_app, ...rest } = this.context;
+    return rest;
+  }
+
+  setContext(moduleName, data) {
+    this.context[moduleName] = data;
+    if (this._getGenerativeModel && this.ai) this._buildModel();
+  }
+
+  _parseAndTriggerActions(text) {
+    if (!text || typeof text !== 'string') return text;
+    let cleaned = text;
+    const startMarker = /\{\s*["']action["']\s*:\s*["']/;
+    let match = startMarker.exec(cleaned);
+    while (match) {
+      const start = match.index;
+      let depth = 0, i = start;
+      while (i < cleaned.length) {
+        if (cleaned[i] === '{') depth++;
+        else if (cleaned[i] === '}') {
+          depth--;
+          if (depth === 0) {
+            const block = cleaned.slice(start, i + 1);
+            try {
+              const parsed = JSON.parse(block);
+              const actionName = parsed.action;
+              const params = parsed.params || {};
+              if (actionName) {
+                this.triggerAction(actionName, params);
+                cleaned = (cleaned.slice(0, start) + cleaned.slice(i + 1)).replace(/\s{2,}/g, ' ').trim();
+              }
+            } catch (_) {}
+            break;
+          }
+        }
+        i++;
+      }
+      match = startMarker.exec(cleaned);
+    }
+    return cleaned.trim();
+  }
+
+  async ask(userPrompt) {
+    if (!this._ready) throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
+    const historyBloc = this._formatHistoryForPrompt(this.chatHistory);
+    const promptSuffix = historyBloc ? `Conversazione precedente:\n${historyBloc}\n\nDomanda utente: ${userPrompt}` : `Domanda utente: ${userPrompt}`;
+    const contextForPrompt = this._getContextForPrompt();
+    let text;
+    if (this._useCallable && this._tonyAskCallable) {
+      const { data } = await this._tonyAskCallable({ message: userPrompt, context: contextForPrompt, history: this.chatHistory });
+      text = data?.text ?? 'Nessuna risposta da Tony.';
+    } else if (this.model) {
+      this._buildModel(contextForPrompt);
+      const contextJson = JSON.stringify(contextForPrompt, null, 2);
+      const fullPrompt = `Contesto attuale: ${contextJson}\n\n${promptSuffix}`;
+      const result = await this.model.generateContent(fullPrompt);
+      const response = result.response;
+      if (!response || !response.text) return 'Non ho ricevuto una risposta valida. Riprova.';
+      text = response.text();
+    } else {
+      throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
+    }
+    const cleaned = this._parseAndTriggerActions(text);
+    this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
+    this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
+    while (this.chatHistory.length > CHAT_HISTORY_MAX) this.chatHistory.shift();
+    return cleaned;
+  }
+
+  async askStream(userPrompt, opts = {}) {
+    if (!this._ready) throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
+    const onChunk = opts.onChunk || (() => {});
+    if (this._useCallable && this._tonyAskCallable) return await this.ask(userPrompt);
+    if (!this.model) throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
+    const contextForPrompt = this._getContextForPrompt();
+    this._buildModel(contextForPrompt);
+    const historyBloc = this._formatHistoryForPrompt(this.chatHistory);
+    const promptSuffix = historyBloc ? `Conversazione precedente:\n${historyBloc}\n\nDomanda utente: ${userPrompt}` : `Domanda utente: ${userPrompt}`;
+    const contextJson = JSON.stringify(contextForPrompt, null, 2);
+    const fullPrompt = `Contesto attuale: ${contextJson}\n\n${promptSuffix}`;
+    let fullText = '';
+    const result = await this.model.generateContentStream(fullPrompt);
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text?.() ?? '';
+      if (chunkText) { fullText += chunkText; onChunk(chunkText); }
+    }
+    const response = await result.response;
+    if (response?.text) fullText = response.text();
+    const cleaned = this._parseAndTriggerActions(fullText);
+    this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
+    this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
+    while (this.chatHistory.length > CHAT_HISTORY_MAX) this.chatHistory.shift();
+    return cleaned;
+  }
+
+  onAction(callback) {
+    if (typeof callback === 'function') this.onActionCallbacks.push(callback);
+  }
+
+  triggerAction(actionName, params) {
+    this.onActionCallbacks.forEach((cb) => {
+      try { cb(actionName, params || {}); } catch (e) { console.error('[Tony] Errore in onAction callback:', e); }
+    });
+  }
+
+  isReady() {
+    return this._ready && (!!this.model || this._useCallable);
+  }
+}
+
+export const Tony = new TonyService();
+export default Tony;</code></pre>
+
+</body>
+</html>

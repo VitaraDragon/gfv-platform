@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore Icone – GFV Platform</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        h1 { color: #228B22; }
+        section { margin: 2rem 0; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
+        .preview { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+        .preview-item { text-align: center; }
+        .preview-item canvas { border: 1px solid #ccc; display: block; margin: 0 auto 0.5rem; }
+        button { padding: 0.5rem 1rem; margin: 0.25rem; cursor: pointer; background: #228B22; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #1a6b1a; }
+        button.secondary { background: #666; }
+        input[type="file"] { margin: 0.5rem 0; }
+        #sourceCanvas { border: 1px solid #ccc; cursor: crosshair; max-width: 100%; }
+        .info { font-size: 0.9em; color: #666; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <h1>Generatore Icone – GFV Platform</h1>
+
+    <section>
+        <h2>1. Carica o disegna l'icona</h2>
+        <p>Carica un'immagine (PNG, JPG) oppure disegna sul canvas:</p>
+        <input type="file" id="fileInput" accept="image/*">
+        <p><canvas id="sourceCanvas" width="400" height="400"></canvas></p>
+        <button type="button" id="clearBtn">Cancella</button>
+    </section>
+
+    <section>
+        <h2>2. Icone PWA (cartella icons/)</h2>
+        <p>Genera tutte le dimensioni per il manifest:</p>
+        <button type="button" id="genAllBtn">Genera tutte le icone</button>
+        <div class="preview" id="previewAll"></div>
+    </section>
+
+    <section>
+        <h2>3. Icona Tony (widget)</h2>
+        <p>Per il pulsante FAB e l'header del pannello Tony. Salva in <code>core/images/tony-icon.png</code>:</p>
+        <button type="button" id="genTonyBtn">Genera icona Tony (64x64)</button>
+        <button type="button" id="genTony128Btn">Genera icona Tony (128x128)</button>
+        <div class="preview" id="previewTony"></div>
+        <p class="info">Usa 64x64 per il FAB, 128x128 per maggiore nitidezza su schermi retina.</p>
+    </section>
+
+    <script>
+        const sizes = [16, 32, 48, 72, 96, 120, 144, 152, 180, 192, 256, 512];
+        const canvas = document.getElementById('sourceCanvas');
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#228B22';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = '120px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('G', canvas.width / 2, canvas.height / 2);
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                const w = img.width * scale, h = img.height * scale;
+                ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+            };
+            img.src = URL.createObjectURL(file);
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            ctx.fillStyle = '#228B22';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+
+        function downloadCanvas(c, size, name) {
+            const link = document.createElement('a');
+            link.download = name;
+            link.href = c.toDataURL('image/png');
+            link.click();
+        }
+
+        function resizeCanvas(source, size) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const cctx = c.getContext('2d');
+            cctx.drawImage(source, 0, 0, size, size);
+            return c;
+        }
+
+        document.getElementById('genAllBtn').addEventListener('click', () => {
+            const container = document.getElementById('previewAll');
+            container.innerHTML = '';
+            sizes.forEach(s => {
+                const c = resizeCanvas(canvas, s);
+                const wrap = document.createElement('div');
+                wrap.className = 'preview-item';
+                const preview = document.createElement('canvas');
+                preview.width = preview.height = Math.min(s, 72);
+                preview.getContext('2d').drawImage(c, 0, 0, preview.width, preview.height);
+                wrap.appendChild(preview);
+                const btn = document.createElement('button');
+                btn.textContent = `Scarica ${s}x${s}`;
+                btn.onclick = () => downloadCanvas(c, s, `icon-${s}x${s}.png`);
+                wrap.appendChild(btn);
+                wrap.appendChild(document.createElement('br'));
+                wrap.appendChild(document.createTextNode(`icon-${s}x${s}.png`));
+                container.appendChild(wrap);
+            });
+        });
+
+        function genTony(size) {
+            const c = resizeCanvas(canvas, size);
+            const container = document.getElementById('previewTony');
+            container.innerHTML = '';
+            const wrap = document.createElement('div');
+            wrap.className = 'preview-item';
+            const preview = document.createElement('canvas');
+            preview.width = preview.height = Math.min(size, 96);
+            preview.getContext('2d').drawImage(c, 0, 0, preview.width, preview.height);
+            wrap.appendChild(preview);
+            const btn = document.createElement('button');
+            btn.textContent = `Scarica tony-icon.png (${size}x${size})`;
+            btn.onclick = () => downloadCanvas(c, size, 'tony-icon.png');
+            wrap.appendChild(btn);
+            wrap.appendChild(document.createElement('br'));
+            wrap.appendChild(document.createTextNode(`Salva in core/images/tony-icon.png`));
+            container.appendChild(wrap);
+        }
+
+        document.getElementById('genTonyBtn').addEventListener('click', () => genTony(64));
+        document.getElementById('genTony128Btn').addEventListener('click', () => genTony(128));
+    </script>
+</body>
+</html>

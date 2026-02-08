@@ -480,7 +480,6 @@
 
         async function loadPoligonoFromZoneLavoratePotaturaFrutteto(lavoroId) {
             const tenantId = (await import(resolvePath('../../../core/services/tenant-service.js'))).getCurrentTenantId();
-            const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
             const { getDb, collection, getDocs } = await import(resolvePath('../../../core/services/firebase-service.js'));
             const db = getDb();
             if (!tenantId || !lavoroId || !db) return null;
@@ -505,10 +504,10 @@
 
         async function loadDatiLavoroPotaturaFrutteto(lavoroId) {
             const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
-            const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
             const { getLavoro } = await import(resolvePath('../../../core/services/lavori-service.js'));
             const { getTerreno } = await import(resolvePath('../../../core/services/terreni-service.js'));
-            const { getDb, collection, query, where, getDocs, getDoc, doc } = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const firebaseService = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { getDb, collection, query, where, getDocs, getDoc, doc } = firebaseService;
             const tenantId = getCurrentTenantId();
             if (!tenantId || !lavoroId) return null;
             const db = getDb();
@@ -528,8 +527,8 @@
             }
             let macchine = [];
             try {
-                const { getAllMacchine } = await import(resolvePath('../../../modules/parco-macchine/services/macchine-service.js'));
-                macchine = await getAllMacchine();
+                const macchineService = await import(resolvePath('../../../modules/parco-macchine/services/macchine-service.js'));
+                macchine = await macchineService.getAllMacchine();
             } catch (e) { console.warn('[POTATURA-FRUTTETO] loadMacchine:', e); }
             const oreRef = collection(db, 'tenants/' + tenantId + '/lavori/' + lavoroId + '/oreOperai');
             const q = query(oreRef, where('stato', '==', 'validate'));
@@ -646,7 +645,6 @@
             if (potatura.lavoroId) {
                 try {
                     const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
-                    const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
                     const { getDb, collection, query, where, getDocs } = await import(resolvePath('../../../core/services/firebase-service.js'));
                     const tenantId = getCurrentTenantId();
                     const db = getDb();
@@ -1558,14 +1556,33 @@
                     return;
                 }
                 try {
-                    const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
                     const { getDb, getDoc, doc } = await import(resolvePath('../../../core/services/firebase-service.js'));
                     const db = getDb();
                     if (db) {
                         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                            const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                            hasManodoperaModule = modules.includes('manodopera');
+                            
+                            // Inizializza context Tony con i moduli attivi usando helper
+                            if (window.Tony && window.Tony.initContextWithModules) {
+                                window.Tony.initContextWithModules(modules);
+                            } else {
+                                var initTonyContext = function(retries) {
+                                    retries = retries || 0;
+                                    if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                        window.Tony.setContext('dashboard', {
+                                            info_azienda: { moduli_attivi: modules },
+                                            moduli_attivi: modules
+                                        });
+                                        console.log('[Frutteto Potatura] Context Tony inizializzato con moduli:', modules);
+                                    } else if (retries < 10) {
+                                        setTimeout(function() { initTonyContext(retries + 1); }, 500);
+                                    }
+                                };
+                                initTonyContext();
+                            }
                         }
                     }
                 } catch (err) { console.warn('Verifica modulo manodopera:', err); }

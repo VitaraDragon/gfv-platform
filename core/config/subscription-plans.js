@@ -120,6 +120,15 @@ export const AVAILABLE_MODULES = [
     category: 'utility'
   },
   {
+    id: 'tony',
+    name: 'Tony Avanzato',
+    icon: '🤖',
+    description: 'Assistente IA con azioni operative: apri pagine, compila form, mostra grafici',
+    price: 5,
+    available: true,
+    category: 'utility'
+  },
+  {
     id: 'report',
     name: 'Report/Bilancio',
     icon: '📑',

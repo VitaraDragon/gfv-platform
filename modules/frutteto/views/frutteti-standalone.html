@@ -781,7 +781,29 @@
                         const tenantId = getCurrentTenantId();
                         if (tenantId) {
                             const tenant = await getCurrentTenant();
-                            if (!tenant || !tenant.modules || !tenant.modules.includes('frutteto')) {
+                            const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                            
+                            // Inizializza context Tony con i moduli attivi usando helper
+                            if (window.Tony && window.Tony.initContextWithModules) {
+                                window.Tony.initContextWithModules(modules);
+                            } else {
+                                // Fallback se helper non disponibile (retry manuale)
+                                var initTonyContext = function(retries) {
+                                    retries = retries || 0;
+                                    if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                        window.Tony.setContext('dashboard', {
+                                            info_azienda: { moduli_attivi: modules },
+                                            moduli_attivi: modules
+                                        });
+                                        console.log('[Frutteti] Context Tony inizializzato con moduli:', modules);
+                                    } else if (retries < 10) {
+                                        setTimeout(function() { initTonyContext(retries + 1); }, 500);
+                                    }
+                                };
+                                initTonyContext();
+                            }
+                            
+                            if (!modules.includes('frutteto')) {
                                 alert('Il modulo Frutteto non è attivo. Attivalo dalla pagina Abbonamento.');
                                 window.location.href = resolvePath('../../../core/admin/abbonamento-standalone.html');
                                 return;

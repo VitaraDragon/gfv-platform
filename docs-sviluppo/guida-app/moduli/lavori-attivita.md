@@ -50,7 +50,13 @@ Permettere di **creare e gestire i lavori** (incarichi su un terreno, assegnati 
 - **Caposquadra:** vede solo i lavori a lui assegnati; può aggiornare stato e note; accede a Validazione ore per i propri lavori. Può inviare comunicazioni agli operai.
 - **Operaio:** vede solo i lavori a cui è assegnato (direttamente o tramite squadra); segna le ore; non può validare.
 
-### Segnatura ore
+### Segnatura ore / Registrare ore (logica con e senza Manodopera)
+
+- **Con modulo Manodopera attivo:** usa **Segnatura ore** (`segnatura-ore-standalone.html`) – ore su un lavoro già assegnato. Dati necessari: lavoro, data, orario inizio/fine, pause (minuti), note, eventuale macchina.
+- **Senza modulo Manodopera:** usa **Diario Attività** (`attivita-standalone.html`) – registrazione attività. Dati necessari: terreno, tipo lavoro, coltura, data, orario inizio/fine, pause, note, eventuale macchina/attrezzo.
+- **Quando l'utente chiede di segnare ore:** chiedi prima i dati necessari (terreno, data, tipo lavoro, orari, pause, macchina se usata). Elenca cosa serve e ricorda all'utente di averli pronti prima di aprire la pagina.
+
+### Segnatura ore (dettaglio, con Manodopera)
 
 - **Chi segna:** operaio o caposquadra, per i lavori a cui sono assegnati.
 - **Dove:** pagina **Segnatura ore** o da contesto lavoro (form con data, orario inizio/fine, pause, ore nette calcolate, note).

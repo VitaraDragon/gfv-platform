@@ -951,11 +951,32 @@
                         
                         if (tenantId) {
                             const tenant = await getCurrentTenant();
+                            const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                            
+                            // Inizializza context Tony con i moduli attivi usando helper
+                            if (window.Tony && window.Tony.initContextWithModules) {
+                                window.Tony.initContextWithModules(modules);
+                            } else {
+                                var initTonyContext = function(retries) {
+                                    retries = retries || 0;
+                                    if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                        window.Tony.setContext('dashboard', {
+                                            info_azienda: { moduli_attivi: modules },
+                                            moduli_attivi: modules
+                                        });
+                                        console.log('[Vendemmia] Context Tony inizializzato con moduli:', modules);
+                                    } else if (retries < 10) {
+                                        setTimeout(function() { initTonyContext(retries + 1); }, 500);
+                                    }
+                                };
+                                initTonyContext();
+                            }
+                            
                             if (tenant) {
                                 // Salva stato modulo manodopera globalmente
-                                window.hasManodoperaModule = tenant.modules && tenant.modules.includes('manodopera');
+                                window.hasManodoperaModule = modules.includes('manodopera');
                             }
-                            if (!tenant || !tenant.modules || !tenant.modules.includes('vigneto')) {
+                            if (!modules.includes('vigneto')) {
                                 alert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.');
                                 window.location.href = '../../../core/admin/abbonamento-standalone.html';
                                 return;

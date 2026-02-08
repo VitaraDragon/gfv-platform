@@ -344,8 +344,27 @@
                 const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                 if (tenantDoc.exists()) {
                     const tenantData = tenantDoc.data();
-                    const moduli = tenantData.modules || [];
+                    const moduli = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
                     const piano = tenantData.piano || 'starter';
+                    
+                    // Inizializza context Tony con i moduli attivi usando helper
+                    if (window.Tony && window.Tony.initContextWithModules) {
+                        window.Tony.initContextWithModules(moduli);
+                    } else {
+                        var initTonyContext = function(retries) {
+                            retries = retries || 0;
+                            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                window.Tony.setContext('dashboard', {
+                                    info_azienda: { moduli_attivi: moduli },
+                                    moduli_attivi: moduli
+                                });
+                                console.log('[Amministrazione] Context Tony inizializzato con moduli:', moduli);
+                            } else if (retries < 10) {
+                                setTimeout(function() { initTonyContext(retries + 1); }, 500);
+                            }
+                        };
+                        initTonyContext();
+                    }
 
                     // Piano attuale
                     const pianoNames = {

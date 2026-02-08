@@ -5,8 +5,8 @@
     bottom: 24px;
     right: 24px;
     z-index: 9998;
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
     color: white;
@@ -31,9 +31,25 @@
     transform: none;
 }
 
+.tony-widget-fab .tony-fab-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.tony-widget-header .tony-header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
 .tony-widget-panel {
     position: fixed;
-    bottom: 90px;
+    bottom: 92px;
     right: 24px;
     z-index: 9999;
     width: 380px;
@@ -209,6 +225,25 @@
     background: #ffebee;
     border-color: #e57373;
     animation: tony-mic-pulse 1s ease-in-out infinite;
+}
+
+/* Modalità dialogo continuo: microfono pulsante rosso */
+.tony-widget-mic.tony-mic-active.is-auto-mode {
+    background-color: #ff4444 !important;
+    border-color: #ff4444;
+    color: white !important;
+    animation: tony-pulse-red 1.5s infinite;
+}
+
+@keyframes tony-pulse-red {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+}
+
+/* Nascondi barra conferma vocale in modalità auto */
+.tony-widget-panel.is-auto-mode #tony-voice-confirm {
+    display: none !important;
 }
 
 .tony-widget-mic:disabled {

@@ -1416,6 +1416,7 @@
         let hasParcoMacchineModule = false;
         let hasManodoperaModule = false;
         let hasContoTerziModule = false;
+        let availableModules = [];
         let isContoTerziMode = false; // Modalità Conto Terzi (filtro su lavori conto terzi)
         let lavoriList = []; // Lista lavori per filtrare in modalità Conto Terzi
         let clientiList = []; // Lista clienti per dropdown
@@ -1598,9 +1599,32 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
-                        hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
-                        hasContoTerziModule = tenantData.modules && tenantData.modules.includes('contoTerzi');
+                        availableModules = tenantData.modules || [];
+                        hasParcoMacchineModule = availableModules.includes('parcoMacchine');
+                        hasManodoperaModule = availableModules.includes('manodopera');
+                        hasContoTerziModule = availableModules.includes('contoTerzi');
+                        
+                        // Inizializza context Tony con i moduli attivi usando helper
+                        if (window.Tony && window.Tony.initContextWithModules) {
+                            window.Tony.initContextWithModules(availableModules);
+                        } else {
+                            // Fallback se helper non disponibile (retry manuale)
+                            var initTonyContext = function(retries) {
+                                retries = retries || 0;
+                                if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                    window.Tony.setContext('dashboard', {
+                                        info_azienda: { moduli_attivi: availableModules },
+                                        moduli_attivi: availableModules
+                                    });
+                                    console.log('[Attivita] Context Tony inizializzato con moduli:', availableModules);
+                                } else if (retries < 10) {
+                                    setTimeout(function() {
+                                        initTonyContext(retries + 1);
+                                    }, 500);
+                                }
+                            };
+                            initTonyContext();
+                        }
                         
                         // Mostra/nascondi sezione macchine
                         const macchineSection = document.getElementById('attivita-macchine-section');
@@ -1676,6 +1700,29 @@
             // Popola filtri dopo che tutto è stato caricato
             populateFiltroColture();
             populateFiltroTipoLavoro();
+            
+            // Nutre Tony con contesto attivita (moduli, terreni, tipi lavoro, colture)
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                const terreni = window.attivitaState?.terreniList || [];
+                const terreniPerTony = terreni.map(t => ({ id: t.id, nome: (t.nome || t.coltura || '').toString() }));
+                const coltureNomi = Array.isArray(colture) ? colture : [];
+                
+                // Inizializza anche il context dashboard con i moduli (necessario per il widget)
+                window.Tony.setContext('dashboard', {
+                    info_azienda: { moduli_attivi: availableModules },
+                    moduli_attivi: availableModules
+                });
+                
+                // Poi aggiungi il context specifico attivita
+                window.Tony.setContext('attivita', {
+                    moduli_attivi: availableModules,
+                    usa_struttura_gerarchica: true,
+                    terreni: terreniPerTony,
+                    categorie_lavoro: (categorieLavoriPrincipali || []).map(c => ({ id: c.id, nome: c.nome })),
+                    tipi_lavoro: (tipiLavoroList || []).map(t => ({ id: t.id, nome: t.nome, categoriaId: t.categoriaId })),
+                    colture: coltureNomi
+                });
+            }
             
             // Mostra/nascondi sezione Conto Terzi e orari
             const contoTerziSection = document.getElementById('attivita-conto-terzi-section');

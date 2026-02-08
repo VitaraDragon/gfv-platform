@@ -2852,10 +2852,32 @@
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
-                                hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
-                                hasContoTerziModule = tenantData.modules && tenantData.modules.includes('contoTerzi');
+                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                hasManodoperaModule = modules.includes('manodopera');
+                                hasParcoMacchineModule = modules.includes('parcoMacchine');
+                                hasContoTerziModule = modules.includes('contoTerzi');
                                 
+                                // Inizializza context Tony con i moduli attivi usando helper
+                                if (window.Tony && window.Tony.initContextWithModules) {
+                                    window.Tony.initContextWithModules(modules);
+                                } else {
+                                    // Fallback se helper non disponibile (retry manuale)
+                                    var initTonyContext = function(retries) {
+                                        retries = retries || 0;
+                                        if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                            window.Tony.setContext('dashboard', {
+                                                info_azienda: { moduli_attivi: modules },
+                                                moduli_attivi: modules
+                                            });
+                                            console.log('[Gestione Lavori] Context Tony inizializzato con moduli:', modules);
+                                        } else if (retries < 10) {
+                                            setTimeout(function() {
+                                                initTonyContext(retries + 1);
+                                            }, 500);
+                                        }
+                                    };
+                                    initTonyContext();
+                                }
                             }
                         } catch (error) {
                             console.warn('Errore verifica moduli:', error);

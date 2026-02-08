@@ -44,7 +44,7 @@ Tony è un **assistente** che può essere usato sia **a voce** che **in chat scr
 ### Interfaccia di Tony (testo)
 - **Input**: sempre **testo** (stringa).
 - **Output**: **testo** (risposta) e/o **azioni strutturate** (Function Calling → JSON → triggerAction).
-- La **voce** (microfono, altoparlante) è un **livello UI sopra Tony**: STT → testo → Tony.ask(testo) → risposta testo → TTS. Il modulo Tony non gestisce audio; solo testo in / testo out.
+- La **voce** (microfono, altoparlante) è un **livello UI sopra Tony**: STT → testo → Tony.ask(testo) → risposta testo → TTS (Cloud Function getTonyAudio, voce it-IT-Wavenet-D). Il modulo Tony non gestisce audio; solo testo in / testo out.
 
 ### Dove vive il codice
 - **Service**: `core/services/tony-service.js` (allineato a `firebase-service.js`, `auth-service.js`).
@@ -61,6 +61,13 @@ Tony è un **assistente** che può essere usato sia **a voce** che **in chat scr
 - **Chiave Gemini**: letta da **process.env.GEMINI_API_KEY**. Va impostata come variabile d’ambiente nella revisione Cloud Run (Google Cloud Console → Cloud Run → servizio **tonyask** → Modifica nuova revisione → Container → Variabili e secret → Nome `GEMINI_API_KEY`, Valore = API key da [Google AI Studio](https://aistudio.google.com/apikey)) → Distribuisci.
 - **Output**: `{ text: string }` (risposta Gemini).
 
+### Cloud Function getTonyAudio (TTS)
+- **File**: `functions/index.js`. Callable `getTonyAudio` con `onCall`, **region: "europe-west1"**.
+- **Input**: `{ text: string }`. Richiede **request.auth**.
+- **TTS**: Google Cloud Text-to-Speech (`@google-cloud/text-to-speech`), voce **it-IT-Wavenet-D** (maschile, profonda), `pitch: -3.0`, `speakingRate: 0.95`, encoding MP3.
+- **Output**: `{ audioContent: string (base64), voice: string }`.
+- **Prerequisito**: abilitare "Cloud Text-to-Speech API" in Google Cloud Console.
+
 ### Client: regione obbligatoria
 - Il client deve usare la **stessa regione** della function. In `tony-service.js` si usa **`getFunctions(app, 'europe-west1')`**. Se si usa `getFunctions(app)` senza regione, il default è `us-central1` e le chiamate falliscono con CORS/404 perché la function non è lì.
 
@@ -75,7 +82,7 @@ Tony è un **assistente** che può essere usato sia **a voce** che **in chat scr
 - **Dialog conferma**: sostituisce il `confirm()` nativo; overlay + box in stile Tony (tony-widget.css), pulsanti Annulla / Apri; navigazione solo su Apri.
 
 ### Tony su tutte le pagine (widget globale)
-- Un unico **loader** **`core/js/tony-widget-standalone.js`** inietta FAB, pannello chat e dialog conferma; carica il CSS da `../styles/tony-widget.css`; fa polling per `getAppInstance()` e inizializza Tony; gestisce `APRI_PAGINA` con risoluzione URL da `pathname` (mappa target → path da root, poi path relativo) e `showTonyConfirmDialog`.
+- Un unico **loader** **`core/js/tony-widget-standalone.js`** inietta FAB, pannello chat e dialog conferma; carica il CSS da `../styles/tony-widget.css`; fa polling per `getAppInstance()` e inizializza Tony; gestisce `APRI_PAGINA` con percorsi assoluti e `resolveTarget` (mappa target → path assoluto) e `showTonyConfirmDialog`.
 - Ogni pagina che deve mostrare Tony include (path relativo a `core/`):
   - **Core** (stesso livello dashboard): `styles/tony-widget.css`, `js/tony-widget-standalone.js`
   - **Core/admin**: `../styles/tony-widget.css`, `../js/tony-widget-standalone.js`
@@ -101,7 +108,7 @@ Tony è un **assistente** che può essere usato sia **a voce** che **in chat scr
 - **Remote Config** (opzionale): memorizzare il nome del modello (es. `gemini-1.5-flash`) per aggiornarlo senza ripubblicare la PWA.
 
 ### Modello
-- Consigliato per Tony: **gemini-1.5-flash** (veloce, economico, adatto al mobile).
+- In uso: **gemini-2.0-flash** (veloce, stabile, latenza ridotta per streaming).
 - Free tier disponibile con limiti RPM (Request Per Minute).
 
 ---
@@ -124,29 +131,53 @@ Tony è un **assistente** che può essere usato sia **a voce** che **in chat scr
 
 ---
 
-## 7. Voce (comandi vocali)
+## 7. Voce (comandi vocali) ✅ Implementato (aggiornato 2026-02-07)
 
-### Scelta: Web Speech API (nativa browser)
-- **Speech-to-Text (STT)** e **Text-to-Speech (TTS)** tramite API native del browser (motori del sistema operativo dello smartphone).
-- **Vantaggi**: costo zero, bassa dipendenza dalla rete (solo per Gemini), poche righe di JS, adatta a comandi brevi in campo.
-- **Limite**: su iOS (Safari) la dettatura continua può essere capricciosa; per comandi brevi ("Tony, segna 4 ore") è accettabile.
-- **Evoluzione futura**: servizi cloud (es. Google Cloud Speech) come opzione avanzata se necessario.
+### Scelta: Web Speech API (STT) + Cloud TTS (getTonyAudio)
+- **Speech-to-Text (STT)**: API native del browser (SpeechRecognition).
+- **Text-to-Speech (TTS)**: Cloud Function `getTonyAudio` – Google Cloud Text-to-Speech, voce **it-IT-Wavenet-D** (maschile, profonda). Nessun fallback Web Speech.
+- **Vantaggi**: voce professionale, cache per testo identico (risparmio costi).
 
-### UX voce
-- **Push-to-Talk**: pulsante "tieni premuto per parlare" invece di "sempre in ascolto" — risparmio batteria e meno errori da rumore ambientale.
-- **Conferma visiva**: dopo un comando vocale, mostrare una **card di conferma** (es. "Hai detto: segna 4 ore di potatura per Marco. Confermi? [OK] [ANNULLA]") prima di eseguire l'azione, per evitare errori da trascrizione sbagliata (rumore, accento).
+### UX voce (implementata)
+- **Modalità continua (hands-free)**: un click sul microfono attiva/disattiva; dopo che Tony risponde, il microfono si riattiva da solo.
+- **Push-to-Talk classico**: quando non in modalità continua, card "Hai detto: «...»" con [Annulla] [Invia].
+- **TTS**: Tony parla per ogni risposta (digitata o vocale).
+- **Timeout inattività (20 s)**: se non parli dopo che Tony ha finito, il microfono si spegne automaticamente.
+- **Congedo vocale**: frasi come "Grazie Tony, a posto così" disattivano la modalità continua.
+- **Barge-in**: clic sul microfono mentre Tony parla lo interrompe e attiva l'ascolto.
 
-### Ordine di implementazione
-- Prima: **modulo Tony solo testo** (ask, setContext, onAction, system instruction, eventuale Function Calling).
-- Dopo: **strato voce** (STT → Tony.ask → TTS + Push-to-Talk + card di conferma).
+### TTS – dettagli implementativi (2026-02-07)
+- **Pulizia testo** (`pulisciTestoPerVoce`): rimuove emoji, markdown, JSON, virgolette prima di getTonyAudio.
+- **Cache audio**: se il testo è identico all'ultimo, si riusa l'audio senza chiamare la Cloud Function.
+- **Timer "Tony-centrico"**: il timeout (20 s) non parte mentre Tony parla; si annulla in `onplay`, parte solo quando Tony finisce.
+
+### Persistenza sessione (2026-02-07)
+- **sessionStorage**: salvataggio di chatHistory, isAutoMode, lastPath a ogni messaggio e su `beforeunload`.
+- **Ripristino**: se la sessione ha meno di 10 minuti, cronologia e microfono vengono ripristinati.
+- **Saluto contestuale**: su cambio pagina (es. "Portami ai terreni"), Tony accoglie con *"Eccoci qui nella sezione [Titolo]. Come posso aiutarti ora?"*.
+
+### Streaming risposta
+- **askStream**: quando disponibile (SDK Firebase AI), il widget usa `Tony.askStream(text, { onChunk })` per mostrare la risposta in tempo reale.
+- Con Cloud Function callable: fallback su `ask()` (nessuno streaming).
 
 ---
 
 ## 8. System instruction e azioni V1
 
-### 7.1 System instruction (testo completo)
+### 8.1 System instruction attuale (ottimizzata per voce, 2026-02-06)
 
-Usare questo testo come `systemInstruction` nella configurazione di `getGenerativeModel`. Il blocco `[CONTESTO_AZIENDALE]` va sostituito a runtime con i dati reali (JSON) recuperati dal tenant dell'utente.
+La system instruction è **compressa** e ottimizzata per:
+- **Time to First Token** ridotto (istruzioni sintetiche)
+- **Output vocale**: testo puro senza markdown, punteggiatura per pause naturali, tono informale
+
+Struttura attuale (in `tony-service.js` e `functions/index.js`):
+- **TONO E VOCABOLARIO**: verbi attivi e colloquiali ("Dagli un'occhiata", "Ecco fatto!"), interiezioni ("Bene, allora..."), rivolgersi all'utente come un collega
+- **FORMATO OUTPUT VOCALE**: vietato grassetto/corsivo/elenchi puntati; evita virgolette doppie; "più" invece di +, "percento" invece di %
+- **PAUSE E PUNTEGGIATURA**: virgola (pausa breve), punto (pausa media), punti di sospensione (pausa lunga prima di azioni), punto interrogativo/esclamativo per intonazione
+- **MEMORIA VOCALE**: se l'utente risponde "Sì", "Vai", "Ok apri", guardare l'ultimo messaggio per capire il contesto
+- **Regole operative**: 1–6 come sotto; blocco `[CONTESTO_AZIENDALE]` con `{CONTESTO_PLACEHOLDER}`
+
+### 8.2 System instruction (versione estesa, riferimento storico)
 
 ```
 Sei Tony, il Capocantiere Digitale della GFV Platform. Il tuo ruolo è assistere l'agricoltore e gli operai nella gestione quotidiana dell'azienda.
@@ -172,13 +203,13 @@ Sei Tony, il Capocantiere Digitale della GFV Platform. Il tuo ruolo è assistere
 Il tuo obiettivo è semplificare la vita all'utente: se vedi un problema (es. scorta bassa), segnalalo proattivamente.
 ```
 
-### 7.2 Azioni V1 (cassetta degli attrezzi)
+### 8.3 Azioni V1 (cassetta degli attrezzi)
 
 Quando Gemini riconosce uno di questi intenti, restituisce il relativo JSON; il TonyService usa `triggerAction(actionName, params)` per notificare i moduli iscritti.
 
 | Nome azione | Parametri | Significato | Esempio vocale utente |
 |-------------|-----------|-------------|------------------------|
-| `APRI_PAGINA` | `target` (string) | Apre un modulo specifico (es. 'magazzino', 'lavori') | "Tony, portami alla gestione dei terreni" |
+| `APRI_PAGINA` | `target` (string) | Apre un modulo specifico (es. 'magazzino', 'lavori', 'statistiche vigneto', 'pianifica impianto') | "Tony, portami alla gestione dei terreni" |
 | `MOSTRA_GRAFICO` | `tipo` (string), `periodo` (string) | Visualizza un grafico a tutto schermo (es. 'costi', 'resa') | "Fammi vedere quanto abbiamo speso questo mese" |
 | `SEGNA_ATTIVITA` | `descrizione` (string), `campo_id` (int) | Crea una nuova nota o attività nel diario di bordo | "Tony, segna che oggi abbiamo iniziato la potatura nel campo 4" |
 | `REPORT_GUASTO` | `mezzo` (string), `gravita` (string) | Apre il form di segnalazione guasti pre-compilato | "Tony, il trattore New Holland perde olio, segnalalo come urgente" |
@@ -217,7 +248,7 @@ Quando Gemini riconosce uno di questi intenti, restituisce il relativo JSON; il 
 | **3** | Integrare Tony nella dashboard: setContext con dati già caricati; primo test da console (Tony.ask). | ✅ Base fatto (test da console). |
 | **4** | Collegare Tony.onAction: Gemini restituisce azioni → triggerAction → modulo reagisce; conferma utente prima di aprire pagina; dialog custom. | ✅ Fatto: APRI_PAGINA + conferma (system instruction + dialog) + navigazione. |
 | **5** | UI minimale: area chat o pulsante "Chiedi a Tony"; Tony su tutte le pagine (loader standalone). | ✅ Fatto: FAB + chat + dialog conferma; loader su core, admin, modules. |
-| **6** | Strato voce: Web Speech API (STT + TTS), Push-to-Talk, card di conferma per azioni da mobile. | Da fare. |
+| **6** | Strato voce: Web Speech API (STT + TTS), Push-to-Talk, card di conferma per azioni da mobile. | ✅ Fatto (2026-02-06): microfono, conferma, TTS con pulizia testo, voce maschile, streaming. |
 | **7** | Estensioni: Smart Search anagrafiche, analisi grafici, data entry da foto (vision), ecc. | Da fare. |
 
 ---
@@ -242,9 +273,10 @@ Quando Gemini riconosce uno di questi intenti, restituisce il relativo JSON; il 
 - Basata su: conversazioni con Gemini (brainstorming, architettura, voce, API vs Vertex, system instruction, azioni V1), e su confronto con la struttura reale del progetto GFV Platform.
 - System instruction e azioni V1: definiti in sezione 8. Implementazione attuale (callable, regione, GEMINI_API_KEY, come provare): sezione 3.
 - **Checklist operativa**: `docs-sviluppo/CHECKLIST_TONY.md` — voci spuntabili per setup, service, backend, integrazione (inclusi conferma apertura, dialog, widget globale), azioni V1, UI, voce, multi-tenant, estensioni.
+- **Miglioramenti post-Gemini (2026-02-06)**: `docs-sviluppo/TONY_DA_IMPLEMENTARE_POST_GEMINI.md` — elenco implementazioni completate (TTS, streaming, system instruction, voce maschile, formato output vocale).
 - **Migrazione Firebase 11**: tutta l’app usa Firebase 11 e `firebase-service.js`; vedi `COSA_ABBIAMO_FATTO.md` — "Migrazione Firebase 11 e firebase-service (2026-02-05)".
 - **Tony globale e conferma**: comportamento risposta/conferma, dialog custom, loader `tony-widget-standalone.js` su tutte le pagine; vedi `COSA_ABBIAMO_FATTO.md` — "Tony: comportamento risposta/conferma, dialog custom, widget su tutte le pagine (2026-02-05)".
 
 ---
 
-*Ultimo aggiornamento: febbraio 2026.*
+*Ultimo aggiornamento: febbraio 2026. Aggiornamenti 2026-02-07: modalità continua, persistenza sessione, navigazione migliorata (vedi TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md §8).*
