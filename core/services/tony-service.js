@@ -347,6 +347,8 @@ class TonyService {
 
     const contextForPrompt = this._getContextForPrompt();
     // DEBUG: Log context che viene passato alla Cloud Function
+    // IMPORTANTE: context.form.fields (stato attuale del form) deve essere impostato dal widget
+    // tramite setContext('form', formCtx) prima di ask(), così Gemini sa cosa è già compilato e cosa manca.
     console.log('[Tony Service] DEBUG - contextForPrompt passato a Cloud Function:', JSON.stringify(contextForPrompt, null, 2));
     console.log('[Tony Service] DEBUG - moduli_attivi nel context:', contextForPrompt.moduli_attivi || contextForPrompt.dashboard?.moduli_attivi || contextForPrompt.info_azienda?.moduli_attivi || []);
     
@@ -359,6 +361,19 @@ class TonyService {
       });
       console.log('[DEBUG FINAL] Dati grezzi:', rawData);
       let parsedData = {};
+      const fullResponseText = typeof rawData === 'string' ? rawData : (rawData && typeof rawData.text === 'string' ? rawData.text : '');
+      if (fullResponseText && fullResponseText.includes('```json') && typeof window !== 'undefined' && window.TonyFormInjector && window.TonyFormInjector.extractFormDataFromText) {
+        const extracted = window.TonyFormInjector.extractFormDataFromText(fullResponseText);
+        if (extracted && extracted.formData && Object.keys(extracted.formData).length > 0) {
+          parsedData = { text: extracted.cleanedText || extracted.replyText || 'Ok.', command: { type: 'INJECT_FORM_DATA', formId: 'attivita-form', formData: extracted.formData } };
+          console.log('[Tony Service] Blocco ```json rilevato: uso SOLO INJECT_FORM_DATA, annullo eventuali SET_FIELD');
+        }
+      }
+      if (parsedData.command && parsedData.command.type === 'INJECT_FORM_DATA') {
+        text = parsedData.text ?? 'Ok.';
+        const cmdParams = { formId: parsedData.command.formId, formData: parsedData.command.formData };
+        this.triggerAction('INJECT_FORM_DATA', cmdParams);
+      } else {
       try {
         if (typeof rawData === 'object' && rawData !== null) {
           parsedData = rawData;
@@ -437,6 +452,7 @@ class TonyService {
         console.log('[Tony Service] Parsing fallito ma JSON presente nella risposta grezza, includo nel testo per parsing nel widget');
         // Restituisci la stringa grezza così il widget può provare a parsarla
         return rawData;
+      }
       }
     } else if (this.model) {
       this._buildModel(contextForPrompt);

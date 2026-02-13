@@ -1,19 +1,27 @@
-# Tony – Separazione Base/Avanzato (Modulo Attivabile)
+# Tony - Separazione Guida/Operativo e Gating Freemium
 
-Documento di riferimento per implementare la separazione tra **Tony Base** (sempre disponibile) e **Tony Avanzato** (modulo attivabile a pagamento).
+Documento di riferimento per implementare la separazione tra:
+- `Tony Guida` (presente nei piani a pagamento base app)
+- `Tony Operativo` (modulo aggiuntivo a pagamento)
+- `Freemium` (Tony completamente assente)
 
 ---
 
 ## 1. Visione Generale
 
-### Tony Base (sempre disponibile)
+### Freemium (free)
+- **Tony**: non disponibile (ne' Guida ne' Operativo)
+- **Widget**: non visibile
+- **Backend Tony**: non invocabile per tenant free
+
+### Tony Guida (piani paid base app)
 - **Funzionalità**: Risponde solo a domande sulla guida dell'app
 - **Capacità**: Spiegazioni testuali su come funziona l'app, dove trovare le cose, come fare operazioni
 - **Limitazioni**: Nessuna azione operativa (non apre pagine, non compila form, non esegue azioni)
-- **Widget**: Sempre visibile su tutte le pagine (tranne login/registrazione)
+- **Widget**: visibile nei tenant paid
 
-### Tony Avanzato (modulo attivabile)
-- **Funzionalità**: Tutte le capacità di Tony Base + azioni operative
+### Tony Operativo (modulo attivabile)
+- **Funzionalità**: Tutte le capacità di Tony Guida + azioni operative
 - **Capacità**: 
   - Aprire pagine (`APRI_PAGINA`)
   - Compilare form (`OPEN_MODAL`, `SET_FIELD`, `CLICK_BUTTON`)
@@ -51,7 +59,7 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 
 ### 3.2 System Instruction (functions/index.js e tony-service.js)
 
-#### Tony Base (modulo non attivo)
+#### Tony Guida (tenant paid, modulo operativo non attivo)
 - Rimuovere tutte le istruzioni su azioni operative
 - Mantenere solo:
   - Ruolo: Capocantiere che spiega l'app
@@ -90,7 +98,7 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 #### Inizializzazione
 - **Controllo modulo**: Verificare `moduli_attivi` dal contesto dashboard
 - **Se non attivo**: 
-  - Widget visibile ma con messaggio iniziale: "Tony Base: posso rispondere a domande sull'app. Attiva il modulo Tony Avanzato per aprire pagine e compilare form."
+  - Widget visibile ma con messaggio iniziale: "Tony Guida: posso rispondere a domande sull'app. Attiva il modulo Tony Avanzato per aprire pagine e compilare form."
   - Disabilitare funzionalità avanzate (se presenti nell'UI)
 
 #### Gestione `onAction`
@@ -114,7 +122,7 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 
 #### Contesto Dashboard
 - **Sempre**: Passare `moduli_attivi` a Tony (include o meno `'tony'`)
-- **Tony Base**: Funziona comunque con contesto base
+- **Tony Guida**: Funziona comunque con contesto base
 
 ### 3.6 Cloud Functions (functions/index.js)
 
@@ -133,7 +141,11 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 
 ## 4. Flusso Operativo
 
-### 4.1 Utente senza Modulo Attivo
+### 4.1 Utente free (freemium)
+1. Apre app -> Tony non e' presente
+2. Nessuna chat, nessuna chiamata endpoint Tony
+
+### 4.2 Utente paid senza modulo operativo
 1. Apre app → Widget Tony visibile
 2. Chiede: "Come si crea un terreno?"
 3. Tony risponde: Spiegazione testuale completa
@@ -141,7 +153,7 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 5. Tony risponde: "Per aprire pagine automaticamente, attiva il modulo Tony Avanzato. Posso spiegarti come arrivare manualmente: vai in Dashboard → Terreni."
 6. Utente può attivare modulo dalla dashboard
 
-### 4.2 Utente con Modulo Attivo
+### 4.3 Utente paid con modulo operativo
 1. Apre app → Widget Tony visibile
 2. Chiede: "Come si crea un terreno?"
 3. Tony risponde: Spiegazione + propone apertura pagina
@@ -181,19 +193,24 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 - [x] Aggiornare contesto dashboard per includere stato modulo Tony ✅ (implementato in tutte le pagine standalone con `initContextWithModules`)
 
 ### Fase 6: Testing
-- [x] Test Tony Base: solo spiegazioni, nessuna azione ✅ (testato e funzionante)
+- [x] Test Tony Guida: solo spiegazioni, nessuna azione ✅ (testato e funzionante)
 - [x] Test attivazione modulo: funzionalità avanzate disponibili ✅ (testato e funzionante)
-- [x] Test disattivazione: ritorno a modalità base ✅ (testato e funzionante)
+- [x] Test disattivazione: ritorno a modalità guida ✅ (testato e funzionante)
 - [x] Test integrazione con altri moduli (vigneto, frutteto, ecc.) ✅ (testato su pagine terreni, statistiche, dashboard frutteto)
 
 ---
 
 ## 6. Messaggi Utente
 
-### Quando Modulo Non Attivo
-- **Messaggio iniziale widget**: "Ciao! Sono Tony Base. Posso rispondere a domande sull'app. Attiva il modulo Tony Avanzato per aprire pagine e compilare form automaticamente."
-- **Tentativo azione**: "Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla Dashboard per aprire pagine, compilare form e molto altro."
-- **Risposta con comando**: "Per eseguire questa azione, attiva il modulo Tony Avanzato dalla Dashboard."
+### Quando tenant e' free
+- Nessun messaggio Tony: widget assente.
+
+### Quando modulo operativo non attivo (tenant paid)
+- **Messaggio iniziale widget**: "Ciao! Sono Tony, la guida dell'app. Posso rispondere a domande su come funziona l'app e dove trovare le cose." (Nessun upsell: non invadente)
+- **Tentativo azione** (utente chiede di aprire/compilare): "Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla Dashboard per aprire pagine, compilare form e molto altro."
+- **Risposta Gemini a richiesta azione**: "Per automatizzare questa operazione, attiva il modulo Tony Avanzato dalla pagina Abbonamento. Nel frattempo, posso spiegarti come farlo manualmente: ..."
+- **Risposta Gemini a richiesta spiegazione**: Solo spiegazione, NESSUN richiamo al modulo (non invasivo)
+- **Chiusura interazione** (ciao, grazie, a dopo): Opzionale P.S. soft "Se vorrai automatizzare operazioni in futuro, attiva il modulo Tony Avanzato dalla pagina Abbonamento."
 
 ### Quando Modulo Attivo
 - **Messaggio iniziale widget**: "Ciao! Sono Tony, il tuo assistente. Posso rispondere a domande, aprire pagine, compilare form e molto altro."
@@ -208,8 +225,8 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 - **System instruction**: Versione base più leggera (meno token)
 
 ### 7.2 Compatibilità
-- **Retrocompatibilità**: Utenti esistenti con Tony attivo continuano a funzionare
-- **Nuovi utenti**: Vedono Tony Base di default
+- **Retrocompatibilità**: Utenti paid esistenti con Tony attivo continuano a funzionare
+- **Freemium**: Tony non disponibile per definizione
 
 ### 7.3 Sicurezza
 - **Controllo lato server**: Cloud Function verifica modulo attivo
@@ -221,14 +238,14 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 ## 8. Vantaggi Implementazione
 
 ### Per Utenti
-- **Prova gratuita**: Possono provare Tony Base prima di attivare
-- **Scelta**: Decidono se pagare per funzionalità avanzate
-- **Valore base**: Anche senza modulo, Tony è utile come guida
+- **Paid base**: hanno Tony Guida utile senza operativita'
+- **Scelta**: decidono se attivare anche Tony Operativo
+- **Freemium**: esperienza core semplificata, senza Tony
 
 ### Per Business
 - **Monetizzazione**: Modulo a pagamento genera revenue
-- **Upsell**: Tony Base come "teaser" per vendere modulo avanzato
-- **Flessibilità**: Utenti possono disattivare se non usano
+- **Upsell**: da Tony Guida (paid base) a Tony Operativo
+- **Flessibilità**: tenant paid possono attivare/disattivare modulo operativo
 
 ### Per Sviluppo
 - **Architettura modulare**: Coerente con resto dell'app
@@ -245,19 +262,20 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 - **Fallback**: Se `moduli_attivi` non presente o vuoto, assumere modulo non attivo
 
 ### 9.2 Parsing Risposte
-- **Tony Base**: Se Gemini emette comando JSON per errore, ignorarlo silenziosamente
-- **Tony Avanzato**: Parsing normale, esecuzione azioni
+- **Tony Guida**: Se Gemini emette comando JSON per errore, ignorarlo silenziosamente
+- **Tony Operativo**: Parsing normale, esecuzione azioni
 
 ### 9.3 Widget Globale
-- **Sempre caricato**: Widget presente su tutte le pagine
-- **Comportamento condizionale**: Funzionalità avanzate abilitate solo se modulo attivo
-- **UI**: Nessuna differenza visibile, solo comportamento diverso
+- **Tenant free**: widget non caricato/visibile
+- **Tenant paid**: widget caricato
+- **Comportamento condizionale**: funzionalita' avanzate abilitate solo se modulo operativo attivo
 
 ---
 
-## 10. Stato Implementazione (2026-02-08)
+## 10. Stato Implementazione (aggiornato 2026-02-10)
 
-**✅ IMPLEMENTAZIONE COMPLETA**: La separazione Tony Base/Avanzato è stata completamente implementata e testata.
+**NOTA IMPORTANTE**: la separazione Guida/Operativo e' implementata lato tecnico.  
+Resta vincolante l'allineamento prodotto: in `free` Tony deve essere totalmente escluso (UI + service + backend), non solo limitato.
 
 ### Componenti Implementati
 
@@ -286,8 +304,8 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 
 ### Funzionalità Verificate
 
-- ✅ **Tony Base**: Risponde solo con spiegazioni, nessuna azione operativa
-- ✅ **Tony Avanzato**: Tutte le funzionalità operative disponibili (APRI_PAGINA, OPEN_MODAL, ecc.)
+- ✅ **Tony Guida**: Risponde solo con spiegazioni, nessuna azione operativa
+- ✅ **Tony Operativo**: Tutte le funzionalità operative disponibili (APRI_PAGINA, OPEN_MODAL, ecc.)
 - ✅ **Attivazione/Disattivazione**: Funziona correttamente dalla pagina Abbonamento
 - ✅ **Persistenza**: Lo stato del modulo viene mantenuto correttamente tra le pagine
 - ✅ **Sicurezza**: Doppio controllo server-side e client-side
@@ -296,7 +314,7 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 
 ## 11. Problemi Risolti e Correzioni (2026-02-08)
 
-**Contesto**: Le seguenti correzioni sono state necessarie per garantire il corretto funzionamento della separazione Tony Base/Avanzato, in particolare per il sistema di rilevamento dei moduli attivi (`moduli_attivi.includes('tony')`) che determina se Tony opera in modalità Base o Avanzato.
+**Contesto**: Le seguenti correzioni sono state necessarie per garantire il corretto funzionamento della separazione Tony Guida/Operativo, in particolare per il sistema di rilevamento dei moduli attivi (`moduli_attivi.includes('tony')`) che determina se Tony opera in modalità Guida o Operativo.
 
 ### 10.1 Errori di Sintassi con `getDb` Duplicato
 
@@ -324,7 +342,7 @@ Documento di riferimento per implementare la separazione tra **Tony Base** (semp
 
 ### 10.2 Inizializzazione Tony nella Dashboard Frutteto
 
-**Problema**: Il widget Tony non rilevava correttamente i moduli attivi nella dashboard frutteto, mostrando `moduli_attivi: []` anche quando i moduli erano presenti. Questo impediva il corretto funzionamento della separazione Base/Avanzato, poiché Tony non poteva determinare se il modulo `'tony'` era attivo o meno.
+**Problema**: Il widget Tony non rilevava correttamente i moduli attivi nella dashboard frutteto, mostrando `moduli_attivi: []` anche quando i moduli erano presenti. Questo impediva il corretto funzionamento della separazione Guida/Operativo, poiché Tony non poteva determinare se il modulo `'tony'` era attivo o meno.
 
 **Causa**: Problema di timing - il widget si inizializzava prima che il context venisse impostato, e l'evento `tony-module-updated` non veniva emesso correttamente.
 
@@ -420,4 +438,4 @@ if (window.Tony && window.Tony.initContextWithModules) {
 
 ---
 
-*Documento creato per implementare separazione Tony Base/Avanzato. Aggiornato il 2026-02-08 con problemi risolti e best practices.*
+*Documento creato per implementare separazione Tony Guida/Operativo con esclusione completa in freemium. Aggiornato il 2026-02-10 con problemi risolti e best practices.*

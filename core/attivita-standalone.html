@@ -1701,11 +1701,39 @@
             populateFiltroColture();
             populateFiltroTipoLavoro();
             
+            // Esponi dati per SmartFiller/Tony (ordine modal attivita: categoria → sottocategoria → tipo lavoro)
+            if (typeof window.attivitaState === 'undefined') window.attivitaState = {};
+            window.attivitaState.sottocategorieLavoriMap = sottocategorieLavoriMap;
+            window.attivitaState.tipiLavoroList = tipiLavoroList || [];
+            window.attivitaState.categorieLavoriPrincipali = categorieLavoriPrincipali || [];
+            if (hasParcoMacchineModule && macchineList) window.attivitaState.macchineList = macchineList;
+
             // Nutre Tony con contesto attivita (moduli, terreni, tipi lavoro, colture)
             if (window.Tony && typeof window.Tony.setContext === 'function') {
                 const terreni = window.attivitaState?.terreniList || [];
-                const terreniPerTony = terreni.map(t => ({ id: t.id, nome: (t.nome || t.coltura || '').toString() }));
+                // Arricchisci terreni con coltura e categoria coltura per deduzione sottocategoria
+                const terreniPerTony = terreni.map(t => ({ 
+                    id: t.id, 
+                    nome: (t.nome || t.coltura || '').toString(),
+                    coltura: t.coltura || null,
+                    coltura_categoria: (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(t.coltura || '') : null) // Vite, Frutteto, Olivo, Seminativo, ecc.
+                }));
+                // Colture con filari: sottocategoria può essere solo Tra le File o Sulla Fila (mai Generale)
+                const coltureConFilari = ['Vite', 'Frutteto', 'Olivo'];
                 const coltureNomi = Array.isArray(colture) ? colture : [];
+                
+                // Mappa alias verbi → tipi lavoro per migliorare il matching
+                const verbiAlias = {
+                    "trinciato": "Trinciatura",
+                    "erpicato": "Erpicatura",
+                    "fresato": "Fresatura",
+                    "potato": "Potatura",
+                    "raccolto": "Raccolta",
+                    "trattato": "Trattamenti",
+                    "semato": "Semina",
+                    "concimato": "Concimazione",
+                    "diserbato": "Diserbo"
+                };
                 
                 // Inizializza anche il context dashboard con i moduli (necessario per il widget)
                 window.Tony.setContext('dashboard', {
@@ -1713,14 +1741,56 @@
                     moduli_attivi: availableModules
                 });
                 
+                // Costruisci categorie_con_tipi: { "Potatura": ["Innesto", "Potatura di Formazione", ...], ... }
+                // per disambiguazione quando l'utente dice "potatura" invece del tipo specifico
+                const categorieConTipi = {};
+                // Categorie che hanno sottocategorie Manuale e Meccanico: Tony chiede "Hai usato macchine?"
+                const categorieManualeMeccanico = [];
+                (categorieLavoriPrincipali || []).forEach(cat => {
+                    const allIds = [cat.id];
+                    const sottocat = sottocategorieLavoriMap && sottocategorieLavoriMap.get(cat.id);
+                    if (Array.isArray(sottocat)) {
+                        sottocat.forEach(s => allIds.push(s.id));
+                        const nomi = sottocat.map(s => (s.nome || '').toLowerCase());
+                        if (nomi.includes('manuale') && nomi.includes('meccanico')) {
+                            categorieManualeMeccanico.push(cat.nome);
+                        }
+                    }
+                    const tipiFiltrati = (tipiLavoroList || []).filter(t =>
+                        t.categoriaId === cat.id || (t.sottocategoriaId && allIds.includes(t.sottocategoriaId))
+                    );
+                    if (tipiFiltrati.length > 0) {
+                        categorieConTipi[cat.nome] = tipiFiltrati.map(t => t.nome);
+                    }
+                });
+
                 // Poi aggiungi il context specifico attivita
                 window.Tony.setContext('attivita', {
                     moduli_attivi: availableModules,
                     usa_struttura_gerarchica: true,
                     terreni: terreniPerTony,
                     categorie_lavoro: (categorieLavoriPrincipali || []).map(c => ({ id: c.id, nome: c.nome })),
-                    tipi_lavoro: (tipiLavoroList || []).map(t => ({ id: t.id, nome: t.nome, categoriaId: t.categoriaId })),
-                    colture: coltureNomi
+                    // Mappa categoria -> [tipi]: per disambiguazione ("potatura" -> elenca tipi e chiedi)
+                    categorie_con_tipi: categorieConTipi,
+                    // Categorie con sottocat Manuale/Meccanico: chiedi "Hai usato macchine?" per derivare sottocategoria
+                    categorie_manuale_meccanico: categorieManualeMeccanico,
+                    // Arricchisci tipi lavoro con categoriaId e sottocategoriaId per deduzione automatica
+                    tipi_lavoro: (tipiLavoroList || []).map(t => ({ 
+                        id: t.id, 
+                        nome: t.nome, 
+                        categoriaId: t.categoriaId || null,
+                        sottocategoriaId: t.sottocategoriaId || null // IMPORTANTE: per preselezione sottocategoria
+                    })),
+                    colture: coltureNomi,
+                    verbi_alias: verbiAlias,
+                    // Colture con filari (Vite, Frutteto, Olivo): sottocategoria solo Tra le File o Sulla Fila, mai Generale
+                    colture_con_filari: coltureConFilari,
+                    // Tipi lavoro che richiedono macchina: derivati da tipi_lavoro (nome contiene indicazioni meccaniche)
+                    tipi_che_richiedono_macchina: (tipiLavoroList || []).filter(t => {
+                        const n = (t.nome || '').toLowerCase();
+                        return /trinciat|erpicat|fresat|ripass|aratur|estirpat|ripunt|rullat|vangat|zappat|diserbo mecc|trattamento mecc|meccanic/.test(n);
+                    }).map(t => t.nome),
+                    macchine: (hasParcoMacchineModule && macchineList) ? macchineList.map(m => ({ id: m.id, nome: m.nome, tipoMacchina: m.tipoMacchina })) : []
                 });
             }
             
@@ -2151,7 +2221,8 @@
                 nomeLower.includes('kiwi') || nomeLower.includes('mirtillo') ||
                 nomeLower.includes('lampone') || nomeLower.includes('ribes') ||
                 nomeLower.includes('mora') || nomeLower.includes('melograno') ||
-                nomeLower.includes('noce') || nomeLower.includes('pistacchio')) {
+                nomeLower.includes('noce') || nomeLower.includes('pistacchio') ||
+                nomeLower.includes('kaki') || nomeLower.includes('cachi')) {
                 return 'Frutteto';
             }
             
@@ -2683,14 +2754,42 @@
                 window.attivitaState.terreniList = terreni;
             }
             
-            // Se categoria RACCOLTA è già selezionata, ricarica tipi lavoro per applicare filtro vendemmia
+            // Se categoria è già selezionata, ricarica tipi lavoro per applicare filtro vendemmia
             const categoriaPrincipaleId = document.getElementById('attivita-categoria-principale')?.value;
             const sottocategoriaId = document.getElementById('attivita-sottocategoria')?.value;
             const categoriaId = sottocategoriaId || categoriaPrincipaleId;
             
+            // Salva il valore corrente del tipo lavoro PRIMA di ricaricare (evita perdita quando Tony imposta tipo poi terreno)
+            const tipoLavoroSelect = document.getElementById('attivita-tipo-lavoro-gerarchico');
+            const currentTipoLavoroValue = tipoLavoroSelect ? tipoLavoroSelect.value : null;
+            const currentTipoLavoroText = tipoLavoroSelect && tipoLavoroSelect.selectedIndex >= 0 
+                ? tipoLavoroSelect.options[tipoLavoroSelect.selectedIndex]?.text 
+                : null;
+            
             if (categoriaId && loadTipiLavoro) {
                 console.log('[ATTIVITA] Terreno cambiato, ricarico tipi lavoro per applicare filtro vendemmia');
                 await loadTipiLavoro(categoriaId);
+                
+                // Ripristina il tipo lavoro se era già selezionato e ancora disponibile nel dropdown
+                if (currentTipoLavoroValue || currentTipoLavoroText) {
+                    setTimeout(() => {
+                        const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
+                        if (tipoLavoroSelectAfter) {
+                            if (currentTipoLavoroValue && Array.from(tipoLavoroSelectAfter.options).some(opt => opt.value === currentTipoLavoroValue)) {
+                                tipoLavoroSelectAfter.value = currentTipoLavoroValue;
+                                console.log('[ATTIVITA] Tipo lavoro ripristinato dopo cambio terreno:', currentTipoLavoroValue);
+                                tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
+                            } else if (currentTipoLavoroText) {
+                                const opt = Array.from(tipoLavoroSelectAfter.options).find(o => o.text.trim() === (currentTipoLavoroText || '').trim());
+                                if (opt) {
+                                    tipoLavoroSelectAfter.value = opt.value;
+                                    console.log('[ATTIVITA] Tipo lavoro ripristinato dopo cambio terreno (per testo):', currentTipoLavoroText);
+                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                            }
+                        }
+                    }, 100);
+                }
             }
             
             if (terrenoId) {

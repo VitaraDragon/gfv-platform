@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "gfv-platform"
-  }
+  },
+  "targets": {
+    "gfv-platform": {
+      "hosting": {
+        "default": [
+          "gfv-platform"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

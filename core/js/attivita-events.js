@@ -351,11 +351,60 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
             const sottocategoriaId = this.value;
             const categoriaPrincipaleId = document.getElementById('attivita-categoria-principale')?.value;
             
+            // Salva il valore corrente del tipo lavoro prima di ricaricare
+            const tipoLavoroSelect = document.getElementById('attivita-tipo-lavoro-gerarchico');
+            const currentTipoLavoroValue = tipoLavoroSelect ? tipoLavoroSelect.value : null;
+            const currentTipoLavoroText = tipoLavoroSelect && tipoLavoroSelect.selectedIndex >= 0 
+                ? tipoLavoroSelect.options[tipoLavoroSelect.selectedIndex]?.text 
+                : null;
+            
             // Usa sottocategoria se selezionata, altrimenti categoria principale
             const categoriaId = sottocategoriaId || categoriaPrincipaleId;
             if (categoriaId && loadTipiLavoroCallback) {
                 console.log('[ATTIVITA-EVENTS] Sottocategoria cambiata, ricarico tipi lavoro per applicare filtro vendemmia se necessario');
+                console.log('[ATTIVITA-EVENTS] Valore tipo lavoro corrente da preservare:', currentTipoLavoroValue, currentTipoLavoroText);
+                
+                // Chiama il callback per ricaricare i tipi lavoro
                 loadTipiLavoroCallback(categoriaId);
+                
+                // Dopo che il dropdown è stato ricaricato, prova a reimpostare il valore se è ancora disponibile
+                if (currentTipoLavoroValue || currentTipoLavoroText) {
+                    // Usa un setTimeout per aspettare che il dropdown sia stato popolato
+                    setTimeout(() => {
+                        const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
+                        if (tipoLavoroSelectAfter) {
+                            // Prova prima con il valore (se è un ID)
+                            if (currentTipoLavoroValue) {
+                                const optionByValue = Array.from(tipoLavoroSelectAfter.options).find(
+                                    opt => opt.value === currentTipoLavoroValue
+                                );
+                                if (optionByValue) {
+                                    tipoLavoroSelectAfter.value = currentTipoLavoroValue;
+                                    console.log('[ATTIVITA-EVENTS] Valore tipo lavoro ripristinato per valore:', currentTipoLavoroValue);
+                                    // Dispatch evento change per notificare altri listener
+                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
+                                    return;
+                                }
+                            }
+                            
+                            // Se non trovato per valore, prova per testo (per compatibilità con valori testuali)
+                            if (currentTipoLavoroText) {
+                                const optionByText = Array.from(tipoLavoroSelectAfter.options).find(
+                                    opt => opt.text.trim() === currentTipoLavoroText.trim()
+                                );
+                                if (optionByText) {
+                                    tipoLavoroSelectAfter.value = optionByText.value;
+                                    console.log('[ATTIVITA-EVENTS] Valore tipo lavoro ripristinato per testo:', currentTipoLavoroText);
+                                    // Dispatch evento change per notificare altri listener
+                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
+                                    return;
+                                }
+                            }
+                            
+                            console.log('[ATTIVITA-EVENTS] Valore tipo lavoro non più disponibile dopo cambio sottocategoria:', currentTipoLavoroValue || currentTipoLavoroText);
+                        }
+                    }, 100); // Delay di 100ms per permettere al dropdown di essere popolato
+                }
             }
         });
     }
