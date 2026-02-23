@@ -30,6 +30,12 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
   - Mostra sempre un **dialog di conferma** custom (non `confirm()` del browser): “Aprire la pagina «Terreni»?” con pulsanti **Annulla** / **Apri**.
   - Se l’utente clicca **Apri**, naviga con `window.location.href` all’URL corretto (calcolato in base al pathname della pagina corrente e a una mappa target → path da root).
 
+### 2.3b Context moduli e navigazione da tutte le pagine (2026-02-23)
+- **Helper `syncTonyModules(modules)`**: funzione globale in `tony-widget-standalone.js`, richiamabile da qualsiasi pagina standalone dopo il caricamento tenant. Sincronizza `moduli_attivi` con Tony (setTonyContext / Tony.setContext + evento `tony-module-updated`); retry ogni 400 ms se il widget non è pronto. Se l'array è vuoto e il contesto esistente ha già moduli, non si sovrascrive. Log: `[Tony Sync] Ricevuti moduli: ...`.
+- **Bypass navigazione**: `APRI_PAGINA` e `apri_modulo` ignorano `isTonyAdvancedActive` in onAction, onComplete e processTonyCommand; la navigazione viene sempre eseguita.
+- **Dashboard di modulo**: Frutteto/Vigneto chiamano `syncTonyModules(modules)`; in Frutteto si forzano `frutteto` e `tony` se mancanti.
+- **Cloud Function**: lettura da `request.data.context.dashboard.moduli_attivi`; se contiene `tony` si usa SYSTEM_INSTRUCTION_ADVANCED; inizio prompt con "STATO UTENTE: Tony Avanzato ATTIVO. Moduli disponibili: [...]"; fallback per richieste di navigazione con moduli vuoti; regole DEFAULT/ECCEZIONE NAVIGAZIONE.
+
 ### 2.4 Altre azioni (definite in system instruction, non ancora gestite in UI)
 - La system instruction menziona altre azioni (segnare ore, segnalare guasti, ecc.) con formato `{ "action": "NOME_AZIONE", "params": { ... } }`. Il **parsing** lato client estrae qualsiasi blocco JSON di questo tipo e chiama `triggerAction(actionName, params)`; oggi **solo** `APRI_PAGINA` (e alias `apri_modulo`) è gestita nel widget (navigazione + conferma). Le altre azioni vengono emesse ma nessun modulo è ancora iscritto per eseguirle.
 
@@ -51,7 +57,25 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 - **Percorsi assoluti**: URL sempre da root (es. `/core/terreni-standalone.html`).
 - **resolveTarget**: alias e fuzzy matching per varianti restituite da Gemini (es. "statistiche del vigneto" → "statistiche vigneto").
 
-### 2.6 Cosa Tony non fa (ancora)
+### 2.6 Compilazione form attività (INJECT_FORM_DATA – Treasure Map, 2026-02)
+- **Form attività** (`attivita-form`, modal `attivita-modal`): quando il modal è aperto e l’utente invia un messaggio, Tony (Gemini) usa una system instruction dedicata che richiede risposte strutturate con blocco \`\`\`json contenente `formData`.
+- **Flusso**: utente dice "Ho trinciato nel Sangiovese" → Gemini restituisce `{ action: "fill_form", formData: { "attivita-terreno": "Sangiovese", "attivita-tipo-lavoro-gerarchico": "Trinciatura", ... } }` → Cloud Function emette `INJECT_FORM_DATA` → widget chiama `TonyFormInjector.injectAttivitaForm()`.
+- **Derivazione categoria/sottocategoria**: se Gemini invia solo il tipo lavoro, `TonyFormInjector.deriveCategoriaFromTipo()` deduce categoria e sottocategoria da `tipi_lavoro` (categoriaId, sottocategoriaId).
+- **Ordine iniezione**: Categoria → Sottocategoria → Tipo Lavoro (con delay per cascata dropdown); Macchina → Attrezzo (350 ms dopo macchina per popolare attrezzi).
+- **Dettagli**: vedi `docs-sviluppo/TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE.md`.
+
+### 2.6b Compilazione form Lavori (2026-02-16)
+- **Form Lavori** (`lavoro-form`, modal `lavoro-modal`): Tony compila il form Crea Nuovo Lavoro con regole specifiche.
+- **Contesto**: `lavori.terreni` con `coltura_categoria` (Vite, Frutteto, Olivo, Seminativo) e `colture_con_filari: ['Vite','Frutteto','Olivo']`.
+- **Sottocategoria**: terreni con filari → solo "Tra le File" o "Sulla Fila", mai "Generale".
+- **Disambiguazione**: Erpicatura ≠ Trinciatura; se utente dice "erpicatura" → "Erpicatura Tra le File".
+- **Macchine**: se utente dice "completo di macchine" → includi subito trattore e attrezzo.
+- **Stato default**: "assegnato" se caposquadra/operaio compilato.
+- **Messaggio form completo**: "Vuoi che salvi il lavoro?" (non il messaggio Impianti su varietà/distanze).
+- **Parametro URL**: `?openModal=crea` apre il modal Crea Lavoro all'avvio.
+- **Dettagli**: vedi `docs-sviluppo/TONY_COMPILAZIONE_LAVORI_2026-02.md`.
+
+### 2.7 Cosa Tony non fa (ancora)
 - **Esecuzione azioni diverse da APRI_PAGINA**: nessun handler per SEGNA_ATTIVITA, REPORT_GUASTO, AGGIORNA_MAGAZZINO, MOSTRA_GRAFICO, ecc.
 - **Storia conversazione**: ogni `ask()` è stateless (contesto sì, ma non c’è invio dello storico messaggi a Gemini).
 - **Pagina corrente**: Tony non sa esplicitamente “sei sulla pagina X”; potrebbe inferirlo solo dal contesto se qualcuno lo inietta.
@@ -153,7 +177,15 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 
 ---
 
-*Documento generato per condividere lo stato attuale di Tony con un assistente esterno e raccogliere idee di miglioramento. Riferimenti: `core/services/tony-service.js`, `core/js/tony-widget-standalone.js`, `functions/index.js`, `docs-sviluppo/GUIDA_SVILUPPO_TONY.md`, `docs-sviluppo/COSA_ABBIAMO_FATTO.md`.*
+### 4.8 Compilazione form attività (Treasure Map)
+- **Attivazione**: la Cloud Function usa `SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED` quando `context.form.formId === 'attivita-form'` oppure `context.form.modalId === 'attivita-modal'`, e modulo Tony attivo.
+- **Contesto form**: il widget deve chiamare `Tony.setContext('form', formCtx)` **prima** di `ask()`. `formCtx` viene da `getCurrentFormContext()` (modal attivo, campi estratti dal DOM).
+- **File**: `tony-form-injector.js` (INJECTION_ORDER, deriveCategoriaFromTipo, resolver), `tony-form-mapping.js` (configurazione), `functions/index.js` (SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED).
+- **Estensione**: per nuovi form seguire la checklist in `docs-sviluppo/TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE.md` §5.
+
+---
+
+*Documento generato per condividere lo stato attuale di Tony con un assistente esterno e raccogliere idee di miglioramento. Riferimenti: `core/services/tony-service.js`, `core/js/tony-widget-standalone.js`, `functions/index.js`, `docs-sviluppo/GUIDA_SVILUPPO_TONY.md`, `docs-sviluppo/TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE.md`.*
 
 ---
 
@@ -227,7 +259,7 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 
 ## 9. Aggiornamenti 2026-02-08 (Correzioni e Miglioramenti)
 
-**Contesto**: Le seguenti correzioni sono state necessarie per garantire il corretto funzionamento della separazione Tony Base/Avanzato (vedi `TONY_MODULO_SEPARATO.md`). Il sistema di rilevamento dei moduli attivi (`moduli_attivi.includes('tony')`) è fondamentale per determinare se Tony opera in modalità Base (solo spiegazioni) o Avanzato (azioni operative).
+**Contesto**: Le seguenti correzioni sono state necessarie per garantire il corretto funzionamento della separazione Tony Guida/Operativo (vedi `TONY_MODULO_SEPARATO.md`). Il sistema di rilevamento dei moduli attivi (`moduli_attivi.includes('tony')`) è fondamentale per determinare se Tony opera in modalità Guida (solo spiegazioni) o Operativo (azioni operative).
 
 ### 9.1 Risoluzione Errori Sintassi `getDb` Duplicato
 
@@ -243,7 +275,7 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 
 ### 9.2 Miglioramento Inizializzazione Context Tony
 
-**Problema**: Widget Tony non rilevava moduli attivi nella dashboard frutteto a causa di problemi di timing. Questo impediva il corretto funzionamento della separazione Base/Avanzato, poiché Tony non poteva determinare se il modulo `'tony'` era attivo nel tenant, risultando sempre in modalità Base anche quando il modulo avanzato era attivo.
+**Problema**: Widget Tony non rilevava moduli attivi nella dashboard frutteto a causa di problemi di timing. Questo impediva il corretto funzionamento della separazione Guida/Operativo, poiché Tony non poteva determinare se il modulo `'tony'` era attivo nel tenant, risultando sempre in modalità Guida anche quando il modulo operativo era attivo.
 
 **File modificato**: `modules/frutteto/views/frutteto-dashboard-standalone.html`
 

@@ -160,9 +160,9 @@ Dopo tentativo di submit:
 - Portare tutta la logica gerarchica nel Form Engine.
 - Bloccare i falsi "saved".
 
-### Fase 2 - Modal complessi (es. Gestione Lavori con switch)
-- Modellare visibilita' condizionale nello schema.
-- Aggiungere resolver per campi dipendenti da switch.
+### Fase 2 - Modal complessi (es. Gestione Lavori)
+- **Form Lavori** (lavoro-form): implementato 2026-02-16 – INJECT_FORM_DATA, sottocategoria "Tra le File", disambiguazione erpicatura/trinciatura, macchine, stato "assegnato". Rif. `TONY_COMPILAZIONE_LAVORI_2026-02.md`
+- Modellare visibilita' condizionale nello schema per altri form con switch.
 
 ### Fase 3 - Standardizzazione app-wide
 - Catalogo unico degli schemi modal.
@@ -239,11 +239,13 @@ Priorita' assoluta: convergere verso Form Engine + Schema globale, mantenendo `T
 
 ---
 
-## Riferimento implementazione attuale (2026-02-13)
+## Riferimento implementazione attuale (2026-02-16)
 
 **Fase 1 - Modal Attività: completata e funzionante.**
 
-L'implementazione concreta del form Attività usa:
+**Fase 2 - Form Lavori: implementato e funzionante.** Tony compila il form Crea Nuovo Lavoro con INJECT_FORM_DATA, contesto coltura_categoria/colture_con_filari, disambiguazione erpicatura/trinciatura, macchine, stato "assegnato". Rif. `TONY_COMPILAZIONE_LAVORI_2026-02.md`.
+
+L'implementazione del form Attività usa:
 - **Treasure Map / INJECT_FORM_DATA**: Cloud Function con `SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED`, Gemini restituisce blocco \`\`\`json con `formData`.
 - **TonyFormInjector**: `injectAttivitaForm()`, `deriveCategoriaFromTipo()`, ordine iniezione e delay per cascata.
 - **SmartFormFiller**: usato per comandi `SET_FIELD` singoli su tipo-lavoro (path alternativo).

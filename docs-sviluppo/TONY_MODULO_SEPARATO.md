@@ -24,7 +24,8 @@ Documento di riferimento per implementare la separazione tra:
 - **Funzionalità**: Tutte le capacità di Tony Guida + azioni operative
 - **Capacità**: 
   - Aprire pagine (`APRI_PAGINA`)
-  - Compilare form (`OPEN_MODAL`, `SET_FIELD`, `CLICK_BUTTON`)
+  - Compilare form con dati strutturati (`INJECT_FORM_DATA`): **form Attività** (attivita-form), **form Lavori** (lavoro-form)
+  - Compilare form passo-passo (`OPEN_MODAL`, `SET_FIELD`, `CLICK_BUTTON`)
   - Mostrare grafici (`MOSTRA_GRAFICO`)
   - Estrapolare dati dai moduli attivi
   - Eseguire azioni operative (segnare ore, aggiornare magazzino, ecc.)

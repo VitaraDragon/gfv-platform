@@ -1,5 +1,92 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
+## ✅ Tony: contesto moduli, navigazione da tutte le pagine, Cloud Function robusta (2026-02-23) - COMPLETATO
+
+### Obiettivo
+Risolvere il problema per cui Tony, da pagine diverse dalla dashboard (es. Terreni, Frutteto), non riceveva correttamente i moduli attivi e rispondeva con il template “base” (“attiva il modulo Tony Avanzato”), bloccando la navigazione. Uniformare l’inizializzazione del contesto su tutte le pagine standalone e rendere la Cloud Function robusta nella lettura dei moduli e nella scelta dell’istruzione avanzata.
+
+### Implementazione
+
+#### 1. Helper globale `syncTonyModules` (tony-widget-standalone.js)
+- **Definizione**: `window.syncTonyModules(modules, options)` definita a livello script (subito dopo `injectWidget()`), così è disponibile anche prima che Tony sia inizializzato.
+- **Uso**: qualsiasi pagina standalone, dopo aver caricato i dati tenant, può chiamare `syncTonyModules(modules)` dove `modules` è l’array dei moduli attivi (es. `tenant.modules`).
+- **Comportamento**: se esiste `window.setTonyContext` chiama `setTonyContext({ moduli_attivi: arr })`; altrimenti, se esiste `Tony.setContext`, imposta il context e emette l’evento `tony-module-updated`; se nessuno dei due è disponibile (widget non ancora pronto), **riprova ogni 400 ms per 25 volte** (~10 s). Opzione `syncTonyModules(modules, { retry: false })` per disabilitare il retry.
+- **Controllo di sicurezza**: se l’array `modules` è vuoto e il contesto esistente di Tony contiene già un array di moduli non vuoto, **non si sovrascrive** il contesto (una pagina “smemorata” non cancella i permessi già ricevuti). Log: `[Tony Sync] Array vuoto ignorato: contesto già popolato con N moduli. Non sovrascrivo.`
+- **Log di debug**: `[Tony Sync] Ricevuti moduli: <array>` oppure `(vuoto)` per capire chi invia l’array.
+
+#### 2. Bypass totale navigazione (widget)
+- **onAction**: la gestione di `APRI_PAGINA` e `apri_modulo` è stata spostata **prima** del controllo `isTonyAdvancedActive`: la navigazione viene sempre eseguita, anche se il context moduli non è ancora caricato.
+- **onComplete**: `allowExecute` per i comandi di tipo `APRI_PAGINA` / `apri_modulo` è sempre `true` (variabile `isNavOpenPage`), indipendentemente da `isTonyAdvancedActive`.
+- **processTonyCommand**: se il comando è `APRI_PAGINA` o `apri_modulo`, non si applica il blocco “modulo non attivo”; si procede direttamente allo `switch` che gestisce la navigazione.
+- In sintesi: i comandi di navigazione **ignorano completamente** lo stato `isTonyAdvancedActive`; se l’utente chiede di navigare, Tony esegue sempre.
+
+#### 3. Dashboard di modulo: iniezione moduli e forzatura (Frutteto, Vigneto)
+- **Frutteto** (`frutteto-dashboard-standalone.html`): dopo aver letto `modules` da `tenant.modules`, si forzano nell’array i moduli `frutteto` e `tony` se mancanti (l’utente è nella dashboard Frutteto, quindi devono essere presenti). Poi si chiama `syncTonyModules(modules)` (con fallback su `setTonyContext` o su `dispatchEvent('tony-module-updated')`).
+- **Vigneto** (`vigneto-dashboard-standalone.html`): stessa logica unificata: dopo aver ottenuto `modules` dal tenant si chiama `syncTonyModules(modules)` con gli stessi fallback.
+- In entrambe le dashboard è stato rimosso il blocco custom con `initContextWithModules` + retry manuale; rimane una sola chiamata all’helper.
+
+#### 4. Cloud Function `tonyAsk` (functions/index.js)
+- **Lettura payload**: non si usa più la destrutturazione `const { message, context, history } = request.data`. Si legge esplicitamente `reqData = request.data`, `message = reqData.message`, `ctx = reqData.context`, `history = reqData.history`.
+- **Check moduli robusto**: `moduli_attivi` viene letto dal path inviato dal client: prima `ctx.dashboard.moduli_attivi`, poi `ctx.dashboard.info_azienda.moduli_attivi`, poi `ctx.moduli_attivi` e `ctx.info_azienda.moduli_attivi`. Uso di `ctx` ovunque (form, Treasure Map) invece di `context`.
+- **Stato avanzato**: costante `isTonyAdvanced = true` se l’array moduli contiene `'tony'` (confronto case-insensitive). Se `isTonyAdvanced` è vero si usa **sempre** `SYSTEM_INSTRUCTION_ADVANCED`.
+- **Iniezione esplicita nel prompt**: quando `isTonyAdvanced` è vero, all’inizio del prompt inviato a Gemini si aggiunge:  
+  `STATO UTENTE: Tony Avanzato ATTIVO. Moduli disponibili: [elenco]. Hai il permesso totale di usare APRI_PAGINA e tutte le altre funzioni JSON.`
+- **Default navigazione**: nella system instruction ADVANCED è stata aggiunta la regola **DEFAULT NAVIGAZIONE**: la navigazione verso le pagine base (Home, Dashboard, Terreni, Vigneto, Frutteto, Magazzino, Macchine, Manodopera) deve essere **sempre** consentita tramite JSON `APRI_PAGINA`, poiché non modifica dati. Nella instruction BASE è stata aggiunta **ECCEZIONE NAVIGAZIONE**: se l’utente chiede esplicitamente di andare a Home, Dashboard, Terreni, Vigneto o Frutteto, rispondere comunque con il JSON `APRI_PAGINA` e il target corretto.
+- **Fallback navigazione**: se l’array moduli è vuoto ma il messaggio è chiaramente una richiesta di navigazione (parole come *portami*, *apri*, *dashboard*, *home*, *terreni*, *vigneto*, *frutteto*, ecc.), si imposta comunque `isTonyAdvanced = true` e si usa l’istruzione avanzata.
+- **Log di debug**: log delle chiavi di `request.data`, presenza di `ctx.dashboard`, `moduli_attivi` e `isTonyAdvanced` per diagnosi in Firebase Console.
+
+#### 5. Mappa target
+- La mappa dei target nella Cloud Function (SYSTEM_INSTRUCTION_ADVANCED) è allineata al widget: dashboard, terreni, vigneto, frutteto, magazzino, parcoMacchine, manodopera, oliveto, lavori, attivita (e relativi alias).
+
+### File toccati
+- `core/js/tony-widget-standalone.js` (syncTonyModules, controllo array vuoto, log, bypass navigazione in onAction/onComplete/processTonyCommand)
+- `modules/frutteto/views/frutteto-dashboard-standalone.html` (forzatura frutteto/tony, syncTonyModules)
+- `modules/vigneto/views/vigneto-dashboard-standalone.html` (syncTonyModules con fallback)
+- `functions/index.js` (lettura esplicita request.data, ctx.dashboard.moduli_attivi, isTonyAdvanced, iniezione prompt, default/eccezione navigazione, fallback richiesta navigazione, log, uso di ctx ovunque)
+
+### Documentazione aggiornata
+- `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (questa sezione)
+- `docs-sviluppo/TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md` (riferimento a syncTonyModules, bypass navigazione, CF)
+
+### Risultato
+- Da qualsiasi pagina standalone (Terreni, Frutteto, Vigneto, ecc.) che chiama `syncTonyModules(modules)` (o che ha la forzatura come in Frutteto), Tony riceve i moduli corretti e la Cloud Function usa l’istruzione avanzata, restituendo il JSON di navigazione. La navigazione (APRI_PAGINA / apri_modulo) funziona sempre, anche con context temporaneamente vuoto, grazie al bypass lato widget. In caso di payload o path errati, il fallback “richiesta navigazione” in CF forza comunque l’istruzione avanzata per le frasi di navigazione.
+
+---
+
+## ✅ Tony: compilazione form Lavori – sottocategoria, tipo lavoro, macchine, messaggio (2026-02-16) - COMPLETATO
+
+### Obiettivo
+Far compilare correttamente il form **Crea Nuovo Lavoro** tramite Tony al primo tentativo: sottocategoria "Tra le File" (non "Generale") per vigneti/frutteti/oliveti, tipo "Erpicatura Tra le File" (non Trinciatura), macchine quando richiesto, stato "Assegnato" per default, messaggio finale adeguato.
+
+### Implementazione
+
+#### Sottocategoria e tipo lavoro
+- **Contesto lavori**: ogni terreno ha `coltura_categoria` (Vite, Frutteto, Olivo, Seminativo); `colture_con_filari: ['Vite','Frutteto','Olivo']`
+- **Regole SYSTEM_INSTRUCTION**: terreno con filari → sottocategoria SOLO "Tra le File" o "Sulla Fila"; tipo generico (erpicatura, trinciatura) + filari → tipo specifico "Erpicatura Tra le File", ecc.
+- **Disambiguazione**: Erpicatura ≠ Trinciatura; se utente dice "erpicatura" usa sempre "Erpicatura Tra le File"
+
+#### Macchine e stato
+- Se utente dice "completo di macchine" → includi subito trattore e attrezzo da trattoriList/attrezziList
+- Stato default: "assegnato" se caposquadra/operaio compilato; "da_pianificare" solo senza assegnazione
+
+#### Messaggio quando form completo
+- Lavori normali: "Ho compilato tutto. Vuoi che salvi il lavoro?"
+- Messaggio "Completa manualmente i dettagli tecnici (varietà, distanze)" SOLO per Impianto Nuovo Vigneto/Frutteto
+
+#### Contesto e parametri
+- `gestione-lavori-standalone.html`: `coltura_categoria` e `colture_con_filari` nel contesto Tony; `?openModal=crea` per aprire modal Crea Lavoro all'avvio
+
+### File toccati
+- `core/js/attivita-utils.js` (mapColturaToCategoria: rimosse varietà)
+- `core/admin/gestione-lavori-standalone.html` (contesto coltura_categoria, colture_con_filari, openModal=crea)
+- `functions/index.js` (SYSTEM_INSTRUCTION_LAVORO_STRUCTURED)
+- `core/config/tony-form-mapping.js` (lavoro-stato description)
+
+### Documentazione
+- **Nuovo:** `docs-sviluppo/TONY_COMPILAZIONE_LAVORI_2026-02.md` – documentazione completa
+
+---
+
 ## ✅ Tony: comportamento risposta/conferma, dialog custom, widget su tutte le pagine (2026-02-05) - COMPLETATO
 
 ### Obiettivo

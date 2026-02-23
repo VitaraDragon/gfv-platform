@@ -220,7 +220,7 @@ export function mapColturaToCategoria(colturaNome) {
         return colturaNome;
     }
     
-    // Mapping per Vite
+    // Mapping per Vite (colture da COLTURE_PREDEFINITE: Vite, Vite da Tavola, Vite da Vino)
     if (nomeLower.includes('vite')) {
         return 'Vite';
     }

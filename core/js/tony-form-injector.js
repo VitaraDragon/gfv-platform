@@ -45,8 +45,8 @@
     'lavoro-nome',
     'lavoro-categoria-principale',
     'lavoro-sottocategoria',
-    'lavoro-tipo-lavoro',
     'lavoro-terreno',
+    'lavoro-tipo-lavoro',
     'tipo-assegnazione',
     'lavoro-caposquadra',
     'lavoro-operaio',
@@ -62,8 +62,9 @@
   const DELAYS_LAVORO = {
     'lavoro-categoria-principale': 250,
     'lavoro-sottocategoria': 250,
-    'lavoro-terreno': 200,
-    'lavoro-trattore': 350
+    'lavoro-terreno': 600,
+    'lavoro-trattore': 350,
+    'tipo-assegnazione': 200
   };
 
   function delay(ms) {
@@ -135,6 +136,35 @@
     return _resolveByName(rawValue, list, nameKey || 'nome') || rawValue;
   }
 
+  /**
+   * Risolve lavoro-tipo-lavoro al NOME (non id).
+   * populateTipoLavoroDropdown usa option.value = tipo.nome per retrocompatibilità.
+   * Preferisce il match piu specifico (nome piu lungo) per evitare che "Potatura"
+   * matchi il tipo sbagliato sotto Gestione del Verde.
+   */
+  function resolveTipoLavoroToNome(rawValue) {
+    if (!rawValue || !window.lavoriState || !Array.isArray(window.lavoriState.tipiLavoroList)) return rawValue;
+    var list = window.lavoriState.tipiLavoroList;
+    var search = String(rawValue).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!search) return rawValue;
+    var exact = list.find(function (t) {
+      var n = (t.nome || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n === search;
+    });
+    if (exact && exact.nome) return exact.nome;
+    var matches = list.filter(function (t) {
+      var n = (t.nome || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n && (n.indexOf(search) >= 0 || search.indexOf(n) >= 0);
+    });
+    if (matches.length === 0) return rawValue;
+    var best = matches.sort(function (a, b) {
+      var lenA = (a.nome || '').length;
+      var lenB = (b.nome || '').length;
+      return lenB - lenA;
+    })[0];
+    return best && best.nome ? best.nome : rawValue;
+  }
+
   function resolveUserByName(rawValue, list) {
     if (!rawValue || !Array.isArray(list)) return null;
     var search = String(rawValue).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -200,7 +230,7 @@
     switch (fieldId) {
       case 'lavoro-categoria-principale':
       case 'lavoro-sottocategoria': return resolveCategoriaLavori(value);
-      case 'lavoro-tipo-lavoro': return resolveFromLavoriState(value, 'tipiLavoroList', 'nome');
+      case 'lavoro-tipo-lavoro': return resolveTipoLavoroToNome(value);
       case 'lavoro-terreno': return resolveFromLavoriState(value, 'terreniList', 'nome');
       case 'lavoro-caposquadra': return resolveFromLavoriState(value, 'caposquadraList', 'nome');
       case 'lavoro-operaio':
@@ -225,6 +255,87 @@
         formData['lavoro-operatore-macchina'] = operaioId;
         log('applyBusinessRules: tipo-assegnazione=autonomo, operatoreMacchinaId vuoto → usa operaioId: ' + operaioId);
       }
+    }
+  }
+
+  /**
+   * Deriva categoria e sottocategoria dal tipo lavoro (form lavori).
+   * Usa tipiLavoroList per risalire a categoriaId e sottocategoriaId, poi risolve ai nomi.
+   */
+  function deriveParentsFromTipoLavoro(tipoNome, context) {
+    var tipi = (context && context.lavori && context.lavori.tipi_lavoro) || (window.lavoriState && window.lavoriState.tipiLavoroList) || [];
+    var mainCats = (context && context.lavori && context.lavori.categorie_lavoro) || (window.lavoriState && window.lavoriState.categorieLavoriPrincipali) || [];
+    var subMap = (window.lavoriState && window.lavoriState.sottocategorieLavoriMap) || null;
+    var search = (tipoNome || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!search || !tipi.length) return null;
+    var matches = tipi.filter(function (t) {
+      var n = ((t.nome || '') + '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n === search || (n && (n.indexOf(search) >= 0 || search.indexOf(n) >= 0));
+    });
+    var job = matches.length > 0
+      ? matches.sort(function (a, b) {
+          var lenA = (a.nome || '').length;
+          var lenB = (b.nome || '').length;
+          return lenB - lenA;
+        })[0]
+      : null;
+    if (!job || !job.categoriaId) return null;
+    var catId = job.categoriaId;
+    var subId = job.sottocategoriaId || null;
+    var mainCatIds = mainCats.map(function (c) { return c.id; }).filter(Boolean);
+    var isMain = mainCatIds.indexOf(catId) >= 0;
+    var mainCatId = catId;
+    var subCatId = subId;
+    if (!isMain && subMap && typeof subMap.forEach === 'function') {
+      subMap.forEach(function (subs, parentId) {
+        if (Array.isArray(subs) && subs.some(function (s) { return (s.id || s.value) === catId; })) {
+          mainCatId = parentId;
+          subCatId = catId;
+        }
+      });
+    }
+    var mainCat = mainCats.find(function (c) { return c.id === mainCatId; });
+    var mainNome = mainCat ? (mainCat.nome || mainCat.text) : null;
+    if (!mainNome) return null;
+    var subNome = null;
+    if (subCatId && subMap) {
+      var subs = subMap.get ? subMap.get(mainCatId) : (subMap[mainCatId] || []);
+      if (Array.isArray(subs)) {
+        var sub = subs.find(function (s) { return (s.id || s.value) === subCatId; });
+        subNome = sub ? (sub.nome || sub.text) : null;
+      }
+    }
+    return subNome ? { categoriaNome: mainNome, sottocategoriaNome: subNome } : { categoriaNome: mainNome };
+  }
+
+  /**
+   * Intelligenza assegnazione: se l'utente nomina un singolo operaio (non caposquadra),
+   * switcha automaticamente su 'autonomo'. Default: 'squadra'.
+   */
+  function applyAssignmentIntelligence(formData) {
+    if (!formData || typeof formData !== 'object') return;
+    var operaioName = formData['lavoro-operaio'];
+    var caposquadraName = formData['lavoro-caposquadra'];
+    var tipoAssegnazione = formData['tipo-assegnazione'];
+    if (tipoAssegnazione && tipoAssegnazione !== 'squadra') return;
+    if (!window.lavoriState) return;
+    var caposquadraList = window.lavoriState.caposquadraList || [];
+    var operaiList = window.lavoriState.operaiList || [];
+    var nameToCheck = operaioName || caposquadraName;
+    if (!nameToCheck) return;
+    var search = String(nameToCheck).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var isCaposquadra = caposquadraList.some(function (c) {
+      var n = ((c.nome || '') + ' ' + (c.cognome || '')).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n && (n === search || n.indexOf(search) >= 0 || search.indexOf(n) >= 0);
+    });
+    var isOperaio = operaiList.some(function (o) {
+      var n = ((o.nome || '') + ' ' + (o.cognome || '')).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n && (n === search || n.indexOf(search) >= 0 || search.indexOf(n) >= 0);
+    });
+    if (operaioName && isOperaio && !isCaposquadra) {
+      formData['tipo-assegnazione'] = 'autonomo';
+      formData['lavoro-caposquadra'] = undefined;
+      log('applyAssignmentIntelligence: operaio "' + operaioName + '" rilevato → tipo-assegnazione=autonomo');
     }
   }
 
@@ -548,6 +659,10 @@
 
   /**
    * Inietta form lavoro (gestione-lavori).
+   * - deriveParentsFromTipoLavoro: da tipo lavoro deriviamo categoria e sottocategoria
+   * - applyAssignmentIntelligence: se nomina operaio (non caposquadra) → autonomo
+   * - applyBusinessRules: autonomo + operatore vuoto → usa operaio
+   * - Radio tipo-assegnazione: gestito via name="tipo-assegnazione"
    * @param {Object} formData - { 'lavoro-nome': '...', 'tipo-assegnazione': 'autonomo', ... }
    * @param {Object} context - contesto Tony
    * @returns {Promise<boolean>}
@@ -555,6 +670,26 @@
   async function injectLavoroForm(formData, context) {
     if (!formData || typeof formData !== 'object') return false;
     context = context || (window.Tony && window.Tony.context) || {};
+
+    applyAssignmentIntelligence(formData);
+
+    var tipoNome = formData['lavoro-tipo-lavoro'];
+    if (tipoNome) {
+      var derived = deriveParentsFromTipoLavoro(tipoNome, context);
+      if (derived) {
+        if (!formData['lavoro-categoria-principale']) {
+          formData['lavoro-categoria-principale'] = derived.categoriaNome;
+          log('deriveParentsFromTipoLavoro: categoria = ' + derived.categoriaNome);
+        }
+        if (derived.sottocategoriaNome) {
+          var existingSub = (formData['lavoro-sottocategoria'] || '').toString().trim();
+          if (!existingSub || existingSub === '-- Nessuna sottocategoria --') {
+            formData['lavoro-sottocategoria'] = derived.sottocategoriaNome;
+            log('deriveParentsFromTipoLavoro: sottocategoria = ' + derived.sottocategoriaNome);
+          }
+        }
+      }
+    }
 
     var mapConfig = {
       formId: 'lavoro-form',
@@ -564,7 +699,23 @@
       resolver: resolveValueLavoro
     };
 
-    return injectForm(formData, mapConfig, context);
+    var ok = await injectForm(formData, mapConfig, context);
+
+    // Second pass: se lavoro-terreno era presente, il suo change handler può aver ricaricato
+    // il dropdown tipo-lavoro e azzerato la selezione. Re-inietta lavoro-tipo-lavoro dopo
+    // un delay per dare tempo a loadTipiLavoro di completare.
+    if (ok && formData['lavoro-tipo-lavoro'] && formData['lavoro-terreno']) {
+      await delay(400);
+      var select = document.getElementById('lavoro-tipo-lavoro');
+      if (select && !select.value) {
+        var resolved = resolveValueLavoro('lavoro-tipo-lavoro', formData['lavoro-tipo-lavoro'], context);
+        if (resolved) {
+          setFieldValue('lavoro-tipo-lavoro', resolved, mapConfig, context);
+          log('Second pass: re-iniettato lavoro-tipo-lavoro dopo cambio terreno');
+        }
+      }
+    }
+    return ok;
   }
 
   function extractFormDataFromText(responseText) {
@@ -585,15 +736,29 @@
     }
   }
 
-  async function extractAndInjectFromResponse(responseText, context) {
+  async function extractAndInjectFromResponse(responseText, context, formCtx) {
     var out = { cleanedText: responseText || '', injected: false };
     var extracted = extractFormDataFromText(responseText);
     if (!extracted || !extracted.formData || Object.keys(extracted.formData).length === 0) {
       return out;
     }
     out.cleanedText = extracted.cleanedText || extracted.replyText || responseText;
+    context = context || (window.Tony && window.Tony.context) || {};
+    var useLavoroForm = false;
+    if (formCtx && (formCtx.formId === 'lavoro-form' || formCtx.modalId === 'lavoro-modal')) {
+      useLavoroForm = true;
+    } else {
+      var fd = extracted.formData;
+      useLavoroForm = Object.keys(fd || {}).some(function(k) {
+        return k.indexOf('lavoro-') === 0 || k === 'tipo-assegnazione';
+      });
+    }
     try {
-      out.injected = await injectAttivitaForm(extracted.formData, context);
+      if (useLavoroForm) {
+        out.injected = await injectLavoroForm(extracted.formData, context);
+      } else {
+        out.injected = await injectAttivitaForm(extracted.formData, context);
+      }
       if (out.injected) log('Estrazione e iniezione da risposta completata');
     } catch (e) {
       console.warn('[TonyFormInjector] extractAndInject fallito:', e);

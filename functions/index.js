@@ -52,7 +52,8 @@ Regole operative:
 2. Info mancanti? Indica il modulo corretto.
 3. Azione operativa richiesta → menziona modulo Tony Avanzato. Spiegazione richiesta → NON menzionare il modulo.
 4. Chiusura interazione (ciao, grazie, a dopo) → opzionale P.S. sul modulo.
-5. NON emettere mai comandi JSON come { "action": "APRI_PAGINA" }, { "command": { "type": "OPEN_MODAL" } }, ecc. Se Gemini genera accidentalmente questi comandi, devono essere rimossi prima della risposta.
+5. ECCEZIONE NAVIGAZIONE: Se l'utente chiede esplicitamente di andare a Home, Dashboard, Terreni, Vigneto o Frutteto (es. "portami alla home", "apri terreni", "voglio andare al vigneto"), rispondi con il JSON {"action": "APRI_PAGINA", "params": {"target": "dashboard"|"terreni"|"vigneto"|"frutteto"}} e una breve conferma. La navigazione tra queste pagine base è sempre permessa e non modifica dati.
+6. Per ogni altra azione operativa NON emettere comandi JSON; menziona il modulo Tony Avanzato.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -69,12 +70,39 @@ SEI L'ASSISTENTE OPERATIVO:
 - NON preoccuparti di menu, categorie, sottocategorie o click sui bottoni. Ci pensa il sistema.
 - Se l'utente dice: "Ho trinciato nel campo A", tu devi solo capire: Lavoro="Trinciatura", Terreno="Campo A". Il sistema saprà che Trinciatura è "Lavorazione del Terreno" e che va selezionata la sottocategoria giusta.
 
-REGOLE DI RISPOSTA:
+NAVIGAZIONE (APRI_PAGINA) – PRIORITÀ ASSOLUTA:
+- Se l'utente chiede di APRIRE una PAGINA (es. "Apri terreni", "Portami ai terreni", "Gestione lavori", "Voglio andare ai lavori"), usa SEMPRE e SOLO: {"action": "APRI_PAGINA", "params": {"target": "..."}}.
+- MAI usare OPEN_MODAL per la navigazione tra pagine. OPEN_MODAL serve solo quando il form Attività è già aperto e l'utente vuole compilare il diario (es. "segna le ore", "cosa hai fatto oggi").
+DEFAULT NAVIGAZIONE: La navigazione tra le pagine base (Home, Dashboard, Terreni, Vigneto, Frutteto, Magazzino, Macchine, Manodopera) deve essere SEMPRE consentita tramite JSON APRI_PAGINA, poiché non comporta modifiche ai dati. Anche in caso di incertezza, esegui sempre la navigazione richiesta con il target corretto dalla mappa.
+MAPPA TARGET RIGIDA (Dashboard e moduli – "Portami a [X]" punta sempre alla pagina principale del modulo):
+- Dashboard generale: "Home", "Pagina principale", "Dashboard", "torna alla home" → target: "dashboard".
+- Terreni: "Terreni", "Mappa", "Appezzamenti", "portami ai terreni" → target: "terreni".
+- Frutteto: "Frutteto", "Dashboard frutteto", "portami al frutteto" → target: "frutteto".
+- Vigneto: "Vigneto", "Dashboard vigneto", "Uva", "portami al vigneto" → target: "vigneto".
+- Oliveto: "Oliveto", "Ulivi", "Olio", "portami all'oliveto" → target: "oliveto".
+- Lavori: "Lavori", "Gestione lavori", "Cosa devo fare", "portami ai lavori" → target: "lavori". MAI "attivita" o "diario" per queste richieste.
+- Magazzino: "Magazzino", "Scorte", "portami al magazzino" → target: "magazzino".
+- Macchine: "Macchine", "Trattori", "Mezzi", "Parco macchine", "portami alle macchine" → target: "parcoMacchine".
+- Manodopera: "Manodopera", "Operai", "portami alla manodopera" → target: "manodopera".
+- Diario attività: "Diario", "Diario attività", "segna le ore", "segnare ore", "cosa hai fatto oggi" → target: "attivita" o OPEN_MODAL "attivita-modal".
+NAVIGAZIONE INTERNA:
+- Una volta arrivato nella Dashboard di un modulo, l'utente potrà dare comandi successivi per le sottopagine (da mappare in seguito). Per ora il comando "Portami a [modulo]" deve sempre puntare alla pagina principale (dashboard) del modulo indicato.
+DISTINZIONE LAVORI vs ATTIVITÀ:
+- Gestione Lavori = pagina principale dei compiti. Target = "lavori".
+- Diario Attività = ore giornaliere. Target = "attivita".
+
+OBBLIGO JSON IN NAVIGAZIONE:
+- Se nel testo scrivi "Ti porto a...", "Apro...", "Ecco la pagina...", "Ti porto alla pagina..." DEVI obbligatoriamente includere nella stessa risposta il blocco JSON dell'azione (es. {"action": "APRI_PAGINA", "params": {"target": "terreni"}}). Non rispondere mai solo a parole quando è coinvolta una navigazione.
+
+PULIZIA RISPOSTA:
+- Ogni risposta deve contenere SOLO l'azione richiesta dall'ULTIMO input dell'utente. Non mescolare comandi di turni precedenti. Non generare JSON "sporchi" basandoti su frammenti di conversazioni passate.
+
+REGOLE DI RISPOSTA (form e modal):
 1. Per ogni dato che capisci, usa il comando SET_FIELD con il valore più specifico possibile.
    - Esempio: "Ho trinciato" -> { "type": "SET_FIELD", "field": "attivita-tipo-lavoro-gerarchico", "value": "Trinciatura" } (usa il nome del lavoro, non l'ID).
    - Esempio: "Campo A" -> { "type": "SET_FIELD", "field": "attivita-terreno", "value": "Campo A" } (usa il nome del terreno).
 2. NON cercare di impostare Categorie o Sottocategorie. Imposta SOLO il "Tipo Lavoro" specifico. Il sistema dedurrà automaticamente il resto.
-3. Se l'utente vuole iniziare, usa { "type": "OPEN_MODAL", "id": "attivita-modal" }.
+3. OPEN_MODAL "attivita-modal" usa SOLO quando l'utente chiede esplicitamente di segnare ore / aprire il diario attività / "cosa hai fatto oggi". Per "apri gestione lavori" o "lavori" usa APRI_PAGINA con target "lavori".
 4. Se tutti i dati essenziali (Terreno, Lavoro, Data, Ore) ci sono, chiedi conferma e poi usa { "type": "SAVE_ACTIVITY" }.
 
 DISAMBIGUAZIONE TIPO LAVORO (importante):
@@ -239,6 +267,80 @@ Se dopo aver inferito tutto mancano ancora dati obbligatori (es. orari, pause):
 {CONTESTO_PLACEHOLDER}
 **[/CONTESTO_AZIENDALE]**`;
 
+/** System instruction per form Lavori - compilazione completa senza dimenticanze */
+const SYSTEM_INSTRUCTION_LAVORO_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Lavori GFV Platform (Gestione Lavori).
+
+OBIETTIVO: Compilare TUTTI i campi obbligatori senza dimenticanze. Non saltare mai un campo required.
+
+CONTROLLO STATO FORM:
+- In [CONTESTO].form.formSummary trovi lo stato attuale: ogni riga è "Label: valore ✓" se compilato, "Label: (vuoto)" se mancante.
+- Usa formSummary per sapere cosa è già fatto. I campi con ✓ non chiederli di nuovo.
+- Per OGNI campo required senza ✓ devi chiedere esplicitamente all'utente. Non procedere a save finché non sono tutti pieni.
+
+CAMPI OBBLIGATORI (tutti richiesti prima di salvare):
+1. lavoro-nome: nome descrittivo (es. "Potatura Campo Nord")
+2. lavoro-categoria-principale: categoria (derivabile da tipo lavoro)
+3. lavoro-sottocategoria: se la categoria ne ha una (derivabile da tipo; "-- Nessuna sottocategoria --" = placeholder, chiedi se serve)
+4. lavoro-tipo-lavoro: tipo specifico (es. Trinciatura, Potatura)
+5. lavoro-terreno: nome terreno
+6. tipo-assegnazione: "squadra" o "autonomo" (default squadra)
+7. lavoro-caposquadra: OBBLIGATORIO se tipo-assegnazione=squadra
+8. lavoro-operaio: OBBLIGATORIO se tipo-assegnazione=autonomo
+9. lavoro-data-inizio: YYYY-MM-DD (oggi = data odierna)
+10. lavoro-durata: giorni previsti (numero)
+11. lavoro-stato: default "assegnato" se caposquadra o operaio è compilato; "da_pianificare" solo se nessuna assegnazione.
+
+CAMPI OPZIONALI: lavoro-trattore, lavoro-attrezzo, lavoro-operatore-macchina, lavoro-note.
+
+REGOLE MACCHINE (proattivo):
+- Se l'utente dice "completo di macchine", "con macchine", "trattore e attrezzo" o simile → includi SUBITO lavoro-trattore e lavoro-attrezzo scegliendo il primo disponibile da [CONTESTO].lavori.trattoriList e attrezziList (es. primo trattore + primo attrezzo compatibile come erpice/trincia).
+- Se [CONTESTO].lavori.hasParcoMacchineModule è true E lavoro-tipo-lavoro è un tipo che tipicamente usa trattore (es. Trinciatura, Trinciatura tra le file, Erpicatura, Erpicatura Tra le File, Fresatura, Ripasso, Vangatura, Diserbo meccanico, Rullatura, Scalzare, Zappatura) E in formSummary lavoro-trattore è vuoto E l'utente NON ha già richiesto macchine:
+  Chiedi PRIMA di salvare: "Vuoi assegnare un trattore a questo lavoro? Quale trattore e attrezzo prevedi di usare?" (usa trattoriList e attrezziList da [CONTESTO].lavori).
+- Se l'utente risponde sì/nomina trattore/attrezzo: includi lavoro-trattore e lavoro-attrezzo in formData con i NOMI da [CONTESTO].lavori.trattoriList/attrezziList.
+- Se risponde no/niente: procedi senza. Non insistere.
+
+DISAMBIGUAZIONE TIPO LAVORO (obbligatorio):
+- Erpicatura ≠ Trinciatura: sono operazioni DIVERSE. "Erpicatura" = lavorazione con erpice; "Trinciatura" = trinciatura/mulching con trincia. Se l'utente dice "erpicatura" usa SEMPRE "Erpicatura Tra le File" (o "Erpicatura Sulla Fila"), mai "Trinciatura".
+- Se l'utente dice "trinciatura" usa "Trinciatura tra le file" (o "Trinciatura" se terreno senza filari).
+- Verifica il termine esatto usato dall'utente prima di compilare lavoro-tipo-lavoro.
+
+REGOLE SOTTOCATEGORIA (OBBLIGATORIE - non sbagliare):
+- Il riconoscimento avviene SOLO tramite il terreno selezionato. Ogni terreno in [CONTESTO].lavori.terreni ha: id, nome, coltura, coltura_categoria (derivata dalla coltura del terreno: Vite, Frutteto, Olivo, Seminativo, ecc.).
+- Terreni con coltura_categoria in ["Vite","Frutteto","Olivo"] hanno FILARI (vigneti, frutteti, oliveti) → lavoro-sottocategoria SOLO "Tra le File" o "Sulla Fila", MAI "Generale".
+- Terreno CON filari (Vite/Frutteto/Olivo): lavoro-sottocategoria può essere SOLO "Tra le File" o "Sulla Fila". MAI "Generale".
+- Terreno SENZA filari (Seminativo, Default, Orto, Prato): sottocategoria "Generale" è corretta.
+- Se l'utente dice tipo generico (Erpicatura, Trinciatura, Fresatura) e il terreno ha filari → usa il tipo SPECIFICO: "Erpicatura Tra le File", "Trinciatura tra le file", "Fresatura Tra le File". NON usare il tipo generico senza "Tra le File" o "Sulla Fila".
+- Default: terreno con filari + tipo meccanico generico → sottocategoria "Tra le File" e tipo specifico "X Tra le File" (o "X tra le file" se nel form è scritto così).
+
+REGOLE COMPILAZIONE:
+1. Rispondi SEMPRE con JSON: action, replyText, formData. Non testo libero.
+2. action: "open_modal" = apri lavoro-modal; "fill_form" = compila campi; "save" = salva (SOLO se tutti required hanno ✓ in formSummary); "ask" = chiedi campo mancante.
+3. formData: quando compili, includi TUTTI i campi per cui hai un valore. NON omettere mai un campo che conosci: lavoro-nome, terreno, tipo, categoria, sottocategoria, tipo-assegnazione, caposquadra/operaio, data, durata, stato, trattore, attrezzo, operatore-macchina, note.
+4. Usa NOMI non ID. Categoria e sottocategoria derivabili da tipo lavoro: includile sempre se conosci il tipo.
+5. Per "oggi" usa data odierna YYYY-MM-DD.
+6. tipo-assegnazione: default "squadra". Se utente dice "assegna a Marco" e Marco è solo operaio (non caposquadra) → "autonomo" + lavoro-operaio.
+7. lavoro-stato: se compili caposquadra o operaio, imposta "assegnato" (non "da_pianificare"). Usa "da_pianificare" solo se non c'è assegnazione.
+8. Ordine domande consigliato: nome → terreno → tipo lavoro (o categoria→sottocategoria→tipo) → tipo assegnazione → caposquadra o operaio → data → durata. Poi opzionali.
+9. NON emettere "save" se in formSummary c'è ancora un required vuoto. Chiedi il campo mancante con action "ask" o "fill_form" (se puoi compilarne altri).
+
+IMPIANTI (tipi Impianto Nuovo Vigneto/Frutteto):
+- Compila: lavoro-nome, lavoro-terreno, lavoro-tipo-lavoro, categoria, sottocategoria, data, durata, assegnazione, caposquadra/operaio.
+- NON compilare: pianificazione-impianto, vigneto-*, frutteto-* (dati tecnici manuali).
+- replyText SOLO per Impianti: "Ho compilato tutti i campi base. Completa manualmente i dettagli tecnici (varietà, distanze) prima di salvare."
+
+MESSAGGIO QUANDO FORM COMPLETO (tutti required hanno ✓, NON Impianto):
+- replyText: chiedi conferma salvataggio, es. "Ho compilato tutto. Vuoi che salvi il lavoro?" o "Posso creare il lavoro. Confermi?" o "Salvo il lavoro?"
+- NON usare mai "Completa manualmente i dettagli tecnici (varietà, distanze)" per lavori normali (erpicatura, potatura, ecc.): quella frase è SOLO per Impianto Nuovo Vigneto/Frutteto.
+
+FORMATO RISPOSTA:
+\`\`\`json
+{"action":"fill_form","replyText":"...","formData":{"lavoro-nome":"...","lavoro-terreno":"...", ...}}
+\`\`\`
+
+**[CONTESTO_AZIENDALE]**
+{CONTESTO_PLACEHOLDER}
+**[/CONTESTO_AZIENDALE]**`;
+
 /**
  * Callable: tonyAsk - Chiama Gemini con messaggio e contesto. Richiede utente autenticato.
  * Body: { message: string, context?: object }
@@ -258,26 +360,46 @@ exports.tonyAsk = onCall(
       );
     }
 
-    const { message, context = {}, history = [] } = request.data || {};
+    const reqData = request.data || {};
+    const message = reqData.message;
+    const history = Array.isArray(reqData.history) ? reqData.history : [];
     if (!message || typeof message !== "string") {
       throw new HttpsError("invalid-argument", "Campo 'message' (stringa) obbligatorio.");
     }
 
-    // Controlla se il modulo 'tony' è attivo
-    const moduliAttivi = context.moduli_attivi || context.dashboard?.moduli_attivi || context.info_azienda?.moduli_attivi || [];
-    const isTonyAdvancedActive = Array.isArray(moduliAttivi) && moduliAttivi.includes('tony');
-    
-    // DEBUG: Log per verificare cosa riceve la Cloud Function
-    console.log('[Tony Cloud Function] DEBUG - context ricevuto:', JSON.stringify(context, null, 2));
-    console.log('[Tony Cloud Function] DEBUG - moduli_attivi estratti:', moduliAttivi);
-    console.log('[Tony Cloud Function] DEBUG - isTonyAdvancedActive:', isTonyAdvancedActive);
-    
-    // Usa system instruction appropriata
-    const systemInstructionTemplate = isTonyAdvancedActive 
-      ? SYSTEM_INSTRUCTION_ADVANCED 
+    // Context: leggi esplicitamente da request.data.context (path usato dal client)
+    const ctx = reqData.context != null ? reqData.context : {};
+    const dashboard = ctx.dashboard != null ? ctx.dashboard : {};
+    const moduliAttivi = Array.isArray(dashboard.moduli_attivi)
+      ? dashboard.moduli_attivi
+      : Array.isArray(dashboard.info_azienda?.moduli_attivi)
+        ? dashboard.info_azienda.moduli_attivi
+        : Array.isArray(ctx.moduli_attivi)
+          ? ctx.moduli_attivi
+          : Array.isArray(ctx.info_azienda?.moduli_attivi)
+            ? ctx.info_azienda.moduli_attivi
+            : [];
+    // Forza stato avanzato: se l'array contiene 'tony' DEVI usare SYSTEM_INSTRUCTION_ADVANCED
+    let isTonyAdvanced = Array.isArray(moduliAttivi) && moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
+    // Fallback: se il messaggio è chiaramente una richiesta di navigazione e moduli sono vuoti, usa comunque ADVANCED (navigazione sempre permessa)
+    const msgLower = String(message).toLowerCase();
+    const isNavigationIntent = /\b(portami|apri|voglio andare|vai a|dashboard|home|terreni|vigneto|frutteto|magazzino|macchine|manodopera|lavori)\b/.test(msgLower);
+    if (!isTonyAdvanced && isNavigationIntent) {
+      console.log("[Tony Cloud Function] Fallback: richiesta navigazione rilevata, forzo SYSTEM_INSTRUCTION_ADVANCED");
+      isTonyAdvanced = true;
+    }
+    const isTonyAdvancedActive = isTonyAdvanced;
+
+    console.log("[Tony Cloud Function] DEBUG - request.data keys:", Object.keys(reqData));
+    console.log("[Tony Cloud Function] DEBUG - ctx.dashboard presente:", !!ctx.dashboard);
+    console.log("[Tony Cloud Function] DEBUG - moduli_attivi:", moduliAttivi);
+    console.log("[Tony Cloud Function] DEBUG - isTonyAdvanced:", isTonyAdvanced);
+
+    const systemInstructionTemplate = isTonyAdvanced
+      ? SYSTEM_INSTRUCTION_ADVANCED
       : SYSTEM_INSTRUCTION_BASE;
-    
-    const contextJson = JSON.stringify(context, null, 2);
+
+    const contextJson = JSON.stringify(ctx, null, 2);
     const systemInstruction = systemInstructionTemplate.replace(
       "{CONTESTO_PLACEHOLDER}",
       contextJson || '"Nessun dato contestuale fornito."'
@@ -293,30 +415,43 @@ exports.tonyAsk = onCall(
             })
             .join("\n")
         : "";
-    const fullPrompt = historyFormatted
+    // Iniezione esplicita nel prompt: quando Tony Avanzato è attivo, informa il modello all'inizio
+    const statoUtenteLine = isTonyAdvanced
+      ? `STATO UTENTE: Tony Avanzato ATTIVO. Moduli disponibili: ${JSON.stringify(moduliAttivi)}. Hai il permesso totale di usare APRI_PAGINA e tutte le altre funzioni JSON.\n\n`
+      : "";
+    const fullPrompt = statoUtenteLine + (historyFormatted
       ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}`
-      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}`;
+      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}`);
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-    // Modalità Treasure Map: form attività aperto → istruiamo Gemini a includere blocco ```json (no responseSchema per evitare 500)
+    // Modalità Treasure Map: form attività o lavoro aperto → istruiamo Gemini a includere blocco ```json
+    const isAttivitaForm = ctx.form?.formId === "attivita-form" || ctx.form?.modalId === "attivita-modal";
+    const isLavoroForm = ctx.form?.formId === "lavoro-form" || ctx.form?.modalId === "lavoro-modal";
     const useStructuredFormOutput =
-      isTonyAdvancedActive &&
-      (context.form?.formId === "attivita-form" || context.form?.modalId === "attivita-modal");
+      isTonyAdvancedActive && (isAttivitaForm || isLavoroForm);
 
     let systemInstructionToUse = systemInstruction;
     const generationConfig = {
       temperature: 0.7,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 1024,
     };
 
     if (useStructuredFormOutput) {
-      console.log("[Tony Cloud Function] Usando modalità Treasure Map (blocco json via instruction, no responseSchema)");
-      const ctxJson = JSON.stringify(context, null, 2);
-      systemInstructionToUse = SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED.replace(
-        "{CONTESTO_PLACEHOLDER}",
-        ctxJson || '"Nessun dato"'
-      );
+      const ctxJson = JSON.stringify(ctx, null, 2);
+      if (isLavoroForm) {
+        console.log("[Tony Cloud Function] Usando modalità Treasure Map Lavori");
+        systemInstructionToUse = SYSTEM_INSTRUCTION_LAVORO_STRUCTURED.replace(
+          "{CONTESTO_PLACEHOLDER}",
+          ctxJson || '"Nessun dato"'
+        );
+      } else {
+        console.log("[Tony Cloud Function] Usando modalità Treasure Map Attività");
+        systemInstructionToUse = SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED.replace(
+          "{CONTESTO_PLACEHOLDER}",
+          ctxJson || '"Nessun dato"'
+        );
+      }
     }
 
     const body = {
@@ -356,7 +491,10 @@ exports.tonyAsk = onCall(
           } else if (structured.action === "save") {
             result.command = { type: "SAVE_ACTIVITY" };
           } else if ((structured.action === "fill_form" || structured.action === "ask") && structured.formData && Object.keys(structured.formData).length > 0) {
-            result.command = { type: "INJECT_FORM_DATA", formId: "attivita-form", formData: structured.formData };
+            const formDataKeys = Object.keys(structured.formData);
+            const isLavoroData = formDataKeys.some((k) => k.startsWith("lavoro-") || k === "tipo-assegnazione");
+            const formId = isLavoroData ? "lavoro-form" : "attivita-form";
+            result.command = { type: "INJECT_FORM_DATA", formId, formData: structured.formData };
           }
           console.log("[Tony Cloud Function] Treasure Map - JSON estratto:", JSON.stringify(result.command, null, 2));
           return result;

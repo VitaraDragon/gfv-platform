@@ -30,7 +30,9 @@ Tony (Gemini) estrae intento e dati, restituisce un blocco JSON strutturato con 
 - **Form:** `attivita-form` nel modal `attivita-modal`
 - **Modulo Tony:** deve essere attivo (`moduli_attivi.includes('tony')`)
 
-Le altre pagine (Terreni, Vigneto, Gestione Lavori, ecc.) usano Tony per chat e navigazione, ma **non** per compilazione strutturata di form.
+**Anche form Lavori** (da 2026-02-16): `core/admin/gestione-lavori-standalone.html`, form `lavoro-form` nel modal Crea Lavoro. Rif. `docs-sviluppo/TONY_COMPILAZIONE_LAVORI_2026-02.md`.
+
+Le altre pagine (Terreni, Vigneto, ecc.) usano Tony per chat e navigazione, ma **non** per compilazione strutturata di form.
 
 ---
 
@@ -205,8 +207,8 @@ Nel widget, `showMessageInChat(text, type)` per messaggi di errore e avviso modu
 
 ### 5.3 Moduli prioritari (da GUIDA_TONY_OPERATIVO)
 
-- **Fase 2**: Gestione Lavori (switch, visibilità condizionale)
-- **Fase 3**: Raccolta frutta, Vendemmia, altri form con struttura simile
+- **Fase 2**: Gestione Lavori – **implementato** (2026-02-16). Rif. `TONY_COMPILAZIONE_LAVORI_2026-02.md`
+- **Fase 3**: Raccolta frutta, Vendemmia, altri form con struttura simile (switch, visibilità condizionale)
 
 ---
 
@@ -243,7 +245,8 @@ Nel widget, `showMessageInChat(text, type)` per messaggi di errore e avviso modu
 - **Flusso inverso**: `docs-sviluppo/TONY_FLUSSO_COMPILAZIONE_ATTIVITA_INVERSO.md`
 - **Architettura operativa**: `docs-sviluppo/GUIDA_TONY_OPERATIVO_ARCHITETTURA_GLOBALE.md`
 - **Separazione Guida/Operativo**: `docs-sviluppo/TONY_MODULO_SEPARATO.md`
+- **Compilazione form Lavori**: `docs-sviluppo/TONY_COMPILAZIONE_LAVORI_2026-02.md`
 
 ---
 
-*Ultimo aggiornamento: 2026-02-13*
+*Ultimo aggiornamento: 2026-02-16*

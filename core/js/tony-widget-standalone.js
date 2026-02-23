@@ -40,7 +40,11 @@
 
     var TONY_PAGE_MAP = {
         'dashboard': 'core/dashboard-standalone.html',
+        'home': 'core/dashboard-standalone.html',
+        'pagina principale': 'core/dashboard-standalone.html',
         'terreni': 'core/terreni-standalone.html',
+        'mappa': 'core/terreni-standalone.html',
+        'appezzamenti': 'core/terreni-standalone.html',
         'attivita': 'core/attivita-standalone.html', 'attività': 'core/attivita-standalone.html',
         'lavori': 'core/admin/gestione-lavori-standalone.html', 'gestione lavori': 'core/admin/gestione-lavori-standalone.html',
         'segnatura ore': 'core/segnatura-ore-standalone.html', 'segnare ore': 'core/segnatura-ore-standalone.html',
@@ -53,10 +57,14 @@
         'gestione operai': 'core/admin/gestione-operai-standalone.html', 'operai': 'core/admin/gestione-operai-standalone.html',
         'compensi operai': 'core/admin/compensi-operai-standalone.html', 'compensi': 'core/admin/compensi-operai-standalone.html',
         'gestione macchine': 'core/admin/gestione-macchine-standalone.html', 'macchine': 'core/admin/gestione-macchine-standalone.html',
+        'parcoMacchine': 'core/admin/gestione-macchine-standalone.html', 'trattori': 'core/admin/gestione-macchine-standalone.html', 'mezzi': 'core/admin/gestione-macchine-standalone.html',
+        'manodopera': 'core/admin/gestione-operai-standalone.html',
         'magazzino': 'modules/magazzino/views/magazzino-home-standalone.html',
+        'scorte': 'modules/magazzino/views/magazzino-home-standalone.html',
         'prodotti': 'modules/magazzino/views/prodotti-standalone.html', 'anagrafica prodotti': 'modules/magazzino/views/prodotti-standalone.html',
         'movimenti': 'modules/magazzino/views/movimenti-standalone.html', 'movimenti magazzino': 'modules/magazzino/views/movimenti-standalone.html',
         'vigneto': 'modules/vigneto/views/vigneto-dashboard-standalone.html',
+        'uva': 'modules/vigneto/views/vigneto-dashboard-standalone.html',
         'vigneti': 'modules/vigneto/views/vigneti-standalone.html',
         'statistiche vigneto': 'modules/vigneto/views/vigneto-statistiche-standalone.html',
         'vigneto statistiche': 'modules/vigneto/views/vigneto-statistiche-standalone.html',
@@ -70,6 +78,9 @@
         'impianto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=vigneto',
         'frutteto': 'modules/frutteto/views/frutteto-dashboard-standalone.html',
         'frutteti': 'modules/frutteto/views/frutteti-standalone.html',
+        'oliveto': 'core/dashboard-standalone.html',
+        'ulivi': 'core/dashboard-standalone.html',
+        'olio': 'core/dashboard-standalone.html',
         'statistiche frutteto': 'modules/frutteto/views/frutteto-statistiche-standalone.html',
         'frutteto statistiche': 'modules/frutteto/views/frutteto-statistiche-standalone.html',
         'raccolta frutta': 'modules/frutteto/views/raccolta-frutta-standalone.html',
@@ -96,7 +107,9 @@
     };
 
     var TONY_LABEL_MAP = {
-        'dashboard': 'Dashboard', 'terreni': 'Terreni', 'attivita': 'Diario Attività', 'attività': 'Diario Attività',
+        'dashboard': 'Dashboard', 'home': 'Dashboard', 'pagina principale': 'Dashboard',
+        'terreni': 'Terreni', 'mappa': 'Terreni', 'appezzamenti': 'Terreni',
+        'attivita': 'Diario Attività', 'attività': 'Diario Attività',
         'lavori': 'Gestione Lavori', 'gestione lavori': 'Gestione Lavori',
         'segnatura ore': 'Segnatura Ore', 'segnare ore': 'Segnatura Ore',
         'validazione ore': 'Validazione Ore', 'validare ore': 'Validazione Ore',
@@ -107,14 +120,17 @@
         'gestione operai': 'Gestione Operai', 'operai': 'Gestione Operai',
         'compensi operai': 'Compensi Operai', 'compensi': 'Compensi Operai',
         'gestione macchine': 'Gestione Macchine', 'macchine': 'Gestione Macchine',
-        'magazzino': 'Magazzino', 'prodotti': 'Prodotti', 'anagrafica prodotti': 'Prodotti',
+        'parcoMacchine': 'Parco Macchine', 'trattori': 'Parco Macchine', 'mezzi': 'Parco Macchine',
+        'manodopera': 'Manodopera',
+        'magazzino': 'Magazzino', 'scorte': 'Magazzino', 'prodotti': 'Prodotti', 'anagrafica prodotti': 'Prodotti',
         'movimenti': 'Movimenti', 'movimenti magazzino': 'Movimenti',
-        'vigneto': 'Vigneto', 'vigneti': 'Vigneti',
+        'vigneto': 'Vigneto', 'uva': 'Vigneto', 'vigneti': 'Vigneti',
         'statistiche vigneto': 'Statistiche Vigneto', 'vigneto statistiche': 'Statistiche Vigneto',
         'vendemmia': 'Vendemmia', 'potatura vigneto': 'Potatura Vigneto', 'trattamenti vigneto': 'Trattamenti Vigneto',
         'calcolo materiali': 'Calcolo Materiali', 'calcolo materiali frutteto': 'Calcolo Materiali Frutteto',
         'pianificazione impianto': 'Pianificazione Impianto', 'pianifica impianto': 'Pianificazione Impianto', 'impianto': 'Pianificazione Impianto',
         'frutteto': 'Frutteto', 'frutteti': 'Frutteti',
+        'oliveto': 'Oliveto', 'ulivi': 'Oliveto', 'olio': 'Oliveto',
         'statistiche frutteto': 'Statistiche Frutteto', 'frutteto statistiche': 'Statistiche Frutteto',
         'raccolta frutta': 'Raccolta Frutta', 'potatura frutteto': 'Potatura Frutteto', 'trattamenti frutteto': 'Trattamenti Frutteto',
         'conto terzi': 'Conto Terzi', 'contoterzi': 'Conto Terzi',
@@ -140,7 +156,9 @@
             'pianificazione impianto vigneto': 'pianificazione impianto', 'impianto vigneto': 'pianificazione impianto',
             'pianificazione impianto frutteto': 'calcolo materiali frutteto', 'impianto frutteto': 'calcolo materiali frutteto',
             'home vigneto': 'vigneto', 'home frutteto': 'frutteto', 'home magazzino': 'magazzino',
-            'home conto terzi': 'conto terzi', 'contoterzi': 'conto terzi'
+            'home conto terzi': 'conto terzi', 'contoterzi': 'conto terzi',
+            'dashboard frutteto': 'frutteto', 'dashboard vigneto': 'vigneto', 'cosa devo fare': 'lavori',
+            'gestione lavori': 'lavori', 'parco macchine': 'parcoMacchine', 'operai': 'manodopera'
         };
         if (aliases[t]) return aliases[t];
         var normalized = t.replace(/\b(del|della|dei|delle|pagina|modulo|sezione|anagrafica)\b/g, ' ').replace(/\s+/g, ' ').trim();
@@ -609,10 +627,10 @@
             return;
         }
 
-        // SICUREZZA: Blocca comandi operativi se modulo non attivo
-        if (!isTonyAdvancedActive) {
+        // Bypass totale navigazione: APRI_PAGINA e apri_modulo sempre consentiti (ignorano isTonyAdvancedActive)
+        var isNavCmd = (data.type === 'APRI_PAGINA' || data.type === 'apri_modulo');
+        if (!isNavCmd && !isTonyAdvancedActive) {
             console.warn('[Tony] Comando operativo bloccato: modulo Tony Avanzato non attivo.');
-            var commandType = data.type || 'operazione';
             showMessageInChat('Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla Dashboard per aprire pagine, compilare form e molto altro.', 'tony');
             return;
         }
@@ -625,14 +643,28 @@
                     console.log('[Tony] Attesa popolamento modal completata, proseguo con i SET_FIELD');
                     break;
                 case 'INJECT_FORM_DATA':
-                    if (data.formId === 'attivita-form' && data.formData && window.TonyFormInjector) {
-                        console.log('[Tony] INJECT_FORM_DATA: iniezione formData attività');
-                        window.TonyFormInjector.injectAttivitaForm(data.formData, window.Tony ? window.Tony.context : {}).then(function(ok) {
-                            if (ok) console.log('[Tony] Form data iniettato con successo');
-                            else console.warn('[Tony] Iniezione formData fallita');
-                        });
+                    if (data.formData && window.TonyFormInjector) {
+                        var ctx = window.Tony ? window.Tony.context : {};
+                        if (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') {
+                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData lavoro');
+                            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                window.Tony.setContext('lavori', ctx.lavori || {});
+                            }
+                            window.TonyFormInjector.injectLavoroForm(data.formData, ctx).then(function(ok) {
+                                if (ok) console.log('[Tony] Form lavoro iniettato con successo');
+                                else console.warn('[Tony] Iniezione form lavoro fallita');
+                            });
+                        } else if (data.formId === 'attivita-form') {
+                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData attività');
+                            window.TonyFormInjector.injectAttivitaForm(data.formData, ctx).then(function(ok) {
+                                if (ok) console.log('[Tony] Form data iniettato con successo');
+                                else console.warn('[Tony] Iniezione formData fallita');
+                            });
+                        } else {
+                            console.warn('[Tony] INJECT_FORM_DATA: formId non supportato:', data.formId);
+                        }
                     } else {
-                        console.warn('[Tony] INJECT_FORM_DATA: formId/formData non supportati o injector non caricato');
+                        console.warn('[Tony] INJECT_FORM_DATA: formData vuoto o injector non caricato');
                     }
                     break;
                 case 'OPEN_MODAL':
@@ -715,6 +747,12 @@
                                     }
                                 }
                                 tryOpenAttivitaModal();
+                            } else if (resolvedId === 'lavoro-modal') {
+                                if (typeof window.openCreaModal === 'function') {
+                                    console.log('[Tony] Inizializzo modal lavoro (popolamento dropdown)');
+                                    window.openCreaModal();
+                                    enqueueTonyCommand({ type: '_WAIT_MODAL_READY' }, { source: 'post-open-lavoro', delayMs: 800 });
+                                }
                             }
                             setTimeout(function() {
                                 console.log('[DEBUG CURSOR] processTonyCommand: Timeout 500ms scaduto, modal dovrebbe essere visibile');
@@ -1160,19 +1198,20 @@
 
                 case 'APRI_PAGINA':
                     console.log('[DEBUG CURSOR] processTonyCommand: Caso APRI_PAGINA');
-                    // APRI_PAGINA viene gestito tramite onAction callback, ma se arriva qui lo gestiamo comunque
                     var target = (data.target || (data.params && data.params.target) || '').toString().trim();
                     console.log('[DEBUG CURSOR] processTonyCommand: Target per APRI_PAGINA:', target);
                     if (target) {
+                        var resolved = resolveTarget(target) || target;
                         var url = getUrlForTarget(target);
                         if (url) {
-                            var resolved = resolveTarget(target);
                             var label = TONY_LABEL_MAP[resolved] || resolved;
-                            console.log('[DEBUG CURSOR] processTonyCommand: URL trovato per', target, '→', url);
+                            var urlWithNotify = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'tnyNotify=' + encodeURIComponent(resolved);
+                            console.log('[DEBUG CURSOR] processTonyCommand: URL trovato per', target, '→', urlWithNotify);
                             window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
                                 if (ok) {
-                                    console.log('[DEBUG CURSOR] processTonyCommand: Navigazione confermata, apro:', url);
-                                    window.location.href = url;
+                                    _tonyCommandQueue.length = 0;
+                                    console.log('[DEBUG CURSOR] processTonyCommand: Navigazione confermata, apro:', urlWithNotify);
+                                    window.location.href = urlWithNotify;
                                 } else {
                                     console.log('[DEBUG CURSOR] processTonyCommand: Navigazione annullata dall\'utente');
                                 }
@@ -1341,50 +1380,55 @@
          * @returns {{ text: string, command: object|null }|null}
          */
         function parseRobustTonyResponse(str) {
+            function clearQueueIfUnrepairable() {
+                try { _tonyCommandQueue.length = 0; } catch (e) {}
+            }
             if (!str || typeof str !== 'string') {
                 console.log('[DEBUG CURSOR] parseRobustTonyResponse: input non valido (non stringa o vuoto)');
+                clearQueueIfUnrepairable();
                 return null;
             }
             
             console.log('[DEBUG CURSOR] parseRobustTonyResponse: input ricevuto, lunghezza:', str.length);
             console.log('[DEBUG CURSOR] parseRobustTonyResponse: preview:', str.substring(0, 200) + (str.length > 200 ? '...' : ''));
             
-            // Cerca il primo JSON object nella stringa usando regex robusta
-            // Prima prova con JSON completo
             var jsonMatch = str.match(/\{[\s\S]*\}/);
             
-            // Se non trova JSON completo, cerca JSON incompleto (troncato)
             if (!jsonMatch) {
                 console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun JSON completo trovato, cerco JSON troncato...');
-                // Cerca pattern che inizia con { e contiene "text" o "command" o "type"
-                var incompleteMatch = str.match(/\{[^{}]*["']?(?:text|command|type)["']?\s*:/);
-                if (incompleteMatch) {
-                    console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato JSON incompleto, provo a completarlo');
-                    // Estrai tutto dalla prima { fino alla fine della stringa
-                    var startIdx = str.indexOf('{');
+                var startIdx = str.indexOf('{');
+                if (startIdx >= 0) {
                     var incompleteJson = str.substring(startIdx);
-                    // Prova a completare il JSON aggiungendo le parentesi mancanti
                     var openBraces = (incompleteJson.match(/\{/g) || []).length;
                     var closeBraces = (incompleteJson.match(/\}/g) || []).length;
                     var missingBraces = openBraces - closeBraces;
-                    console.log('[DEBUG CURSOR] parseRobustTonyResponse: Parentesi aperte:', openBraces, 'chiuse:', closeBraces, 'mancanti:', missingBraces);
-                    
-                    if (missingBraces > 0) {
-                        // Aggiungi le parentesi mancanti
-                        var completedJson = incompleteJson + Array(missingBraces + 1).join('}');
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: JSON completato:', completedJson.substring(0, 300) + (completedJson.length > 300 ? '...' : ''));
+                    console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato JSON incompleto, parentesi aperte:', openBraces, 'chiuse:', closeBraces, 'mancanti:', missingBraces);
+                    if (missingBraces > 0 && missingBraces <= 10) {
+                        var completedJson = incompleteJson + '}'.repeat(missingBraces);
                         jsonMatch = [completedJson];
                         jsonMatch.index = startIdx;
-                    } else {
-                        // Se le parentesi sono bilanciate ma manca qualcosa, prova comunque
-                        jsonMatch = [incompleteJson];
-                        jsonMatch.index = startIdx;
+                    }
+                }
+                if (!jsonMatch) {
+                    var incompleteMatch = str.match(/\{[^{}]*["']?(?:text|command|type|action)["']?\s*:/);
+                    if (incompleteMatch) {
+                        startIdx = str.indexOf('{');
+                        incompleteJson = str.substring(startIdx);
+                        openBraces = (incompleteJson.match(/\{/g) || []).length;
+                        closeBraces = (incompleteJson.match(/\}/g) || []).length;
+                        missingBraces = openBraces - closeBraces;
+                        if (missingBraces > 0 && missingBraces <= 10) {
+                            completedJson = incompleteJson + '}'.repeat(missingBraces);
+                            jsonMatch = [completedJson];
+                            jsonMatch.index = startIdx;
+                        }
                     }
                 }
             }
             
             if (!jsonMatch) {
-                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun JSON trovato nella stringa (né completo né incompleto)');
+                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun JSON trovato o non riparabile');
+                clearQueueIfUnrepairable();
                 return null;
             }
             
@@ -1522,7 +1566,8 @@
                 console.error('[DEBUG CURSOR] parseRobustTonyResponse: Impossibile parsare JSON dopo', tries, 'tentativi di trimming');
             }
             
-            console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun formato riconosciuto, ritorno null');
+            console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun formato riconosciuto, ritorno null e svuoto coda');
+            clearQueueIfUnrepairable();
             return null;
         }
 
@@ -1597,9 +1642,11 @@
                 var line = '- ' + lbl + ': ' + (displayVal || '(vuoto)');
                 // attivita-sottocategoria con placeholder "-- Nessuna sottocategoria --" e value vuoto = non ancora scelto
                 var isSottocategoriaPlaceholder = (f.id === 'attivita-sottocategoria' && (!val || val === '') && (displayVal === '-- Nessuna sottocategoria --' || !displayVal));
+                // lavoro-sottocategoria: stesso caso (placeholder "-- Nessuna sottocategoria --" con value vuoto = non scelto)
+                var isLavoroSottocategoriaPlaceholder = (f.id === 'lavoro-sottocategoria' && (!val || val === '') && (displayVal === '-- Nessuna sottocategoria --' || !displayVal));
                 // attivita-pause con valore 0 = default, non ancora chiesto all'utente
                 var isPauseDefault = (f.id === 'attivita-pause' && (val === '0' || val === 0 || String(val).trim() === '0'));
-                if (displayVal && displayVal !== '(vuoto)' && displayVal !== '(compilato)' && !isSottocategoriaPlaceholder && !isPauseDefault) {
+                if (displayVal && displayVal !== '(vuoto)' && displayVal !== '(compilato)' && !isSottocategoriaPlaceholder && !isLavoroSottocategoriaPlaceholder && !isPauseDefault) {
                     line += ' ✓';
                 }
                 lines.push(line);
@@ -1736,7 +1783,7 @@
         var startListeningRef = null;
         var stopListeningRef = null;
         var autoModeTimeout = null;
-        var AUTO_MODE_SILENCE_MS = 15000; // 15 secondi
+        var AUTO_MODE_SILENCE_MS = 30000; // 30 secondi (inattività prima di spegnere microfono)
         var TONY_SESSION_MAX_AGE_MS = 600000;
         var lastTTSCache = { text: '', audioBase64: '' };
 
@@ -1775,10 +1822,13 @@
                     isAutoMode = true;
                     panel.classList.add('is-auto-mode');
                     if (state.lastPath !== window.location.pathname) {
-                        var pageTitle = (document.title || '').replace(/^GFV Platform\s*[-–]\s*/i, '').trim() || 'questa sezione';
-                        setTimeout(function() {
-                            speakWithTTS('Eccoci qui nella sezione ' + pageTitle + '. Come posso aiutarti ora?', { fromVoice: true });
-                        }, 1500);
+                        var skipRestoreGreeting = (window.location.search || '').indexOf('tnyNotify=') >= 0;
+                        if (!skipRestoreGreeting) {
+                            var pageTitle = (document.title || '').replace(/^GFV Platform\s*[-–]\s*/i, '').trim() || 'questa sezione';
+                            setTimeout(function() {
+                                speakWithTTS('Eccoci qui nella sezione ' + pageTitle + '. Come posso aiutarti ora?', { fromVoice: true });
+                            }, 1500);
+                        }
                     } else {
                         toggleAutoMode(true);
                     }
@@ -1970,6 +2020,7 @@
                 }
             })();
         }
+        window.__tonySayGreeting = function(t) { speakWithTTS(t, {}); };
 
         function sendMessage(overrideText, opts) {
             opts = opts || {};
@@ -2071,8 +2122,15 @@
                 var parsedData = {};
                 try {
                     if (typeof rawData === 'object' && rawData !== null) {
-                        console.log('[DEBUG CURSOR] onComplete: Dati già oggetto, uso direttamente');
-                        parsedData = rawData;
+                        console.log('[DEBUG CURSOR] onComplete: Dati già oggetto, uso command/action se presenti');
+                        parsedData = {
+                            text: rawData.text != null ? String(rawData.text).trim() : '',
+                            command: rawData.command && typeof rawData.command === 'object' ? rawData.command : null
+                        };
+                        if (!parsedData.command && rawData.action) {
+                            parsedData.command = { type: rawData.action, ...(rawData.params || {}) };
+                        }
+                        if (!parsedData.text && rawData.text == null) parsedData.text = 'Ok.';
                     } else if (typeof rawData === 'string') {
                         console.log('[DEBUG CURSOR] onComplete: Dati sono stringa, avvio parsing robusto...');
                         
@@ -2188,11 +2246,12 @@
                 if (commandToExecute && typeof commandToExecute === 'object') {
                     console.log('[DEBUG CURSOR] onComplete: Trovato comando valido:', commandToExecute);
                     
-                    // SICUREZZA: Blocca comandi se modulo non attivo
-                    if (!isTonyAdvancedActive) {
+                    // Bypass totale navigazione: APRI_PAGINA e apri_modulo ignorano COMPLETAMENTE isTonyAdvancedActive
+                    var isNavOpenPage = (commandToExecute.type === 'APRI_PAGINA' || commandToExecute.type === 'apri_modulo');
+                    var allowExecute = isNavOpenPage || isTonyAdvancedActive || (commandToExecute.type === 'OPEN_MODAL');
+                    if (!allowExecute) {
                         console.warn('[Tony] Comando bloccato: modulo Tony Avanzato non attivo');
                         appendMessage('Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla Dashboard per automatizzare operazioni.', 'tony');
-                        // Rimuovi comando dal parsedData per evitare esecuzione
                         parsedData.command = null;
                     } else {
                         // Gestisci APRI_PAGINA tramite onAction callback (come da service)
@@ -2272,9 +2331,14 @@
                     speakWithTTS(txt || finalSpeech, opts);
                 }
                 var formCtxForInject = typeof getCurrentFormContext === 'function' ? getCurrentFormContext() : null;
-                var shouldTryExtract = formCtxForInject && (formCtxForInject.formId === 'attivita-form' || formCtxForInject.modalId === 'attivita-modal') && !parsedData.command && finalSpeech.indexOf('```json') >= 0 && window.TonyFormInjector && window.TonyFormInjector.extractAndInjectFromResponse;
+                var isAttivitaForm = formCtxForInject && (formCtxForInject.formId === 'attivita-form' || formCtxForInject.modalId === 'attivita-modal');
+                var isLavoroForm = formCtxForInject && (formCtxForInject.formId === 'lavoro-form' || formCtxForInject.modalId === 'lavoro-modal');
+                var shouldTryExtract = formCtxForInject && (isAttivitaForm || isLavoroForm) && !parsedData.command && finalSpeech.indexOf('```json') >= 0 && window.TonyFormInjector && window.TonyFormInjector.extractAndInjectFromResponse;
                 if (shouldTryExtract) {
-                    window.TonyFormInjector.extractAndInjectFromResponse(finalSpeech, window.Tony ? window.Tony.context : {}).then(function(res) {
+                    if (isLavoroForm && window.Tony && typeof window.Tony.setContext === 'function') {
+                        window.Tony.setContext('lavori', (window.Tony.context && window.Tony.context.lavori) || {});
+                    }
+                    window.TonyFormInjector.extractAndInjectFromResponse(finalSpeech, window.Tony ? window.Tony.context : {}, formCtxForInject).then(function(res) {
                         doDisplay(res.injected ? res.cleanedText : finalSpeech);
                     });
                 } else {
@@ -2539,6 +2603,49 @@
 
     injectWidget();
 
+    /**
+     * Helper globale: sincronizza i moduli attivi con Tony. Richiamabile da qualsiasi pagina standalone
+     * dopo il caricamento dati tenant. Se Tony non è ancora pronto, riprova automaticamente (fino a ~10s).
+     * @param {string[]} modules - Array id moduli (es. ['frutteto','tony','vigneto'])
+     * @param {{ retry?: boolean }} options - options.retry = false disabilita il retry
+     */
+    window.syncTonyModules = function(modules, options) {
+        var arr = Array.isArray(modules) ? modules : [];
+        console.log('[Tony Sync] Ricevuti moduli:', arr.length ? arr : '(vuoto)');
+        // Controllo di sicurezza: non sovrascrivere il contesto esistente se arriva un array vuoto e Tony ha già moduli
+        if (!arr.length) {
+            try {
+                var ctx = (window.Tony && window.Tony.context) || {};
+                var existing = ctx.dashboard?.moduli_attivi || ctx.info_azienda?.moduli_attivi || ctx.moduli_attivi;
+                if (Array.isArray(existing) && existing.length > 0) {
+                    console.log('[Tony Sync] Array vuoto ignorato: contesto già popolato con', existing.length, 'moduli. Non sovrascrivo.');
+                    return;
+                }
+            } catch (e) {}
+        }
+        var doRetry = options && options.retry === false ? false : true;
+        var maxRetries = 25;
+        var attempt = 0;
+        function apply() {
+            if (typeof window.setTonyContext === 'function') {
+                window.setTonyContext({ moduli_attivi: arr });
+                return true;
+            }
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('dashboard', { info_azienda: { moduli_attivi: arr }, moduli_attivi: arr });
+                try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: arr } })); } catch (e) {}
+                return true;
+            }
+            return false;
+        }
+        if (apply()) return;
+        if (!doRetry) return;
+        var t = setInterval(function() {
+            attempt++;
+            if (apply() || attempt >= maxRetries) clearInterval(t);
+        }, 400);
+    };
+
     async function initTonyWhenReady() {
         var maxAttempts = 40;
         var interval = 250;
@@ -2557,14 +2664,25 @@
                             timestamp: new Date().toISOString()
                         }
                     });
+                    var _tonyWidgetInitTime = Date.now();
+                    window.setTonyContext = function(payload) {
+                        if (!window.Tony || typeof window.Tony.setContext !== 'function') return;
+                        var d = (window.Tony.context && window.Tony.context.dashboard) || {};
+                        window.Tony.setContext('dashboard', Object.assign({}, d, payload));
+                        if (payload && payload.moduli_attivi) {
+                            try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: payload.moduli_attivi } })); } catch (err) {}
+                        }
+                    };
+                    // syncTonyModules è definito a livello script (sopra) per essere disponibile prima dell'init di Tony
                     // Recupera stato modulo Tony dal context o dal database
                     var lastStatusCheck = 0;
                     var STATUS_CHECK_THROTTLE_MS = 1000; // Throttle: max 1 chiamata al secondo
+                    var _tonyProntoLogged = false;
                     
                     var checkTonyModuleStatus = function(force) {
                         var now = Date.now();
                         if (!force && (now - lastStatusCheck) < STATUS_CHECK_THROTTLE_MS) {
-                            return; // Skip se troppo presto
+                            return;
                         }
                         lastStatusCheck = now;
                         
@@ -2577,14 +2695,13 @@
                             var wasActive = isTonyAdvancedActive;
                             isTonyAdvancedActive = Array.isArray(moduliAttivi) && moduliAttivi.includes('tony');
                             
-                            // Log solo se cambia stato o se è la prima chiamata
                             if (wasActive !== isTonyAdvancedActive || !lastStatusCheck) {
                                 console.log('[Tony] Stato modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'Moduli:', moduliAttivi);
                             }
                             
-                            // Warning solo se moduli sono vuoti dopo inizializzazione completa
-                            if ((!moduliAttivi || moduliAttivi.length === 0) && now > 5000) {
-                                // Solo dopo 5 secondi dall'inizializzazione
+                            // Warning solo se moduli ancora vuoti dopo 5 secondi dall'init del widget (non da epoch)
+                            var elapsedSinceInit = now - _tonyWidgetInitTime;
+                            if ((!moduliAttivi || moduliAttivi.length === 0) && elapsedSinceInit > 5000) {
                                 console.warn('[Tony] ATTENZIONE: moduli_attivi non trovati nel context. La pagina potrebbe non aver inizializzato Tony correttamente.');
                             }
                         } catch (e) {
@@ -2593,10 +2710,8 @@
                         }
                     };
                     
-                    // Controlla stato modulo all'inizializzazione (una sola volta)
                     checkTonyModuleStatus(true);
                     
-                    // Polling ridotto: solo 3 controlli nei primi 10 secondi (invece di 15 controlli in 30 secondi)
                     var statusCheckCount = 0;
                     var statusCheckInterval = setInterval(function() {
                         statusCheckCount++;
@@ -2605,12 +2720,17 @@
                         } else {
                             clearInterval(statusCheckInterval);
                         }
-                    }, 3000); // Ogni 3 secondi invece di 2
+                    }, 3000);
                     setTimeout(function() {
                         clearInterval(statusCheckInterval);
-                    }, 10000); // Stop dopo 10 secondi invece di 30
+                    }, 10000);
                     
-                    // Ascolta eventi di aggiornamento modulo dalla pagina abbonamento
+                    function logProntoIfNeeded() {
+                        if (_tonyProntoLogged) return;
+                        _tonyProntoLogged = true;
+                        console.log('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO');
+                    }
+                    
                     window.addEventListener('tony-module-updated', function(e) {
                         var newModules = e.detail && e.detail.modules;
                         if (newModules && Array.isArray(newModules)) {
@@ -2621,7 +2741,8 @@
                                     moduli_attivi: newModules
                                 });
                             }
-                            checkTonyModuleStatus();
+                            checkTonyModuleStatus(true);
+                            logProntoIfNeeded();
                         }
                     });
                     
@@ -2631,16 +2752,9 @@
                         console.log('[DEBUG CURSOR] onAction callback: params:', JSON.stringify(params, null, 2));
                         console.log('[Tony] Azione ricevuta dal Service:', actionName, params);
                         
-                        // SICUREZZA: Blocca azioni se modulo non attivo
-                        if (!isTonyAdvancedActive) {
-                            console.warn('[Tony] Azione bloccata: modulo Tony Avanzato non attivo');
-                            appendMessage('Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla Dashboard per automatizzare operazioni.', 'tony');
-                            return;
-                        }
-                        
+                        // Bypass: navigazione (APRI_PAGINA) consentita anche se context moduli non ancora caricato
                         if (actionName === 'APRI_PAGINA' || actionName === 'apri_modulo') {
                             console.log('[DEBUG CURSOR] onAction callback: Caso APRI_PAGINA');
-                            // Gestisci sia params.target che params.params.target (per compatibilità)
                             var actualParams = params.params && typeof params.params === 'object' ? params.params : params;
                             var rawTarget = (actualParams.target || actualParams.modulo || '').toString().trim();
                             
@@ -2656,11 +2770,22 @@
                                 console.warn('[Tony] Pagina non mappata per target:', rawTarget, 'Params:', params);
                                 return;
                             }
-                            var resolved = resolveTarget(rawTarget);
+                            var resolved = resolveTarget(rawTarget) || rawTarget;
                             var label = TONY_LABEL_MAP[resolved] || resolved;
+                            var urlWithNotify = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'tnyNotify=' + encodeURIComponent(resolved);
                             window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
-                                if (ok) window.location.href = url;
+                                if (ok) {
+                                    _tonyCommandQueue.length = 0;
+                                    window.location.href = urlWithNotify;
+                                }
                             });
+                            return;
+                        }
+                        
+                        // SICUREZZA: per le altre azioni blocca se modulo non attivo
+                        if (!isTonyAdvancedActive) {
+                            console.warn('[Tony] Azione bloccata: modulo Tony Avanzato non attivo');
+                            appendMessage('Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla Dashboard per automatizzare operazioni.', 'tony');
                             return;
                         }
                         console.log('[DEBUG CURSOR] onAction callback: Costruisco comando da actionName e params');
@@ -2680,17 +2805,33 @@
                         Tony.setContext = function(moduleName, data) {
                             originalSetContext.call(this, moduleName, data);
                             if (moduleName === 'dashboard' || moduleName === 'session') {
-                                // Debounce: cancella timeout precedente e ne crea uno nuovo
                                 if (setContextTimeout) clearTimeout(setContextTimeout);
                                 setContextTimeout = setTimeout(function() {
-                                    checkTonyModuleStatus(true); // Force check dopo debounce
-                                }, 300); // Aspetta 300ms prima di controllare
+                                    checkTonyModuleStatus(true);
+                                    logProntoIfNeeded();
+                                }, 300);
                             }
                         };
                     }
                     
-                    console.log('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO');
+                    // Pronto: dopo dati dashboard (evento) o al massimo 2.5s per non bloccare
+                    setTimeout(function() { logProntoIfNeeded(); }, 2500);
                     if (typeof window.__tonyRestoreSession === 'function') window.__tonyRestoreSession();
+                    (function checkTnyNotifyGreeting() {
+                        var params = new URLSearchParams(window.location.search);
+                        var tny = params.get('tnyNotify');
+                        if (!tny) return;
+                        var label = TONY_LABEL_MAP[tny] || (tny.charAt(0).toUpperCase() + tny.slice(1).replace(/-/g, ' '));
+                        var search = (window.location.search || '').replace(/([?&])tnyNotify=[^&]+&?|&tnyNotify=[^&]+/, '$1').replace(/[?&]$/, '') || '';
+                        if (search === '?') search = '';
+                        var urlClean = window.location.pathname + search;
+                        try { history.replaceState(null, '', urlClean || window.location.pathname); } catch (e) {}
+                        setTimeout(function() {
+                            if (typeof window.__tonySayGreeting === 'function') {
+                                window.__tonySayGreeting('Eccoci nella sezione ' + label + '!');
+                            }
+                        }, 800);
+                    })();
                     return;
                 }
             } catch (e) {

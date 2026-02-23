@@ -564,24 +564,13 @@
                             // Verifica modulo vigneto (case-insensitive)
                             const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
                             
-                            // Inizializza context Tony con i moduli attivi usando helper
-                            if (window.Tony && window.Tony.initContextWithModules) {
-                                window.Tony.initContextWithModules(modules);
+                            // Sincronizza moduli attivi con Tony (helper unico per tutte le pagine standalone; retry se widget non ancora pronto)
+                            if (typeof window.syncTonyModules === 'function') {
+                                window.syncTonyModules(modules);
+                            } else if (window.setTonyContext) {
+                                window.setTonyContext({ moduli_attivi: modules });
                             } else {
-                                // Fallback se helper non disponibile (retry manuale)
-                                var initTonyContext = function(retries) {
-                                    retries = retries || 0;
-                                    if (window.Tony && typeof window.Tony.setContext === 'function') {
-                                        window.Tony.setContext('dashboard', {
-                                            info_azienda: { moduli_attivi: modules },
-                                            moduli_attivi: modules
-                                        });
-                                        console.log('[Vigneto Dashboard] Context Tony inizializzato con moduli:', modules);
-                                    } else if (retries < 10) {
-                                        setTimeout(function() { initTonyContext(retries + 1); }, 500);
-                                    }
-                                };
-                                initTonyContext();
+                                window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: modules } }));
                             }
                             const hasVignetoModule = modules.some(m => m && m.toLowerCase() === 'vigneto');
                             

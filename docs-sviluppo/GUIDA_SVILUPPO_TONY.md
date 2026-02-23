@@ -226,6 +226,7 @@ Quando Gemini riconosce uno di questi intenti, restituisce il relativo JSON; il 
 - **Magazzino**: scorte, allerte, ultimi movimenti (se utile).
 - **Lavori / Attività**: lavori attivi, ore, squadre (se utile).
 - **Altri moduli** (attuali e futuri): stesso pattern — quando hanno dati rilevanti per l'utente, chiamano `Tony.setContext('nomeModulo', data)`.
+- **Pagine standalone (dashboard di modulo, terreni, ecc.)**: dopo il caricamento dei dati tenant, chiamare **`window.syncTonyModules(modules)`** (definita in `tony-widget-standalone.js`) con l'array dei moduli attivi (es. `tenant.modules`). L'helper sincronizza il context con Tony e emette l'evento `tony-module-updated`; se il widget non è ancora pronto, riprova automaticamente. Vedi COSA_ABBIAMO_FATTO 2026-02-23 e TONY_FUNZIONI_E_SOLUZIONI_TECNICHE §2.3b.
 
 ### Moduli che reagiscono a Tony (onAction)
 - **Lavori**: es. UPDATE_JOB, SEGNA_ORE, APRI_LAVORI.
@@ -262,6 +263,8 @@ Quando Gemini riconosce uno di questi intenti, restituisce il relativo JSON; il 
 ### File progetto (per implementazione)
 - `core/services/firebase-service.js` — inizializzazione Firebase (SDK 11), getApp, getDb, getAuthInstance; usato da tutta l’app e da Tony.
 - `core/services/tony-service.js` — modulo Tony: init(app), ask(), setContext(), onAction(); system instruction con regola “spiega prima, chiedi conferma per aprire”; usa getFunctions(app, 'europe-west1') e callable tonyAsk.
+- **Compilazione form attività**: `core/js/tony-form-injector.js`, `core/config/tony-form-mapping.js`; flusso completo e estensione in `docs-sviluppo/TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE.md`.
+- **Compilazione form Lavori**: contesto con `coltura_categoria`, `colture_con_filari`; regole sottocategoria, disambiguazione erpicatura/trinciatura, macchine, stato default, messaggio; documentazione in `docs-sviluppo/TONY_COMPILAZIONE_LAVORI_2026-02.md`.
 - `core/js/tony-widget-standalone.js` — **loader widget globale**: inietta FAB, pannello chat, dialog conferma; carica tony-widget.css; risolve URL da pathname; polling getAppInstance e init Tony; onAction APRI_PAGINA con showTonyConfirmDialog. Incluso in tutte le pagine standalone (core, admin, modules) con path relativo a core/.
 - `core/styles/tony-widget.css` — stili FAB, pannello chat, dialog conferma (tony-confirm-overlay, tony-confirm-box, tony-confirm-btn).
 - `functions/index.js` — Cloud Function tonyAsk (europe-west1), system instruction allineata a tony-service, chiamata Gemini API.
@@ -279,4 +282,4 @@ Quando Gemini riconosce uno di questi intenti, restituisce il relativo JSON; il 
 
 ---
 
-*Ultimo aggiornamento: febbraio 2026. Aggiornamenti 2026-02-07: modalità continua, persistenza sessione, navigazione migliorata (vedi TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md §8).*
+*Ultimo aggiornamento: febbraio 2026. Aggiornamenti 2026-02-07: modalità continua, persistenza sessione, navigazione migliorata (vedi TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md §8). Aggiornamenti 2026-02-16: compilazione form Lavori con sottocategoria corretta, disambiguazione erpicatura/trinciatura, macchine, stato default, messaggio (vedi TONY_COMPILAZIONE_LAVORI_2026-02.md).*

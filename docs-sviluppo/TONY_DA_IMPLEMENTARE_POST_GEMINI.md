@@ -1,6 +1,17 @@
 # Tony – Cose da implementare (post-conversazione Gemini)
 
-*Documento generato il 2026-02-05 in base alla conversazione con Gemini su voce, velocità e qualità di Tony. Aggiornato il 2026-02-06 con le implementazioni completate.*
+*Documento generato il 2026-02-05 in base alla conversazione con Gemini su voce, velocità e qualità di Tony. Aggiornato il 2026-02-06 con le implementazioni completate, il 2026-02-16 con la compilazione form Lavori.*
+
+---
+
+## ✅ Compilazione form Lavori (2026-02-16)
+
+Tony compila anche il form **Crea Nuovo Lavoro** (Gestione Lavori):
+
+- **Pagina:** `core/admin/gestione-lavori-standalone.html`
+- **Form:** `lavoro-form` nel modal Crea Lavoro
+- **Capacità:** Sottocategoria "Tra le File" per vigneti/frutteti; disambiguazione erpicatura/trinciatura; macchine complete; stato "assegnato" quando caposquadra/operaio presente; messaggio di conferma salvataggio (non messaggio Impianti)
+- **Riferimento:** `docs-sviluppo/TONY_COMPILAZIONE_LAVORI_2026-02.md`
 
 ---
 

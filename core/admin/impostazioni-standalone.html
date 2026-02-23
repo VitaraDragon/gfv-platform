@@ -2716,13 +2716,14 @@
                 }
                 
                 // Crea tipo lavoro in tipiLavoro
+                const currentUser = auth.currentUser;
                 await addDoc(tipiRef, {
                     nome: nome,
                     categoriaId: categoriaId,
                     sottocategoriaId: sottocategoriaId || null,
                     descrizione: null,
                     predefinito: false,
-                    creatoDa: currentUser?.uid || 'system',
+                    creatoDa: currentUser?.uid || currentUserData?.id || 'system',
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp()
                 });

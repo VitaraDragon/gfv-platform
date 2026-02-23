@@ -54,6 +54,7 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 3.4 | **System instruction** come in guida (§8) con [CONTESTO_AZIENDALE] sostituito a runtime | §8 System instruction e azioni V1 | [x] fatto |
 | 3.5 | Chiamata a Gemini (API REST o SDK); output **{ text }** | §3 Output | [x] fatto |
 | 3.6 | (Opz.) Parsing risposta per estrarre JSON azione e restituire anche action/params (per triggerAction lato client) | §6 Flusso | [x] fatto (parsing in tony-service.js, triggerAction dopo ask) |
+| 3.7 | **Lettura moduli da context**: `request.data.context.dashboard.moduli_attivi`; se contiene `tony` → SYSTEM_INSTRUCTION_ADVANCED; iniezione "STATO UTENTE: Tony Avanzato ATTIVO" nel prompt; fallback navigazione se moduli vuoti | COSA_ABBIAMO_FATTO 2026-02-23 | [x] fatto (2026-02-23) |
 
 ---
 
@@ -68,8 +69,10 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 4.5 | **Conferma prima di aprire pagina**: per richieste "come fare" Tony non emette APRI_PAGINA; propone in testo; apre solo dopo conferma utente ("sì"/"apri") | System instruction, COSA_ABBIAMO_FATTO | [x] fatto |
 | 4.6 | **Dialog conferma** custom (no confirm nativo): overlay + box "Aprire la pagina «X»?" con Annulla/Apri; stile in tony-widget.css | COSA_ABBIAMO_FATTO | [x] fatto |
 | 4.7 | **Tony su tutte le pagine**: loader `tony-widget-standalone.js` inietta FAB + chat + dialog; URL assoluti + resolveTarget; snippet su core, core/admin, modules | COSA_ABBIAMO_FATTO, GUIDA_SVILUPPO_TONY §3 | [x] fatto |
-| 4.8 | (Opz.) Lavori: onAction per SEGNA_ATTIVITA, UPDATE_JOB, ecc. | §9, §8 Azioni V1 | [ ] da fare |
-| 4.9 | (Opz.) Magazzino: onAction per AGGIORNA_MAGAZZINO, MOSTRA_SCORTE | §9, §8 | [ ] da fare |
+| 4.8 | **Compilazione form Lavori** (INJECT_FORM_DATA): Tony compila form Crea Nuovo Lavoro con sottocategoria, tipo, macchine, stato; contesto coltura_categoria, colture_con_filari | TONY_COMPILAZIONE_LAVORI_2026-02 | [x] fatto (2026-02-16) |
+| 4.9 | (Opz.) Lavori: onAction per SEGNA_ATTIVITA, UPDATE_JOB, ecc. | §9, §8 Azioni V1 | [ ] da fare |
+| 4.10 | (Opz.) Magazzino: onAction per AGGIORNA_MAGAZZINO, MOSTRA_SCORTE | §9, §8 | [ ] da fare |
+| 4.11 | **Context moduli su tutte le pagine**: helper `syncTonyModules(modules)` in widget; dashboard di modulo (Frutteto, Vigneto) lo chiamano dopo caricamento tenant; bypass navigazione (APRI_PAGINA/apri_modulo ignorano isTonyAdvancedActive) | COSA_ABBIAMO_FATTO 2026-02-23, TONY_FUNZIONI 2.3b | [x] fatto (2026-02-23) |
 
 ---
 
@@ -78,12 +81,14 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | # | Azione | Parametri | In system instruction / risposta | Gestita in app (onAction) | Stato |
 |---|--------|-----------|----------------------------------|----------------------------|--------|
 | 5.1 | APRI_PAGINA / apri_modulo | target / modulo | §8 | Dashboard navigazione | [x] fatto |
-| 5.2 | MOSTRA_GRAFICO | tipo, periodo | §8 | [ ] da fare | [ ] da fare |
-| 5.3 | SEGNA_ATTIVITA | descrizione, campo_id | §8 | [ ] da fare | [ ] da fare |
-| 5.4 | REPORT_GUASTO | mezzo, gravita | §8 | [ ] da fare | [ ] da fare |
-| 5.5 | CONTROLLA_SCADENZA | categoria | §8 | [ ] da fare | [ ] da fare |
-| 5.6 | AGGIORNA_MAGAZZINO | item, qty, operazione | §8 | [ ] da fare | [ ] da fare |
-| 5.7 | CHIAMA_CONTATTO | nome | §8 | [ ] da fare | [ ] da fare |
+| 5.2 | INJECT_FORM_DATA (form Attività) | formId, formData | SYSTEM_INSTRUCTION_ATTIVITA | TonyFormInjector.injectAttivitaForm | [x] fatto |
+| 5.3 | INJECT_FORM_DATA (form Lavori) | formId, formData | SYSTEM_INSTRUCTION_LAVORO | TonyFormInjector.injectLavoroForm | [x] fatto (2026-02-16) |
+| 5.4 | MOSTRA_GRAFICO | tipo, periodo | §8 | [ ] da fare | [ ] da fare |
+| 5.5 | SEGNA_ATTIVITA | descrizione, campo_id | §8 | [ ] da fare | [ ] da fare |
+| 5.6 | REPORT_GUASTO | mezzo, gravita | §8 | [ ] da fare | [ ] da fare |
+| 5.7 | CONTROLLA_SCADENZA | categoria | §8 | [ ] da fare | [ ] da fare |
+| 5.8 | AGGIORNA_MAGAZZINO | item, qty, operazione | §8 | [ ] da fare | [ ] da fare |
+| 5.9 | CHIAMA_CONTATTO | nome | §8 | [ ] da fare | [ ] da fare |
 
 ---
 
@@ -124,13 +129,23 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 
 ---
 
-## 9. Estensioni (futuro)
+## 9. Compilazione form (INJECT_FORM_DATA)
+
+| # | Voce | Riferimento | Stato |
+|---|------|-------------|--------|
+| 9.1 | **Form Attività** (attivita-form): Tony compila con tipo lavoro, terreno, orari, macchina, attrezzo; derivazione categoria/sottocategoria | TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE | [x] fatto |
+| 9.2 | **Form Lavori** (lavoro-form): Tony compila con sottocategoria "Tra le File" per vigneti/frutteti, disambiguazione erpicatura/trinciatura, macchine, stato "assegnato", messaggio conferma salvataggio | TONY_COMPILAZIONE_LAVORI_2026-02 | [x] fatto (2026-02-16) |
+| 9.3 | (Opz.) Altri form (magazzino, guasti, ecc.) | GUIDA_TONY_OPERATIVO | [ ] da fare |
+
+---
+
+## 10. Estensioni (futuro)
 
 | # | Voce | Riferimento guida | Stato |
 |---|------|-------------------|--------|
-| 9.1 | Smart Search anagrafiche | §10 Fase 7 | [ ] da fare |
-| 9.2 | Analisi grafici | §10 Fase 7 | [ ] da fare |
-| 9.3 | Data entry da foto (Gemini Vision: bolle, guasti, piante) | §1 Riepilogo, §10 Fase 7 | [ ] da fare |
+| 10.1 | Smart Search anagrafiche | §10 Fase 7 | [ ] da fare |
+| 10.2 | Analisi grafici | §10 Fase 7 | [ ] da fare |
+| 10.3 | Data entry da foto (Gemini Vision: bolle, guasti, piante) | §1 Riepilogo, §10 Fase 7 | [ ] da fare |
 
 ---
 
@@ -146,7 +161,8 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 4 | onAction collegato: navigazione / azioni reali; conferma apertura pagina; dialog custom | 4.4–4.7, 5.1–5.7 | Parziale (APRI_PAGINA + conferma + dialog fatto) |
 | 5 | UI chat / pulsante "Chiedi a Tony"; Tony su tutte le pagine (loader) | 6.1–6.3 | Fatto |
 | 6 | Strato voce (STT, TTS, Push-to-Talk, conferma) | 7.1–7.4 | Fatto (2026-02-06) |
-| 7 | Estensioni (vision, grafici, search) | 9.1–9.3 | Da fare |
+| 7 | Estensioni (vision, grafici, search) | 10.1–10.3 | Da fare |
+| — | **Compilazione form Lavori** (2026-02-16) | 9.2, 4.8 | Fatto |
 
 ---
 

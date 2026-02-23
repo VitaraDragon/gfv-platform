@@ -758,50 +758,23 @@
                     // per evitare di creare confusione se l'anagrafica frutteti è già utilizzabile.
                     // Usiamo solo un warning in console.
                     const tenant = await getCurrentTenant().catch(() => null);
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    var modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+                    // Forzatura: siamo nella dashboard Frutteto, quindi frutteto (e almeno tony) devono essere presenti
+                    var hasFrutteto = modules.some(function(m) { return (m || '').toString().toLowerCase() === 'frutteto'; });
+                    var hasTony = modules.some(function(m) { return (m || '').toString().toLowerCase() === 'tony'; });
+                    if (!hasFrutteto) modules.push('frutteto');
+                    if (!hasTony) modules.push('tony');
                     
-                    // Funzione per emettere evento e inizializzare context
-                    var emitModuleUpdate = function() {
-                        window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: modules } }));
-                    };
-                    
-                    // Inizializza context Tony con i moduli attivi usando helper
-                    if (window.Tony && window.Tony.initContextWithModules) {
-                        await window.Tony.initContextWithModules(modules);
-                        emitModuleUpdate();
+                    // Sincronizza moduli attivi con Tony (helper unico per tutte le pagine standalone; retry se widget non ancora pronto)
+                    if (typeof window.syncTonyModules === 'function') {
+                        window.syncTonyModules(modules);
+                    } else if (window.setTonyContext) {
+                        window.setTonyContext({ moduli_attivi: modules });
                     } else {
-                        // Fallback se helper non disponibile (retry manuale con più tentativi)
-                        var initTonyContext = function(retries) {
-                            retries = retries || 0;
-                            if (window.Tony && typeof window.Tony.setContext === 'function') {
-                                window.Tony.setContext('dashboard', {
-                                    info_azienda: { moduli_attivi: modules },
-                                    moduli_attivi: modules
-                                });
-                                console.log('[Frutteto Dashboard] Context Tony inizializzato con moduli:', modules);
-                                emitModuleUpdate();
-                            } else if (retries < 20) {
-                                setTimeout(function() { initTonyContext(retries + 1); }, 500);
-                            } else {
-                                console.warn('[Frutteto Dashboard] Impossibile inizializzare context Tony dopo 20 tentativi. Emetto evento comunque.');
-                                // Emetti evento anche se Tony non è disponibile, così il widget può recuperare i moduli quando sarà pronto
-                                emitModuleUpdate();
-                                // Prova ancora una volta dopo 2 secondi nel caso Tony si carichi dopo
-                                setTimeout(function() {
-                                    if (window.Tony && typeof window.Tony.setContext === 'function') {
-                                        window.Tony.setContext('dashboard', {
-                                            info_azienda: { moduli_attivi: modules },
-                                            moduli_attivi: modules
-                                        });
-                                        emitModuleUpdate();
-                                    }
-                                }, 2000);
-                            }
-                        };
-                        initTonyContext();
+                        window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: modules } }));
                     }
                     
-                    if (!modules.includes('frutteto')) {
+                    if (!modules.some(function(m) { return (m || '').toString().toLowerCase() === 'frutteto'; })) {
                         console.warn('[FRUTTETO DASHBOARD] Modulo frutteto non risulta attivo nel tenant, ma procedo comunque a mostrare la dashboard.');
                     }
 

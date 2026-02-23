@@ -331,6 +331,36 @@ class TonyService {
   }
 
   /**
+   * Sanitizza un oggetto per la serializzazione JSON (Firebase callable non accetta NaN).
+   * Sostituisce NaN con null, converte Map in oggetto plain.
+   */
+  _sanitizeForJson(obj) {
+    if (obj === null) return null;
+    if (obj === undefined) return null;
+    if (typeof obj === 'number') return Number.isNaN(obj) || !Number.isFinite(obj) ? null : obj;
+    if (typeof obj === 'string' || typeof obj === 'boolean') return obj;
+    if (obj instanceof Map) {
+      const plain = {};
+      obj.forEach((v, k) => {
+        const key = String(k);
+        plain[key] = this._sanitizeForJson(v);
+      });
+      return plain;
+    }
+    if (Array.isArray(obj)) return obj.map((item) => this._sanitizeForJson(item));
+    if (typeof obj === 'object') {
+      const out = {};
+      for (const k of Object.keys(obj)) {
+        if (Object.prototype.hasOwnProperty.call(obj, k)) {
+          out[k] = this._sanitizeForJson(obj[k]);
+        }
+      }
+      return out;
+    }
+    return obj;
+  }
+
+  /**
    * Invia una domanda a Tony e restituisce la risposta testuale.
    * Se la risposta contiene un'azione (JSON), viene emessa con triggerAction e il testo restituito è senza il blocco JSON.
    * @param {string} userPrompt - Testo dell'utente
@@ -346,18 +376,20 @@ class TonyService {
       : `Domanda utente: ${userPrompt}`;
 
     const contextForPrompt = this._getContextForPrompt();
+    const safeContext = this._sanitizeForJson(contextForPrompt);
+    const safeHistory = this._sanitizeForJson(this.chatHistory);
     // DEBUG: Log context che viene passato alla Cloud Function
     // IMPORTANTE: context.form.fields (stato attuale del form) deve essere impostato dal widget
     // tramite setContext('form', formCtx) prima di ask(), così Gemini sa cosa è già compilato e cosa manca.
-    console.log('[Tony Service] DEBUG - contextForPrompt passato a Cloud Function:', JSON.stringify(contextForPrompt, null, 2));
-    console.log('[Tony Service] DEBUG - moduli_attivi nel context:', contextForPrompt.moduli_attivi || contextForPrompt.dashboard?.moduli_attivi || contextForPrompt.info_azienda?.moduli_attivi || []);
+    console.log('[Tony Service] DEBUG - contextForPrompt passato a Cloud Function:', JSON.stringify(safeContext, null, 2));
+    console.log('[Tony Service] DEBUG - moduli_attivi nel context:', safeContext.moduli_attivi || safeContext.dashboard?.moduli_attivi || safeContext.info_azienda?.moduli_attivi || []);
     
     let text;
     if (this._useCallable && this._tonyAskCallable) {
       const { data: rawData } = await this._tonyAskCallable({
         message: userPrompt,
-        context: contextForPrompt,
-        history: this.chatHistory
+        context: safeContext,
+        history: safeHistory
       });
       console.log('[DEBUG FINAL] Dati grezzi:', rawData);
       let parsedData = {};
@@ -450,8 +482,17 @@ class TonyService {
       // includiamola nel testo così il widget può provare a parsarla
       if (typeof rawData === 'string' && rawData.includes('"command"') && !parsedData.command) {
         console.log('[Tony Service] Parsing fallito ma JSON presente nella risposta grezza, includo nel testo per parsing nel widget');
-        // Restituisci la stringa grezza così il widget può provare a parsarla
         return rawData;
+      }
+      // Restituisci al widget l'oggetto { text, command } quando il backend ha già estratto il comando
+      if (parsedData.command && typeof parsedData.command === 'object') {
+        const cleaned = this._parseAndTriggerActions(text);
+        this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
+        this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
+        while (this.chatHistory.length > CHAT_HISTORY_MAX) {
+          this.chatHistory.shift();
+        }
+        return { text: cleaned, command: parsedData.command };
       }
       }
     } else if (this.model) {

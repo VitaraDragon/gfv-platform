@@ -789,13 +789,18 @@
                             
                             // Renderizza dashboard
                             await renderDashboard(userDataNormalized, availableModules);
-                            // Nutre Tony con contesto dashboard (tenant corrente)
+                            // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
                             if (window.Tony && Tony.isReady()) {
                                 Tony.setContext('dashboard', {
                                     info_azienda: { moduli_attivi: availableModules },
                                     utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
                                     moduli_attivi: availableModules
                                 });
+                                if (typeof window.setTonyContext === 'function') {
+                                    window.setTonyContext({ moduli_attivi: availableModules });
+                                } else {
+                                    try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
+                                }
                                 loadTonyVignetoContext(availableModules);
                             }
                             return; // Esci qui per non eseguire il codice sotto
@@ -890,13 +895,18 @@
                     
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
-                    // Nutre Tony con contesto dashboard (tenant corrente)
+                    // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
                     if (window.Tony && Tony.isReady()) {
                         Tony.setContext('dashboard', {
                             info_azienda: { moduli_attivi: availableModules },
                             utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
                             moduli_attivi: availableModules
                         });
+                        if (typeof window.setTonyContext === 'function') {
+                            window.setTonyContext({ moduli_attivi: availableModules });
+                        } else {
+                            try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
+                        }
                         loadTonyVignetoContext(availableModules);
                     }
                 }

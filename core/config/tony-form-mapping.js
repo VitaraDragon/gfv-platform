@@ -119,9 +119,83 @@ REGOLE:
 {CONTESTO_PLACEHOLDER}
 **[/CONTESTO_AZIENDALE]**`;
 
+  /** Mappa form Lavori (gestione-lavori) */
+  const LAVORO_FORM_MAP = {
+    formId: 'lavoro-form',
+    modalId: 'lavoro-modal',
+    injectionOrder: [
+      'lavoro-nome',
+      'lavoro-categoria-principale',
+      'lavoro-sottocategoria',
+      'lavoro-tipo-lavoro',
+      'lavoro-terreno',
+      'tipo-assegnazione',
+      'lavoro-caposquadra',
+      'lavoro-operaio',
+      'lavoro-data-inizio',
+      'lavoro-durata',
+      'lavoro-stato',
+      'lavoro-trattore',
+      'lavoro-attrezzo',
+      'lavoro-operatore-macchina',
+      'lavoro-note'
+    ],
+    hierarchy: {
+      categoria: { fieldId: 'lavoro-categoria-principale', description: 'Categoria principale lavoro' },
+      sottocategoria: { fieldId: 'lavoro-sottocategoria', description: 'Sottocategoria' },
+      tipoLavoro: { fieldId: 'lavoro-tipo-lavoro', description: 'Tipo lavoro specifico' }
+    },
+    fields: {
+      'lavoro-nome': { type: 'text', resolve: 'as_is', description: 'Nome lavoro (es. Potatura Campo Nord)' },
+      'lavoro-categoria-principale': { type: 'select', resolve: 'by_name', description: 'Categoria (derivabile da tipo)' },
+      'lavoro-sottocategoria': { type: 'select', resolve: 'by_name', description: 'Sottocategoria (derivabile da tipo)' },
+      'lavoro-tipo-lavoro': { type: 'select', resolve: 'by_name', description: 'Tipo lavoro (es. Trinciatura, Potatura)' },
+      'lavoro-terreno': { type: 'select', resolve: 'by_name', description: 'Nome terreno' },
+      'tipo-assegnazione': { type: 'radio', resolve: 'as_is', description: 'squadra o autonomo. Default squadra. Se utente nomina operaio singolo → autonomo' },
+      'lavoro-caposquadra': { type: 'select', resolve: 'by_name', description: 'Caposquadra (se squadra)' },
+      'lavoro-operaio': { type: 'select', resolve: 'by_name', description: 'Operaio responsabile (se autonomo)' },
+      'lavoro-data-inizio': { type: 'date', resolve: 'as_is', description: 'Data inizio YYYY-MM-DD. Oggi = data odierna' },
+      'lavoro-durata': { type: 'number', resolve: 'as_is', description: 'Durata prevista in giorni' },
+      'lavoro-stato': { type: 'select', resolve: 'as_is', description: 'da_pianificare, assegnato, in_corso, completato, annullato' },
+      'lavoro-trattore': { type: 'select', resolve: 'by_name', description: 'Trattore (opzionale)' },
+      'lavoro-attrezzo': { type: 'select', resolve: 'by_name', description: 'Attrezzo (opzionale)' },
+      'lavoro-operatore-macchina': { type: 'select', resolve: 'by_name', description: 'Chi guida la macchina (se autonomo e macchina: usa operaio)' },
+      'lavoro-note': { type: 'text', resolve: 'as_is', description: 'Note' }
+    }
+  };
+
+  /** System instruction per form Lavori - compilazione completa senza dimenticanze */
+  const SYSTEM_INSTRUCTION_LAVORO_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Lavori GFV Platform (Gestione Lavori).
+
+OBIETTIVO: Compilare TUTTI i campi obbligatori senza dimenticanze. Non saltare mai un campo required.
+
+CONTROLLO STATO FORM:
+- In [CONTESTO].form.formSummary trovi lo stato attuale: ogni riga è "Label: valore ✓" se compilato, "Label: (vuoto)" se mancante.
+- Usa formSummary per sapere cosa è già fatto. I campi con ✓ non chiederli di nuovo.
+- Per OGNI campo required senza ✓ devi chiedere esplicitamente all'utente. Non procedere a save finché non sono tutti pieni.
+
+CAMPI OBBLIGATORI (tutti richiesti prima di salvare):
+1. lavoro-nome, 2. lavoro-categoria-principale, 3. lavoro-sottocategoria (se applicabile), 4. lavoro-tipo-lavoro, 5. lavoro-terreno,
+6. tipo-assegnazione (squadra/autonomo), 7. lavoro-caposquadra (se squadra), 8. lavoro-operaio (se autonomo),
+9. lavoro-data-inizio (YYYY-MM-DD), 10. lavoro-durata (giorni), 11. lavoro-stato (default assegnato se caposquadra/operaio compilato, altrimenti da_pianificare).
+
+CAMPI OPZIONALI: lavoro-trattore, lavoro-attrezzo, lavoro-operatore-macchina, lavoro-note.
+
+REGOLE MACCHINE (proattivo): Se hasParcoMacchineModule true e lavoro-tipo è meccanico (Trinciatura, Erpicatura, Fresatura, ecc.) e lavoro-trattore vuoto in formSummary → chiedi "Vuoi assegnare un trattore? Quale trattore e attrezzo?" prima di salvare. Risposta no → procedi senza.
+
+REGOLE: formData con TUTTI i campi per cui hai valore; usa formSummary; NON save se required vuoti; ordine domande: nome→terreno→tipo→assegnazione→caposquadra/operaio→data→durata.
+IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
+
+**[CONTESTO_AZIENDALE]**
+{CONTESTO_PLACEHOLDER}
+**[/CONTESTO_AZIENDALE]**`;
+
   const mapping = {
     'attivita-modal': ATTIVITA_FORM_MAP,
-    attivita: ATTIVITA_FORM_MAP
+    attivita: ATTIVITA_FORM_MAP,
+    'lavoro-modal': LAVORO_FORM_MAP,
+    'lavoro-form': LAVORO_FORM_MAP,
+    lavori: LAVORO_FORM_MAP
   };
 
   const schemas = {
@@ -131,7 +205,10 @@ REGOLE:
 
   const systemInstructions = {
     'attivita-modal': SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED,
-    attivita: SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED
+    attivita: SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED,
+    'lavoro-modal': SYSTEM_INSTRUCTION_LAVORO_STRUCTURED,
+    'lavoro-form': SYSTEM_INSTRUCTION_LAVORO_STRUCTURED,
+    lavori: SYSTEM_INSTRUCTION_LAVORO_STRUCTURED
   };
 
   global.TONY_FORM_MAPPING = {
@@ -139,6 +216,8 @@ REGOLE:
     getSchema: (formKey) => schemas[formKey] || null,
     getSystemInstruction: (formKey) => systemInstructions[formKey] || null,
     ATTIVITA_RESPONSE_SCHEMA,
-    ATTIVITA_FORM_MAP
+    ATTIVITA_FORM_MAP,
+    LAVORO_FORM_MAP,
+    SYSTEM_INSTRUCTION_LAVORO_STRUCTURED
   };
 })(typeof window !== 'undefined' ? window : globalThis);

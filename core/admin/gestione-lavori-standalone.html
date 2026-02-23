@@ -2937,6 +2937,7 @@
                     
                     // Se c'è il parametro lavoroId nell'URL, apri automaticamente il modal dettaglio
                     const lavoroIdFromUrl = urlParams.get('lavoroId');
+                    const openModalCrea = urlParams.get('openModal') === 'crea';
                     if (lavoroIdFromUrl) {
                         // Attendi che i lavori siano caricati
                         await loadLavoriWrapper();
@@ -2986,6 +2987,47 @@
                     // Applica filtro stato se presente nell'URL (loadLavori chiama già applyFilters, ma lo richiamiamo per sicurezza)
                     if (statoFromUrl) {
                         applyFiltersWrapper();
+                    }
+                    
+                    // Context Tony per compilazione form Lavori (Treasure Map)
+                    if (window.Tony && typeof window.Tony.setContext === 'function') {
+                        const { mapColturaToCategoria } = await import('../js/attivita-utils.js');
+                        const terreniRaw = lavoriState.terreniList || [];
+                        // coltura_categoria: priorità a terreno.colturaCategoria (da DB), altrimenti da coltura (stesso schema attivita)
+                        const normCat = (c) => (c && typeof c === 'string') ? (c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()) : null;
+                        const terreniPerTony = terreniRaw.map(t => {
+                            const coltura = t.coltura || null;
+                            const catDaDb = t.colturaCategoria ? normCat(String(t.colturaCategoria)) : null;
+                            const catDaColtura = coltura ? mapColturaToCategoria(coltura) : null;
+                            return {
+                                id: t.id,
+                                nome: (t.nome || coltura || '').toString(),
+                                coltura: coltura,
+                                coltura_categoria: catDaDb || catDaColtura || 'Default'
+                            };
+                        });
+                        // Stessa regola di attivita: Vite, Frutteto, Olivo hanno filari → sottocategoria mai "Generale"
+                        const coltureConFilari = ['Vite', 'Frutteto', 'Olivo'];
+                        window.Tony.setContext('lavori', {
+                            terreni: terreniPerTony,
+                            colture_con_filari: coltureConFilari,
+                            categorie_lavoro: lavoriState.categorieLavoriPrincipali || [],
+                            sottocategorieLavoriMap: lavoriState.sottocategorieLavoriMap || new Map(),
+                            tipi_lavoro: lavoriState.tipiLavoroList || [],
+                            caposquadraList: lavoriState.caposquadraList || [],
+                            operaiList: lavoriState.operaiList || [],
+                            squadreList: lavoriState.squadreList || [],
+                            trattoriList: lavoriState.trattoriList || [],
+                            attrezziList: lavoriState.attrezziList || [],
+                            hasManodoperaModule: lavoriState.hasManodoperaModule || false,
+                            hasParcoMacchineModule: lavoriState.hasParcoMacchineModule || false
+                        });
+                        console.log('[Gestione Lavori] Context Tony lavori impostato');
+                    }
+                    
+                    // Se openModal=crea nell'URL, apri il modal crea lavoro
+                    if (openModalCrea) {
+                        setTimeout(() => openCreaModalWrapper(), 300);
                     }
                     
                     // Inizializza handler tipo assegnazione solo se Manodopera attivo
