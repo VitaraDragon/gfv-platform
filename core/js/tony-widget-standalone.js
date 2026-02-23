@@ -2123,13 +2123,18 @@
                 try {
                     if (typeof rawData === 'object' && rawData !== null) {
                         console.log('[DEBUG CURSOR] onComplete: Dati già oggetto, uso command/action se presenti');
+                        var cmd = rawData.command && typeof rawData.command === 'object' ? rawData.command : null;
+                        if (!cmd && rawData.action) {
+                            cmd = { type: rawData.action, ...(rawData.params || {}) };
+                        }
+                        // Normalizza: la CF può restituire command: { action: 'APRI_PAGINA', params: { target } } senza .type
+                        if (cmd && cmd.action && !cmd.type) {
+                            cmd = { type: cmd.action, ...(cmd.params || {}), params: cmd.params };
+                        }
                         parsedData = {
                             text: rawData.text != null ? String(rawData.text).trim() : '',
-                            command: rawData.command && typeof rawData.command === 'object' ? rawData.command : null
+                            command: cmd
                         };
-                        if (!parsedData.command && rawData.action) {
-                            parsedData.command = { type: rawData.action, ...(rawData.params || {}) };
-                        }
                         if (!parsedData.text && rawData.text == null) parsedData.text = 'Ok.';
                     } else if (typeof rawData === 'string') {
                         console.log('[DEBUG CURSOR] onComplete: Dati sono stringa, avvio parsing robusto...');
