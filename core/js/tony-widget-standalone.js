@@ -174,7 +174,11 @@
         if (!resolved) return null;
         var pathFromRoot = TONY_PAGE_MAP[resolved];
         if (!pathFromRoot) return null;
-        return '/' + pathFromRoot.replace(/^\//, '');
+        pathFromRoot = pathFromRoot.replace(/^\//, '');
+        // Se l'app è servita in una sottocartella (es. /gfv-platform/), usa quel prefisso per evitare 404
+        var p = (pathname || (typeof window !== 'undefined' && window.location && window.location.pathname) || '').replace(/\\/g, '/');
+        var base = (p.indexOf('/gfv-platform/') >= 0) ? '/gfv-platform' : '';
+        return (base ? base + '/' : '/') + pathFromRoot;
     }
 
     var _lastModalOpenTime = 0;
