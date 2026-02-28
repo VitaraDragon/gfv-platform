@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestione Terreni - GFV Platform</title>
+    <title>Gestione Terreni (Test Bootstrap) - GFV Platform</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
@@ -558,7 +558,7 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>🌾 Gestione Terreni</h1>
+                <h1>🌾 Gestione Terreni (Test Bootstrap)</h1>
                 <div style="font-size: 14px; opacity: 0.95;" id="user-info">Caricamento...</div>
             </div>
             <div class="header-actions">
@@ -589,6 +589,8 @@
                     <label style="font-size: 12px; font-weight: 600; color: #495057;">Podere</label>
                     <select id="filter-podere" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
                         <option value="">Tutti</option>
+                        <option value="Barbavara Vecchia">Barbavara Vecchia</option>
+                        <option value="Casetti">Casetti</option>
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
@@ -604,6 +606,10 @@
                     <label style="font-size: 12px; font-weight: 600; color: #495057;">Coltura</label>
                     <select id="filter-coltura" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
                         <option value="">Tutti</option>
+                        <option value="Vite da Vino">Vite da Vino</option>
+                        <option value="Albicocche">Albicocche</option>
+                        <option value="Kaki">Kaki</option>
+                        <option value="Grano">Grano</option>
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
@@ -723,31 +729,12 @@
         </div>
     </div>
 
-    <!-- Placeholder per Tony: oggetto globale; .items aggiornato da Firestore/filtri -->
+    <!-- Placeholder per Tony: oggetto globale sempre presente; .items aggiornato da Firestore/filtri -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'terreni', summary: 'Caricamento terreni...', items: [] };</script>
 
-    <!-- Load Firebase and Google Maps config from external files -->
-    <!-- Fallback: usa raw GitHub se i file locali non sono disponibili (per GitHub Pages) -->
-    <script>
-        const firebaseConfigScript = document.createElement('script');
-        firebaseConfigScript.src = 'config/firebase-config.js';
-        firebaseConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(firebaseConfigScript);
-        
-        const mapsConfigScript = document.createElement('script');
-        mapsConfigScript.src = 'config/google-maps-config.js';
-        mapsConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(mapsConfigScript);
-    </script>
-    
+    <!-- Bootstrap unico: config + Firebase + Tenant + Tony -->
+    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
+
     <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Firebase SDK e Google Maps -->
     <script type="module">
@@ -801,15 +788,19 @@
             startTerreniTour as startTerreniTourModule
         } from './js/terreni-tour.js';
 
-        // Attendi che le configurazioni siano caricate
-        await waitForConfigModule();
+        // Attendi bootstrap (config, Firebase, tenant, Tony già pronti)
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[terreni-test-bootstrap] Bootstrap failed:', err);
+            document.getElementById('alert-container').innerHTML = '<div class="alert alert-error">Avvio non riuscito: ' + (err && err.message ? err.message : String(err)) + '</div>';
+            throw err;
+        }
 
         const firebaseConfig = window.firebaseConfig;
         const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
 
-        // Inizializza Firebase con il service condiviso (stesso SDK 11 di dashboard e servizi)
         const {
-            initializeFirebase,
             getAuthInstance,
             getDb,
             getAppInstance,
@@ -829,7 +820,6 @@
             serverTimestamp,
             Timestamp
         } = await import('./services/firebase-service.js');
-        initializeFirebase(firebaseConfig);
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -879,7 +869,6 @@
         let colture = []; // Lista colture disponibili
         let poderi = []; // Lista poderi disponibili
         const TERRENI_TOUR_STORAGE_KEY = 'gfv_terreni_tour_v1';
-        let terreniLoadCompleted = false;
         let terreniTourAutoRequested = false;
         let terreniTourOpenedModal = false;
 
@@ -957,58 +946,12 @@
             });
         }
 
-        // Wrapper per loadTerreni
-        async function loadTerreniWrapper() {
-            await loadTerreniModule(
-                terreniState.currentTenantId,
-                auth,
-                db,
-                app,
-                terreniState.terreni,
-                terreniState.terreniFiltrati,
-                (terreni, terreniFiltrati) => {
-                    terreniLoadCompleted = true;
-                    var terreniPerTony = terreni.map(t => serializeTerrenoForContext(t));
-                    var affitti = terreni.filter(t => (t.tipoPossesso || '') === 'affitto');
-                    var scadenzeProssime = affitti.filter(t => {
-                        if (!t.dataScadenzaAffitto) return false;
-                        var alert = calcolaAlertAffittoUtil(t.dataScadenzaAffitto);
-                        return alert.colore === 'red' || alert.colore === 'yellow' || alert.colore === 'grey';
-                    });
-                    var summaryParts = [];
-                    if (terreni.length === 0) summaryParts.push('Nessun terreno in elenco.');
-                    else {
-                        summaryParts.push('Ci sono ' + terreni.length + ' terreni in elenco.');
-                        if (affitti.length > 0) {
-                            summaryParts.push(affitti.length + ' in affitto.');
-                            if (scadenzeProssime.length > 0) summaryParts.push(scadenzeProssime.length + ' con scadenza affitto da monitorare.');
-                        }
-                    }
-                    var summary = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
-                    if (!window.currentTableData) window.currentTableData = { pageType: 'terreni', summary: '', items: [] };
-                    window.currentTableData.pageType = 'terreni';
-                    window.currentTableData.summary = summary;
-                    window.currentTableData.items = terreniPerTony;
-                    if (window.Tony && typeof window.Tony.setContext === 'function') {
-                        var page = (window.Tony.context && window.Tony.context.page) || {};
-                        window.Tony.setContext('page', Object.assign({}, page, { tableDataSummary: window.currentTableData.summary, currentTableData: window.currentTableData }));
-                    }
-                    try {
-                        window.__tonyTableDataBuffer = window.currentTableData;
-                        window.dispatchEvent(new CustomEvent('table-data-ready', { detail: window.currentTableData }));
-                    } catch (e) {}
-                    updateState({ terreni, terreniFiltrati });
-                    populateFilterPodere(terreni);
-                    populateFilterColtura(terreni);
-                    renderTerreniWrapper(terreni, terreniFiltrati);
-                }
-            );
-        }
+        var terreniLoadCompleted = false;
 
+        // Helper per Tony: dati da Firestore (mai da DOM). Usate nel callback loadTerreni e in renderTerreniWrapper.
         function calcolaScadenzaUtil(terreno) {
-            if (!terreno || (terreno.tipoPossesso || '') !== 'affitto') return 'N/A';
-            var d = terreno.dataScadenzaAffitto;
-            if (!d) return 'N/A';
+            var d = terreno && terreno.dataScadenzaAffitto;
+            if (!d) return null;
             if (d.toDate && typeof d.toDate === 'function') return d.toDate().toISOString().slice(0, 10);
             var s = String(d);
             return s.indexOf('T') !== -1 ? s.slice(0, 10) : s.slice(0, 10);
@@ -1038,6 +981,58 @@
             return out;
         }
 
+        // Wrapper per loadTerreni: currentTableData.items viene popolato SOLO dai documenti Firestore (callback)
+        async function loadTerreniWrapper() {
+            await loadTerreniModule(
+                terreniState.currentTenantId,
+                auth,
+                db,
+                app,
+                terreniState.terreni,
+                terreniState.terreniFiltrati,
+                (terreni, terreniFiltrati) => {
+                    terreniLoadCompleted = true;
+                    // Fonte unica: array terreni appena ricevuto da Firestore (id, canoneAffitto, note, ecc.)
+                    var terreniPerTony = terreni.map(function(t) {
+                        return serializeTerrenoForContext(t);
+                    });
+                    var affitti = terreni.filter(function(t) { return (t.tipoPossesso || '') === 'affitto'; });
+                    var scadenzeProssime = affitti.filter(function(t) {
+                        if (!t.dataScadenzaAffitto) return false;
+                        var alert = calcolaAlertAffittoUtil(t.dataScadenzaAffitto);
+                        return alert.colore === 'red' || alert.colore === 'yellow' || alert.colore === 'grey';
+                    });
+                    var summaryParts = [];
+                    if (terreni.length === 0) summaryParts.push('Nessun terreno in elenco.');
+                    else {
+                        summaryParts.push('Ci sono ' + terreni.length + ' terreni in elenco.');
+                        if (affitti.length > 0) {
+                            summaryParts.push(affitti.length + ' in affitto.');
+                            if (scadenzeProssime.length > 0) summaryParts.push(scadenzeProssime.length + ' con scadenza affitto da monitorare.');
+                        }
+                    }
+                    var summary = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
+                    if (!window.currentTableData) window.currentTableData = { pageType: 'terreni', summary: '', items: [] };
+                    window.currentTableData.pageType = 'terreni';
+                    window.currentTableData.summary = summary;
+                    window.currentTableData.items = terreniPerTony;
+                    if (window.Tony && typeof window.Tony.setContext === 'function') {
+                        var page = (window.Tony.context && window.Tony.context.page) || {};
+                        window.Tony.setContext('page', Object.assign({}, page, { tableDataSummary: window.currentTableData.summary, currentTableData: window.currentTableData }));
+                    }
+                    try {
+                        window.__tonyTableDataBuffer = window.currentTableData;
+                        window.dispatchEvent(new CustomEvent('table-data-ready', { detail: window.currentTableData }));
+                        console.log('[Terreni] Notifica table-data-ready inviata a Tony');
+                    } catch (e) {}
+                    updateState({ terreni, terreniFiltrati });
+                    populateFilterPodere(terreni);
+                    populateFilterColtura(terreni);
+                    renderTerreniWrapper(terreni, terreniFiltrati);
+                }
+            );
+        }
+
         /** Popola filter-podere con i nomi unici dai terreni caricati */
         function populateFilterPodere(terreni) {
             const sel = document.getElementById('filter-podere');
@@ -1060,10 +1055,10 @@
                 const opts = Array.from(colSel.options).map(o => o.value);
                 if (!opts.includes(colSel.value)) colSel.value = '';
             }
-            filterTerreniWrapper();
+            filterTerreni();
         }
 
-        /** Popola filter-coltura: se categoria selezionata, solo colture di quella categoria */
+        /** Popola filter-coltura: se categoria selezionata, solo colture di quella categoria; altrimenti tutte dai dati */
         function populateFilterColtura(terreni) {
             const colSel = document.getElementById('filter-coltura');
             const catSel = document.getElementById('filter-categoria');
@@ -1154,12 +1149,13 @@
             }, 50);
         }
 
-        // Wrapper per renderTerreni (aggiorna currentTableData per Tony)
+        // Wrapper per renderTerreni (aggiorna currentTableData per Tony: scadenze affitti)
         function renderTerreniWrapper(terreni, terreniFiltrati) {
             var filtered = terreniFiltrati || terreniState.terreniFiltrati;
             var all = terreni || terreniState.terreni;
             if (!Array.isArray(filtered)) filtered = [];
             if (!Array.isArray(all)) all = [];
+            // Se filtri attivi e non vuoti, usa filtered; altrimenti tutti i terreni (come renderTerreni)
             var list = (filtered && filtered.length > 0) ? filtered : all;
 
             renderTerreniModule(
@@ -1170,9 +1166,9 @@
                 hasFruttetoModule
             );
 
-            // currentTableData per Tony
-            var affitti = list.filter(t => (t.tipoPossesso || '') === 'affitto');
-            var scadenzeProssime = affitti.filter(t => {
+            // currentTableData per Tony: SOLO da array list (terreni/terreniFiltrati da Firestore), mai da DOM
+            var affitti = list.filter(function(t) { return (t.tipoPossesso || '') === 'affitto'; });
+            var scadenzeProssime = affitti.filter(function(t) {
                 if (!t.dataScadenzaAffitto) return false;
                 var alert = calcolaAlertAffittoUtil(t.dataScadenzaAffitto);
                 return alert.colore === 'red' || alert.colore === 'yellow' || alert.colore === 'grey';
@@ -1823,23 +1819,6 @@
                     });
             });
         }
-    </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
-      var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

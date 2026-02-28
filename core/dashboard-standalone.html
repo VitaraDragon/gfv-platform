@@ -115,6 +115,7 @@
             createVignetoCard,
             createFruttetoCard,
             createMagazzinoCard,
+            createMacchineCard,
             createReportCard,
             createManagerManodoperaSection,
             createManagerLavoriSection,
@@ -147,6 +148,8 @@
             loadComunicazioniInviateCaposquadra as loadComunicazioniInviateCaposquadraModule,
             loadDettagliTerreniPerLavori as loadDettagliTerreniPerLavoriModule,
             loadMagazzinoSottoScortaCount as loadMagazzinoSottoScortaCountModule,
+            loadScadenzeUrgentiCount as loadScadenzeUrgentiCountModule,
+            loadGuastiApertiCount as loadGuastiApertiCountModule,
             renderComunicazioneRapidaForm as renderComunicazioneRapidaFormModule,
             calcolaAlertAffitto as calcolaAlertAffittoModule,
             formattaDataScadenza as formattaDataScadenzaModule,
@@ -371,7 +374,7 @@
                             Segnalato il: ${dataSegnalazione}
                         </div>
                         <div style="margin-top: 8px;">
-                            <a href="admin/gestione-guasti-standalone.html" 
+                            <a href="../modules/macchine/views/guasti-list-standalone.html" 
                                style="display: inline-block; padding: 6px 12px; background: #2E8B57; color: white; text-decoration: none; border-radius: 4px; font-size: 13px;">
                                 🔧 Gestisci Guasto
                             </a>
@@ -383,7 +386,7 @@
             if (guastiAperti.length > 5) {
                 html += `
                     <div style="text-align: center; margin-top: 10px; padding: 10px;">
-                        <a href="admin/gestione-guasti-standalone.html" 
+                        <a href="../modules/macchine/views/guasti-list-standalone.html" 
                            style="color: #2E8B57; text-decoration: none; font-weight: 600;">
                             Vedi tutti i ${guastiAperti.length} guasti →
                         </a>
@@ -442,6 +445,7 @@
             createVignetoCard,
             createFruttetoCard,
             createMagazzinoCard,
+            createMacchineCard,
             createReportCard,
             createManagerManodoperaSection,
             createDiarioDaLavoriSection,
@@ -463,6 +467,8 @@
             loadStatisticheOreOperaio: loadStatisticheOreOperaioModule,
             loadMappaAziendale: loadMappaAziendaleModule,
             loadMagazzinoSottoScortaCount: loadMagazzinoSottoScortaCountModule,
+            loadScadenzeUrgentiCount: loadScadenzeUrgentiCountModule,
+            loadGuastiApertiCount: loadGuastiApertiCountModule,
             // Utility functions
             hasRole,
             hasOnlyCoreModules,
@@ -591,6 +597,36 @@
                 });
             } catch (e) {
                 console.warn('[Tony] Caricamento contesto vigneto non disponibile:', e);
+            }
+        }
+
+        /**
+         * Scansione globale per Tony: prodotti sotto scorta, scadenze urgenti, guasti aperti.
+         * Imposta window.tonyGlobalBriefing e Tony.setContext('globalStatus', ...).
+         * Se ci sono criticità, dopo 3s Tony pronuncia un saluto unico (coda audio).
+         */
+        async function checkGlobalStatus(tenantId) {
+            if (!tenantId) return;
+            try {
+                const sottoScorta = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
+                const scadenzeUrgenti = (callbacks.loadScadenzeUrgentiCount && await callbacks.loadScadenzeUrgentiCount(tenantId, dependencies)) || 0;
+                const guastiAperti = (callbacks.loadGuastiApertiCount && await callbacks.loadGuastiApertiCount(tenantId, dependencies)) || 0;
+                window.tonyGlobalBriefing = { sottoScorta: sottoScorta, scadenzeUrgenti: scadenzeUrgenti, guastiAperti: guastiAperti };
+                if (window.Tony && typeof window.Tony.setContext === 'function') {
+                    window.Tony.setContext('globalStatus', window.tonyGlobalBriefing);
+                }
+                const total = sottoScorta + scadenzeUrgenti + guastiAperti;
+                if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony && typeof window.Tony.speak === 'function') {
+                    setTimeout(function() {
+                        if (total > 0 && !window.tonyDashboardBriefingFired) {
+                            window.tonyDashboardBriefingFired = true;
+                            var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                            window.Tony.speak(greeting + ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione tra scorte, scadenze e guasti. Vuoi che ti faccia un riassunto o preferisci procedere tu?');
+                        }
+                    }, 3000);
+                }
+            } catch (e) {
+                console.warn('[Tony] checkGlobalStatus:', e);
             }
         }
 
@@ -802,6 +838,7 @@
                                     try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                                 }
                                 loadTonyVignetoContext(availableModules);
+                                checkGlobalStatus(currentTenantId);
                             }
                             return; // Esci qui per non eseguire il codice sotto
                         }
@@ -908,6 +945,7 @@
                             try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                         }
                         loadTonyVignetoContext(availableModules);
+                        checkGlobalStatus(currentTenantId);
                     }
                 }
             } catch (error) {

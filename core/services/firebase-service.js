@@ -70,7 +70,12 @@ export function initializeFirebase(config) {
   app = initializeApp(config);
   db = getFirestore(app);
   auth = getAuth(app);
-  
+  try {
+    if (typeof window !== 'undefined') {
+      window.__firebaseReady = true;
+      window.dispatchEvent(new CustomEvent('gfv-firebase-ready'));
+    }
+  } catch (e) { /* ignore */ }
   return { app, db, auth };
 }
 
@@ -118,6 +123,15 @@ export function getAppInstance() {
     throw new Error('Firebase non inizializzato. Chiama initializeFirebase() prima.');
   }
   return app;
+}
+
+/**
+ * Restituisce l'app Firebase se già inizializzata, altrimenti null (senza lanciare).
+ * Utile per Tony/widget che devono attendere l'inizializzazione senza try/catch.
+ * @returns {FirebaseApp|null}
+ */
+export function getAppInstanceIfReady() {
+  return app || null;
 }
 
 /**
@@ -444,6 +458,7 @@ export default {
   getDb,
   getAuthInstance,
   getAppInstance,
+  getAppInstanceIfReady,
   getCollection,
   getDocument,
   createDocument,

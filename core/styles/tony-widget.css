@@ -256,6 +256,17 @@
     50% { opacity: 0.7; }
 }
 
+@keyframes tony-highlight {
+    0% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(46, 139, 87, 0); }
+    100% { box-shadow: none; }
+}
+
+/* Evidenziazione contatori Dashboard quando Tony pronuncia il riassunto */
+.tony-highlight {
+    animation: tony-highlight 0.6s ease;
+}
+
 .tony-widget-input-row {
     padding: 12px 16px;
     border-top: 1px solid #e9ecef;

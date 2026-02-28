@@ -1,5 +1,93 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-02-27.**
+
+> **Nota architettura Tony (2026-02)**: `tony-widget-standalone.js` è ora un loader snello; la logica è in `core/js/tony/` (main.js orchestratore, ui.js FAB/chat/dialog, engine.js mappe e resolve, voice.js TTS). I riferimenti storici a "tony-widget-standalone.js" nei paragrafi sotto indicano il sistema widget nel suo insieme; le funzioni menzionate risiedono in `tony/main.js` e moduli collegati.
+
+## ✅ Tony Terreni: contesto, domande informative, superficie (2026-02-25) - COMPLETATO
+
+### Obiettivo
+Tony sulla pagina terreni eseguiva correttamente FILTER_TABLE e SUM_COLUMN ma non rispondeva a domande come "quanti terreni ho?", "quali sono i terreni?", "quanti ettari ha il Pinot?", "quando scade l'affitto del Morini?". Serve che Tony usi i dati in `page.currentTableData` per risposte informative senza comandi.
+
+### Implementazione
+
+#### 1. Lettura robusta currentTableData (main.js)
+- Su path terreni: prova `window.currentTableData`, `window.top.currentTableData`, `window.__tonyTableDataBuffer`. Usa il primo con items validi.
+- Fallback garantisce dati anche con eventi `table-data-ready` emessi prima del listener.
+
+#### 2. Sanificazione contesto (tony-service.js)
+- Campi items inviati a Gemini: `id`, `nome`, `podere`, `coltura`, `tipoPossesso`, `scadenza`, `superficie` (arrotondata a 2 decimali).
+- Fallback `item.nome || item.name || 'Senza nome'`.
+
+#### 3. Istruzioni Cloud Function
+- **DOMANDE INFORMATIVE**: usare `page.tableDataSummary` per conteggio; `items[].nome` per elenco; `items[].superficie` per superficie singolo terreno; `items[].scadenza` per scadenze affitto. Vietato "non posso mostrare/calcolare" quando i dati sono in contesto.
+- **Formato risposta**: sempre JSON (`{"text": "...", "command": null}` o con command); vietato solo testo.
+- **Command vuoto**: rimosso prima del return se senza `type`.
+
+#### 4. Client: esecuzione comandi
+- `commandToExecute.type` obbligatorio; comandi `{}` non eseguiti (evita log "ESEGUO COMANDO: {}").
+
+### File toccati
+- `core/js/tony/main.js`, `core/services/tony-service.js`, `functions/index.js`
+
+### Documentazione
+- `docs-sviluppo/TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md` (§10)
+- `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md` (terreni-standalone ora dotato)
+
+---
+
+## ✅ Tony: auto-discovery moduli, persistenza sessionStorage, blocco preventivo, sub-agenti, SmartFormValidator, rotte (2026-02-23) - COMPLETATO
+
+### Obiettivo
+Rendere il widget Tony autonomo sulle pagine che non passano `moduli_attivi` (es. prodotti-standalone, sottopagine moduli): recupero automatico da sessionStorage o variabili globali, persistenza tra navigazioni, ritardo breve prima dell’invio per evitare la risposta “Attiva il modulo Tony Avanzato” a utenti che lo hanno già. Allineare la documentazione a sub-agenti (Vignaiolo/Logistico), skill SmartFormValidator e mappa rotte evolutiva.
+
+### Implementazione
+
+#### 1. Auto-discovery moduli (tony-widget-standalone.js)
+- **getModuliFromDiscovery()**: se `moduli_attivi` nel context è vuoto, il widget cerca in ordine: (1) `sessionStorage` chiave `tony_moduli_attivi`, (2) `window.userModules`, (3) `window.tenantConfig.modules` o `window.tenant.modules`. Restituisce il primo array non vuoto trovato.
+- **saveModuliToStorage(arr)**: salva l’array moduli in `sessionStorage` con chiave `tony_moduli_attivi`. Chiamata ogni volta che Tony riceve moduli (setTonyContext, syncTonyModules apply, evento tony-module-updated, saveTonyState).
+- **checkTonyModuleStatus**: se il context non ha moduli, chiama `getModuliFromDiscovery()`; se trova un array, fa `Tony.setContext('dashboard', { moduli_attivi: discovered })`, `saveModuliToStorage(discovered)` e ricalcola `isTonyAdvancedActive`. Log: `[Tony] Moduli ripristinati da auto-discovery (sessionStorage/window): N`.
+
+#### 2. Persistenza sessionStorage
+- Quando una pagina (es. Dashboard) imposta i moduli tramite `syncTonyModules(modules)` o `setTonyContext({ moduli_attivi })`, i moduli vengono salvati in sessionStorage.
+- Su navigazione verso un’altra pagina (es. prodotti-standalone) il widget legge da sessionStorage e reinietta il context, così Tony resta in modalità “Modulo avanzato: ATTIVO” senza che la pagina prodotti chiami syncTonyModules.
+- **restoreTonyState**: all’avvio, se in sessionStorage c’è `tony_moduli_attivi`, viene applicato a `Tony.setContext('dashboard', { moduli_attivi })` e emesso `tony-module-updated`.
+
+#### 3. Blocco preventivo prima dell’invio
+- In **sendRequestWithContext**, prima di inviare alla Cloud Function: se `moduli_attivi` nel context è vuoto, il widget chiama `getModuliFromDiscovery()`; se trova moduli, applica il context, `saveModuliToStorage`, `window.__tonyCheckModuleStatus(true)` e **attende 150 ms** (`setTimeout(doActualSend, 150)`) prima di eseguire l’invio reale. In questo modo la richiesta parte con moduli già popolati e la CF non risponde “Attiva il modulo”.
+
+#### 4. Sub-agenti e SmartFormValidator (functions/index.js)
+- **SmartFormValidator (skill)**: regola prioritaria iniettata nell’istruzione quando Tony avanzato è attivo: prima di emettere comandi che registrano dati (INJECT_FORM_DATA, SAVE_ACTIVITY, ecc.), Tony deve controllare `[CONTESTO].form` e i campi required; se manca un dato essenziale (terreno, data, ore, Grado Babo, quantità, ecc.) non deve inviare il JSON ma chiedere esplicitamente l’informazione mancante.
+- **Sub-agente Vignaiolo**: se `context.page.pagePath` contiene `/vigneto/`, viene iniettato un blocco di personalità “esperto di viticoltura” (vendemmia, grado Babo, potatura, trattamenti, statistiche vigneto, calcolo materiali, pianificazione impianto).
+- **Sub-agente Logistico**: se `context.page.pagePath` contiene `/magazzino/`, viene iniettato un blocco “esperto di gestione scorte” (prodotti, movimenti, carico/scarico, UDM).
+- **TONY_TARGETS_EXTENDED**: mappa target completa con sottopagine (vendemmia, potatura vigneto/frutteto, trattamenti, raccolta frutta, prodotti, movimenti, nuovo preventivo, accetta preventivo, ecc.); se `context.page.availableRoutes` è presente, Tony può usare anche quei target per la navigazione.
+
+#### 5. Rotte e supporto evolutivo
+- **core/config/tony-routes.json**: elenco rotte generate da script (target, path, label, module). Il widget lo carica all’init e lo invia in `context.page.availableRoutes`.
+- **scripts/generate-tony-routes.cjs**: script Node (CommonJS) che scandisce `core/` e `modules/` per `*-standalone.html` e scrive `core/config/tony-routes.json`. Comando: `npm run generate:tony-routes`. Per nuove cartelle in modules/, rieseguire lo script per aggiornare la mappa.
+- **context.page**: il widget invia prima di ogni `ask`: `pagePath` (pathname), `availableTargets` (chiavi di TONY_PAGE_MAP), `availableRoutes` (array da tony-routes.json se caricato). La CF usa `pagePath` per attivare i sub-agenti.
+- **TONY_PAGE_MAP**: aggiunti target `nuovo preventivo`, `accetta preventivo`.
+
+### File toccati
+- `core/js/tony-widget-standalone.js` (loader) + `core/js/tony/` (main.js: getModuliFromDiscovery, saveModuliToStorage, syncTonyModules, sendRequestWithContext, context.page; engine.js: TONY_PAGE_MAP/LABEL)
+- `core/config/tony-routes.json` (nuovo, generato da script)
+- `scripts/generate-tony-routes.cjs` (nuovo; .js rinominato in .cjs per compatibilità ES module)
+- `package.json` (script generate:tony-routes → node scripts/generate-tony-routes.cjs)
+- `functions/index.js` (SMARTFORMVALIDATOR_RULE, SUBAGENT_VIGNAIOLO, SUBAGENT_LOGISTICO, TONY_TARGETS_EXTENDED; iniezione blocchi in base a ctx.page.pagePath e isTonyAdvanced)
+
+### Documentazione aggiornata
+- `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (questa sezione)
+- `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` (§9 Auto-discovery e persistenza moduli; §8.4 Skill e sub-agenti; §11 file)
+- `docs-sviluppo/TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md` (§2.3d Auto-discovery e persistenza; §4 backend SmartFormValidator, sub-agenti, context.page, rotte)
+- `docs-sviluppo/CHECKLIST_TONY.md` (voci 4.13, 4.14, 3.8, 3.9)
+
+### Risultato
+- Su pagine come prodotti-standalone (che non chiamano syncTonyModules), il widget recupera i moduli da sessionStorage (salvati in una pagina precedente, es. Dashboard) o da window.userModules/tenantConfig; in console compare “Modulo avanzato: ATTIVO” e Tony non risponde più “Attiva il modulo Tony Avanzato” alla domanda “cosa devo fare”.
+- Sub-agenti e SmartFormValidator rendono Tony coerente con il contesto (vigneto/magazzino) e con la validazione dei form prima di emettere comandi.
+- Rotte e script .cjs permettono di estendere la mappa quando si aggiungono nuove pagine o moduli.
+
+---
+
 ## ✅ Tony: contesto moduli, navigazione da tutte le pagine, Cloud Function robusta (2026-02-23) - COMPLETATO
 
 ### Obiettivo
@@ -38,8 +126,14 @@ Risolvere il problema per cui Tony, da pagine diverse dalla dashboard (es. Terre
 #### 5. Mappa target
 - La mappa dei target nella Cloud Function (SYSTEM_INSTRUCTION_ADVANCED) è allineata al widget: dashboard, terreni, vigneto, frutteto, magazzino, parcoMacchine, manodopera, oliveto, lavori, attivita (e relativi alias).
 
+#### 6. Normalizzazione command da Cloud Function (tony-widget-standalone.js)
+- La CF restituisce il comando nel formato `command: { action: 'APRI_PAGINA', params: { target: 'vigneto' } }`, mentre il widget e `processTonyCommand` si aspettano `type` (e `enqueueTonyCommand` scarta i comandi senza `type`). Se il comando ha `action` ma non `type`, viene normalizzato: si imposta `type = action` e si copiano le proprietà di `params` sull’oggetto (es. `target`), così il branch APRI_PAGINA e la coda comandi ricevono un oggetto valido e la navigazione (dialog + redirect) viene eseguita.
+
+#### 7. Base path per URL di navigazione (evitare 404 da smartphone/online)
+- Quando l’app è servita in una sottocartella (es. `/gfv-platform/` su GitHub Pages o altro host), `getUrlForTarget` restituiva path dalla root (es. `/core/terreni-standalone.html`), causando 404 perché la pagina reale è sotto `/gfv-platform/core/...`. In `getUrlForTarget` si rileva se `window.location.pathname` contiene `/gfv-platform/` e in quel caso si usa il prefisso `/gfv-platform` negli URL generati (es. `/gfv-platform/core/terreni-standalone.html`). In locale (path senza `/gfv-platform/`) non si aggiunge alcun prefisso.
+
 ### File toccati
-- `core/js/tony-widget-standalone.js` (syncTonyModules, controllo array vuoto, log, bypass navigazione in onAction/onComplete/processTonyCommand)
+- `core/js/tony-widget-standalone.js` (syncTonyModules, controllo array vuoto, log, bypass navigazione in onAction/onComplete/processTonyCommand; normalizzazione command action→type; base path in getUrlForTarget)
 - `modules/frutteto/views/frutteto-dashboard-standalone.html` (forzatura frutteto/tony, syncTonyModules)
 - `modules/vigneto/views/vigneto-dashboard-standalone.html` (syncTonyModules con fallback)
 - `functions/index.js` (lettura esplicita request.data, ctx.dashboard.moduli_attivi, isTonyAdvanced, iniezione prompt, default/eccezione navigazione, fallback richiesta navigazione, log, uso di ctx ovunque)
@@ -50,6 +144,7 @@ Risolvere il problema per cui Tony, da pagine diverse dalla dashboard (es. Terre
 
 ### Risultato
 - Da qualsiasi pagina standalone (Terreni, Frutteto, Vigneto, ecc.) che chiama `syncTonyModules(modules)` (o che ha la forzatura come in Frutteto), Tony riceve i moduli corretti e la Cloud Function usa l’istruzione avanzata, restituendo il JSON di navigazione. La navigazione (APRI_PAGINA / apri_modulo) funziona sempre, anche con context temporaneamente vuoto, grazie al bypass lato widget. In caso di payload o path errati, il fallback “richiesta navigazione” in CF forza comunque l’istruzione avanzata per le frasi di navigazione.
+- La normalizzazione del comando (action → type) assicura che dialog e redirect vengano sempre eseguiti quando la CF restituisce il formato `{ action, params }`. Il base path in `getUrlForTarget` evita il 404 quando l’app è aperta da smartphone/online sotto una sottocartella (es. `/gfv-platform/`).
 
 ---
 

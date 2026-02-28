@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elenco Attrezzature - Parco Macchine - GFV Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E0F7FA 0%, #80DEEA 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #0097A7 0%, #006064 100%); color: white; padding: 24px 30px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .header h1 { font-size: 24px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #0097A7; color: white; }
+        .btn-primary:hover { background: #006064; }
+        .btn-secondary { background: rgba(255,255,255,0.25); color: white; border: 1px solid rgba(255,255,255,0.5); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.35); }
+        .content { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 16px; background: #E0F7FA; border-radius: 8px; border: 1px solid #80DEEA; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #006064; }
+        .filter-group input, .filter-group select { padding: 8px 12px; border: 2px solid #80DEEA; border-radius: 6px; font-size: 14px; min-width: 200px; }
+        .filter-group input:focus, .filter-group select:focus { outline: none; border-color: #0097A7; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .section-header h2 { color: #006064; font-size: 20px; }
+        .mezzi-table { width: 100%; border-collapse: collapse; }
+        .mezzi-table th, .mezzi-table td { padding: 12px; text-align: left; border-bottom: 1px solid #80DEEA; }
+        .mezzi-table th { background: linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%); font-weight: 600; color: #006064; }
+        .mezzi-table tr:hover { background: #E0F7FA; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .badge-disponibile { background: #d4edda; color: #155724; }
+        .badge-in-uso { background: #fff3cd; color: #856404; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 28px; border-radius: 12px; max-width: 480px; width: 90%; border: 2px solid #0097A7; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { color: #006064; font-size: 18px; }
+        .close-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #666; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #333; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #80DEEA; border-radius: 6px; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #0097A7; }
+        .loading, .empty-state { text-align: center; padding: 40px; color: #666; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🛠️ Elenco Attrezzature</h1>
+                <p style="opacity: 0.9; margin-top: 4px; font-size: 14px;">Solo mezzi con tipo Attrezzo</p>
+            </div>
+            <div class="header-actions">
+                <button type="button" class="btn btn-primary" id="btn-nuovo">➕ Nuova Attrezzatura</button>
+                <a href="macchine-dashboard-standalone.html" class="btn btn-secondary">← Indietro</a>
+            </div>
+        </div>
+        <div class="content">
+            <div id="alert-container"></div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Cerca</label>
+                    <input type="text" id="filter-search" placeholder="Nome, marca...">
+                </div>
+            </div>
+            <div class="section-header">
+                <h2>Attrezzature</h2>
+                <span id="count-label">0 attrezzi</span>
+            </div>
+            <div id="table-container">
+                <div class="loading">Caricamento...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-nuovo" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuova Attrezzatura</h3>
+                <button type="button" class="close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <form id="form-nuovo">
+                <input type="hidden" id="tipoMacchina" value="attrezzo">
+                <div class="form-group">
+                    <label for="nome">Nome *</label>
+                    <input type="text" id="nome" required placeholder="es. Frangizolle" minlength="3">
+                </div>
+                <div class="form-group">
+                    <label for="categoriaId">Categoria *</label>
+                    <select id="categoriaId" required>
+                        <option value="">— Seleziona categoria —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cavalliMinimiRichiesti">Cavalli minimi richiesti (CV) *</label>
+                    <input type="number" id="cavalliMinimiRichiesti" required min="1" max="1000" step="0.1" placeholder="es. 80">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-annulla">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script>window.currentTableData = window.currentTableData || { pageType: 'attrezzi', summary: 'Caricamento dati in corso...', items: [] };</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module">
+        (async function() {
+            if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+                window.currentTableData = { pageType: 'attrezzi', summary: 'Caricamento dati in corso...', items: [] };
+            }
+            const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
+            const firebaseConfig = await waitForConfig();
+            const { initializeFirebase, getAuthInstance, getDb, getDoc, doc } = await import('../../../core/services/firebase-service.js');
+            const { getCurrentTenantId, setCurrentTenantId, initializeTenantService } = await import('../../../core/services/tenant-service.js');
+            const { getCollectionData } = await import('../../../core/services/firebase-service.js');
+            const { getAllMacchine, createMacchina } = await import('../../parco-macchine/services/macchine-service.js');
+            initializeFirebase(firebaseConfig);
+            (function loadTonyAfterFirebase() {
+                var base = (window.location.pathname||'').indexOf('/gfv-platform/') >= 0 ? (window.location.origin + '/gfv-platform/core') : '../../../core';
+                var sep = (base && !base.endsWith('/')) ? '/' : '';
+                var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = base + sep + 'styles/tony-widget.css'; document.head.appendChild(l);
+                var s = document.createElement('script'); s.type = 'module'; s.src = base + sep + 'js/tony-widget-standalone.js'; document.body.appendChild(s);
+            })();
+            const auth = getAuthInstance();
+            const db = getDb();
+            initializeTenantService();
+
+            let list = [];
+            let categorie = [];
+            const TIPO = 'attrezzo';
+
+            function escapeHtml(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+            function showAlert(msg, type) {
+                const c = document.getElementById('alert-container');
+                c.innerHTML = '<div class="alert alert-' + type + '">' + escapeHtml(msg) + '</div>';
+                setTimeout(() => c.innerHTML = '', 4000);
+            }
+            function statoBadge(s) {
+                const v = (s || '').toLowerCase();
+                if (v === 'disponibile') return '<span class="badge badge-disponibile">Disponibile</span>';
+                if (v === 'in_uso') return '<span class="badge badge-in-uso">In uso</span>';
+                return escapeHtml(s || '-');
+            }
+
+            function filterList() {
+                const q = (document.getElementById('filter-search').value || '').toLowerCase();
+                return list.filter(m => !q || (m.nome || '').toLowerCase().includes(q) || (m.marca || '').toLowerCase().includes(q));
+            }
+
+            function renderTable() {
+                const filtered = filterList();
+                document.getElementById('count-label').textContent = filtered.length + ' attrezzi';
+                const container = document.getElementById('table-container');
+                const catMap = new Map(categorie.map(c => [c.id, c.nome]));
+                window.currentTableData = {
+                    pageType: 'attrezzi',
+                    summary: filtered.length === 0 ? 'Nessuna attrezzatura in elenco.' : 'Ci sono ' + filtered.length + ' attrezzature in elenco.',
+                    items: filtered.map(m => ({
+                        nome: m.nome || '-',
+                        categoria: catMap.get(m.categoriaId) || m.categoriaId || '-',
+                        cavalliMinimi: m.cavalliMinimiRichiesti,
+                        stato: m.stato || '-'
+                    }))
+                };
+                if (window.Tony && typeof window.Tony.setContext === 'function') {
+                    window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, { tableDataSummary: window.currentTableData.summary, currentTableData: window.currentTableData }));
+                }
+                try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
+                if (filtered.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Nessuna attrezzatura trovata</div>';
+                    return;
+                }
+                container.innerHTML = '<table class="mezzi-table"><thead><tr><th>Nome</th><th>Categoria</th><th>CV min.</th><th>Stato</th></tr></thead><tbody>' +
+                    filtered.map(m => '<tr><td>' + escapeHtml(m.nome || '-') + '</td><td>' + escapeHtml(catMap.get(m.categoriaId) || m.categoriaId || '-') + '</td><td>' + (m.cavalliMinimiRichiesti != null ? m.cavalliMinimiRichiesti : '-') + '</td><td>' + statoBadge(m.stato) + '</td></tr>').join('') + '</tbody></table>';
+            }
+
+            async function loadCategorie(tenantId) {
+                try {
+                    const docs = await getCollectionData('categorie', { tenantId });
+                    categorie = (docs || []).filter(c => !c.parentId).map(c => ({ id: c.id, nome: c.nome || c.codice || c.id }));
+                    const sel = document.getElementById('categoriaId');
+                    sel.innerHTML = '<option value="">— Seleziona categoria —</option>' + categorie.map(c => '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.nome) + '</option>').join('');
+                } catch (e) { console.warn('Categorie non caricate:', e); }
+            }
+
+            function openModal() { document.getElementById('modal-nuovo').classList.add('active'); }
+            function closeModal() { document.getElementById('modal-nuovo').classList.remove('active'); document.getElementById('form-nuovo').reset(); }
+
+            async function loadData() {
+                const container = document.getElementById('table-container');
+                container.innerHTML = '<div class="loading">Caricamento...</div>';
+                try {
+                    const macchine = await getAllMacchine({ soloAttive: false });
+                    list = (macchine || []).filter(m => (m.tipoMacchina || m.tipo || '').toLowerCase() === TIPO);
+                    renderTable();
+                } catch (err) {
+                    console.error(err);
+                    showAlert('Errore: ' + err.message, 'error');
+                    container.innerHTML = '<div class="empty-state">Errore caricamento</div>';
+                }
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                let tenantId = getCurrentTenantId();
+                if (!tenantId) {
+                    const ud = await getDoc(doc(db, 'users', user.uid));
+                    if (ud.exists() && ud.data().tenantId) { tenantId = ud.data().tenantId; setCurrentTenantId(tenantId); }
+                }
+                if (!tenantId) { document.getElementById('table-container').innerHTML = '<div class="empty-state">Nessun tenant</div>'; return; }
+                await loadCategorie(tenantId);
+                document.getElementById('btn-nuovo').onclick = openModal;
+                document.getElementById('btn-close-modal').onclick = closeModal;
+                document.getElementById('btn-annulla').onclick = closeModal;
+                document.getElementById('filter-search').oninput = renderTable;
+                document.getElementById('form-nuovo').onsubmit = async (e) => {
+                    e.preventDefault();
+                    const nome = document.getElementById('nome').value.trim();
+                    const categoriaId = document.getElementById('categoriaId').value;
+                    const cavalliMinimiRichiesti = parseFloat(document.getElementById('cavalliMinimiRichiesti').value);
+                    if (!nome || nome.length < 3) { showAlert('Nome almeno 3 caratteri', 'error'); return; }
+                    if (!categoriaId) { showAlert('Seleziona una categoria', 'error'); return; }
+                    if (!cavalliMinimiRichiesti || cavalliMinimiRichiesti <= 0) { showAlert('Cavalli minimi obbligatori', 'error'); return; }
+                    try {
+                        await createMacchina({ nome, tipoMacchina: 'attrezzo', categoriaId, cavalliMinimiRichiesti }, user.uid);
+                        showAlert('Attrezzatura aggiunta', 'success');
+                        closeModal();
+                        await loadData();
+                    } catch (err) { showAlert(err.message || 'Errore salvataggio', 'error'); }
+                };
+                await loadData();
+            });
+        })();
+    </script>
+</body>
+</html>

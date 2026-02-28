@@ -31,10 +31,18 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
   - Se l’utente clicca **Apri**, naviga con `window.location.href` all’URL corretto (calcolato in base al pathname della pagina corrente e a una mappa target → path da root).
 
 ### 2.3b Context moduli e navigazione da tutte le pagine (2026-02-23)
-- **Helper `syncTonyModules(modules)`**: funzione globale in `tony-widget-standalone.js`, richiamabile da qualsiasi pagina standalone dopo il caricamento tenant. Sincronizza `moduli_attivi` con Tony (setTonyContext / Tony.setContext + evento `tony-module-updated`); retry ogni 400 ms se il widget non è pronto. Se l'array è vuoto e il contesto esistente ha già moduli, non si sovrascrive. Log: `[Tony Sync] Ricevuti moduli: ...`.
+- **Helper `syncTonyModules(modules)`**: funzione globale in `tony-widget-standalone.js`, richiamabile da qualsiasi pagina standalone dopo il caricamento tenant. Sincronizza `moduli_attivi` con Tony (setTonyContext / Tony.setContext + evento `tony-module-updated`); se il widget non è pronto riprova ogni 400 ms fino a **25 tentativi** (~10 s). Se l'array è vuoto e il contesto esistente ha già moduli, non si sovrascrive. Log: `[Tony Sync] Ricevuti moduli: ...`.
 - **Bypass navigazione**: `APRI_PAGINA` e `apri_modulo` ignorano `isTonyAdvancedActive` in onAction, onComplete e processTonyCommand; la navigazione viene sempre eseguita.
 - **Dashboard di modulo**: Frutteto/Vigneto chiamano `syncTonyModules(modules)`; in Frutteto si forzano `frutteto` e `tony` se mancanti.
 - **Cloud Function**: lettura da `request.data.context.dashboard.moduli_attivi`; se contiene `tony` si usa SYSTEM_INSTRUCTION_ADVANCED; inizio prompt con "STATO UTENTE: Tony Avanzato ATTIVO. Moduli disponibili: [...]"; fallback per richieste di navigazione con moduli vuoti; regole DEFAULT/ECCEZIONE NAVIGAZIONE.
+- **Normalizzazione command da CF**: la CF può restituire `command: { action: 'APRI_PAGINA', params: { target } }` senza `type`; il widget normalizza impostando `type = action` e copiando `params` sull'oggetto, così `processTonyCommand` e `enqueueTonyCommand` ricevono un comando valido e dialog + redirect funzionano.
+- **Base path per deploy in sottocartella**: in `getUrlForTarget` se `location.pathname` contiene `/gfv-platform/` si usa il prefisso `/gfv-platform` negli URL (es. `/gfv-platform/core/terreni-standalone.html`) per evitare 404 quando l'app è aperta da smartphone/online (es. GitHub Pages).
+
+### 2.3d Auto-discovery moduli e persistenza (2026-02-23)
+- Su pagine che non chiamano `syncTonyModules` (es. prodotti-standalone, sottopagine moduli), il widget **recupera i moduli** con **getModuliFromDiscovery()**: (1) **sessionStorage** chiave `tony_moduli_attivi`, (2) `window.userModules`, (3) `window.tenantConfig.modules` / `window.tenant.modules`. Se trova un array non vuoto, lo applica al context con `Tony.setContext('dashboard', { moduli_attivi: discovered })` e **saveModuliToStorage(arr)**.
+- **Persistenza**: ogni volta che Tony riceve `moduli_attivi` (setTonyContext, syncTonyModules, evento tony-module-updated, saveTonyState), l'array viene salvato in sessionStorage così dopo navigazione (es. Dashboard → Magazzino → Prodotti) il widget legge i moduli e mantiene "Modulo avanzato: ATTIVO".
+- **Blocco preventivo**: in **sendRequestWithContext**, prima di inviare alla Cloud Function: se il context non ha moduli, il widget chiama getModuliFromDiscovery(); se trova moduli, aggiorna il context, salva in sessionStorage, chiama `window.__tonyCheckModuleStatus(true)` e **attende 150 ms** prima di eseguire l'invio reale (doActualSend), così la CF riceve sempre i moduli corretti e non risponde "Attiva il modulo Tony Avanzato".
+- **Rotte e context.page**: main.js carica **core/config/tony-routes.json** all'init e invia alla CF **context.page** con `pagePath`, `availableTargets`, `availableRoutes`, `currentTableData` (se `window.currentTableData` è impostato dalla pagina – vedi RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md), `tableDataSummary`. La CF usa pagePath per sub-agenti e `currentTableData` per rispondere a domande sui dati visibili in tabella.
 
 ### 2.4 Altre azioni (definite in system instruction, non ancora gestite in UI)
 - La system instruction menziona altre azioni (segnare ore, segnalare guasti, ecc.) con formato `{ "action": "NOME_AZIONE", "params": { ... } }`. Il **parsing** lato client estrae qualsiasi blocco JSON di questo tipo e chiama `triggerAction(actionName, params)`; oggi **solo** `APRI_PAGINA` (e alias `apri_modulo`) è gestita nel widget (navigazione + conferma). Le altre azioni vengono emesse ma nessun modulo è ancora iscritto per eseguirle.
@@ -75,10 +83,19 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 - **Parametro URL**: `?openModal=crea` apre il modal Crea Lavoro all'avvio.
 - **Dettagli**: vedi `docs-sviluppo/TONY_COMPILAZIONE_LAVORI_2026-02.md`.
 
-### 2.7 Cosa Tony non fa (ancora)
-- **Esecuzione azioni diverse da APRI_PAGINA**: nessun handler per SEGNA_ATTIVITA, REPORT_GUASTO, AGGIORNA_MAGAZZINO, MOSTRA_GRAFICO, ecc.
+### 2.7 Comandi implementati nel widget (main.js)
+- **APRI_PAGINA** / **apri_modulo**: navigazione con conferma.
+- **OPEN_MODAL**: apre attivita-modal, ora-modal, lavoro-modal.
+- **SET_FIELD**: imposta campi form (SmartFormFiller per attivita-tipo-lavoro-gerarchico).
+- **CLICK_BUTTON**: click su pulsante (es. Salva).
+- **SAVE_ACTIVITY**: salva attività dopo conferma.
+- **INJECT_FORM_DATA**: compilazione batch (form Attività, Lavori).
+- **FILTER_TABLE**, **SUM_COLUMN**: per pagina terreni (filtri e somme) – CF emette, widget esegue (main.js processTonyCommand). Tony può anche rispondere a domande informative (conteggio, nomi, superficie singolo terreno) usando `page.tableDataSummary` e `page.currentTableData.items` nel contesto – vedi §10.
+
+### 2.8 Cosa Tony non fa (ancora)
+- **Esecuzione azioni**: nessun handler per SEGNA_ATTIVITA (nota), REPORT_GUASTO, AGGIORNA_MAGAZZINO, MOSTRA_GRAFICO, ecc. (azioni emesse dalla CF ma non gestite in UI).
 - **Storia conversazione**: ogni `ask()` è stateless (contesto sì, ma non c’è invio dello storico messaggi a Gemini).
-- **Pagina corrente**: Tony non sa esplicitamente “sei sulla pagina X”; potrebbe inferirlo solo dal contesto se qualcuno lo inietta.
+- **Pagina corrente**: il widget invia **context.page** (pagePath, availableTargets, availableRoutes) a ogni richiesta; la CF usa pagePath per sub-agenti (Vignaiolo/Logistico) e per la mappa target estesa.
 
 ---
 
@@ -115,6 +132,8 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 - **Chiave Gemini**: `process.env.GEMINI_API_KEY` (impostata come variabile d’ambiente nella revisione Cloud Run del servizio che ospita la function).
 - **Chiamata a Gemini**: API REST `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent` con body: `contents` (user prompt), `systemInstruction` (testo con `{CONTESTO_PLACEHOLDER}` sostituito dal JSON del contesto), `generationConfig` (temperature 0.7, maxOutputTokens 1024).
 - **Output**: `{ text: string }`. Il parsing delle azioni JSON avviene **solo lato client** (tony-service.js); la function restituisce il testo grezzo.
+- **Modalità avanzata (2026-02-23)**: se `context.dashboard.moduli_attivi` (o altri path) contiene `'tony'`, la CF usa SYSTEM_INSTRUCTION_ADVANCED e inietta: (1) **SmartFormValidator** (skill prioritaria: prima di emettere comandi che registrano dati controlla [CONTESTO].form e campi required; se manca un dato essenziale chiede esplicitamente e non invia il JSON); (2) **Sub-agente Vignaiolo** se `context.page.pagePath` contiene `/vigneto/` (esperto viticoltura, target vendemmia, potatura vigneto, trattamenti vigneto, statistiche vigneto, calcolo materiali, pianificazione impianto); (3) **Sub-agente Logistico** se `context.page.pagePath` contiene `/magazzino/` (esperto scorte, target prodotti, movimenti); (4) **TONY_TARGETS_EXTENDED** (mappa target completa con sottopagine); se il client invia `context.page.availableRoutes` (da tony-routes.json), la CF considera validi anche quei target per la navigazione.
+- **Rotte evolutive**: `core/config/tony-routes.json` è generato da **scripts/generate-tony-routes.cjs** (`npm run generate:tony-routes`); lo script scandisce `core/` e `modules/` per `*-standalone.html` e scrive target, path, label, module. Per nuove pagine o moduli rieseguire lo script e aggiornare il JSON.
 
 - **getTonyAudio** (Firebase Functions v2, `onCall`), **regione europe-west1**.
 - **Input**: `{ text: string }`. Richiede `request.auth`.
@@ -124,7 +143,7 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 
 ### 4.3 Client – Tony Service (`core/services/tony-service.js`)
 - **Init**: `Tony.init(app)` con `app` da `getAppInstance()` (firebase-service).  
-  - Prova prima a usare **Firebase AI** (Vertex AI / getAI): `import('https://esm.sh/firebase@11/ai')`, `getAI(app, { backend: new GoogleAIBackend() })`, `getGenerativeModel(this.ai, { model: 'gemini-2.5-flash', systemInstruction })`.  
+  - Prova prima a usare **Firebase AI** (Vertex AI / getAI): `import('https://esm.sh/firebase@11/ai')`, `getAI(app, { backend: new GoogleAIBackend() })`, `getGenerativeModel(this.ai, { model: 'gemini-2.0-flash', systemInstruction })`.  
   - Se fallisce (es. “Service AI is not available”), **fallback** a **callable** `tonyAsk`: `getFunctions(app, 'europe-west1')`, `httpsCallable(functions, 'tonyAsk')`.
 - **Guida app**: all’init, `loadGuidaAppFull()` prova a caricare i file .md da `core/guida-app/` o `docs-sviluppo/guida-app/`; se riesce, `context.guida_app = fullGuida`, altrimenti `context.guida_app = GUIDA_APP_PER_TONY` (stringa condensata da `tony-guida-app.js`).
 - **Contesto**: `this.context` è un oggetto; chiavi tipiche: `guida_app`, `dashboard`, `vigneto`. `setContext(moduleName, data)` aggiorna `this.context[moduleName] = data` e, se il modello SDK è in uso, ricostruisce il modello con `_buildModel()` (system instruction aggiornata con il nuovo JSON).
@@ -146,8 +165,8 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 - **Regola 6**: risposte brevi.
 - Il blocco `[CONTESTO_AZIENDALE]` è sostituito a runtime con `JSON.stringify(this.context, null, 2)` (o equivalente lato callable).
 
-### 4.5 Widget globale (loader su tutte le pagine)
-- **File**: `core/js/tony-widget-standalone.js` (script type="module"). Ogni pagina che vuole Tony include anche il CSS: `core/styles/tony-widget.css` (path relativo a core: `styles/` da core, `../styles/` da admin, `../../../core/styles/` da modules).
+### 4.5 Widget globale (loader e moduli su tutte le pagine)
+- **Loader**: `core/js/tony-widget-standalone.js` imposta `__tonyScriptBase`, carica CSS e script form, importa `core/js/tony/main.js`. La logica è in `core/js/tony/`: main.js (orchestratore), ui.js (FAB/chat/dialog), engine.js (mappe, resolveTarget), voice.js (TTS).
 - **Caricamento CSS**: lo script usa `import.meta.url` per la base e aggiunge dinamicamente `<link href=".../styles/tony-widget.css">` in `document.head`.
 - **Iniezione DOM**: alla prima esecuzione crea e appende al `body`: (1) FAB (pulsante 🤖), (2) pannello chat (header “Tony – Assistente”, area messaggi, input + pulsante Invia), (3) overlay del dialog di conferma (titolo, messaggio, Annulla, Apri). Nessun HTML Tony nelle pagine; tutto generato dallo script.
 - **Chat UI**: event listener su FAB (apri/chiudi pannello, primo messaggio di benvenuto), su Invia e su Enter (chiamata a `Tony.ask()`, append messaggio utente, “Sto pensando…”, poi risposta o errore). `window.Tony` usato per `ask` e `isReady()`.
@@ -161,7 +180,7 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 
 ### 4.7 Stack e dipendenze
 - **Firebase**: SDK 11; tutta l’app usa `core/services/firebase-service.js` per `getAppInstance()`, `getAuthInstance()`, `getDb()`. Tony riceve `app` da lì.
-- **Modello**: in SDK si usa `gemini-2.5-flash`; in callable si usa `gemini-2.0-flash` (API REST). Stessa system instruction concettualmente; la callable non ricollega la conversazione (stateless).
+- **Modello**: sia in SDK che in callable si usa **`gemini-2.0-flash`** (tony-service.js e API REST). Stessa system instruction concettualmente; la callable non ricollega la conversazione (stateless).
 - **Storia messaggi**: chatHistory (max 8 elementi) inviata a Gemini insieme al prompt; il modello ricorda i turni precedenti.
 
 ---
@@ -185,7 +204,7 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 
 ---
 
-*Documento generato per condividere lo stato attuale di Tony con un assistente esterno e raccogliere idee di miglioramento. Riferimenti: `core/services/tony-service.js`, `core/js/tony-widget-standalone.js`, `functions/index.js`, `docs-sviluppo/GUIDA_SVILUPPO_TONY.md`, `docs-sviluppo/TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE.md`.*
+*Riferimenti: `core/services/tony-service.js`, `core/js/tony-widget-standalone.js`, `core/js/tony/` (main, ui, engine, voice), `functions/index.js`, `docs-sviluppo/GUIDA_SVILUPPO_TONY.md`. Ultimo aggiornamento (verifica codice/doc): 2026-02-27. §10 Terreni 2026-02-25.*
 
 ---
 
@@ -312,3 +331,32 @@ if (window.Tony && window.Tony.initContextWithModules) {
 4. Aggiungere fallback che emette l'evento anche se Tony non è disponibile.
 
 **Helper disponibile**: `Tony.initContextWithModules(modules, maxRetries = 10)` in `core/services/tony-service.js` gestisce automaticamente il retry e l'inizializzazione del context.
+
+---
+
+## 10. Aggiornamenti 2026-02-25 (Tony Terreni – contesto, domande informative, superficie)
+
+### 10.1 Problema iniziale
+Tony sulla pagina terreni eseguiva correttamente FILTER_TABLE e SUM_COLUMN ma **non vedeva** quanti terreni ci fossero in totale né i nomi dei terreni. Rispondeva "non posso mostrare i dettagli" o "non posso calcolare la superficie" per singoli appezzamenti.
+
+### 10.2 Lettura robusta di currentTableData (main.js)
+- **Su pagina terreni** (`pathStr.indexOf('terreni') >= 0`): prova in ordine `window.currentTableData`, `window.top.currentTableData`, `window.__tonyTableDataBuffer`. Usa il primo che ha `items` non vuoti, altrimenti il primo disponibile.
+- **Fallback**: `__tonyTableDataBuffer` (popolato da `table-data-ready`) garantisce dati anche se il buffer è stato emesso prima dell’attivazione del listener.
+
+### 10.3 Sanificazione contesto terreni (tony-service.js)
+- **_sanitizeContextForAI**: gli items di `page.currentTableData` inviati a Gemini includono ora `superficie` (arrotondata a 2 decimali). Campi: `id`, `nome`, `podere`, `coltura`, `tipoPossesso`, `scadenza`, `superficie`.
+- **Fallback nome**: `item.nome || item.name || 'Senza nome'` per compatibilità con varianti di struttura dati.
+
+### 10.4 Istruzioni Cloud Function (functions/index.js)
+- **DOMANDE INFORMATIVE SUI TERRENI**: `page.tableDataSummary` per conteggio ("quanti terreni ho?"); `page.currentTableData.items[].nome` per elenco nomi; `items[].superficie` per "quanti ettari ha il Pinot?", "superficie del Cumbarazza".
+- **Divieto**: Tony NON deve dire "non posso mostrare i dettagli" o "non posso calcolare la superficie" quando i dati sono nel contesto.
+- **Formato risposta**: risposta informativa → `{"text": "...", "command": null}`; risposta con azione → `{"text": "...", "command": {...}}`. Vietato rispondere con solo testo senza JSON.
+- **Comandi vuoti**: se `command` è vuoto o senza `type`, la CF lo rimuove prima di restituire (evita "ESEGUO COMANDO: {}" nel client).
+
+### 10.5 Esecuzione comandi (main.js)
+- **Condizione**: `commandToExecute.type` obbligatorio; comandi senza `type` (es. `{}`) non vengono eseguiti.
+
+### 10.6 File modificati
+- `core/js/tony/main.js` (lettura currentTableData, condizione commandToExecute.type)
+- `core/services/tony-service.js` (superficie, fallback nome, arrotondamento)
+- `functions/index.js` (istruzioni DOMANDE INFORMATIVE, formato risposta, rimozione command vuoto)

@@ -525,6 +525,7 @@ window.GFVDashboardSections.createFruttetoCard = function createFruttetoCard() {
 window.GFVDashboardSections.createMagazzinoCard = function createMagazzinoCard(sottoScortaCount) {
     const section = document.createElement('div');
     section.className = 'dashboard-section';
+    section.setAttribute('data-tony-briefing', 'scorte');
     section.style.background = 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)';
     section.style.border = '2px solid #2E7D32';
     section.style.borderRadius = '12px';
@@ -545,6 +546,36 @@ window.GFVDashboardSections.createMagazzinoCard = function createMagazzinoCard(s
                 <span class="action-title" style="font-size: 18px; color: #2E7D32;">Apri Prodotti e Magazzino</span>
                 <span class="action-description" style="color: #666;">
                     Gestisci prodotti, movimenti e alert scorta minima
+                </span>
+            </a>
+        </div>
+    `;
+
+    return section;
+};
+
+/**
+ * Card Macchine e Mezzi (modulo parco macchine - design teal/cyan, distinto da Frutteto)
+ */
+window.GFVDashboardSections.createMacchineCard = function createMacchineCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section';
+    section.setAttribute('data-tony-briefing', 'scadenze');
+    section.style.background = 'linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)';
+    section.style.border = '2px solid #0097A7';
+    section.style.borderRadius = '12px';
+
+    section.innerHTML = `
+        <h2 style="color: #006064;"><span class="section-icon">🚜</span> Macchine e Mezzi</h2>
+        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+            Gestione flotta, scadenze e manutenzioni.
+        </p>
+        <div class="quick-actions">
+            <a href="../modules/macchine/views/macchine-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #0097A7;">
+                <span class="action-icon" style="font-size: 48px;">🚜</span>
+                <span class="action-title" style="font-size: 18px; color: #006064;">Apri Parco Macchine</span>
+                <span class="action-description" style="color: #666;">
+                    Dashboard trattori, attrezzature, manutenzioni e guasti
                 </span>
             </a>
         </div>
@@ -667,7 +698,7 @@ window.GFVDashboardSections.createManagerManodoperaSection = function createMana
                 <div style="padding: 10px; text-align: center; color: #856404;">Caricamento manutenzioni...</div>
             </div>
         </div>
-        <div id="guasti-segnalati-section" style="margin: 30px 0; padding: 20px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 8px; display: none;">
+        <div id="guasti-segnalati-section" data-tony-briefing="guasti" style="margin: 30px 0; padding: 20px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 8px; display: none;">
             <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #721c24; display: flex; align-items: center; gap: 8px;">
                 <span>🔧</span> Guasti Segnalati
             </h3>

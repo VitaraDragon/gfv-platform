@@ -1,6 +1,6 @@
 # 📋 Stato Progetto Completo - GFV Platform
 
-**Ultimo aggiornamento**: 2026-01-24 (Integrazione Lavori Impianto con Modulo Vigneto)  
+**Ultimo aggiornamento**: 2026-02-27 (verifica allineamento codice e documentazione)  
 **Versione**: 2.0.12-alpha  
 **Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO + **Modulo Vigneto ~80-85% COMPLETATO** (Anagrafica Vigneti, Gestione Vendemmia con Tracciamento Poligono, Rilevamento Automatico da Lavori, Calcolo Compensi con Costi Macchine, Integrazione Sistema Lavori/Diario, Sistema Spese/Costi, Filtri Viste, Integrità Dati, **Pianificazione Impianti con Calcolo Materiali, Integrazione Creazione Vigneti da Lavori Impianto**) + Modulo Parco Macchine COMPLETO + Modulo Conto Terzi COMPLETO + Sistema Categorie Gerarchico Unificato + Sistema Segnalazione Guasti + Sistema Multi-Tenant Membership COMPLETO + Standardizzazione Error Handling COMPLETA
 
@@ -1186,9 +1186,25 @@ tenants/{tenantId}/comunicazioni/{comunicazioneId}
 
 ## 📁 Struttura Progetto Attuale
 
+### Struttura moduli (allineata al codice 2026-02-25)
+
+| Cartella | Contenuto |
+|----------|-----------|
+| `modules/conto-terzi/` | Conto terzi: views (clienti, preventivi, tariffe, nuovo-preventivo, accetta-preventivo, mappa-clienti, terreni-clienti, home), services, models |
+| `modules/frutteto/` | Frutteto: views (dashboard, frutteti, statistiche, raccolta-frutta, potatura, trattamenti), services, models, config |
+| `modules/magazzino/` | Magazzino: views (home, prodotti, movimenti), services, models, config |
+| `modules/macchine/` | **Solo views** Parco Macchine: macchine-dashboard, trattori-list, attrezzi-list, flotta-list, scadenze-list, guasti-list |
+| `modules/parco-macchine/` | **Servizi e modelli** Parco Macchine: services (macchine-service, macchine-utilizzo-service, categorie-attrezzi-service), models (Macchina, CategoriaAttrezzo) |
+| `modules/report/` | Report: views/report-standalone, adapters |
+| `modules/vigneto/` | Vigneto: views (dashboard, vigneti, vendemmia, potatura, trattamenti, statistiche, calcolo-materiali, pianifica-impianto), services, models, config |
+
+In **core/admin/** sono presenti anche: gestione-guasti-standalone.html, segnalazione-guasti-standalone.html, report-standalone.html (report admin). Il modulo Report ha inoltre `modules/report/views/report-standalone.html`. Tony (assistente IA) usa `core/config/tony-routes.json` generato da `npm run generate:tony-routes` per le rotte.
+
+**Logica, soluzioni tecniche e interazioni tra moduli**: vedi **`docs-sviluppo/ARCHITETTURA_MODULI_E_INTERAZIONI.md`** (funzioni principali, chi chiama chi, split macchine/parco-macchine, multi-tenant, Tony). Per flussi operativi e ruoli: **`guida-app/intersezioni-moduli.md`**.
+
 ```
 gfv-platform/
-├── .git/                          ✅ Repository Git (3 commit)
+├── .git/                          ✅ Repository Git
 ├── core/
 │   ├── config/                           ✅ (Nuovo - File config API)
 │   │   ├── firebase-config.js           ✅ (Config Firebase - committato)
@@ -1208,6 +1224,8 @@ gfv-platform/
 │   │   ├── impostazioni-standalone.html  ✅ (Impostazioni azienda - con fallback)
 │   │   ├── fix-utente-mancante.html     ✅ (Fix utenti - con fallback)
 │   │   ├── report-standalone.html        ✅ (Report e statistiche)
+│   │   ├── gestione-guasti-standalone.html ✅ (Gestione guasti macchine - manager)
+│   │   ├── segnalazione-guasti-standalone.html ✅ (Segnalazione guasti - operai)
 │   │   ├── amministrazione-standalone.html ✅ (Pagina dedicata amministrazione - TESTATO)
 │   │   ├── statistiche-manodopera-standalone.html ✅ (Pagina dedicata statistiche - TESTATO)
 │   │   ├── compensi-operai-standalone.html ✅ (Modulo Manodopera - TESTATO - calcolo compensi con esportazione Excel)
@@ -1268,10 +1286,12 @@ gfv-platform/
 │   ├── setup.js                          ✅ (Mock Firebase)
 │   └── README.md                          ✅ (Documentazione)
 │
-├── package.json                           ✅ (Configurazione test)
+├── package.json                           ✅ (Configurazione test, script generate:tony-routes)
 ├── vitest.config.js                       ✅ (Config Vitest)
-├── TEST_SETUP.md                          ✅ (Guida setup test)
-├── AUDIT_REPORT.md                        ✅ (Report audit codice)
+├── functions/                             ✅ (Cloud Functions: tonyAsk, getTonyAudio - europe-west1)
+├── modules/                               ✅ (conto-terzi, frutteto, magazzino, macchine, parco-macchine, report, vigneto - vedi tabella sopra)
+├── core/js/                               ✅ (tony-widget-standalone, core/js/tony/ main/ui/engine/voice, terreni-controller, dashboard-controller, config-loader, …)
+├── core/config/                           ✅ (firebase-config, tony-routes.json, tony-form-mapping, …)
 │
 └── vecchia app/                          ❌ NON TRACCIATO (ha il suo .git/)
     └── [tutti i file originali]          ✅ INTATTI

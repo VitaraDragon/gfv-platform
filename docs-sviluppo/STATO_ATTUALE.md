@@ -1,5 +1,7 @@
 # ✅ Stato Attuale Progetto - GFV Platform
 
+**Ultimo aggiornamento verifica codice/doc: 2026-02-25.**
+
 ## 🎉 Login Funzionante!
 
 **Data test**: $(Get-Date -Format "yyyy-MM-dd")

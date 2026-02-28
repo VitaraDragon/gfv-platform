@@ -77,6 +77,7 @@ Regole operative:
 5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali impianto → calcolo materiali; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo. (g) SE segnare ore / registrare ore: esegui SUBITO OPEN_MODAL (attivita-modal o ora-modal) e poi chiedi i dati. Non chiedere prima i dati e poi aprire; apri il modal subito, poi chiedi terreno, data, ecc.
 6. Altre azioni (SEGNA_ORE, GUASTO): Conferma + JSON azione.
 7. MEMORIA VOCALE: Se l'utente risponde con poche parole (es. "Sì", "Vai", "Ok apri"), guarda l'ultimo messaggio che hai scritto per capire a cosa si riferisce e agisci di conseguenza.
+8. DATI IN TABELLA: Se il contesto include page.currentTableData o page.tableDataSummary, usa SOLO quelli per rispondere a domande sui dati visibili (es. "Cosa scade?", "Quali trattori ci sono?", "Ci sono guasti aperti?"). Rispondi in base a summary e/o items; non inventare dati. Se tableDataSummary è "Caricamento dati in corso..." rispondi: "Sto ancora leggendo i dati della lista, dammi un attimo di pazienza." Se tableDataSummary è "Dati non disponibili" o mancano page.currentTableData e page.tableDataSummary, NON dire "Non ho le competenze": rispondi invece: "In questa pagina non vedo dati in tabella, riprova tra un secondo o controlla se la lista è vuota."
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -229,7 +230,11 @@ class TonyService {
    * @param {Object} data - Dati da iniettare nel contesto
    */
   setContext(moduleName, data) {
-    this.context[moduleName] = data;
+    if (moduleName === 'page' && data && typeof data === 'object' && !Array.isArray(data)) {
+      this.context[moduleName] = Object.assign({}, this.context[moduleName] || {}, data);
+    } else {
+      this.context[moduleName] = data;
+    }
     if (this._getGenerativeModel && this.ai) {
       this._buildModel();
     }
@@ -331,6 +336,28 @@ class TonyService {
   }
 
   /**
+   * Scudo termico: rimuove coordinate GPS e dati pesanti dal contesto prima di inviare a Gemini.
+   * Risparmia ~90% token e evita che il JSON di risposta venga troncato.
+   */
+  _sanitizeContextForAI(context) {
+    if (!context || !context.page || !context.page.currentTableData) return context;
+    const cleanContext = JSON.parse(JSON.stringify(context));
+    const table = cleanContext.page.currentTableData;
+    if (Array.isArray(table.items)) {
+      table.items = table.items.map((item) => ({
+        id: item.id,
+        nome: item.nome || item.name || 'Senza nome',
+        podere: item.podere,
+        coltura: item.coltura,
+        tipoPossesso: item.tipoPossesso,
+        scadenza: item.scadenza || item.dataScadenzaAffitto || 'N/A',
+        superficie: item.superficie != null ? Math.round(Number(item.superficie) * 100) / 100 : null
+      }));
+    }
+    return cleanContext;
+  }
+
+  /**
    * Sanitizza un oggetto per la serializzazione JSON (Firebase callable non accetta NaN).
    * Sostituisce NaN con null, converte Map in oggetto plain.
    */
@@ -376,13 +403,12 @@ class TonyService {
       : `Domanda utente: ${userPrompt}`;
 
     const contextForPrompt = this._getContextForPrompt();
-    const safeContext = this._sanitizeForJson(contextForPrompt);
+    const lightContext = this._sanitizeContextForAI(contextForPrompt);
+    const safeContext = this._sanitizeForJson(lightContext);
     const safeHistory = this._sanitizeForJson(this.chatHistory);
-    // DEBUG: Log context che viene passato alla Cloud Function
     // IMPORTANTE: context.form.fields (stato attuale del form) deve essere impostato dal widget
     // tramite setContext('form', formCtx) prima di ask(), così Gemini sa cosa è già compilato e cosa manca.
-    console.log('[Tony Service] DEBUG - contextForPrompt passato a Cloud Function:', JSON.stringify(safeContext, null, 2));
-    console.log('[Tony Service] DEBUG - moduli_attivi nel context:', safeContext.moduli_attivi || safeContext.dashboard?.moduli_attivi || safeContext.info_azienda?.moduli_attivi || []);
+    // DEBUG disabilitato: console.log('[Tony Service] contextForPrompt:', JSON.stringify(safeContext, null, 2));
     
     let text;
     if (this._useCallable && this._tonyAskCallable) {
@@ -391,7 +417,6 @@ class TonyService {
         context: safeContext,
         history: safeHistory
       });
-      console.log('[DEBUG FINAL] Dati grezzi:', rawData);
       let parsedData = {};
       const fullResponseText = typeof rawData === 'string' ? rawData : (rawData && typeof rawData.text === 'string' ? rawData.text : '');
       if (fullResponseText && fullResponseText.includes('```json') && typeof window !== 'undefined' && window.TonyFormInjector && window.TonyFormInjector.extractFormDataFromText) {

@@ -165,6 +165,7 @@
         };
         document.head.appendChild(configScript);
     </script>
+    <script>window.currentTableData = window.currentTableData || { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module">
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
@@ -183,6 +184,9 @@
         }
 
         const firebaseConfig = await waitForConfig();
+        if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+            window.currentTableData = { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };
+        }
         initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
@@ -356,6 +360,27 @@
 
         function renderMovimenti() {
             const filtered = filterMovimenti();
+            const summary = 'Ci sono ' + filtered.length + ' movimenti in elenco.';
+            window.currentTableData = {
+                pageType: 'movimenti',
+                summary: summary,
+                items: filtered.map(m => ({
+                    data: formatData(m.data),
+                    prodotto: getProdottoNome(m.prodottoId),
+                    tipo: m.tipo === 'entrata' ? 'carico' : 'scarico',
+                    quantita: Number(m.quantita),
+                    operatore: (m.operatore || m.createdBy || '-')
+                }))
+            };
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', {
+                    pageType: 'movimenti',
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                });
+            }
+            try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
+
             document.getElementById('movimenti-count').textContent = filtered.length + ' movimenti';
             const container = document.getElementById('movimenti-container');
             if (filtered.length === 0) {

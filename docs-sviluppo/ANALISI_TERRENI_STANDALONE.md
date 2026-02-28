@@ -2,8 +2,8 @@
 
 **Data Analisi**: 2025-01-26  
 **File Analizzato**: `core/terreni-standalone.html`  
-**Dimensione**: 3106 righe  
-**Stato**: Pronto per Refactoring  
+**Ultimo aggiornamento doc**: 2026-02-27  
+**Stato**: Refactoring parziale (terreni-controller.js creato); currentTableData non ancora applicato  
 **Obiettivo**: Estrarre logica JavaScript in moduli separati per migliorare manutenibilità
 
 ---
@@ -659,7 +659,7 @@ export {
 ## 📋 Checklist Estrazione
 
 ### Fase 1: Controller
-- [ ] Creare `core/js/terreni-controller.js`
+- [x] Creare `core/js/terreni-controller.js` *(FATTO – terreni-standalone.html importa da terreni-controller.js)*
 - [ ] Estrarre funzioni caricamento dati
 - [ ] Estrarre funzioni rendering
 - [ ] Gestire variabili globali dati

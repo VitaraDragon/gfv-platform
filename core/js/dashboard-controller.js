@@ -38,6 +38,7 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         createVignetoCard,
         createFruttetoCard,
         createMagazzinoCard,
+        createMacchineCard,
         createReportCard,
         createManagerManodoperaSection,
         createDiarioDaLavoriSection,
@@ -134,6 +135,11 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
                 topLeft.appendChild(createMagazzinoCard(sottoScortaCount));
             }
+
+            const hasMacchine = availableModules && availableModules.includes('parcoMacchine');
+            if (hasMacchine) {
+                topLeft.appendChild(createMacchineCard());
+            }
             
             const hasReport = availableModules && availableModules.includes('report');
             if (hasReport) {
@@ -205,6 +211,11 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         if (hasMagazzino) {
             const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
             topLeft.appendChild(createMagazzinoCard(sottoScortaCount));
+        }
+
+        const hasMacchine = availableModules && availableModules.includes('parcoMacchine');
+        if (hasMacchine) {
+            topLeft.appendChild(createMacchineCard());
         }
         
         const hasReport = availableModules && availableModules.includes('report');
@@ -300,6 +311,11 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 if (hasMagazzino) {
                     const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
                     container.appendChild(createMagazzinoCard(sottoScortaCount));
+                }
+
+                const hasMacchine = availableModules && availableModules.includes('parcoMacchine');
+                if (hasMacchine) {
+                    container.appendChild(createMacchineCard());
                 }
                 
                 // Card Affitti in Scadenza anche per Manager senza Manodopera

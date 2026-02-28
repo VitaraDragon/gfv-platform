@@ -38,6 +38,17 @@ function isColturaFrutteto(coltura) {
     return coltureFrutteto.some(f => colturaLower.includes(f));
 }
 
+/** Restituisce categoria display (Vigneto, Frutteto, Seminativo) da nome coltura */
+export function getCategoriaFromColtura(coltura) {
+    if (!coltura) return null;
+    const k = String(coltura).toLowerCase().trim();
+    if (k.includes('vite')) return 'Vigneto';
+    if (isColturaFrutteto(coltura)) return 'Frutteto';
+    const seminativo = ['grano', 'mais', 'orzo', 'favino', 'girasole', 'soia', 'colza', 'avena', 'segale', 'riso'];
+    if (seminativo.some(s => k.includes(s))) return 'Seminativo';
+    return null;
+}
+
 /**
  * Attende che le configurazioni Firebase e Google Maps siano caricate
  * @returns {Promise<void>}
@@ -835,11 +846,32 @@ export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTou
 export function filterTerreni(terreni, terreniFiltrati, renderTerreniCallback) {
     const filterTipoPossesso = document.getElementById('filter-tipo-possesso')?.value || '';
     const filterAlert = document.getElementById('filter-alert')?.value || '';
+    const filterPodere = document.getElementById('filter-podere')?.value || '';
+    const filterCategoria = document.getElementById('filter-categoria')?.value || '';
+    const filterColtura = document.getElementById('filter-coltura')?.value || '';
     
     terreniFiltrati.length = 0; // Svuota array
     terreni.forEach(terreno => {
         // Filtro tipo possesso
         if (filterTipoPossesso && terreno.tipoPossesso !== filterTipoPossesso) {
+            return;
+        }
+        
+        // Filtro podere
+        if (filterPodere && (terreno.podere || '').trim() !== filterPodere) {
+            return;
+        }
+        
+        // Filtro categoria (dedotta da coltura)
+        if (filterCategoria) {
+            const catTerreno = getCategoriaFromColtura(terreno.coltura);
+            if (catTerreno !== filterCategoria) {
+                return;
+            }
+        }
+        
+        // Filtro coltura
+        if (filterColtura && (terreno.coltura || '').trim() !== filterColtura) {
             return;
         }
         
@@ -872,9 +904,15 @@ export function filterTerreni(terreni, terreniFiltrati, renderTerreniCallback) {
 export function clearFilters(terreni, terreniFiltrati, renderTerreniCallback) {
     const filterTipoPossesso = document.getElementById('filter-tipo-possesso');
     const filterAlert = document.getElementById('filter-alert');
+    const filterPodere = document.getElementById('filter-podere');
+    const filterCategoria = document.getElementById('filter-categoria');
+    const filterColtura = document.getElementById('filter-coltura');
     
     if (filterTipoPossesso) filterTipoPossesso.value = '';
     if (filterAlert) filterAlert.value = '';
+    if (filterPodere) filterPodere.value = '';
+    if (filterCategoria) filterCategoria.value = '';
+    if (filterColtura) filterColtura.value = '';
     
     terreniFiltrati.length = 0; // Svuota array
     

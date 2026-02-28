@@ -8,7 +8,8 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "start": "http-server -p 8000 -c-1"
+    "start": "http-server -p 8000 -c-1",
+    "generate:tony-routes": "node scripts/generate-tony-routes.cjs"
   },
   "keywords": [
     "agriculture",

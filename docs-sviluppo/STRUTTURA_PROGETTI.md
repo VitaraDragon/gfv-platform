@@ -1,5 +1,7 @@
 # 📁 Struttura Progetti - Separazione Vecchia App e GFV Platform
 
+**Ultimo aggiornamento: 2026-02-25 (verifica allineamento codice/doc).**
+
 ## ✅ Stato Attuale
 
 ### Vecchia App (Vendemmia Meccanizzata)
@@ -11,10 +13,10 @@
 
 ### Nuovo Progetto (GFV Platform)
 - **Posizione**: `gfv-platform/` (root)
-- **Repository Git**: Da creare in `gfv-platform/.git` (NUOVO, separato)
-- **Stato**: In sviluppo
-- **Progetto Firebase**: `gfv-platform` (NUOVO, da creare)
-- **File**: Solo `core/`, `shared/`, `README.md`, etc.
+- **Repository Git**: `gfv-platform/.git` ✅ **PRESENTE** (separato da vecchia app)
+- **Stato**: In sviluppo attivo
+- **Progetto Firebase**: `gfv-platform` ✅ **CONFIGURATO** (Authentication, Firestore, Functions, Hosting)
+- **File**: `core/`, `modules/`, `shared/`, `functions/`, `docs-sviluppo/`, etc.
 
 ## 🔒 Separazione Garantita
 
@@ -22,7 +24,7 @@
 
 ```
 gfv-platform/
-├── .git/                    # ⚠️ NUOVO repository Git (da creare)
+├── .git/                    # ✅ Repository Git GFV Platform (separato)
 │   └── Solo per GFV Platform
 │
 └── vecchia app/
@@ -39,8 +41,8 @@ Firebase Projects:
 ├── vendemmia-meccanizzata   # ✅ Vecchia app (esistente, funzionante)
 │   └── Usato da: vecchia app/
 │
-└── gfv-platform             # ⚠️ NUOVO progetto (da creare)
-    └── Usato da: core/
+└── gfv-platform             # ✅ Progetto configurato
+    └── Usato da: core/, functions/, hosting
 ```
 
 ## 📋 Verifica Separazione
@@ -52,11 +54,11 @@ Firebase Projects:
 - [x] Configurazione Firebase originale intatta
 - [x] Tutti i file originali presenti
 
-### ⚠️ Nuovo Progetto - Da Completare
+### ✅ Nuovo Progetto - Stato attuale
 
-- [ ] Repository Git da creare in `gfv-platform/.git`
-- [ ] Progetto Firebase da creare (`gfv-platform`)
-- [ ] Configurazione Firebase da inserire
+- [x] Repository Git presente in `gfv-platform/.git`
+- [x] Progetto Firebase creato e configurato (`gfv-platform`)
+- [x] Configurazione Firebase in uso (es. `core/config/firebase-config.js`, Cloud Functions, Hosting)
 
 ## 🚀 Setup Nuovo Repository Git
 

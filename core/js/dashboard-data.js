@@ -2195,3 +2195,64 @@ export async function loadMagazzinoSottoScortaCount(dependencies) {
         return 0;
     }
 }
+
+/**
+ * Conta scadenze urgenti (scadute o imminenti nei prossimi 15 giorni) dal parco macchine
+ * @param {string} tenantId - ID tenant
+ * @param {Object} dependencies - db, collection, getDocs
+ * @returns {Promise<number>}
+ */
+export async function loadScadenzeUrgentiCount(tenantId, dependencies) {
+    try {
+        const { db, collection, getDocs } = dependencies;
+        if (!tenantId) return 0;
+        const macchineRef = collection(db, 'tenants', tenantId, 'macchine');
+        const snapshot = await getDocs(macchineRef);
+        const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
+        let count = 0;
+        snapshot.forEach((d) => {
+            const m = d.data();
+            if (m.prossimaManutenzione != null) {
+                const scadenza = m.prossimaManutenzione.toDate ? m.prossimaManutenzione.toDate() : new Date(m.prossimaManutenzione);
+                scadenza.setHours(0, 0, 0, 0);
+                const giorni = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+                if (giorni < 0 || (giorni >= 0 && giorni <= 15)) count++;
+            }
+            if (m.oreProssimaManutenzione != null) {
+                const ore = m.oreAttuali != null ? parseFloat(m.oreAttuali) : 0;
+                const soglia = parseFloat(m.oreProssimaManutenzione);
+                const oreRimanenti = soglia - ore;
+                if (oreRimanenti <= 0 || oreRimanenti < 15) count++;
+            }
+        });
+        return count;
+    } catch (err) {
+        console.warn('loadScadenzeUrgentiCount:', err);
+        return 0;
+    }
+}
+
+/**
+ * Conta guasti aperti (stato diverso da Risolto/Riparato/Chiuso)
+ * @param {string} tenantId - ID tenant
+ * @param {Object} dependencies - db, collection, getDocs
+ * @returns {Promise<number>}
+ */
+export async function loadGuastiApertiCount(tenantId, dependencies) {
+    try {
+        const { db, collection, getDocs } = dependencies;
+        if (!tenantId) return 0;
+        const guastiRef = collection(db, 'tenants', tenantId, 'guasti');
+        const snapshot = await getDocs(guastiRef);
+        let count = 0;
+        snapshot.forEach((d) => {
+            const s = (d.data().stato || '').toLowerCase();
+            if (s !== 'risolto' && s !== 'riparato' && s !== 'chiuso') count++;
+        });
+        return count;
+    } catch (err) {
+        console.warn('loadGuastiApertiCount:', err);
+        return 0;
+    }
+}

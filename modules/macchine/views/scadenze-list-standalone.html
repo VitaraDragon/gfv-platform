@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scadenze Parco Macchine - GFV Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E0F7FA 0%, #80DEEA 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #0097A7 0%, #006064 100%); color: white; padding: 24px 30px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .header h1 { font-size: 24px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #0097A7; color: white; }
+        .btn-primary:hover { background: #006064; }
+        .btn-secondary { background: rgba(255,255,255,0.25); color: white; border: 1px solid rgba(255,255,255,0.5); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.35); }
+        .content { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 16px; background: #E0F7FA; border-radius: 8px; border: 1px solid #80DEEA; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #006064; }
+        .filter-group select { padding: 8px 12px; border: 2px solid #80DEEA; border-radius: 6px; font-size: 14px; min-width: 180px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .section-header h2 { color: #006064; font-size: 20px; }
+        .scadenze-table { width: 100%; border-collapse: collapse; }
+        .scadenze-table th, .scadenze-table td { padding: 12px; text-align: left; border-bottom: 1px solid #80DEEA; }
+        .scadenze-table th { background: linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%); font-weight: 600; color: #006064; }
+        .scadenze-table tr:hover { background: #E0F7FA; }
+        .scadenze-table tr.row-scaduto { background: #ffebee; }
+        .scadenze-table tr.row-scaduto:hover { background: #ffcdd2; }
+        /* Status dots - allineato al sistema affitti/contratti */
+        .status-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: middle; flex-shrink: 0; }
+        .status-dot.dot-black { background: #37474f; }
+        .status-dot.dot-red { background: #c62828; }
+        .status-dot.dot-yellow { background: #f9a825; }
+        .status-dot.dot-green { background: #2e7d32; }
+        .cell-status { display: flex; align-items: center; gap: 4px; }
+        .btn-rinnova { background: none; border: none; cursor: pointer; padding: 4px 8px; font-size: 16px; color: #0097A7; }
+        .btn-rinnova:hover { color: #006064; }
+        .loading, .empty-state { text-align: center; padding: 40px; color: #666; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 28px; border-radius: 12px; max-width: 420px; width: 90%; border: 2px solid #0097A7; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { color: #006064; font-size: 18px; }
+        .close-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #666; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: #333; }
+        .form-group input { width: 100%; padding: 10px; border: 2px solid #80DEEA; border-radius: 6px; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: #0097A7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📅 Scadenze</h1>
+                <p style="opacity: 0.9; margin-top: 4px; font-size: 14px;">Manutenzioni e limiti ore</p>
+            </div>
+            <a href="macchine-dashboard-standalone.html" class="btn btn-secondary">← Indietro</a>
+        </div>
+        <div class="content">
+            <div id="alert-container"></div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Stato</label>
+                    <select id="filter-stato">
+                        <option value="tutti">Tutti</option>
+                        <option value="scaduti">Solo Scaduti</option>
+                    </select>
+                </div>
+            </div>
+            <div class="section-header">
+                <h2>Elenco scadenze</h2>
+                <span id="count-label">0 scadenze</span>
+            </div>
+            <div id="table-container">
+                <div class="loading">Caricamento...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-rinnova" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-rinnova-title">Aggiorna scadenza</h3>
+                <button type="button" class="close-btn" id="btn-close-modal">&times;</button>
+            </div>
+            <form id="form-rinnova">
+                <input type="hidden" id="rinnova-macchinaId">
+                <input type="hidden" id="rinnova-tipo" value="data">
+                <div class="form-group" id="group-data">
+                    <label for="rinnova-data">Nuova data scadenza</label>
+                    <input type="date" id="rinnova-data">
+                </div>
+                <div class="form-group" id="group-ore" style="display: none;">
+                    <label for="rinnova-ore">Nuove ore limite (prossima manutenzione)</label>
+                    <input type="number" id="rinnova-ore" min="0" step="1" placeholder="es. 500">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-annulla">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script>window.currentTableData = window.currentTableData || { pageType: 'scadenze', summary: 'Caricamento dati in corso...', items: [] };</script>
+    <script src="../../../core/js/config-loader.js"></script>
+    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module">
+        (async function() {
+            if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+                window.currentTableData = { pageType: 'scadenze', summary: 'Caricamento dati in corso...', items: [] };
+            }
+            const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
+            const firebaseConfig = await waitForConfig();
+            const { initializeFirebase, getAuthInstance, getDb, getDoc, doc } = await import('../../../core/services/firebase-service.js');
+            const { getCurrentTenantId, setCurrentTenantId, initializeTenantService } = await import('../../../core/services/tenant-service.js');
+            const { getAllMacchine, updateMacchina } = await import('../../parco-macchine/services/macchine-service.js');
+            initializeFirebase(firebaseConfig);
+            (function loadTonyAfterFirebase() {
+                var base = (window.location.pathname||'').indexOf('/gfv-platform/') >= 0 ? (window.location.origin + '/gfv-platform/core') : '../../../core';
+                var sep = (base && !base.endsWith('/')) ? '/' : '';
+                var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = base + sep + 'styles/tony-widget.css'; document.head.appendChild(l);
+                var s = document.createElement('script'); s.type = 'module'; s.src = base + sep + 'js/tony-widget-standalone.js'; document.body.appendChild(s);
+            })();
+            const auth = getAuthInstance();
+            const db = getDb();
+            initializeTenantService();
+
+            let scadenzeList = [];
+
+            function escapeHtml(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+            function showAlert(msg, type) {
+                const c = document.getElementById('alert-container');
+                c.innerHTML = '<div class="alert alert-' + type + '">' + escapeHtml(msg) + '</div>';
+                setTimeout(() => c.innerHTML = '', 4000);
+            }
+
+            function toDate(val) {
+                if (!val) return null;
+                if (val.toDate) return val.toDate();
+                if (val instanceof Date) return val;
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            /**
+             * Calcola stato scadenza (come affitti/contratti).
+             * Ritorno: { dot: 'black'|'red'|'yellow'|'green', rowScaduto: boolean, statoTesto: string }
+             */
+            function calcolaStatoScadenza(tipo, dataScadenza, oreAttuali, sogliaOre) {
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+
+                if (tipo === 'data') {
+                    const scadenza = toDate(dataScadenza);
+                    if (!scadenza) return { dot: 'green', rowScaduto: false, statoTesto: '—' };
+                    const s = new Date(scadenza);
+                    s.setHours(0, 0, 0, 0);
+                    const giorni = Math.ceil((s - oggi) / (1000 * 60 * 60 * 24));
+                    if (giorni < 0) return { dot: 'black', rowScaduto: true, statoTesto: 'Scaduto' };
+                    if (giorni <= 7) return { dot: 'red', rowScaduto: false, statoTesto: 'Entro 7 gg' };
+                    if (giorni <= 30) return { dot: 'yellow', rowScaduto: false, statoTesto: 'Entro 30 gg' };
+                    return { dot: 'green', rowScaduto: false, statoTesto: 'Ok' };
+                }
+
+                if (tipo === 'ore') {
+                    const ore = oreAttuali != null ? parseFloat(oreAttuali) : 0;
+                    const soglia = sogliaOre != null ? parseFloat(sogliaOre) : null;
+                    if (soglia == null) return { dot: 'green', rowScaduto: false, statoTesto: '—' };
+                    const oreRimanenti = soglia - ore;
+                    if (oreRimanenti <= 0) return { dot: 'black', rowScaduto: true, statoTesto: 'Superato' };
+                    if (oreRimanenti < 15) return { dot: 'red', rowScaduto: false, statoTesto: '< 15 ore' };
+                    if (oreRimanenti < 50) return { dot: 'yellow', rowScaduto: false, statoTesto: '< 50 ore' };
+                    return { dot: 'green', rowScaduto: false, statoTesto: 'Ok' };
+                }
+                return { dot: 'green', rowScaduto: false, statoTesto: '—' };
+            }
+
+            function buildScadenze(macchine) {
+                const out = [];
+                const list = Array.isArray(macchine) ? macchine : [];
+                for (const m of list) {
+                    const nome = m.nome || m.id || '—';
+                    const id = m.id;
+                    if (m.prossimaManutenzione != null) {
+                        const stato = calcolaStatoScadenza('data', m.prossimaManutenzione, null, null);
+                        out.push({
+                            macchinaId: id,
+                            mezzo: nome,
+                            tipoScadenza: 'Manutenzione',
+                            valoreLimite: toDate(m.prossimaManutenzione),
+                            tipoValore: 'data',
+                            oreAttuali: m.oreAttuali,
+                            sogliaOre: null,
+                            dot: stato.dot,
+                            rowScaduto: stato.rowScaduto,
+                            statoTesto: stato.statoTesto
+                        });
+                    }
+                    if (m.oreProssimaManutenzione != null) {
+                        const stato = calcolaStatoScadenza('ore', null, m.oreAttuali, m.oreProssimaManutenzione);
+                        out.push({
+                            macchinaId: id,
+                            mezzo: nome,
+                            tipoScadenza: 'Manutenzione (ore)',
+                            valoreLimite: m.oreProssimaManutenzione,
+                            tipoValore: 'ore',
+                            oreAttuali: m.oreAttuali,
+                            sogliaOre: m.oreProssimaManutenzione,
+                            dot: stato.dot,
+                            rowScaduto: stato.rowScaduto,
+                            statoTesto: stato.statoTesto
+                        });
+                    }
+                }
+                return out;
+            }
+
+            function formatValore(s) {
+                if (s == null) return '—';
+                if (typeof s === 'number') return Number(s).toLocaleString('it-IT') + ' ore';
+                const d = toDate(s);
+                return d ? d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+            }
+
+            function filterList() {
+                const soloScaduti = document.getElementById('filter-stato').value === 'scaduti';
+                return soloScaduti ? scadenzeList.filter(s => s.rowScaduto) : scadenzeList;
+            }
+
+            function renderTable() {
+                const filtered = filterList();
+                document.getElementById('count-label').textContent = filtered.length + ' scadenze';
+                const container = document.getElementById('table-container');
+                const nero = filtered.filter(s => s.dot === 'black').length;
+                const rosso = filtered.filter(s => s.dot === 'red').length;
+                const giallo = filtered.filter(s => s.dot === 'yellow').length;
+                const verde = filtered.filter(s => s.dot === 'green').length;
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
+                const scaduteCount = filtered.filter(s => s.rowScaduto).length;
+                const imminentiCount = filtered.filter(s => {
+                    if (s.rowScaduto || s.tipoValore !== 'data') return false;
+                    const d = toDate(s.valoreLimite);
+                    if (!d) return false;
+                    const t = new Date(d);
+                    t.setHours(0, 0, 0, 0);
+                    const giorni = Math.ceil((t - oggi) / (1000 * 60 * 60 * 24));
+                    return giorni >= 0 && giorni <= 15;
+                }).length;
+                const parts = [];
+                if (scaduteCount) parts.push(scaduteCount + ' scadute (da rinnovare)');
+                if (imminentiCount) parts.push(imminentiCount + ' imminenti (prossimi 15 giorni)');
+                if (giallo) parts.push(giallo + ' in scadenza entro 30 giorni');
+                if (verde) parts.push(verde + ' ok');
+                const summaryText = parts.length ? 'Scadenze visibili: ' + parts.join(', ') + '.' : 'Nessuna scadenza nella lista.';
+                window.currentTableData = {
+                    pageType: 'scadenze',
+                    summary: summaryText,
+                    scaduteCount: scaduteCount,
+                    imminentiCount: imminentiCount,
+                    items: filtered.map(s => ({
+                        mezzo: s.mezzo,
+                        tipoScadenza: s.tipoScadenza,
+                        valoreLimite: s.tipoValore === 'data' ? formatValore(s.valoreLimite) : formatValore(s.valoreLimite),
+                        stato: s.statoTesto,
+                        urgente: s.dot === 'black' || s.dot === 'red'
+                    }))
+                };
+                if (window.Tony && typeof window.Tony.setContext === 'function') {
+                    window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, { tableDataSummary: window.currentTableData.summary, currentTableData: window.currentTableData }));
+                }
+                try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
+                const urgentiCount = scaduteCount + imminentiCount;
+                if (urgentiCount > 0 && !window.tonyScadenzeAlertFired && window.Tony && typeof window.Tony.speak === 'function') {
+                    setTimeout(function() {
+                        if (urgentiCount > 0 && !window.tonyScadenzeAlertFired) {
+                            window.tonyScadenzeAlertFired = true;
+                            window.Tony.speak('Ti segnalo che ci sono ' + urgentiCount + ' scadenze urgenti da gestire nel parco macchine.');
+                        }
+                    }, 4000);
+                }
+                if (filtered.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Nessuna scadenza trovata</div>';
+                    return;
+                }
+                const rows = filtered.map(s => {
+                    const valoreStr = s.tipoValore === 'data' ? formatValore(s.valoreLimite) : formatValore(s.valoreLimite);
+                    const rowClass = s.rowScaduto ? ' class="row-scaduto"' : '';
+                    return '<tr' + rowClass + '><td><span class="cell-status"><span class="status-dot dot-' + s.dot + '" title="' + escapeHtml(s.statoTesto) + '"></span>' + escapeHtml(s.mezzo) + '</span></td><td>' + escapeHtml(s.tipoScadenza) + '</td><td>' + escapeHtml(valoreStr) + '</td><td><span class="cell-status"><span class="status-dot dot-' + s.dot + '"></span>' + escapeHtml(s.statoTesto) + '</span></td><td><button type="button" class="btn-rinnova" data-macchina-id="' + escapeHtml(s.macchinaId) + '" data-tipo="' + escapeHtml(s.tipoValore) + '" data-mezzo="' + escapeHtml(s.mezzo) + '" title="Aggiorna scadenza">🔄</button></td></tr>';
+                }).join('');
+                container.innerHTML = '<table class="scadenze-table"><thead><tr><th>Mezzo</th><th>Tipo Scadenza</th><th>Valore Limite</th><th>Stato</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+                container.querySelectorAll('.btn-rinnova').forEach(btn => {
+                    btn.onclick = () => openModalRinnova(btn.dataset.macchinaId, btn.dataset.tipo, btn.dataset.mezzo);
+                });
+            }
+
+            function openModalRinnova(macchinaId, tipo, mezzo) {
+                document.getElementById('rinnova-macchinaId').value = macchinaId || '';
+                document.getElementById('rinnova-tipo').value = tipo || 'data';
+                document.getElementById('modal-rinnova-title').textContent = 'Aggiorna scadenza – ' + (mezzo || '');
+                const groupData = document.getElementById('group-data');
+                const groupOre = document.getElementById('group-ore');
+                const inputData = document.getElementById('rinnova-data');
+                const inputOre = document.getElementById('rinnova-ore');
+                if (tipo === 'ore') {
+                    groupData.style.display = 'none';
+                    groupOre.style.display = 'block';
+                    inputOre.value = '';
+                    inputOre.focus();
+                } else {
+                    groupData.style.display = 'block';
+                    groupOre.style.display = 'none';
+                    inputData.value = '';
+                    inputData.focus();
+                }
+                document.getElementById('modal-rinnova').classList.add('active');
+            }
+
+            function closeModal() {
+                document.getElementById('modal-rinnova').classList.remove('active');
+                document.getElementById('form-rinnova').reset();
+            }
+
+            async function loadData() {
+                const container = document.getElementById('table-container');
+                container.innerHTML = '<div class="loading">Caricamento...</div>';
+                try {
+                    const macchine = await getAllMacchine({ soloAttive: false });
+                    scadenzeList = buildScadenze(macchine);
+                    renderTable();
+                } catch (err) {
+                    console.error(err);
+                    showAlert('Errore: ' + err.message, 'error');
+                    container.innerHTML = '<div class="empty-state">Errore caricamento</div>';
+                }
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                let tenantId = getCurrentTenantId();
+                if (!tenantId) {
+                    const ud = await getDoc(doc(db, 'users', user.uid));
+                    if (ud.exists() && ud.data().tenantId) { tenantId = ud.data().tenantId; setCurrentTenantId(tenantId); }
+                }
+                if (!tenantId) { document.getElementById('table-container').innerHTML = '<div class="empty-state">Nessun tenant</div>'; return; }
+                document.getElementById('filter-stato').onchange = renderTable;
+                document.getElementById('btn-close-modal').onclick = closeModal;
+                document.getElementById('btn-annulla').onclick = closeModal;
+                document.getElementById('form-rinnova').onsubmit = async (e) => {
+                    e.preventDefault();
+                    const macchinaId = document.getElementById('rinnova-macchinaId').value;
+                    const tipo = document.getElementById('rinnova-tipo').value;
+                    if (!macchinaId) { showAlert('Macchina non specificata', 'error'); return; }
+                    try {
+                        if (tipo === 'ore') {
+                            const ore = parseFloat(document.getElementById('rinnova-ore').value);
+                            if (isNaN(ore) || ore < 0) { showAlert('Inserisci ore valide', 'error'); return; }
+                            await updateMacchina(macchinaId, { oreProssimaManutenzione: ore });
+                        } else {
+                            const dataStr = document.getElementById('rinnova-data').value;
+                            if (!dataStr) { showAlert('Inserisci una data', 'error'); return; }
+                            await updateMacchina(macchinaId, { prossimaManutenzione: new Date(dataStr) });
+                        }
+                        showAlert('Scadenza aggiornata', 'success');
+                        closeModal();
+                        await loadData();
+                    } catch (err) { showAlert(err.message || 'Errore aggiornamento', 'error'); }
+                };
+                await loadData();
+            });
+        })();
+    </script>
+</body>
+</html>

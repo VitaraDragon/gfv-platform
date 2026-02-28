@@ -55,6 +55,8 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 3.5 | Chiamata a Gemini (API REST o SDK); output **{ text }** | §3 Output | [x] fatto |
 | 3.6 | (Opz.) Parsing risposta per estrarre JSON azione e restituire anche action/params (per triggerAction lato client) | §6 Flusso | [x] fatto (parsing in tony-service.js, triggerAction dopo ask) |
 | 3.7 | **Lettura moduli da context**: `request.data.context.dashboard.moduli_attivi`; se contiene `tony` → SYSTEM_INSTRUCTION_ADVANCED; iniezione "STATO UTENTE: Tony Avanzato ATTIVO" nel prompt; fallback navigazione se moduli vuoti | COSA_ABBIAMO_FATTO 2026-02-23 | [x] fatto (2026-02-23) |
+| 3.8 | **Skill SmartFormValidator**: in modalità avanzata, prima di comandi che registrano dati controllare [CONTESTO].form e campi required; se manca dato essenziale chiedere e non inviare JSON | GUIDA_SVILUPPO_TONY §8.4 | [x] fatto (2026-02-23) |
+| 3.9 | **Sub-agenti e mappa estesa**: se pagePath contiene `/vigneto/` → Sub-agente Vignaiolo; se `/magazzino/` → Sub-agente Logistico; TONY_TARGETS_EXTENDED; uso di context.page.availableRoutes per navigazione | GUIDA_SVILUPPO_TONY §8.4, TONY_FUNZIONI §4.2 | [x] fatto (2026-02-23) |
 
 ---
 
@@ -68,11 +70,15 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 4.4 | **Tony.onAction(callback)** registrato; callback gestisce almeno **APRI_PAGINA** / apri_modulo (navigazione) | §9 Moduli che reagiscono, §10 Fase 4 | [x] fatto |
 | 4.5 | **Conferma prima di aprire pagina**: per richieste "come fare" Tony non emette APRI_PAGINA; propone in testo; apre solo dopo conferma utente ("sì"/"apri") | System instruction, COSA_ABBIAMO_FATTO | [x] fatto |
 | 4.6 | **Dialog conferma** custom (no confirm nativo): overlay + box "Aprire la pagina «X»?" con Annulla/Apri; stile in tony-widget.css | COSA_ABBIAMO_FATTO | [x] fatto |
-| 4.7 | **Tony su tutte le pagine**: loader `tony-widget-standalone.js` inietta FAB + chat + dialog; URL assoluti + resolveTarget; snippet su core, core/admin, modules | COSA_ABBIAMO_FATTO, GUIDA_SVILUPPO_TONY §3 | [x] fatto |
+| 4.7 | **Tony su tutte le pagine**: loader `tony-widget-standalone.js` importa `core/js/tony/main.js`; logica in `tony/` (main, ui, engine, voice); FAB + chat + dialog; URL assoluti + resolveTarget | GUIDA_SVILUPPO_TONY §3 | [x] fatto |
 | 4.8 | **Compilazione form Lavori** (INJECT_FORM_DATA): Tony compila form Crea Nuovo Lavoro con sottocategoria, tipo, macchine, stato; contesto coltura_categoria, colture_con_filari | TONY_COMPILAZIONE_LAVORI_2026-02 | [x] fatto (2026-02-16) |
 | 4.9 | (Opz.) Lavori: onAction per SEGNA_ATTIVITA, UPDATE_JOB, ecc. | §9, §8 Azioni V1 | [ ] da fare |
 | 4.10 | (Opz.) Magazzino: onAction per AGGIORNA_MAGAZZINO, MOSTRA_SCORTE | §9, §8 | [ ] da fare |
 | 4.11 | **Context moduli su tutte le pagine**: helper `syncTonyModules(modules)` in widget; dashboard di modulo (Frutteto, Vigneto) lo chiamano dopo caricamento tenant; bypass navigazione (APRI_PAGINA/apri_modulo ignorano isTonyAdvancedActive) | COSA_ABBIAMO_FATTO 2026-02-23, TONY_FUNZIONI 2.3b | [x] fatto (2026-02-23) |
+| 4.12 | **Navigazione**: normalizzazione command da CF (action→type) in onComplete; base path `/gfv-platform` in getUrlForTarget quando pathname contiene `/gfv-platform/` (evita 404 da smartphone/online) | COSA_ABBIAMO_FATTO 2026-02-23 §6–7, TONY_FUNZIONI 2.3b | [x] fatto (2026-02-23) |
+| 4.13 | **Auto-discovery moduli**: getModuliFromDiscovery() da sessionStorage (`tony_moduli_attivi`), window.userModules, window.tenantConfig; saveModuliToStorage(); restoreTonyState carica moduli da sessionStorage; checkTonyModuleStatus usa auto-discovery se context vuoto | COSA_ABBIAMO_FATTO 2026-02-23, TONY_FUNZIONI §2.3d | [x] fatto (2026-02-23) |
+| 4.14 | **Blocco preventivo invio**: in sendRequestWithContext, se moduli_attivi assenti tenta getModuliFromDiscovery(), aggiorna context, attende 150 ms (doActualSend) prima di inviare alla CF così la risposta non è "Attiva il modulo" | COSA_ABBIAMO_FATTO 2026-02-23, GUIDA_SVILUPPO_TONY §3 | [x] fatto (2026-02-23) |
+| 4.15 | **Rotte evolutive**: caricamento `core/config/tony-routes.json` all'init; context.page (pagePath, availableTargets, availableRoutes) inviato alla CF; script `npm run generate:tony-routes` (generate-tony-routes.cjs) per aggiornare la mappa | GUIDA_SVILUPPO_TONY §3, §11 | [x] fatto (2026-02-23) |
 
 ---
 
@@ -83,6 +89,11 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 5.1 | APRI_PAGINA / apri_modulo | target / modulo | §8 | Dashboard navigazione | [x] fatto |
 | 5.2 | INJECT_FORM_DATA (form Attività) | formId, formData | SYSTEM_INSTRUCTION_ATTIVITA | TonyFormInjector.injectAttivitaForm | [x] fatto |
 | 5.3 | INJECT_FORM_DATA (form Lavori) | formId, formData | SYSTEM_INSTRUCTION_LAVORO | TonyFormInjector.injectLavoroForm | [x] fatto (2026-02-16) |
+| 5.3b | OPEN_MODAL | id (attivita-modal, ora-modal, lavoro-modal) | CF avanzata | main.js processTonyCommand | [x] fatto |
+| 5.3c | SET_FIELD | field, value | CF avanzata | main.js + SmartFormFiller | [x] fatto |
+| 5.3d | SAVE_ACTIVITY | — | CF avanzata | main.js CLICK_BUTTON | [x] fatto |
+| 5.3e | FILTER_TABLE | params (podere, categoria, coltura, possesso, alert) | CF avanzata terreni | main.js processTonyCommand | [x] fatto (2026-02-25) |
+| 5.3f | SUM_COLUMN | params, messageTemplate | CF avanzata terreni | main.js processTonyCommand | [x] fatto (2026-02-25) |
 | 5.4 | MOSTRA_GRAFICO | tipo, periodo | §8 | [ ] da fare | [ ] da fare |
 | 5.5 | SEGNA_ATTIVITA | descrizione, campo_id | §8 | [ ] da fare | [ ] da fare |
 | 5.6 | REPORT_GUASTO | mezzo, gravita | §8 | [ ] da fare | [ ] da fare |
@@ -166,4 +177,4 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 
 ---
 
-*Checklist creata in base a `GUIDA_SVILUPPO_TONY.md`. Aggiornare gli stati qui quando si completa un punto.*
+*Checklist creata in base a `GUIDA_SVILUPPO_TONY.md`. Ultimo aggiornamento (verifica codice/doc): 2026-02-27. FILTER_TABLE, SUM_COLUMN e domande informative terreni (§10 TONY_FUNZIONI) 2026-02-25.*

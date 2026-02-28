@@ -128,10 +128,10 @@ export class Macchina extends Base {
     }
     
     if (!this.tipoMacchina || this.tipoMacchina.trim().length === 0) {
-      errors.push('Tipo macchina obbligatorio (trattore o attrezzo)');
+      errors.push('Tipo macchina obbligatorio (trattore, attrezzo, automezzo, veicolo, furgone)');
     }
     
-    const tipiValidi = ['trattore', 'attrezzo'];
+    const tipiValidi = ['trattore', 'attrezzo', 'automezzo', 'veicolo', 'furgone'];
     if (this.tipoMacchina && !tipiValidi.includes(this.tipoMacchina)) {
       errors.push(`Tipo macchina non valido. Tipi validi: ${tipiValidi.join(', ')}`);
     }

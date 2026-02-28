@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Prodotti standalone - build 2025-02-24 (verifica cache) -->
+<!-- Prodotti TEST BOOTSTRAP - pagina pilota per standalone-bootstrap.js (non modificare prodotti-standalone.html) -->
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anagrafica Prodotti - Prodotti e Magazzino - GFV Platform</title>
+    <title>Anagrafica Prodotti (Test Bootstrap) - GFV Platform</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%); color: #333; min-height: 100vh; }
@@ -58,8 +58,8 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>📋 Anagrafica Prodotti</h1>
-                <p style="opacity: 0.9; margin-top: 5px;">Gestisci prodotti e scorte minime</p>
+                <h1>📋 Anagrafica Prodotti (Test Bootstrap)</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">Pagina pilota con standalone-bootstrap.js</p>
             </div>
             <div class="header-actions">
                 <button class="btn btn-primary" id="btn-nuovo-prodotto">➕ Nuovo Prodotto</button>
@@ -192,40 +192,28 @@
         </div>
     </div>
 
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
+    <!-- Placeholder per Tony (currentTableData) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };</script>
+
+    <!-- Bootstrap unico: config + Firebase + Tenant + Tony -->
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+
+    <!-- Modulo di pagina: attende GFVStandaloneReady poi logica prodotti -->
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[prodotti-test-bootstrap] Bootstrap failed:', err);
+            document.getElementById('alert-container').innerHTML = '<div class="alert alert-error">Avvio non riuscito: ' + (err && err.message ? err.message : String(err)) + '</div>';
+            throw err;
+        }
 
         if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
             window.currentTableData = { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };
         }
 
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') { resolve(window.firebaseConfig); return; }
-                let attempts = 0;
-                const iv = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') { clearInterval(iv); resolve(window.firebaseConfig); }
-                    else if (attempts >= 50) { clearInterval(iv); reject(new Error('Config timeout')); }
-                }, 100);
-            });
-        }
-
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
         let currentTenantId = null;
@@ -340,10 +328,8 @@
             }
             try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
 
-            console.log("[TONY-DEBUG] Calcolo sotto scorta:", sottoScortaCount);
             setTimeout(() => {
                 if (sottoScortaCount > 0 && !window.tonyAlertFired) {
-                    console.log("[TONY-DEBUG] Eseguo speak proattivo");
                     window.tonyAlertFired = true;
                     if (window.Tony && window.Tony.speak) {
                         window.Tony.speak("Ti segnalo anche che ci sono " + sottoScortaCount + " prodotti sotto scorta.");
@@ -486,24 +472,6 @@
                 showAlert('Errore: ' + err.message, 'error');
             }
         }
-    </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
-      var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

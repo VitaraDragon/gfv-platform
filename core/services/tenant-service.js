@@ -19,10 +19,15 @@ let userTenantsCache = null; // Cache tenant disponibili per utente
 const STORAGE_KEY_TENANT = 'gfv_current_tenant_id';
 const STORAGE_KEY_TENANT_PREFERRED = 'gfv_preferred_tenant_id';
 
+/** Promise risolta una sola volta dopo il primo onAuthStateChanged (per bootstrap) */
+let _tenantReadyResolve = null;
+const _tenantReadyPromise = new Promise((resolve) => { _tenantReadyResolve = resolve; });
+
 /**
  * Inizializza il servizio tenant
  * Ascolta cambiamenti autenticazione per aggiornare tenant corrente
  * Supporta multi-tenant: se utente ha più tenant, usa sessionStorage per tenant corrente
+ * @returns {Promise<void>} Promise che si risolve dopo il primo gestore auth (per bootstrap)
  */
 export function initializeTenantService() {
   const auth = getAuthInstance();
@@ -92,7 +97,12 @@ export function initializeTenantService() {
         sessionStorage.removeItem(STORAGE_KEY_TENANT);
       }
     }
+    if (_tenantReadyResolve) {
+      _tenantReadyResolve();
+      _tenantReadyResolve = null;
+    }
   });
+  return _tenantReadyPromise;
 }
 
 /**

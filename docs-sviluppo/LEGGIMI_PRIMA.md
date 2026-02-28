@@ -1,5 +1,7 @@
 # 📖 LEGGIMI PRIMA - Per Nuove Conversazioni
 
+**Ultimo aggiornamento: 2026-02-27.**
+
 ## 🎯 Questo File Contiene Tutto
 
 Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA** questo file per capire subito la situazione!
@@ -23,13 +25,20 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
   - Cosa manca
   - Prossimi passi
 
-### 2. Strategia
+### 2. Architettura moduli e interazioni
+- **`ARCHITETTURA_MODULI_E_INTERAZIONI.md`** ⭐ **Per capire come sono fatti i moduli e come interagiscono**
+  - Elenco moduli con servizi, funzioni principali e modelli
+  - Soluzioni tecniche (multi-tenant, import dinamici, split macchine/parco-macchine, Tony)
+  - Chi chiama chi (interazioni tra core, parco-macchine, vigneto, frutteto, ecc.)
+  - Riferimenti a intersezioni-moduli (flussi e ruoli) e ad altri doc
+
+### 3. Strategia
 - **`STRATEGIA_SVILUPPO.md`**
   - Strategia di sviluppo
   - Ordine moduli
   - Timeline
 
-### 3. Core Base (Nuovo)
+### 4. Core Base (Nuovo)
 - **`PLAN_CORE_BASE.md`** ⭐ **PIANIFICAZIONE COMPLETA CORE BASE**
   - Visione core base (diario attività)
   - Specifiche complete (terreni, attività, liste, statistiche)
@@ -37,7 +46,7 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
   - Checklist implementazione
   - **LEGGI QUESTO per sviluppare il core base!**
 
-### 4. Architettura
+### 5. Architettura
 - **`vecchia app/.cursorrules`**
   - Regole complete progetto
   - Architettura target
