@@ -1,6 +1,6 @@
 # 📖 LEGGIMI PRIMA - Per Nuove Conversazioni
 
-**Ultimo aggiornamento: 2026-02-27.**
+**Ultimo aggiornamento: 2026-03-08.**
 
 ## 🎯 Questo File Contiene Tutto
 
@@ -46,7 +46,14 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
   - Checklist implementazione
   - **LEGGI QUESTO per sviluppare il core base!**
 
-### 5. Architettura
+### 5. Tony (assistente IA)
+- **`tony/README.md`** ⭐ **Panoramica e link – inizia da qui**
+- **`tony/MASTER_PLAN.md`** ⭐ **Piano di riferimento – ogni modifica deve allinearsi**
+- **`tony/STATO_ATTUALE.md`** – Stato verificato sul codice
+- **`TONY_DECISIONI_E_REQUISITI.md`** – Inventario decisioni e requisiti
+- **`GUIDA_SVILUPPO_TONY.md`** – Guida sviluppo modulo Tony
+
+### 6. Architettura
 - **`vecchia app/.cursorrules`**
   - Regole complete progetto
   - Architettura target

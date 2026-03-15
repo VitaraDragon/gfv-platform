@@ -1,8 +1,451 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-02-27.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-03-14.**
 
 > **Nota architettura Tony (2026-02)**: `tony-widget-standalone.js` è ora un loader snello; la logica è in `core/js/tony/` (main.js orchestratore, ui.js FAB/chat/dialog, engine.js mappe e resolve, voice.js TTS). I riferimenti storici a "tony-widget-standalone.js" nei paragrafi sotto indicano il sistema widget nel suo insieme; le funzioni menzionate risiedono in `tony/main.js` e moduli collegati.
+
+## ✅ Tony Lavori: no "Vuoi che salvi?" al primo messaggio se mancano trattore/attrezzo (2026-03-14) - COMPLETATO
+
+### Obiettivo
+Al primo messaggio (open_modal + formData) per un lavoro meccanico, se in formData non ci sono ancora lavoro-trattore e lavoro-attrezzo, il replyText non deve contenere "Vuoi che salvi il lavoro?"; deve chiedere solo trattore/attrezzo (es. "Quale trattore e attrezzo prevedi di usare?").
+
+### Implementazione
+- **functions/index.js** (SYSTEM_INSTRUCTION_LAVORO_STRUCTURED):
+  - **PRIMO MESSAGGIO (open_modal)**: se tipo lavoro è MECCANICO e in formData non ci sono sia lavoro-trattore sia lavoro-attrezzo, replyText non deve mai contenere "Vuoi che salvi il lavoro?" o "confermi salvataggio?"; chiedere solo trattore/attrezzo. La domanda di salvataggio solo quando il form è completo.
+  - Regola generale replyText: se open_modal/fill_form, tipo MECCANICO e in formData mancano lavoro-trattore o lavoro-attrezzo, replyText non deve contenere "Vuoi che salvi?"; chiedere solo ciò che manca.
+
+### Risultato
+- Primo messaggio tipo "Ho creato un lavoro di Trinciatura Kaki... Quale trattore e attrezzo prevedi di usare?" senza "Vuoi che salvi il lavoro?". La richiesta di salvataggio compare solo dopo che l'utente ha indicato trattore/attrezzo (o quando il lavoro non è meccanico).
+
+---
+
+## ✅ Tony Lavori: form già aperto no open_modal/re-inject + no "Quale attrezzo?" se compilato o unico (2026-03-14) - COMPLETATO
+
+### Obiettivo
+Con modal lavoro già aperto non riaprire il modal né ri-iniettare tutto il form (evitare doppia iniezione dopo messaggio proattivo). Non chiedere "Quale attrezzo?" se in formSummary l'attrezzo è già ✓ o se c'è un solo attrezzo compatibile (l'injector lo compila).
+
+### Implementazione
+- **functions/index.js** (SYSTEM_INSTRUCTION_LAVORO_STRUCTURED):
+  - **STATO MODAL**: Se `form.formId === "lavoro-form"` (modal già aperto) è **vietato** emettere action `open_modal`. Rispondere solo con `ask` (replyText con domanda) o `fill_form` con **solo** i campi nuovi (es. solo lavoro-trattore + lavoro-attrezzo se l'utente dice "agrifull" e c'è un solo attrezzo). Per messaggi proattivi ("Form aperto con campi mancanti", "Mancano solo trattore e attrezzo"): rispondere con action `ask` e replyText con la domanda (es. "Quale trattore? ..."); **non includere formData** (formData vuoto `{}`) così il client non esegue INJECT.
+  - **PRIORITÀ requiredEmpty**: Se requiredEmpty è vuoto, non emettere fill_form con molti campi; non emettere open_modal se form è già aperto. Se si deve solo chiedere (es. "Quale trattore?") rispondere con action `ask` e replyText, senza formData e senza open_modal.
+  - **Attrezzo**: Se in formSummary lavoro-attrezzo ha ✓, non scrivere mai "Quale attrezzo?" in replyText. Quando l'utente nomina solo il trattore (es. "agrifull") e c'è un solo attrezzo compatibile: mettere in formData sia lavoro-trattore sia lavoro-attrezzo e replyText "Configuro le macchine." o "Trattore e attrezzo impostati."; mai "Quale attrezzo?".
+
+### Risultato
+- Alla risposta al reminder proattivo la CF restituisce solo `ask` con testo (formData vuoto), quindi nessun OPEN_MODAL né INJECT; niente doppia iniezione. Tony non chiede l'attrezzo se è già compilato o se è unico (compilato dall'injector o dalla CF in un colpo solo).
+
+---
+
+## ✅ Tony: muto durante iniezione + replyText senza domande quando form completo (2026-03-14) - COMPLETATO
+
+### Obiettivo
+Evitare sovrapposizione tra Timer Proattivo (idle), domande della CF e attività dell'Injector: niente messaggi doppi o inutili durante l'iniezione; quando requiredEmpty è vuoto o si stanno inferendo le macchine, risposta solo comando + testo breve di conferma; niente domanda sul nome se già in formData.
+
+### Implementazione
+- **core/js/tony/main.js** (muto durante INJECT):
+  - All'avvio di INJECT_FORM_DATA: cancellazione di `__tonyProactiveAskTimerId` e `__tonyIdleReminderTimerId`, azzeramento di `__tonyProactiveFormState`, flag `__tonyInjectionInProgress = true`. Il timer proattivo non parte durante l'iniezione e si resetta a ogni nuovo avvio INJECT.
+  - Alla scadenza dell'idle (lavoro e attività): se `__tonyInjectionInProgress` è true, il callback non esegue (nessun messaggio automatico durante iniezione).
+  - Alla fine dell'iniezione (`.then(ok)`): `__tonyInjectionInProgress = false`; poi avvio post-inject delay e idle come prima. Stesso comportamento per attivita-form; flag resettato anche in casi di break (modal non aperto, formId non supportato, formData vuoto).
+- **functions/index.js** (verifica reale pre-domanda + priorità injector + no domanda nome):
+  - **VERIFICA REALE PRE-DOMANDA**: se `requiredEmpty` è vuoto, è vietato inviare replyText con domande ("quale?", "vuoi?", "come vuoi chiamare?", "quale trattore/attrezzo?"). Solo testo brevissimo di conferma: "Configuro le macchine.", "Lavoro pronto.", "Salvo il lavoro.", "Fatto!".
+  - Se formData include lavoro-trattore/lavoro-attrezzo (anche dedotti): replyText solo conferma ("Configuro le macchine."); mai chiedere l'attrezzo in chat se è unico o se lo stai già mettendo in formData (priorità all'inferenza dell'injector).
+  - Se formData contiene **lavoro-nome**: replyText non deve mai contenere "Come vuoi chiamare il lavoro?" o simili.
+  - Eccezione requiredEmpty vuoto: consentito fill_form con solo lavoro-trattore e lavoro-attrezzo (dedotti) e replyText "Configuro le macchine.". Punto 3 COMPORTAMENTO PROATTIVO: non suggerire "Come vuoi chiamare questo lavoro?" in replyText se lavoro-nome è già in formData.
+
+### Risultato
+- Durante l'iniezione nessun messaggio automatico del timer; timer resettato a ogni INJECT. Con form completo o solo macchine da inferire, la CF risponde con comando (inject/save) e testo breve, senza domande. Niente domanda sull'attrezzo se unico o in formData; niente "Come vuoi chiamare il lavoro?" se il nome è già in formData.
+
+---
+
+## ✅ Tony: messaggi proattivi (timer) non in chat – solo risposta Tony (2026-03-14) - COMPLETATO
+
+### Obiettivo
+I messaggi inviati in automatico dal timer proattivo (es. "Mancano solo trattore e attrezzo...", "Form completo, confermi salvataggio?") non devono apparire in chat come se li avesse scritti l'utente; devono restare un "pensiero" interno che attiva la CF. In chat si vede solo la risposta di Tony.
+
+### Implementazione
+- **core/js/tony/main.js**:
+  - `sendMessage(overrideText, opts)`: nuova opzione `opts.proactive`. Se `proactive: true`, non si aggiunge il testo come messaggio utente (`appendMessage(text, 'user')`) e non si svuota l'input; il testo viene solo usato per la richiesta alla CF e in chat compare solo la risposta di Tony.
+  - `__tonyTriggerAskForMissingFields` e `__tonyTriggerAskForSaveConfirmation` chiamano `sendMessage(..., { proactive: true })`.
+
+### Risultato
+- Quando scatta il timer di inattività, la domanda proattiva non viene mostrata in chat; l'utente vede solo la risposta di Tony (es. "Configuro le macchine.", "Vuoi che salvi il lavoro?"). Niente più doppie bolle (messaggio automatico + risposta).
+
+---
+
+## ✅ Tony Lavori: chiedere trattore se 2+ compatibili + save solo dopo conferma esplicita (2026-03-14) - COMPLETATO
+
+### Obiettivo
+Con più trattori compatibili Tony deve chiedere quale usare (non compilare a caso). Salvataggio solo dopo conferma esplicita dell'utente ("salva", "sì", "conferma"); il messaggio "Form completo, confermi salvataggio?" (timer) non deve essere interpretato come conferma.
+
+### Implementazione
+- **functions/index.js** (SYSTEM_INSTRUCTION_LAVORO_STRUCTURED):
+  - **TRATTORE**: Se in azienda.trattori ci sono 2 o più trattori (o 2+ compatibili con l'attrezzo), NON mettere lavoro-trattore in formData; rispondere con action "ask" e replyText "Quale trattore vuoi usare? [elenco nomi]". Compilare lavoro-trattore SOLO se c'è UN SOLO trattore compatibile.
+  - **Save solo dopo conferma**: Emettere action "save" SOLO se il messaggio utente è conferma esplicita ("salva", "sì", "conferma", "ok salva", "sì salva"). Se il messaggio è "Form completo, confermi salvataggio?" o "Form aperto con campi mancanti" (reminder timer), rispondere con action "ask" e replyText "Vuoi che salvi il lavoro?", MAI action "save". Regola 10 e MESSAGGIO DOPO SALVATAGGIO aggiornate di conseguenza.
+
+### Risultato
+- Con più trattori Tony chiede "Quale trattore vuoi usare? Agrifull, ..." e non compila da solo. Il salvataggio avviene solo quando l'utente scrive "salva" (o equivalente), non quando scatta il timer "Form completo, confermi salvataggio?".
+
+---
+
+## ✅ Tony Lavori: non chiedere campi già compilati + deduzione un solo attrezzo/trattore (2026-03-14) - COMPLETATO
+
+### Obiettivo
+Evitare che Tony chieda trattore/attrezzo quando sono già in formSummary (✓) e, quando nel parco macchine c'è un solo attrezzo (es. una sola trincia) o un solo trattore compatibile, compilarlo direttamente senza chiedere.
+
+### Implementazione
+- **functions/index.js** (SYSTEM_INSTRUCTION_LAVORO_STRUCTURED):
+  - **NON CHIEDERE CAMPI GIÀ COMPILATI**: prima di chiedere "quale trattore/attrezzo?" controllare sempre formSummary; se lavoro-trattore, lavoro-attrezzo o lavoro-operatore-macchina hanno ✓, non chiedere quel campo.
+  - **DEDUZIONE UN SOLO MEZZO**: usare azienda.trattori e azienda.attrezzi; filtrare attrezzi per tipo lavoro (Trinciatura→trincia, Erpicatura→erpice, Pre-potatura→potat, ecc.). Se un solo attrezzo compatibile → metterlo in formData con action fill_form e non chiedere. Stessa regola per un solo trattore (o un solo compatibile con l'attrezzo). Chiedere solo quando ci sono 2+ opzioni.
+  - Regola "requiredEmpty vuoto + tipo meccanico + macchine vuote" aggiornata: prima applicare deduzione; se dopo deduzione non manca nulla → chiedere solo conferma salvataggio; altrimenti chiedere solo ciò che manca.
+  - TRIGGER "Form aperto" allineato: non chiedere campi con ✓; applicare deduzione prima di ask.
+
+### Risultato
+- Tony non ripete domande su trattore/attrezzo già compilati; con un solo mezzo in parco lo imposta direttamente (es. una trincia → compilata senza chiedere "quale trincia?").
+
+---
+
+## ✅ Tony Lavori: stop loop iniezione + domanda macchine + no save senza macchine (2026-03-14) - COMPLETATO
+
+### Obiettivo
+Evitare che Tony, dopo il reminder "campi mancanti", ri-inietti tutto il form (loop), chieda il nome già compilato, o emetta save con trattore/attrezzo vuoti per lavori meccanici.
+
+### Implementazione
+- **functions/index.js** (SYSTEM_INSTRUCTION_LAVORO):
+  - **Stop loop**: se `requiredEmpty` è vuoto, NON emettere mai `fill_form` né formData (evita ri-compilazione e reset).
+  - **Macchine prima di save**: se requiredEmpty vuoto ma tipo meccanico e lavoro-trattore/lavoro-attrezzo vuoti → rispondere SOLO con action "ask" e replyText che chiede quale trattore e attrezzo; NON formData, NON save.
+  - **Save solo se ok**: save consentito solo se (tipo non meccanico O macchine compilate O utente ha detto "no macchine"). Mai save se tipo meccanico e trattore/attrezzo vuoti (salvo utente esplicito "salva così").
+  - **Trigger "Form aperto con campi mancanti"**: quando il messaggio è di quel tipo e form è lavoro-form, se requiredEmpty vuoto ma macchine vuote e tipo meccanico → solo ask con domanda macchine; non chiedere campi già con ✓.
+- **core/js/tony/main.js**:
+  - Stato proattivo lavoro: aggiunto `needsMacchineOnly: true` quando `!hasRequiredEmpty && needsMacchine`.
+  - Alla scadenza idle, se `state.needsMacchineOnly` → invio messaggio specifico: "Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e erpice vuoi usare?" invece del generico "Form aperto con campi mancanti da compilare".
+  - `__tonyTriggerAskForMissingFields(optionalMessage)`: accetta messaggio opzionale per guidare la CF.
+
+### Risultato
+- Nessun loop INJECT dopo il reminder; Tony chiede solo trattore/attrezzo (o "confermi salvataggio?" se form completo); nessun save con macchine vuote per lavori meccanici.
+
+---
+
+## ✅ Tony: timer proattivo form (check post-inject + reminder inattività) (2026-03-14) - COMPLETATO
+
+### Obiettivo
+Riordinare il flusso reminder: dopo l'iniezione dare tempo al form di stabilizzarsi, fare un check per sapere cosa chiedere in caso di inattività, poi avviare il timer di inattività. Se l'utente sta zitto, Tony ricorda campi mancanti oppure conferma salvataggio.
+
+### Implementazione
+- **core/js/tony/main.js**:
+  - Costanti: `POST_INJECT_CHECK_DELAY_MS` (2800 ms), `IDLE_REMINDER_MS` (7000 ms).
+  - Dopo INJECT_FORM_DATA (lavoro-form e attivita-form): si cancella eventuale timer idle precedente; si avvia un solo timer di ritardo (post-inject). Alla scadenza: check con `getCurrentFormContext()` (requiredEmpty; per lavoro-form anche needsMacchine). Stato salvato in `window.__tonyProactiveFormState` (type: `ready_for_save` | `missing_fields`, formId, modalId). Poi parte il timer di inattività (`__tonyIdleReminderTimerId`). Alla scadenza dell'idle: se modal ancora aperto, si invoca il trigger corretto (AskForSaveConfirmation o AskForMissingFields) e si azzera lo stato.
+  - In `sendMessage`: si cancellano sia il timer post-inject sia il timer idle e si azzera `__tonyProactiveFormState`, così ogni nuovo messaggio utente resetta il flusso; dopo una risposta e un eventuale nuovo INJECT il ciclo riparte (delay → check → idle).
+
+### Risultato
+- Flusso: iniezione → ~2,8 s stabilizzazione → check → stato salvato → 7 s inattività → reminder (campi mancanti o "confermi salvataggio?"). Se l'utente scrive/parla prima, timer e stato si azzerano.
+
+---
+
+## ✅ Tony Lavori: parità proattività con Attività (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Form Lavori non proattivo: non compilava tutto in un colpo, non chiedeva cosa serviva. Allineare al comportamento Attività.
+
+### Implementazione
+- **functions/index.js**:
+  - COMPORTAMENTO PROATTIVO per Lavori: compila tutto in un colpo, chiedi il resto in replyText, CHECKLIST prima di fill_form.
+  - OPEN_MODAL con formData: quando action "open_modal", passa formData come `fields` nel comando (client li inietta dopo apertura).
+  - useStructuredFormOutput esteso: anche quando utente su pagina lavori con intent "crea lavoro" e modal chiuso → usa istruzione Lavori con form sintetico.
+  - MODAL CHIUSO in SYSTEM_INSTRUCTION_LAVORO: se form null, rispondi open_modal + formData completo.
+  - OPEN_MODAL CHECKLIST LAVORI nella regola generica.
+- **main.js**: generateFormSummary: pattern placeholder esteso per "-- Seleziona categoria/tipo" (no ✓ su select con placeholder).
+
+### Risultato
+- "Crea lavoro erpicatura nel Sangiovese" → OPEN_MODAL con fields completi (nome, terreno, categoria, sottocategoria, tipo, data, durata, stato).
+- Form aperto: compila tutto inferibile + chiedi in replyText il prossimo dato mancante.
+- formSummary corretto: no ✓ su placeholder.
+
+---
+
+## ✅ Tony: regole CF, formSummary, deriveParents (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Risolvere: Tony chiede sottocategoria anche con form completo; messaggio varietà usato per lavori normali; formSummary con ✓ su placeholder; disambiguazione tipo lavoro senza terreno.
+
+### Implementazione
+- **main.js**: `getCurrentFormContext` ora include `requiredEmpty` (array ID campi required vuoti) nel contesto inviato alla CF. `generateFormSummary`: non mettere ✓ su SELECT con displayVal che matcha placeholder (Seleziona..., -- Nessuna --, ecc.).
+- **functions/index.js**: PRIORITÀ ASSOLUTA per Attività e Lavori: se `form.requiredEmpty` vuoto → action "save" senza altre domande. MESSAGGIO VARIETÀ: frase "Completa manualmente dettagli tecnici (varietà, distanze)" SOLO per Impianto Nuovo Vigneto/Frutteto. SOTTOCATEGORIA PER CATEGORIA: Potatura → Manuale/Meccanico; Lavorazione terreno → Tra le File/Sulla Fila/Generale.
+- **tony-form-injector.js**: `deriveParentsFromTipoLavoro(tipoNome, context, formData)`: quando ci sono più match (es. Erpicatura vs Erpicatura Tra le File), usa `formData['lavoro-terreno']` per disambiguare: terreno con filari (Vite/Frutteto/Olivo) → preferisce tipo "Tra le File"/"Sulla Fila"; Seminativo → preferisce tipo senza.
+
+### Risultato
+- Form completo (requiredEmpty vuoto) → Tony salva senza chiedere.
+- formSummary corretto: no ✓ su select con placeholder.
+- Messaggio varietà solo per Impianti.
+- Disambiguazione Erpicatura/Trinciatura corretta in base al terreno.
+
+---
+
+## ✅ Form Lavori: allineamento injector ad Attività (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Risolvere problemi di compilazione form lavori: terreno non applicato (ID non nelle options), sottocategoria/tipo non popolati in tempo, ordine iniezione incoerente con Attività.
+
+### Implementazione
+- **tony-form-mapping.js**: `injectionOrder` per LAVORO_FORM_MAP: `lavoro-terreno` spostato subito dopo `lavoro-nome`, prima di categoria/sottocategoria/tipo (come Attività: terreno prima dei dropdown dipendenti).
+- **tony-form-injector.js**:
+  - `waitForSelectOptions` per `lavoro-sottocategoria` e `lavoro-tipo-lavoro` prima di `setFieldValue` (come per `attivita-sottocategoria`).
+  - `setSelectValue` per `lavoro-terreno`: match parziale su `option.text` (formato "nome (X Ha)") quando value non è nelle options; se value è ID non presente, lookup in `lavoriState.terreniList` per nome e match per nome.
+- **DELAYS_LAVORO**: `lavoro-terreno` 500 ms.
+
+### Risultato
+- Terreno applicato correttamente anche quando ID non presente nelle options (match per nome).
+- Sottocategoria e tipo lavoro popolati prima dell'iniezione grazie a `waitForSelectOptions`.
+- Ordine iniezione coerente con Attività: terreno → categoria → sottocategoria → tipo.
+
+---
+
+## ✅ Tony: Entry Point "Crea lavoro" da ovunque (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Parità con Attività: quando l'utente dice "Crea un lavoro di erpicatura nel Sangiovese" (o simile) da qualsiasi pagina (es. Dashboard), Tony deve aprire il modal Crea Lavoro su Gestione Lavori e compilare i campi inferibili.
+
+### Implementazione
+- **functions/index.js**: ENTRY POINT CREA LAVORO aggiunto. Se l'utente vuole creare un nuovo lavoro (es. "crea un lavoro", "nuovo lavoro", "crea lavoro di erpicatura nel Sangiovese") e form.formId ≠ "lavoro-form", usa OPEN_MODAL id "lavoro-modal" con fields. Text: "Ti porto a gestione lavori."
+- Regola 5: se form.formId === "lavoro-form" (form già aperto), usa INJECT_FORM_DATA.
+- Esempi aggiunti: "Crea un lavoro", "Crea un lavoro di erpicatura nel Sangiovese", "Nuovo lavoro potatura nel Pinot assegnato a Luca".
+
+### Risultato
+- "Crea un lavoro di erpicatura nel Sangiovese" da Dashboard → Tony naviga a gestione lavori, apre modal, compila terreno, tipo, sottocategoria, ecc.
+- Flusso simmetrico a "Ho trinciato 6 ore" → attivita-modal.
+
+---
+
+## ✅ Gestione Lavori: currentTableData + FILTER_TABLE Tony (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Estendere `currentTableData` e `FILTER_TABLE` alla pagina Gestione Lavori, permettendo a Tony di leggere i dati della lista e filtrare per stato, progresso, caposquadra, terreno, tipo.
+
+### Implementazione
+
+#### 1. Placeholder e fallback (gestione-lavori-standalone.html)
+- Script placeholder: `window.currentTableData = { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] }` prima del modulo.
+- Fallback IIFE all'inizio del modulo se `summary` vuoto.
+
+#### 2. Blocco currentTableData (gestione-lavori-controller.js, renderLavori)
+- Summary: "Nessun lavoro in elenco." oppure "Ci sono N lavori in elenco."
+- Items: id, nome, terreno, stato, tipo, caposquadra (da terreniList e caposquadraList).
+- Chiamate: `setContext`, `__tonyTableDataBuffer`, evento `table-data-ready`.
+
+#### 3. FILTER_TABLE (main.js)
+- Mappa `pageType → keyToId` estesa con `lavori`: stato, progresso, caposquadra, terreno, tipo.
+- `pageType` da `window.currentTableData?.pageType` o path (gestione-lavori, lavori).
+- matchByText per terreno e caposquadra (nomi dinamici).
+- Logica pageType esplicita (non più binaria attivita/terreni).
+
+#### 4. Istruzioni Cloud Function (functions/index.js)
+- ECCEZIONE LAVORI: se già su gestione-lavori e l'utente chiede di filtrare, usare FILTER_TABLE invece di APRI_PAGINA.
+- Sezione FILTRO TABELLA LAVORI: params (stato, progresso, caposquadra, terreno, tipo), mappature linguaggio naturale, esempi.
+- filterReminder: aggiunto `isLavoriPage` e `isLavoriFilterLikeRequest` per iniezione prompt.
+
+### File toccati
+- `core/admin/gestione-lavori-standalone.html` (placeholder)
+- `core/admin/js/gestione-lavori-controller.js` (renderLavori)
+- `core/js/tony/main.js` (FILTER_TABLE, FILTER_KEY_MAP lavori)
+- `functions/index.js` (ECCEZIONE LAVORI, FILTRO TABELLA LAVORI, filterReminder)
+- `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md`
+- `docs-sviluppo/tony/STATO_ATTUALE.md`
+
+### Risultato
+- Tony può filtrare la lista lavori per stato ("lavori in corso"), progresso ("in ritardo"), terreno ("nel Sangiovese"), caposquadra, tipo (interni/conto terzi).
+- Coerenza con pattern terreni/attivita; scalabile ad altre pagine lista.
+
+---
+
+## ✅ Gestione Lavori: filtri tipo lavoro e operaio (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Aggiungere filtri per **tipo lavoro** (vendemmia, erpicatura, potatura, ecc.) e **operaio** alla pagina Gestione Lavori, risolvendo il problema per cui Tony rispondeva "Ecco le vendemmie" senza applicare alcun filtro.
+
+### Implementazione
+
+#### 1. Nuovi filtri HTML (gestione-lavori-standalone.html)
+- `filter-tipo-lavoro`: select popolato da tipiLavoroList
+- `filter-operaio`: select popolato da operaiList (visibile solo con modulo Manodopera)
+
+#### 2. Controller (gestione-lavori-controller.js)
+- `populateTipoLavoroFilter(tipiLavoroList)`: popola select con value=nome
+- `populateOperaioFilter(operaiList)`: popola select con value=id
+- `loadTipiLavoro`: callback `populateTipoLavoroFilterCallback` per popolare filtro
+- `loadOperai`: callback `populateOperaioFilter` per popolare filtro
+- `setupManodoperaVisibility`: nasconde filter-operaio quando Manodopera non attivo
+- `currentTableData` items: aggiunti `tipoLavoro`, `operaio`; `tipo` ora indica interno/conto_terzi
+
+#### 3. Logica filtri (gestione-lavori-events.js)
+- `applyFilters`: tipoLavoro (match su tipoLavoro, tipoLavoroNome, categoriaLavoroNome), operaio (solo con Manodopera)
+- `clearFilters`: reset filter-tipo-lavoro, filter-operaio
+- **Fix match filtro tipo lavoro**: match case-insensitive; supporto nomi parziali (es. "Trinciatura" matcha "Trinciatura tra le file"); risoluzione `tipoLavoroId` tramite `tipiLavoroList`; `applyFilters` riceve `tipiLavoroList` come 5° parametro
+
+#### 4. Tony FILTER_TABLE (main.js, functions/index.js)
+- keyToId lavori: tipoLavoro→filter-tipo-lavoro, operaio→filter-operaio
+- matchByText per tipoLavoro e operaio (nomi dinamici)
+- Istruzioni CF: mappature "vendemmie"→tipoLavoro: "Vendemmia", "lavori di Pier"→operaio
+- filterReminder: aggiunti vendemmi, erpicatur, potatur, operaio
+
+### File toccati
+- `core/admin/gestione-lavori-standalone.html`
+- `core/admin/js/gestione-lavori-controller.js`
+- `core/admin/js/gestione-lavori-events.js`
+- `core/js/tony/main.js`
+- `functions/index.js`
+- `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md`
+- `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
+
+### Risultato
+- "Mostrami le vendemmie" / "Ecco le vendemmie" applica correttamente il filtro tipo lavoro.
+- "Lavori di Pier" (operaio) filtra per operaio assegnato.
+- Filtro operaio visibile solo con modulo Manodopera attivo.
+- Selezione manuale dal dropdown tipo lavoro: filtra correttamente grazie al match flessibile (case-insensitive, nomi parziali).
+
+---
+
+## ✅ Pulizia documentazione Tony – archivio (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Ridurre sovrapposizioni e confusione nella documentazione Tony: archiviare i documenti sostituiti dalla cartella consolidata `docs-sviluppo/tony/`.
+
+### Implementazione
+- Creata cartella `docs-sviluppo/archivio/` con README.
+- Spostati in archivio:
+  - `MASTER_PLAN_TONY_UNIVERSAL.md` → sostituito da `tony/MASTER_PLAN.md`
+  - `STATO_TONY_2026-03-08.md` → sostituito da `tony/STATO_ATTUALE.md`
+- Aggiunto banner "ARCHIVIATO" in cima ai file archiviati.
+- Aggiornato `DOBBIAMO_ANCORA_FARE.md`: nota che §1.3 "diario attività" è fatto (currentTableData attivita in attivita-controller.js).
+- Aggiornati riferimenti in: ANALISI_SUBAGENT_MASTER_PLAN, CONTEXT_BUILDER_SPECIFICHE, TONY_SVILUPPO_2026-03, TONY_DECISIONI_E_REQUISITI.
+
+### File toccati
+- `docs-sviluppo/archivio/` (nuova cartella)
+- `docs-sviluppo/DOBBIAMO_ANCORA_FARE.md`
+- `docs-sviluppo/ANALISI_SUBAGENT_MASTER_PLAN.md`
+- `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md`
+- `docs-sviluppo/TONY_SVILUPPO_2026-03_VIGNETO_E_COMPILAZIONE.md`
+- `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
+- `docs-sviluppo/tony/README.md`
+- `.cursor/rules/project-guardian-tony.mdc` (nuova regola)
+
+### Aggiornamento regole (stesso giorno)
+- Creata `.cursor/rules/project-guardian-tony.mdc` – PROJECT GUARDIAN con riferimento a `tony/MASTER_PLAN.md` (path aggiornato da MASTER_PLAN_TONY_UNIVERSAL).
+
+### Verifica pattern currentTableData/FILTER_TABLE (stesso giorno)
+- Verificato sul codice: pattern attivita/terreni conforme al RIEPILOGO_CURRENTTABLEDATA.
+- Aggiornato RIEPILOGO con: differenze implementative (§6), keyToId verificato (§7), limitazione FILTER_TABLE (solo attivita/terreni), procedura per nuove pagine (§8).
+
+---
+
+## ✅ Attività: filtro Origine (Tutte | Solo azienda | Solo conto terzi) + Tony FILTER_TABLE (2026-03-08) - COMPLETATO
+
+### Obiettivo
+Aggiungere il filtro **Origine** alla pagina Attività per distinguere lavorazioni interne (azienda) da conto terzi. La lista include entrambe le tipologie (con colorazione diversa per le righe conto terzi); il filtro permette di isolare una o l'altra. Tony deve poter filtrare per origine via comando vocale/testo.
+
+### Implementazione
+
+#### 1. Layout (attivita-standalone.html)
+- Nuovo select **Origine** a destra del filtro Coltura: opzioni "Tutte", "Solo azienda", "Solo conto terzi".
+- Event listener `change` su `filter-origine` che chiama `applyFilters`.
+
+#### 2. Logica filtro (attivita-events.js)
+- Lettura `filter-origine` in `applyFilters`; valore `origine` = "azienda" | "contoTerzi" | "".
+- **Solo azienda**: esclude attività con `clienteId` valorizzato.
+- **Solo conto terzi**: esclude attività senza `clienteId`.
+- Integrato in entrambi i rami (modalità completati e filtri normali).
+- `clearFilters` resetta anche `filter-origine`.
+
+#### 3. Tony FILTER_TABLE (main.js)
+- `keyToId` attivita: aggiunto `origine: 'filter-origine'`.
+- `matchByText` per `origine`: mappa "solo azienda", "solo conto terzi" alle opzioni del select.
+- Valori params: `origine: "azienda"` o `origine: "contoTerzi"`.
+
+#### 4. Istruzioni Cloud Function (functions/index.js)
+- FORMATO params: aggiunto `origine` (valori "azienda" o "contoTerzi").
+- Regola ORIGINE: "solo azienda" / "attività aziendali" → `origine: "azienda"`; "solo conto terzi" → `origine: "contoTerzi"`.
+- Esempi: "solo attività aziendali", "solo conto terzi".
+
+### File toccati
+- `core/attivita-standalone.html` (select Origine, listener)
+- `core/js/attivita-events.js` (applyFilters, clearFilters)
+- `core/js/tony/main.js` (keyToId, matchByText)
+- `functions/index.js` (istruzioni CF)
+
+### Risultato
+- Filtro Origine integrato nel layout, coerenza con filtri esistenti (terreno, tipo lavoro, coltura).
+- Tony può filtrare per origine: "mostrami solo le attività aziendali", "solo conto terzi".
+
+---
+
+## ✅ Tony Form Attività: fallback SAVE_ACTIVITY, sottocategoria Frutteto, istruzioni CF (2026-03-02) - COMPLETATO
+
+### Obiettivo
+Correggere regressioni nel flusso registrazione attività: (1) fallback SAVE_ACTIVITY che si attivava su domande come "Quali orari hai fatto?"; (2) Erpicatura/Trinciatura impostata come "Generale" anche su terreni Frutteto (Kaki) invece di "Tra le File"; (3) rafforzare istruzioni CF per sottocategoria da terreno.
+
+### Implementazione
+
+#### 1. Fix fallback SAVE_ACTIVITY (main.js)
+- **Problema**: il regex includeva "fatto", quindi "Quali orari hai fatto? Inizio e fine." attivava il salvataggio.
+- **Soluzione**: esclusione domande (`txt.indexOf('?') >= 0` o inizio con "quali", "quante", "come", ecc.); regex più restrittiva: `salvat[ao](?:\s|!|\.|$)|confermato!|ok salvo|perfetto salvo|attività salvata` (rimosso "fatto").
+
+#### 2. Injector: sottocategoria Generale su terreni con filari (tony-form-injector.js)
+- **Problema**: Tony inviava `attivita-sottocategoria = "Generale"`; l'injector lo preservava come "esplicita utente" anche per terreni Frutteto (Kaki).
+- **Soluzione**: se `formData['attivita-sottocategoria']` è "Generale" e il terreno ha coltura_categoria in [Vite, Frutteto, Olivo, Arboreo, Alberi], l'injector **sovrascrive** con "Tra le File". Usa `attivitaState.terreniList` e `terreno.coltura_categoria`.
+
+#### 3. Istruzioni Cloud Function (functions/index.js)
+- **Regola critica**: Erpicatura/Trinciatura su terreno con coltura_categoria in [Vite, Frutteto, Olivo] → SEMPRE `attivita-sottocategoria = "Tra le File"`, attivita-tipo-lavoro-gerarchico = "Erpicatura Tra le File" o "Trinciatura tra le file". MAI "Generale". Esempio: "Kaki è un frutteto → usa Tra le File".
+- **Contesto attivita**: aggiunto `ctxFinal.attivita.terreni` e `ctxFinal.attivita.colture_con_filari = ["Vite","Frutteto","Olivo"]` quando disponibili dati aziendali.
+- **Eccezione**: se l'utente dice "generale" ma il terreno ha filari → IGNORA e usa "Tra le File".
+
+#### 4. Fix terreniList su cambio terreno (attivita-standalone.html)
+- **Problema**: al cambio terreno (listener change su attivita-terreno), `window.attivitaState.terreniList` veniva sovrascritta con `terreni` senza `coltura_categoria`, impedendo all'injector di derivare correttamente la sottocategoria.
+- **Soluzione**: nel listener, mappare terreni con `mapColturaToCategoria` per preservare `coltura_categoria`.
+
+### File toccati
+- `core/js/tony/main.js` (fallback SAVE_ACTIVITY)
+- `core/js/tony-form-injector.js` (override Generale su terreno con filari)
+- `functions/index.js` (regola sottocategoria, attivita.terreni, colture_con_filari)
+- `core/attivita-standalone.html` (terreniList con coltura_categoria al cambio terreno)
+
+### Documentazione
+- `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (questa sezione)
+- `core/config/tony-form-mapping.js` (TERRENO_SOTTOCATEGORIA_PREFERENCE già esistente)
+
+### Risultato
+- "Quali orari hai fatto?" non attiva più SAVE_ACTIVITY; Tony può chiedere gli orari senza tentativi di salvataggio.
+- Erpicatura/Trinciatura su Frutteto (es. Kaki) usa correttamente "Tra le File"; l'injector corregge anche quando Tony invia "Generale" per errore.
+- Coerenza con Master Plan Tony (sistema centralizzato, no patch per singola pagina).
+
+---
+
+## ✅ Tony: fix jQuery openAndInject, deduplicazione doppio salvataggio (2026-03-02) - COMPLETATO
+
+### Obiettivo
+Risolvere l'errore `$ is not defined` in `checkTonyPendingAfterNav` su pagine senza jQuery (es. attivita-standalone) e il doppio salvataggio attività (INJECT_FORM_DATA e SAVE_ACTIVITY eseguiti due volte).
+
+### Implementazione
+
+#### 1. Fix jQuery in openAndInject (main.js)
+- Su pagine come `attivita-standalone.html` jQuery non è caricato; `checkTonyPendingAfterNav` usava `$` direttamente per aprire il modal, causando `ReferenceError: $ is not defined`.
+- Sostituito l'uso di `$` con un controllo sicuro: `var jq = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null; if (jq) { jq('#' + modalId).modal('show'); } else { el.classList.add('active'); }`.
+- Applicato in tutti e 4 i rami di `openAndInject` (attivita-modal, lavoro-modal, terreno-modal, ramo generico).
+
+#### 2. Deduplicazione doppio enqueue (main.js onComplete)
+- Il comando veniva accodato due volte: (1) tony-service chiama `triggerAction()` → onAction callback → enqueueTonyCommand (source: 'onAction-callback'); (2) tony-service restituisce `{ text, command }` → main.js onComplete → enqueueTonyCommand (source: 'response-direct').
+- Risultato: INJECT_FORM_DATA e SAVE_ACTIVITY eseguiti due volte → due attività identiche salvate.
+- Fix: in `onComplete`, quando `rawData` è un oggetto con `command` (risposta diretta dal service), si salta l'enqueue perché `triggerAction` ha già fatto partire l'onAction callback.
+- Codice: `var responseFromService = (typeof rawData === 'object' && rawData && rawData.command); if (responseFromService) { /* skip */ } else if (...) { enqueueTonyCommand(...); }`.
+
+### File toccati
+- `core/js/tony/main.js`
+
+### Documentazione
+- `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (questa sezione)
+- `docs-sviluppo/TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md` (§4.6 Coda comandi e deduplicazione)
+
+### Risultato
+- Flusso "registra attività" da Dashboard → Diario Attività → apertura modal → iniezione campi → salvataggio funziona senza errori JS e senza doppi salvataggi.
+- Tony operativo su tutte le pagine (magazzino, macchine, ecc.) per navigazione, domande informative e registrazione attività (con redirect al Diario).
+
+---
 
 ## ✅ Tony Terreni: contesto, domande informative, superficie (2026-02-25) - COMPLETATO
 

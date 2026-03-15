@@ -21,6 +21,7 @@
  * @param {Array} lavoriList - Array lavori (per modalità Conto Terzi)
  * @param {Array} tipiLavoroList - Array tipi lavoro
  * @param {Array} categorieLavoriPrincipali - Array categorie principali
+ * @param {Map} sottocategorieLavoriMap - Map sottocategorie (parentId -> sottocat[])
  * @param {boolean} isContoTerziMode - Se è modalità Conto Terzi
  * @param {Function} mapColturaToCategoria - Funzione per mappare coltura a categoria
  * @param {Function} renderAttivitaCallback - Callback per renderizzare attività
@@ -31,6 +32,7 @@ export function applyFilters(
     lavoriList,
     tipiLavoroList,
     categorieLavoriPrincipali,
+    sottocategorieLavoriMap,
     isContoTerziMode,
     mapColturaToCategoria,
     renderAttivitaCallback
@@ -45,7 +47,22 @@ export function applyFilters(
     const terrenoId = document.getElementById('filter-terreno')?.value || '';
     const tipoLavoro = document.getElementById('filter-tipo-lavoro')?.value || '';
     const coltura = document.getElementById('filter-coltura')?.value || '';
+    const origine = document.getElementById('filter-origine')?.value || '';
     const ricerca = document.getElementById('filter-ricerca')?.value.toLowerCase() || '';
+    
+    // Risolve categoriaId a nome categoria principale (gestisce sottocategorie)
+    const getNomeCategoriaPrincipale = (categoriaId) => {
+        const catPrincipale = categorieLavoriPrincipali.find(c => c.id === categoriaId);
+        if (catPrincipale) return catPrincipale.nome;
+        const sottocatMap = sottocategorieLavoriMap || new Map();
+        const tutteSottocat = Array.from(sottocatMap.values()).flat();
+        const sottocat = tutteSottocat.find(sc => sc.id === categoriaId);
+        if (sottocat && sottocat.parentId) {
+            const parent = categorieLavoriPrincipali.find(c => c.id === sottocat.parentId);
+            return parent ? parent.nome : null;
+        }
+        return null;
+    };
     
     // Se modalità completati, applica filtri base e poi filtra per lavori completati
     if (isModalitaCompletati) {
@@ -56,15 +73,15 @@ export function applyFilters(
             if (clienteId && att.clienteId !== clienteId) return false;
             if (terrenoId && att.terrenoId !== terrenoId) return false;
             
-            // Filtro tipo lavoro per CATEGORIA
+            // Filtro tipo lavoro per CATEGORIA (o per "Vendemmia" = tipi contenenti vendemmia)
             if (tipoLavoro) {
-                const tipoLavoroObj = tipiLavoroList.find(t => t.nome === att.tipoLavoro);
-                if (!tipoLavoroObj || !tipoLavoroObj.categoriaId) {
-                    return false;
-                }
-                const categoriaObj = categorieLavoriPrincipali.find(cat => cat.id === tipoLavoroObj.categoriaId);
-                if (!categoriaObj || categoriaObj.nome !== tipoLavoro) {
-                    return false;
+                if (tipoLavoro.toLowerCase() === 'vendemmia') {
+                    if (!(att.tipoLavoro || '').toLowerCase().includes('vendemmia')) return false;
+                } else {
+                    const tipoLavoroObj = tipiLavoroList.find(t => t.nome === att.tipoLavoro);
+                    if (!tipoLavoroObj || !tipoLavoroObj.categoriaId) return false;
+                    const nomeCategoriaPrincipale = getNomeCategoriaPrincipale(tipoLavoroObj.categoriaId);
+                    if (!nomeCategoriaPrincipale || nomeCategoriaPrincipale !== tipoLavoro) return false;
                 }
             }
             
@@ -77,6 +94,9 @@ export function applyFilters(
             }
             
             if (ricerca && att.note && !att.note.toLowerCase().includes(ricerca)) return false;
+            // Filtro origine: azienda = senza clienteId, contoTerzi = con clienteId
+            if (origine === 'azienda' && (att.clienteId != null && att.clienteId !== '')) return false;
+            if (origine === 'contoTerzi' && (!att.clienteId || att.clienteId === '')) return false;
             return true;
         });
         
@@ -107,15 +127,15 @@ export function applyFilters(
             if (clienteId && att.clienteId !== clienteId) return false;
             if (terrenoId && att.terrenoId !== terrenoId) return false;
             
-            // Filtro tipo lavoro per CATEGORIA
+            // Filtro tipo lavoro per CATEGORIA (o per "Vendemmia" = tipi contenenti vendemmia)
             if (tipoLavoro) {
-                const tipoLavoroObj = tipiLavoroList.find(t => t.nome === att.tipoLavoro);
-                if (!tipoLavoroObj || !tipoLavoroObj.categoriaId) {
-                    return false;
-                }
-                const categoriaObj = categorieLavoriPrincipali.find(cat => cat.id === tipoLavoroObj.categoriaId);
-                if (!categoriaObj || categoriaObj.nome !== tipoLavoro) {
-                    return false;
+                if (tipoLavoro.toLowerCase() === 'vendemmia') {
+                    if (!(att.tipoLavoro || '').toLowerCase().includes('vendemmia')) return false;
+                } else {
+                    const tipoLavoroObj = tipiLavoroList.find(t => t.nome === att.tipoLavoro);
+                    if (!tipoLavoroObj || !tipoLavoroObj.categoriaId) return false;
+                    const nomeCategoriaPrincipale = getNomeCategoriaPrincipale(tipoLavoroObj.categoriaId);
+                    if (!nomeCategoriaPrincipale || nomeCategoriaPrincipale !== tipoLavoro) return false;
                 }
             }
             
@@ -128,6 +148,9 @@ export function applyFilters(
             }
             
             if (ricerca && att.note && !att.note.toLowerCase().includes(ricerca)) return false;
+            // Filtro origine: azienda = senza clienteId, contoTerzi = con clienteId
+            if (origine === 'azienda' && (att.clienteId != null && att.clienteId !== '')) return false;
+            if (origine === 'contoTerzi' && (!att.clienteId || att.clienteId === '')) return false;
             return true;
         }));
     }
@@ -146,6 +169,7 @@ export function clearFilters() {
     const filterTerreno = document.getElementById('filter-terreno');
     const filterTipoLavoro = document.getElementById('filter-tipo-lavoro');
     const filterColtura = document.getElementById('filter-coltura');
+    const filterOrigine = document.getElementById('filter-origine');
     const filterRicerca = document.getElementById('filter-ricerca');
     
     if (filterDataDa) filterDataDa.value = '';
@@ -154,6 +178,7 @@ export function clearFilters() {
     if (filterTerreno) filterTerreno.value = '';
     if (filterTipoLavoro) filterTipoLavoro.value = '';
     if (filterColtura) filterColtura.value = '';
+    if (filterOrigine) filterOrigine.value = '';
     if (filterRicerca) filterRicerca.value = '';
 }
 
@@ -389,13 +414,23 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
                             
                             // Se non trovato per valore, prova per testo (per compatibilità con valori testuali)
                             if (currentTipoLavoroText) {
+                                const search = currentTipoLavoroText.trim().toLowerCase();
                                 const optionByText = Array.from(tipoLavoroSelectAfter.options).find(
-                                    opt => opt.text.trim() === currentTipoLavoroText.trim()
+                                    opt => (opt.text || '').trim().toLowerCase() === search
                                 );
                                 if (optionByText) {
                                     tipoLavoroSelectAfter.value = optionByText.value;
                                     console.log('[ATTIVITA-EVENTS] Valore tipo lavoro ripristinato per testo:', currentTipoLavoroText);
-                                    // Dispatch evento change per notificare altri listener
+                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
+                                    return;
+                                }
+                                // Fallback: match parziale (es. "Trinciatura" → "Trinciatura tra le file" quando si passa a Tra le File)
+                                const optionByPartial = Array.from(tipoLavoroSelectAfter.options).find(
+                                    opt => (opt.text || '').toLowerCase().includes(search) || search.includes((opt.text || '').toLowerCase())
+                                );
+                                if (optionByPartial) {
+                                    tipoLavoroSelectAfter.value = optionByPartial.value;
+                                    console.log('[ATTIVITA-EVENTS] Valore tipo lavoro ripristinato per match parziale:', currentTipoLavoroText, '→', optionByPartial.text);
                                     tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
                                     return;
                                 }
@@ -704,8 +739,9 @@ export async function openAttivitaModal(params) {
                 if (macchinaId || attrezzoId) {
                     const oreMacchinaGroup = document.getElementById('attivita-ore-macchina-group');
                     if (oreMacchinaGroup) oreMacchinaGroup.style.display = 'block';
-                    if (oreMacchina) {
-                        document.getElementById('attivita-ore-macchina').value = oreMacchina;
+                    if (oreMacchina != null && oreMacchina !== '') {
+                        const val = parseFloat(oreMacchina);
+                        document.getElementById('attivita-ore-macchina').value = !isNaN(val) ? (Math.round(val * 10) / 10).toFixed(1) : oreMacchina;
                     }
                 }
             }

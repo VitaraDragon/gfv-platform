@@ -133,11 +133,14 @@ class SmartFormFiller {
 
     /**
      * Preferenza sottocategoria in base alla coltura del terreno.
-     * Regole estensibili: arboreo (vite, frutteto, oliveto, ...) → "tra le file"; seminativo/prato/altro → "generale".
+     * Usa TONY_FORM_MAPPING.getSottocategoriaPreferenceFromColtura se disponibile (config centralizzata).
      * @returns {string|null} 'tra le file' | 'generale' | null
      */
     _getColturaToSottocategoriaPreference(coltura) {
         if (!coltura || typeof coltura !== 'string') return null;
+        if (typeof window.TONY_FORM_MAPPING?.getSottocategoriaPreferenceFromColtura === 'function') {
+            return window.TONY_FORM_MAPPING.getSottocategoriaPreferenceFromColtura(coltura);
+        }
         const c = coltura.toLowerCase().trim();
         const traLeFilePatterns = ['vite', 'vigneto', 'frutteto', 'oliveto', 'arboreo', 'alberi'];
         const generalePatterns = ['seminativo', 'seminativi', 'prato', 'prati', 'generale', 'coltura erbacea'];
@@ -206,8 +209,8 @@ class SmartFormFiller {
                 } else if (context && context.attivita && context.attivita.terreni) {
                     terreno = context.attivita.terreni.find(t => t.id === terrenoId);
                 }
-                if (terreno && terreno.coltura) {
-                    const preference = this._getColturaToSottocategoriaPreference(terreno.coltura);
+                if (terreno && (terreno.coltura || terreno.coltura_categoria)) {
+                    const preference = this._getColturaToSottocategoriaPreference(terreno.coltura_categoria || terreno.coltura || '');
                     if (preference === 'tra le file') {
                         const opt = this._findSubcategoryOptionByLabel(subEl, 'tra le file');
                         if (opt) targetSubId = opt.value;
@@ -219,13 +222,47 @@ class SmartFormFiller {
             }
         }
 
-        // 5. Applicazione
+        // 4b. Override: se job ha "Generale" ma terreno è vigneto (filari) → preferisci "Tra le File"
+        if (targetSubId) {
+            const optGenerale = this._findSubcategoryOptionByLabel(subEl, 'generale');
+            const isGenerale = optGenerale && optGenerale.value === targetSubId;
+            if (isGenerale) {
+                const terrenoId = document.getElementById('attivita-terreno')?.value;
+                if (terrenoId) {
+                    let terreno = null;
+                    if (window.attivitaState && window.attivitaState.terreniList) {
+                        terreno = window.attivitaState.terreniList.find(t => t.id === terrenoId);
+                    } else if (context && context.attivita && context.attivita.terreni) {
+                        terreno = context.attivita.terreni.find(t => t.id === terrenoId);
+                    }
+                    const pref = terreno ? this._getColturaToSottocategoriaPreference(terreno.coltura_categoria || terreno.coltura || '') : null;
+                    if (pref === 'tra le file') {
+                        const optTraLeFile = this._findSubcategoryOptionByLabel(subEl, 'tra le file');
+                        if (optTraLeFile) {
+                            targetSubId = optTraLeFile.value;
+                            console.log(`[SmartFiller] Terreno vigneto: override Generale → Tra le File`);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Applicazione (con retry se dropdown non ancora popolato)
         if (targetSubId) {
             const exists = Array.from(subEl.options).some(o => o.value === targetSubId);
             if (exists) {
                 await this._setFieldValue(subFieldId, targetSubId);
             } else {
-                console.warn(`[SmartFiller] Sottocategoria dedotta ${targetSubId} non presente nel dropdown`);
+                // Ritardo intelligente: sottocategoria può caricarsi dopo categoria
+                console.warn(`[SmartFiller] Sottocategoria ${targetSubId} non presente, retry 400ms`);
+                await new Promise(r => setTimeout(r, 400));
+                const existsRetry = Array.from(subEl.options).some(o => o.value === targetSubId);
+                if (existsRetry) {
+                    await this._setFieldValue(subFieldId, targetSubId);
+                } else {
+                    const optByLabel = this._findSubcategoryOptionByLabel(subEl, 'tra le file') || this._findSubcategoryOptionByLabel(subEl, 'generale');
+                    if (optByLabel) await this._setFieldValue(subFieldId, optByLabel.value);
+                }
             }
         }
     }
@@ -391,29 +428,47 @@ class SmartFormFiller {
          if (!text) return null;
          const searchText = text.toLowerCase().trim();
          
-         // Helper per cercare nella lista
-         const searchInList = (list) => {
-             if (!Array.isArray(list)) return null;
-             // Cerca match esatto o parziale
-             return list.find(t => t.nome && (
+         // Helper: trova tutti i match (non solo il primo)
+         const searchAllInList = (list) => {
+             if (!Array.isArray(list)) return [];
+             return list.filter(t => t.nome && (
                  t.nome.toLowerCase() === searchText || 
                  t.nome.toLowerCase().includes(searchText) ||
-                 searchText.includes(t.nome.toLowerCase()) // Viceversa: "Trinciatura vigneto" include "Trinciatura"
+                 searchText.includes(t.nome.toLowerCase())
              ));
          };
 
-         // Priorità a window.attivitaState (dati runtime del controller)
-         if (window.attivitaState && window.attivitaState.tipiLavoroList) {
-             const found = searchInList(window.attivitaState.tipiLavoroList);
-             if (found) return found;
+         const list = (window.attivitaState && window.attivitaState.tipiLavoroList) ||
+             (context && context.attivita && context.attivita.tipi_lavoro) || [];
+         const matches = searchAllInList(list);
+         if (matches.length === 0) return null;
+         if (matches.length === 1) return matches[0];
+
+         // Più match (es. Erpicatura, Erpicatura Tra le File, Erpicatura Generale): preselezione da terreno
+         const terrenoId = document.getElementById('attivita-terreno')?.value;
+         let terreno = null;
+         if (terrenoId) {
+             if (window.attivitaState && window.attivitaState.terreniList) {
+                 terreno = window.attivitaState.terreniList.find(t => t.id === terrenoId);
+             } else if (context && context.attivita && context.attivita.terreni) {
+                 terreno = context.attivita.terreni.find(t => t.id === terrenoId);
+             }
          }
-         
-         // Fallback su context di Tony
-         if (context && context.attivita && context.attivita.tipi_lavoro) {
-             return searchInList(context.attivita.tipi_lavoro);
+         const preference = terreno ? this._getColturaToSottocategoriaPreference(terreno.coltura_categoria || terreno.coltura || '') : null;
+         if (preference === 'generale') {
+             const job = matches.find(t => {
+                 const n = (t.nome || '').toLowerCase();
+                 return !n.includes('tra le file') && !n.includes('sulla fila');
+             });
+             if (job) return job;
+         } else if (preference === 'tra le file') {
+             const job = matches.find(t => {
+                 const n = (t.nome || '').toLowerCase();
+                 return n.includes('tra le file') || n.includes('sulla fila');
+             });
+             if (job) return job;
          }
-         
-         return null;
+         return matches[0];
     }
 
     _getFieldSchemaDefinition(fieldId) {

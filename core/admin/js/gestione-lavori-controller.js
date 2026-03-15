@@ -57,6 +57,11 @@ export function setupManodoperaVisibility(hasManodoperaModule) {
     if (filterCaposquadra) {
         filterCaposquadra.style.display = hasManodoperaModule ? 'flex' : 'none';
     }
+    // Filtro operaio
+    const filterOperaio = document.getElementById('filter-operaio')?.closest('.filter-group');
+    if (filterOperaio) {
+        filterOperaio.style.display = hasManodoperaModule ? 'flex' : 'none';
+    }
     
     // Tab Ore nel modal dettaglio
     const tabOre = document.querySelector('button.modal-tab[onclick*="switchTab(\'ore\')"]');
@@ -260,8 +265,9 @@ export async function loadCaposquadra(currentTenantId, db, caposquadraList, popu
  * @param {Object} db - Istanza Firestore
  * @param {Array} operaiList - Array operai (modificato in place)
  * @param {Function} populateOperaiDropdown - Callback per popolare dropdown operai
+ * @param {Function} populateOperaioFilter - Callback per popolare filtro operai (opzionale)
  */
-export async function loadOperai(currentTenantId, db, operaiList, populateOperaiDropdown) {
+export async function loadOperai(currentTenantId, db, operaiList, populateOperaiDropdown, populateOperaioFilter) {
     try {
         const { collection, query, getDocs, where } = await import('../../services/firebase-service.js');
         const usersRef = collection(db, 'users');
@@ -280,6 +286,8 @@ export async function loadOperai(currentTenantId, db, operaiList, populateOperai
 
         // Popola dropdown operai nel form
         if (populateOperaiDropdown) populateOperaiDropdown();
+        // Popola filtro operai
+        if (populateOperaioFilter) populateOperaioFilter(operaiList);
     } catch (error) {
         console.error('Errore caricamento operai:', error);
         operaiList.length = 0;
@@ -514,6 +522,7 @@ export async function initializeTipiLavoroPredefiniti(currentTenantId) {
  * @param {Array} categorieLavoriPrincipali - Array categorie principali
  * @param {Map} sottocategorieLavoriMap - Map sottocategorie
  * @param {Function} populateTipoLavoroDropdownCallback - Callback per popolare dropdown tipi lavoro
+ * @param {Function} populateTipoLavoroFilterCallback - Callback per popolare filtro tipo lavoro (opzionale)
  */
 export async function loadTipiLavoro(
     categoriaId,
@@ -524,7 +533,8 @@ export async function loadTipiLavoro(
     tipiLavoroList,
     categorieLavoriPrincipali,
     sottocategorieLavoriMap,
-    populateTipoLavoroDropdownCallback
+    populateTipoLavoroDropdownCallback,
+    populateTipoLavoroFilterCallback
 ) {
     try {
         if (!currentTenantId) return;
@@ -644,6 +654,10 @@ export async function loadTipiLavoro(
         // Passa i tipi filtrati alla funzione di popolamento
         if (populateTipoLavoroDropdownCallback) {
             populateTipoLavoroDropdownCallback(categoriaId, null, tipiLavoroFiltrati);
+        }
+        // Popola filtro tipo lavoro (usa lista completa, non filtrata)
+        if (populateTipoLavoroFilterCallback) {
+            populateTipoLavoroFilterCallback(tipiLavoroList);
         }
     } catch (error) {
         console.error('Errore caricamento tipi lavoro:', error);
@@ -1083,6 +1097,40 @@ export function populateCaposquadraFilter(caposquadraList) {
         const option = document.createElement('option');
         option.value = capo.id;
         const nomeCompleto = `${capo.nome || ''} ${capo.cognome || ''}`.trim() || capo.email || 'N/A';
+        option.textContent = nomeCompleto;
+        select.appendChild(option);
+    });
+}
+
+/**
+ * Popola dropdown filtri tipo lavoro (vendemmia, erpicatura, potatura, ecc.)
+ * @param {Array} tipiLavoroList - Array tipi lavoro
+ */
+export function populateTipoLavoroFilter(tipiLavoroList) {
+    const select = document.getElementById('filter-tipo-lavoro');
+    if (!select) return;
+    select.innerHTML = '<option value="">Tutti i tipi</option>';
+    (tipiLavoroList || []).forEach(tipo => {
+        const nome = tipo.nome || 'N/A';
+        const option = document.createElement('option');
+        option.value = nome;
+        option.textContent = nome;
+        select.appendChild(option);
+    });
+}
+
+/**
+ * Popola dropdown filtri operaio
+ * @param {Array} operaiList - Array operai
+ */
+export function populateOperaioFilter(operaiList) {
+    const select = document.getElementById('filter-operaio');
+    if (!select) return;
+    select.innerHTML = '<option value="">Tutti gli operai</option>';
+    (operaiList || []).forEach(operaio => {
+        const option = document.createElement('option');
+        option.value = operaio.id;
+        const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A';
         option.textContent = nomeCompleto;
         select.appendChild(option);
     });
@@ -1561,6 +1609,49 @@ export async function renderLavori(
         return;
     }
 
+    // --- currentTableData per Tony (domande informative sulla lista) ---
+    const terreniListToUse = terreniList || [];
+    const caposquadraListToUse = caposquadraList || [];
+    const operaiListToUse = operaiList || [];
+    const summaryParts = [];
+    if (filteredLavoriList.length === 0) {
+        summaryParts.push('Nessun lavoro in elenco.');
+    } else {
+        summaryParts.push('Ci sono ' + filteredLavoriList.length + ' lavori in elenco.');
+    }
+    const summaryStr = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
+    const itemsForTony = filteredLavoriList.map((lav) => {
+        const terreno = terreniListToUse.find(t => t.id === lav.terrenoId);
+        const caposquadra = caposquadraListToUse.find(c => c.id === lav.caposquadraId);
+        const operaio = operaiListToUse.find(o => o.id === lav.operaioId);
+        const tipoLavoroNome = lav.tipoLavoro || lav.tipoLavoroNome || lav.categoriaLavoroNome || '-';
+        return {
+            id: lav.id,
+            nome: lav.nome || '-',
+            terreno: terreno ? (terreno.nome || '-') : '-',
+            stato: lav.stato || '-',
+            tipo: lav.clienteId ? 'conto_terzi' : 'interno',
+            tipoLavoro: tipoLavoroNome,
+            caposquadra: caposquadra ? `${(caposquadra.nome || '').trim()} ${(caposquadra.cognome || '').trim()}`.trim() || '-' : '-',
+            operaio: operaio ? `${(operaio.nome || '').trim()} ${(operaio.cognome || '').trim()}`.trim() || '-' : '-'
+        };
+    });
+    if (typeof window !== 'undefined') {
+        if (!window.currentTableData) window.currentTableData = { pageType: 'lavori', summary: '', items: [] };
+        window.currentTableData.pageType = 'lavori';
+        window.currentTableData.summary = summaryStr;
+        window.currentTableData.items = itemsForTony;
+        if (window.Tony && typeof window.Tony.setContext === 'function') {
+            const page = (window.Tony.context && window.Tony.context.page) || {};
+            window.Tony.setContext('page', Object.assign({}, page, { tableDataSummary: window.currentTableData.summary, currentTableData: window.currentTableData }));
+        }
+        try {
+            window.__tonyTableDataBuffer = window.currentTableData;
+            window.dispatchEvent(new CustomEvent('table-data-ready', { detail: window.currentTableData }));
+        } catch (e) {}
+    }
+    // --- Fine currentTableData per Tony ---
+
     if (filteredLavoriList.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -1574,14 +1665,12 @@ export async function renderLavori(
         return;
     }
 
-    // Carica dati terreno, caposquadra e operaio per ogni lavoro
-    const terreniListToUse = terreniList || [];
-    const caposquadraListToUse = caposquadraList || [];
+    // Carica dati terreno, caposquadra e operaio per ogni lavoro (terreniListToUse, caposquadraListToUse già dichiarati sopra)
     const squadreListToUse = squadreList || [];
     const trattoriListToUse = trattoriList || [];
     const attrezziListToUse = attrezziList || [];
-    const operaiListToUse = operaiList || [];
-    
+    // operaiListToUse già dichiarato sopra per currentTableData
+
     // Debug: verifica che i terreni siano caricati
     if (terreniListToUse.length === 0) {
     }

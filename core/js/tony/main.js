@@ -20,10 +20,15 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
     var _isProcessingTonyCommand = false;
     var _isSendingMessage = false; // Anti-flood: blocca invii concorrenti
 
+    // Timer proattivo form: delay post-inject (stabilizzazione) poi check; timer inattività parte dopo il check
+    var POST_INJECT_CHECK_DELAY_MS = 2800;
+    var IDLE_REMINDER_MS = 7000;
+
     function getTonyCommandPriority(command) {
         var type = command && command.type ? String(command.type).toUpperCase() : '';
         if (type === 'OPEN_MODAL') return 10;
         if (type === '_WAIT_MODAL_READY') return 15;
+        if (type === 'INJECT_FORM_DATA') return 18;
         if (type === 'SET_FIELD') return 20;
         if (type === 'CLICK_BUTTON' || type === 'SAVE_ACTIVITY') return 30;
         return 40;
@@ -32,6 +37,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
     function getTonyQueueDelayByType(command) {
         var type = command && command.type ? String(command.type).toUpperCase() : '';
         if (type === 'OPEN_MODAL') return 700;
+        if (type === 'INJECT_FORM_DATA') return 400;
         if (type === 'SET_FIELD') return 350;
         if (type === 'CLICK_BUTTON' || type === 'SAVE_ACTIVITY') return 300;
         return 120;
@@ -464,26 +470,155 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     break;
                 case 'INJECT_FORM_DATA':
                     if (data.formData && window.TonyFormInjector) {
+                        // Muto durante iniezione: disabilita timer proattivi e resetta a ogni avvio INJECT
+                        if (window.__tonyProactiveAskTimerId) { clearTimeout(window.__tonyProactiveAskTimerId); window.__tonyProactiveAskTimerId = null; }
+                        if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
+                        if (window.__tonyProactiveFormState) window.__tonyProactiveFormState = null;
+                        window.__tonyInjectionInProgress = true;
                         var ctx = window.Tony ? window.Tony.context : {};
+                        var targetModalId = (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') ? 'lavoro-modal' : (data.formId === 'attivita-form' ? 'attivita-modal' : null);
+                        var modalEl = targetModalId ? document.getElementById(targetModalId) : null;
+                        var isModalOpen = modalEl && modalEl.classList.contains('active');
+                        if (targetModalId && !isModalOpen && data.formData && Object.keys(data.formData).length > 0) {
+                            console.log('[Tony] INJECT_FORM_DATA: modal non aperto, apro prima ' + targetModalId + ' e poi inietto');
+                            window.__tonyInjectionInProgress = false;
+                            enqueueTonyCommand({ type: 'OPEN_MODAL', id: targetModalId, fields: data.formData }, { source: 'inject-guard-open-first' });
+                            break;
+                        }
                         if (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') {
                             console.log('[Tony] INJECT_FORM_DATA: iniezione formData lavoro');
                             if (window.Tony && typeof window.Tony.setContext === 'function') {
                                 window.Tony.setContext('lavori', ctx.lavori || {});
                             }
-                            window.TonyFormInjector.injectLavoroForm(data.formData, ctx).then(function(ok) {
-                                if (ok) console.log('[Tony] Form lavoro iniettato con successo');
-                                else console.warn('[Tony] Iniezione form lavoro fallita');
+                            var formDataToInject = data.formData;
+                            var formCtxMerge = typeof getCurrentFormContext === 'function' ? getCurrentFormContext() : null;
+                            if (formCtxMerge && formCtxMerge.fields && formCtxMerge.fields.length > 0) {
+                                var merged = Object.assign({}, formDataToInject);
+                                formCtxMerge.fields.forEach(function(f) {
+                                    var hasVal = f.value != null && (f.value === 0 || f.value !== '');
+                                    if (f.id && hasVal && !(f.id in formDataToInject)) {
+                                        merged[f.id] = f.value;
+                                    }
+                                });
+                                if (Object.keys(merged).length > Object.keys(formDataToInject).length) {
+                                    formDataToInject = merged;
+                                    console.log('[Tony] INJECT_FORM_DATA: merge con valori esistenti, campi totali:', Object.keys(formDataToInject).length);
+                                }
+                            }
+                            window.TonyFormInjector.injectLavoroForm(formDataToInject, ctx).then(function(ok) {
+                                window.__tonyInjectionInProgress = false;
+                                if (ok) {
+                                    console.log('[Tony] Form lavoro iniettato con successo');
+                                    if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
+                                    if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
+                                    function runProactiveCheckLavoro(retryCount) {
+                                        retryCount = retryCount || 0;
+                                        var formCtx = typeof getCurrentFormContext === 'function' ? getCurrentFormContext() : null;
+                                        var modalEl = document.getElementById('lavoro-modal');
+                                        if (!modalEl || !modalEl.classList.contains('active')) {
+                                            if (retryCount === 0) console.log('[Tony] Timer proattivo lavoro: modal non aperto, skip');
+                                            return;
+                                        }
+                                        if (!formCtx || !formCtx.formId) {
+                                            if (retryCount < 2) {
+                                                window.__tonyProactiveAskTimerId = setTimeout(function() { window.__tonyProactiveAskTimerId = null; runProactiveCheckLavoro(retryCount + 1); }, 1500);
+                                                return;
+                                            }
+                                            console.log('[Tony] Timer proattivo lavoro: formCtx non disponibile dopo retry, uso solo DOM per needsMacchine');
+                                        }
+                                        var hasRequiredEmpty = (formCtx && formCtx.requiredEmpty && formCtx.requiredEmpty.length > 0);
+                                        var needsMacchine = false;
+                                        var tipoEl = document.getElementById('lavoro-tipo-lavoro');
+                                        var tipoVal = (tipoEl && tipoEl.options && tipoEl.options[tipoEl.selectedIndex]) ? (tipoEl.options[tipoEl.selectedIndex].text || '').toLowerCase() : '';
+                                        var isMeccanico = /erpicatur|trinciatur|fresatur|pre-potatur|potatur\s+meccanica|vendemmia\s+meccanica|vangatur|raccolta\s+meccanica/.test(tipoVal);
+                                        if (isMeccanico) {
+                                            var trEl = document.getElementById('lavoro-trattore');
+                                            var atEl = document.getElementById('lavoro-attrezzo');
+                                            needsMacchine = !trEl || !trEl.value || !atEl || !atEl.value;
+                                        }
+                                        var formComplete = !hasRequiredEmpty && !needsMacchine;
+                                        var needsMacchineOnly = !hasRequiredEmpty && needsMacchine;
+                                        window.__tonyProactiveFormState = { active: true, type: formComplete ? 'ready_for_save' : 'missing_fields', formId: 'lavoro-form', modalId: 'lavoro-modal', needsMacchineOnly: !!needsMacchineOnly };
+                                        console.log('[Tony] Timer proattivo lavoro: check eseguito, type=', window.__tonyProactiveFormState.type, 'hasRequiredEmpty=', hasRequiredEmpty, 'needsMacchine=', needsMacchine);
+                                        window.__tonyIdleReminderTimerId = setTimeout(function() {
+                                            window.__tonyIdleReminderTimerId = null;
+                                            if (window.__tonyInjectionInProgress) return;
+                                            var state = window.__tonyProactiveFormState;
+                                            if (!state || !state.active) return;
+                                            var el = document.getElementById(state.modalId);
+                                            if (!el || !el.classList.contains('active')) { window.__tonyProactiveFormState = null; return; }
+                                            if (state.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
+                                                window.__tonyTriggerAskForSaveConfirmation();
+                                            } else if (state.type === 'missing_fields' && typeof window.__tonyTriggerAskForMissingFields === 'function') {
+                                                var msg = (state.needsMacchineOnly) ? 'Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e erpice vuoi usare?' : null;
+                                                window.__tonyTriggerAskForMissingFields(msg);
+                                            }
+                                            window.__tonyProactiveFormState = null;
+                                        }, IDLE_REMINDER_MS);
+                                    }
+                                    window.__tonyProactiveAskTimerId = setTimeout(function() {
+                                        window.__tonyProactiveAskTimerId = null;
+                                        runProactiveCheckLavoro(0);
+                                    }, POST_INJECT_CHECK_DELAY_MS);
+                                } else {
+                                    console.warn('[Tony] Iniezione form lavoro fallita');
+                                }
                             });
                         } else if (data.formId === 'attivita-form') {
                             console.log('[Tony] INJECT_FORM_DATA: iniezione formData attività');
-                            window.TonyFormInjector.injectAttivitaForm(data.formData, ctx).then(function(ok) {
-                                if (ok) console.log('[Tony] Form data iniettato con successo');
-                                else console.warn('[Tony] Iniezione formData fallita');
+                            var formDataAttivita = data.formData;
+                            var formCtxAttivita = typeof getCurrentFormContext === 'function' ? getCurrentFormContext() : null;
+                            if (formCtxAttivita && formCtxAttivita.fields && formCtxAttivita.fields.length > 0) {
+                                var mergedAtt = Object.assign({}, formDataAttivita);
+                                formCtxAttivita.fields.forEach(function(f) {
+                                    var hasVal = f.value != null && (f.value === 0 || f.value !== '');
+                                    if (f.id && hasVal && !(f.id in formDataAttivita)) {
+                                        mergedAtt[f.id] = f.value;
+                                    }
+                                });
+                                if (Object.keys(mergedAtt).length > Object.keys(formDataAttivita).length) {
+                                    formDataAttivita = mergedAtt;
+                                }
+                            }
+                            window.TonyFormInjector.injectAttivitaForm(formDataAttivita, ctx).then(function(ok) {
+                                window.__tonyInjectionInProgress = false;
+                                if (ok) {
+                                    console.log('[Tony] Form data iniettato con successo');
+                                    if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
+                                    if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
+                                    window.__tonyProactiveAskTimerId = setTimeout(function() {
+                                        window.__tonyProactiveAskTimerId = null;
+                                        var formCtx = typeof getCurrentFormContext === 'function' ? getCurrentFormContext() : null;
+                                        var modalEl = document.getElementById('attivita-modal');
+                                        if (!formCtx || !formCtx.formId || !modalEl || !modalEl.classList.contains('active')) return;
+                                        var hasRequiredEmpty = formCtx.requiredEmpty && formCtx.requiredEmpty.length > 0;
+                                        var formComplete = !hasRequiredEmpty;
+                                        window.__tonyProactiveFormState = { active: true, type: formComplete ? 'ready_for_save' : 'missing_fields', formId: 'attivita-form', modalId: 'attivita-modal' };
+                                        window.__tonyIdleReminderTimerId = setTimeout(function() {
+                                            window.__tonyIdleReminderTimerId = null;
+                                            if (window.__tonyInjectionInProgress) return;
+                                            var state = window.__tonyProactiveFormState;
+                                            if (!state || !state.active) return;
+                                            var el = document.getElementById(state.modalId);
+                                            if (!el || !el.classList.contains('active')) { window.__tonyProactiveFormState = null; return; }
+                                            if (state.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
+                                                window.__tonyTriggerAskForSaveConfirmation();
+                                            } else if (state.type === 'missing_fields' && typeof window.__tonyTriggerAskForMissingFields === 'function') {
+                                                window.__tonyTriggerAskForMissingFields();
+                                            }
+                                            window.__tonyProactiveFormState = null;
+                                        }, IDLE_REMINDER_MS);
+                                    }, POST_INJECT_CHECK_DELAY_MS);
+                                } else {
+                                    console.warn('[Tony] Iniezione formData fallita');
+                                }
                             });
                         } else {
+                            window.__tonyInjectionInProgress = false;
                             console.warn('[Tony] INJECT_FORM_DATA: formId non supportato:', data.formId);
                         }
                     } else {
+                        window.__tonyInjectionInProgress = false;
                         console.warn('[Tony] INJECT_FORM_DATA: formData vuoto o injector non caricato');
                     }
                     break;
@@ -505,7 +640,11 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         if ((modalId === 'attivita-modal' || (modalKey && modalKey.indexOf('attivita') >= 0)) && !document.getElementById('attivita-modal')) {
                             if (window.Tony && typeof window.Tony.triggerAction === 'function') {
                                 console.log('[Tony] Modal attività non presente in questa pagina, apro Diario Attività');
-                                window.Tony.triggerAction('APRI_PAGINA', { target: 'attivita' });
+                                window.Tony.triggerAction('APRI_PAGINA', {
+                                    target: 'attivita',
+                                    _tonyPendingModal: 'attivita-modal',
+                                    _tonyPendingFields: (data.fields && typeof data.fields === 'object') ? data.fields : null
+                                });
                                 break;
                             }
                         }
@@ -573,6 +712,33 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                     window.openCreaModal();
                                     enqueueTonyCommand({ type: '_WAIT_MODAL_READY' }, { source: 'post-open-lavoro', delayMs: 800 });
                                 }
+                            } else if (resolvedId === 'terreno-modal') {
+                                if (typeof window.openTerrenoModal === 'function') {
+                                    console.log('[Tony] Inizializzo modal terreno (popolamento poderi/colture)');
+                                    window.openTerrenoModal(null).catch(function(e) {
+                                        console.warn('[Tony] openTerrenoModal fallito:', e);
+                                    });
+                                    enqueueTonyCommand({ type: '_WAIT_MODAL_READY' }, { source: 'post-open-terreno', delayMs: 1500 });
+                                }
+                            }
+                            // Supporto fields: INJECT_FORM_DATA atomico per attivita/lavoro (evita perdita compilazione)
+                            if (data.fields && typeof data.fields === 'object' && Object.keys(data.fields).length > 0) {
+                                var fieldsObj = data.fields;
+                                if ((resolvedId === 'attivita-modal' || resolvedId === 'lavoro-modal') && window.TonyFormInjector) {
+                                    var formId = resolvedId === 'attivita-modal' ? 'attivita-form' : 'lavoro-form';
+                                    enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: formId, formData: fieldsObj }, { source: 'open-modal-fields', delayMs: 1800 });
+                                } else {
+                                    var formMap = (typeof TONY_FORM_MAPPING !== 'undefined' && TONY_FORM_MAPPING.getFormMap) ? TONY_FORM_MAPPING.getFormMap(resolvedId) : null;
+                                    var fieldOrder = (formMap && formMap.injectionOrder) ? formMap.injectionOrder : (resolvedId === 'terreno-modal' ? ['terreno-nome', 'terreno-superficie', 'terreno-coltura-categoria', 'terreno-coltura', 'terreno-podere', 'terreno-tipo-possesso', 'terreno-data-scadenza-affitto', 'terreno-canone-affitto', 'terreno-note'] : Object.keys(fieldsObj));
+                                    var idx = 0;
+                                    for (var i = 0; i < fieldOrder.length; i++) {
+                                        var fk = fieldOrder[i];
+                                        if (fieldsObj[fk] != null && fieldsObj[fk] !== '') {
+                                            enqueueTonyCommand({ type: 'SET_FIELD', field: fk, value: String(fieldsObj[fk]) }, { source: 'open-modal-fields', delayMs: 1600 + (idx * 250) });
+                                            idx++;
+                                        }
+                                    }
+                                }
                             }
                             setTimeout(function() {
                                 console.log('[DEBUG CURSOR] processTonyCommand: Timeout 500ms scaduto, modal dovrebbe essere visibile');
@@ -600,7 +766,11 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             var pageTarget = pageMap[resolvedId] || pageMap[modalId];
                             if (pageTarget && window.Tony && typeof window.Tony.triggerAction === 'function') {
                                 console.log('[Tony] Fallback: Modal non trovato, apro pagina:', pageTarget);
-                                window.Tony.triggerAction('APRI_PAGINA', { target: pageTarget });
+                                window.Tony.triggerAction('APRI_PAGINA', {
+                                    target: pageTarget,
+                                    _tonyPendingModal: resolvedId,
+                                    _tonyPendingFields: (data.fields && typeof data.fields === 'object') ? data.fields : null
+                                });
                             } else {
                                 console.warn('[Tony] Fallback non disponibile per modal:', resolvedId);
                             }
@@ -656,8 +826,19 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             if (modal && !isModalActive) {
                                 console.log('[Tony] Auto-opening modal ' + targetModalId + ' per campo ' + fieldId);
                                 enqueueTonyCommand({ type: 'OPEN_MODAL', id: targetModalId }, { source: 'auto-open-modal' });
-                                // Ritarda il SET_FIELD in coda per permettere apertura modal e popolamento dropdown dinamici.
                                 enqueueTonyCommand(data, { source: 'auto-retry-set-field', delayMs: 1000 });
+                                return;
+                            }
+                            // Modal non esiste nel DOM (es. da Dashboard): naviga alla pagina e applica i campi (fallback cross-page)
+                            if (!modal && targetModalId === 'attivita-modal' && window.Tony && typeof window.Tony.triggerAction === 'function') {
+                                var pendingFields = {};
+                                if (fieldId && value != null) pendingFields[fieldId] = value;
+                                console.log('[Tony] SET_FIELD su modal assente, navigo a Diario Attività con campi pendenti');
+                                window.Tony.triggerAction('APRI_PAGINA', {
+                                    target: 'attivita',
+                                    _tonyPendingModal: 'attivita-modal',
+                                    _tonyPendingFields: Object.keys(pendingFields).length > 0 ? pendingFields : null
+                                });
                                 return;
                             }
                         }
@@ -924,7 +1105,15 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
 
                     if (!saveValidation.isComplete) {
                         console.error('[Tony] SAVE_ACTIVITY BLOCCATO: Campi obbligatori mancanti o form non pronto:', saveValidation.missingFields);
-                        showMessageInChat('Attenzione: non posso salvare perché ci sono campi obbligatori vuoti o non pronti: ' + saveValidation.missingFields.join(', '), 'error');
+                        var isModalClosed = (saveValidation.missingFields || []).some(function(m) { return String(m).indexOf('Nessun modal') >= 0 || String(m).indexOf('Form context') >= 0; });
+                        if (isModalClosed) {
+                            var path = (window.location.pathname || '').toLowerCase();
+                            var isLavoriPage = path.indexOf('lavori') >= 0 || path.indexOf('gestione-lavori') >= 0;
+                            var confirmMsg = isLavoriPage ? 'Lavoro salvato!' : 'Attività salvata!';
+                            showMessageInChat(confirmMsg, 'tony');
+                        } else {
+                            showMessageInChat('Attenzione: non posso salvare perché ci sono campi obbligatori vuoti o non pronti: ' + saveValidation.missingFields.join(', '), 'error');
+                        }
                         return;
                     }
 
@@ -938,7 +1127,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     if (saveBtn) {
                         console.log('[Tony] SAVE_ACTIVITY: Clicco bottone salvataggio', saveBtn);
                         saveBtn.click();
-                        // Chiudi dopo salvataggio (opzionale, spesso il form lo fa da solo)
+                        // Rimuovi eventuali SAVE_ACTIVITY duplicati dalla coda (evita doppio salvataggio)
+                        _tonyCommandQueue = _tonyCommandQueue.filter(function(e) { return e.command.type !== 'SAVE_ACTIVITY'; });
                     } else {
                         console.error('[Tony] SAVE_ACTIVITY: Bottone salvataggio non trovato');
                         showMessageInChat('Non trovo il tasto per salvare. Prova a cliccarlo tu.', 'tony');
@@ -1063,13 +1253,25 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 case 'FILTER_TABLE':
                     (function() {
                         var params = data.params || {};
-                        var keyToId = { podere: 'filter-podere', possesso: 'filter-tipo-possesso', alert: 'filter-alert', coltura: 'filter-coltura', categoria: 'filter-categoria' };
+                        var pathStr = (window.location.pathname || '');
+                        var pageType = (window.currentTableData && window.currentTableData.pageType) ||
+                            (pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
+                        var FILTER_KEY_MAP = {
+                            attivita: { terreno: 'filter-terreno', tipoLavoro: 'filter-tipo-lavoro', coltura: 'filter-coltura', origine: 'filter-origine', dataDa: 'filter-data-da', dataA: 'filter-data-a', data: 'filter-data-da', ricerca: 'filter-ricerca' },
+                            terreni: { podere: 'filter-podere', possesso: 'filter-tipo-possesso', alert: 'filter-alert', coltura: 'filter-coltura', categoria: 'filter-categoria' },
+                            lavori: { stato: 'filter-stato', progresso: 'filter-progresso', caposquadra: 'filter-caposquadra', terreno: 'filter-terreno', tipo: 'filter-tipo', tipoLavoro: 'filter-tipo-lavoro', operaio: 'filter-operaio' }
+                        };
+                        var keyToId = FILTER_KEY_MAP[pageType] || FILTER_KEY_MAP.terreni;
+                        var isAttivita = pageType === 'attivita';
 
-                        function setFilterValue(el, value) {
+                        function setFilterValue(el, value, matchByText) {
                             var valToSet = (value != null && value !== '') ? String(value) : '';
                             if (valToSet && el.options && el.options.length > 0) {
                                 var normVal = valToSet.toLowerCase().trim();
                                 var opt = Array.from(el.options).find(function(o) { return (o.value || '').toLowerCase() === normVal; });
+                                if (!opt && matchByText) {
+                                    opt = Array.from(el.options).find(function(o) { return (o.textContent || o.text || '').toLowerCase().trim() === normVal; });
+                                }
                                 if (opt) valToSet = opt.value;
                             }
                             el.value = valToSet;
@@ -1077,16 +1279,17 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         }
 
                         if (params.filterType === 'reset' || params.reset === true) {
-                            document.querySelectorAll('select[id^="filter-"]').forEach(function(el) {
+                            var resetSel = (pageType === 'attivita') ? 'select[id^="filter-"], input[id^="filter-"]' : 'select[id^="filter-"]';
+                            document.querySelectorAll(resetSel).forEach(function(el) {
                                 el.value = '';
                                 try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
                             });
-                            console.log('[Tony] FILTER_TABLE: tutti i filtri resettati');
+                            console.log('[Tony] FILTER_TABLE: tutti i filtri resettati (' + pageType + ')');
                             return;
                         }
 
                         var modified = [];
-                        if (params.categoria && params.categoria !== '') {
+                        if (pageType === 'terreni' && params.categoria && params.categoria !== '') {
                             var catEl = document.getElementById('filter-categoria');
                             if (catEl) {
                                 setFilterValue(catEl, params.categoria);
@@ -1095,21 +1298,42 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             }
                         }
                         for (var key in keyToId) {
-                            if (key === 'categoria') continue;
+                            if ((pageType === 'terreni' && key === 'categoria') || (key === 'data')) continue;
                             if (Object.prototype.hasOwnProperty.call(params, key) && params[key] != null && params[key] !== '') {
                                 var realId = keyToId[key];
                                 var el = document.getElementById(realId);
                                 if (el && (el.tagName === 'SELECT' || 'value' in el)) {
-                                    setFilterValue(el, params[key]);
+                                    if (isAttivita && key === 'tipoLavoro' && params[key] === 'Vendemmia') {
+                                        var hasOpt = Array.from(el.options).some(function(o) { return (o.value || '').toLowerCase() === 'vendemmia'; });
+                                        if (!hasOpt) {
+                                            var opt = document.createElement('option');
+                                            opt.value = 'Vendemmia';
+                                            opt.textContent = 'Vendemmia';
+                                            el.appendChild(opt);
+                                        }
+                                    }
+                                    var matchByText = (isAttivita && (key === 'terreno' || key === 'origine')) || (pageType === 'lavori' && (key === 'terreno' || key === 'caposquadra' || key === 'operaio' || key === 'tipoLavoro'));
+                                    setFilterValue(el, params[key], matchByText);
                                     modified.push(el);
                                 }
                             }
+                        }
+                        if (params.data && params.data !== '' && pageType === 'attivita') {
+                            var dataVal = String(params.data);
+                            var daEl = document.getElementById('filter-data-da');
+                            var aEl = document.getElementById('filter-data-a');
+                            if (daEl) { daEl.value = dataVal; modified.push(daEl); }
+                            if (aEl) { aEl.value = dataVal; modified.push(aEl); }
                         }
                         if (modified.length > 0) {
                             modified.filter(function(el) { return el.id !== 'filter-categoria'; }).forEach(function(el) {
                                 try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
                             });
-                            console.log('[Tony] FILTER_TABLE: applicati', modified.length, 'filtri');
+                            if (isAttivita && params.tipoLavoro) {
+                                var sel = document.getElementById('filter-tipo-lavoro');
+                                console.log('[Tony] FILTER_TABLE attivita tipoLavoro:', params.tipoLavoro, '-> select.value:', sel ? sel.value : 'N/A');
+                            }
+                            console.log('[Tony] FILTER_TABLE: applicati', modified.length, 'filtri (' + pageType + ')');
                         } else {
                             var filterType = (params.filterType || '').toString().toLowerCase();
                             var value = params.value;
@@ -1117,7 +1341,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                 var realId = keyToId[filterType] || ('filter-' + filterType);
                                 var el = document.getElementById(realId);
                                 if (el && (el.tagName === 'SELECT' || 'value' in el)) {
-                                    setFilterValue(el, value);
+                                    var matchByTextRetro = (pageType === 'attivita' && (filterType === 'terreno' || filterType === 'origine')) || (pageType === 'lavori' && (filterType === 'terreno' || filterType === 'caposquadra' || filterType === 'operaio' || filterType === 'tipoLavoro'));
+                                    setFilterValue(el, value, matchByTextRetro);
                                     try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
                                     console.log('[Tony] FILTER_TABLE (retrocompat):', realId, '=', el.value);
                                 } else {
@@ -1498,7 +1723,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
             var isComplete = true;
             
             if (!formCtx || !formCtx.fields) {
-                return { isComplete: false, missingFields: ['Form context non disponibile'] };
+                return { isComplete: false, missingFields: ['Nessun modal attivo'] };
             }
             
             formCtx.fields.forEach(function(field) {
@@ -1542,6 +1767,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
          */
         function generateFormSummary(fields) {
             if (!fields || !Array.isArray(fields)) return '';
+            var placeholderPatterns = /^(seleziona|--\s*seleziona|--\s*nessun|--\s*nessuna|--\s*nessun[oa]\s|scegli\.\.\.|select\.\.\.)/i;
             var lines = [];
             for (var i = 0; i < fields.length; i++) {
                 var f = fields[i];
@@ -1562,7 +1788,9 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 var isLavoroSottocategoriaPlaceholder = (f.id === 'lavoro-sottocategoria' && (!val || val === '') && (displayVal === '-- Nessuna sottocategoria --' || !displayVal));
                 // attivita-pause con valore 0 = default, non ancora chiesto all'utente
                 var isPauseDefault = (f.id === 'attivita-pause' && (val === '0' || val === 0 || String(val).trim() === '0'));
-                if (displayVal && displayVal !== '(vuoto)' && displayVal !== '(compilato)' && !isSottocategoriaPlaceholder && !isLavoroSottocategoriaPlaceholder && !isPauseDefault) {
+                // SELECT con placeholder: "-- Nessuna --", "Seleziona...", ecc. non considerare compilato
+                var isSelectPlaceholder = (/^select/.test(f.type || '')) && (!val || val === '') && displayVal && placeholderPatterns.test(displayVal);
+                if (displayVal && displayVal !== '(vuoto)' && displayVal !== '(compilato)' && !isSottocategoriaPlaceholder && !isLavoroSottocategoriaPlaceholder && !isPauseDefault && !isSelectPlaceholder) {
                     line += ' ✓';
                 }
                 lines.push(line);
@@ -1662,11 +1890,13 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
             
             var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
             var formSummary = generateFormSummary(fields);
+            var requiredEmpty = fields.filter(function(f) { return f.required && (!f.value || f.value === ''); }).map(function(f) { return f.id; });
             var context = {
                 formId: form.id,
                 modalId: modal.id || '',
                 fields: fields,
                 formSummary: formSummary,
+                requiredEmpty: requiredEmpty,
                 submitId: submitBtn ? submitBtn.id || form.id : form.id
             };
             
@@ -1675,7 +1905,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 modalId: context.modalId,
                 fieldsCount: fields.length,
                 formSummaryLength: formSummary.length,
-                requiredEmpty: fields.filter(function(f) { return f.required && (!f.value || f.value === ''); }).map(function(f) { return f.id; }),
+                requiredEmpty: context.requiredEmpty,
                 hiddenRequired: fields.filter(function(f) { return f.required && f.isVisible === false; }).map(function(f) { return f.id; })
             });
             
@@ -1858,6 +2088,15 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 console.warn('[Tony] sendMessage ignorato: richiesta già in corso (anti-flood).');
                 return;
             }
+            if (window.__tonyProactiveAskTimerId) {
+                clearTimeout(window.__tonyProactiveAskTimerId);
+                window.__tonyProactiveAskTimerId = null;
+            }
+            if (window.__tonyIdleReminderTimerId) {
+                clearTimeout(window.__tonyIdleReminderTimerId);
+                window.__tonyIdleReminderTimerId = null;
+            }
+            if (window.__tonyProactiveFormState) window.__tonyProactiveFormState = null;
             var text = (overrideText != null ? String(overrideText).trim() : (inputEl.value || '').trim());
             if (!text) return;
             if (opts.fromVoice) {
@@ -1872,8 +2111,10 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
             }
             if (checkFarewellIntent(text)) opts.isClosingSession = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
-            inputEl.value = '';
-            appendMessage(text, 'user');
+            if (!opts.proactive) {
+                inputEl.value = '';
+                appendMessage(text, 'user');
+            }
             saveTonyState();
 
             // Intercetta richiesta riassunto briefing (Dashboard)
@@ -1905,7 +2146,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
             // Funzione per attendere che il modal sia nel DOM e attivo - SINCRONIZZAZIONE ANTI-NULL
             var waitForModalAndGetContext = function(callback, maxAttempts, attempt) {
                 attempt = attempt || 0;
-                maxAttempts = maxAttempts || 5; // Max 500ms (5 * 100ms) come richiesto
+                maxAttempts = maxAttempts || 10; // Max 1000ms (10 * 100ms) per dare tempo al modal di aprirsi
                 
                 var modal = document.querySelector('.modal.active');
                 if (modal) {
@@ -1925,7 +2166,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     }, 100);
                 } else {
                     // SINCRONIZZAZIONE ANTI-NULL: Se il modal non appare, procedi comunque con il contesto globale
-                    console.warn('[Tony Widget Sync] Timeout attesa modal (500ms), procedo con contesto corrente o globale');
+                    var maxMs = (maxAttempts || 10) * 100;
+                    console.warn('[Tony Widget Sync] Timeout attesa modal (' + maxMs + 'ms), procedo con contesto corrente o globale');
                     var formCtx = getCurrentFormContext();
                     // Se formCtx è null, passa un oggetto vuoto invece di null per evitare errori
                     callback(formCtx || { fields: [] });
@@ -1973,12 +2215,12 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     var pathStr = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : '';
                     var freshTable = null;
                     if (typeof window !== 'undefined') {
-                        // Su pagina terreni: prova window, window.top e __tonyTableDataBuffer (backup da table-data-ready)
-                        if (pathStr.indexOf('terreni') !== -1) {
+                        // Su pagina terreni o attivita: prova window, window.top e __tonyTableDataBuffer (backup da table-data-ready)
+                        if (pathStr.indexOf('terreni') !== -1 || pathStr.indexOf('attivita') !== -1 || pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) {
                             var w = window.currentTableData;
                             var t = (window.top && window.top !== window) ? window.top.currentTableData : null;
                             var buf = window.__tonyTableDataBuffer;
-                            freshTable = (w && w.items && w.items.length > 0) ? w : (t && t.items && t.items.length > 0) ? t : (buf && buf.items && buf.items.length > 0) ? buf : (w || t || buf);
+                            freshTable = (w && w.items && Array.isArray(w.items)) ? w : (t && t.items && Array.isArray(t.items)) ? t : (buf && buf.items && Array.isArray(buf.items)) ? buf : (w || t || buf);
                         }
                         if (!freshTable && window.currentTableData) {
                             freshTable = window.currentTableData;
@@ -2004,6 +2246,25 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     pageCtx.currentTableData = freshTable ? Object.assign({}, freshTable, {
                         items: (freshTable.items && Array.isArray(freshTable.items)) ? freshTable.items : (freshTable.items != null ? [].concat(freshTable.items) : [])
                     }) : null;
+                    if (pathStr.indexOf('terreni') !== -1 && freshTable && freshTable.items && Array.isArray(freshTable.items)) {
+                        var _seenP = {}, _seenC = {};
+                        var _poderi = [], _colture = [];
+                        freshTable.items.forEach(function(it) {
+                            if (it.podere && !_seenP[it.podere]) { _seenP[it.podere] = 1; _poderi.push(it.podere); }
+                            if (it.coltura && !_seenC[it.coltura]) { _seenC[it.coltura] = 1; _colture.push(it.coltura); }
+                        });
+                        pageCtx.terreni = { poderi: _poderi, colture: _colture };
+                    }
+                    if (pathStr.indexOf('attivita') !== -1 && freshTable && freshTable.items && Array.isArray(freshTable.items)) {
+                        var _seenT = {}, _seenL = {}, _seenCol = {};
+                        var _terreni = [], _tipiLavoro = [], _colture = [];
+                        freshTable.items.forEach(function(it) {
+                            if (it.terreno && it.terreno !== '-' && !_seenT[it.terreno]) { _seenT[it.terreno] = 1; _terreni.push(it.terreno); }
+                            if (it.tipoLavoro && it.tipoLavoro !== '-' && !_seenL[it.tipoLavoro]) { _seenL[it.tipoLavoro] = 1; _tipiLavoro.push(it.tipoLavoro); }
+                            if (it.coltura && it.coltura !== '-' && !_seenCol[it.coltura]) { _seenCol[it.coltura] = 1; _colture.push(it.coltura); }
+                        });
+                        pageCtx.attivita = { terreni: _terreni, tipiLavoro: _tipiLavoro, colture: _colture };
+                    }
                     window.Tony.setContext('page', pageCtx);
                 }
                 sendBtn.disabled = true;
@@ -2146,6 +2407,20 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     };
                     console.log('[DEBUG CURSOR] onComplete: Convertito action in command:', commandToExecute);
                 }
+                // Fallback: testo "salvata/salvato" senza command → SAVE_ACTIVITY se form completo. NON attivare su domande (es. "Quali orari hai fatto?").
+                if (!commandToExecute && parsedData.text) {
+                    var txt = (parsedData.text || '').toLowerCase();
+                    var isQuestion = txt.indexOf('?') >= 0 || /^(quali|quante|quale|che|cosa|come|quando|dove)\s/i.test(txt);
+                    if (!isQuestion && /salvat[ao](?:\s|!|\.|$)|confermato!|ok\s*salvo|perfetto\s*salvo|attività\s*salvata/i.test(txt)) {
+                        var formCtx = typeof getCurrentFormContext === 'function' ? getCurrentFormContext() : null;
+                        var isAttivitaComplete = formCtx && (formCtx.formId === 'attivita-form' || formCtx.modalId === 'attivita-modal') &&
+                            (!formCtx.requiredEmpty || formCtx.requiredEmpty.length === 0);
+                        if (isAttivitaComplete) {
+                            commandToExecute = { type: 'SAVE_ACTIVITY' };
+                            console.log('[Tony] Fallback: testo conferma salvataggio senza command → SAVE_ACTIVITY');
+                        }
+                    }
+                }
                 
                 if (commandToExecute && typeof commandToExecute === 'object' && commandToExecute.type) {
                     
@@ -2186,9 +2461,13 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         } else {
                             console.log('[Tony] ESEGUO COMANDO:', commandToExecute);
                             
-                            // SUM_COLUMN: onAction già in coda, evita doppia esecuzione
+                            // Evita doppio enqueue: tony-service chiama triggerAction prima di restituire { text, command },
+                            // quindi onAction callback ha già accodato. Non enqueueare di nuovo.
+                            var responseFromService = (typeof rawData === 'object' && rawData && rawData.command);
                             var skipEnqueueForSumColumn = (commandToExecute.type === 'SUM_COLUMN');
-                            if (!skipEnqueueForSumColumn && typeof window.processTonyCommand === 'function') {
+                            if (responseFromService) {
+                                // Comando già gestito da triggerAction -> onAction-callback
+                            } else if (!skipEnqueueForSumColumn && typeof window.processTonyCommand === 'function') {
                                 try {
                                     enqueueTonyCommand(commandToExecute, { source: 'response-direct' });
                                 } catch (e) {
@@ -2308,20 +2587,25 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
             // FIX CODA ESECUZIONE: Assicura che sendRequestWithContext venga sempre chiamata
             // Se rilevato intento di apertura modulo, attendi che il modal sia nel DOM
             if (hasOpenModalIntent) {
-                console.log('[Tony Widget Sync] Intent apertura modulo rilevato, attendo che modal sia nel DOM (max 500ms)');
+                console.log('[Tony Widget Sync] Intent apertura modulo rilevato, attendo che modal sia nel DOM (max 1000ms)');
                 waitForModalAndGetContext(function(formCtx) {
                     console.log('[Tony Widget Sync] Contesto estratto dopo attesa modal:', formCtx ? JSON.stringify(formCtx, null, 2) : '{}');
                     // FIX CODA ESECUZIONE: Garantisce che formCtx non sia null
                     sendRequestWithContext(formCtx || { fields: [] });
                 });
             } else if (hasKeyword) {
-                // Se rilevata parola chiave, usa polling fino a 500ms per attendere apertura modal
-                console.log('[Tony Widget Sync] Parola chiave rilevata, uso polling per attendere modal (max 500ms)');
-                waitForModalAndGetContext(function(formCtx) {
-                    console.log('[Tony Widget Sync] Contesto estratto dopo polling:', formCtx ? JSON.stringify(formCtx, null, 2) : '{}');
-                    // FIX CODA ESECUZIONE: Garantisce che formCtx non sia null
-                    sendRequestWithContext(formCtx || { fields: [] });
-                });
+                // Keyword (potatura, erpicatura, ecc.): verifica subito se modal già aperto, altrimenti breve poll (300ms)
+                // Il modal si apre solo dopo la risposta di Tony, quindi evitiamo attese lunghe inutili
+                var formCtxNow = getCurrentFormContext();
+                if (formCtxNow && formCtxNow.fields && formCtxNow.fields.length > 0) {
+                    console.log('[Tony Widget Sync] Parola chiave: modal già aperto, invio contesto immediato');
+                    sendRequestWithContext(formCtxNow);
+                } else {
+                    console.log('[Tony Widget Sync] Parola chiave: breve attesa modal (max 300ms)');
+                    waitForModalAndGetContext(function(formCtx) {
+                        sendRequestWithContext(formCtx || { fields: [] });
+                    }, 3);
+                }
             } else {
                 // Nessuna keyword: usa contesto immediato
                 var formCtx = getCurrentFormContext();
@@ -2331,6 +2615,12 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
         }
 
         if (uiApi && uiApi.setSendHandler) uiApi.setSendHandler(function() { sendMessage(); });
+        window.__tonyTriggerAskForMissingFields = function(optionalMessage) {
+            if (typeof sendMessage === 'function' && !_isSendingMessage) sendMessage(optionalMessage && String(optionalMessage).trim() ? optionalMessage : 'Form aperto con campi mancanti da compilare', { proactive: true });
+        };
+        window.__tonyTriggerAskForSaveConfirmation = function() {
+            if (typeof sendMessage === 'function' && !_isSendingMessage) sendMessage('Form completo, confermi salvataggio?', { proactive: true });
+        };
         inputEl.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -2806,6 +3096,16 @@ window.addEventListener('tony-module-updated', function(e) {
                                 enqueueTonyCommand({ type: 'FILTER_TABLE', params: { filterType: 'reset', value: '' } }, { source: 'apri-pagina-guard' });
                                 return;
                             }
+                            // Guardia: se siamo già sulla pagina attivita e il target è attivita/diario, non navigare (filtra invece)
+                            var isOnAttivitaPage = (typeof window !== 'undefined' && (
+                                (window.location.pathname || '').indexOf('attivita') >= 0 ||
+                                (window.currentTableData && window.currentTableData.pageType === 'attivita')
+                            ));
+                            if (isOnAttivitaPage && (rawTarget === 'attivita' || rawTarget === 'diario' || rawTarget === 'attivita-standalone')) {
+                                console.log('[Tony] Già sulla pagina attivita: ignoro APRI_PAGINA, eseguo FILTER_TABLE reset');
+                                enqueueTonyCommand({ type: 'FILTER_TABLE', params: { filterType: 'reset', value: '' } }, { source: 'apri-pagina-guard' });
+                                return;
+                            }
                             
                             var url = getUrlForTarget(rawTarget);
                             if (!url) {
@@ -2819,6 +3119,18 @@ window.addEventListener('tony-module-updated', function(e) {
                             window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
                                 if (ok) {
                                     _tonyCommandQueue.length = 0;
+                                    // Salvataggio intent solo alla conferma utente (evita residui da comandi annullati)
+                                    var pendingModal = actualParams._tonyPendingModal;
+                                    var pendingFields = actualParams._tonyPendingFields;
+                                    if (pendingModal && rawTarget) {
+                                        try {
+                                            sessionStorage.setItem('tony_pending_intent', JSON.stringify({
+                                                target: rawTarget,
+                                                modalId: pendingModal,
+                                                fields: (pendingFields && typeof pendingFields === 'object') ? pendingFields : null
+                                            }));
+                                        } catch (e) { console.warn('[Tony] Impossibile salvare pending intent:', e); }
+                                    }
                                     window.location.hash = '#' + resolved;
                                     try {
                                         window.dispatchEvent(new CustomEvent('tony-navigate', { detail: { target: resolved, hash: '#' + resolved, url: urlWithNotify } }));
@@ -2876,6 +3188,74 @@ window.addEventListener('tony-module-updated', function(e) {
                             }
                         }, 800);
                     })();
+
+                    (function checkTonyPendingAfterNav() {
+                        try {
+                            var raw = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('tony_pending_intent') : null;
+                            if (!raw) return;
+                            var intent = null;
+                            try { intent = JSON.parse(raw); } catch (e) { return; }
+                            if (!intent || !intent.modalId || !intent.target) return;
+                            var path = (window.location.pathname || '').toLowerCase();
+                            var targetSlug = (intent.target || '').replace(/\s+/g, '-').toLowerCase();
+                            if (!targetSlug || path.indexOf(targetSlug) < 0) return;
+                            sessionStorage.removeItem('tony_pending_intent');
+                            var modalId = intent.modalId;
+                            var fields = (intent.fields && typeof intent.fields === 'object') ? intent.fields : null;
+                            function openAndInject() {
+                                if (modalId === 'attivita-modal' && typeof window.openAttivitaModal === 'function') {
+                                    window.openAttivitaModal().catch(function(e) { console.warn('[Tony] openAttivitaModal fallito:', e); });
+                                    var jq = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null;
+                                    if (jq) { jq('#' + modalId).modal('show'); } else { var el = document.getElementById(modalId); if (el) el.classList.add('active'); }
+                                    if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
+                                        enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'attivita-form', formData: fields }, { source: 'pending-after-nav', delayMs: 1800 });
+                                    }
+                                } else if (modalId === 'lavoro-modal' && typeof window.openCreaModal === 'function') {
+                                    window.openCreaModal();
+                                    var jq = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null;
+                                    if (jq) { jq('#' + modalId).modal('show'); } else { var el = document.getElementById(modalId); if (el) el.classList.add('active'); }
+                                    if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
+                                        enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'lavoro-form', formData: fields }, { source: 'pending-after-nav', delayMs: 1800 });
+                                    }
+                                } else if (modalId === 'terreno-modal' && typeof window.openTerrenoModal === 'function') {
+                                    window.openTerrenoModal(null).catch(function(e) { console.warn('[Tony] openTerrenoModal fallito:', e); });
+                                    var jq = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null;
+                                    if (jq) { jq('#' + modalId).modal('show'); } else { var el = document.getElementById(modalId); if (el) el.classList.add('active'); }
+                                    if (fields && Object.keys(fields).length > 0) {
+                                        var order = ['terreno-nome', 'terreno-superficie', 'terreno-coltura-categoria', 'terreno-coltura', 'terreno-podere', 'terreno-tipo-possesso', 'terreno-data-scadenza-affitto', 'terreno-canone-affitto', 'terreno-note'];
+                                        order.forEach(function(fk, i) {
+                                            if (fields[fk] != null && fields[fk] !== '') {
+                                                enqueueTonyCommand({ type: 'SET_FIELD', field: fk, value: String(fields[fk]) }, { source: 'pending-after-nav', delayMs: 1800 + (i * 250) });
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    var mEl = document.getElementById(modalId);
+                                    if (mEl) {
+                                        var jq = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null;
+                                        if (jq) { jq('#' + modalId).modal('show'); } else { mEl.classList.add('active'); }
+                                        if (fields && Object.keys(fields).length > 0) {
+                                            Object.keys(fields).forEach(function(fk, i) {
+                                                if (fields[fk] != null && fields[fk] !== '') {
+                                                    enqueueTonyCommand({ type: 'SET_FIELD', field: fk, value: String(fields[fk]) }, { source: 'pending-after-nav', delayMs: 1200 + (i * 250) });
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            if (document.getElementById(modalId)) {
+                                setTimeout(openAndInject, 400);
+                            } else {
+                                var attempts = 0;
+                                var iv = setInterval(function() {
+                                    attempts++;
+                                    if (document.getElementById(modalId)) { clearInterval(iv); setTimeout(openAndInject, 400); } else if (attempts >= 20) { clearInterval(iv); }
+                                }, 200);
+                            }
+                        } catch (e) { console.warn('[Tony] checkTonyPendingAfterNav:', e); }
+                    })();
+
                     return;
                 }
             } catch (e) {

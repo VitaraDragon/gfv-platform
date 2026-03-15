@@ -739,6 +739,18 @@
                         <option value="conto_terzi">💼 Conto Terzi</option>
                     </select>
                 </div>
+                <div class="filter-group">
+                    <label for="filter-tipo-lavoro">Filtra per Tipo Lavoro</label>
+                    <select id="filter-tipo-lavoro" onchange="applyFilters()">
+                        <option value="">Tutti i tipi</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-operaio">Filtra per Operaio</label>
+                    <select id="filter-operaio" onchange="applyFilters()">
+                        <option value="">Tutti gli operai</option>
+                    </select>
+                </div>
                 <div class="filter-group" style="align-self: flex-end;">
                     <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Pulisci Filtri</button>
                 </div>
@@ -1384,6 +1396,8 @@
     </script>
     
     <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <!-- Placeholder per Tony: currentTableData (aggiornato da renderLavori) -->
+    <script>window.currentTableData = window.currentTableData || { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };</script>
     <!-- Firebase SDK -->
     <script type="module">
         // ============================================
@@ -1407,6 +1421,8 @@
             loadTipiLavoro as loadTipiLavoroModule,
             populateTerrenoFilter as populateTerrenoFilterModule,
             populateCaposquadraFilter as populateCaposquadraFilterModule,
+            populateTipoLavoroFilter as populateTipoLavoroFilterModule,
+            populateOperaioFilter as populateOperaioFilterModule,
             populateTerrenoDropdown as populateTerrenoDropdownModule,
             populateCaposquadraDropdown as populateCaposquadraDropdownModule,
             populateOperaiDropdown as populateOperaiDropdownModule,
@@ -1504,6 +1520,11 @@
 
         // Attendi che le configurazioni siano caricate
         await waitForConfigModule();
+
+        // Fallback currentTableData per Tony (se placeholder non eseguito)
+        if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+            window.currentTableData = { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };
+        }
 
         const firebaseConfig = window.firebaseConfig;
 
@@ -1645,6 +1666,16 @@
             populateCaposquadraFilterModule(lavoriState.caposquadraList);
         }
 
+        // Wrapper per populateTipoLavoroFilter (riceve tipiLavoroList da loadTipiLavoro)
+        function populateTipoLavoroFilterWrapper(tipiLavoroList) {
+            populateTipoLavoroFilterModule(tipiLavoroList || lavoriState.tipiLavoroList);
+        }
+
+        // Wrapper per populateOperaioFilter (riceve operaiList da loadOperai)
+        function populateOperaioFilterWrapper(operaiList) {
+            populateOperaioFilterModule(operaiList || lavoriState.operaiList);
+        }
+
         // Wrapper per populateTerrenoDropdown
         function populateTerrenoDropdownWrapper(selectedId = null) {
             populateTerrenoDropdownModule(lavoriState.terreniList, selectedId);
@@ -1729,7 +1760,8 @@
                 currentTenantId || lavoriState.currentTenantId,
                 db,
                 lavoriState.operaiList,
-                populateOperaiDropdownWrapper
+                populateOperaiDropdownWrapper,
+                populateOperaioFilterWrapper
             );
             updateState({ operaiList: lavoriState.operaiList });
         }
@@ -1770,7 +1802,8 @@
                 lavoriState.tipiLavoroList,
                 lavoriState.categorieLavoriPrincipali,
                 lavoriState.sottocategorieLavoriMap,
-                populateTipoLavoroDropdownWrapper
+                populateTipoLavoroDropdownWrapper,
+                populateTipoLavoroFilterWrapper
             );
             updateState({ tipiLavoroList: lavoriState.tipiLavoroList });
         }
@@ -2753,7 +2786,8 @@
                 lavoriState.lavoriList,
                 lavoriState.filteredLavoriList,
                 lavoriState.hasManodoperaModule,
-                renderLavoriWrapper // Usa wrapper invece di funzione inline
+                renderLavoriWrapper,
+                lavoriState.tipiLavoroList
             );
             updateState({ filteredLavoriList: lavoriState.filteredLavoriList });
         }

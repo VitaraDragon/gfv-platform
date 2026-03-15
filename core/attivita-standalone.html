@@ -774,7 +774,8 @@
                     <div class="filter-group">
                         <label>Tipo Lavoro</label>
                         <select id="filter-tipo-lavoro">
-                            <option value="">Tutti i tipi lavoro</option>
+                            <option value="">Tutte le categorie lavoro</option>
+                            <option value="Vendemmia">Vendemmia</option>
                         </select>
                     </div>
                     
@@ -782,6 +783,15 @@
                         <label>Coltura</label>
                         <select id="filter-coltura">
                             <option value="">Tutte le colture</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>Origine</label>
+                        <select id="filter-origine">
+                            <option value="">Tutte</option>
+                            <option value="azienda">Solo azienda</option>
+                            <option value="contoTerzi">Solo conto terzi</option>
                         </select>
                     </div>
                     
@@ -1015,7 +1025,7 @@
                                 <br>Esempio: lavoro durato 9 ore, ma macchina usata solo 7 ore → inserisci 7
                             </small>
                             <div id="ore-macchina-display" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 14px; color: #666;">
-                                <strong>Ore lavoratore:</strong> <span id="ore-lavoratore-display">0.00</span> ore
+                                <strong>Ore lavoratore:</strong> <span id="ore-lavoratore-display">0h</span>
                             </div>
                         </div>
                     </div>
@@ -1273,10 +1283,18 @@
         });
     </script>
     
+    <!-- Placeholder per Tony: oggetto globale; .items aggiornato da renderAttivita -->
+    <script>window.currentTableData = window.currentTableData || { pageType: 'attivita', summary: 'Caricamento dati in corso...', items: [] };</script>
+    
     <!-- Firebase SDK -->
     <script type="module">
         // Attendi che lo script config sia caricato
         await waitForConfigModule();
+
+        // Fallback currentTableData per Tony (se placeholder non eseguito)
+        if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+            window.currentTableData = { pageType: 'attivita', summary: 'Caricamento dati in corso...', items: [] };
+        }
 
         const firebaseConfig = window.firebaseConfig;
 
@@ -1695,7 +1713,8 @@
             await Promise.all(loadPromises);
             
             // Renderizza attività DOPO che tutte le promise sono completate (incluso loadMacchine)
-            renderAttivita();
+            // AWAIT: evita race su currentTableData (Tony deve avere dati prima del primo messaggio)
+            await renderAttivita();
             
             // Popola filtri dopo che tutto è stato caricato
             populateFiltroColture();
@@ -2013,11 +2032,14 @@
                 isContoTerziMode,
                 populateColtureFromTerreni
             );
-            // Aggiorna terreniList globale per accesso da populateTipoLavoroDropdown
+            // Aggiorna terreniList globale per accesso da populateTipoLavoroDropdown e Tony (deriveCategoriaFromTipo)
             if (typeof window.attivitaState === 'undefined') {
                 window.attivitaState = {};
             }
-            window.attivitaState.terreniList = terreni;
+            window.attivitaState.terreniList = terreni.map(function(t) {
+                var cat = (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(t.coltura || '') : null);
+                return Object.assign({}, t, { coltura_categoria: cat });
+            });
         }
         
         // Carica lavori conto terzi (solo se modalità Conto Terzi) - wrapper
@@ -2154,6 +2176,7 @@
                     'Trattamenti',
                     'Potatura',
                     'Raccolta',
+                    'Vendemmia',
                     'Gestione del Verde',
                     'Diserbo',
                     'Semina e Piantagione',
@@ -2167,13 +2190,20 @@
                     filterTipoLavoroSelect.appendChild(option);
                 });
             } else {
-                // Popola con categorie lavori principali
+                // Popola con categorie lavori principali + Vendemmia (filtro specifico per tipi vendemmia)
                 categorieLavoriPrincipali.forEach(categoria => {
                     const option = document.createElement('option');
                     option.value = categoria.nome;
                     option.textContent = categoria.nome;
                     filterTipoLavoroSelect.appendChild(option);
                 });
+                // Aggiungi Vendemmia se non già presente (Raccolta può esistere, Vendemmia è filtro specifico)
+                if (!categorieLavoriPrincipali.some(c => (c.nome || '').toLowerCase() === 'vendemmia')) {
+                    const optVendemmia = document.createElement('option');
+                    optVendemmia.value = 'Vendemmia';
+                    optVendemmia.textContent = 'Vendemmia';
+                    filterTipoLavoroSelect.appendChild(optVendemmia);
+                }
             }
         }
         
@@ -2739,19 +2769,25 @@
             });
         }
 
-        // Esponi terreni globalmente per accesso da populateTipoLavoroDropdown
+        // Esponi terreni globalmente per accesso da populateTipoLavoroDropdown e Tony (deriveCategoriaFromTipo)
         if (typeof window.attivitaState === 'undefined') {
             window.attivitaState = {};
         }
-        window.attivitaState.terreniList = terreni;
+        window.attivitaState.terreniList = terreni.map(function(t) {
+            var cat = (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(t.coltura || '') : null);
+            return Object.assign({}, t, { coltura_categoria: cat });
+        });
         
         // Listener per precompilare coltura quando si seleziona un terreno
         document.getElementById('attivita-terreno').addEventListener('change', async function() {
             const terrenoId = this.value;
             
-            // Aggiorna terreniList globale
+            // Aggiorna terreniList globale (preserva coltura_categoria per Tony/injector)
             if (window.attivitaState) {
-                window.attivitaState.terreniList = terreni;
+                window.attivitaState.terreniList = terreni.map(function(t) {
+                    var cat = (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(t.coltura || '') : null);
+                    return Object.assign({}, t, { coltura_categoria: cat });
+                });
             }
             
             // Se categoria è già selezionata, ricarica tipi lavoro per applicare filtro vendemmia
@@ -2794,6 +2830,24 @@
             
             if (terrenoId) {
                 const terreno = terreni.find(t => t.id === terrenoId);
+                // Vigneto con filari: se sottocategoria è Generale, passa a Tra le File
+                if (terreno && (terreno.coltura_categoria || terreno.coltura)) {
+                    const cat = terreno.coltura_categoria || (typeof mapColturaToCategoria === 'function' ? mapColturaToCategoria(terreno.coltura || '') : null);
+                    const colturaStr = (cat || terreno.coltura || '').toLowerCase();
+                    const isVigneto = /vite|vigneto|frutteto|oliveto|arboreo/.test(colturaStr);
+                    if (isVigneto) {
+                        const subSelect = document.getElementById('attivita-sottocategoria');
+                        const subOpt = subSelect && Array.from(subSelect.options).find(o => (o.text || '').toLowerCase().includes('generale'));
+                        if (subSelect && subOpt && subSelect.value === subOpt.value) {
+                            const optTraLeFile = Array.from(subSelect.options).find(o => (o.text || '').toLowerCase().includes('tra le file'));
+                            if (optTraLeFile) {
+                                subSelect.value = optTraLeFile.value;
+                                subSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                                console.log('[ATTIVITA] Terreno vigneto: sottocategoria Generale → Tra le File');
+                            }
+                        }
+                    }
+                }
                 if (terreno && terreno.coltura) {
                     // Assicura che le categorie siano caricate
                     if (!window.colturePerCategoriaAttivita || Object.keys(window.colturePerCategoriaAttivita).length === 0) {
@@ -3055,6 +3109,7 @@
         document.getElementById('filter-terreno').addEventListener('change', applyFilters);
         document.getElementById('filter-tipo-lavoro').addEventListener('change', applyFilters);
         document.getElementById('filter-coltura').addEventListener('change', applyFilters);
+        document.getElementById('filter-origine').addEventListener('change', applyFilters);
         document.getElementById('filter-ricerca').addEventListener('input', applyFilters);
 
         // Applica filtri - wrapper
@@ -3065,6 +3120,7 @@
                 lavoriList,
                 tipiLavoroList,
                 categorieLavoriPrincipali,
+                sottocategorieLavoriMap,
                 isContoTerziMode,
                 mapColturaToCategoria,
                 renderAttivita

@@ -1,8 +1,8 @@
 # Riepilogo: `window.currentTableData` per pagine lista (Tony)
 
-**Ultimo aggiornamento: 2026-02-27.** *(Riferimenti file: sendMessage in core/js/tony/main.js.)*
+**Ultimo aggiornamento: 2026-03-08.** *(Riferimenti file: sendMessage in core/js/tony/main.js.)*
 
-Questo documento descrive il pattern usato per esporre i dati della tabella a Tony. **Pagine con currentTableData già attivo**: Macchine (trattori, attrezzi, flotta, scadenze, guasti), Magazzino (prodotti, movimenti), **terreni-standalone.html** (principale – 2026-02-25), terreni-test-bootstrap (test). **Pagine ancora da dotare**: diario attività, gestione lavori, vigneti, clienti, ecc. – vedi DOBBIAMO_ANCORA_FARE §1.3.
+Questo documento descrive il pattern usato per esporre i dati della tabella a Tony. **Pagine con currentTableData già attivo**: terreni, attivita (diario), **gestione lavori**, Macchine (trattori, attrezzi, flotta, scadenze, guasti), Magazzino (prodotti, movimenti). **Pagine ancora da dotare**: vigneti, clienti, ecc.
 
 ---
 
@@ -203,3 +203,63 @@ function renderTable() {
    - lanciare `window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));`
 
 Stesso schema si può usare per **movimenti-standalone.html** (pageType `'movimenti'`, summary e items in base a tipo movimento, data, prodotto, quantità, ecc.).
+
+---
+
+## 6. Differenze implementative (verificato 2026-03-08)
+
+| Aspetto | Attività | Terreni | Lavori |
+|---------|----------|---------|--------|
+| Fallback IIFE | Sì, all'inizio del modulo | No; il callback di load fa `if (!window.currentTableData) ...` | Sì, all'inizio del modulo |
+| Aggiornamento | Mutazione diretta | Stesso | Stesso |
+| Notifica Tony | Diretta: setContext + table-data-ready | **Debounce**: `debouncedNotifyTonyTableData()` (50ms) | Diretta: setContext + table-data-ready |
+| Dove si aggiorna | attivita-controller.js (funzione render) | loadTerreni callback + renderTerreniWrapper | gestione-lavori-controller.js (renderLavori) |
+| Moduli JS | attivita-controller, attivita-events, attivita-utils | — | controller, events, utils, maps, tour |
+
+**Raccomandazione**: usare il fallback IIFE (come attivita e lavori) per maggiore robustezza. Per pagine con molti filtri, considerare il debounce come terreni.
+
+---
+
+## 7. FILTER_TABLE – keyToId e limitazione attuale
+
+### 7.1 Mappatura verificata (main.js)
+
+| pageType | keyToId (param → id DOM) |
+|----------|--------------------------|
+| **attivita** | terreno→filter-terreno, tipoLavoro→filter-tipo-lavoro, coltura→filter-coltura, origine→filter-origine, dataDa→filter-data-da, dataA→filter-data-a, data→filter-data-da, ricerca→filter-ricerca |
+| **terreni** | podere→filter-podere, possesso→filter-tipo-possesso, alert→filter-alert, coltura→filter-coltura, categoria→filter-categoria |
+| **lavori** | stato→filter-stato, progresso→filter-progresso, caposquadra→filter-caposquadra, terreno→filter-terreno, tipo→filter-tipo, tipoLavoro→filter-tipo-lavoro, operaio→filter-operaio. Match tipo lavoro: case-insensitive, nomi parziali, risoluzione tipoLavoroId da tipiLavoroList. |
+
+### 7.2 Logica pageType (aggiornata 2026-03-08)
+
+`main.js` usa `window.currentTableData?.pageType` oppure il path per decidere quale keyToId usare:
+
+```javascript
+var pageType = (window.currentTableData && window.currentTableData.pageType) ||
+    (pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
+var keyToId = FILTER_KEY_MAP[pageType] || FILTER_KEY_MAP.terreni;
+```
+
+**Conseguenza**: gestione lavori, attivita e terreni hanno ciascuno il proprio keyToId corretto.
+
+### 7.3 Per estendere FILTER_TABLE a nuove pagine
+
+1. In **main.js**: sostituire la logica binaria con una mappa `pageType → keyToId` e usare `window.currentTableData?.pageType` (o path) per scegliere.
+2. Nella **pagina HTML**: assicurarsi che i filtri abbiano ID coerenti con il keyToId (es. `filter-stato`, `filter-tipo`, ecc.).
+3. In **functions/index.js**: aggiungere le istruzioni FILTER_TABLE per il nuovo pageType con il formato params.
+
+---
+
+## 8. Procedura per dotare una nuova pagina
+
+### Step 1 – currentTableData (lettura)
+
+1. Placeholder HTML con `pageType` corretto.
+2. Fallback all'inizio IIFE (consigliato).
+3. Nel render: summary, items, setContext, table-data-ready (o debouncedNotifyTony se molti filtri).
+
+### Step 2 – FILTER_TABLE (se la pagina ha filtri)
+
+1. Aggiungere il pageType e keyToId in **main.js** (vedi §7.3).
+2. Verificare che gli ID dei filtri HTML corrispondano al keyToId.
+3. Aggiungere istruzioni CF in **functions/index.js** per il nuovo pageType.

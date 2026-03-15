@@ -2,6 +2,8 @@
 
 Documento di riferimento per lo sviluppo dell'assistente Tony (IA integrata) nella GFV Platform. Aggiornato in base alle decisioni di architettura e alle conversazioni con Gemini.
 
+**Sviluppo recente (Marzo 2026)**: sottocategoria vigneto/frutteto, compilazione atomica, fallback salvataggio → `TONY_SVILUPPO_2026-03_VIGNETO_E_COMPILAZIONE.md`. **Fix regressioni (2026-03-02)**: fallback SAVE_ACTIVITY non si attiva su domande (es. "Quali orari hai fatto?"); injector sovrascrive "Generale" con "Tra le File" su terreni Frutteto/Vite/Olivo; CF con regola esplicita Erpicatura/Trinciatura su frutteti; terreniList preserva coltura_categoria al cambio terreno → `COSA_ABBIAMO_FATTO.md` sezione "Tony Form Attività".
+
 ---
 
 ## Riepilogo
@@ -229,7 +231,7 @@ Quando l'utente ha il modulo Tony avanzato attivo (`moduli_attivi` contiene `ton
 | `OPEN_MODAL` | `id` (string) | Apre il modal specifico (attivita-modal, ora-modal, lavoro-modal) – solo per "segna ore", "diario", non per navigazione | "Segna le ore", "Cosa hai fatto oggi" |
 | `SET_FIELD` | `field` (string), `value` | Imposta un campo del form aperto (es. attivita-terreno, attivita-tipo-lavoro-gerarchico) | "Ho trinciato nel Sangiovese" |
 | `SAVE_ACTIVITY` | — | Salva l'attività dopo conferma (form completo) | "Salva", "Sì" dopo compilazione |
-| `FILTER_TABLE` | `column`, `value` | Filtra la tabella visibile (quando su pagina terreni) | "Solo gli affitti", "Filtra scaduti" |
+| `FILTER_TABLE` | `params` (terreni: podere, categoria, coltura, possesso, alert; attivita: terreno, tipoLavoro, coltura, origine, data) | Filtra la tabella visibile (terreni o attivita) | "Solo gli affitti", "Potature", "Solo attività aziendali" |
 | `SUM_COLUMN` | `column` | Calcola somma di una colonna nella tabella terreni | "Quanto sono in totale?" |
 | `MOSTRA_GRAFICO` | `tipo` (string), `periodo` (string) | Visualizza un grafico a tutto schermo (es. 'costi', 'resa') | "Fammi vedere quanto abbiamo speso questo mese" |
 | `SEGNA_ATTIVITA` | `descrizione` (string), `campo_id` (int) | Crea una nuova nota o attività nel diario di bordo | "Tony, segna che oggi abbiamo iniziato la potatura nel campo 4" |
@@ -309,4 +311,4 @@ Quando l'utente ha il modulo Tony avanzato attivo (`moduli_attivi` contiene `ton
 
 ---
 
-*Ultimo aggiornamento: 2026-02-27 (verifica allineamento codice/doc). 2026-02-27: architettura modulare `core/js/tony/` (main, ui, engine, voice); tony-widget-standalone.js è loader snello; comandi OPEN_MODAL, SET_FIELD, SAVE_ACTIVITY, FILTER_TABLE, SUM_COLUMN; context.page.currentTableData. Aggiornamenti precedenti: 2026-02-07 modalità continua; 2026-02-16 compilazione form Lavori; 2026-02-23 syncTonyModules, auto-discovery, sub-agenti, rotte. Vedi TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md, RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md.*
+*Ultimo aggiornamento: 2026-03-08 (verifica allineamento codice/doc). 2026-03-08: FILTER_TABLE attivita con filtro origine (Tutte | Solo azienda | Solo conto terzi). 2026-03-02: fix fallback SAVE_ACTIVITY, injector override Generale→Tra le File, CF regola sottocategoria Frutteto. Vedi TONY_FUNZIONI_E_SOLUZIONI_TECNICHE.md, COSA_ABBIAMO_FATTO.md.*

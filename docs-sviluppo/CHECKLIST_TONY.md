@@ -94,6 +94,8 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 5.3d | SAVE_ACTIVITY | — | CF avanzata | main.js CLICK_BUTTON | [x] fatto |
 | 5.3e | FILTER_TABLE | params (podere, categoria, coltura, possesso, alert) | CF avanzata terreni | main.js processTonyCommand | [x] fatto (2026-02-25) |
 | 5.3f | SUM_COLUMN | params, messageTemplate | CF avanzata terreni | main.js processTonyCommand | [x] fatto (2026-02-25) |
+| 5.3g | FILTER_TABLE attivita | params (terreno, tipoLavoro, coltura, origine, data, dataDa, dataA, ricerca) | CF avanzata attivita | main.js processTonyCommand | [x] fatto (2026-03-08) |
+| 5.3h | FILTER_TABLE lavori | params (stato, progresso, caposquadra, terreno, tipo, tipoLavoro, operaio) | CF avanzata lavori | main.js processTonyCommand | [x] fatto (2026-03-08) |
 | 5.4 | MOSTRA_GRAFICO | tipo, periodo | §8 | [ ] da fare | [ ] da fare |
 | 5.5 | SEGNA_ATTIVITA | descrizione, campo_id | §8 | [ ] da fare | [ ] da fare |
 | 5.6 | REPORT_GUASTO | mezzo, gravita | §8 | [ ] da fare | [ ] da fare |
@@ -144,7 +146,7 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 
 | # | Voce | Riferimento | Stato |
 |---|------|-------------|--------|
-| 9.1 | **Form Attività** (attivita-form): Tony compila con tipo lavoro, terreno, orari, macchina, attrezzo; derivazione categoria/sottocategoria | TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE | [x] fatto |
+| 9.1 | **Form Attività** (attivita-form): Tony compila con tipo lavoro, terreno, orari, macchina, attrezzo; derivazione categoria/sottocategoria; override Generale→Tra le File su terreni con filari; fallback SAVE_ACTIVITY non su domande | TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE, COSA_ABBIAMO_FATTO 2026-03-02 | [x] fatto |
 | 9.2 | **Form Lavori** (lavoro-form): Tony compila con sottocategoria "Tra le File" per vigneti/frutteti, disambiguazione erpicatura/trinciatura, macchine, stato "assegnato", messaggio conferma salvataggio | TONY_COMPILAZIONE_LAVORI_2026-02 | [x] fatto (2026-02-16) |
 | 9.3 | (Opz.) Altri form (magazzino, guasti, ecc.) | GUIDA_TONY_OPERATIVO | [ ] da fare |
 
@@ -177,4 +179,4 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 
 ---
 
-*Checklist creata in base a `GUIDA_SVILUPPO_TONY.md`. Ultimo aggiornamento (verifica codice/doc): 2026-02-27. FILTER_TABLE, SUM_COLUMN e domande informative terreni (§10 TONY_FUNZIONI) 2026-02-25.*
+*Checklist creata in base a `GUIDA_SVILUPPO_TONY.md`. Ultimo aggiornamento (verifica codice/doc): 2026-03-08. FILTER_TABLE attivita (origine) e FILTER_TABLE lavori (stato, progresso, caposquadra, terreno, tipo, tipoLavoro, operaio) 2026-03-08.*

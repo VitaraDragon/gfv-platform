@@ -3,7 +3,7 @@
 **Documento di riferimento tecnico per sviluppatori.**  
 Descrive il flusso end-to-end della compilazione guidata del form attività tramite Tony, i file coinvolti, le responsabilità di ciascuno e come **replicare/estendere** la soluzione ad altri form nell'app.
 
-**Stato: funzionante al 100% (Febbraio 2026).** Tutti i fix descritti sono implementati e testati.
+**Stato: funzionante al 100% (Marzo 2026).** Tutti i fix descritti sono implementati e testati. Aggiornamenti Marzo 2026: vedi `TONY_SVILUPPO_2026-03_VIGNETO_E_COMPILAZIONE.md`.
 
 ---
 
@@ -140,6 +140,7 @@ Se Gemini invia `attivita-tipo-lavoro-gerarchico` ma non categoria/sottocategori
 3. Trova i nomi in `categorie_lavoro` e `sottocategorieLavoriMap`
 4. **Override da nome**: se risultato "Generale" ma `tipoNome` contiene "tra le file" o "sulla fila" → usa "Tra le File" o "Sulla Fila"
 5. **Non sovrascrivere**: se formData ha già "Tra le File" o "Sulla Fila" e derived è "Generale" → lasciare valore di Gemini
+6. **Override Generale su terreni con filari (2026-03-02)**: se formData ha `attivita-sottocategoria = "Generale"` e il terreno (da `attivitaState.terreniList`, id da `formData['attivita-terreno']`) ha `coltura_categoria` in [Vite, Frutteto, Olivo, Arboreo, Alberi] → **sovrascrivere** con "Tra le File". Corregge errore Tony su Frutteto (es. Kaki).
 
 ### 4.5 Ore macchina e formSummary
 
@@ -212,10 +213,14 @@ Nel widget, `showMessageInChat(text, type)` per messaggi di errore e avviso modu
 
 ---
 
-## 6. Correzioni e modifiche (2026-02)
+## 6. Correzioni e modifiche (2026-02, 2026-03-02)
 
 | Modifica | File | Descrizione |
 |----------|------|-------------|
+| **Override Generale su filari (2026-03-02)** | tony-form-injector.js | Se Tony invia "Generale" e terreno ha coltura_categoria in Vite/Frutteto/Olivo → sovrascrive con "Tra le File" |
+| **terreniList coltura_categoria (2026-03-02)** | attivita-standalone.html | Listener change su attivita-terreno preserva coltura_categoria in terreniList (fix sovrascrittura) |
+| **Fallback SAVE_ACTIVITY (2026-03-02)** | main.js | No attivazione su domande (es. "Quali orari hai fatto?"); regex ristretta senza "fatto" |
+| **Regola CF Erpicatura Frutteto (2026-03-02)** | functions/index.js | Regola esplicita: Erpicatura/Trinciatura su Vite/Frutteto/Olivo → "Tra le File"; attivita.terreni e colture_con_filari nel contesto |
 | ECCEZIONE PAUSE | functions/index.js, tony-widget | Pause=0 non considerato compilato; Gemini deve chiedere |
 | ECCEZIONE SOTTOCATEGORIA | functions/index.js | Sottocategoria placeholder per categorie manuale/meccanico non considerata compilata |
 | colture_con_filari, coltura_categoria | attivita-standalone.html | Contesto per regole sottocategoria (mai Generale su Vite/Frutteto/Olivo) |
@@ -242,6 +247,7 @@ Nel widget, `showMessageInChat(text, type)` per messaggi di errore e avviso modu
 
 ## 8. Riferimenti
 
+- **Fix regressioni 2026-03-02**: `docs-sviluppo/TONY_SVILUPPO_2026-03_VIGNETO_E_COMPILAZIONE.md` (§8), `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (sezione Tony Form Attività)
 - **Flusso inverso**: `docs-sviluppo/TONY_FLUSSO_COMPILAZIONE_ATTIVITA_INVERSO.md`
 - **Architettura operativa**: `docs-sviluppo/GUIDA_TONY_OPERATIVO_ARCHITETTURA_GLOBALE.md`
 - **Separazione Guida/Operativo**: `docs-sviluppo/TONY_MODULO_SEPARATO.md`

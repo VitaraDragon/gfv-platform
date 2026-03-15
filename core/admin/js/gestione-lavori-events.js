@@ -278,15 +278,19 @@ export function setupMacchineHandlers(
  * @param {Array} filteredLavoriList - Array lavori filtrati (modificato in place)
  * @param {boolean} hasManodoperaModule - Se il modulo Manodopera è attivo
  * @param {Function} renderLavoriCallback - Callback per renderizzare lavori
+ * @param {Array} [tipiLavoroList] - Array tipi lavoro per risolvere tipoLavoroId (opzionale)
  */
-export function applyFilters(lavoriList, filteredLavoriList, hasManodoperaModule, renderLavoriCallback) {
+export function applyFilters(lavoriList, filteredLavoriList, hasManodoperaModule, renderLavoriCallback, tipiLavoroList) {
     const statoFilter = document.getElementById('filter-stato')?.value || '';
     const caposquadraFilterEl = document.getElementById('filter-caposquadra');
     const caposquadraFilter = caposquadraFilterEl ? caposquadraFilterEl.value : '';
     const terrenoFilter = document.getElementById('filter-terreno')?.value || '';
     const tipoFilter = document.getElementById('filter-tipo')?.value || '';
+    const tipoLavoroFilter = document.getElementById('filter-tipo-lavoro')?.value || '';
+    const operaioFilter = document.getElementById('filter-operaio')?.value || '';
 
     filteredLavoriList.length = 0; // Pulisci array
+    const tipoLavoroFilterNorm = tipoLavoroFilter ? tipoLavoroFilter.toString().trim().toLowerCase() : '';
     lavoriList.forEach(lavoro => {
         if (statoFilter && lavoro.stato !== statoFilter) return;
         // Filtro caposquadra solo se Manodopera attivo e filtro selezionato
@@ -294,6 +298,21 @@ export function applyFilters(lavoriList, filteredLavoriList, hasManodoperaModule
         if (terrenoFilter && lavoro.terrenoId !== terrenoFilter) return;
         if (tipoFilter === 'conto_terzi' && !lavoro.clienteId) return;
         if (tipoFilter === 'interno' && lavoro.clienteId) return;
+        // Filtro tipo lavoro: match su tipoLavoro (nome), tipoLavoroNome, categoriaLavoroNome, o tipoLavoroId risolto
+        if (tipoLavoroFilterNorm) {
+            let lavTipo = (lavoro.tipoLavoro || lavoro.tipoLavoroNome || lavoro.categoriaLavoroNome || '').toString().trim();
+            if (!lavTipo && lavoro.tipoLavoroId && tipiLavoroList && tipiLavoroList.length > 0) {
+                const tipoObj = tipiLavoroList.find(t => t.id === lavoro.tipoLavoroId);
+                if (tipoObj) lavTipo = (tipoObj.nome || '').toString().trim();
+            }
+            const lavTipoNorm = lavTipo.toLowerCase();
+            const match = lavTipoNorm === tipoLavoroFilterNorm ||
+                (lavTipoNorm.startsWith(tipoLavoroFilterNorm) && (lavTipoNorm.length === tipoLavoroFilterNorm.length || lavTipoNorm.charAt(tipoLavoroFilterNorm.length) === ' ')) ||
+                (tipoLavoroFilterNorm.startsWith(lavTipoNorm) && (lavTipoNorm.length === tipoLavoroFilterNorm.length || tipoLavoroFilterNorm.charAt(lavTipoNorm.length) === ' '));
+            if (!match) return;
+        }
+        // Filtro operaio solo se Manodopera attivo
+        if (hasManodoperaModule && operaioFilter && lavoro.operaioId !== operaioFilter) return;
         filteredLavoriList.push(lavoro);
     });
 
@@ -314,12 +333,16 @@ export function clearFilters(lavoriList, filteredLavoriList, hasManodoperaModule
     const filterCaposquadra = document.getElementById('filter-caposquadra');
     const filterTerreno = document.getElementById('filter-terreno');
     const filterTipo = document.getElementById('filter-tipo');
+    const filterTipoLavoro = document.getElementById('filter-tipo-lavoro');
+    const filterOperaio = document.getElementById('filter-operaio');
     
     if (filterStato) filterStato.value = '';
     if (filterProgresso) filterProgresso.value = '';
     if (filterCaposquadra) filterCaposquadra.value = '';
     if (filterTerreno) filterTerreno.value = '';
     if (filterTipo) filterTipo.value = '';
+    if (filterTipoLavoro) filterTipoLavoro.value = '';
+    if (filterOperaio) filterOperaio.value = '';
     
     if (applyFiltersCallback) applyFiltersCallback();
 }

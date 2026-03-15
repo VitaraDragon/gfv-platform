@@ -1320,6 +1320,42 @@ export async function renderAttivita(params) {
 
     const container = document.getElementById('attivita-container');
     if (!container) return;
+
+    // --- currentTableData per Tony (domande informative sulla lista) ---
+    const summaryParts = [];
+    if (filteredAttivita.length === 0) {
+        summaryParts.push('Nessuna attività in elenco.');
+    } else {
+        summaryParts.push('Ci sono ' + filteredAttivita.length + ' attività in elenco.');
+    }
+    const summaryStr = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
+    const itemsForTony = filteredAttivita.map((att) => {
+        const terreno = (terreni || []).find((t) => t.id === att.terrenoId);
+        const terrenoNome = terreno ? (terreno.nome || '-') : (att.terrenoNome || '-');
+        return {
+            id: att.id,
+            data: att.data ? String(att.data).slice(0, 10) : '-',
+            terreno: terrenoNome,
+            tipoLavoro: att.tipoLavoro || '-',
+            oreNette: att.oreNette != null ? att.oreNette : '-',
+            coltura: att.coltura || '-'
+        };
+    });
+    if (typeof window !== 'undefined') {
+        if (!window.currentTableData) window.currentTableData = { pageType: 'attivita', summary: '', items: [] };
+        window.currentTableData.pageType = 'attivita';
+        window.currentTableData.summary = summaryStr;
+        window.currentTableData.items = itemsForTony;
+        if (window.Tony && typeof window.Tony.setContext === 'function') {
+            const page = (window.Tony.context && window.Tony.context.page) || {};
+            window.Tony.setContext('page', Object.assign({}, page, { tableDataSummary: window.currentTableData.summary, currentTableData: window.currentTableData }));
+        }
+        try {
+            window.__tonyTableDataBuffer = window.currentTableData;
+            window.dispatchEvent(new CustomEvent('table-data-ready', { detail: window.currentTableData }));
+        } catch (e) {}
+    }
+    // --- Fine currentTableData per Tony ---
     
     // Determina se è modalità completati
     const urlParams = new URLSearchParams(window.location.search);

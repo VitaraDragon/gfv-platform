@@ -91,6 +91,7 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 - **SAVE_ACTIVITY**: salva attività dopo conferma.
 - **INJECT_FORM_DATA**: compilazione batch (form Attività, Lavori).
 - **FILTER_TABLE**, **SUM_COLUMN**: per pagina terreni (filtri e somme) – CF emette, widget esegue (main.js processTonyCommand). Tony può anche rispondere a domande informative (conteggio, nomi, superficie singolo terreno) usando `page.tableDataSummary` e `page.currentTableData.items` nel contesto – vedi §10.
+- **FILTER_TABLE attivita** (2026-03-08): stessa logica per pagina Attività; params: terreno, tipoLavoro, coltura, **origine** (azienda | contoTerzi), data, dataDa, dataA, ricerca. Filtro origine distingue lavorazioni interne da conto terzi.
 
 ### 2.8 Cosa Tony non fa (ancora)
 - **Esecuzione azioni**: nessun handler per SEGNA_ATTIVITA (nota), REPORT_GUASTO, AGGIORNA_MAGAZZINO, MOSTRA_GRAFICO, ecc. (azioni emesse dalla CF ma non gestite in UI).
@@ -174,11 +175,18 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 - **Gestione APRI_PAGINA**: callback riceve `target` (e eventuale alias); una mappa fissa associa target (es. `terreni`, `lavori`, `vigneto`, `statistiche vigneto`, `pianifica impianto`) a **path da root** (es. `core/terreni-standalone.html`, `core/admin/gestione-lavori-standalone.html`, `modules/vigneto/views/vigneto-dashboard-standalone.html`). Da `window.location.pathname` si ricava la “profondità” della pagina corrente (numero di segmenti nel path); si costruisce il path relativo come `../`.repeat(depth) + pathFromRoot. Si mostra `showTonyConfirmDialog('Aprire la pagina «Label»?')`; se l’utente conferma, `window.location.href = url`.
 - **Dialog conferma**: non si usa `confirm()`; overlay + box con stili in `tony-widget.css` (`.tony-confirm-overlay`, `.tony-confirm-box`, `.tony-confirm-btn`). Una Promise risolta con true/false a seconda di Apri/Annulla (o click su overlay); la navigazione avviene solo se true.
 
-### 4.6 Dove è presente Tony
+### 4.6 Coda comandi e deduplicazione (2026-03-02)
+- **enqueueTonyCommand**: accoda comandi (OPEN_MODAL, SET_FIELD, INJECT_FORM_DATA, SAVE_ACTIVITY, ecc.) con priorità e delay; `drainTonyCommandQueue` processa in sequenza.
+- **Deduplicazione consecutiva**: se l'ultimo elemento in coda è identico (JSON.stringify) al nuovo comando, non si accoda. Non sufficiente quando il primo comando è già stato rimosso (shift) prima che arrivi il secondo.
+- **Fix doppio enqueue (2026-03-02)**: tony-service chiama `triggerAction()` prima di restituire `{ text, command }`; l'onAction callback accoda. Poi onComplete riceve la stessa risposta e accodava di nuovo. Fix: in onComplete, se `rawData` è oggetto con `command` (risposta dal service), si salta l'enqueue.
+- **Fix jQuery (2026-03-02)**: `checkTonyPendingAfterNav` (openAndInject) su pagine senza jQuery (attivita-standalone) usava `$` → ReferenceError. Sostituito con `(typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null` e fallback `el.classList.add('active')`.
+- **Fix fallback SAVE_ACTIVITY (2026-03-02)**: il regex includeva "fatto" → "Quali orari hai fatto?" attivava erroneamente SAVE_ACTIVITY. Ora: esclusione domande (testo con `?` o che inizia con "quali", "quante", "come", ecc.); regex ristretta: `salvat[ao](?:\s|!|\.|$)|confermato!|ok salvo|perfetto salvo|attività salvata` (rimosso "fatto").
+
+### 4.7 Dove è presente Tony
 - **Incluso**: dashboard, terreni, attivita, statistiche, segnatura-ore (core); tutte le pagine standalone in core/admin (gestione-lavori, amministrazione, gestione-guasti, segnalazione-guasti, gestisci-utenti, gestione-operai, gestione-squadre, compensi-operai, gestione-macchine, statistiche-manodopera, validazione-ore, abbonamento, impostazioni, lavori-caposquadra, report); tutte le view standalone dei moduli vigneto, frutteto, magazzino, conto-terzi, report.
 - **Escluso**: login, registrazione, reset-password, registrazione-invito, fix-utente-mancante (e opzionalmente accetta-preventivo, che è pagina pubblica).
 
-### 4.7 Stack e dipendenze
+### 4.8 Stack e dipendenze
 - **Firebase**: SDK 11; tutta l’app usa `core/services/firebase-service.js` per `getAppInstance()`, `getAuthInstance()`, `getDb()`. Tony riceve `app` da lì.
 - **Modello**: sia in SDK che in callable si usa **`gemini-2.0-flash`** (tony-service.js e API REST). Stessa system instruction concettualmente; la callable non ricollega la conversazione (stateless).
 - **Storia messaggi**: chatHistory (max 8 elementi) inviata a Gemini insieme al prompt; il modello ricorda i turni precedenti.
@@ -196,15 +204,16 @@ Documento di sintesi su come funziona Tony, quali funzioni ha oggi e quali scelt
 
 ---
 
-### 4.8 Compilazione form attività (Treasure Map)
+### 4.9 Compilazione form attività (Treasure Map)
 - **Attivazione**: la Cloud Function usa `SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED` quando `context.form.formId === 'attivita-form'` oppure `context.form.modalId === 'attivita-modal'`, e modulo Tony attivo.
 - **Contesto form**: il widget deve chiamare `Tony.setContext('form', formCtx)` **prima** di `ask()`. `formCtx` viene da `getCurrentFormContext()` (modal attivo, campi estratti dal DOM).
 - **File**: `tony-form-injector.js` (INJECTION_ORDER, deriveCategoriaFromTipo, resolver), `tony-form-mapping.js` (configurazione), `functions/index.js` (SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED).
+- **Override Generale su terreni con filari (2026-03-02)**: se Tony invia `attivita-sottocategoria = "Generale"` e il terreno ha `coltura_categoria` in [Vite, Frutteto, Olivo, Arboreo, Alberi], l'injector **sovrascrive** con "Tra le File". Usa `attivitaState.terreniList` e `terreno.coltura_categoria`. Evita errore su terreni Frutteto (es. Kaki). `attivita-standalone.html`: il listener change su attivita-terreno preserva `coltura_categoria` in terreniList (fix bug sovrascrittura).
 - **Estensione**: per nuovi form seguire la checklist in `docs-sviluppo/TONY_COMPILAZIONE_ATTIVITA_IMPLEMENTAZIONE.md` §5.
 
 ---
 
-*Riferimenti: `core/services/tony-service.js`, `core/js/tony-widget-standalone.js`, `core/js/tony/` (main, ui, engine, voice), `functions/index.js`, `docs-sviluppo/GUIDA_SVILUPPO_TONY.md`. Ultimo aggiornamento (verifica codice/doc): 2026-02-27. §10 Terreni 2026-02-25.*
+*Riferimenti: `core/services/tony-service.js`, `core/js/tony-widget-standalone.js`, `core/js/tony/` (main, ui, engine, voice), `functions/index.js`, `docs-sviluppo/GUIDA_SVILUPPO_TONY.md`, `TONY_SVILUPPO_2026-03_VIGNETO_E_COMPILAZIONE.md`. Ultimo aggiornamento (verifica codice/doc): 2026-03-02. §10 Terreni 2026-02-25. Fix regressioni 2026-03-02: fallback SAVE_ACTIVITY, injector Generale→Tra le File, terreniList coltura_categoria.*
 
 ---
 

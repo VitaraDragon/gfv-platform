@@ -4,6 +4,8 @@
 **Scopo**: Elenco unificato delle cose da fare (sicurezza, documentazione, Tony, snellimento codice, test) per avere una direzione chiara.  
 **Riferimenti**: VALUTAZIONE_APP_2026-02-25, PROPOSTA_SNELLIMENTO_E_OTTIMIZZAZIONE_CODICE, RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE, ARCHITETTURA_MODULI_E_INTERAZIONI.
 
+> **Aggiornamento 2026-03-08**: §1.3 – **FATTO** per terreni, diario attività, gestione lavori. currentTableData implementato in attivita-controller.js, terreni, gestione-lavori-controller.js. FILTER_TABLE lavori in main.js + functions. Le altre voci restano valide.
+
 ---
 
 ## 1. Priorità alta
@@ -17,9 +19,9 @@
 - **Da fare**: Creare **INDICE_DOCUMENTAZIONE.md** (o sezione in README) con: onboarding (LEGGIMI_PRIMA, STATO_PROGETTO_COMPLETO, ARCHITETTURA_MODULI), sicurezza (firestore.rules + istruzioni), moduli (ARCHITETTURA_MODULI, PLAN_*), Tony (GUIDA_SVILUPPO_TONY, CHECKLIST_TONY); indicare quali doc sono “stato attuale” e quali “storico”.
 
 ### 1.3 Tony – Riepilogo su altre pagine lista
-- **Cosa**: Il riepilogo Tony (risposte tipo “Quanti sono?”, “Cosa c’è in lista?”) è già su: **tutte le liste Macchine** (trattori, attrezzi, flotta, scadenze, guasti) e **entrambe le liste Magazzino** (prodotti, movimenti). Altre pagine con tabella non espongono `currentTableData`.
+- **Cosa**: Il riepilogo Tony (risposte tipo “Quanti sono?”, “Cosa c’è in lista?”) è già su: **tutte le liste Macchine** (trattori, attrezzi, flotta, scadenze, guasti), **entrambe le liste Magazzino** (prodotti, movimenti), **terreni**, **diario attività**, **gestione lavori** (2026-03-08).
 - **Da fare**: Estendere il pattern `currentTableData` (placeholder + summary + items + setContext + evento `table-data-ready`) alle pagine lista che ancora non ce l’hanno, ad esempio:
-  - **Core**: terreni, diario attività, statistiche, gestione lavori, validazione ore, gestione squadre, gestisci utenti, gestione operai, compensi, report.
+  - **Core**: statistiche, validazione ore, gestione squadre, gestisci utenti, gestione operai, compensi, report.
   - **Vigneto**: vigneti, vendemmia, potatura, trattamenti, statistiche vigneto.
   - **Frutteto**: frutteti, raccolta frutta, potatura, trattamenti, statistiche frutteto.
   - **Conto-terzi**: clienti, preventivi, tariffe, terreni clienti.
@@ -47,7 +49,8 @@
 
 ### 2.3 Tony – Widget più manutenibile
 - **Spezzare tony-widget-standalone.js**: ✅ **FATTO (2026-02)**: la logica è ora in `core/js/tony/` (main.js orchestratore, ui.js FAB/chat/dialog, engine.js mappe e resolve, voice.js TTS). `tony-widget-standalone.js` è il loader che importa `tony/main.js`. *(PROPOSTA_SNELLIMENTO §3.1.)*
-- **Dashboard e gestione-lavori**: Estendere il pattern già usato in dashboard (dashboard-data.js, dashboard-sections.js, dashboard-controller.js) a gestione-lavori e ad altre pagine molto lunghe (potatura, trattamenti vigneto/frutteto): spostare pezzi in moduli JS dedicati. *(§3.2.)*
+- **Gestione lavori**: ✅ **GIÀ MODULARE (verificato 2026-03-08)**: usa `gestione-lavori-controller.js`, `gestione-lavori-events.js`, `gestione-lavori-utils.js`, `gestione-lavori-maps.js`, `gestione-lavori-tour.js`. Non serve estendere il pattern dashboard. *(§3.2.)*
+- **Altre pagine lunghe**: Estendere il pattern a potatura, trattamenti vigneto/frutteto: spostare pezzi in moduli JS dedicati. *(§3.2.)*
 
 ### 2.4 Service-helper e getDb
 - Usare **service-helper** in modo coerente per letture comuni (lista macchine, terreni, ecc.) invece di import dinamici diretti verso i servizi; verificare che non restino chiamate che bypassano firebase-service o tenant-service. *(§4.2.)*
@@ -85,7 +88,7 @@
 |------|-----------|
 | **Sicurezza** | Restringere regola Firestore su `inviti` (solo manager/admin). |
 | **Documentazione** | Indice (INDICE_DOCUMENTAZIONE.md), README/roadmap allineati, consolidamento doc storica. |
-| **Tony** | Riepilogo su altre liste (terreni, lavori, vigneti, clienti, …); log debug condizionati; opzionale lazy load. *(Widget già spezzato in core/js/tony/.)* |
+| **Tony** | Riepilogo su altre liste (vigneti, clienti, validazione ore, …); terreni, attivita, gestione lavori già dotati; log debug condizionati; opzionale lazy load. *(Widget già spezzato in core/js/tony/.)* |
 | **Codice** | Bootstrap unico, escapeHtml/showAlert condivisi, path-resolver ovunque, CSS condiviso liste, list-utils macchine, service-helper coerente. |
 | **Test** | Più test servizi (mock), 1–2 E2E critici. |
 | **Vari** | TODO nei servizi, controller senza globali, path Unix in repo. |

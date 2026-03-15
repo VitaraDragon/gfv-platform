@@ -119,16 +119,19 @@ REGOLE:
 {CONTESTO_PLACEHOLDER}
 **[/CONTESTO_AZIENDALE]**`;
 
-  /** Mappa form Lavori (gestione-lavori) */
+  /** Mappa form Lavori (gestione-lavori)
+   * PREFISSO OBBLIGATORIO: lavoro- per tutti i campi (lavoro-terreno, lavoro-tipo-lavoro, lavoro-operaio, ecc.).
+   * DIVIETO: Non usare MAI attivita-* nel modulo Lavori (es. attivita-tipo-lavoro-gerarchico). Sono moduli distinti.
+   */
   const LAVORO_FORM_MAP = {
     formId: 'lavoro-form',
     modalId: 'lavoro-modal',
     injectionOrder: [
       'lavoro-nome',
+      'lavoro-terreno',
       'lavoro-categoria-principale',
       'lavoro-sottocategoria',
       'lavoro-tipo-lavoro',
-      'lavoro-terreno',
       'tipo-assegnazione',
       'lavoro-caposquadra',
       'lavoro-operaio',
@@ -167,6 +170,11 @@ REGOLE:
   /** System instruction per form Lavori - compilazione completa senza dimenticanze */
   const SYSTEM_INSTRUCTION_LAVORO_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Lavori GFV Platform (Gestione Lavori).
 
+PREFISSO E MAPPING ID (OBBLIGATORIO):
+- Usa ESCLUSIVAMENTE il prefisso lavoro- per ogni campo (lavoro-terreno, lavoro-tipo-lavoro, lavoro-operaio, lavoro-categoria-principale, lavoro-sottocategoria).
+- NON usare MAI attivita-* nel modulo Lavori (attivita-tipo-lavoro-gerarchico, attivita-terreno, ecc.). Moduli distinti.
+- tipo-assegnazione: inviare esattamente così (senza prefisso).
+
 OBIETTIVO: Compilare TUTTI i campi obbligatori senza dimenticanze. Non saltare mai un campo required.
 
 CONTROLLO STATO FORM:
@@ -190,12 +198,67 @@ IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
 {CONTESTO_PLACEHOLDER}
 **[/CONTESTO_AZIENDALE]**`;
 
+  /** Mappa form Terreno (aggiungi terreno) */
+  const TERRENO_FORM_MAP = {
+    formId: 'terreno-form',
+    modalId: 'terreno-modal',
+    injectionOrder: [
+      'terreno-nome',
+      'terreno-superficie',
+      'terreno-coltura-categoria',
+      'terreno-coltura',
+      'terreno-podere',
+      'terreno-tipo-possesso',
+      'terreno-data-scadenza-affitto',
+      'terreno-canone-affitto',
+      'terreno-note'
+    ],
+    hierarchy: {
+      colturaCategoria: { fieldId: 'terreno-coltura-categoria', description: 'Categoria coltura (Frutteto, Vigneto, Seminativo, Ortive, ecc.)' },
+      coltura: { fieldId: 'terreno-coltura', description: 'Coltura specifica (Vite da Vino, Albicocche, Kaki, Grano, ecc.). Selezionare prima la categoria.' }
+    },
+    fields: {
+      'terreno-nome': { type: 'text', resolve: 'as_is', required: true, description: 'Nome identificativo del terreno (OBBLIGATORIO)' },
+      'terreno-superficie': { type: 'number', resolve: 'as_is', description: 'Superficie in ettari (es. 2.5). Può essere calcolata dalla mappa.' },
+      'terreno-coltura-categoria': { type: 'select', resolve: 'by_name', lookup: 'categorie_coltura', description: 'Categoria coltura (Frutteto, Vigneto, Seminativo, Ortive)' },
+      'terreno-coltura': { type: 'select', resolve: 'by_name', lookup: 'colture', description: 'Coltura specifica (Vite da Vino, Albicocche, Kaki, Grano)' },
+      'terreno-podere': { type: 'select', resolve: 'by_name', lookup: 'poderi', description: 'Podere (es. Casetti, Barbavara Vecchia)' },
+      'terreno-tipo-possesso': { type: 'select', resolve: 'as_is', description: 'proprieta o affitto. Default proprieta.' },
+      'terreno-data-scadenza-affitto': { type: 'date', resolve: 'as_is', description: 'Data scadenza contratto affitto (YYYY-MM-DD). Richiesto se tipo-possesso=affitto.' },
+      'terreno-canone-affitto': { type: 'number', resolve: 'as_is', description: 'Canone mensile in euro (opzionale)' },
+      'terreno-note': { type: 'text', resolve: 'as_is', description: 'Note aggiuntive' }
+    }
+  };
+
+  /**
+   * Regole sottocategoria per tipo terreno (coltura).
+   * Fonte unica per SmartFormFiller e injector: evita patch sparse.
+   * Estensibile: nuovo tipo → aggiungi pattern.
+   */
+  const TERRENO_SOTTOCATEGORIA_PREFERENCE = {
+    /** Pattern coltura (lowercase, partial match) → sottocategoria default per lavorazioni meccaniche */
+    traLeFile: ['vite', 'vigneto', 'frutteto', 'oliveto', 'arboreo', 'alberi'],
+    generale: ['seminativo', 'seminativi', 'prato', 'prati', 'generale', 'coltura erbacea', 'grano', 'mais', 'orzo']
+  };
+
+  /** @returns {'tra le file'|'generale'|null} */
+  function getSottocategoriaPreferenceFromColtura(coltura) {
+    if (!coltura || typeof coltura !== 'string') return null;
+    const c = coltura.toLowerCase().trim();
+    if (TERRENO_SOTTOCATEGORIA_PREFERENCE.traLeFile.some(p => c.includes(p))) return 'tra le file';
+    if (TERRENO_SOTTOCATEGORIA_PREFERENCE.generale.some(p => c.includes(p))) return 'generale';
+    return null;
+  }
+
   const mapping = {
     'attivita-modal': ATTIVITA_FORM_MAP,
     attivita: ATTIVITA_FORM_MAP,
     'lavoro-modal': LAVORO_FORM_MAP,
     'lavoro-form': LAVORO_FORM_MAP,
-    lavori: LAVORO_FORM_MAP
+    lavori: LAVORO_FORM_MAP,
+    'terreno-modal': TERRENO_FORM_MAP,
+    'terreno-form': TERRENO_FORM_MAP,
+    terreni: TERRENO_FORM_MAP
   };
 
   const schemas = {
@@ -218,6 +281,9 @@ IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
     ATTIVITA_RESPONSE_SCHEMA,
     ATTIVITA_FORM_MAP,
     LAVORO_FORM_MAP,
+    TERRENO_FORM_MAP,
+    TERRENO_SOTTOCATEGORIA_PREFERENCE,
+    getSottocategoriaPreferenceFromColtura,
     SYSTEM_INSTRUCTION_LAVORO_STRUCTURED
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1380,8 +1380,15 @@
                     const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
                     const snapshot = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
                     tipiLavoroDocs = [];
-                    snapshot.forEach(doc => {
-                        tipiLavoroDocs.push({ id: doc.id, nome: doc.data().nome, predefinito: doc.data().predefinito || false });
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        tipiLavoroDocs.push({
+                            id: docSnap.id,
+                            nome: data.nome,
+                            predefinito: data.predefinito || false,
+                            categoriaId: data.categoriaId || null,
+                            sottocategoriaId: data.sottocategoriaId || null
+                        });
                     });
                     
                     // Se tipiLavoro è vuoto, prova migrazione automatica
@@ -1390,8 +1397,15 @@
                         await migraTipiLavoroAutomatica();
                         // Ricarica dopo migrazione
                         const snapshot2 = await getDocs(query(tipiRef, orderBy('nome', 'asc')));
-                        snapshot2.forEach(doc => {
-                            tipiLavoroDocs.push({ id: doc.id, nome: doc.data().nome, predefinito: doc.data().predefinito || false });
+                        snapshot2.forEach(docSnap => {
+                            const data = docSnap.data();
+                            tipiLavoroDocs.push({
+                                id: docSnap.id,
+                                nome: data.nome,
+                                predefinito: data.predefinito || false,
+                                categoriaId: data.categoriaId || null,
+                                sottocategoriaId: data.sottocategoriaId || null
+                            });
                         });
                     }
                     
@@ -1414,13 +1428,13 @@
                     }));
                 }
                 
-                // Rimuovi duplicati dall'array (case-insensitive, mantieni il primo)
+                // Rimuovi duplicati dall'array (stessa chiave nome+categoria+sottocategoria, mantieni il primo)
                 const tipiLavoroUnici = [];
                 const tipiLavoroVisti = new Set();
                 tipiLavoroDocs.forEach(tipo => {
-                    const tipoLower = tipo.nome.toLowerCase();
-                    if (!tipiLavoroVisti.has(tipoLower)) {
-                        tipiLavoroVisti.add(tipoLower);
+                    const chiave = `${(tipo.nome || '').toLowerCase()}|${tipo.categoriaId || ''}|${tipo.sottocategoriaId || ''}`;
+                    if (!tipiLavoroVisti.has(chiave)) {
+                        tipiLavoroVisti.add(chiave);
                         tipiLavoroUnici.push(tipo);
                     }
                 });
@@ -1442,6 +1456,9 @@
         }
 
         // Pulisci duplicati dalla collection tipiLavoro
+        // IMPORTANTE: Raggruppa per (nome, categoriaId, sottocategoriaId) - non solo nome.
+        // Altrimenti un tipo custom "Erpicatura" in una categoria verrebbe eliminato se esiste
+        // "Erpicatura" predefinito in un'altra categoria (falso positivo).
         async function pulisciDuplicatiTipiLavoro() {
             try {
                 if (!currentTenantId) return;
@@ -1449,23 +1466,25 @@
                 const tipiRef = collection(db, `tenants/${currentTenantId}/tipiLavoro`);
                 const snapshot = await getDocs(tipiRef);
                 
-                // Raggruppa per nome (case-insensitive)
-                const tipiPerNome = new Map();
-                snapshot.forEach(doc => {
-                    const nome = doc.data().nome;
-                    const nomeLower = nome.toLowerCase();
+                // Raggruppa per (nome, categoriaId, sottocategoriaId) - duplicati reali solo se tutti e tre coincidono
+                const tipiPerChiave = new Map();
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const nome = data.nome;
+                    const categoriaId = data.categoriaId || '';
+                    const sottocategoriaId = data.sottocategoriaId || '';
+                    const chiave = `${nome.toLowerCase()}|${categoriaId}|${sottocategoriaId}`;
                     
-                    if (!tipiPerNome.has(nomeLower)) {
-                        tipiPerNome.set(nomeLower, []);
+                    if (!tipiPerChiave.has(chiave)) {
+                        tipiPerChiave.set(chiave, []);
                     }
-                    tipiPerNome.get(nomeLower).push({ id: doc.id, data: doc.data() });
+                    tipiPerChiave.get(chiave).push({ id: docSnap.id, data: data });
                 });
                 
-                // Elimina duplicati (mantieni solo il primo di ogni gruppo)
-                let duplicatiEliminati = 0;
+                // Elimina duplicati (mantieni solo il primo di ogni gruppo con stessa chiave)
                 const deletePromises = [];
                 
-                tipiPerNome.forEach((docs, nomeLower) => {
+                tipiPerChiave.forEach((docs) => {
                     if (docs.length > 1) {
                         // Ordina per createdAt (il più vecchio viene mantenuto) o per id
                         docs.sort((a, b) => {
@@ -1482,11 +1501,9 @@
                             // Non eliminare se è predefinito (mantieni sempre i predefiniti)
                             if (!docs[i].data.predefinito) {
                                 deletePromises.push(deleteDoc(doc(db, `tenants/${currentTenantId}/tipiLavoro`, docs[i].id)));
-                                duplicatiEliminati++;
                             } else if (!docs[0].data.predefinito) {
                                 // Se il primo non è predefinito ma questo sì, mantieni questo e elimina il primo
                                 deletePromises.push(deleteDoc(doc(db, `tenants/${currentTenantId}/tipiLavoro`, docs[0].id)));
-                                duplicatiEliminati++;
                                 // Rimuovi il primo dalla lista e mantieni questo
                                 docs.shift();
                             }

@@ -1,0 +1,22 @@
+---
+description: PROJECT GUARDIAN - Tony Universal Agent - riferimento Master Plan e architettura
+alwaysApply: true
+---
+
+# PROJECT GUARDIAN: TONY UNIVERSAL AGENT
+
+**CONTEXT**: Stiamo sviluppando "GFV Platform", un ERP agricolo con 35+ form e 25+ tabelle. Tony è l'assistente AI centrale.
+
+**REFERENCE FILE**: Consulta sempre `docs-sviluppo/tony/MASTER_PLAN.md` prima di ogni azione.
+
+## MANDATORY ARCHITECTURE
+
+- **No Local Patches**: È vietato scrivere logica specifica per singole pagine (es. `if (formId === 'terreno')`). Usa sempre il sistema di configurazione centralizzato in `tony-form-mapping.js`.
+- **Global Mobility (Fase 2)**: Tony deve poter operare da qualsiasi pagina. Se l'utente chiede un'azione non disponibile nella pagina corrente, usa GOTO_PAGE + OPEN_MODAL.
+- **Context-Driven**: Ogni risposta di Tony deve basarsi sui dati aggregati dal Context Builder (Fase 3). Se un dato manca, proponi di mappare la fonte dati invece di inventare fallback.
+- **Simplified UX**: Tony deve "intervistare" l'utente. Se mancano campi in un form, riempie quelli che ha e chiede il resto a voce.
+
+## WORKFLOW
+
+Prima di produrre codice, scrivi sempre:
+"Analisi Coerenza Master Plan: [Fase X] - Questa modifica è scalabile perché..."

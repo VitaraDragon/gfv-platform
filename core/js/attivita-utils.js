@@ -140,7 +140,8 @@ export function updateOreNette() {
 }
 
 /**
- * Aggiorna display ore macchina basandosi su ore lavoratore
+ * Aggiorna display ore macchina basandosi su ore lavoratore.
+ * Mostra "6 h 15 min" invece di "6.25" per coerenza con ore lavorate.
  */
 export function updateOreMacchinaDisplay() {
     const oreLavoratoreDisplay = document.getElementById('ore-lavoratore-display');
@@ -148,11 +149,11 @@ export function updateOreMacchinaDisplay() {
     
     if (oreLavoratoreDisplay) {
         const oreNetteResult = calculateOreNette();
-        oreLavoratoreDisplay.textContent = oreNetteResult.decimali.toFixed(2);
+        oreLavoratoreDisplay.textContent = formatOreNette(oreNetteResult.decimali);
         
-        // Pre-compila ore macchina con ore lavoratore se vuoto
+        // Pre-compila ore macchina con ore lavoratore se vuoto (1 decimale per step="0.1")
         if (oreMacchinaInput && !oreMacchinaInput.value) {
-            oreMacchinaInput.value = oreNetteResult.decimali.toFixed(2);
+            oreMacchinaInput.value = (Math.round(oreNetteResult.decimali * 10) / 10).toFixed(1);
         }
     }
 }

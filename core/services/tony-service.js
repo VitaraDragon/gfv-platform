@@ -338,12 +338,24 @@ class TonyService {
   /**
    * Scudo termico: rimuove coordinate GPS e dati pesanti dal contesto prima di inviare a Gemini.
    * Risparmia ~90% token e evita che il JSON di risposta venga troncato.
+   * Gestisce pageType: terreni (campi podere, superficie, scadenza) vs attivita (data, terreno, tipoLavoro, oreNette).
    */
   _sanitizeContextForAI(context) {
     if (!context || !context.page || !context.page.currentTableData) return context;
     const cleanContext = JSON.parse(JSON.stringify(context));
     const table = cleanContext.page.currentTableData;
-    if (Array.isArray(table.items)) {
+    const pageType = table.pageType || '';
+    if (!Array.isArray(table.items)) return cleanContext;
+    if (pageType === 'attivita') {
+      table.items = table.items.map((item) => ({
+        id: item.id,
+        data: item.data || '-',
+        terreno: item.terreno || '-',
+        tipoLavoro: item.tipoLavoro || '-',
+        oreNette: item.oreNette != null ? item.oreNette : '-',
+        coltura: item.coltura || '-'
+      }));
+    } else {
       table.items = table.items.map((item) => ({
         id: item.id,
         nome: item.nome || item.name || 'Senza nome',
@@ -406,6 +418,20 @@ class TonyService {
     const lightContext = this._sanitizeContextForAI(contextForPrompt);
     const safeContext = this._sanitizeForJson(lightContext);
     const safeHistory = this._sanitizeForJson(this.chatHistory);
+
+    // Context Builder: passa tenantId per fetch dati aziendali lato Cloud (docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md)
+    let tenantId = null;
+    try {
+      const mod = await import('./tenant-service.js');
+      tenantId = mod.getCurrentTenantId ? mod.getCurrentTenantId() : null;
+    } catch (_) {
+      tenantId = (typeof window !== 'undefined' && window.currentTenantId) ? window.currentTenantId : null;
+    }
+    if (tenantId && safeContext) {
+      if (!safeContext.dashboard) safeContext.dashboard = {};
+      safeContext.dashboard.tenantId = tenantId;
+    }
+
     // IMPORTANTE: context.form.fields (stato attuale del form) deve essere impostato dal widget
     // tramite setContext('form', formCtx) prima di ask(), così Gemini sa cosa è già compilato e cosa manca.
     // DEBUG disabilitato: console.log('[Tony Service] contextForPrompt:', JSON.stringify(safeContext, null, 2));
@@ -503,11 +529,15 @@ class TonyService {
         this.triggerAction(parsedData.command.type, parsedData.command);
       }
       
-      // Se il parsing è fallito ma abbiamo ancora la stringa grezza con JSON, 
-      // includiamola nel testo così il widget può provare a parsarla
+      // Se il parsing è fallito ma abbiamo ancora la stringa grezza con JSON,
+      // restituisci oggetto così il widget può provare a parsare (non restituire stringa nuda)
       if (typeof rawData === 'string' && rawData.includes('"command"') && !parsedData.command) {
-        console.log('[Tony Service] Parsing fallito ma JSON presente nella risposta grezza, includo nel testo per parsing nel widget');
-        return rawData;
+        console.log('[Tony Service] Parsing fallito ma JSON presente nella risposta grezza, passo al widget come oggetto');
+        const cleaned = this._parseAndTriggerActions(rawData.replace(/\{[\s\S]*\}/g, '').trim() || rawData);
+        this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
+        this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
+        while (this.chatHistory.length > CHAT_HISTORY_MAX) this.chatHistory.shift();
+        return { text: cleaned, command: null };
       }
       // Restituisci al widget l'oggetto { text, command } quando il backend ha già estratto il comando
       if (parsedData.command && typeof parsedData.command === 'object') {
@@ -519,6 +549,12 @@ class TonyService {
         }
         return { text: cleaned, command: parsedData.command };
       }
+      // Sempre oggetto: nessun comando → command: null (evita che il widget riceva stringa e faccia parseRobustTonyResponse)
+      const finalText = (parsedData.text ?? text ?? 'Nessuna risposta da Tony.').toString().trim() || 'Ok.';
+      this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
+      this.chatHistory.push({ role: 'model', parts: [{ text: finalText }] });
+      while (this.chatHistory.length > CHAT_HISTORY_MAX) this.chatHistory.shift();
+      return { text: finalText, command: null };
       }
     } else if (this.model) {
       this._buildModel(contextForPrompt);

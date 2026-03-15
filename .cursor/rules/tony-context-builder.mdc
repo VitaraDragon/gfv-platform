@@ -1,0 +1,8 @@
+---
+description: Tony Context Builder - struttura contesto e riferimento documentazione
+alwaysApply: true
+---
+
+# Tony Context Builder
+
+Il contesto di Tony è arricchito da un **Context Builder lato Cloud**. Per ogni modifica alla logica di risposta, fai riferimento alla struttura `ctx.azienda` definita in `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md`.
