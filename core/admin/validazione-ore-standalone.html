@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validazione Ore - GFV Platform</title>
+    <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -330,20 +331,7 @@
             cursor: not-allowed;
         }
 
-        @media (max-width: 768px) {
-            .ore-table {
-                font-size: 12px;
-            }
-
-            .ore-table th,
-            .ore-table td {
-                padding: 8px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-        }
+        /* Responsive: ../styles/responsive-standalone.css */
     </style>
 </head>
 <body>
@@ -385,7 +373,7 @@
                 </div>
             </div>
 
-            <div id="ore-container">
+            <div id="ore-container" class="table-responsive">
                 <div class="loading">Caricamento ore...</div>
             </div>
         </div>

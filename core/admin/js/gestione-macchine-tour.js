@@ -18,6 +18,7 @@ const MACCHINE_TOUR_STORAGE_KEY = 'gfv_macchine_tour_v1';
  * @param {Function} startMacchineTourCallback - Callback per avviare tour
  */
 export function setupMacchineTourButton(startMacchineTourCallback) {
+    if (window.GFV_TOUR_DISABLED) return;
     const tourButton = document.getElementById('macchine-tour-button');
     if (tourButton && startMacchineTourCallback) {
         tourButton.addEventListener('click', () => startMacchineTourCallback(true));
@@ -31,6 +32,7 @@ export function setupMacchineTourButton(startMacchineTourCallback) {
  * @param {Function} updateState - Funzione per aggiornare state
  */
 export function maybeAutoStartMacchineTour(startMacchineTourCallback, state, updateState) {
+    if (window.GFV_TOUR_DISABLED) return;
     if (state.macchineTourAutoRequested) return;
     
     try {

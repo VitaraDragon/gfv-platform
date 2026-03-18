@@ -1,6 +1,100 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-03-14.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-03-18.**
+
+## ✅ Responsive centralizzato – Fase A (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Avviare il sistema responsive condiviso per le pagine standalone: CSS centralizzato, pagina pilota collegata, linea guida con istruzioni d’uso.
+
+### Implementazione
+- **core/styles/responsive-standalone.css**: nuovo foglio con solo media query (1024, 768, 480) e regole per `.container`, `.content`, `.header`, `.header-actions`, `.filters`, `.stats-grid`, `.table-responsive`, `.form-row`, `.action-buttons`, `.modal-content`, `.section-header`. Nessuno stile di base (colori/font) per non sovrascrivere le singole pagine.
+- **core/admin/gestione-lavori-standalone.html**: aggiunto `<link rel="stylesheet" href="../styles/responsive-standalone.css">`; aggiunta classe `table-responsive` al div `#lavori-container`; rimosse le media query 768/480 duplicate (ora lette dal CSS condiviso).
+- **docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md**: aggiunta sezione §6 "Come usare il sistema" con path del file, come includerlo, struttura HTML e classe `table-responsive`, e indicazione della pagina pilota (Gestione Lavori).
+
+### Risultato
+Gestione Lavori usa il responsive dal foglio condiviso; aspetto e funzionalità invariati. Prossimi passi (Fase B): collegare Dashboard, Terreni, Gestione Macchine allo stesso CSS e rimuovere duplicati.
+
+---
+
+## ✅ Responsive centralizzato – Fase B (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Collegare Dashboard, Terreni e Gestione Macchine al CSS condiviso e rimuovere le media query duplicate.
+
+### Implementazione
+- **core/styles/responsive-standalone.css**: aggiunte regole per la Dashboard (`.dashboard-container`, `.dashboard-header`, `.dashboard-content`, `.quick-actions`, `.action-card`, `.header-actions` dentro dashboard, `.user-info`, `.logout-button`) nei breakpoint 768px e 480px, così una sola fonte per tutto il responsive delle pagine core.
+- **core/dashboard-standalone.html**: aggiunto `<link rel="stylesheet" href="styles/responsive-standalone.css">`.
+- **core/styles/dashboard.css**: rimosso il blocco `@media (max-width: 768px)` e `@media (max-width: 480px)` (padding, header, stats-grid, header-actions, pulsanti); sostituito con commento che rimanda a `responsive-standalone.css`.
+- **core/terreni-standalone.html**: aggiunto `<link rel="stylesheet" href="./styles/responsive-standalone.css">`; rimosso il secondo `@media (max-width: 768px)` che conteneva solo `.header` e `.modal-content` (ora nel CSS condiviso). Mantenuto il primo `@media 768` per `.terreni-header` / `.terreno-row` (layout a card specifico).
+- **core/admin/gestione-macchine-standalone.html**: aggiunto `<link rel="stylesheet" href="../styles/responsive-standalone.css">`; aggiunta classe `table-responsive` al div `#macchine-container`; rimosso l’intero `@media (max-width: 768px)` (tabella, filtri, form-row, action-buttons ora dal CSS condiviso).
+
+### Risultato
+Le quattro pagine core (Dashboard, Terreni, Gestione Lavori, Gestione Macchine) usano tutte `responsive-standalone.css`; comportamento e aspetto invariati. Prossimo passo (Fase C): estendere ai moduli (Vigneto, Frutteto, Conto terzi, Magazzino, ecc.).
+
+---
+
+## ✅ Responsive centralizzato – Fase C (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Estendere il CSS condiviso alle home e alle liste dei moduli (Vigneto, Frutteto, Conto terzi, Magazzino, Parco Macchine).
+
+### Implementazione
+- **Home moduli** (link a `../../../core/styles/responsive-standalone.css` + rimozione @media 768 duplicate):  
+  `conto-terzi-home-standalone.html`, `magazzino-home-standalone.html`, `vigneto-dashboard-standalone.html`, `frutteto-dashboard-standalone.html`, `macchine-dashboard-standalone.html` (modules/macchine).
+- **Liste con tabelle** (link + classe `table-responsive` sul container):  
+  Conto terzi: `clienti-standalone.html`, `preventivi-standalone.html`.  
+  Magazzino: `prodotti-standalone.html`, `movimenti-standalone.html`.  
+  Vigneto: `vigneti-standalone.html` (.table-container).  
+  Frutteto: `frutteti-standalone.html` (.table-container).  
+  Parco Macchine: `flotta-list-standalone.html`, `trattori-list-standalone.html`, `attrezzi-list-standalone.html`, `guasti-list-standalone.html`, `scadenze-list-standalone.html` (id="table-container").
+
+### Risultato
+Tutte le home e le principali liste dei moduli usano il responsive condiviso; aspetto e funzionalità invariati. Le nuove standalone da sviluppare possono includere `responsive-standalone.css` e la classe `table-responsive` dove serve.
+
+---
+
+## ✅ Responsive centralizzato – Priorità alta e media (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Collegare al CSS condiviso le pagine ad alta priorità (diario, segnatura ore, impostazioni, gestione operai/squadre, nuovo preventivo, guasti, validazione ore) e a priorità media (vendemmia, potatura, trattamenti, raccolta frutta, tariffe, terreni clienti, lavori caposquadra).
+
+### Implementazione
+- **Priorità alta**: `attivita-standalone.html` (Diario), `segnatura-ore-standalone.html`, `impostazioni-standalone.html`, `gestione-operai-standalone.html`, `gestione-squadre-standalone.html`, `nuovo-preventivo-standalone.html`, `segnalazione-guasti-standalone.html`, `validazione-ore-standalone.html`, `gestione-guasti-standalone.html`. Aggiunto `<link>` a `responsive-standalone.css`; rimosse o ridotte @media 768 duplicate; aggiunta classe `table-responsive` ai container tabella dove presente (operai, squadre, ore, lavori segnatura ore, lavori caposquadra, guasti-list).
+- **Priorità media**: `vendemmia-standalone.html`, `potatura-standalone.html` (vigneto e frutteto), `trattamenti-standalone.html` (vigneto e frutteto), `raccolta-frutta-standalone.html`, `tariffe-standalone.html`, `terreni-clienti-standalone.html`, `lavori-caposquadra-standalone.html`. Stesso schema: link al CSS condiviso, rimozione @media duplicate (salvo regole specifiche come `.terreni-grid`, `.lavoro-info`), `table-responsive` su tariffe-container e lavori-container.
+
+### Risultato
+Altre ~20 pagine usano il responsive condiviso.
+
+---
+
+## ✅ Responsive centralizzato – Tutte le pagine (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Collegare al CSS condiviso tutte le pagine standalone rimanenti per coerenza completa: grafici/statistiche, report, amministrazione, auth, mappe, accetta preventivo, calcolo materiali, pianifica impianto.
+
+### Implementazione
+Aggiunto `<link rel="stylesheet" href=".../responsive-standalone.css">` (path adeguato per core/, core/admin/, core/auth/, modules/.../views/) a: **core** `statistiche-standalone.html`; **core/admin** `report-standalone.html`, `amministrazione-standalone.html`, `compensi-operai-standalone.html`, `statistiche-manodopera-standalone.html`, `abbonamento-standalone.html`, `gestisci-utenti-standalone.html`; **core/auth** `login-standalone.html`, `registrazione-standalone.html`, `registrazione-invito-standalone.html`, `reset-password-standalone.html`; **modules** `vigneto-statistiche-standalone.html`, `frutteto-statistiche-standalone.html`, `mappa-clienti-standalone.html`, `accetta-preventivo-standalone.html`, `calcolo-materiali-standalone.html`, `pianifica-impianto-standalone.html`; **modules/report** `report-standalone.html`.
+
+### Risultato
+Tutte le pagine standalone dell’app includono il responsive condiviso; comportamento e grafici/report restano invariati e potranno essere modificati in seguito senza conflitti.
+
+---
+
+## ✅ Tour interattivi disabilitati a livello piattaforma (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Disabilitare il tour (inibizione) su tutte le pagine senza rimuovere codice: soluzione semplice e reversibile.
+
+### Implementazione
+- **core/styles/tour.css**: regola che nasconde i pulsanti tour (`#dashboard-tour-button`, `#terreni-tour-button`, `#macchine-tour-button`, `#lavori-tour-button`) con `display: none !important`.
+- **Flag globale**: nelle 4 pagine con tour (dashboard, terreni, gestione-macchine, gestione-lavori) e in `terreni-test-bootstrap.html` è impostato in `<head>`: `<script>window.GFV_TOUR_DISABLED = true;</script>`.
+- **Moduli tour** (`dashboard-tour.js`, `terreni-tour.js`, `gestione-macchine-tour.js`, `gestione-lavori-tour.js`): all’inizio di `setup*` e `maybeAutoStart*` è stato aggiunto il controllo `if (window.GFV_TOUR_DISABLED) return;` così non viene eseguito né il setup del pulsante né l’auto-avvio.
+
+### Risultato
+Tour non visibile e non avviabile. Per riattivarlo: rimuovere il flag dalle pagine (o impostare `GFV_TOUR_DISABLED = false`) e rimuovere/commentare la regola in `tour.css`.
+
+---
 
 > **Nota architettura Tony (2026-02)**: `tony-widget-standalone.js` è ora un loader snello; la logica è in `core/js/tony/` (main.js orchestratore, ui.js FAB/chat/dialog, engine.js mappe e resolve, voice.js TTS). I riferimenti storici a "tony-widget-standalone.js" nei paragrafi sotto indicano il sistema widget nel suo insieme; le funzioni menzionate risiedono in `tony/main.js` e moduli collegati.
 

@@ -1,5 +1,9 @@
 # 📋 Riepilogo Tour Interattivi - GFV Platform
 
+**⚠️ Stato attuale (2026-03-18):** il tour è **disabilitato a livello piattaforma** (flag `window.GFV_TOUR_DISABLED`, pulsanti nascosti in `tour.css`). Il codice resta presente; per riattivare vedi `COSA_ABBIAMO_FATTO.md` voce "Tour interattivi disabilitati".
+
+---
+
 ## ✅ Pagine con Tour Implementato
 
 ### 1. **Dashboard** (`core/dashboard-standalone.html`)

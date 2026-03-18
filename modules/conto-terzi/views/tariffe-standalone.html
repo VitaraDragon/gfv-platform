@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Tariffe - Conto Terzi - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -332,28 +333,7 @@
             border: 1px solid #f5c6cb;
         }
 
-        @media (max-width: 768px) {
-            .tariffe-table {
-                font-size: 12px;
-            }
-
-            .tariffe-table th,
-            .tariffe-table td {
-                padding: 8px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .filters {
-                flex-direction: column;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
+        /* Responsive: ../../../core/styles/responsive-standalone.css */
     </style>
 </head>
 <body>
@@ -412,7 +392,7 @@
                 <div id="tariffe-count">0 tariffe</div>
             </div>
 
-            <div id="tariffe-container">
+            <div id="tariffe-container" class="table-responsive">
                 <div class="loading">Caricamento tariffe...</div>
             </div>
         </div>

@@ -227,3 +227,11 @@
     height: auto !important;
 }
 
+/* Tour disabilitato a livello piattaforma: pulsanti nascosti */
+#dashboard-tour-button,
+#terreni-tour-button,
+#macchine-tour-button,
+#lavori-tour-button {
+    display: none !important;
+}
+

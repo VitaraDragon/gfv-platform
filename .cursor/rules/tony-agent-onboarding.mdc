@@ -19,6 +19,7 @@ alwaysApply: true
 - Per decisioni/requisiti esistenti: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - Per il Context Builder: `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md`
 - Per currentTableData e FILTER_TABLE (estendere tabelle): `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md`
+- Per pagine standalone (responsive, tabelle, filtri, CSS/JS centralizzato): `docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md`
 
 ## Dopo ogni lavoro completato – Documentazione da aggiornare
 

@@ -6,6 +6,7 @@
     <title>Anagrafica Frutteti - GFV Platform</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#FF6F00">
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -340,16 +341,7 @@
             font-size: 13px;
         }
 
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .header-actions {
-                width: 100%;
-                justify-content: flex-start;
-            }
-        }
+        /* Responsive: ../../../core/styles/responsive-standalone.css */
     </style>
 </head>
 <body>
@@ -406,7 +398,7 @@
                 </div>
             </div>
 
-            <div class="table-container">
+            <div class="table-container table-responsive">
                 <div id="loading" class="loading">Caricamento frutteti...</div>
                 <div id="empty-state" class="empty-state" style="display: none;">
                     <h3>Nessun frutteto trovato</h3>

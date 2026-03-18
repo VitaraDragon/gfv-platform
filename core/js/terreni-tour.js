@@ -24,6 +24,7 @@ const TERRENI_TOUR_STORAGE_KEY = 'gfv_terreni_tour_v1';
  * @param {Function} startTerreniTourCallback - Callback per avviare tour
  */
 export function setupTerreniTourButton(startTerreniTourCallback) {
+    if (window.GFV_TOUR_DISABLED) return;
     const tourButton = document.getElementById('terreni-tour-button');
     if (tourButton && startTerreniTourCallback) {
         tourButton.addEventListener('click', () => startTerreniTourCallback(true));
@@ -37,6 +38,7 @@ export function setupTerreniTourButton(startTerreniTourCallback) {
  * @param {Function} startTerreniTourCallback - Callback per avviare tour
  */
 export function maybeAutoStartTerreniTour(state, updateState, startTerreniTourCallback) {
+    if (window.GFV_TOUR_DISABLED) return;
     if (state.terreniTourAutoRequested) return;
     try {
         const hasSeen = localStorage.getItem(TERRENI_TOUR_STORAGE_KEY);

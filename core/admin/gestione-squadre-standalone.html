@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Squadre - GFV Platform</title>
+    <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -352,20 +353,7 @@
             border: 1px solid #bee5eb;
         }
 
-        @media (max-width: 768px) {
-            .squadre-table {
-                font-size: 12px;
-            }
-
-            .squadre-table th,
-            .squadre-table td {
-                padding: 8px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-        }
+        /* Responsive: ../styles/responsive-standalone.css */
     </style>
 </head>
 <body>
@@ -389,7 +377,7 @@
                 <div id="squadre-count">0 squadre</div>
             </div>
 
-            <div id="squadre-container">
+            <div id="squadre-container" class="table-responsive">
                 <div class="loading">Caricamento squadre...</div>
             </div>
         </div>

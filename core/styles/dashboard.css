@@ -448,72 +448,7 @@ body {
     display: none;
 }
 
-@media (max-width: 768px) {
-    .dashboard-container {
-        padding: 10px;
-    }
-
-    .dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 20px;
-    }
-
-    .dashboard-header h1 {
-        font-size: 24px;
-    }
-
-    .header-actions {
-        width: 100%;
-        justify-content: space-between;
-        margin-top: 15px;
-    }
-
-    .dashboard-content {
-        grid-template-columns: 1fr;
-    }
-
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .quick-actions {
-        grid-template-columns: 1fr;
-    }
-
-    .action-card {
-        min-width: 100%;
-    }
-}
-
-@media (max-width: 480px) {
-    .dashboard-header {
-        padding: 15px;
-    }
-
-    .dashboard-header h1 {
-        font-size: 20px;
-    }
-
-    .user-info {
-        font-size: 12px;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .header-actions {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .header-actions .btn,
-    .logout-button {
-        width: 100%;
-        text-align: center;
-    }
-}
+/* Responsive 768/480: regole in styles/responsive-standalone.css (dashboard-container, dashboard-header, stats-grid, header-actions, ecc.) */
 
 
 

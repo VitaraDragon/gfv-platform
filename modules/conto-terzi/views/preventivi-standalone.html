@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Preventivi - Conto Terzi - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -259,24 +260,7 @@
             border: 1px solid #f5c6cb;
         }
 
-        @media (max-width: 768px) {
-            .preventivi-table {
-                font-size: 12px;
-            }
-
-            .preventivi-table th,
-            .preventivi-table td {
-                padding: 8px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .filters {
-                flex-direction: column;
-            }
-        }
+        /* Responsive: ../../../core/styles/responsive-standalone.css */
     </style>
     <!-- EmailJS SDK -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -330,7 +314,7 @@
                 <div id="preventivi-count">0 preventivi</div>
             </div>
 
-            <div id="preventivi-container">
+            <div id="preventivi-container" class="table-responsive">
                 <div class="loading">Caricamento preventivi...</div>
             </div>
         </div>

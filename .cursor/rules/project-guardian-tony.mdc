@@ -9,6 +9,8 @@ alwaysApply: true
 
 **REFERENCE FILE**: Consulta sempre `docs-sviluppo/tony/MASTER_PLAN.md` prima di ogni azione.
 
+**Pagine standalone e responsive**: Per layout, breakpoint, tabelle e architettura CSS/JS delle pagine standalone, segui `docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md`.
+
 ## MANDATORY ARCHITECTURE
 
 - **No Local Patches**: È vietato scrivere logica specifica per singole pagine (es. `if (formId === 'terreno')`). Usa sempre il sistema di configurazione centralizzato in `tony-form-mapping.js`.

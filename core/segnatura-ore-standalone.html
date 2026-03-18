@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Segna Ore - GFV Platform</title>
+    <link rel="stylesheet" href="styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -362,10 +363,6 @@
         }
 
         @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
             .lavoro-info {
                 grid-template-columns: 1fr;
             }
@@ -396,7 +393,7 @@
                 <h2>Lavori Disponibili</h2>
             </div>
 
-            <div id="lavori-container">
+            <div id="lavori-container" class="table-responsive">
                 <div class="loading">Caricamento lavori...</div>
             </div>
 

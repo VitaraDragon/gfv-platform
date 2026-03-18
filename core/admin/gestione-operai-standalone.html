@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Operai - GFV Platform</title>
+    <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -362,24 +363,7 @@
             border: 1px solid #f5c6cb;
         }
 
-        @media (max-width: 768px) {
-            .operai-table {
-                font-size: 12px;
-            }
-
-            .operai-table th,
-            .operai-table td {
-                padding: 8px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .filters {
-                flex-direction: column;
-            }
-        }
+        /* Responsive: ../styles/responsive-standalone.css */
     </style>
 </head>
 <body>
@@ -446,7 +430,7 @@
                 <div id="operai-count">0 operai</div>
             </div>
 
-            <div id="operai-container">
+            <div id="operai-container" class="table-responsive">
                 <div class="loading">Caricamento operai...</div>
             </div>
         </div>

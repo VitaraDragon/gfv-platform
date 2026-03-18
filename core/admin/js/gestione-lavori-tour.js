@@ -18,6 +18,7 @@ const LAVORI_TOUR_STORAGE_KEY = 'gfv_lavori_tour_v1';
  * @param {Function} startLavoriTourCallback - Callback per avviare tour
  */
 export function setupLavoriTourButton(startLavoriTourCallback) {
+    if (window.GFV_TOUR_DISABLED) return;
     const tourButton = document.getElementById('lavori-tour-button');
     if (tourButton && startLavoriTourCallback) {
         tourButton.addEventListener('click', () => startLavoriTourCallback(true));
@@ -31,6 +32,7 @@ export function setupLavoriTourButton(startLavoriTourCallback) {
  * @param {Function} startLavoriTourCallback - Callback per avviare tour
  */
 export function maybeAutoStartLavoriTour(state, updateState, startLavoriTourCallback) {
+    if (window.GFV_TOUR_DISABLED) return;
     if (state.lavoriTourAutoRequested) return;
     try {
         const hasSeen = localStorage.getItem(LAVORI_TOUR_STORAGE_KEY);

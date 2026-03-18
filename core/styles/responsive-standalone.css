@@ -1,0 +1,212 @@
+/**
+ * Responsive condiviso per pagine standalone – GFV Platform
+ * Riferimento: docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md
+ *
+ * Breakpoint: 1024px (tablet), 768px (tablet portrait / smartphone landscape), 480px (smartphone).
+ * Classi generiche: .container, .content, .header, .filters, .stats-grid, .table-responsive, .modal-content.
+ * Dashboard usa .dashboard-container, .dashboard-header: stesse regole applicate qui.
+ */
+
+/* ========== 1024px – Tablet / desktop stretto ========== */
+@media (max-width: 1024px) {
+    .container {
+        padding: 16px;
+    }
+
+    .content {
+        padding: 24px;
+    }
+}
+
+/* ========== 768px – Tablet portrait / smartphone landscape ========== */
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    .content {
+        padding: 15px;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .header h1 {
+        font-size: 24px;
+    }
+
+    .header-actions {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        min-width: 0;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 15px;
+    }
+
+    .stat-value {
+        font-size: 26px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+    }
+
+    /* Wrapper per tabelle: scroll orizzontale su mobile */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -15px;
+        padding: 0 15px;
+    }
+
+    .table-responsive table {
+        font-size: 12px;
+        min-width: 700px;
+    }
+
+    .table-responsive th,
+    .table-responsive td {
+        padding: 8px 6px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .modal-content {
+        width: 95%;
+        max-height: 90vh;
+        padding: 20px;
+    }
+
+    .section-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Dashboard (classi .dashboard-*) */
+    .dashboard-container {
+        padding: 10px;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .dashboard-header h1 {
+        font-size: 24px;
+    }
+
+    .dashboard-header .header-actions {
+        width: 100%;
+        margin-top: 15px;
+        justify-content: space-between;
+    }
+
+    .dashboard-content {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .action-card {
+        min-width: 100%;
+    }
+}
+
+/* ========== 480px – Smartphone ========== */
+@media (max-width: 480px) {
+    .container {
+        padding: 8px;
+    }
+
+    .content {
+        padding: 12px;
+    }
+
+    .header {
+        padding: 15px;
+    }
+
+    .header h1 {
+        font-size: 20px;
+    }
+
+    .header-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .header-actions .btn,
+    .header-actions a.btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .table-responsive {
+        margin: 0 -12px;
+        padding: 0 12px;
+    }
+
+    /* Dashboard */
+    .dashboard-header {
+        padding: 15px;
+    }
+
+    .dashboard-header h1 {
+        font-size: 20px;
+    }
+
+    .user-info {
+        font-size: 12px;
+    }
+
+    .header-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .header-actions .btn,
+    .logout-button {
+        width: 100%;
+        text-align: center;
+    }
+}

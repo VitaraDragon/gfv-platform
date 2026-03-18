@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anagrafica Clienti - Conto Terzi - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -345,28 +346,7 @@
             border: 1px solid #f5c6cb;
         }
 
-        @media (max-width: 768px) {
-            .clienti-table {
-                font-size: 12px;
-            }
-
-            .clienti-table th,
-            .clienti-table td {
-                padding: 8px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .filters {
-                flex-direction: column;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
+        /* Responsive: ../../../core/styles/responsive-standalone.css */
     </style>
 </head>
 <body>
@@ -409,7 +389,7 @@
                 <div id="clienti-count">0 clienti</div>
             </div>
 
-            <div id="clienti-container">
+            <div id="clienti-container" class="table-responsive">
                 <div class="loading">Caricamento clienti...</div>
             </div>
         </div>

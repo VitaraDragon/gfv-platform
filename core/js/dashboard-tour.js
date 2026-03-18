@@ -19,6 +19,7 @@ const TOUR_STORAGE_KEY = 'gfv_dashboard_tour_v1';
  * @param {Function} startDashboardTourCallback - Callback per avviare tour
  */
 export function setupDashboardTour(userData, startDashboardTourCallback) {
+    if (window.GFV_TOUR_DISABLED) return;
     try {
         const tourButton = document.getElementById('dashboard-tour-button');
         if (tourButton && startDashboardTourCallback) {

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>window.GFV_TOUR_DISABLED = true;</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Macchine - GFV Platform</title>
     <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
     <link rel="stylesheet" href="../styles/tour.css">
+    <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -357,28 +359,7 @@
             border: 1px solid #f5c6cb;
         }
 
-        @media (max-width: 768px) {
-            .macchine-table {
-                font-size: 12px;
-            }
-
-            .macchine-table th,
-            .macchine-table td {
-                padding: 8px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .filters {
-                flex-direction: column;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
+        /* Responsive: ../styles/responsive-standalone.css (container, header, filters, table-responsive, ecc.) */
     </style>
 </head>
 <body>
@@ -445,7 +426,7 @@
                 <div id="macchine-count">0 macchine</div>
             </div>
 
-            <div id="macchine-container" data-tour-section="macchine-list">
+            <div id="macchine-container" class="table-responsive" data-tour-section="macchine-list">
                 <div class="loading">Caricamento macchine...</div>
             </div>
         </div>
