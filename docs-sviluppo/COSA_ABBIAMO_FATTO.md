@@ -2,6 +2,110 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-03-18.**
 
+## ✅ Conto Terzi – Tony pagina Tariffe (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Estendere il supporto Tony alla pagina **Tariffe** (Conto terzi): currentTableData per domande sulla lista, FILTER_TABLE per filtri (tipo lavoro, coltura, tipo campo, attive/disattivate).
+
+### Implementazione
+- **modules/conto-terzi/views/tariffe-standalone.html**: (1) Placeholder `window.currentTableData` (pageType 'tariffe'). (2) Fallback dopo getDb(). (3) In `renderTariffe(tariffeList)`: build summary (totale tariffe, attive, disattivate), items (tipoLavoro, coltura, tipoCampo, tariffaBase, coefficiente, attiva, tariffaFinale); `window.currentTableData`, `Tony.setContext('page', ...)`, evento `table-data-ready`.
+- **core/js/tony/main.js**: pageType da path se contiene "tariffe"; FILTER_KEY_MAP **tariffe**: tipoLavoro → filter-tipo-lavoro, coltura → filter-coltura, tipoCampo → filter-tipo-campo, attiva → filter-attiva; reset filtri per tariffe (select + input).
+- **functions/index.js**: FILTRO TABELLA TARIFFE (params: tipoLavoro, coltura, tipoCampo, attiva, reset); LISTA CORRENTE aggiornata con pagina tariffe e items; isTariffePage, isTariffeFilterLikeRequest, tariffeReminder; filterReminder esteso a (isTariffePage && isTariffeFilterLikeRequest).
+- **core/services/tony-service.js**: sanitizer per pageType 'tariffe' (items con tipoLavoro, coltura, tipoCampo, tariffaBase, coefficiente, attiva, tariffaFinale).
+
+### Risultato
+Sulla pagina Tariffe l'utente può chiedere "quante tariffe?", "quante attive?", "mostrami le tariffe per erpicatura/vigneto", "solo le attive", "tariffe in pianura", "pulisci filtri" e Tony risponde usando la tabella visibile e applica i filtri con FILTER_TABLE.
+
+### Context Builder tariffe da qualsiasi pagina (2026-03-18)
+- **functions/index.js**: In **buildContextAzienda** aggiunto fetch `tariffe` (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, attiva, limite 200); esposti in `ctx.azienda.tariffe`. Istruzioni **TARIFFE (da qualsiasi pagina)**: "Quante tariffe abbiamo?" → conta azienda.tariffe.length; "Quante tariffe attive/disattivate?" → filtra per attiva; se sulla pagina Tariffe usare page.currentTableData, altrimenti azienda.tariffe. **extraBlocks** ELENCO DATI: citati "quante tariffe", "quante tariffe attive". **tariffeReminder**: quando la domanda è sulle tariffe e l'utente non è sulla pagina Tariffe, si inietta reminder per usare azienda.tariffe (conteggio, attive).
+
+### Tony – domande sui costi delle tariffe (2026-03-18)
+- **Context Builder**: aggiunti **tariffaBase** e **coefficiente** al fetch tariffe per calcolare tariffaFinale (€/ha).
+- **functions/index.js**: Nuova sezione **DOMANDE SUI COSTI DELLE TARIFFE** nelle istruzioni. Tony risponde a domande tipo "Quanto costa aratura nel seminativo in pianura?", "Quanto costa erpicare mais in collina?" da qualsiasi pagina usando azienda.tariffe, azienda.categorie, azienda.colture, azienda.tipiLavoro.
+- **Due casi**: (A) Utente dice CATEGORIA (seminativo, vigneto, frutteto) → categoriaId da azienda.categorie. (B) Utente dice COLTURA (mais, grano, albicocche) → cerca in azienda.colture per nome, prendi categoriaId, nome categoria da azienda.categorie.
+- **Algoritmo**: tipoCampo (pianura/collina/montagna); tipoLavoro (match flessibile su azienda.tipiLavoro: aratura→Aratura/Erpicatura, diserbare→Diserbo, ecc.); cerca tariffa specifica per coltura (se caso B), altrimenti fallback su tariffa generica (coltura vuota, categoriaColturaId); tariffaFinale = tariffaBase × coefficiente.
+- **Fallback coltura (2026-03-18)**: se l'utente chiede tariffa per una COLTURA (mais, albicocche) non presente in tariffe, Tony propone la tariffa generica per la categoria: "Non è presente una tariffa specifica per il [Mais], ma la tariffa generica per il [Seminativo] costa X €/ettaro." (es. mais→Seminativo, albicocche→Frutteto).
+- **isTariffeCostQuestion** + **tariffeReminder** potenziato per domande di costo con istruzioni passo-passo; **extraBlocks** ELENCO DATI aggiornato.
+
+---
+
+## ✅ Conto Terzi – Filtro "Categoria lavoro" in Preventivi (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Filtrare i preventivi per **categoria della lavorazione** (es. Vendemmia, Potatura, Lavorazione del terreno): l’utente sceglie una categoria e vede tutti i preventivi il cui tipo lavoro appartiene a quella categoria (o alle sue sottocategorie).
+
+### Implementazione
+- **modules/conto-terzi/views/preventivi-standalone.html**: (1) Select "Categoria lavoro" (`#filter-categoria-lavoro`) prima di "Tipo lavoro". (2) Variabili `tipiLavoroList`, `categorieLavoriPrincipali`, `sottocategorieLavoriMap`. (3) `loadCategorieETipiLavoro()`: carica categorie con `applicabileA === 'lavori' || 'entrambi'` (principali senza parentId, sottocategorie con parentId) e tipi lavoro da `tenants/{tenantId}/tipiLavoro`. (4) `getTipiLavoroNamesForCategoriaId(catId)`: restituisce i nomi dei tipi lavoro per categoria/sottocategoria. (5) `populateCategoriaLavoroFilter()`: riempie il select con principali + sottocategorie (con "—" per le sottocategorie). (6) In `filterPreventivi()`: se è selezionata una categoria lavoro, si filtra per `preventivo.tipoLavoro` incluso nell’elenco dei tipi di quella categoria (match case-insensitive). (7) Init: chiamata a `loadCategorieETipiLavoro()` e `populateCategoriaLavoroFilter()` dopo load colture/categorie; in `setupFilters()` e `resetFilters()` gestione di `#filter-categoria-lavoro`.
+- **core/js/tony/main.js**: FILTER_KEY_MAP preventivi: aggiunto `categoriaLavoro: 'filter-categoria-lavoro'`. Per preventivi, `matchByText` abilitato per `categoriaLavoro` (Tony può inviare il nome categoria, es. "Vendemmia", e il client imposta il select per testo).
+- **functions/index.js**: FILTRO TABELLA PREVENTIVI: documentato param `categoriaLavoro` (nome categoria lavorazione: Raccolta, Lavorazione del terreno, Potatura, Trattamenti, ecc.). Regola vendemmia: per "vendemmia"/"vendemmie" usare sempre `categoriaLavoro: "Raccolta"` (Vendemmia è sottocategoria di Raccolta; nel filtro compare solo la categoria principale). Esempi: "fammi vedere le vendemmie" → `categoriaLavoro: "Raccolta"`, risposta "Ecco i preventivi di raccolta (inclusa vendemmia).". Esteso `isPreventiviFilterLikeRequest` per frasi tipo "vendemmie", "potature", "lavorazioni del terreno", "raccolte", "trattamenti".
+
+### Risultato
+Sulla pagina Preventivi l’utente può filtrare per categoria lavoro (dropdown) e Tony può applicare lo stesso filtro con "fammi vedere le vendemmie", "solo potature", "lavorazioni del terreno", ecc. tramite FILTER_TABLE con `categoriaLavoro`. **Fix vendemmia (2026-03-18)**: nelle istruzioni CF è stato stabilito che per "vendemmia"/"vendemmie" si usi sempre `categoriaLavoro: "Raccolta"` (Vendemmia è sottocategoria di Raccolta e nel filtro compare solo la categoria principale), con risposta "Ecco i preventivi di raccolta (inclusa vendemmia).".
+
+---
+
+## ✅ Conto Terzi – FILTER_TABLE Clienti e Preventivi (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Permettere a Tony di filtrare la tabella quando l'utente è sulla pagina **Clienti** o **Preventivi** (es. "mostrami solo gli attivi", "solo le bozze", "filtra per sospesi", "pulisci filtri") tramite il comando FILTER_TABLE.
+
+### Implementazione
+- **core/js/tony/main.js**: (1) Riconoscimento pageType da path: se path contiene "clienti" o "preventivi" usa pageType clienti/preventivi (anche in assenza di currentTableData). (2) FILTER_KEY_MAP: aggiunti clienti (stato → filter-stato, ricerca → filter-search) e preventivi (stato → filter-stato, ricerca → filter-search). (3) Reset filtri: per clienti e preventivi come per attivita si resettano sia select sia input (filter-stato e filter-search).
+- **functions/index.js**: (1) System instruction: nuove sezioni "FILTRO TABELLA CLIENTI" e "FILTRO TABELLA PREVENTIVI" con params (stato, ricerca, reset), esempi e valori stato (clienti: attivo|sospeso|archiviato; preventivi: bozza|inviato|accettato_email|accettato_manager|rifiutato|scaduto|pianificato|annullato). (2) LISTA CORRENTE: citato che su pagina clienti/preventivi le richieste di filtro vanno risposte con FILTER_TABLE. (3) filterReminder: aggiunti isClientiFilterLikeRequest e isPreventiviFilterLikeRequest; se (isClientiPage && isClientiFilterLikeRequest) o (isPreventiviPage && isPreventiviFilterLikeRequest) si inietta il reminder per rispondere con JSON FILTER_TABLE.
+
+### Risultato
+Sulla pagina Clienti l'utente può dire "solo gli attivi", "sospesi", "archiviati", "pulisci filtri" e Tony applica il filtro; sulla pagina Preventivi "solo le bozze", "inviati", "accettati", "pulisci filtri" con comando FILTER_TABLE.
+
+### Estensione ricerca testuale Clienti (2026-03-18)
+- **functions/index.js**: FILTRO TABELLA CLIENTI: esempi per param **ricerca** ("cerca clienti Rossi", "trova Rossi" → params.ricerca); esteso **isClientiFilterLikeRequest** per frasi tipo "cerca clienti", "trova clienti", "clienti con ragione sociale X" così il filter reminder viene iniettato e Tony risponde con FILTER_TABLE anche per ricerca per testo.
+- **core/js/tony/main.js**: per FILTER_TABLE, sugli elementi **input** (es. filter-search clienti) viene dispatchato anche l’evento **input** oltre a **change**, così la pagina Clienti che ascolta `input` su filter-search applica correttamente il filtro quando Tony invia `params.ricerca`.
+
+---
+
+## ✅ Conto Terzi – Preventivi e Tony (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Estendere il supporto Tony al modulo Conto Terzi per i **preventivi**: rispondere a "Quanti preventivi abbiamo?", "Quanti in bozza/inviati/accettati?", "Quanti preventivi per [cliente]?" da qualsiasi pagina (inclusa Dashboard Conto terzi) e sulla pagina Preventivi usare la tabella visibile.
+
+### Implementazione
+- **functions/index.js**: (1) Context Builder: fetch `preventivi` (id, numero, clienteId, stato, limite 200), esposti in `ctx.azienda.preventivi`. (2) System instruction: nuova sezione "PREVENTIVI (da qualsiasi pagina)" con regole per conteggio totale, filtro per stato, conteggio per cliente (match ragioneSociale in azienda.clienti → id → conta preventivi per clienteId). (3) LISTA CORRENTE: citata pagina preventivi con items (numero, cliente, stato, totale). (4) Reminder dinamico: domanda preventivi e pagina Preventivi con currentTableData → reminder usa page; altrimenti se azienda.preventivi presente → reminder usa azienda.preventivi. (5) extraBlocks ELENCO DATI: citati "quanti preventivi", "quanti in bozza/inviati/accettati", "quanti preventivi per [cliente]".
+- **modules/conto-terzi/views/preventivi-standalone.html**: placeholder `window.currentTableData` (pageType 'preventivi'); fallback dopo getDb(); in `renderPreventivi`: build summary (conteggi per stato), items (numero, cliente, stato, totale), `window.currentTableData`, `Tony.setContext('page', ...)`, evento `table-data-ready`.
+- **core/services/tony-service.js**: sanitizer per `pageType === 'preventivi'` (items con numero, cliente, stato, totale).
+
+### Risultato
+Tony risponde alle domande sui preventivi usando `context.azienda.preventivi` da qualsiasi pagina; sulla pagina Gestione Preventivi usa `page.currentTableData` per coerenza con la tabella visibile. **Verificato in uso (2026-03-18)**: funziona correttamente (es. "quanti preventivi?", "quanti in bozza?", "quanti preventivi per [cliente]?" da qualsiasi pagina e dalla lista Preventivi).
+
+---
+
+## ✅ Context Builder – clienti con stato e totaleLavori (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Permettere a Tony di rispondere a "Quanti clienti abbiamo?", "Quanti clienti attivi?", "Quanti lavori per [cliente]?" da **qualsiasi pagina** (inclusa Dashboard Conto terzi), senza dipendere solo da currentTableData (che sulla dashboard non è impostato).
+
+### Implementazione
+- **functions/index.js**: (1) In `buildContextAzienda`, fetch clienti con campi aggiuntivi: `["id", "ragioneSociale", "stato", "totaleLavori"]`. (2) In SYSTEM_INSTRUCTION_ADVANCED: nuova sezione "CLIENTI (da qualsiasi pagina)" che indica di usare `azienda.clienti` per conteggio totale, filtro stato === "attivo", e totaleLavori per nome cliente; aggiornata la riga "azienda.clienti" in "DOMANDE INFORMATIVE SUI TERRENI" con stato e totaleLavori. (3) Reminder dinamico: se domanda clienti e si è sulla pagina Clienti con currentTableData → reminder usa page; altrimenti se azienda.clienti presente → reminder usa azienda.clienti. (4) extraBlocks ELENCO DATI: citati "quanti clienti", "quanti attivi", "quanti lavori per [cliente]" e azienda.clienti con stato/totaleLavori. (5) **2026-03-18 fix totaleLavori**: in Context Builder viene effettuato anche il fetch della collection `lavori` (solo campo `clienteId`, limite 500); `totaleLavori` per ogni cliente è ricalcolato contando i lavori con quel `clienteId`, così la risposta "quanti lavori per [cliente]?" è corretta anche se il documento cliente non ha mai ricevuto `aggiornaStatisticheCliente`.
+
+### Risultato
+Tony risponde alle tre domande usando `context.azienda.clienti` dal Context Builder anche da Dashboard o altre pagine; sulla pagina Clienti può continuare a usare currentTableData per coerenza con la tabella visibile. **Verificato in uso (2026-03-18)**: funziona correttamente (es. "quanti clienti abbiamo?", "quanti lavori per [nome]?" con totaleLavori calcolato dalla collection lavori).
+
+---
+
+## ✅ Tony – currentTableData pagina Clienti (2026-03-18) - COMPLETATO
+
+### Obiettivo
+Estendere la lettura tabelle di Tony alla lista Clienti (Conto terzi) così Tony può rispondere a domande tipo "Quanti clienti?", "Cosa c'è in lista?", "Quanti attivi?" quando l'utente è sulla pagina Clienti.
+
+### Implementazione
+- **modules/conto-terzi/views/clienti-standalone.html**: (1) Placeholder in testa: `window.currentTableData = { pageType: 'clienti', summary: 'Caricamento dati in corso...', items: [] }`. (2) Fallback all'inizio del modulo dopo getDb(). (3) In `renderClienti(clientiList)`: blocco currentTableData all'inizio (prima del check lista vuota): summary con conteggio totale e per stato (attivi, sospesi, archiviati), items con ragioneSociale, partitaIva, email, telefono, stato, totaleLavori; `window.Tony.setContext('page', ...)`; `dispatchEvent('table-data-ready', ...)`.
+
+### Risultato
+Sulla pagina Clienti Tony riceve il contesto della tabella e può rispondere in base a `page.tableDataSummary` e `page.currentTableData`. Prossimi passi: stesso pattern per Preventivi, Vigneti, Frutteti, ecc.; FILTER_TABLE per Clienti (opzionale) richiederebbe FILTER_KEY_MAP clienti in main.js e istruzioni in functions.
+
+### Fix CF (stesso giorno)
+- **functions/index.js**: aggiunta regola "LISTA CORRENTE (page.currentTableData)" in SYSTEM_INSTRUCTION_ADVANCED: per qualsiasi pagina con tabella (clienti, prodotti, movimenti, …), se `page.currentTableData` è presente, usare sempre `page.tableDataSummary` e `page.currentTableData.items` per domande tipo "quanti X?", "quanti sono attivi?", "quanti sospesi?"; non rispondere "non ho dati sullo stato" se i dati sono in currentTableData. Risolve il caso "quanti sono attivi?" sulla pagina Clienti.
+
+---
+
 ## ✅ Responsive centralizzato – Fase A (2026-03-18) - COMPLETATO
 
 ### Obiettivo

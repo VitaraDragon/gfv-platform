@@ -502,6 +502,8 @@
         </div>
     </div>
 
+    <!-- Placeholder Tony currentTableData (aggiornato da renderTariffe) -->
+    <script>window.currentTableData = window.currentTableData || { pageType: 'tariffe', summary: 'Caricamento dati in corso...', items: [] };</script>
 
     <!-- Load Firebase config from external file -->
     <script>
@@ -549,6 +551,10 @@
         initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
+
+        if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+            window.currentTableData = { pageType: 'tariffe', summary: 'Caricamento dati in corso...', items: [] };
+        }
 
         let currentUser = null;
         let currentTenantId = null;
@@ -1290,6 +1296,30 @@
         function renderTariffe(tariffeList) {
             const container = document.getElementById('tariffe-container');
             document.getElementById('tariffe-count').textContent = `${tariffeList.length} tariffe`;
+
+            // --- currentTableData per Tony ---
+            const attiveCount = tariffeList.filter(t => t.attiva === true).length;
+            const disattivateCount = tariffeList.filter(t => t.attiva === false).length;
+            const summaryParts = [];
+            if (tariffeList.length === 0) {
+                summaryParts.push('Nessuna tariffa in elenco.');
+            } else {
+                summaryParts.push('Ci sono ' + tariffeList.length + ' tariffe in elenco.');
+                if (attiveCount > 0) summaryParts.push(attiveCount + ' attive.');
+                if (disattivateCount > 0) summaryParts.push(disattivateCount + ' disattivate.');
+            }
+            const summary = summaryParts.join(' ');
+            const items = tariffeList.map(t => {
+                let colturaDisplay = (t.coltura && t.coltura.trim()) ? t.coltura : (t.categoriaColturaId ? (categorieColture.find(c => c.id === t.categoriaColturaId)?.nome || 'Tutte le colture') : 'Tutte le colture');
+                const tariffaFinale = (t.tariffaBase || 0) * (t.coefficiente || 1);
+                return { tipoLavoro: t.tipoLavoro || '', coltura: colturaDisplay, tipoCampo: t.tipoCampo || '', tariffaBase: t.tariffaBase, coefficiente: t.coefficiente, attiva: !!t.attiva, tariffaFinale };
+            });
+            window.currentTableData = { pageType: 'tariffe', summary: summary, items: items };
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', { tableDataSummary: window.currentTableData.summary, currentTableData: window.currentTableData });
+            }
+            try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
+            // --- Fine currentTableData per Tony ---
 
             if (tariffeList.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Nessuna tariffa trovata</p></div>';

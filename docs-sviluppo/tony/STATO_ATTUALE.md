@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-03-08  
+**Data**: 2026-03-18  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md`
 
 ---
@@ -35,7 +35,7 @@
 
 | Dato | Stato |
 |------|-------|
-| terreni, terreniClienti, clienti, poderi, colture, categorie, tipiLavoro | ✅ |
+| terreni, terreniClienti, clienti, preventivi, **tariffe** (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva – "quante tariffe?", "quanto costa X nel Y in Z?"; fallback coltura non in lista → tariffa generica categoria – 2026-03-18), poderi, colture (nome, categoriaId), categorie, tipiLavoro | ✅ |
 | macchine, trattori, attrezzi (cavalli, cavalliMinimiRichiesti) | ✅ |
 | prodotti (giacenza, sogliaMinima) | ✅ |
 | guastiAperti | ✅ |
@@ -54,7 +54,7 @@
 | INJECT_FORM_DATA | ✅ attivita-form, lavoro-form |
 | SAVE_ACTIVITY | ✅ (saveGuard, fallback) |
 | CLICK_BUTTON | ✅ |
-| FILTER_TABLE | ✅ terreni, attivita, **lavori** (stato, progresso, caposquadra, terreno, tipo, tipoLavoro, operaio – 2026-03-08) |
+| FILTER_TABLE | ✅ terreni, attivita, lavori (stato, progresso, caposquadra, terreno, tipo, tipoLavoro, operaio), **clienti** (stato, ricerca testuale, reset), **preventivi** (stato, cliente, categoriaLavoro, tipoLavoro, categoriaColtura, ricerca, reset), **tariffe** (tipoLavoro, coltura, tipoCampo, attiva, reset – 2026-03-18) |
 | SUM_COLUMN | ✅ terreni |
 | RIASSUNTO (tonyGlobalBriefing) | ✅ |
 | MOSTRA_GRAFICO | ❌ Da fare |
@@ -70,8 +70,11 @@
 | gestione lavori | lavori | ✅ (gestione-lavori-controller.js renderLavori; items: tipoLavoro, operaio) |
 | macchine | macchine | ✅ |
 | prodotti | prodotti | ✅ |
-| movimenti | movimenti | ⏳ |
-| trattori, attrezzi, guasti | — | ⏳ |
+| movimenti | movimenti | ✅ |
+| trattori, attrezzi, flotta, scadenze, guasti | trattori, attrezzi, flotta, scadenze, guasti | ✅ |
+| **clienti** (Conto terzi) | **clienti** | ✅ (clienti-standalone.html renderClienti; 2026-03-18) |
+| **preventivi** (Conto terzi) | **preventivi** | ✅ (preventivi-standalone.html renderPreventivi; 2026-03-18; verificato in uso) |
+| **tariffe** (Conto terzi) | **tariffe** | ✅ (tariffe-standalone.html renderTariffe; 2026-03-18) |
 
 ---
 

@@ -81,7 +81,7 @@ Tutte le collection sono sotto `tenants/{tenantId}/<collectionName>`.
 |------------|------|-------------------|--------|-----|
 | terreni | terreni | id, nome, podere, coltura, superficie, tipoPossesso, dataScadenzaAffitto | 200 | Solo aziendali (clienteId vuoto). Lookup, form terreno, compilazione attività |
 | terreniClienti | terreni | id, nome, podere, coltura, clienteId | 200 | Terreni clienti (conto terzi). Filtro: clienteId non vuoto |
-| clienti | clienti | id, ragioneSociale | 100 | Per "quali terreni ha il cliente X?" – match ragioneSociale → id → filtra terreniClienti |
+| clienti | clienti | id, ragioneSociale, stato, totaleLavori | 100 | Lookup cliente; "quanti clienti/attivi?", "quanti lavori per [cliente]?" da qualsiasi pagina (2026-03-18); "quali terreni ha X?" → id → terreniClienti. **totaleLavori**: in CF viene ricalcolato dalla collection lavori (fetch lavori con solo clienteId, limite 500; conteggio per clienteId) così il numero è sempre coerente con i dati reali. |
 | poderi | poderi | id, nome | 100 | Form terreno |
 | colture | colture | id, nome, categoriaId | 100 | Form terreno, attività |
 | categorie | categorie | id, nome, codice, applicabileA | 50 | Tipi lavoro, colture |
@@ -89,6 +89,8 @@ Tutte le collection sono sotto `tenants/{tenantId}/<collectionName>`.
 | macchine | macchine | id, nome, tipoMacchina | 100 | Form attività, guasti, mezzi |
 | prodotti | prodotti | id, nome, unitaMisura, sogliaMinima | 200 | Magazzino, sotto scorta |
 | guasti | guasti | id, macchina, gravita, stato, dettagli | 50 (solo aperti) | Summary alert |
+| lavori | lavori | clienteId | 500 | Solo per calcolo totaleLavori in ctx.azienda.clienti (conteggio per clienteId); non esposta come lista separata (2026-03-18) |
+| preventivi | preventivi | id, numero, clienteId, stato | 200 | "Quanti preventivi?", "quanti in bozza/inviati/accettati?", "quanti preventivi per [cliente]?" da qualsiasi pagina (2026-03-18) |
 | scadenze | mezzi con scadenze | - | - | Vedi §4.4 |
 
 ### 4.3 Formato output per lookup (leggero)

@@ -1995,7 +1995,7 @@ export async function renderLavori(
     `;
 
     container.innerHTML = html;
-    countEl.textContent = `${filteredLavoriList.length} lavoro${filteredLavoriList.length !== 1 ? 'i' : ''}`;
+    countEl.textContent = `${filteredLavoriList.length} lavor${filteredLavoriList.length !== 1 ? 'i' : 'o'}`;
     if (maybeAutoStartLavoriTour) maybeAutoStartLavoriTour();
 }
 

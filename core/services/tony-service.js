@@ -337,8 +337,8 @@ class TonyService {
 
   /**
    * Scudo termico: rimuove coordinate GPS e dati pesanti dal contesto prima di inviare a Gemini.
-   * Risparmia ~90% token e evita che il JSON di risposta venga troncato.
-   * Gestisce pageType: terreni (campi podere, superficie, scadenza) vs attivita (data, terreno, tipoLavoro, oreNette).
+   * Risparmia token e evita che il JSON di risposta venga troncato.
+   * Gestisce pageType: terreni, attivita, lavori, clienti, prodotti, movimenti, macchine, ecc.
    */
   _sanitizeContextForAI(context) {
     if (!context || !context.page || !context.page.currentTableData) return context;
@@ -355,7 +355,32 @@ class TonyService {
         oreNette: item.oreNette != null ? item.oreNette : '-',
         coltura: item.coltura || '-'
       }));
-    } else {
+    } else if (pageType === 'clienti') {
+      table.items = table.items.map((item) => ({
+        ragioneSociale: item.ragioneSociale || '-',
+        stato: item.stato || '-',
+        totaleLavori: item.totaleLavori != null ? item.totaleLavori : 0,
+        email: item.email || '-',
+        partitaIva: item.partitaIva || '-'
+      }));
+    } else if (pageType === 'preventivi') {
+      table.items = table.items.map((item) => ({
+        numero: item.numero || '-',
+        cliente: item.cliente || '-',
+        stato: item.stato || '-',
+        totale: item.totale != null ? item.totale : 0
+      }));
+    } else if (pageType === 'tariffe') {
+      table.items = table.items.map((item) => ({
+        tipoLavoro: item.tipoLavoro || '-',
+        coltura: item.coltura || '-',
+        tipoCampo: item.tipoCampo || '-',
+        tariffaBase: item.tariffaBase != null ? item.tariffaBase : 0,
+        coefficiente: item.coefficiente != null ? item.coefficiente : 1,
+        attiva: !!item.attiva,
+        tariffaFinale: item.tariffaFinale != null ? item.tariffaFinale : 0
+      }));
+    } else if (pageType === 'terreni') {
       table.items = table.items.map((item) => ({
         id: item.id,
         nome: item.nome || item.name || 'Senza nome',
@@ -365,6 +390,15 @@ class TonyService {
         scadenza: item.scadenza || item.dataScadenzaAffitto || 'N/A',
         superficie: item.superficie != null ? Math.round(Number(item.superficie) * 100) / 100 : null
       }));
+    } else {
+      // Altri pageType (lavori, prodotti, movimenti, trattori, attrezzi, guasti, scadenze, flotta): mantieni struttura leggera
+      table.items = table.items.map((item) => {
+        const out = { ...item };
+        if (Object.keys(out).length > 15) {
+          return Object.fromEntries(Object.entries(out).slice(0, 12));
+        }
+        return out;
+      });
     }
     return cleanContext;
   }

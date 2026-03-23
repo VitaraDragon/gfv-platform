@@ -301,6 +301,30 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label>Filtra per Cliente</label>
+                    <select id="filter-cliente">
+                        <option value="">Tutti i clienti</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Categoria lavoro</label>
+                    <select id="filter-categoria-lavoro">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Tipo lavoro</label>
+                    <select id="filter-tipo-lavoro">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Categoria coltura</label>
+                    <select id="filter-categoria-coltura">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label>Cerca Numero/Cliente</label>
                     <input type="text" id="filter-search" placeholder="Numero preventivo, cliente...">
                 </div>
@@ -319,6 +343,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Placeholder Tony currentTableData (aggiornato da renderPreventivi) -->
+    <script>window.currentTableData = window.currentTableData || { pageType: 'preventivi', summary: 'Caricamento dati in corso...', items: [] };</script>
 
     <!-- Load Firebase config from external file -->
     <script>
@@ -367,6 +394,10 @@
         const auth = getAuthInstance();
         const db = getDb();
 
+        if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+            window.currentTableData = { pageType: 'preventivi', summary: 'Caricamento dati in corso...', items: [] };
+        }
+
         // Inizializza EmailJS quando disponibile
         function initEmailJS() {
             if (typeof emailjs !== 'undefined') {
@@ -383,6 +414,11 @@
         let currentTenantId = null;
         let preventivi = [];
         let clienti = [];
+        let coltureList = [];
+        let categorieColtureList = [];
+        let tipiLavoroList = [];
+        let categorieLavoriPrincipali = [];
+        let sottocategorieLavoriMap = new Map();
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
@@ -415,12 +451,20 @@
                             impostazioniLink.style.display = 'inline-flex';
                         }
 
-                        // Carica clienti per mostrare nomi
+                        // Carica clienti per mostrare nomi e popola filtro cliente
                         await loadClienti();
+                        populateClienteFilter();
+                        // Carica colture e categorie per filtro categoria coltura
+                        await loadColtureECategorie();
+                        populateCategoriaColturaFilter();
+                        // Carica categorie lavori e tipi lavoro per filtro categoria lavoro
+                        await loadCategorieETipiLavoro();
+                        populateCategoriaLavoroFilter();
                         // Setup filtri
                         setupFilters();
-                        // Carica preventivi
+                        // Carica preventivi e popola filtro tipo lavoro
                         await loadPreventivi();
+                        populateTipoLavoroFilter();
                     } else {
                         window.location.href = '../../../core/auth/login-standalone.html';
                     }
@@ -454,12 +498,20 @@
         // Setup filtri
         function setupFilters() {
             document.getElementById('filter-stato').addEventListener('change', () => filterPreventivi());
+            document.getElementById('filter-cliente').addEventListener('change', () => filterPreventivi());
+            document.getElementById('filter-categoria-lavoro').addEventListener('change', () => filterPreventivi());
+            document.getElementById('filter-tipo-lavoro').addEventListener('change', () => filterPreventivi());
+            document.getElementById('filter-categoria-coltura').addEventListener('change', () => filterPreventivi());
             document.getElementById('filter-search').addEventListener('input', () => filterPreventivi());
         }
 
         // Reset filtri - rendi globale per accesso da HTML
         window.resetFilters = function() {
             document.getElementById('filter-stato').value = '';
+            document.getElementById('filter-cliente').value = '';
+            document.getElementById('filter-categoria-lavoro').value = '';
+            document.getElementById('filter-tipo-lavoro').value = '';
+            document.getElementById('filter-categoria-coltura').value = '';
             document.getElementById('filter-search').value = '';
             filterPreventivi();
         }
@@ -499,15 +551,184 @@
             }
         }
 
+        // Popola il select Filtra per Cliente (dopo caricamento clienti)
+        function populateClienteFilter() {
+            const sel = document.getElementById('filter-cliente');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Tutti i clienti</option>';
+            (clienti || []).sort((a, b) => (a.ragioneSociale || '').localeCompare(b.ragioneSociale || '')).forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id || '';
+                opt.textContent = c.ragioneSociale || 'Cliente senza nome';
+                sel.appendChild(opt);
+            });
+        }
+
+        // Carica colture e categorie (per filtro categoria coltura)
+        async function loadColtureECategorie() {
+            try {
+                if (!currentTenantId) return;
+                const [coltureSnap, categorieSnap] = await Promise.all([
+                    getDocs(query(collection(db, 'tenants', currentTenantId, 'colture'), orderBy('nome'))),
+                    getDocs(collection(db, 'tenants', currentTenantId, 'categorie'))
+                ]);
+                coltureList = [];
+                coltureSnap.forEach(doc => coltureList.push({ id: doc.id, ...doc.data() }));
+                const categorieRaw = [];
+                categorieSnap.forEach(doc => categorieRaw.push({ id: doc.id, ...doc.data() }));
+                // Solo categorie esclusivamente per colture (Vigneto, Frutteto, Seminativo...), non 'entrambi' per evitare categorie lavori (es. Lavorazioni tra le file)
+                categorieColtureList = categorieRaw.filter(c => (c.applicabileA || '').toLowerCase() === 'colture');
+                categorieColtureList.sort((a, b) => (a.ordine || 999) - (b.ordine || 999));
+            } catch (e) {
+                console.warn('Preventivi: caricamento colture/categorie per filtro fallito', e);
+                coltureList = [];
+                categorieColtureList = [];
+            }
+        }
+
+        // Popola il select Categoria coltura (dopo loadColtureECategorie)
+        function populateCategoriaColturaFilter() {
+            const sel = document.getElementById('filter-categoria-coltura');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Tutte</option>';
+            (categorieColtureList || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id || '';
+                opt.textContent = cat.nome || cat.id || '';
+                sel.appendChild(opt);
+            });
+        }
+
+        // Carica categorie lavori (principali + sottocategorie) e tipi lavoro (per filtro categoria lavoro)
+        async function loadCategorieETipiLavoro() {
+            try {
+                if (!currentTenantId) return;
+                const [categorieSnap, tipiSnap] = await Promise.all([
+                    getDocs(collection(db, 'tenants', currentTenantId, 'categorie')),
+                    getDocs(query(collection(db, 'tenants', currentTenantId, 'tipiLavoro'), orderBy('nome')))
+                ]);
+                categorieLavoriPrincipali = [];
+                sottocategorieLavoriMap = new Map();
+                categorieSnap.forEach(doc => {
+                    const d = { id: doc.id, ...doc.data() };
+                    const a = (d.applicabileA || '').toLowerCase();
+                    if (a !== 'lavori' && a !== 'entrambi') return;
+                    if ((d.nome || '').toLowerCase().includes('test')) return;
+                    if (!d.parentId) {
+                        categorieLavoriPrincipali.push(d);
+                    } else {
+                        if (!sottocategorieLavoriMap.has(d.parentId)) sottocategorieLavoriMap.set(d.parentId, []);
+                        sottocategorieLavoriMap.get(d.parentId).push(d);
+                    }
+                });
+                categorieLavoriPrincipali.sort((a, b) => (a.ordine || 999) - (b.ordine || 999));
+                sottocategorieLavoriMap.forEach(arr => arr.sort((a, b) => (a.ordine || 999) - (b.ordine || 999)));
+                tipiLavoroList = [];
+                tipiSnap.forEach(doc => tipiLavoroList.push({ id: doc.id, ...doc.data() }));
+            } catch (e) {
+                console.warn('Preventivi: caricamento categorie/tipi lavoro per filtro fallito', e);
+                categorieLavoriPrincipali = [];
+                sottocategorieLavoriMap = new Map();
+                tipiLavoroList = [];
+            }
+        }
+
+        // Restituisce i nomi dei tipi lavoro che appartengono alla categoria (o sottocategoria) catId
+        function getTipiLavoroNamesForCategoriaId(catId) {
+            if (!catId || !tipiLavoroList.length) return [];
+            const sottocat = sottocategorieLavoriMap.get(catId);
+            const childrenIds = sottocat ? sottocat.map(c => c.id) : [];
+            return tipiLavoroList
+                .filter(t => t.categoriaId === catId || (t.sottocategoriaId && (t.sottocategoriaId === catId || childrenIds.includes(t.sottocategoriaId))))
+                .map(t => (t.nome || '').trim())
+                .filter(Boolean);
+        }
+
+        // Popola il select Categoria lavoro (principali + sottocategorie così appare anche "Vendemmia")
+        function populateCategoriaLavoroFilter() {
+            const sel = document.getElementById('filter-categoria-lavoro');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Tutte</option>';
+            (categorieLavoriPrincipali || []).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id || '';
+                opt.textContent = cat.nome || cat.id || '';
+                sel.appendChild(opt);
+                const sottocat = sottocategorieLavoriMap.get(cat.id) || [];
+                sottocat.forEach(sub => {
+                    const subOpt = document.createElement('option');
+                    subOpt.value = sub.id || '';
+                    subOpt.textContent = '  — ' + (sub.nome || sub.id || '');
+                    sel.appendChild(subOpt);
+                });
+            });
+        }
+
+        // Popola il select Tipo lavoro con i valori distinti dai preventivi (dopo loadPreventivi)
+        function populateTipoLavoroFilter() {
+            const sel = document.getElementById('filter-tipo-lavoro');
+            if (!sel) return;
+            const distinct = [...new Set((preventivi || []).map(p => p.tipoLavoro).filter(Boolean))].sort((a, b) => String(a).localeCompare(b));
+            sel.innerHTML = '<option value="">Tutti</option>';
+            distinct.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                sel.appendChild(opt);
+            });
+        }
+
         // Filtra preventivi
         function filterPreventivi() {
             const filterStato = document.getElementById('filter-stato').value;
+            const filterClienteId = document.getElementById('filter-cliente').value;
+            const filterCategoriaLavoroId = document.getElementById('filter-categoria-lavoro').value;
+            const filterTipoLavoro = document.getElementById('filter-tipo-lavoro').value;
+            const filterCategoriaColturaId = document.getElementById('filter-categoria-coltura').value;
             const filterSearch = document.getElementById('filter-search').value.toLowerCase();
+
+            // Nomi tipi lavoro per la categoria lavoro selezionata (es. "Vendemmia" -> Vendemmia Meccanica, Vendemmia Manuale)
+            let tipiLavoroNomiPerCategoria = [];
+            if (filterCategoriaLavoroId) {
+                tipiLavoroNomiPerCategoria = getTipiLavoroNamesForCategoriaId(filterCategoriaLavoroId);
+            }
+
+            // Nomi colture per la categoria selezionata (per filtro categoria coltura)
+            let coltureNomiPerCategoria = [];
+            if (filterCategoriaColturaId && coltureList.length > 0) {
+                coltureNomiPerCategoria = coltureList.filter(c => (c.categoriaId || '') === filterCategoriaColturaId).map(c => (c.nome || '').trim()).filter(Boolean);
+            }
 
             let filtered = preventivi.filter(preventivo => {
                 // Filtro stato
                 if (filterStato && preventivo.stato !== filterStato) {
                     return false;
+                }
+
+                // Filtro cliente
+                if (filterClienteId && preventivo.clienteId !== filterClienteId) {
+                    return false;
+                }
+
+                // Filtro categoria lavoro: il preventivo ha tipoLavoro (nome); deve essere uno dei tipi della categoria
+                if (tipiLavoroNomiPerCategoria.length > 0) {
+                    const tipoPreventivo = (preventivo.tipoLavoro || '').trim();
+                    if (!tipoPreventivo || !tipiLavoroNomiPerCategoria.some(n => n.toLowerCase() === tipoPreventivo.toLowerCase())) {
+                        return false;
+                    }
+                }
+
+                // Filtro tipo lavoro (esatto)
+                if (filterTipoLavoro && (preventivo.tipoLavoro || '') !== filterTipoLavoro) {
+                    return false;
+                }
+
+                // Filtro categoria coltura: il preventivo ha coltura (nome); deve appartenere alla categoria
+                if (coltureNomiPerCategoria.length > 0) {
+                    const colturaPreventivo = (preventivo.coltura || '').trim();
+                    if (!colturaPreventivo || !coltureNomiPerCategoria.some(n => n.toLowerCase() === colturaPreventivo.toLowerCase())) {
+                        return false;
+                    }
                 }
 
                 // Filtro ricerca
@@ -534,6 +755,51 @@
         function renderPreventivi(preventiviList) {
             const container = document.getElementById('preventivi-container');
             document.getElementById('preventivi-count').textContent = `${preventiviList.length} preventivi`;
+
+            // --- currentTableData per Tony (domande informative sulla lista) ---
+            const bozze = preventiviList.filter(p => p.stato === 'bozza').length;
+            const inviati = preventiviList.filter(p => p.stato === 'inviato').length;
+            const accettati = preventiviList.filter(p => ['accettato_email', 'accettato_manager'].includes(p.stato)).length;
+            const rifiutati = preventiviList.filter(p => p.stato === 'rifiutato').length;
+            const scaduti = preventiviList.filter(p => p.stato === 'scaduto').length;
+            const pianificati = preventiviList.filter(p => p.stato === 'pianificato').length;
+            const annullati = preventiviList.filter(p => p.stato === 'annullato').length;
+            const summaryParts = [];
+            if (preventiviList.length === 0) {
+                summaryParts.push('Nessun preventivo in elenco.');
+            } else {
+                summaryParts.push('Ci sono ' + preventiviList.length + ' preventivi in elenco.');
+                if (bozze) summaryParts.push(bozze + ' bozze.');
+                if (inviati) summaryParts.push(inviati + ' inviati.');
+                if (accettati) summaryParts.push(accettati + ' accettati.');
+                if (rifiutati) summaryParts.push(rifiutati + ' rifiutati.');
+                if (scaduti) summaryParts.push(scaduti + ' scaduti.');
+                if (pianificati) summaryParts.push(pianificati + ' pianificati.');
+                if (annullati) summaryParts.push(annullati + ' annullati.');
+            }
+            window.currentTableData = {
+                pageType: 'preventivi',
+                summary: summaryParts.join(' ').trim() + (summaryParts.length ? '.' : ''),
+                items: preventiviList.map(p => {
+                    const cliente = clienti.find(c => c.id === p.clienteId);
+                    return {
+                        numero: p.numero || '-',
+                        cliente: cliente ? (cliente.ragioneSociale || '-') : '-',
+                        stato: p.stato || '-',
+                        totale: p.totaleConIva != null ? p.totaleConIva : (p.totale != null ? p.totale : 0)
+                    };
+                })
+            };
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            try {
+                window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+            } catch (e) {}
+            // --- Fine currentTableData per Tony ---
 
             if (preventiviList.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>Nessun preventivo trovato</p></div>';

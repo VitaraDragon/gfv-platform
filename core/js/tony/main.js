@@ -1255,11 +1255,14 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         var params = data.params || {};
                         var pathStr = (window.location.pathname || '');
                         var pageType = (window.currentTableData && window.currentTableData.pageType) ||
-                            (pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
+                            (pathStr.indexOf('clienti') !== -1 ? 'clienti' : pathStr.indexOf('preventivi') !== -1 ? 'preventivi' : pathStr.indexOf('tariffe') !== -1 ? 'tariffe' : pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
                         var FILTER_KEY_MAP = {
                             attivita: { terreno: 'filter-terreno', tipoLavoro: 'filter-tipo-lavoro', coltura: 'filter-coltura', origine: 'filter-origine', dataDa: 'filter-data-da', dataA: 'filter-data-a', data: 'filter-data-da', ricerca: 'filter-ricerca' },
                             terreni: { podere: 'filter-podere', possesso: 'filter-tipo-possesso', alert: 'filter-alert', coltura: 'filter-coltura', categoria: 'filter-categoria' },
-                            lavori: { stato: 'filter-stato', progresso: 'filter-progresso', caposquadra: 'filter-caposquadra', terreno: 'filter-terreno', tipo: 'filter-tipo', tipoLavoro: 'filter-tipo-lavoro', operaio: 'filter-operaio' }
+                            lavori: { stato: 'filter-stato', progresso: 'filter-progresso', caposquadra: 'filter-caposquadra', terreno: 'filter-terreno', tipo: 'filter-tipo', tipoLavoro: 'filter-tipo-lavoro', operaio: 'filter-operaio' },
+                            clienti: { stato: 'filter-stato', ricerca: 'filter-search' },
+                            preventivi: { stato: 'filter-stato', cliente: 'filter-cliente', categoriaLavoro: 'filter-categoria-lavoro', tipoLavoro: 'filter-tipo-lavoro', categoriaColtura: 'filter-categoria-coltura', ricerca: 'filter-search' },
+                            tariffe: { tipoLavoro: 'filter-tipo-lavoro', coltura: 'filter-coltura', tipoCampo: 'filter-tipo-campo', attiva: 'filter-attiva' }
                         };
                         var keyToId = FILTER_KEY_MAP[pageType] || FILTER_KEY_MAP.terreni;
                         var isAttivita = pageType === 'attivita';
@@ -1279,7 +1282,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         }
 
                         if (params.filterType === 'reset' || params.reset === true) {
-                            var resetSel = (pageType === 'attivita') ? 'select[id^="filter-"], input[id^="filter-"]' : 'select[id^="filter-"]';
+                            var resetSel = (pageType === 'attivita' || pageType === 'clienti' || pageType === 'preventivi' || pageType === 'tariffe') ? 'select[id^="filter-"], input[id^="filter-"]' : 'select[id^="filter-"]';
                             document.querySelectorAll(resetSel).forEach(function(el) {
                                 el.value = '';
                                 try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
@@ -1312,7 +1315,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                             el.appendChild(opt);
                                         }
                                     }
-                                    var matchByText = (isAttivita && (key === 'terreno' || key === 'origine')) || (pageType === 'lavori' && (key === 'terreno' || key === 'caposquadra' || key === 'operaio' || key === 'tipoLavoro'));
+                                    var matchByText = (isAttivita && (key === 'terreno' || key === 'origine')) || (pageType === 'lavori' && (key === 'terreno' || key === 'caposquadra' || key === 'operaio' || key === 'tipoLavoro')) || (pageType === 'preventivi' && (key === 'cliente' || key === 'categoriaLavoro' || key === 'categoriaColtura'));
                                     setFilterValue(el, params[key], matchByText);
                                     modified.push(el);
                                 }
@@ -1328,6 +1331,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         if (modified.length > 0) {
                             modified.filter(function(el) { return el.id !== 'filter-categoria'; }).forEach(function(el) {
                                 try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+                                if (el.tagName === 'INPUT') { try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e2) {} }
                             });
                             if (isAttivita && params.tipoLavoro) {
                                 var sel = document.getElementById('filter-tipo-lavoro');
@@ -1341,7 +1345,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                 var realId = keyToId[filterType] || ('filter-' + filterType);
                                 var el = document.getElementById(realId);
                                 if (el && (el.tagName === 'SELECT' || 'value' in el)) {
-                                    var matchByTextRetro = (pageType === 'attivita' && (filterType === 'terreno' || filterType === 'origine')) || (pageType === 'lavori' && (filterType === 'terreno' || filterType === 'caposquadra' || filterType === 'operaio' || filterType === 'tipoLavoro'));
+                                    var matchByTextRetro = (pageType === 'attivita' && (filterType === 'terreno' || filterType === 'origine')) || (pageType === 'lavori' && (filterType === 'terreno' || filterType === 'caposquadra' || filterType === 'operaio' || filterType === 'tipoLavoro')) || (pageType === 'preventivi' && (filterType === 'cliente' || filterType === 'categoriaLavoro' || filterType === 'categoriaColtura'));
                                     setFilterValue(el, value, matchByTextRetro);
                                     try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
                                     console.log('[Tony] FILTER_TABLE (retrocompat):', realId, '=', el.value);
@@ -2215,14 +2219,17 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     var pathStr = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : '';
                     var freshTable = null;
                     if (typeof window !== 'undefined') {
-                        // Su pagina terreni o attivita: prova window, window.top e __tonyTableDataBuffer (backup da table-data-ready)
-                        if (pathStr.indexOf('terreni') !== -1 || pathStr.indexOf('attivita') !== -1 || pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) {
-                            var w = window.currentTableData;
-                            var t = (window.top && window.top !== window) ? window.top.currentTableData : null;
-                            var buf = window.__tonyTableDataBuffer;
-                            freshTable = (w && w.items && Array.isArray(w.items)) ? w : (t && t.items && Array.isArray(t.items)) ? t : (buf && buf.items && Array.isArray(buf.items)) ? buf : (w || t || buf);
-                        }
-                        if (!freshTable && window.currentTableData) {
+                        var w = window.currentTableData;
+                        var t = (window.top && window.top !== window) ? window.top.currentTableData : null;
+                        var buf = window.__tonyTableDataBuffer;
+                        // Preferisci sempre la finestra CORRENTE se ha dati tabella (così su Clienti non si invia per sbaglio dati di un'altra pagina)
+                        if (w && (w.pageType || w.summary != null || w.items !== undefined)) {
+                            freshTable = w;
+                        } else if (t && (t.pageType || t.summary != null || t.items !== undefined)) {
+                            freshTable = t;
+                        } else if (buf && (buf.pageType || buf.summary != null || buf.items !== undefined)) {
+                            freshTable = buf;
+                        } else if (window.currentTableData) {
                             freshTable = window.currentTableData;
                         }
                         if (!freshTable && window.frames && window.frames.length > 0) {
@@ -2246,6 +2253,9 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     pageCtx.currentTableData = freshTable ? Object.assign({}, freshTable, {
                         items: (freshTable.items && Array.isArray(freshTable.items)) ? freshTable.items : (freshTable.items != null ? [].concat(freshTable.items) : [])
                     }) : null;
+                    if (freshTable) {
+                        console.log('[Tony] Contesto tabella inviato alla CF:', freshTable.pageType || '(no pageType)', (freshTable.items && freshTable.items.length) || 0, 'righe, summary:', (freshTable.summary || '').substring(0, 50));
+                    }
                     if (pathStr.indexOf('terreni') !== -1 && freshTable && freshTable.items && Array.isArray(freshTable.items)) {
                         var _seenP = {}, _seenC = {};
                         var _poderi = [], _colture = [];

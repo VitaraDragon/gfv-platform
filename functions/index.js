@@ -81,19 +81,33 @@ async function buildContextAzienda(tenantId) {
 
   const results = await Promise.allSettled([
     getCollectionLight(tenantId, "terreni", ["nome", "podere", "coltura", "superficie", "tipoPossesso", "dataScadenzaAffitto", "clienteId"], 200),
-    getCollectionLight(tenantId, "clienti", ["id", "ragioneSociale"], 100),
+    getCollectionLight(tenantId, "clienti", ["id", "ragioneSociale", "stato", "totaleLavori"], 100),
     getCollectionLight(tenantId, "poderi", ["nome"], 100),
     getCollectionLight(tenantId, "colture", ["nome", "categoriaId"], 100),
     getCollectionLight(tenantId, "categorie", ["nome", "codice", "applicabileA"], 50),
     getCollectionLight(tenantId, "tipiLavoro", ["nome", "categoriaId", "sottocategoriaId"], 150),
     getCollectionLight(tenantId, "macchine", ["nome", "tipoMacchina", "stato", "cavalli", "cavalliMinimiRichiesti", "prossimaRevisione", "prossimaAssicurazione"], 100),
     getCollectionLight(tenantId, "prodotti", ["nome", "unitaMisura", "sogliaMinima", "giacenza"], 200),
-    getGuastiAperti(tenantId, 50)
+    getGuastiAperti(tenantId, 50),
+    getCollectionLight(tenantId, "lavori", ["clienteId"], 500),
+    getCollectionLight(tenantId, "preventivi", ["id", "numero", "clienteId", "stato"], 200),
+    getCollectionLight(tenantId, "tariffe", ["id", "tipoLavoro", "coltura", "categoriaColturaId", "tipoCampo", "tariffaBase", "coefficiente", "attiva"], 200)
   ]);
 
-  let [terreniRaw, clienti, poderi, colture, categorie, tipiLavoro, macchine, prodotti, guastiAperti] = results.map((r) =>
+  let [terreniRaw, clienti, poderi, colture, categorie, tipiLavoro, macchine, prodotti, guastiAperti, lavoriRaw, preventivi, tariffe] = results.map((r) =>
     r.status === "fulfilled" ? r.value : []
   );
+
+  // totaleLavori: calcolo reale da collection lavori (non dipende da aggiornaStatisticheCliente sul documento cliente)
+  const countByCliente = {};
+  (lavoriRaw || []).forEach((l) => {
+    const cid = l.clienteId;
+    if (cid) countByCliente[cid] = (countByCliente[cid] || 0) + 1;
+  });
+  clienti = (clienti || []).map((c) => ({
+    ...c,
+    totaleLavori: countByCliente[c.id] !== undefined ? countByCliente[c.id] : (c.totaleLavori != null ? Number(c.totaleLavori) : 0)
+  }));
 
   // Terreni aziendali (escludi terreni clienti) vs terreni clienti (conto terzi)
   const terreniClienti = (terreniRaw || []).filter((t) => t.clienteId && t.clienteId !== "");
@@ -133,6 +147,7 @@ async function buildContextAzienda(tenantId) {
     terreni,
     terreniClienti,
     clienti,
+    preventivi: preventivi || [],
     poderi,
     colture,
     categorie,
@@ -142,7 +157,8 @@ async function buildContextAzienda(tenantId) {
     attrezzi,
     prodotti,
     guastiAperti,
-    summaryScadenze
+    summaryScadenze,
+    tariffe: tariffe || []
   };
 }
 
@@ -253,6 +269,15 @@ FORMATO RISPOSTA OBBLIGATORIO:
 - Quando includi command, mantieni "text" breve (1 frase) così il JSON non viene troncato. Il JSON deve essere completo e parsabile.
 - Per FILTER_TABLE/SUM_COLUMN: text breve di conferma (es. "Ecco i terreni filtrati."). Per domande informative ("quali terreni"): enumera i nomi nel text (vedi ELENCO DATI).
 
+LISTA CORRENTE (page.currentTableData) – per QUALSIASI pagina con tabella (clienti, prodotti, movimenti, trattori, attrezzi, terreni, attivita, lavori, guasti, scadenze, flotta):
+- Se [CONTESTO].page.currentTableData è presente, contiene la tabella visibile: page.tableDataSummary (testo riepilogativo, es. "Ci sono 12 clienti in elenco. 10 attivi. 2 sospesi.") e page.currentTableData.items (array di righe con campi come ragioneSociale, stato, totaleLavori, ecc.).
+- Per domande sulla lista visibile ("quanti X?", "quanti sono attivi?", "quanti sospesi?", "cosa c'è in lista?", "riassumi") usa SEMPRE page.tableDataSummary e, se serve dettaglio, page.currentTableData.items. Non rispondere mai "non ho dati" o "non ho informazioni sullo stato" se currentTableData è presente.
+- Per "quanti clienti?" rispondi con il numero (e opzionalmente i nomi); per "quanti sono attivi?" o "quanti clienti attivi?" usa il summary (contiene già "X attivi") oppure conta in items dove stato === "attivo".
+- Pagina clienti: in items ogni riga ha ragioneSociale, stato, totaleLavori. Per "quanti lavori abbiamo fatto per [nome]?" o "lavori per Stefano/Luca" cerca l'item con ragioneSociale che contiene quel nome e rispondi con il valore di totaleLavori (es. "Per Stefano Alpi abbiamo fatto 3 lavori.").
+- Pagina preventivi: in items ogni riga ha numero, cliente, stato, totale. Per "quanti preventivi?", "quanti in bozza/inviati/accettati?", "quanti preventivi per [cliente]?" usa il summary o conta in items.
+- Pagina clienti, preventivi o tariffe: se l'utente chiede di filtrare ("mostrami solo gli attivi", "solo le bozze", "tariffe per vigneto", "pulisci filtri") rispondi SEMPRE con command FILTER_TABLE e params appropriati. Vedi FILTRO TABELLA CLIENTI, FILTRO TABELLA PREVENTIVI, FILTRO TABELLA TARIFFE.
+- Pagina tariffe: in items ogni riga ha tipoLavoro, coltura, tipoCampo, tariffaBase, coefficiente, attiva, tariffaFinale. Per "quante tariffe?", "quante attive?", "tariffe per erpicatura/vigneto" usa il summary o conta in items.
+
 REGOLE DI RISPOSTA (form e modal):
 0. MODAL CHIUSO: Se [CONTESTO].form è null o [CONTESTO].form.formId manca (es. dopo salvataggio il modal si chiude): NON emettere SAVE_ACTIVITY, INJECT_FORM_DATA o SET_FIELD. Rispondi SOLO con testo di conferma (es. "Attività salvata correttamente!").
 1. Se [CONTESTO].form.formId === "attivita-form" (form GIÀ aperto): usa SET_FIELD per ogni dato. Esempio: "Ho trinciato" -> SET_FIELD attivita-tipo-lavoro-gerarchico "Trinciatura".
@@ -314,11 +339,39 @@ TERRENI E DATI CONTRATTUALI:
 - Se l'utente chiede informazioni economiche o contrattuali (canone, affitto, scadenza, contratti scaduti), consulta i dati completi in page.currentTableData.items senza dire che non hai le informazioni.
 
 DOMANDE INFORMATIVE SUI TERRENI (conteggio, nomi):
-- azienda.terreni = solo terreni aziendali. azienda.terreniClienti = terreni dei clienti (conto terzi, hanno clienteId). azienda.clienti = clienti con id e ragioneSociale.
+- azienda.terreni = solo terreni aziendali. azienda.terreniClienti = terreni dei clienti (conto terzi, hanno clienteId). azienda.clienti = clienti con id, ragioneSociale, stato (attivo|sospeso|archiviato), totaleLavori (numero). azienda.tariffe = tariffe con id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva (per "quante tariffe?", "quante attive?", "quanto costa X nel Y in Z?").
 - Per "quali terreni dell'azienda?": usa azienda.terreni, enumera i nomi.
 - Per "quali terreni dei clienti?" o "terreni in conto terzi": usa azienda.terreniClienti, enumera i nomi.
 - Per "quali terreni ha il cliente Mario Verdi?": cerca in azienda.clienti il cliente con ragioneSociale che contiene "Mario Verdi", prendi id, filtra azienda.terreniClienti dove clienteId === id, enumera i nomi.
 - Per "quanti ettari ha X?": cerca in azienda.terreni o terreniClienti l'item con nome contenente X e leggi superficie.
+
+CLIENTI (da qualsiasi pagina – usa azienda.clienti dal Context Builder):
+- "Quanti clienti abbiamo?" → conta azienda.clienti.length (o elenca i nomi da ragioneSociale).
+- "Quanti clienti attivi?" → filtra azienda.clienti dove stato === "attivo", conta la lunghezza.
+- "Quanti lavori per [nome cliente]?" / "lavori per Stefano" → cerca in azienda.clienti l'item con ragioneSociale che contiene il nome, rispondi con il suo totaleLavori (es. "Per Stefano Alpi abbiamo fatto 3 lavori."). Se totaleLavori manca o è 0, dillo.
+- Se sei sulla pagina Clienti e page.currentTableData è presente, puoi usare quello per coerenza con la tabella visibile; altrimenti (es. da Dashboard) usa sempre azienda.clienti.
+
+PREVENTIVI (da qualsiasi pagina – usa azienda.preventivi dal Context Builder):
+- azienda.preventivi = array con id, numero, clienteId, stato (bozza|inviato|accettato_email|accettato_manager|rifiutato|scaduto|pianificato|annullato).
+- "Quanti preventivi abbiamo?" → conta azienda.preventivi.length.
+- "Quanti preventivi in bozza?" / "quanti inviati?" / "quanti accettati?" → filtra azienda.preventivi per stato (bozza, inviato, accettato_email o accettato_manager), conta.
+- "Quanti preventivi per [nome cliente]?" → cerca in azienda.clienti il cliente con ragioneSociale che contiene il nome, prendi id; conta in azienda.preventivi dove clienteId === id.
+- Se sei sulla pagina Preventivi e page.currentTableData è presente, puoi usare quello; altrimenti usa azienda.preventivi.
+
+TARIFFE (da qualsiasi pagina – usa azienda.tariffe dal Context Builder):
+- azienda.tariffe = array con id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva.
+- "Quante tariffe abbiamo?" → conta azienda.tariffe.length.
+- "Quante tariffe attive?" / "quante disattivate?" → filtra azienda.tariffe per attiva === true (o false), conta.
+- Se sei sulla pagina Tariffe e page.currentTableData è presente, puoi usare quello per coerenza con la tabella visibile; altrimenti (es. da Dashboard) usa azienda.tariffe.
+
+DOMANDE SUI COSTI DELLE TARIFFE ("Quanto costa X nel Y in Z?"):
+- Quando l'utente chiede il costo di un lavoro per categoria coltura e tipo campo (es. "Quanto costa aratura nel seminativo in pianura?", "Quanto costa erpicare mais in collina?"), DEVI cercare in azienda.tariffe e rispondere con la tariffa (€/ettaro).
+- DUE CASI: (A) L'utente dice una CATEGORIA (seminativo, vigneto, frutteto): determina categoriaId da azienda.categorie. (B) L'utente dice una COLTURA specifica (mais, grano, albicocche): cerca in azienda.colture la coltura il cui nome contiene la parola; prendi categoriaId; da azienda.categorie prendi il nome categoria (es. Seminativo, Frutteto).
+- ALGORITMO: (1) Determina categoriaColturaId e nomeCategoria. Se l'utente dice categoria (seminativo/vigneto/frutteto): cerca in azienda.categorie (applicabileA colture o entrambi) nome che contiene la parola. Se dice coltura (mais/grano/albicocche): cerca in azienda.colture nome che contiene la parola; prendi categoriaId; da azienda.categorie prendi nome. (2) tipoCampo: pianura/collina/montagna. (3) tipoLavoro: match flessibile su azienda.tipiLavoro. (4) Cerca tariffa: SOLO tariffe attive. Prima prova tariffa SPECIFICA per coltura (se utente ha detto mais, cerca tariffa con coltura che match "Mais"); poi FALLBACK OBBLIGATORIO: tariffa GENERICA (coltura vuota o !coltura) con categoriaColturaId === id, tipoLavoro, tipoCampo. (5) tariffaFinale = (tariffaBase || 0) * (coefficiente || 1).
+- RISPOSTA SE TROVI TARIFFA GENERICA (fallback) MA NON SPECIFICA: "Non è presente una tariffa specifica per il [Mais], ma la tariffa generica per il [Seminativo] costa X €/ettaro." (stesso pattern per albicocche→Frutteto, ecc.).
+- RISPOSTA SE TROVI TARIFFA SPECIFICA: "Costa X €/ettaro." (o "X €/ha").
+- SINONIMI: aratura→Aratura/Erpicatura, diserbare→Diserbo, erpicatura→Erpicatura, potatura→Potatura, vendemmia→Vendemmia, semina→Semina, trinciatura→Trinciatura. Usa azienda.tipiLavoro per i nomi esatti.
+- Se non trovi NE' specifica NE' generica: "Non ho trovato una tariffa attiva per [tipo lavoro] nel [categoria] in [tipo campo]. Verifica che esista in Gestione Tariffe."
 
 FILTRO TABELLA (FILTER_TABLE) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni":
 - SEI GIÀ sulla pagina terreni: l'utente vede la tabella. "Mostrami", "filtra", "solo gli affitti" = FILTER_TABLE, NON navigazione.
@@ -356,6 +409,29 @@ FILTRO TABELLA LAVORI (FILTER_TABLE) – quando page.currentTableData?.pageType 
 - OPERAIO: "lavori di Mario" (se operaio) / "lavori assegnati a Pier" → operaio: "Mario Rossi" o "Pier" (nome esatto). Se ambiguo tra caposquadra e operaio, preferisci caposquadra quando il contesto è "squadra".
 - RESET: params: { "filterType": "reset" } oppure { "reset": true }.
 - Esempi: "lavori in corso" → {"text": "Ecco i lavori in corso.", "command": {"type": "FILTER_TABLE", "params": {"stato": "in_corso"}}}. "lavori in ritardo" → {"text": "Ecco i lavori in ritardo.", "command": {"type": "FILTER_TABLE", "params": {"progresso": "in_ritardo"}}}. "lavori nel Sangiovese" → {"text": "Ecco i lavori nel Sangiovese.", "command": {"type": "FILTER_TABLE", "params": {"terreno": "Sangiovese"}}}. "lavori di Mario" (caposquadra) → {"text": "Ecco i lavori assegnati a Mario.", "command": {"type": "FILTER_TABLE", "params": {"caposquadra": "Mario Rossi"}}}. "lavori interni" → {"text": "Ecco i lavori interni.", "command": {"type": "FILTER_TABLE", "params": {"tipo": "interno"}}}. "conto terzi" → {"text": "Ecco i lavori conto terzi.", "command": {"type": "FILTER_TABLE", "params": {"tipo": "conto_terzi"}}}. "vendemmie" / "mostrami le vendemmie" → {"text": "Ecco le vendemmie.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Vendemmia"}}}. "erpicature" → {"text": "Ecco le erpicature.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura"}}}. "lavori di Pier" (operaio) → {"text": "Ecco i lavori assegnati a Pier.", "command": {"type": "FILTER_TABLE", "params": {"operaio": "Pier"}}}.
+
+FILTRO TABELLA CLIENTI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'clienti' o session.current_page.path include "clienti":
+- SEI GIÀ sulla pagina Clienti (Conto terzi): l'utente vede la lista clienti. "Mostrami solo gli attivi", "filtra per sospesi", "cerca clienti Rossi", "pulisci filtri" = FILTER_TABLE, NON navigazione.
+- OBBLIGATORIO: se l'utente chiede di filtrare o vedere solo clienti per stato o per testo (ragione sociale, P.IVA, email), rispondi SEMPRE con JSON che contiene "command" con type "FILTER_TABLE".
+- FORMATO params: "stato" (attivo | sospeso | archiviato), "ricerca" (testo per ragione sociale / P.IVA / email / telefono; il client filtra in tempo reale). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- Esempi: "solo gli attivi" / "mostrami i clienti attivi" → {"text": "Ecco i clienti attivi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "attivo"}}}. "sospesi" → {"text": "Ecco i clienti sospesi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "sospeso"}}}. "archiviati" → {"text": "Ecco i clienti archiviati.", "command": {"type": "FILTER_TABLE", "params": {"stato": "archiviato"}}}. "cerca clienti Rossi" / "trova Rossi" / "clienti con ragione sociale Rossi" → {"text": "Ecco i clienti che contengono \"Rossi\".", "command": {"type": "FILTER_TABLE", "params": {"ricerca": "Rossi"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
+FILTRO TABELLA PREVENTIVI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'preventivi' o session.current_page.path include "preventivi":
+- SEI GIÀ sulla pagina Preventivi (Conto terzi): l'utente vede la lista preventivi. "Mostrami solo le bozze", "filtra per inviati", "solo i preventivi di Luca", "pulisci filtri" = FILTER_TABLE, NON navigazione.
+- OBBLIGATORIO: se l'utente chiede di filtrare o vedere solo preventivi per stato o per cliente, rispondi SEMPRE con JSON che contiene "command" con type "FILTER_TABLE".
+- FORMATO params: "stato" (bozza|inviato|accettato_email|...), "cliente" (ragione sociale esatta), "categoriaLavoro" (nome categoria lavorazione: Raccolta, Vendemmia, Lavorazione del terreno, Potatura, Trattamenti, ecc. – da azienda.categorie applicabileA lavori; filtra i preventivi il cui tipo lavoro appartiene a quella categoria), "tipoLavoro" (nome tipo lavoro esatto, es. "Erpicatura Tra le File", "Potatura"), "categoriaColtura" (nome categoria coltura: Vigneto, Frutteto, Seminativo, ecc. – da azienda.categorie applicabileA colture), "ricerca" (testo opzionale). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- STATO: "bozze" → stato: "bozza". "inviati" → stato: "inviato". "accettati" → stato: "accettato_email". "rifiutati" → stato: "rifiutato". "scaduti" → stato: "scaduto". "pianificati" → stato: "pianificato". "annullati" → stato: "annullato".
+- CLIENTE: "preventivi di Luca" → params.cliente con ragione sociale esatta (azienda.clienti o items).
+- TIPO LAVORO: "preventivi di erpicatura", "solo le potature" → params.tipoLavoro con nome esatto (da items o azienda.tipiLavoro).
+- CATEGORIA LAVORO: "preventivi vendemmie", "solo potature", "lavorazioni del terreno", "raccolte", "trattamenti" → params.categoriaLavoro con nome categoria lavorazione (Potatura, Lavorazione del terreno, Raccolta, Trattamenti, ecc.). Il client imposta il select per testo. OBBLIGATORIO: "vendemmia"/"vendemmie" → usa sempre categoriaLavoro: "Raccolta" (Vendemmia è sottocategoria di Raccolta e nel filtro compare solo la categoria principale; così si vedono comunque i preventivi di vendemmia).
+- CATEGORIA COLTURA: "preventivi vigneto", "solo frutteto", "preventivi per i vigneti" → params.categoriaColtura con nome categoria (Vigneto, Frutteto, Seminativo, ecc.).
+- Esempi: "solo le bozze" → {"text": "Ecco i preventivi in bozza.", "command": {"type": "FILTER_TABLE", "params": {"stato": "bozza"}}}. "preventivi di Luca Fabbri" → {"text": "Ecco i preventivi di Luca Fabbri.", "command": {"type": "FILTER_TABLE", "params": {"cliente": "Luca Fabbri"}}}. "preventivi vendemmie" / "fammi vedere le vendemmie" → {"text": "Ecco i preventivi di raccolta (inclusa vendemmia).", "command": {"type": "FILTER_TABLE", "params": {"categoriaLavoro": "Raccolta"}}}. "preventivi erpicatura" → {"text": "Ecco i preventivi di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura Tra le File"}}}. "preventivi vigneto" → {"text": "Ecco i preventivi per i vigneti.", "command": {"type": "FILTER_TABLE", "params": {"categoriaColtura": "Vigneto"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
+FILTRO TABELLA TARIFFE (FILTER_TABLE) – quando page.currentTableData?.pageType === 'tariffe' o session.current_page.path include "tariffe":
+- SEI GIÀ sulla pagina Tariffe (Conto terzi): l'utente vede la lista tariffe. "Mostrami le tariffe per erpicatura", "solo vigneto", "tariffe in pianura", "solo le attive", "pulisci filtri" = FILTER_TABLE, NON navigazione.
+- OBBLIGATORIO: se l'utente chiede di filtrare per tipo lavoro, coltura, tipo campo (pianura/collina/montagna) o stato (attive/disattivate), rispondi con JSON che contiene "command" con type "FILTER_TABLE".
+- FORMATO params: "tipoLavoro" (testo, es. "Erpicatura", "Vendemmia"), "coltura" (testo, es. "Vigneto", "Grano"), "tipoCampo" (pianura | collina | montagna), "attiva" (true | false). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- Esempi: "tariffe per erpicatura" → {"text": "Ecco le tariffe di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura"}}}. "tariffe vigneto" / "solo vigneto" → {"text": "Ecco le tariffe per vigneto.", "command": {"type": "FILTER_TABLE", "params": {"coltura": "Vigneto"}}}. "tariffe in pianura" → {"text": "Ecco le tariffe per pianura.", "command": {"type": "FILTER_TABLE", "params": {"tipoCampo": "pianura"}}}. "solo le attive" → {"text": "Ecco le tariffe attive.", "command": {"type": "FILTER_TABLE", "params": {"attiva": true}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
 SOMMA ETTARI (SUM_COLUMN) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni":
 - Se l'utente chiede superfici, estensioni, somma di ettari o "quanti ettari totali" (eventualmente con filtri come "dei frutteti", "a Barbavara", "in affitto"), usa il comando SUM_COLUMN.
@@ -848,7 +924,7 @@ exports.tonyAsk = onCall(
     let extraBlocks = "";
     if (isTonyAdvanced) {
       extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, tipi lavoro, colture, poderi, summaryScadenze, guastiAperti) sono in [CONTESTO].azienda. azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
-      extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quali mezzi hai\", ecc., DEVI enumerare i nomi nel testo. Usa azienda.terreni (solo aziendali), azienda.terreniClienti (terreni clienti conto terzi), azienda.clienti (ragioneSociale), azienda.prodotti, azienda.macchine. Per \"quali terreni ha il cliente X?\": cerca in azienda.clienti il cliente con ragioneSociale che contiene X, prendi il suo id, filtra azienda.terreniClienti dove clienteId === id, elenca i nomi.\n";
+      extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, azienda.macchine. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
       extraBlocks += SMARTFORMVALIDATOR_RULE;
       if (pagePath.includes("/vigneto/")) {
         extraBlocks += SUBAGENT_VIGNAIOLO;
@@ -882,10 +958,49 @@ exports.tonyAsk = onCall(
     const isTerreniPage = (ctxFinal.page && (ctxFinal.page.pageType === "terreni" || (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "terreni"))) || pagePath.includes("terreni");
     const isAttivitaPage = (ctxFinal.page && (ctxFinal.page.pageType === "attivita" || (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "attivita"))) || pagePath.includes("attivita");
     const isLavoriPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "lavori")) || pagePath.includes("gestione-lavori") || pagePath.includes("lavori");
+    const isClientiPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "clienti")) || pagePath.includes("clienti");
+    const isClientiQuestion = /\b(quanti|quante|quale|quali|numero|elenco|lista|clienti|attivi|sospesi|archiviati|lavori\s+per|per\s+(luca|stefano|marco|giuseppe))\b/i.test(message);
+    const hasClientiTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "clienti";
+    let clientiReminder = "";
+    if (isTonyAdvanced && isClientiQuestion) {
+      if (isClientiPage && hasClientiTableData) {
+        clientiReminder = "\n\n[OBBLIGATORIO: L'utente è sulla pagina CLIENTI. Rispondi usando i dati in context.page.tableDataSummary e context.page.currentTableData.items. Ogni item ha ragioneSociale, stato, totaleLavori.]";
+      } else if (ctxFinal.azienda && Array.isArray(ctxFinal.azienda.clienti) && ctxFinal.azienda.clienti.length > 0) {
+        clientiReminder = "\n\n[OBBLIGATORIO: Rispondi usando context.azienda.clienti (id, ragioneSociale, stato, totaleLavori). Per \"quanti clienti\" conta azienda.clienti.length. Per \"quanti attivi\" conta dove stato===\"attivo\". Per \"quanti lavori per [nome]\" cerca il cliente per ragioneSociale e rispondi con totaleLavori. NON dire che non hai i dati.]";
+      }
+    }
+    const isPreventiviPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "preventivi")) || pagePath.includes("preventivi");
+    const isPreventiviQuestion = /\b(quanti|quante|numero|elenco|lista|preventivi|bozza|bozze|inviato|accettat|rifiutat|scadut|pianificat)\b/i.test(message);
+    const hasPreventiviTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "preventivi";
+    let preventiviReminder = "";
+    if (isTonyAdvanced && isPreventiviQuestion) {
+      if (isPreventiviPage && hasPreventiviTableData) {
+        preventiviReminder = "\n\n[OBBLIGATORIO: L'utente è sulla pagina PREVENTIVI. Rispondi usando i dati in context.page.tableDataSummary e context.page.currentTableData.items (numero, cliente, stato, totale).]";
+      } else if (ctxFinal.azienda && Array.isArray(ctxFinal.azienda.preventivi)) {
+        preventiviReminder = "\n\n[OBBLIGATORIO: Rispondi usando context.azienda.preventivi (id, numero, clienteId, stato). Per \"quanti preventivi\" conta azienda.preventivi.length. Per stato (bozza, inviato, accettati) filtra per stato. Per \"quanti per [cliente]\" cerca in azienda.clienti il cliente per ragioneSociale, prendi id, conta preventivi dove clienteId === id. NON dire che non hai i dati.]";
+      }
+    }
+    const isTariffePage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "tariffe")) || pagePath.includes("tariffe");
+    const isTariffeQuestion = /\b(quanti|quante|numero|elenco|lista|tariffe|attive|disattivat|erpicatur|vigneto|coltura|pianura|collina|montagna)\b/i.test(message);
+    const isTariffeCostQuestion = /\b(quanto\s+costa|costo\s+di|prezzo\s+(di|per)|quanto\s+è|costa\s+(aratura|erpicatur|diserb|potatur|vendemmi|semina|trinciatur)|tariffa\s+per)\b.*\b(seminativ|vignet|fruttet|pianura|collina|montagna)\b|\b(aratura|erpicatur|diserb|potatur|vendemmi|semina|trinciatur)\b.*\b(quanto\s+costa|nel\s+seminativ|nel\s+vignet|nel\s+fruttet|in\s+pianura|in\s+collina|in\s+montagna)\b/i.test(message);
+    const hasTariffeTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "tariffe";
+    let tariffeReminder = "";
+    if (isTonyAdvanced && (isTariffeQuestion || isTariffeCostQuestion)) {
+      if (isTariffeCostQuestion && ctxFinal.azienda && Array.isArray(ctxFinal.azienda.tariffe) && ctxFinal.azienda.tariffe.length > 0) {
+        tariffeReminder = "\n\n[OBBLIGATORIO: L'utente chiede il COSTO di una tariffa. Usa DOMANDE SUI COSTI: (1) Se dice CATEGORIA (seminativo/vigneto/frutteto): categoriaId da azienda.categorie. Se dice COLTURA (mais/grano/albicocche): cerca in azienda.colture per nome, prendi categoriaId, nome categoria da azienda.categorie. (2) tipoCampo: pianura/collina/montagna. (3) tipoLavoro: match flessibile su azienda.tipiLavoro. (4) Cerca tariffa: prima SPECIFICA (coltura match se utente ha detto coltura); se non trovi, FALLBACK OBBLIGATORIO sulla GENERICA (coltura vuota, categoriaColturaId, tipoCampo, tipoLavoro). (5) Se trovi solo generica e utente aveva chiesto coltura: \"Non è presente una tariffa specifica per il [Mais], ma la tariffa generica per il [Seminativo] costa X €/ettaro.\" Altrimenti \"Costa X €/ettaro\".]";
+      } else if (isTariffePage && hasTariffeTableData) {
+        tariffeReminder = "\n\n[OBBLIGATORIO: L'utente è sulla pagina TARIFFE. Rispondi usando context.page.tableDataSummary e context.page.currentTableData.items (tipoLavoro, coltura, tipoCampo, tariffaBase, coefficiente, attiva, tariffaFinale). Per \"quante tariffe\" usa il summary; per \"quanto costa X nel Y in Z\" applica l'algoritmo DOMANDE SUI COSTI; per filtri usa FILTER_TABLE con params tipoLavoro, coltura, tipoCampo, attiva.]";
+      } else if (ctxFinal.azienda && Array.isArray(ctxFinal.azienda.tariffe)) {
+        tariffeReminder = "\n\n[OBBLIGATORIO: Rispondi usando context.azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva). Per \"quante tariffe\" conta azienda.tariffe.length. Per \"quante attive\" filtra dove attiva === true. Per \"quanto costa X nel Y in Z\" usa DOMANDE SUI COSTI DELLE TARIFFE (match categoria, tipoCampo, tipoLavoro; tariffaFinale = tariffaBase * coefficiente). NON dire che non hai i dati.]";
+      }
+    }
     const isFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|vediamo|quali|quanti)\b.*\b(terreni|affitt|propriet|scadut|vigneto|coltura|podere)\b|\b(affitt|in affitto|scadut|terreni)\b|\b(mostrami|mostra|vedi)\s+(i?\s*)?terreni\b/i.test(message);
     const isAttivitaFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|attività|attivita)\b.*\b(oggi|ieri|sangiovese|potatura|trinciatura|coltura|vendemmi)\b|\b(attività|attivita)\s+(di\s+)?(oggi|ieri)\b|\b(mostrami|mostra|vedi)\s+(le\s+)?(attivit|vendemmi)/i.test(message);
     const isLavoriFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|lavori)\b.*\b(in corso|in ritardo|sangiovese|caposquadra|interni|conto terzi|assegnat|completat|da pianificare|vendemmi|erpicatur|potatur|operaio)\b|\b(lavori)\s+(in corso|in ritardo|nel)\b|\b(vendemmi|erpicatur|potatur)\b/i.test(message);
-    const filterReminder = isTonyAdvanced && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest))
+    const isClientiFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|clienti)\b.*\b(attivi|sospesi|archiviati)\b|\b(attivi|sospesi|archiviati)\b|\b(clienti)\s+(attivi|sospesi|archiviati)\b|\b(cerca|trova|cercami)\b.*(clienti)?\b|\b(clienti)\s+(con|che|che\s+contengono)\b|\b(clienti)\s+([a-zA-Z0-9@.\s]+)\b|\bpulisci\s+filtri\b/i.test(message);
+    const isPreventiviFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|preventivi)\b.*\b(bozz|inviati|accettat|rifiutat|scadut|pianificat|annullat)\b|\b(bozze|inviati|accettati|rifiutati|scaduti|pianificati|annullati)\b|\b(preventivi)\s+(in\s+)?(bozza|inviat|accettat)\b|\b(preventivi)\s+(di|per)\b|\b(solo\s+)?(i\s+)?preventivi\s+di\b|\b(preventivi)\s+(vigneto|frutteto|seminativo|erpicatur|potatur|trinciatur|vendemmi)\b|\b(vigneto|frutteto|seminativo)\s+(preventivi)?\b|\b(vendemmie|potature|raccolte|trattamenti|lavorazioni\s+del\s+terreno)\b|\b(preventivi)\s+(vendemmi|potatur|raccolt|trattament|lavoraz)\b|\b(fammi\s+vedere)\s+(le\s+)?(vendemmie|potature|raccolte)\b|\bpulisci\s+filtri\b/i.test(message);
+    const isTariffeFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|tariffe)\b.*\b(erpicatur|vigneto|frutteto|coltura|pianura|collina|montagna|attive|disattivat)\b|\b(tariffe)\s+(per|di|in)\b|\b(tariffe)\s+(erpicatur|vigneto|pianura|attive)\b|\b(solo\s+)?(le\s+)?tariffe\s+(attive|per)\b|\bpulisci\s+filtri\b/i.test(message);
+    const filterReminder = isTonyAdvanced && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest) || (isClientiPage && isClientiFilterLikeRequest) || (isPreventiviPage && isPreventiviFilterLikeRequest) || (isTariffePage && isTariffeFilterLikeRequest))
       ? "\n\n[IMPORTANTE: L'utente chiede di filtrare o vedere dati. Rispondi SEMPRE con JSON completo: {\"text\": \"...\", \"command\": {\"type\": \"FILTER_TABLE\", \"params\": {...}}}]"
       : "";
 
@@ -937,8 +1052,8 @@ exports.tonyAsk = onCall(
       ? "\n\n[OBBLIGATORIO: Rispondi SOLO con un blocco ```json contenente action, replyText, formData. Non scrivere testo prima o dopo il blocco.]"
       : "";
     const fullPrompt = statoUtenteLine + (historyFormatted
-      ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}${filterReminder}${structuredOutputReminder}`
-      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}${filterReminder}${structuredOutputReminder}`);
+      ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${structuredOutputReminder}`
+      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${structuredOutputReminder}`);
 
     const body = {
       contents: [{ parts: [{ text: fullPrompt }] }],
