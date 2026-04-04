@@ -141,8 +141,17 @@ service cloud.firestore {
       // Lettura: pubblica (necessaria per registrazione con token non autenticato)
       allow read: if true;
       
-      // TEMP: allenta tutto per test inviti (permesso totale) - DA RIPRISTINARE
-      allow create: if true;
+      // Creazione: solo manager/amministratore del tenant indicato, a proprio nome (anti-abuso / spam).
+      // Allineato a invito-service-standalone.js e gestisci-utenti-standalone.html (campi obbligatori).
+      allow create: if isAuthenticated() &&
+        request.resource.data.tenantId is string &&
+        request.resource.data.tenantId != '' &&
+        request.resource.data.email is string &&
+        request.resource.data.token is string &&
+        request.resource.data.stato == 'invitato' &&
+        request.resource.data.inviatoDa == request.auth.uid &&
+        belongsToTenant(request.resource.data.tenantId) &&
+        isManagerOrAdmin(request.resource.data.tenantId);
       
       // Aggiornamento: 
       // - Manager/admin del tenant dell'invito possono aggiornare tutto

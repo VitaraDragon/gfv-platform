@@ -1,6 +1,377 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-03-18.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-02.**
+
+## ✅ Magazzino – Appendice tracciabilità / dashboard a card / viste tematiche (2026-04-02)
+
+- Nuovo **`docs-sviluppo/MAGAZZINO_APPENDICE_TRACCIABILITA_DASHBOARD_E_SCARICO.md`**: decisioni su home Magazzino a card, elenchi tematici (trattamenti, concimazioni, ricambi, sementi, …), fonti dati (movimenti + attività + lavori + trattamenti), principi implementativi, stato scarico automatico (non ancora in codice).
+- **`docs-sviluppo/ANALISI_MODULO_MAGAZZINO.md`**: §7 con rimando all’appendice.
+
+## ✅ Tony — Movimenti standalone: merge `setContext('page')` come pagine golden (2026-04-02)
+
+- **`modules/magazzino/views/movimenti-standalone.html`**: `renderMovimenti` usa `Object.assign({}, page, { pageType, tableDataSummary, currentTableData })` invece di sostituire tutto il contesto `page`, allineato a `prodotti-standalone` e a `.cursor/rules/tony-pagina-lista-e-form.mdc`.
+
+## ✅ Tony — Context Builder: movimenti magazzino in ctx.azienda (2026-04-02)
+
+- **Cloud Function** (`functions/index.js`): `buildContextAzienda` carica gli ultimi **50** documenti da `movimentiMagazzino` (`orderBy data desc`), arricchiti con **prodottoNome** / unità da `prodotti`; espone **`movimentiRecenti`** e **`summaryMovimentiRecenti`** così Tony può rispondere su carichi/scarichi anche **fuori dalla pagina Movimenti** (lista completa e filtri restano su `currentTableData` + `FILTER_TABLE` in pagina).
+- **Prompt**: istruzioni ELENCO DATI + reminder `movimentiReminder` quando la domanda riguarda movimenti/filtri senza essere sulla lista.
+- **Deploy**: richiede `firebase deploy --only functions` (o equivalente) per attivare in produzione.
+
+## ✅ Tony — Master Plan: tabella fasi e roadmap §9 allineate a STATO_ATTUALE (2026-04-02)
+
+- **`docs-sviluppo/tony/MASTER_PLAN.md`**: versione 1.2, data 2026-04-02; Fasi 2–6 e criteri aggiornati (Fase 6 **Parziale** con nota magazzino/proattività); §9 Roadmap coerente.
+- **`docs-sviluppo/tony/STATO_ATTUALE.md`**: righe riepilogo Fase 4 e 6 allineate al Master Plan.
+
+## ✅ Tony — Magazzino: guard SAVE follow-up (2026-04-02)
+
+- **Problema**: dopo il blocco in `tony-service` compariva comunque un secondo `ESEGUO COMANDO SAVE_ACTIVITY` (prompt vuoto sul secondo turno o `formId` assente nel contesto) oppure il **fallback** `main.js` testo→`SAVE_ACTIVITY` su «prodotto salvato» senza comando.
+- **Fix**: guard magazzino senza richiedere `upSave` truthy; fallback per pathname `prodotti`/`movimenti` se `formId` manca; **fallback testo→SAVE** disattivato su anagrafica magazzino salvo ultimo messaggio utente in sessionStorage = conferma esplicita («ok salva», …).
+
+## ✅ Tony — Magazzino: niente SAVE automatico su solo descrizione + merge INJECT ravvicinati (2026-04-02)
+
+- **Problema**: dopo `APRI_PAGINA` + inject post-nav la CF poteva restituire `INJECT_FORM_DATA` e subito `SAVE_ACTIVITY` sullo stesso messaggio utente (descrizione prodotto, non «ok salva») → doppio inject e salvataggio senza conferma.
+- **tony-service** (`core/services/tony-service.js`): se il comando è `SAVE_ACTIVITY` e il contesto form è `prodotto-form` / `movimento-form`, si esegue solo se il messaggio utente sembra una **conferma esplicita** (`_magazzinoUserPromptLooksLikeSaveConfirm`); altrimenti il comando non viene emesso.
+- **Widget** (`core/js/tony/main.js`): due `INJECT_FORM_DATA` sullo stesso form entro 15s uniscono `formData` (post-nav + risposta CF).
+- **Cloud Function** (`functions/index.js`): nota in regola **5d** (deploy per il prompt).
+
+## ✅ Tony — Prodotto: giorni di carenza solo per fitofarmaci (2026-04-02)
+
+- **Regola**: i giorni di carenza in anagrafica servono **solo** per la categoria **fitofarmaci**; per tutte le altre categorie non si chiedono (né in intervista né come obbligo logico).
+- **Mapping** (`core/config/tony-form-mapping.js`): `prodottoCategoriaRichiedeGiorniCarenza: ['fitofarmaci']` (allowlist); `SYSTEM_INSTRUCTION_MAGAZZINO_FORMS` e descrizione campo allineati.
+- **Widget** (`core/js/tony/main.js`): `tonyGetMagazzinoInterviewEmpty` toglie `prodotto-giorni-carenza` da `interviewEmpty` se la categoria non è `fitofarmaci` (o non è ancora scelta).
+- **Cloud Function** (`functions/index.js`): regola **5d** (deploy se si usa il prompt remoto).
+
+## ✅ Tony — SAVE_ACTIVITY e promemoria «Form completo, confermi salvataggio?» (2026-04-02)
+
+- **Problema**: il messaggio proattivo veniva inviato alla CF come «domanda utente»; il modello rispondeva con `SAVE_ACTIVITY` + «Attività salvata!» e **tony-service** eseguiva `triggerAction` **prima** di `onComplete`, quindi il blocco in `main.js` non impediva il salvataggio (coda già accodata).
+- **Fix**: `Tony.ask` / `askStream` ricevono `proactive: true` insieme a `skipUserHistory`; in **tony-service** se `proactive` e prompt = verifica modulo (`confermi salvataggio` / `form completo confermi`) **non** si emette `SAVE_ACTIVITY` e si sostituisce il testo fuorviante. **CF** regola **0b** (prompt interno ≠ conferma utente).
+
+## ✅ Tony — Magazzino: proattività dopo SET_FIELD + conferma salvataggio corretta (2026-04-02)
+
+- **Problema**: dopo `SET_FIELD` solo sul nome (senza `INJECT`) non partiva il timer post-inject → Tony restava muto fino al messaggio utente; dopo «ok salva» il testo del modello diceva «Attività salvata» anche su prodotti/movimenti.
+- **Widget** (`core/js/tony/main.js`): debounce 2s su `SET_FIELD` con prefisso `prodotto-` / `mov-` → `runTonyMagazzinoProactiveFromSetField` (stessa logica missing / «Form completo, confermi salvataggio?», idle più breve se il form è già completo); normalizzazione testo in `onComplete` per `SAVE_ACTIVITY` su path prodotti/movimenti; messaggio chat nel ramo `SAVE_ACTIVITY` bloccato + modal assente distingue prodotti/movimenti/lavori.
+- **Cloud Function** (`functions/index.js`): regole **0** e **6** — testi di conferma prodotto/movimento vs diario attività. **Deploy Functions** per il prompt.
+
+## ✅ Prodotti standalone — allineamento canone Tony liste (2026-04-02)
+
+- **Già presente**: placeholder `currentTableData`, aggiornamento a ogni render, merge `setContext('page', …)`, evento `table-data-ready`.
+- **Completamenti** (`prodotti-standalone.html`): commento canone; `items` con **`id`** (Firestore) + `unitaMisura`; summary singolare/plurale.
+
+## ✅ Tony — Magazzino: domande anche su campi non obbligatori (`interviewEmpty`) (2026-04-02)
+
+- **Obiettivo**: dopo il nome (o i required) Tony continua a guidare su categoria, unità, scorta, prezzo, dosaggi, carenza (prodotto) e opzionali movimento (confezione, prezzo, note, collegamenti).
+- **Mapping** (`core/config/tony-form-mapping.js`): `tonyInterviewFieldIds` su `PRODOTTO_FORM_MAP` e `MOVIMENTO_FORM_MAP`.
+- **Widget** (`core/js/tony/main.js`): `tonyGetMagazzinoInterviewEmpty`, `tonyMagazzinoInterviewLabels`; contesto form con `interviewEmpty`; timer proattivi post-OPEN_MODAL / post-INJECT considerano required + interview.
+- **Cloud Function** (`functions/index.js`): regola **5d** aggiornata (deploy se si usa il prompt lato server).
+
+## ✅ Tony standalone: caricare `tony-form-mapping.js` prima dell’injector (2026-04-02)
+
+- **Problema**: su `prodotti-standalone` (e altre pagine che usano solo `tony-widget-standalone.js`) `window.TONY_FORM_MAPPING` non era definito → `injectProdottoForm` / `injectMovimentoForm` log «mapping mancante» e `INJECT_FORM_DATA` falliva anche con `formData` valido.
+- **Fix** (`core/js/tony-widget-standalone.js`): caricamento sequenziale `../config/tony-form-mapping.js` poi schemas/filler/injector come prima.
+
+## ✅ Tony — Proattività form: `getCurrentFormContext` fuori scope + OPEN_MODAL magazzino (2026-04-02)
+
+- **Problema**: `getCurrentFormContext` era definito solo dentro `if (sendBtn) { … }`, mentre `processTonyCommand` è nello scope dell’IIFE: nei timer post-`INJECT_FORM_DATA` `typeof getCurrentFormContext === 'function'` era sempre falso → nessun messaggio «Form completo…» / campi mancanti. Stesso limite per **OPEN_MODAL** su `prodotto-modal` / `movimento-modal` senza `fields`: nessun inject → nessun timer.
+- **Fix** (`core/js/tony/main.js`): `window.__tonyGetCurrentFormContext = getCurrentFormContext` e sostituzione delle chiamate usate da `processTonyCommand` con `window.__tonyGetCurrentFormContext`. Dopo `OPEN_MODAL` magazzino senza payload campi, stesso schema di timer (`POST_INJECT_CHECK_DELAY_MS` + `IDLE_REMINDER_MS`) del post-inject.
+
+## ✅ Tony — INJECT_FORM_DATA: alias `fields` / `fieldValues` → `formData` (2026-04-02)
+
+- **Problema**: la CF a volte emetteva `INJECT_FORM_DATA` con `fieldValues` o `fields` invece di `formData`; il widget saltava l’inject (`formData vuoto`) e il salvataggio non partiva.
+- **Fix** (`core/js/tony/main.js`): normalizzazione all’ingresso del caso `INJECT_FORM_DATA` (anche `params.formData` / `params.fields`). Istruzione **5c** in `functions/index.js`: canone `formData` + deploy Functions.
+- **Deploy (2026-04-02)**: in **5c** non vanno usati **backtick** attorno a esempi JSON dentro `SYSTEM_INSTRUCTION_ADVANCED` (template literal `` ` ``): rompono il parse. Testo esempio riscritto senza backtick.
+
+## ✅ Tony — Magazzino: post-inject proattivo + fallback SAVE (prodotto/movimento) (2026-04-02)
+
+- **Obiettivo**: stesso pattern di attività dopo `INJECT_FORM_DATA`: merge valori già nel form, timer `POST_INJECT_CHECK_DELAY_MS` + `IDLE_REMINDER_MS`, `__tonyProactiveFormState`, messaggio «Form completo, confermi salvataggio?» oppure elenco campi required ancora vuoti.
+- **Widget** (`core/js/tony/main.js`): ramo `INJECT_FORM_DATA` per `prodotto-form` e `movimento-form` allineato ad attività; fallback testo-modello senza comando → `SAVE_ACTIVITY` anche per form magazzino completi (`prodotto-form` / `movimento-form`).
+- **Cloud Function** (`functions/index.js`): regola **5d** (form magazzino già aperti, summary/requiredEmpty, `SAVE_ACTIVITY` su conferma). **Deploy Functions** per il prompt.
+- **Mapping** (`core/config/tony-form-mapping.js`): `SYSTEM_INSTRUCTION_MAGAZZINO_FORMS` aggiornato (nome obbligatorio, hint post-iniezione / SAVE).
+
+## ✅ Tony — Prodotti: FILTER_TABLE categoria, sinonimi (fertilizzante/concime → fertilizzanti) (2026-04-02)
+
+- **Problema**: il modello inviava `categoria` in linguaggio naturale (es. «fertilizzante», «concime») mentre il `<select id="filter-categoria">` usa solo value `fertilizzanti`, `fitofarmaci`, ecc. — il filtro non si applicava (lista invariata).
+- **Fix** (`core/js/tony/main.js`): `normalizeTonyProdottiCategoriaValue` + `matchByText` per `categoria` su pagina prodotti; fallback fuzzy sulle option di `#filter-categoria`; stesso trattamento nel ramo retrocompat `filterType`/`value`. Istruzione CF aggiornata in `functions/index.js` (deploy Functions per il prompt).
+- **Bug reale (lista che non si aggiornava)**: il batch `dispatchEvent('change')` sui filtri **escludeva sempre** `id === 'filter-categoria'` (workaround storico per i terreni, dove il change è già emesso nel blocco dedicato). Su **prodotti** lo stesso id alimenta `renderProdotti` solo via `onchange` → valore impostato ma tabella invariata. **Fix**: escludere `filter-categoria` dal batch solo se `pageType === 'terreni'`.
+- **Reset filtri prodotti**: `#filter-search` usa `oninput`, non `onchange` — sul reset si azzerava il valore ma l’ultimo `renderProdotti` restava con il testo di ricerca ancora applicato logicamente. **Fix**: nel ramo reset `FILTER_TABLE`, dopo `change` su `input[id^="filter-"]` emettere anche `input`.
+
+## ✅ Tony — Magazzino: FILTER_TABLE prodotti/movimenti + form mapping prodotto/movimento (2026-04-02)
+
+- **Obiettivo**: filtri vocali/strutturati sulla lista prodotti e movimenti (senza fallback ai filtri terreni); compilazione guidata form `#prodotto-form` / `#movimento-modal` via `OPEN_MODAL` + `fields`, `INJECT_FORM_DATA`, navigazione cross-page con pending.
+- **Widget** (`core/js/tony/main.js`): `FILTER_KEY_MAP` per `pageType` prodotti/movimenti; risoluzione `pageType` da path (`prodotti` / `movimenti`); reset filtri su input+select; `matchByText` per filtro prodotto su movimenti; `OPEN_MODAL` apre con `btn-nuovo-prodotto` / `btn-nuovo-movimento` quando presenti; coda `INJECT_FORM_DATA` per `prodotto-form` / `movimento-form`; `SET_FIELD` auto-open + fallback `APRI_PAGINA` prodotti/movimenti; `checkTonyPendingAfterNav` per modal magazzino.
+- **Mapping** (`core/config/tony-form-mapping.js`): `PRODOTTO_FORM_MAP`, `MOVIMENTO_FORM_MAP`, `SYSTEM_INSTRUCTION_MAGAZZINO_FORMS`.
+- **Injector** (`core/js/tony-form-injector.js`): `resolveValueMagazzino`, `injectProdottoForm`, `injectMovimentoForm`, attesa select e match testuale `mov-prodotto` in `setSelectValue`.
+- **Cloud Function** (`functions/index.js`): eccezioni navigazione prodotti/movimenti; blocchi FILTRO TABELLA PRODOTTI / MOVIMENTI; regola 5c magazzino; `filterReminder` + pagine `isProdottiPage` / `isMovimentiPage` con regex dedicate.
+- **Deploy**: necessario deploy Firebase Functions per le istruzioni CF.
+
+## ✅ Tony — Gestione preventivi: invio email e accettazione manager (PREVENTIVO_LIST_ACTION) (2026-04-02)
+
+- **Obiettivo**: da voce/testo (es. «invia il preventivo a Fabbri per email», «accetta il preventivo di Stefano») Tony esegue le stesse azioni dei pulsanti Invia / Accetta sulla lista.
+- **Cloud Function** (`functions/index.js`): contesto `azienda.preventivi` arricchito con `tipoLavoro` e `coltura`; risoluzione deterministica cliente + filtro stato + disambiguazione per numero preventivo e match su tipo lavoro/colture nel messaggio; comando `PREVENTIVO_LIST_ACTION` con `params.action` `invia` | `accetta_manager` e `preventivoId`; `applyPreventivoListActionResolution` prima del return; istruzioni in `SYSTEM_INSTRUCTION_ADVANCED`.
+- **Widget** (`core/js/tony/main.js`): gestione comando; se non sei sulla pagina preventivi → `sessionStorage` `tony_pending_preventivi_action` + dialogo navigazione verso Gestione preventivi.
+- **Pagina** (`preventivi-standalone.html`): `currentTableData.items` con `id`, `tipoLavoro`, `coltura`; `window.tonyPreventivoListAction` chiama `inviaPreventivo` / `accettaPreventivoManager`; esecuzione pending dopo `loadPreventivi`.
+- **Deploy**: necessario deploy Firebase Functions.
+
+## ✅ Nuovo Preventivo: match tariffe — tipo lavoro da select vs anagrafica (meccanico / prefisso) (2026-03-27)
+
+- **Problema (log)**: totale 0 € con `tipoLavoro` **"Diserbo Meccanico Sulla Fila"** nel form mentre in Tariffe compaiono **"Diserbo"**, **"Diserbo sulla Fila"** (nessun `===`).
+- **Fix** (`nuovo-preventivo-standalone.html`): `_normTipoLavoroTariffKey` (minuscolo, accenti, rimozione token **meccanico**); `_scoreTipoLavoroTariff` (uguaglianza chiave **oppure** form che inizia con tipo tariffa + confine parola); `_pickBestTariffaRow` / `_findTariffaPreventivo` sostituiscono il doppio `.find` con uguaglianza stretta — preferenza al tipo tariffa **più lungo** se più righe sono prefisso.
+
+## ✅ TonyFormInjector: `lavoro-sottocategoria` — attesa opzione per id (race dopo categoria) (2026-03-27)
+
+- **Problema (log)**: inject con id sottocategoria (es. `TGRqBo8sp3a025GfHzqz`) ma log `DOM value=""` — `waitForSelectOptions(..., 2)` si sbloccava appena c’erano 2 option, **prima** che l’opzione con quell’**id** fosse nel DOM (popolamento async dopo `lavoro-categoria-principale`).
+- **Fix** (`core/js/tony-form-injector.js`): dopo `waitForSelectOptions` su preventivo-form, se il valore da iniettare è un id documento Firestore, **`waitForSelectOptionValue('lavoro-sottocategoria', id, 12000)`** prima di `setFieldValue`.
+
+## ✅ Nuovo Preventivo: calcolo totale da tariffe — confronti normalizzati + ricalcolo dopo coltura (2026-03-27)
+
+- **Problema**: form compilato correttamente ma totali a 0 €; spesso tariffa esistente ma **stringhe non identiche** (tipo lavoro / tipo campo) o primo `calcolaTotale` eseguito prima che la coltura fosse impostata dal flusso async sul terreno.
+- **Fix** (`modules/conto-terzi/views/nuovo-preventivo-standalone.html`): helper `_normStrPrev` / `_normTipoCampoPrev` per match con `tariffe`; precompilazione `tipo-campo` dal terreno con mapping minuscolo (`collina` vs `Collina`); dopo selezione coltura in `onTerrenoChange` → `setTimeout(calcolaTotale, 80)`; `console.warn` con chiavi ricerca e elenco tipi lavoro presenti in tariffe se nessun match.
+
+## ✅ Cloud Function tonyAsk: preventivo — non chiedere superficie nello stesso turno del terreno (2026-03-27)
+
+- **Problema (dialogo utente)**: dopo scelta terreno (disambiguazione), Tony chiedeva ancora «qual è la superficie in ettari?» mentre il form aveva già (o stava per) precompilare la superficie da `onTerrenoChange` (log: `Superficie precompilata`, poi `requiredEmpty: []`).
+- **Causa**: nel reply del modello, il contesto form può essere **indietro di un passo** rispetto all’inject lato browser; chiedere superficie nello **stesso** turno in cui si passa `terreno-id` è fuorviante.
+- **Fix** (`functions/index.js`, `SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED`): regola esplicita — nello stesso turno in cui si emette fill con **terreno-id**, non chiedere ettari; chiedere superficie solo se resta vuota ai turni successivi o per modifica volontaria.
+- **Deploy**: necessario deploy Firebase Functions.
+
+## ✅ Tony widget: guardia anti-sovrascrittura lavorazione (secondo INJECT CF) — Nuovo Preventivo (2026-03-27)
+
+- **Problema (log utente)**: dopo un primo inject corretto (es. Trinciatura tra le file), un secondo `INJECT_FORM_DATA` dalla Cloud Function poteva sovrascrivere categoria/sottocategoria/tipo con valori incoerenti (es. Diserbo / Meccanico), lasciando `lavoro-sottocategoria` vuoto e impedendo il salvataggio.
+- **Fix** (`core/js/tony/main.js`): `tonyStripConflictingPreventivoLavorazione` applicata prima di `injectPreventivoForm` — se `#tipo-lavoro` nel DOM ha già un valore e il payload propone un’altra lavorazione (o solo categoria/sottocategoria senza tipo coerente), si rimuovono dal payload `tipo-lavoro`, `lavoro-categoria-principale`, `lavoro-sottocategoria`. Override esplicito possibile con `formData._tonyAllowLavorazioneOverride` se in futuro servisse forzare un cambio.
+- **Correzione (stesso giorno, log `-- Seleziona tipo lavoro --`)**: la prima opzione del select ha `value=""` ma testo visibile non vuoto; la guardia scambiava il placeholder per un tipo già scelto e **strappava** categoria/tipo dal primo inject. Aggiunti `tonyIsPreventivoTipoLavoroUnset` (value vuoto, testo `--…`, «Seleziona tipo lavoro») → in quel caso **nessuna** strip. **Post-nav**: `userPromptNav` per enrich completamento usa anche `tonyGetUserPromptForPendingNav()` se manca in intent/sessionStorage (fallback `chatHistory`).
+
+## ✅ Cloud Function tonyAsk: preventivo allineato a «crea lavoro da ovunque» (2026-03-27)
+
+- **Obiettivo**: stesso livello di **entry point esplicito** e **indipendenza dalla dashboard** (vigneto, magazzino, ecc.) del flusso Gestione Lavori; il preventivo è una **pagina standalone**, non il diario.
+- **Modifiche** (`functions/index.js`): blocco **ENTRY POINT NUOVO PREVENTIVO** in `SYSTEM_INSTRUCTION_ADVANCED` (vietato `attivita-modal` per intent preventivo; testo tipo «Ti porto al nuovo preventivo»; esempi JSON); distinzione Lavori/Attività/**Preventivo**; regola **5b** rafforzata; **Treasure Map**: `isCreaPreventivoIntent` esteso (offerta per…, conto terzi, mi serve…, bozza per…, ecc.); **sempre** modalità strutturata se intent preventivo (anche se il messaggio matcha anche crea lavoro); **ordine istruzioni**: Preventivo **prima** di Lavori/Attività così non si cade nel diario; contesto sintetico anche quando coesiste intent lavoro; `SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED` con enfasi pagina standalone e divieto diaprire diario; fallback retry: se nessun field inferibile ma intent preventivo da altra pagina → **APRI_PAGINA** `nuovo preventivo` + `_tonyPendingModal`.
+- **Deploy**: necessario deploy Firebase Functions perché cambia solo la CF.
+- **Follow-up (stesso giorno)**: `apri_pagina` / Treasure Map chiamava `buildPreventivoOpenModalFields` solo se `formData` non vuoto → pending intent spesso con **solo cliente-id**. Ora: per target preventivo si merge sempre inferenza + `params.formData`; `open_modal` preventivo anche senza formData; **inferPreventivoFallbackFormData**: match tipo lavoro per token (es. trinciatura → "Trinciatura tra le file"); path **legacy** `APRI_PAGINA` preventivo con `buildPreventivoOpenModalFields` uguale a OPEN_MODAL.
+
+## ✅ Tony: cross-page Nuovo Preventivo senza re-inviare messaggio — `tony_last_user_message` + post-nav enrich (2026-03-27)
+
+- **Problema**: dopo navigazione da altra pagina il form non si compilava finché l’utente non rimandava lo stesso messaggio su Nuovo Preventivo. Cause: (1) **race** — `triggerAction(APRI_PAGINA)` avveniva prima di `_pushChatTurn` nel service, quindi al click «Apri pagina» `tonyGetLastUserMessageText()` poteva essere vuoto e `userPromptForPending` non salvato; (2) enrich post-nav a 14s con gate su `requiredEmpty` non partiva se il contesto non era ancora pronto.
+- **Fix**: in `tony-service.js` `ask()` salva subito `sessionStorage` `tony_last_user_message` per ogni turno utente (non proattivi); in `main.js` `tonyGetUserPromptForPendingNav()` = chatHistory **o** quella chiave; fallback lettura anche in `checkTonyPendingAfterNav`; se non c’erano `fields` nel pending, **ask** di completamento dopo **4s** senza gate su `requiredEmpty` (se c’erano fields inject, resta 14s + gate come prima).
+
+## ✅ Tony widget: APRI_PAGINA «nuovo preventivo» senza fields — salvataggio `tony_pending_intent` (2026-03-27)
+
+- **Problema**: da magazzino (o altre pagine), dopo conferma dialog la navigazione a `nuovo-preventivo-standalone.html` avveniva ma **nessuna** iniezione / coda `pending-after-nav`: la Cloud Function o `onComplete` potevano passare solo `{ target }` senza `_tonyPendingModal` né `fields` → `pendingModal` restava vuoto e **non** si scriveva `sessionStorage` `tony_pending_intent`.
+- **Fix** (`core/js/tony/main.js`): se il target normalizzato contiene «nuovo» + «preventivo», si imposta sempre `pendingModal = 'preventivo-form'` (oltre al caso già gestito con `fields`); log `[Tony] tony_pending_intent salvato`; **`onComplete`** ora passa a `triggerAction('APRI_PAGINA', …)` anche `_tonyPendingModal` / `_tonyPendingFields` / `fields` se presenti sul comando; **`processTonyCommand` APRI_PAGINA** allineato con lo stesso salvataggio intent (path senza `onAction`).
+
+## ✅ Tony widget: OPEN_MODAL attivita-modal + campi preventivo → Nuovo Preventivo, non Diario (2026-03-27)
+
+- **Problema (log utente)**: da pagina senza `attivita-modal`, Cloud Function rispondeva `OPEN_MODAL` `attivita-modal` con `fields` da preventivo; il client faceva sempre fallback «apro Diario Attività».
+- **Fix** (`core/js/tony/main.js`): helper `tonyPayloadLooksLikePreventivoFormData` (stessa logica già usata per coercizione `INJECT_FORM_DATA` attivita→preventivo); prima del fallback Diario e nel fallback pagina dopo OPEN_MODAL fallito, se i campi sono chiaramente preventivo si chiama `APRI_PAGINA` verso Nuovo Preventivo con `_tonyPendingModal: 'preventivo-form'`.
+- **Estensione (stesso giorno, log `lavoro-modal`)**: stesso errore con `OPEN_MODAL` `lavoro-modal` → fallback pagina «lavori». Aggiunto ramo analogo + fallback; **correzione helper**: `lavoro-categoria-principale` / `lavoro-sottocategoria` non contano più come campi del modal Gestione Lavori (sono del preventivo), altrimenti il payload tipico veniva scartato.
+- **Open modal senza `fields` (log utente: solo `{ type: 'OPEN_MODAL', id: 'lavoro-modal' }`)**: l’euristica sui campi non basta. Aggiunti `tonyLastUserMessageSuggestsPreventivo` (ultimo messaggio utente in `chatHistory`: preventivo / nuovo preventivo / conto terzi, ecc.) e `tonyOpenModalShouldRouteToPreventivo` = campi **o** chat; usati per `attivita-modal` / `lavoro-modal` e per il fallback dopo OPEN_MODAL fallito.
+- **Post-nav Nuovo Preventivo senza formData completo**: in `sessionStorage` (`tony_pending_intent`) si salva anche `userPromptForPending` (ultimo messaggio utente al click “Apri pagina”). Dopo inject pendente, se il form ha ancora molti required vuoti (es. `cliente-id` o ≥4 campi), dopo ~14s parte un `Tony.ask(..., { skipUserHistory: true })` con suffisso contesto per ottenere `INJECT_FORM_DATA` completo dalla Cloud Function — **non serve deploy Firebase** per questa parte client.
+
+## ✅ Tony: rimossa instrumentazione debug sessione 7e2215 (2026-03-27)
+
+- **Contesto**: flusso preventivo verificato ok in console utente.
+- **Pulizia**: eliminati `fetch` verso ingest locale e log `[Tony Debug 7e2215]` in `tony-service.js`, `tony-form-injector.js`, `main.js` (preventivo), `functions/index.js` (`enrichPreventivoCommandFormData`); rimossi i `console.log` più rumorosi `[DEBUG CURSOR]` su `getCurrentFormContext` / `sendMessage` / jQuery in `main.js`.
+
+## ✅ Tony widget: disambiguazione terreno senza suffisso «Rispondi con il nome…» (2026-03-27)
+
+- **Richiesta UX**: la domanda breve («Dobbiamo lavorare su A o B?») basta; rimossa la seconda riga «Rispondi con il nome (anche a voce).» da chat (e quindi anche dalla TTS quando coincideva col testo mostrato).
+- **Fix** (`core/js/tony/main.js`): ramo `__tonyPreventivoTerrenoDisambiguation` e ramo multi-terreno filtrato dopo inject preventivo.
+
+## ✅ Tony widget: domanda terreno breve + lettura TTS (2026-03-27)
+
+- **Problema**: la disambiguazione terreno in chat era troppo lunga (elenco con coltura/ha) e **non** veniva letta ad alta voce; l’utente voleva una frase tipo «Dobbiamo lavorare su X o Y?» come negli altri flussi con `Tony.speak`.
+- **Fix** (`core/js/tony/main.js`): helper `buildPreventivoTerrenoChoiceQuestion` + `appendPreventivoTerrenoAskAndSpeak` (chat + `window.Tony.speak`); fino a 5 nomi messaggio corto; oltre, elenco solo nomi in chat e TTS breve che rimanda alla chat.
+
+## ✅ Tony widget: elenco disambiguazione terreni filtrato per hint (messaggio utente / coltura) (2026-03-27)
+
+- **Problema**: dopo l’inject senza `terreno-id` l’elenco in chat includeva **tutti** i terreni del cliente; serviva restringere ai soli con **match parziale** (es. «Trebbiano» → solo terreni con nome/coltura che richiamano trebbiano, incluso typo tipo trebbiamo).
+- **Fix** (`core/js/tony/main.js`): hint da `coltura` / testo non-id in `formData` + ultimo turno utente in `Tony.chatHistory`; token normalizzati (stopword comuni); match su blob nome+colture+podere; prefisso 5–6 caratteri e regola dedicata `trebb*`. Se il filtro dà **un** solo terreno, messaggio dedicato; se **nessun** match, fallback all’elenco completo con prefisso esplicativo. Helper in **scope IIFE** (stesso di `processTonyCommand`).
+
+## ✅ Tony widget: dopo inject preventivo senza `terreno-id`, domanda esplicita se il cliente ha più terreni (2026-03-27)
+
+- **Problema (log utente)**: CF corretta (`hasCmdTerreno: false`) e inject a 4 campi senza terreno; mancava un messaggio in chat tipo «terreno A o B?» e partiva subito il proattivo su data/coltura.
+- **Fix** (`core/js/tony/main.js`): dopo `injectPreventivoForm`, se c’è `cliente-id` nel payload, non c’è `terreno-id`, `preventivoState.terreni` ha più elementi e il select terreno è ancora vuoto (con retry breve per `loadTerreniCliente`), Tony invia in chat l’elenco terreni (nome, coltura, ha) e **non** avvia il timer proattivo finché l’utente non ha chiarito (stesso pattern del ramo `__tonyPreventivoTerrenoDisambiguation`).
+
+## ✅ Tony Cloud Function: preventivo — merge infer+enriched reintroduceva terreno-id; legacy OPEN_MODAL senza enrich (2026-03-27)
+
+- **Problema (log utente)**: dopo deploy restava `hasCmdTerreno: true`; in chat un terreno e in pagina un altro. Evidenza: il merge `{ ...inferred, ...enriched }` dopo `enrichPreventivoCommandFormData` **reinseriva** `terreno-id` dall’inferenza quando il guardrail l’aveva rimosso. Inoltre il path **legacy** (JSON `text`+`command` senza blocco Treasure Map) **non** chiamava l’enrichment su `OPEN_MODAL` → `fields` passavano al client senza guardrail.
+- **Fix** (`functions/index.js`): introdotto `buildPreventivoOpenModalFields` (inferenza + campi modello → un solo `enrichPreventivoCommandFormData`). Sostituiti i merge su Treasure Map / retry per `open_modal` e `APRI_PAGINA` preventivo. Prima del `return` sul path legacy, stesso trattamento per `OPEN_MODAL` con `id` preventivo. Se il modello aveva `terreno-id` e dopo il guardrail non c’è più, `text` di risposta viene sostituito con un messaggio neutro che **non** nomina un terreno scelto.
+
+## ✅ Tony Cloud Function: guardrail preventivo — più terreni per cliente senza nome terreno nel messaggio (2026-03-27)
+
+- **Problema (log console)**: `OPEN_MODAL` con `fields['terreno-id']` già valorizzato mentre l’utente citava solo la coltura (“Trebbiano”); il testo di Tony confermava un terreno specifico. Evidenza: `parsedData snapshot { hasCmdTerreno: true }` in `tony-service.js`.
+- **Causa**: il guardrail precedente rimuoveva `terreno-id` solo se più terreni condividevano la **stessa** stringa `coltura` in anagrafica; con colture diverse su terreni ugualmente “ambigui” per l’utente non scattava.
+- **Fix** (`functions/index.js` → `enrichPreventivoCommandFormData`): se il cliente ha **più di un terreno** nel pool e il messaggio **non contiene il nome normalizzato** del terreno scelto dal modello, `terreno-id` viene rimosso dal comando così l’injector/chat possono chiedere la scelta. Se il valore non è risolvibile nel pool cliente, viene rimosso altrettanto.
+
+## ✅ Tony Cloud Function: `data-prevista` solo se data esplicita utente (2026-03-26)
+
+- **Problema**: Tony impostava autonomamente `data-prevista` nel preventivo anche senza una data detta dall’utente.
+- **Fix** (`functions/index.js`): aggiunto guardrail `userMentionsExplicitDate(...)`; se nel messaggio utente non c’è una data esplicita (oggi/domani/giorno settimana/data numerica), `data-prevista` viene rimossa dal `formData` prima dell’`INJECT_FORM_DATA`.
+
+## ✅ Tony Cloud Function: match terreno parziale testo (albicocchi/albicocche) + hint ambiguità (2026-03-26)
+
+- **Problema**: con testo parziale (es. "albicocchi") il terreno non sempre veniva inferito; funzionava solo con nome più vicino al valore anagrafico.
+- **Fix** (`functions/index.js`): inferenza terreno preventivo estesa con token parziali e radice lessicale (es. `albicocc`) su nome/coltura terreno.
+- **Ambiguità**: se più candidati hanno score simile, la function passa un hint testuale (`terreno-id` come token) per attivare la disambiguazione lato client invece di lasciare il campo vuoto.
+
+## ✅ Tony Cloud Function: arricchimento `formData` preventivo quando manca `terreno-id` (2026-03-26)
+
+- **Problema (log utente)**: comando `INJECT_FORM_DATA preventivo-form` con 4 campi senza `terreno-id` => niente precompilazione coltura/superficie.
+- **Fix** (`functions/index.js`): aggiunto `enrichPreventivoCommandFormData` che integra i campi mancanti (`cliente-id`, `tipo-lavoro`, `terreno-id`) usando inferenza da messaggio+contesto anche quando esiste già un comando Treasure Map.
+- **Match terreno più robusto lato function**: scoring token/fuzzy su nome/coltura del terreno; se c'è un match dominante lo usa come hint terreno.
+
+## ✅ Tony Cloud Function: retry 429 + fallback preventivo strutturato (2026-03-26)
+
+- **Rate limit Gemini**: in `functions/index.js` introdotto `callGeminiWithRetry` (retry con backoff su 429/500/503) per ridurre i `500` dovuti a `RESOURCE_EXHAUSTED`.
+- **Guardrail preventivo**: se `terreno-id` sembra un id ma non è verificabile nei terreni del cliente nel contesto, viene rimosso dal comando per evitare inject errati.
+- **Fallback Treasure Map**: se il modello non produce comando utile in modalità preventivo, la funzione genera un `INJECT_FORM_DATA` sintetico (`preventivo-form`) con i campi inferibili da messaggio+contesto (cliente/tipo/terreno) invece di restituire “nessun comando”.
+
+## ✅ Tony – Nuovo Preventivo: regola filari estesa a frutteto (Albicocche => Tra le File) (2026-03-26)
+
+- **Problema (log utente)**: con terreno a `Albicocche` la sottocategoria restava `Generale` invece di `Tra le File`.
+- **Fix** (`core/js/tony-form-injector.js`): estesa `terrenoHasFilariColtura` con alias campi coltura e dizionario colture arboree/frutteto (albicocco, pesco, ciliegio, susino, pero, melo, ecc.) per applicare coerentemente la regola filari come su vigneto.
+
+## ✅ Tony – Nuovo Preventivo: log diagnostici + fallback su id terreno non presente nel DOM (2026-03-26)
+
+- **Diagnostica** (`core/js/tony-form-injector.js`): log estesi su `terreno-id` con hint/resolved e dump valori option (`value::text`) quando il browser rifiuta il value.
+- **Fallback runtime**: se l’id richiesto non esiste nelle option correnti, prova coercion; se nel select c’è un solo terreno lo seleziona automaticamente, se i terreni sono multipli attiva disambiguazione utente in chat.
+- **UX** (`core/js/tony/main.js`): durante disambiguazione preventivo, stop ai reminder proattivi per evitare messaggi fuorvianti finché l’utente non sceglie il terreno.
+
+## ✅ Tony – Nuovo Preventivo: disambiguazione terreno su match parziale (2026-03-26)
+
+- **Nuova regola**: se `terreno-id` è un hint parziale (es. `trebbiano`) e matcha **1 solo terreno**, Tony seleziona automaticamente quel terreno.
+- **Disambiguazione**: se i match sono multipli, l’injector non forza una scelta e Tony chiede chiarimento in chat, elencando i terreni candidati.
+
+## ✅ Tony – Nuovo Preventivo: match terreno più elastico su hint coltura (2026-03-26)
+
+- **Problema (log utente)**: con hint `trebbiano`, `terreno-id` restava testuale e il browser non selezionava il `<select>`.
+- **Fix** (`core/js/tony-form-injector.js`): `resolveTerrenoIdForPreventivo` esteso con alias campi (`colturaSottoCategoria`, `colturaDettaglio.*`) + scoring token/fuzzy su blob terreno per scegliere l’id più probabile quando l’hint non è un id Firestore.
+
+## ✅ Tony – Nuovo Preventivo: ordine iniezione cliente → terreno → lavorazione (2026-03-26)
+
+- **Problema (test console)**: con ordine precedente la cascata lavorazione partiva prima della selezione terreno; il campo `terreno-id` restava instabile/non selezionato.
+- **Fix** (`core/js/tony-form-injector.js`): `INJECTION_ORDER_PREVENTIVO` aggiornato a `cliente-id` → `terreno-id` → `lavoro-categoria-principale` → `lavoro-sottocategoria` → `tipo-lavoro` (poi campi coltura/morfologia/superficie).
+
+## ✅ Tony – Nuovo Preventivo: parità Gestione Lavori su hint terreno (2026-03-26)
+
+- **Problema (log utente)**: `terreno-id` arrivava come hint coltura (es. `trebbiano`) e il select aveva `option.value = id`; il browser rifiutava il value (`DOM value=""`).
+- **Fix** (`core/js/tony-form-injector.js`): `coercePreventivoTerrenoSelectToDomOption` ora applica il criterio già usato in Gestione Lavori, cercando per campi terreno/coltura (`nome`, `coltura`, `colturaSottocategoria`, `colturaCategoria` e alias legacy) e mappando al `value` reale presente nelle `<option>`.
+
+## ✅ Tony – Nuovo Preventivo: `terreno-id` id nelle opzioni ma DOM rifiuta il value (2026-03-26)
+
+- **Problema (log utente)**: `preventivo terreno-id: browser non ha accettato il value` con `opzioni=3` e `onTerrenoChange` con valore vuoto: l’id risolto (es. da contesto CF) non coincide con i `value` delle `<option>` effettive (disallineamento `preventivoState.terreni` vs select dopo cascata / race).
+- **Fix** (`core/js/tony-form-injector.js`): **`coercePreventivoTerrenoSelectToDomOption`** prima di `setSelectValue` su `terreno-id` + `preventivo-form` — se l’id non è nelle option, riallinea con hint raw, `resolveTerrenoIdViaDomSelect`, nome da stato o match sul testo opzione (`nome (ha)`). **`resolveTipoLavoroToNome`**: match `search.indexOf(n)` solo se `n.length >= 3` per ridurre fuzzy errati.
+
+## ✅ Tony – Nuovo Preventivo: terreno-id vuoto (race `loadTerreniCliente`) (2026-03-26)
+
+- **Problema**: Log injector `terreno-id = "<id>"` ma `onTerrenoChange` con valore vuoto: il browser non applica `value` se l’`<option>` non c’è; `loadTerreniCliente` async può rifare `innerHTML` durante l’inject; una risposta Firestore lenta poteva sovrascrivere una più recente.
+- **Fix**: `nuovo-preventivo-standalone.html` — **`_loadTerreniClienteGen`** (solo l’ultimo fetch aggiorna il DOM); **`window.__preventivoAwaitTerreniClienteReady`** + **`_loadTerreniClientePromise`**. `tony-form-injector.js` — **`awaitPreventivoTerreniFetchDone`** dopo cliente e prima di `terreno-id`; **`setSelectValue`**: fallback **`selectedIndex`** e log con **valore DOM effettivo**.
+- **Fix 2 (hint coltura in `terreno-id`)**: se la CF invia es. `"trebbiano"` invece dell’id Firestore, **`waitForSelectOptionValue(value)`** non trova mai l’opzione (i `value` sono id). Ora: **`resolveTerrenoIdForPreventivo`** arricchito (campi coltura extra, blob testuale, incrocio **`colturePerCategoriaPreventivo`** → `colturaId` / nomi); **`resolveTerrenoIdViaDomSelect`** sul testo delle `<option>`; **`resolveValuePreventivo('terreno-id')`** con fallback DOM; in **`injectForm`**, se dopo resolver non è un id documento → solo **`waitForSelectOptions`** (non wait su value hint).
+
+## ✅ Tony – Nuovo Preventivo: iniezione instabile vs Gestione Lavori (race bootstrap + cascata tipo) (2026-03-26)
+
+- **Problema**: Con `INJECT_FORM_DATA` a `delayMs: 0` sulla pagina, l’injector partiva spesso **prima** che `loadTipiLavoro` / `loadColture` avessero popolato stato e dropdown → `preventivoState` assente o liste vuote, oppure `#tipo-lavoro` ancora senza opzioni dopo `change` su categoria ( **`loadTipiLavoro` async** ): match tipo/coltura falliti o campi vuoti. La pre-sync cliente+terreno scattava **solo** se c’era anche `tipo-lavoro`, quindi con cliente+terreno senza tipo la lista terreni non era garantita prima della cascata.
+- **Fix** (`core/js/tony-form-injector.js`): **`waitForPreventivoPageDataReady`** (max 20s) prima dello swap `lavoriState` → attende tipi lavoro, categorie lavoro e categorie colture (o DOM `#coltura-categoria`); **`waitForSelectOptions`** con `maxMs` configurabile e **14s** per `#tipo-lavoro` sul preventivo; delay post-categoria/sottocategoria **900ms**; pre-sync **cliente + terreno** quando entrambi presenti (indipendente dal tipo); **`resolveValuePreventivo`** + **`setSelectValue`** per **`coltura`** (match fuzzy come tipo lavoro). Controllo DOM `#preventivo-form` prima dell’attesa.
+
+## ✅ Tony – Nuovo Preventivo da altra pagina + messaggi “fantasma” in chat (2026-03-24)
+
+- **Navigazione**: `checkTonyPendingAfterNav` richiedeva `path.indexOf(targetSlug)` stretto; path/file con varianti (`nuovo_preventivo`, `preventivo-standalone`) potevano far saltare l’intent. Ora per `modalId === 'preventivo-form'` si accetta anche path “nuovo preventivo” o presenza di `#preventivo-form`; polling fino a ~7s; `APRI_PAGINA` con `fields` e target “nuovo preventivo” imposta `_tonyPendingModal` se mancante. `OPEN_MODAL`: alias `preventivo` per aprire la pagina. **Cloud Function**: Treasure Map accetta `action: "apri_pagina"` / `APRI_PAGINA` con `params.target` e `formData` + `_tonyPendingModal` per preventivo; istruzione preventivo aggiornata.
+- **Dialogo interno visibile**: i promemoria proattivi (`sendMessage(..., { proactive: true })`) non aggiungono bolla utente in UI ma venivano comunque salvati in `Tony.chatHistory` → ripristino sessione mostrava frasi non scritte dall’utente. `tony-service.js`: `ask`/`askStream` con `skipUserHistory`; `main.js` passa `skipUserHistory: !!opts.proactive`. Corretto anche ritorno mancante dopo `INJECT_FORM_DATA` nel ramo callable (evita caduta nel ramo modello).
+
+## ✅ Tony – Preventivo: niente salvataggio automatico dopo promemoria proattivo (2026-03-24)
+
+- **Problema**: Il timer invia «Form completo, confermi salvataggio?»; il modello rispondeva con `action: "save"` → `SAVE_ACTIVITY` senza che l’utente avesse detto sì/salva.
+- **Fix**: `functions/index.js` — se il messaggio utente coincide col promemoria proattivo (`tonyIsProactiveSaveReminderUserMessage`), non emettere `SAVE_ACTIVITY`; testo che chiede esplicitamente conferma (sì / salva). Istruzioni aggiornate in `SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED`. `core/js/tony/main.js` — guard in `onComplete` che annulla `SAVE_ACTIVITY` se `opts.proactive` e stesso testo (doppia rete se la CF non è deployata).
+
+## ✅ Tony – Nuovo Preventivo: SAVE_ACTIVITY bloccato (Nessun modal attivo) (2026-03-24)
+
+- **Problema**: Con form completo, il modello emette `SAVE_ACTIVITY` come per il Diario attività; `SmartFormFiller.validateBeforeSave()` richiede `.modal.active` → `missingFields: ['Nessun modal attivo']` → salvataggio mai eseguito (pagina standalone senza modal).
+- **Fix**: `core/js/tony/main.js` — se esiste `#preventivo-form`, validazione con `checkFormCompleteness()` e click su `button[type="submit"]` dentro quel form; niente fallback chat finto “salvato” per quel caso.
+- **Fix 2 (ReferenceError)**: `checkFormCompleteness` è definita dentro `if (sendBtn)` mentre `processTonyCommand` è nello scope IIFE → `checkFormCompleteness is not defined`. Aggiunti `tonyCheckFormCompletenessSafe()` e `window.__tonyCheckFormCompleteness` assegnato dopo la definizione.
+
+## ✅ Tony – Nuovo Preventivo: data prevista non iniettata + Diario attività per errore (2026-03-24)
+
+- **Problema**: Il modello spesso emette la data come `attivita-data` (o `dataPrevista` / `data_prevista`) invece di `data-prevista` → routing ```json verso `attivita-form` → `OPEN_MODAL` su pagina senza modal → navigazione al Diario. Inoltre `resolveValuePreventivo` non normalizzava la data per `<input type="date">` (es. "oggi", DD/MM/YYYY).
+- **Fix**: `tony-service.js` — su pagina/contesto Nuovo Preventivo, alias verso `data-prevista` prima del routing; hint `dataPrevista` / `data_prevista`. `main.js` — stesso alias prima della coercizione attivita→preventivo; `prevFieldHints` esteso (`data-prevista`, `giorni-scadenza`, `note`). `tony-form-injector.js` — `normalizeDateForPreventivoInput` + case `data-prevista` in `resolveValuePreventivo`.
+
+## ✅ Tony – Nuovo Preventivo: `terreno-id` da coltura / nome (non solo parcello) (2026-03-24)
+
+- **Problema**: La CF può inviare in `terreno-id` la **coltura** (es. `"trebbiano"`) mentre il select usa **id Firestore** e il testo è il **nome del terreno**. `_resolveByName` solo su `nome` non matchava → `setSelectValue` impostava un value inesistente → `onTerrenoChange` con valore vuoto e lavorazione/coltura non propagate.
+- **Fix**: `tony-form-injector.js` — `resolveTerrenoIdForPreventivo` (id esatto, nome, poi coltura / sottocoltura / categoria coltura); `resolveValuePreventivo` lo usa per `terreno-id`. Dopo il pre-sync cliente, se l’id risolto è in `preventivoState.terreni`, **`fd['terreno-id']` viene sostituito con quell’id** così `deriveParentsFromTipoLavoro` e il loop `injectForm` lavorano con il valore reale del select.
+
+## ✅ Tony – Nuovo Preventivo: attesa post–cliente come Gestione Lavori (2026-03-24)
+
+- **Problema**: Dopo pre-inject `cliente-id`, `loadTerreniCliente()` (async) non aveva tempo sufficiente rispetto al modal Lavori, dove `INJECT_FORM_DATA` è accodato con **`delayMs: 1800`** dopo `openCreaModal()`; sul preventivo bastavano **650ms** → terreno/tipo e derive filari spesso fallivano.
+- **Fix**: `tony-form-injector.js` — costante **`PREVENTIVO_POST_CLIENTE_MS = 1800`** (stesso ordine di grandezza di `main.js` `open-modal-fields`); `DELAYS_PREVENTIVO['cliente-id']` allineato; dopo pre-sync cliente **`waitForPreventivoTerrenoSelectHydrated`** (≥2 option oppure placeholder stabile dopo 6s+0.5s, max 12s) prima di `waitForPreventivoStateContainsTerreno` / derive / resto inject.
+
+## ✅ Tony – Nuovo Preventivo: INJECT senza ritardo in coda (2026-03-24)
+
+- **Problema**: `INJECT_FORM_DATA` da `triggerAction` → `onAction` veniva accodato con `getTonyQueueDelayByType` = **400ms** anche su pagina Nuovo Preventivo dove `#preventivo-form` è già presente → sensazione di iniezione non “immediata” dopo la risposta CF.
+- **Fix**: `main.js` — se `formId === 'preventivo-form'` e il nodo `#preventivo-form` esiste, `enqueueTonyCommand` con **`delayMs: 0`** (l’iniezione resta async per i delay interni dell’injector tra dropdown dipendenti).
+
+## ✅ Ripristino: allineamento al fix data-prevista (Fase 4), senza patch successive (2026-03-24)
+
+- **Richiesta**: Tornare al comportamento coerente con l’analisi «alias data / routing ```json → preventivo-form»; annullare tentativi successivi che avevano destabilizzato il flusso.
+- **Codice**: `tony-service.js` — `_pushChatTurn` di nuovo **senza** turno user in history se `skipUserHistory`; rimosso `_coerceCallableInjectToPreventivo`. `main.js` — `restoreTonyState` e `doDisplay` senza `_tonyProactiveInternal` / dedupe messaggi Tony. `functions/index.js` — routing Treasure Map `fill_form` di nuovo solo con `explicitPreventivo` (cliente-id + campi), senza `tonyResolveTreasureMapInjectFormId`. `tony-form-injector.js` — pre-sync cliente con `delay(650)`; niente evento `preventivo-terreni-loaded` né `resolveTerrenoIdForPreventivo`; `terreno-id` risolto solo con `_resolveByName` sul nome. `nuovo-preventivo-standalone.html` — rimosso `dispatchEvent` in `loadTerreniCliente`.
+
+## ✅ Nuovo Preventivo – data prevista prima del salvataggio / Tony proattivo (2026-03-24)
+
+- **Problema**: `#data-prevista` non era `required` → dopo inject `requiredEmpty` risultava vuoto → timer proattivo chiedeva subito conferma salvataggio; il salvataggio poteva comunque creare documenti con `dataPrevista: null`.
+- **Fix**: `nuovo-preventivo-standalone.html` — `required` su `data-prevista`, label/testo guida; `handleSalvaPreventivo` verifica la data. `main.js` — messaggio proattivo mirato se manca `data-prevista`. `functions/index.js` — in `SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED`, non proporre save se la data è vuota nel formSummary.
+
+## ✅ Tony – Generale → Tra le File (vite/frutteto) su terreni Firestore camelCase (2026-03-24)
+
+- **Problema**: Su Nuovo Preventivo (e in parte Gestione Lavori) il terreno ha `coltura` testuale (es. "Vite da Vino") e `colturaCategoria` come id; la logica usava solo `coltura_categoria || coltura` e la regex non vedeva "vite". In preventivo l’override Generale→Tra le File era solo nel ramo `else if (existingSub === 'generale')`, mentre la sottocategoria derivata veniva scritta nel ramo `if (!existingSub)`, quindi l’override non partiva mai.
+- **Fix**: `tony-form-injector.js` — `terrenoHasFilariColtura(terreno)` (blob da coltura, camelCase, nome); usata in `deriveParentsFromTipoLavoro` per disambiguare Erpicatura; in `injectPreventivoForm` blocco post-derive se sottocategoria è ancora "Generale"; stesso criterio in `injectLavoroForm`.
+- **Fix 2 (derive ancora Generale)**: `preventivoState.terreni` si popola solo dopo `loadTerreniCliente` (change cliente). Il derive partiva prima dell’inject → lista terreni vuota. Ora: pre-inject `cliente-id`, attesa `waitForPreventivoStateContainsTerreno`, refresh `lavoriState.terreniList`, poi `deriveParentsFromTipoLavoro`.
+- **Fix 3 (terreno non impostato dopo pre-sync)**: il secondo `setFieldValue` su `cliente-id` nel loop `injectForm` rilanciava `loadTerreniCliente` e svuotava/ritardava il select → `terreno-id` non restava applicato. Ora `injectForm` accetta `skipFieldIds` e, se è già stato fatto il pre-sync cliente+terreno, si salta `cliente-id` nel loop; second pass `waitForSelectOptionValue` per terreno portato a 10s. **Cloud Function**: in `SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED`, terreno-id obbligatorio quando il terreno è noto (non omettere solo perché il tipo è già "Tra le File").
+- **Fix 4 (terreno perso + Diario attività)**: `INJECTION_ORDER_PREVENTIVO`: `terreno-id` **dopo** categoria/sottocategoria/`tipo-lavoro` così `loadTipiLavoro` non interferisce col select terreno; `loadTerreniCliente` con `innerHTML` poteva emettere change vuoti prima. **tony-service.js**: routing ```json → `preventivo-form` anche su pagina `nuovo-preventivo` / `formId` preventivo se le chiavi sembrano preventivo **senza** richiedere `cliente-id` nel secondo messaggio (evita default `attivita-form` → apertura Diario). **main.js**: coercizione `attivita-form` → `preventivo-form` se `#preventivo-form` esiste e formData ha chiavi preventivo.
+
+## ✅ Tony – Nuovo Preventivo: terreno dopo cliente (race loadTerreniCliente) (2026-03-24)
+
+- **Problema**: Dopo `cliente-id`, la pagina chiama `loadTerreniCliente()` (Firestore async) e ricostruisce `#terreno-id`. L’injector impostava `terreno-id` con un delay fisso: opzione assente o select ricostruito dopo → terreno vuoto, `onTerrenoChange` senza id, superficie non precompilata.
+- **Fix**: In `tony-form-injector.js`, `waitForSelectOptionValue` prima di iniettare `terreno-id` e second pass post-`injectForm` se il valore non coincide con l’id risolto.
+
+## ✅ Tony – timer proattivo post-inject Nuovo Preventivo (2026-03-24)
+
+- Dopo `INJECT_FORM_DATA` su `preventivo-form`: stesso schema di Diario/Gestione Lavori (`POST_INJECT_CHECK_DELAY_MS` → contesto form → `IDLE_REMINDER_MS` → `__tonyTriggerAskForMissingFields` / `__tonyTriggerAskForSaveConfirmation`). Il callback non usa `.modal.active` ma presenza di `#preventivo-form` in pagina.
+- **Fix 2026-03-24 (console: formCtx non disponibile dopo retry)**: `getCurrentFormContext` usa `#preventivo-form` se presente (id unico nel repo, senza filtro su pathname). Il check proattivo chiama `window.__tonyBuildTonyFormContext` sul nodo `#preventivo-form` così i timer async non dipendono dal binding di `getCurrentFormContext` definito nel blocco `if (sendBtn)`.
+
+## ✅ Tony – compilazione form Nuovo Preventivo (Conto Terzi) (2026-03-24)
+
+- **Obiettivo**: Stessa catena di Gestione Lavori: `PREVENTIVO_FORM_MAP` in `tony-form-mapping.js`, `injectPreventivoForm` in `tony-form-injector.js` (mirror `preventivoState` → `lavoriState` per `deriveParentsFromTipoLavoro`, `updateColtureDropdownPreventivo` dopo `coltura-categoria`, match `cliente-id` / `tipo-lavoro` / `terreno-id` nei select), `main.js` (`getCurrentFormContext` da `#preventivo-form` su path `nuovo-preventivo`, `INJECT_FORM_DATA` + navigazione con intent pendente, `OPEN_MODAL` preventivo-form / nuovo-preventivo, `pageMap` e `checkTonyPendingAfterNav`).
+- **Pagina**: `nuovo-preventivo-standalone.html` espone già `window.preventivoState` via `syncPreventivoTonyState()`.
+- **Cloud Function**: `SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED`, Treasure Map su pagina/form preventivo, routing `fill_form` → `formId: preventivo-form` quando i campi sono da Nuovo Preventivo (es. `cliente-id` + `tipo-lavoro`, senza `lavoro-tipo-lavoro`).
+- **tony-service.js**: blocco ```json client-side → `INJECT_FORM_DATA` con `formId` preventivo vs lavoro vs attività.
+
+## ✅ Conto Terzi – Nuovo preventivo: fix `app is not defined` (2026-03-24)
+
+- **Problema**: `loadCategorieLavori`, `loadTipiLavoro`, `loadCategorieColturePreventivo`, `loadColturePerCategoriaPreventivo` (e uso servizi colture) chiamavano `setFirebaseInstances({ app, db, auth })` senza che `app` fosse definita.
+- **Fix**: `import getAppInstance` e `const app = getAppInstance()` subito dopo `initializeFirebase` in `modules/conto-terzi/views/nuovo-preventivo-standalone.html`.
+
+---
+
+## ✅ Conto Terzi – Tony pagina Terreni Clienti (2026-03-23) - COMPLETATO
+
+### Obiettivo
+Estendere il supporto Tony alla pagina **Terreni Clienti** (Conto terzi): currentTableData per domande sulla lista, FILTER_TABLE per filtro cliente.
+
+### Implementazione
+- **modules/conto-terzi/views/terreni-clienti-standalone.html**: (1) Placeholder `window.currentTableData` (pageType 'terreniClienti'). (2) Fallback all'inizio del modulo. (3) In `renderTerreni(terreniList)`: build summary (es. "Ci sono X terreni per [cliente] in elenco."), items (nome, cliente, superficie, coltura, podere); `window.currentTableData`, `Tony.setContext('page', ...)`, evento `table-data-ready`.
+- **core/js/tony/main.js**: pageType da path se contiene "terreni-clienti"; FILTER_KEY_MAP **terreniClienti**: cliente → filter-cliente (matchByText per nome ragione sociale); reset filtri per terreniClienti.
+- **functions/index.js**: FILTRO TABELLA TERRENI CLIENTI (params: cliente, reset); LISTA CORRENTE aggiornata con pagina terreni clienti (items: nome, cliente, superficie, coltura, podere); isTerreniClientiPage, isTerreniClientiFilterLikeRequest; filterReminder esteso a (isTerreniClientiPage && isTerreniClientiFilterLikeRequest). SOMMA ETTARI: specificato "NON terreni-clienti" per evitare conflitto.
+- **core/services/tony-service.js**: sanitizer per pageType 'terreniClienti' (items con nome, cliente, superficie, coltura, podere).
+
+### Risultato
+Sulla pagina Terreni Clienti l'utente può chiedere "quanti terreni?", "quali terreni ha Rossi?", "mostrami i terreni di Luca", "pulisci filtri" e Tony risponde usando la lista visibile e applica il filtro cliente con FILTER_TABLE.
+
+### Calcolo spesa lavorazioni (modal mappa – 2026-03-23)
+- **Problema**: La tabella lavorazioni nel modal mappa terreno usava `getTariffaProprietario`, errato per Conto Terzi.
+- **Soluzione**: Rimosso tariffa proprietario. Spesa calcolata con:
+  - **Attività con lavoroId**: da `lavori/{id}/oreOperai` (stato `validate`) – manodopera da `getTariffaOperaio` (modulo Manodopera), macchine/attrezzi da `getMacchina(id).costoOra` (modulo Parco Macchine). Cache per `lavoroId` per evitare duplicati (più attività stesso lavoro → costo mostrato solo sulla prima riga, altre "(v. sopra)").
+  - **Attività senza lavoroId**: solo costi macchine (se `macchinaId`/`attrezzoId` e `oreMacchina`).
+  - **Fallback Tariffe Conto Terzi**: quando il costo da operai+macchine è 0, si usa la tariffa dalla sezione Tariffe (tipoLavoro + coltura + tipoCampo). Match come in preventivi: prima specifica per coltura, poi generica per categoria. Costo = tariffaFinale × superficie terreno.
+- **Check moduli**: `hasModuleAccess('parcoMacchine')` e `hasModuleAccess('manodopera')` prima di calcolare costi.
+- **File**: `modules/conto-terzi/views/terreni-clienti-standalone.html` – funzione `calcCostoAttivita`, `findTariffaPerAttivita`.
+
+---
 
 ## ✅ Conto Terzi – Tony pagina Tariffe (2026-03-18) - COMPLETATO
 
@@ -3699,4 +4070,104 @@ Risolvere i problemi del sistema multi-tenant dopo l'implementazione iniziale:
 
 Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono appartenere a più tenant con ruoli diversi, e lo switch tra tenant funziona correttamente con isolamento completo dei dati e delle viste dashboard.
 
+
+## 2026-03-26 - Tony preventivo da qualsiasi pagina: fix coercion cross-page
+
+### Problema
+- In alcuni casi la Cloud Function restituiva `INJECT_FORM_DATA` con `formId: "attivita-form"` ma con chiavi del preventivo (`cliente-id`, `tipo-lavoro`, `coltura-categoria`, ecc.).
+- La coercion verso `preventivo-form` avveniva solo quando `#preventivo-form` era già nel DOM, quindi fuori dalla pagina Nuovo Preventivo il comando poteva non attivare il flusso corretto cross-page.
+
+### Soluzione
+- Aggiornato `core/js/tony/main.js` nel ramo `INJECT_FORM_DATA`:
+  - rilevamento "payload preventivo" su `attivita-form` eseguito **prima** dei controlli DOM;
+  - coercion immediata a `formId: "preventivo-form"` anche quando il form non è presente nella pagina corrente;
+  - mantenuto il flusso standard scalabile: `INJECT_FORM_DATA` → guard `preventivo-form` assente → `APRI_PAGINA` con `_tonyPendingModal/_tonyPendingFields` → iniezione post-navigazione.
+
+### Risultato
+- Richiesta "crea/compila preventivo" più robusta da qualunque pagina, senza dipendere dalla presenza iniziale di `#preventivo-form` nel DOM.
+- Nessuna patch locale per singola pagina: comportamento centralizzato nel core Tony.
+
+## 2026-03-26 - Preventivo: fallback terreno automatico per cliente univoco
+
+### Problema
+- In alcuni flussi cross-page il comando `INJECT_FORM_DATA` per `preventivo-form` arrivava senza `terreno-id` (solo cliente + lavorazione), quindi la pagina Nuovo Preventivo restava con campi mancanti anche quando nel contesto cliente era disponibile un terreno univoco.
+
+### Soluzione
+- Aggiornata `enrichPreventivoCommandFormData` in `functions/index.js`:
+  - mantiene l’arricchimento esistente (`cliente-id`, `tipo-lavoro`, `terreno-id` da inferenza fuzzy);
+  - aggiunge fallback contestuale robusto: se `terreno-id` manca e per il `cliente-id` risulta un solo terreno cliente in `ctx.azienda.terreniClienti`, imposta automaticamente `terreno-id` con quell’elemento;
+  - se `cliente-id` arriva come testo (ragione sociale) lo normalizza e lo converte all’ID cliente prima del filtro terreni.
+
+### Risultato
+- Da qualsiasi pagina, la compilazione preventivo mantiene il terreno quando il contesto è univoco lato cliente, riducendo i casi di inject parziale.
+
+## 2026-03-26 - Preventivo cross-page: disambiguazione terreno su clienti multi-terreno
+
+### Problema
+- Quando il cliente aveva più terreni, in alcuni messaggi cross-page il payload iniziale non includeva `terreno-id` e il fallback univoco non poteva attivarsi; il risultato era un inject parziale (cliente + lavorazione) senza terreno.
+
+### Soluzione
+- Rafforzata `enrichPreventivoCommandFormData` in `functions/index.js`:
+  - se `terreno-id` manca e il cliente ha più terreni, calcola uno scoring testuale sui terreni del cliente (nome + coltura) usando match diretti e token/radici lessicali;
+  - imposta automaticamente `terreno-id` **solo** se emerge un match univoco forte (top score dominante), evitando selezioni ambigue;
+  - mantiene il fallback precedente per il caso univoco (cliente con un solo terreno).
+
+### Risultato
+- Maggiore probabilità di precompilare correttamente il terreno anche da pagine diverse da Nuovo Preventivo, con comportamento sicuro in caso di ambiguità.
+
+## 2026-03-26 - Preventivo cross-page: fix arricchimento su APRI_PAGINA/OPEN_MODAL
+
+### Problema
+- Nei flussi cross-page il comando effettivo lato client era spesso `pending-after-nav INJECT_FORM_DATA` derivato da `APRI_PAGINA`/`OPEN_MODAL` con `fields`.
+- L’arricchimento preventivo (`enrichPreventivoCommandFormData`) era applicato solo ai comandi `INJECT_FORM_DATA` diretti, non ai `fields` di navigazione/apertura modal; risultato: payload con 4 campi senza `terreno-id`.
+
+### Soluzione
+- Aggiornato `functions/index.js` nei rami structured (prima risposta + retry):
+  - su `open_modal` con modal preventivo: `fields` passano da `enrichPreventivoCommandFormData(...)`;
+  - su `apri_pagina` verso target preventivo: `fields` passano da `enrichPreventivoCommandFormData(...)` prima di essere salvati come pending intent.
+
+### Risultato
+- Il pending intent cross-page verso Nuovo Preventivo arriva già arricchito (incluso `terreno-id` quando deducibile), evitando l’iniezione parziale osservata nei log.
+
+## 2026-03-26 - Preventivo: stop auto-selezione terreno in ambiguità (es. 2 Trebbiano)
+
+### Problema
+- In caso di cliente con più terreni omonimi/simili (es. due "Trebbiano"), il fallback aggressivo poteva auto-selezionare un `terreno-id` invece di chiedere disambiguazione.
+
+### Soluzione
+- Semplificata la policy in `enrichPreventivoCommandFormData` (`functions/index.js`):
+  - rimossa auto-selezione su clienti con 2+ terreni;
+  - mantenuta auto-selezione solo nel caso sicuro `pool.length === 1`;
+  - lasciata la disambiguazione al flusso standard (hint/fallback e domanda utente successiva).
+
+### Risultato
+- Evitata la scelta silenziosa del terreno sbagliato in scenari ambigui; Tony deve chiedere quale terreno usare quando i candidati sono multipli.
+
+## 2026-03-26 - Preventivo: guardrail anti-selezione implicita su coltura ambigua
+
+### Problema
+- Anche senza fallback aggressivo, in alcuni casi `terreno-id` arrivava già valorizzato dal modello e veniva mantenuto, causando selezione automatica quando il cliente aveva più terreni con stessa coltura (es. due Trebbiano/Vite da Vino).
+
+### Soluzione
+- Rafforzato `enrichPreventivoCommandFormData` (`functions/index.js`) con controllo di ambiguità:
+  - se `terreno-id` è presente e il cliente ha più terreni;
+  - se il messaggio non contiene il nome esplicito del terreno selezionato;
+  - e se esistono più candidati con stessa coltura del terreno selezionato;
+  - allora `terreno-id` viene rimosso per forzare la disambiguazione in chat.
+
+### Risultato
+- In scenari ambigui per coltura omonima, Tony non deve più scegliere in automatico un terreno “a caso”, ma chiedere quale terreno intende l’utente.
+
+## 2026-03-26 - Preventivo cross-page: merge resiliente fields dopo guardrail terreno
+
+### Problema
+- In alcuni giri il guardrail rimuoveva `terreno-id` ambiguo dai `fields` preventivo in `OPEN_MODAL`/`APRI_PAGINA`, e il payload risultava troppo povero o vuoto, causando mancata iniezione post-navigazione.
+
+### Soluzione
+- Nei rami structured (`open_modal` e `apri_pagina`, inclusi retry) di `functions/index.js`:
+  - i `fields` preventivo vengono costruiti con merge `inferPreventivoFallbackFormData(...) + enrichPreventivoCommandFormData(...)`;
+  - i `fields` vengono allegati al comando solo se non vuoti, preservando cliente/tipo-lavoro anche quando `terreno-id` viene eliminato dal guardrail.
+
+### Risultato
+- Cross-page più robusto: niente auto-selezione terreno in ambiguità, ma iniezione comunque parziale dei campi sicuri (cliente/lavorazione) invece di “nessuna compilazione”.
 

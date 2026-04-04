@@ -27,6 +27,13 @@ La callable **tonyAsk** chiama l’API Gemini con la chiave sul server, così il
 
    In alternativa (secret): crea il secret con `firebase functions:secrets:set GEMINI_API_KEY` e adatta il codice a usare `defineSecret` (vedi documentazione Firebase).
 
+2b. **Sentry (opzionale ma consigliato)**  
+   Progetto Sentry: org **`sabbie-gialle`**, slug progetto **`node-gcpfunctions`** (regione ingest **DE**). Il codice carica `instrument.js` prima di tutto e legge **`SENTRY_DSN`**.  
+   Imposta la variabile come per Gemini, sulla stessa revisione Cloud Run dei servizi `tonyask` / `gettonyaudio` (stesso progetto Google Cloud):
+   - Console → Cloud Run → servizio (es. `tonyask`) → **Modifica e distribuisci nuova revisione** → **Variabili e secret** → variabile **`SENTRY_DSN`** = valore copiato da Sentry (Client Keys / DSN del progetto `node-gcpfunctions`).  
+   Opzionale: **`SENTRY_ENVIRONMENT`** (es. `production`), **`SENTRY_TRACES_SAMPLE_RATE`** (0–1, default `0.2`).  
+   Se `SENTRY_DSN` manca, le functions partono comunque e in log compare un warning.
+
 3. **Deploy**
    ```bash
    cd ..

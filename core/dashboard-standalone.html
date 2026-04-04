@@ -570,10 +570,65 @@
         // segnaLavoroCompletato è già definita come funzione globale nel file (riga ~4485)
         // Non serve esportarla dal modulo
 
+        /**
+         * Allinea tenant-service al documento utente (membership / tenantId deprecato).
+         * Dopo registrazione invito spesso c'è solo tenantMemberships: senza setCurrentTenantId,
+         * getStatisticheVigneto e altri servizi vedono "Nessun tenant corrente".
+         */
+        async function resolveCurrentTenantId(userData) {
+            if (!userData) return null;
+            const { getCurrentTenantId, setCurrentTenantId } = await import('./services/tenant-service.js');
+            let tid = getCurrentTenantId();
+            if (tid) return tid;
+            if (userData.tenantId) {
+                setCurrentTenantId(userData.tenantId);
+                return userData.tenantId;
+            }
+            if (userData.tenantMemberships && typeof userData.tenantMemberships === 'object') {
+                const entries = Object.entries(userData.tenantMemberships);
+                for (const [id, m] of entries) {
+                    if (m && m.stato === 'attivo') {
+                        setCurrentTenantId(id);
+                        return id;
+                    }
+                }
+                const def = entries.find(([, m]) => m && m.tenantIdPredefinito);
+                if (def) {
+                    setCurrentTenantId(def[0]);
+                    return def[0];
+                }
+                if (entries.length === 1) {
+                    const id = entries[0][0];
+                    setCurrentTenantId(id);
+                    return id;
+                }
+                if (entries.length > 1) {
+                    const id = entries[0][0];
+                    setCurrentTenantId(id);
+                    return id;
+                }
+            }
+            return null;
+        }
+
+        /** Ruoli che vedono il briefing Tony su scorte/scadenze/guasti (solo manager dashboard). */
+        function tonyGlobalBriefingRoles(ruoli) {
+            const r = Array.isArray(ruoli) ? ruoli : [];
+            return r.some((x) => x === 'manager' || x === 'amministratore');
+        }
+
         // Carica contesto vigneto per Tony (produzione per anno) se modulo attivo
-        async function loadTonyVignetoContext(availableModules) {
+        // tenantIdExplicit: obbligatorio per evitare race con tenant-service dopo reload / membership-only
+        async function loadTonyVignetoContext(availableModules, tenantIdExplicit) {
             if (!availableModules || !availableModules.includes('vigneto') || !window.Tony || !window.Tony.isReady()) return;
             try {
+                const { setCurrentTenantId, getCurrentTenantId } = await import('./services/tenant-service.js');
+                if (tenantIdExplicit) {
+                    setCurrentTenantId(tenantIdExplicit);
+                }
+                if (!getCurrentTenantId()) {
+                    return;
+                }
                 const { getStatisticheVigneto } = await import('../modules/vigneto/services/vigneto-statistiche-service.js');
                 const annoCorrente = new Date().getFullYear();
                 const anni = [annoCorrente, annoCorrente - 1, annoCorrente - 2];
@@ -604,11 +659,15 @@
 
         /**
          * Scansione globale per Tony: prodotti sotto scorta, scadenze urgenti, guasti aperti.
+         * Solo per manager/amministratore (promemoria operativi d'azienda).
          * Imposta window.tonyGlobalBriefing e Tony.setContext('globalStatus', ...).
-         * Se ci sono criticità, dopo 3s Tony pronuncia un saluto unico (coda audio).
+         * Se ci sono criticità, dopo 3s Tony può pronunciare un saluto (policy audio browser: può servire un click).
          */
-        async function checkGlobalStatus(tenantId) {
+        async function checkGlobalStatus(tenantId, ruoliNormalizzati) {
             if (!tenantId) return;
+            if (!tonyGlobalBriefingRoles(ruoliNormalizzati)) {
+                return;
+            }
             try {
                 const sottoScorta = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
                 const scadenzeUrgenti = (callbacks.loadScadenzeUrgentiCount && await callbacks.loadScadenzeUrgentiCount(tenantId, dependencies)) || 0;
@@ -789,8 +848,8 @@
                             const userData = retryUserDoc.data();
                             
                             // Ottieni tenant corrente e ruoli filtrati per questo tenant
-                            const { getCurrentTenantId, getUserRolesForTenant } = await import('./services/tenant-service.js');
-                            const currentTenantId = getCurrentTenantId() || userData.tenantId; // Fallback per retrocompatibilità
+                            const { getUserRolesForTenant } = await import('./services/tenant-service.js');
+                            const currentTenantId = await resolveCurrentTenantId(userData);
                             
                             // Ottieni ruoli per il tenant corrente (non tutti i ruoli)
                             let rolesForCurrentTenant = [];
@@ -839,8 +898,8 @@
                                 } else {
                                     try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                                 }
-                                loadTonyVignetoContext(availableModules);
-                                checkGlobalStatus(currentTenantId);
+                                loadTonyVignetoContext(availableModules, currentTenantId);
+                                checkGlobalStatus(currentTenantId, userDataNormalized.ruoli);
                             }
                             return; // Esci qui per non eseguire il codice sotto
                         }
@@ -853,8 +912,8 @@
                     const userData = userDoc.data();
                     
                     // Ottieni tenant corrente e ruoli filtrati per questo tenant
-                    const { getCurrentTenantId, getUserRolesForTenant } = await import('./services/tenant-service.js');
-                    const currentTenantId = getCurrentTenantId() || userData.tenantId; // Fallback per retrocompatibilità
+                    const { getUserRolesForTenant } = await import('./services/tenant-service.js');
+                    const currentTenantId = await resolveCurrentTenantId(userData);
                     
                     // Ottieni ruoli per il tenant corrente (non tutti i ruoli)
                     let rolesForCurrentTenant = [];
@@ -946,8 +1005,8 @@
                         } else {
                             try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                         }
-                        loadTonyVignetoContext(availableModules);
-                        checkGlobalStatus(currentTenantId);
+                        loadTonyVignetoContext(availableModules, currentTenantId);
+                        checkGlobalStatus(currentTenantId, userDataNormalized.ruoli);
                     }
                 }
             } catch (error) {

@@ -13,6 +13,7 @@ alwaysApply: true
 
 ## Regole obbligatorie
 
+- **Nuove pagine** (liste/tab + form Tony): seguire **`.cursor/rules/tony-pagina-lista-e-form.mdc`** (canone `currentTableData`, merge `setContext`, evento `table-data-ready`, file golden) prima di proporre modifiche.
 - Ogni modifica Tony deve **allinearsi al Master Plan**
 - **Configurazione > codice**: nuovo form = voce in `tony-form-mapping.js`, non `if/else`
 - Non introdurre logica hardcoded per singolo modulo

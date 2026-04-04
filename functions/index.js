@@ -1,3 +1,5 @@
+require("./instrument");
+
 /**
  * Cloud Functions per GFV Platform - Tony (Gemini) via callable
  * v2 - parsing JSON robusto per risposte Gemini miste
@@ -6,8 +8,12 @@
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const textToSpeech = require("@google-cloud/text-to-speech");
 const admin = require("firebase-admin");
+
+/** Secret Manager: valorizza process.env.SENTRY_DSN (vedi instrument.js) */
+const sentryDsn = defineSecret("SENTRY_DSN");
 
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
@@ -38,6 +44,71 @@ async function getGuastiAperti(tenantId, limit = 50) {
   const all = await getCollectionLight(tenantId, "guasti", ["id", "macchina", "gravita", "stato", "dettagli"], limit);
   const chiusi = ["risolto", "riparato", "chiuso"];
   return all.filter((g) => !chiusi.includes(String(g.stato || "").toLowerCase()));
+}
+
+/** Ultimi movimenti magazzino (collection `movimentiMagazzino`), più recenti per campo `data`. */
+async function getUltimiMovimentiMagazzino(tenantId, limit = 50) {
+  const ref = db.collection("tenants").doc(tenantId).collection("movimentiMagazzino");
+  const snap = await ref.orderBy("data", "desc").limit(limit).get();
+  return snap.docs.map((d) => {
+    const data = d.data();
+    const out = { id: d.id };
+    ["prodottoId", "tipo", "quantita", "prezzoUnitario", "note", "lavoroId", "attivitaId", "confezione"].forEach((f) => {
+      if (data[f] != null) out[f] = data[f];
+    });
+    if (data.data != null) out.data = data.data;
+    return out;
+  });
+}
+
+function formatMovimentoDataField(val) {
+  if (!val) return "";
+  if (typeof val.toDate === "function") {
+    try {
+      return val.toDate().toISOString().slice(0, 10);
+    } catch (e) {
+      return "";
+    }
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+function enrichMovimentiMagazzinoContext(movimentiRaw, prodotti) {
+  const byId = {};
+  (prodotti || []).forEach((p) => {
+    if (p.id) byId[p.id] = p;
+  });
+  const movimentiRecenti = (movimentiRaw || []).map((m) => {
+    const p = m.prodottoId ? byId[m.prodottoId] : null;
+    const tipo = (m.tipo || "").toLowerCase() === "uscita" ? "uscita" : "entrata";
+    return {
+      id: m.id,
+      data: formatMovimentoDataField(m.data),
+      tipo,
+      tipoLabel: tipo === "entrata" ? "carico" : "scarico",
+      prodottoId: m.prodottoId || null,
+      prodottoNome: p ? p.nome || m.prodottoId : m.prodottoId || "?",
+      unitaMisura: p && p.unitaMisura ? p.unitaMisura : "",
+      quantita: m.quantita != null ? Number(m.quantita) : null,
+    };
+  });
+  const head = movimentiRecenti.slice(0, 15);
+  let summaryMovimentiRecenti = "";
+  if (movimentiRecenti.length === 0) {
+    summaryMovimentiRecenti = "Nessun movimento di magazzino tra gli ultimi record caricati dal server.";
+  } else {
+    const lines = head.map(
+      (x) =>
+        `${x.data} ${x.tipoLabel} ${x.prodottoNome}${x.quantita != null ? " " + x.quantita : ""}${x.unitaMisura ? " " + x.unitaMisura : ""}`
+    );
+    summaryMovimentiRecenti =
+      `Ultimi ${movimentiRecenti.length} movimenti (max 50, ordinati per data decrescente): ` + lines.join("; ") + ".";
+    if (movimentiRecenti.length > 15) {
+      summaryMovimentiRecenti += " (in contesto JSON trovi l'array completo movimentiRecenti fino al limite.)";
+    }
+  }
+  return { movimentiRecenti, summaryMovimentiRecenti };
 }
 
 function formatScadenza(val) {
@@ -90,13 +161,16 @@ async function buildContextAzienda(tenantId) {
     getCollectionLight(tenantId, "prodotti", ["nome", "unitaMisura", "sogliaMinima", "giacenza"], 200),
     getGuastiAperti(tenantId, 50),
     getCollectionLight(tenantId, "lavori", ["clienteId"], 500),
-    getCollectionLight(tenantId, "preventivi", ["id", "numero", "clienteId", "stato"], 200),
-    getCollectionLight(tenantId, "tariffe", ["id", "tipoLavoro", "coltura", "categoriaColturaId", "tipoCampo", "tariffaBase", "coefficiente", "attiva"], 200)
+    getCollectionLight(tenantId, "preventivi", ["id", "numero", "clienteId", "stato", "tipoLavoro", "coltura"], 200),
+    getCollectionLight(tenantId, "tariffe", ["id", "tipoLavoro", "coltura", "categoriaColturaId", "tipoCampo", "tariffaBase", "coefficiente", "attiva"], 200),
+    getUltimiMovimentiMagazzino(tenantId, 50)
   ]);
 
-  let [terreniRaw, clienti, poderi, colture, categorie, tipiLavoro, macchine, prodotti, guastiAperti, lavoriRaw, preventivi, tariffe] = results.map((r) =>
+  let [terreniRaw, clienti, poderi, colture, categorie, tipiLavoro, macchine, prodotti, guastiAperti, lavoriRaw, preventivi, tariffe, movimentiRaw] = results.map((r) =>
     r.status === "fulfilled" ? r.value : []
   );
+
+  const { movimentiRecenti, summaryMovimentiRecenti } = enrichMovimentiMagazzinoContext(movimentiRaw, prodotti);
 
   // totaleLavori: calcolo reale da collection lavori (non dipende da aggiornaStatisticheCliente sul documento cliente)
   const countByCliente = {};
@@ -158,8 +232,208 @@ async function buildContextAzienda(tenantId) {
     prodotti,
     guastiAperti,
     summaryScadenze,
-    tariffe: tariffe || []
+    tariffe: tariffe || [],
+    movimentiRecenti,
+    summaryMovimentiRecenti
   };
+}
+
+function normalizeItTony(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** invia | accetta_manager | null */
+function detectPreventivoListActionVerb(message) {
+  const msgNorm = normalizeItTony(message);
+  if (!/\bpreventiv/.test(msgNorm)) return null;
+  const invia = /\b(invia|invio|manda|spedisc|inviare|mandare|spedire)\b/.test(msgNorm);
+  const accetta = /\b(accetta|accettare|accettalo)\b/.test(msgNorm);
+  if (invia && accetta) {
+    const mInv = msgNorm.match(/\b(invia|invio|manda|spedisc)\b/);
+    const mAcc = msgNorm.match(/\b(accetta|accettare|accettalo)\b/);
+    const iInv = mInv ? msgNorm.indexOf(mInv[0]) : 9999;
+    const iAcc = mAcc ? msgNorm.indexOf(mAcc[0]) : 9999;
+    return iInv < iAcc ? "invia" : "accetta_manager";
+  }
+  if (invia) return "invia";
+  if (accetta) return "accetta_manager";
+  return null;
+}
+
+function resolvePreventivoListActionDeterministic(message, ctxFinal) {
+  const action = detectPreventivoListActionVerb(message);
+  if (!action) return null;
+  const msgNorm = normalizeItTony(message);
+
+  const clienti = ctxFinal?.azienda?.clienti || [];
+  let pool = ctxFinal?.azienda?.preventivi || [];
+  if (!pool.length) {
+    return {
+      text: "Non ho elenco preventivi nel contesto. Apri Gestione preventivi e riprova.",
+      command: null,
+    };
+  }
+
+  let bestIds = [];
+  let bestScore = 0;
+  for (const c of clienti) {
+    const rs = normalizeItTony(c.ragioneSociale || "");
+    if (rs.length < 2) continue;
+    let score = 0;
+    if (msgNormIncludesPhrase(message, rs)) score = rs.length + 100;
+    const parts = rs.split(/\s+/).filter((w) => w.length >= 3);
+    for (const w of parts) {
+      if (normalizeItTony(message).includes(w)) score += w.length;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestIds = [c.id];
+    } else if (score > 0 && score === bestScore) {
+      bestIds.push(c.id);
+    }
+  }
+
+  if (bestScore === 0 || bestIds.length === 0) {
+    return {
+      text: 'Non ho capito per quale cliente. Ripeti con la ragione sociale (es. «invia il preventivo a Rossi Srl»).',
+      command: null,
+    };
+  }
+
+  pool = pool.filter((p) => bestIds.includes(p.clienteId));
+  if (pool.length === 0) {
+    return { text: "Non trovo preventivi per quel cliente.", command: null };
+  }
+
+  if (action === "invia") {
+    pool = pool.filter((p) => String(p.stato || "") === "bozza");
+  } else {
+    pool = pool.filter((p) => {
+      const s = String(p.stato || "");
+      return s === "bozza" || s === "inviato";
+    });
+  }
+
+  if (pool.length === 0) {
+    return {
+      text:
+        action === "invia"
+          ? "Non c'è una bozza da inviare per email per questo cliente."
+          : "Non c'è un preventivo in bozza o inviato da accettare per questo cliente.",
+      command: null,
+    };
+  }
+
+  const numTok = message.match(/\b(?:n\.?\s*|num\.?\s*|nr\.?\s*)?([0-9]{3,}[\/\-]?[0-9]*|[A-Z]{1,3}[\/.-]?[0-9]{2,})\b/i);
+  if (numTok) {
+    const raw = normalizeItTony(numTok[1] || numTok[0]);
+    const byNum = pool.filter((p) => {
+      const n = normalizeItTony(String(p.numero || ""));
+      return n && (n.includes(raw) || raw.includes(n));
+    });
+    if (byNum.length === 1) pool = byNum;
+    else if (byNum.length > 1) pool = byNum;
+  }
+
+  if (pool.length > 1) {
+    const scored = pool.map((p) => {
+      const tl = normalizeItTony(String(p.tipoLavoro || ""));
+      let sc = 0;
+      if (tl.length >= 4) {
+        const chunks = tl.split(/\s+/).filter((w) => w.length >= 4);
+        for (const w of chunks) {
+          if (msgNorm.includes(w)) sc += w.length + 2;
+        }
+        if (sc === 0 && tl.length > 8 && msgNorm.includes(tl.slice(0, 8))) sc = 6;
+      }
+      const col = normalizeItTony(String(p.coltura || ""));
+      if (col.length >= 4 && msgNorm.includes(col)) sc += col.length;
+      return { p, sc };
+    });
+    const maxSc = Math.max(...scored.map((x) => x.sc), 0);
+    if (maxSc > 0) {
+      const top = scored.filter((x) => x.sc === maxSc).map((x) => x.p);
+      if (top.length === 1) pool = top;
+    }
+  }
+
+  if (pool.length === 1) {
+    return {
+      text:
+        action === "invia"
+          ? "Invio il preventivo per email al cliente."
+          : "Registro l'accettazione del preventivo (manager).",
+      command: {
+        type: "PREVENTIVO_LIST_ACTION",
+        params: { action, preventivoId: pool[0].id },
+      },
+    };
+  }
+
+  const lines = pool.slice(0, 6).map((p, idx) => {
+    const tl = p.tipoLavoro || "-";
+    const num = p.numero || "-";
+    const st = p.stato || "-";
+    return `${idx + 1}) N. ${num} — ${tl} (${st})`;
+  });
+  return {
+    text: `Ci sono più preventivi per questo cliente. Quale intendi?\n${lines.join("\n")}\nIndica il numero di riga, il numero preventivo o il tipo di lavoro.`,
+    command: null,
+  };
+}
+
+function msgNormIncludesPhrase(message, phraseNorm) {
+  return normalizeItTony(message).includes(phraseNorm);
+}
+
+function validatePreventivoListCommand(cmd, ctxFinal) {
+  if (!cmd || cmd.type !== "PREVENTIVO_LIST_ACTION") return cmd;
+  const params = cmd.params && typeof cmd.params === "object" ? cmd.params : {};
+  const action = params.action;
+  const pid = String(params.preventivoId || "").trim();
+  if (!pid || (action !== "invia" && action !== "accetta_manager")) {
+    return null;
+  }
+  const list = ctxFinal?.azienda?.preventivi || [];
+  const p = list.find((x) => String(x.id) === pid);
+  if (!p) return null;
+  if (action === "invia" && String(p.stato) !== "bozza") return null;
+  if (action === "accetta_manager") {
+    const s = String(p.stato);
+    if (s !== "bozza" && s !== "inviato") return null;
+  }
+  return cmd;
+}
+
+function applyPreventivoListActionResolution(result, message, ctxFinal) {
+  const out = result && typeof result === "object" ? { ...result } : { text: String(result || "") };
+
+  const det = resolvePreventivoListActionDeterministic(message, ctxFinal);
+  if (det) {
+    out.text = det.text;
+    out.command = det.command || undefined;
+    if (!out.command) delete out.command;
+    return out;
+  }
+
+  if (out.command && out.command.type === "PREVENTIVO_LIST_ACTION") {
+    const v = validatePreventivoListCommand(out.command, ctxFinal);
+    if (v) {
+      out.command = v;
+    } else {
+      delete out.command;
+      if (!out.text || out.text.length < 10) {
+        out.text = "Non posso eseguire l'azione su quel preventivo (stato non valido o ID sconosciuto).";
+      }
+    }
+  }
+
+  return out;
 }
 
 /**
@@ -228,6 +502,8 @@ NAVIGAZIONE (APRI_PAGINA) – PRIORITÀ ASSOLUTA:
 - ECCEZIONE FONDAMENTALE: Se l'utente è GIÀ sulla pagina terreni (vedi page.currentTableData?.pageType === "terreni" oppure session.current_page.path include "terreni") e chiede di vedere/filtrare dati (es. "mostrami i terreni", "solo gli affitti", "filtra per scaduti"), NON usare APRI_PAGINA target "terreni". Usa SEMPRE FILTER_TABLE per filtrare la tabella già aperta.
 - ECCEZIONE ATTIVITÀ: Se l'utente è GIÀ sulla pagina attivita (page.currentTableData?.pageType === "attivita" oppure session.current_page.path include "attivita") e chiede di vedere/filtrare la lista attività (es. "mostrami le attività di oggi", "filtra per Sangiovese", "attività di ieri"), NON usare APRI_PAGINA target "attivita". Usa SEMPRE FILTER_TABLE per filtrare la tabella già aperta.
 - ECCEZIONE LAVORI: Se l'utente è GIÀ sulla pagina lavori (page.currentTableData?.pageType === "lavori" oppure session.current_page.path include "gestione-lavori" o "lavori") e chiede di vedere/filtrare la lista lavori (es. "mostrami i lavori in corso", "filtra per Sangiovese", "solo quelli in ritardo"), NON usare APRI_PAGINA target "lavori". Usa SEMPRE FILTER_TABLE per filtrare la tabella già aperta.
+- ECCEZIONE PRODOTTI (Magazzino): Se l'utente è GIÀ sulla pagina anagrafica prodotti (page.currentTableData?.pageType === "prodotti" oppure session.current_page.path include "prodotti") e chiede di filtrare o cercare in lista (es. "solo attivi", "fitofarmaci", "cerca concime"), NON usare APRI_PAGINA. Usa FILTER_TABLE con params attivo, categoria, ricerca (vedi FILTRO TABELLA PRODOTTI).
+- ECCEZIONE MOVIMENTI (Magazzino): Se è GIÀ sulla pagina movimenti (page.currentTableData?.pageType === "movimenti" oppure path include "movimenti") e chiede di filtrare movimenti (es. "solo entrate", "filtra per prodotto X"), usa FILTER_TABLE con params tipo, prodotto (vedi FILTRO TABELLA MOVIMENTI).
 - MAI usare OPEN_MODAL per la navigazione tra pagine. OPEN_MODAL serve solo quando il form Attività è già aperto e l'utente vuole compilare il diario (es. "segna le ore", "cosa hai fatto oggi").
 DEFAULT NAVIGAZIONE: La navigazione tra le pagine base (Home, Dashboard, Terreni, Vigneto, Frutteto, Magazzino, Macchine, Manodopera) deve essere SEMPRE consentita tramite JSON APRI_PAGINA, poiché non comporta modifiche ai dati. Anche in caso di incertezza, esegui sempre la navigazione richiesta con il target corretto dalla mappa.
 MAPPA TARGET RIGIDA (Dashboard e moduli – "Portami a [X]" punta sempre alla pagina principale del modulo):
@@ -243,13 +519,15 @@ MAPPA TARGET RIGIDA (Dashboard e moduli – "Portami a [X]" punta sempre alla pa
 - Diario attività: "Diario", "Diario attività", "segna le ore", "segnare ore", "cosa hai fatto oggi" → target: "attivita" o OPEN_MODAL "attivita-modal".
 NAVIGAZIONE INTERNA:
 - Una volta arrivato nella Dashboard di un modulo, l'utente potrà dare comandi successivi per le sottopagine (da mappare in seguito). Per ora il comando "Portami a [modulo]" deve sempre puntare alla pagina principale (dashboard) del modulo indicato.
-DISTINZIONE LAVORI vs ATTIVITÀ:
-- Gestione Lavori = pagina principale dei compiti. Target = "lavori".
-- Diario Attività = ore giornaliere. Target = "attivita".
+DISTINZIONE LAVORI vs ATTIVITÀ vs NUOVO PREVENTIVO (Conto Terzi):
+- Gestione Lavori = pagina principale dei compiti pianificati. Target = "lavori" / OPEN_MODAL "lavoro-modal".
+- Diario Attività = ore giornaliere registrate. Target = "attivita" / OPEN_MODAL "attivita-modal".
+- Nuovo Preventivo = **pagina standalone** (non un modal sulla dashboard): compilazione offerta per cliente conto terzi. Target = "nuovo preventivo" (APRI_PAGINA) oppure OPEN_MODAL id "preventivo-form" (il client apre la stessa pagina). MAI usare attivita-modal per un intento preventivo.
 
 ENTRY POINT DA OVUNQUE (Fase 2) – PRIORITÀ MASSIMA:
 - DIARIO ATTIVITÀ (ore giornaliere): Se l'utente vuole registrare ore/attività (es. "ho trinciato 6 ore", "segna le ore", "ho fatto potatura nel Sangiovese") e [CONTESTO].form.formId NON è "attivita-form", usa SEMPRE OPEN_MODAL con id "attivita-modal" e i campi in "fields". MAI SET_FIELD. Text: "Ti porto al diario."
 - CREA LAVORO (Gestione Lavori): Se l'utente vuole CREARE un nuovo lavoro (es. "crea un lavoro", "nuovo lavoro", "crea lavoro di erpicatura nel Sangiovese", "crea lavoro potatura assegnato a Marco") e [CONTESTO].form.formId NON è "lavoro-form", usa SEMPRE OPEN_MODAL con id "lavoro-modal" e i campi in "fields". MAI SET_FIELD. Text: "Ti porto a gestione lavori." Distingui: "ho fatto X" / "segna ore" = attivita-modal; "crea lavoro" / "nuovo lavoro" = lavoro-modal.
+- NUOVO PREVENTIVO (Conto Terzi – **stessa priorità della crea lavoro, da qualsiasi pagina** es. Dashboard vigneto, magazzino, home): Se l'utente vuole un **preventivo / offerta / quotazione** per un cliente conto terzi (es. "crea un preventivo", "nuovo preventivo", "preventivo per trinciatura", "mi serve un preventivo per Rossi", "compila preventivo", "offerta per erpicatura nel Sangiovese") e [CONTESTO].form.formId NON è "preventivo-form", usa SEMPRE APRI_PAGINA con target "nuovo preventivo" e "fields" con chiavi preventivo (cliente-id, tipo-lavoro, …) **oppure** OPEN_MODAL id "preventivo-form" con "fields". MAI OPEN_MODAL "attivita-modal" e MAI diario per questo intento. MAI SET_FIELD da pagina senza form. Text breve: "Ti porto al nuovo preventivo." Se la frase menziona esplicitamente "preventivo", "offerta conto terzi", "bozza preventivo", ha priorità su crea lavoro / diario anche se c'è un tipo lavoro nel testo.
 REGOLA APERTURA MODAL ATTIVITÀ (OBBLIGATORIA): Quando il form NON è aperto (es. da Dashboard), apri SUBITO il modal con i campi inferibili. Il text sia SOLO: "Ti porto al diario." Niente altro. Le domande (trattore, attrezzo, ecc.) vanno fatte SOLO quando il form è GIÀ aperto (form.formId === "attivita-form"), così l'utente può rispondere e tu compili con INJECT_FORM_DATA.
 OPEN_MODAL CHECKLIST ATTIVITÀ: Includi in fields TUTTI i campi che puoi inferire SENZA chiedere: attivita-data (oggi YYYY-MM-DD), attivita-terreno, attivita-categoria-principale, attivita-sottocategoria, attivita-tipo-lavoro-gerarchico, attivita-orario-inizio, attivita-orario-fine, attivita-pause (0 se non detto), attivita-ore-macchina. Per trattore e attrezzo: Se c'è UN SOLO trattore (o UN SOLO compatibile con l'attrezzo) → compila. Se ci sono PIÙ trattori o PIÙ attrezzi idonei → NON includerli; lasciali vuoti. Text sempre: "Ti porto al diario."
 OPEN_MODAL CHECKLIST LAVORI: Per "crea lavoro X nel Y" includi in fields: lavoro-nome, lavoro-terreno, lavoro-categoria-principale, lavoro-sottocategoria, lavoro-tipo-lavoro (per vendemmia: "Vendemmia Manuale" o "Vendemmia Meccanica", chiedi se ambiguo), lavoro-stato. NON includere lavoro-data-inizio e lavoro-durata se l'utente non le ha dette: chiedile dopo. Se utente nomina persona → tipo-assegnazione + caposquadra/operaio. Text: "Ti porto a gestione lavori."
@@ -274,18 +552,23 @@ LISTA CORRENTE (page.currentTableData) – per QUALSIASI pagina con tabella (cli
 - Per domande sulla lista visibile ("quanti X?", "quanti sono attivi?", "quanti sospesi?", "cosa c'è in lista?", "riassumi") usa SEMPRE page.tableDataSummary e, se serve dettaglio, page.currentTableData.items. Non rispondere mai "non ho dati" o "non ho informazioni sullo stato" se currentTableData è presente.
 - Per "quanti clienti?" rispondi con il numero (e opzionalmente i nomi); per "quanti sono attivi?" o "quanti clienti attivi?" usa il summary (contiene già "X attivi") oppure conta in items dove stato === "attivo".
 - Pagina clienti: in items ogni riga ha ragioneSociale, stato, totaleLavori. Per "quanti lavori abbiamo fatto per [nome]?" o "lavori per Stefano/Luca" cerca l'item con ragioneSociale che contiene quel nome e rispondi con il valore di totaleLavori (es. "Per Stefano Alpi abbiamo fatto 3 lavori.").
-- Pagina preventivi: in items ogni riga ha numero, cliente, stato, totale. Per "quanti preventivi?", "quanti in bozza/inviati/accettati?", "quanti preventivi per [cliente]?" usa il summary o conta in items.
-- Pagina clienti, preventivi o tariffe: se l'utente chiede di filtrare ("mostrami solo gli attivi", "solo le bozze", "tariffe per vigneto", "pulisci filtri") rispondi SEMPRE con command FILTER_TABLE e params appropriati. Vedi FILTRO TABELLA CLIENTI, FILTRO TABELLA PREVENTIVI, FILTRO TABELLA TARIFFE.
+- Pagina preventivi: in items ogni riga ha id, numero, cliente, tipoLavoro, coltura, stato, totale. Per "quanti preventivi?", "quanti in bozza/inviati/accettati?", "quanti preventivi per [cliente]?" usa il summary o conta in items.
+- Pagina clienti, preventivi, tariffe, prodotti, movimenti o terreni clienti: se l'utente chiede di filtrare ("mostrami solo gli attivi", "solo le bozze", "tariffe per vigneto", "terreni di Rossi", "solo prodotti attivi", "movimenti in uscita", "pulisci filtri") rispondi SEMPRE con command FILTER_TABLE e params appropriati. Vedi FILTRO TABELLA CLIENTI, PREVENTIVI, TARIFFE, PRODOTTI, MOVIMENTI, TERRENI CLIENTI.
 - Pagina tariffe: in items ogni riga ha tipoLavoro, coltura, tipoCampo, tariffaBase, coefficiente, attiva, tariffaFinale. Per "quante tariffe?", "quante attive?", "tariffe per erpicatura/vigneto" usa il summary o conta in items.
+- Pagina terreni clienti: in items ogni riga ha nome, cliente, superficie, coltura, podere. Per "quanti terreni?", "quanti terreni per [cliente]?", "elenca i terreni di Rossi" usa il summary o items. La pagina filtra per cliente tramite select filter-cliente.
 
 REGOLE DI RISPOSTA (form e modal):
-0. MODAL CHIUSO: Se [CONTESTO].form è null o [CONTESTO].form.formId manca (es. dopo salvataggio il modal si chiude): NON emettere SAVE_ACTIVITY, INJECT_FORM_DATA o SET_FIELD. Rispondi SOLO con testo di conferma (es. "Attività salvata correttamente!").
+0. MODAL CHIUSO: Se [CONTESTO].form è null o [CONTESTO].form.formId manca (es. dopo salvataggio il modal si chiude): NON emettere SAVE_ACTIVITY, INJECT_FORM_DATA o SET_FIELD. Rispondi SOLO con testo di conferma coerente con l'ultimo flusso: se page path o session include "prodotti" e l'utente conferma salvataggio prodotto → "Prodotto salvato correttamente!"; se include "movimenti" e movimento → "Movimento registrato!"; altrimenti per diario attività → "Attività salvata correttamente!".
+0b. VERIFICA MODULO (prompt interno): Se il messaggio utente nel turno è la domanda di sistema «Form completo, confermi salvataggio?» (proattività widget), NON è una conferma reale dell'utente: NON includere MAI SAVE_ACTIVITY né testo «salvato». Rispondi con una sola frase che invita a confermare esplicitamente (es. «Quando vuoi, dimmi ok salva») o a indicare cosa modificare. Il salvataggio parte solo quando l'utente scrive davvero di salvare.
 1. Se [CONTESTO].form.formId === "attivita-form" (form GIÀ aperto): usa SET_FIELD per ogni dato. Esempio: "Ho trinciato" -> SET_FIELD attivita-tipo-lavoro-gerarchico "Trinciatura".
 2. Se [CONTESTO].form.formId NON è "attivita-form" (form NON aperto, es. da Dashboard): usa SEMPRE OPEN_MODAL con "fields", mai SET_FIELD. Vedi ENTRY POINT DA OVUNQUE.
 3. NON impostare Categorie o Sottocategorie. Imposta SOLO il "Tipo Lavoro" specifico. Il sistema dedurrà il resto.
 4. Per "apri gestione lavori" (solo navigazione, senza creare) usa APRI_PAGINA target "lavori", non OPEN_MODAL.
 5. Se [CONTESTO].form.formId === "lavoro-form" (form GIÀ aperto su gestione lavori): usa INJECT_FORM_DATA per compilare, non OPEN_MODAL. Le domande (caposquadra, operaio, durata) vanno fatte quando il form è aperto.
-6. Se tutti i dati essenziali (Terreno, Lavoro, Data, Ore) ci sono e form è aperto, chiedi conferma e usa SAVE_ACTIVITY. OBBLIGATORIO: quando l'utente dice "salva", "salva l'attività", "conferma", "ok salva" e il form è completo, DEVI includere nel JSON: "command": {"type": "SAVE_ACTIVITY"}. MAI rispondere solo con testo "Attività salvata!" senza il comando: il salvataggio avviene SOLO quando il client riceve SAVE_ACTIVITY. Dopo SAVE_ACTIVITY: NON emettere di nuovo SAVE_ACTIVITY (il modal si chiude). Rispondi solo con testo di conferma (es. "Attività salvata!").
+5b. NUOVO PREVENTIVO (Conto Terzi): Se [CONTESTO].form.formId === "preventivo-form" (pagina **standalone** nuovo preventivo già aperta): usa INJECT_FORM_DATA con formId "preventivo-form" e chiavi cliente-id, tipo-lavoro, coltura-categoria, coltura, terreno-id, ecc. (mai lavoro-tipo-lavoro). Se l'utente vuole creare/compilare un preventivo ma **non** sei su quella pagina (qualsiasi dashboard modulo, magazzino, liste, ecc.): usa **sempre** APRI_PAGINA target "nuovo preventivo" con "fields" **oppure** OPEN_MODAL id "preventivo-form" con "fields"; il client naviga alla pagina e inietta. Non dipendere dal modulo della dashboard corrente (vigneto, frutteto, …): il comando è lo stesso.
+5c. MAGAZZINO (prodotti / movimenti): Per nuovo o modifica **prodotto** usa OPEN_MODAL id "prodotto-modal" con "fields" (chiavi prodotto-nome, prodotto-categoria, prodotto-unita, ecc.) o INJECT_FORM_DATA formId "prodotto-form" se il modal è già aperto sulla pagina prodotti. Per **movimento** usa OPEN_MODAL "movimento-modal" o INJECT_FORM_DATA formId "movimento-form" con mov-prodotto (nome o id), mov-data, mov-tipo, mov-quantita, ecc. Da altra pagina: APRI_PAGINA target "prodotti" o "movimenti" con _tonyPendingModal e fields come per gli altri moduli. **IMPORTANTE per INJECT_FORM_DATA**: i valori vanno SEMPRE nella chiave **formData** (oggetto chiave-valore), mai solo in fieldValues/fields. Esempio: command.type INJECT_FORM_DATA, command.formId prodotto-form, command.formData con chiavi tipo prodotto-nome. Non usare fieldValues o fields al posto di formData (il client accetta alias, ma formData è il canone).
+5d. MAGAZZINO form già aperti: Se [CONTESTO].form.formId === "prodotto-form" o "movimento-form" (modal attivo su prodotti/movimenti): usa INJECT_FORM_DATA o SET_FIELD per compilare; non usare OPEN_MODAL se il modal è già aperto. Leggi form.formSummary, form.requiredEmpty e **form.interviewEmpty** (su prodotto: categoria, unità, scorta, prezzo, dosaggi; **giorni di carenza solo per prodotto-categoria "fitofarmaci"**; per tutte le altre categorie non ci sono giorni di carenza — non chiedere; il client esclude prodotto-giorni-carenza da interviewEmpty se la categoria non è fitofarmaci). Su movimento: opzionali come confezione/prezzo/note/collegamenti. Se interviewEmpty non è vuoto, fai domande mirate e compila con SET_FIELD/INJECT finché l utente conferma o vuole salvare prima. Se mancano solo i required HTML, chiedi quelli. Dopo requiredEmpty e interviewEmpty entrambi vuoti (o utente chiede esplicitamente di salvare senza altri dati), se l utente dice salva/conferma/ok salva, includi SAVE_ACTIVITY. **Non** includere SAVE_ACTIVITY se il messaggio utente è solo una descrizione per compilare il modulo (nome, prezzo, dosaggi, ecc.) senza una conferma esplicita tipo «ok salva» o «salva il prodotto»: il client blocca SAVE in quel caso. Dopo salvataggio il modal si chiude: non ripetere SAVE_ACTIVITY.
+6. Se tutti i dati essenziali (Terreno, Lavoro, Data, Ore) ci sono e form è aperto, chiedi conferma e usa SAVE_ACTIVITY. OBBLIGATORIO: quando l'utente dice "salva", "salva l'attività", "conferma", "ok salva" e il form è completo, DEVI includere nel JSON: "command": {"type": "SAVE_ACTIVITY"}. MAI rispondere solo con testo "Attività salvata!" senza il comando: il salvataggio avviene SOLO quando il client riceve SAVE_ACTIVITY. Dopo SAVE_ACTIVITY: NON emettere di nuovo SAVE_ACTIVITY (il modal si chiude). Rispondi solo con testo di conferma: per **prodotto** (path prodotti) "Prodotto salvato!"; per **movimento** (path movimenti) "Movimento registrato!"; per diario attività "Attività salvata!".
 
 AGGIUNTA TERENO (terreno-modal) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni":
 - Puoi APRIRE il form per aggiungere un nuovo terreno con OPEN_MODAL "terreno-modal".
@@ -329,6 +612,10 @@ ESEMPI (form GIÀ aperto, form.formId === "attivita-form") – QUI fai le domand
 - Form aperto, attivita-attrezzo vuoto, più trinciatrici: { "text": "Quale attrezzo hai usato? Trincia 2m, Trincia 3m o Trincia pesante?", "command": null }
 - Utente: "Aggiungi un terreno" / "Famme vedere come aggiungeresti un nuovo terreno" -> { "text": "Apro il form. Come vuoi chiamare il terreno?", "command": { "type": "OPEN_MODAL", "id": "terreno-modal" } }
 - Utente: "Aggiungi il terreno vigneto di 2 ettari a Casetti" -> { "text": "Apro il form e compilo i dati.", "command": { "type": "OPEN_MODAL", "id": "terreno-modal", "fields": { "terreno-nome": "Vigneto Casetti", "terreno-superficie": "2", "terreno-podere": "Casetti", "terreno-coltura": "Vite da Vino" } } }
+ESEMPI NUOVO PREVENTIVO (form NON aperto, da qualsiasi pagina – es. dashboard vigneto) – text "Ti porto al nuovo preventivo.":
+- Utente: "Crea un preventivo per il cliente Rossi" -> { "text": "Ti porto al nuovo preventivo.", "command": { "type": "APRI_PAGINA", "target": "nuovo preventivo", "fields": { "cliente-id": "<id da azienda.clienti se risolvibile>" } } } oppure OPEN_MODAL preventivo-form con fields analoghi.
+- Utente: "Preventivo per trinciatura nel Trebbiano per conto terzi" -> { "text": "Ti porto al nuovo preventivo.", "command": { "type": "APRI_PAGINA", "target": "nuovo preventivo", "fields": { ... } } } (MAI attivita-modal: è preventivo, non diario.)
+
 ESEMPI CREA LAVORO (form NON aperto, es. da Dashboard) – text "Ti porto a gestione lavori":
 - Utente: "Crea un lavoro" -> { "text": "Ti porto a gestione lavori.", "command": { "type": "OPEN_MODAL", "id": "lavoro-modal" } }
 - Utente: "Crea un lavoro di erpicatura nel Sangiovese" -> { "text": "Ti porto a gestione lavori.", "command": { "type": "OPEN_MODAL", "id": "lavoro-modal", "fields": { "lavoro-nome": "Erpicatura Sangiovese", "lavoro-terreno": "Sangiovese", "lavoro-categoria-principale": "Lavorazione del Terreno", "lavoro-sottocategoria": "Tra le File", "lavoro-tipo-lavoro": "Erpicatura Tra le File", "lavoro-data-inizio": "2026-03-08", "lavoro-durata": "1", "lavoro-stato": "da_pianificare" } } }
@@ -427,13 +714,36 @@ FILTRO TABELLA PREVENTIVI (FILTER_TABLE) – quando page.currentTableData?.pageT
 - CATEGORIA COLTURA: "preventivi vigneto", "solo frutteto", "preventivi per i vigneti" → params.categoriaColtura con nome categoria (Vigneto, Frutteto, Seminativo, ecc.).
 - Esempi: "solo le bozze" → {"text": "Ecco i preventivi in bozza.", "command": {"type": "FILTER_TABLE", "params": {"stato": "bozza"}}}. "preventivi di Luca Fabbri" → {"text": "Ecco i preventivi di Luca Fabbri.", "command": {"type": "FILTER_TABLE", "params": {"cliente": "Luca Fabbri"}}}. "preventivi vendemmie" / "fammi vedere le vendemmie" → {"text": "Ecco i preventivi di raccolta (inclusa vendemmia).", "command": {"type": "FILTER_TABLE", "params": {"categoriaLavoro": "Raccolta"}}}. "preventivi erpicatura" → {"text": "Ecco i preventivi di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura Tra le File"}}}. "preventivi vigneto" → {"text": "Ecco i preventivi per i vigneti.", "command": {"type": "FILTER_TABLE", "params": {"categoriaColtura": "Vigneto"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
+INVIO EMAIL / ACCETTAZIONE MANAGER (PREVENTIVO_LIST_ACTION) – pagina Gestione preventivi (Conto terzi):
+- Se l'utente chiede di **inviare il preventivo per email** al cliente (es. "invia il preventivo a Rossi", "manda per mail il preventivo di Luca", "spedisci il preventivo via email") oppure di **accettare come manager** (es. "accetta il preventivo di Fabbri", "registra accettazione manager"): rispondi con JSON che include "command": {"type": "PREVENTIVO_LIST_ACTION", "params": {"action": "invia" | "accetta_manager", "preventivoId": "<id da azienda.preventivi o da page.currentTableData.items>"}}.
+- **invia**: solo preventivi in stato **bozza** (serve email cliente e token in anagrafica; il client esegue come il pulsante Invia).
+- **accetta_manager**: solo stati **bozza** o **inviato** (come il pulsante Accetta in lista).
+- Se ci sono più preventivi per lo stesso cliente, il sistema chiede disambiguazione: includi nel testo numero preventivo, tipo lavoro o coltura menzionati dall'utente; in alternativa elenca le opzioni (usa items o azienda.preventivi con tipoLavoro).
+- Se non sei sicuro dell'id, usa comunque testo con dettagli; la risoluzione lato server può completare preventivoId da contesto. Non usare FILTER_TABLE per invio/accettazione.
+
 FILTRO TABELLA TARIFFE (FILTER_TABLE) – quando page.currentTableData?.pageType === 'tariffe' o session.current_page.path include "tariffe":
 - SEI GIÀ sulla pagina Tariffe (Conto terzi): l'utente vede la lista tariffe. "Mostrami le tariffe per erpicatura", "solo vigneto", "tariffe in pianura", "solo le attive", "pulisci filtri" = FILTER_TABLE, NON navigazione.
 - OBBLIGATORIO: se l'utente chiede di filtrare per tipo lavoro, coltura, tipo campo (pianura/collina/montagna) o stato (attive/disattivate), rispondi con JSON che contiene "command" con type "FILTER_TABLE".
 - FORMATO params: "tipoLavoro" (testo, es. "Erpicatura", "Vendemmia"), "coltura" (testo, es. "Vigneto", "Grano"), "tipoCampo" (pianura | collina | montagna), "attiva" (true | false). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
 - Esempi: "tariffe per erpicatura" → {"text": "Ecco le tariffe di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura"}}}. "tariffe vigneto" / "solo vigneto" → {"text": "Ecco le tariffe per vigneto.", "command": {"type": "FILTER_TABLE", "params": {"coltura": "Vigneto"}}}. "tariffe in pianura" → {"text": "Ecco le tariffe per pianura.", "command": {"type": "FILTER_TABLE", "params": {"tipoCampo": "pianura"}}}. "solo le attive" → {"text": "Ecco le tariffe attive.", "command": {"type": "FILTER_TABLE", "params": {"attiva": true}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
-SOMMA ETTARI (SUM_COLUMN) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni":
+FILTRO TABELLA PRODOTTI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'prodotti' o session.current_page.path include "prodotti":
+- SEI GIÀ sulla pagina Anagrafica prodotti: filtri su stato, categoria, testo. "Solo attivi", "disattivati", "fitofarmaci", "cerca per nome" = FILTER_TABLE, NON navigazione.
+- FORMATO params: "attivo" ("true" | "false" per il select filter-attivo), "categoria" (preferisci value esatti: fitofarmaci|fertilizzanti|materiale_impianto|ricambi|sementi|altro; il **client normalizza** sinonimi parlati es. fertilizzante/concime → fertilizzanti, fitofarmaco/pesticida → fitofarmaci), "ricerca" (testo su filter-search). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- Esempi: "solo prodotti attivi" → {"text": "Ecco i prodotti attivi.", "command": {"type": "FILTER_TABLE", "params": {"attivo": "true"}}}. "solo fitofarmaci" → {"text": "Ecco i fitofarmaci.", "command": {"type": "FILTER_TABLE", "params": {"categoria": "fitofarmaci"}}}. "solo fertilizzanti" / "concime" → params.categoria "fertilizzanti" (o sinonimo; il client allinea). "cerca rame" → {"text": "Ecco la ricerca.", "command": {"type": "FILTER_TABLE", "params": {"ricerca": "rame"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
+FILTRO TABELLA MOVIMENTI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'movimenti' o session.current_page.path include "movimenti":
+- SEI GIÀ sulla pagina Movimenti magazzino: filtri tipo movimento e prodotto. "Solo entrate", "solo uscite", "movimenti del prodotto X" = FILTER_TABLE.
+- FORMATO params: "tipo" (entrata | uscita → filter-tipo), "prodotto" (id documento prodotto OPPURE nome prodotto per match sul select filter-prodotto). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- Esempi: "solo entrate" → {"text": "Ecco le entrate.", "command": {"type": "FILTER_TABLE", "params": {"tipo": "entrata"}}}. "filtra per uscite" → {"command": {"type": "FILTER_TABLE", "params": {"tipo": "uscita"}}}. "movimenti del concime Y" → {"command": {"type": "FILTER_TABLE", "params": {"prodotto": "Nome o parte del nome come in lista"}}}. "pulisci filtri" → {"command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
+FILTRO TABELLA TERRENI CLIENTI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'terreniClienti' o session.current_page.path include "terreni-clienti":
+- SEI GIÀ sulla pagina Terreni Clienti (Conto terzi): l'utente vede la lista terreni filtrati per cliente. "Mostrami i terreni di Rossi", "terreni di Luca", "pulisci filtri" = FILTER_TABLE, NON navigazione.
+- OBBLIGATORIO: se l'utente chiede di filtrare per cliente o resettare, rispondi SEMPRE con JSON che contiene "command" con type "FILTER_TABLE".
+- FORMATO params: "cliente" (ragione sociale – match per testo sulle opzioni del select). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- Esempi: "terreni di Rossi" / "mostrami i terreni di Rossi" → {"text": "Ecco i terreni di Rossi.", "command": {"type": "FILTER_TABLE", "params": {"cliente": "Rossi"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
+SOMMA ETTARI (SUM_COLUMN) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni" (NON terreni-clienti):
 - Se l'utente chiede superfici, estensioni, somma di ettari o "quanti ettari totali" (eventualmente con filtri come "dei frutteti", "a Barbavara", "in affitto"), usa il comando SUM_COLUMN.
 - FORMATO: {"text": "Breve conferma (es. Calcolo la superficie).", "command": {"type": "SUM_COLUMN", "params": {...}, "messageTemplate": "..."}}.
 - params: stesso formato di FILTER_TABLE + "includeNeri" (opzionale). I filtri vengono applicati prima del calcolo.
@@ -747,6 +1057,40 @@ FORMATO RISPOSTA:
 {CONTESTO_PLACEHOLDER}
 **[/CONTESTO_AZIENDALE]**`;
 
+/** System instruction per Nuovo Preventivo (Conto Terzi) – stesso schema JSON Treasure Map di Lavori/Attività */
+const SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED = `Ruolo: Tony, compilazione Nuovo Preventivo (Conto Terzi).
+
+GENERAZIONE JSON: rispondi SOLO con blocco \`\`\`json contenente action, replyText, formData (come per Lavori).
+
+PAGINA STANDALONE (come Gestione Lavori da ovunque, ma il “modal” è virtuale):
+- Il preventivo **non** è un modal nella dashboard: è una **pagina** dedicata. Preferisci action "apri_pagina" con target "nuovo preventivo" e formData (il client naviga e inietta). Equivalente: action "open_modal" con modalId "preventivo-form" + formData (stesso effetto sul client).
+- È **VIETATO** usare action che aprono il diario (attivita-modal) o attivita-form per un intento preventivo. Se l’utente parla di preventivo, offerta, quotazione, conto terzi, bozza preventivo → **solo** questo flusso.
+
+STATO PAGINA:
+- Se [CONTESTO].form è null o form.formId non è "preventivo-form", non sei sulla pagina attiva (qualsiasi altra schermata dell’app): usa "apri_pagina" target "nuovo preventivo" + formData inferibile da contesto.azienda (clienti, terreni clienti, tipi lavoro, tariffe) oppure "open_modal" preventivo-form + formData.
+- Se form.formId === "preventivo-form", sei già sulla pagina: è VIETATO open_modal. Usa "fill_form" o "ask" con formData parziale (solo campi nuovi) o formData vuoto per sole domande.
+
+CHIAVI CAMPO (id DOM esatti):
+cliente-id, terreno-id (opzionale), lavoro-categoria-principale, lavoro-sottocategoria, tipo-lavoro (nome tipo dal catalogo, come lavoro-tipo-lavoro ma id è tipo-lavoro), coltura-categoria (id o nome categoria colture), coltura (nome), tipo-campo (pianura|collina|montagna), superficie, iva, giorni-scadenza, data-prevista, note.
+
+REGOLE:
+- Usa ragione sociale per cliente-id, nomi per terreno e colture. Non inventare id Firestore se puoi usare nomi leggibili.
+- Ordine logico inferenza: cliente → terreno se noto → tipo lavoro (categoria/sottocategoria derivabili dal tipo) → colture → morfologia/superficie.
+- **terreno-id (obbligatorio quando il terreno è noto o detto dall'utente)**: senza terreno-id il select Terreno resta vuoto e NON si precompilano colture/superficie dal terreno. La scelta Generale vs Tra le File sul client si basa sulla **coltura del terreno** (vite/frutteto → Tra le File): passa **sempre** terreno-id insieme a cliente-id quando puoi risolverlo da [CONTESTO] (terreni del cliente, nomi podere/appezzamento). Puoi usare **tipo-lavoro** come nome base del catalogo (es. "Erpicatura"): il client deriva sottocategoria/tipo corretto se ha il terreno; **non** omettere terreno-id solo perché nel catalogo esiste già "Erpicatura Tra le File".
+- **superficie (ettari) — stesso turno del terreno**: quando emetti fill_form con **terreno-id** (anche dopo disambiguazione "A o B?"), il browser **dopo l'inject** precompila automaticamente superficie (e aggiorna colture) dal record terreno. Nel **replyText di quella stessa risposta** NON chiedere «qual è la superficie in ettari?» né elencare la superficie come dato ancora da fornire: nel contesto che vedi la superficie può risultare vuota anche se il client la sta per riempire. Conferma il terreno scelto o invita a verificare i campi nel form. Chiedi la superficie **solo** se in un turno **successivo** [CONTESTO].form mostra ancora "superficie" in requiredEmpty / vuota in formSummary, o se l'utente vuole modificarla.
+- **data-prevista**: obbligatoria nel form per salvare. Se in formSummary risulta vuota, NON proporre conferma salvataggio né action "save": chiedi prima la data (fill_form con data-prevista in formato YYYY-MM-DD o ask).
+- **SALVATAGGIO (action "save")**: il client esegue il click su "Salva come Bozza". Usa action "save" SOLO se l'utente ha confermato in modo esplicito (es. salva, sì, sì salva, ok salva, conferma, procedi, va bene salva). È VIETATO action "save" se l'unico messaggio utente è il reminder di sistema "Form completo, confermi salvataggio?" (timer proattivo del widget): in quel caso rispondi con action "ask", replyText che chiede se salvare il preventivo in bozza, senza formData, MAI save. Non salvare mai in autonomia solo perché requiredEmpty è vuoto.
+- NON usare mai lavoro-tipo-lavoro né lavoro-nome né tipo-assegnazione (sono del modulo Gestione Lavori). NON mischiare prefisso attivita-.
+
+FORMATO:
+\`\`\`json
+{"action":"open_modal","modalId":"preventivo-form","replyText":"Ti porto al nuovo preventivo.","formData":{"cliente-id":"...","tipo-lavoro":"..."}}
+\`\`\`
+
+**[CONTESTO_AZIENDALE]**
+{CONTESTO_PLACEHOLDER}
+**[/CONTESTO_AZIENDALE]**`;
+
 /**
  * Skill SmartFormValidator: regola prioritaria prima di emettere comandi di registrazione dati.
  * Se l'utente vuole registrare un dato (lavori, vendemmia, magazzino, attività) e nel contesto form
@@ -761,6 +1105,239 @@ SKILL SmartFormValidator (PRIORITÀ MASSIMA):
 - Se manca ALMENO UN dato essenziale: NON inviare il JSON di comando. Rispondi SOLO con una domanda esplicita per l'informazione mancante (es. "Su quale terreno?", "Che data?", "Qual è il grado Babo?", "Quante ore?").
 - Invia il comando JSON SOLO quando i dati obbligatori per quella operazione sono presenti nel contesto form o sono stati appena forniti dall'utente nella stessa frase.
 `;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normText(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function userMentionsExplicitDate(message) {
+  const m = normText(message);
+  if (!m) return false;
+  if (/\b(oggi|domani|dopodomani)\b/.test(m)) return true;
+  if (/\b(lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica)\b/.test(m)) return true;
+  if (/\b(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\b/.test(m)) return true;
+  if (/\b\d{1,2}[\/.-]\d{1,2}([\/.-]\d{2,4})?\b/.test(m)) return true;
+  if (/\b\d{4}-\d{2}-\d{2}\b/.test(m)) return true;
+  return false;
+}
+
+function inferPreventivoFallbackFormData(message, ctxFinal) {
+  const out = {};
+  const msgN = normText(message);
+  const azi = (ctxFinal && ctxFinal.azienda) || {};
+  const clienti = Array.isArray(azi.clienti) ? azi.clienti : [];
+  const terreniClienti = Array.isArray(azi.terreniClienti) ? azi.terreniClienti : [];
+  const tipi = Array.isArray(azi.tipiLavoro) ? azi.tipiLavoro : [];
+
+  const cliente = clienti.find((c) => {
+    const n = normText(c.ragioneSociale || c.nome || c.id);
+    return n && (msgN.includes(n) || n.includes(msgN));
+  });
+  if (cliente) out["cliente-id"] = cliente.id || cliente.ragioneSociale;
+
+  let tipo = tipi.find((t) => {
+    const n = normText(t.nome || t.id);
+    return n && (msgN.includes(n) || n.includes(msgN));
+  });
+  // Match più tollerante: es. "trinciatura" / "trinciatura tra le file" nel messaggio vs catalogo
+  if (!tipo && Array.isArray(tipi) && tipi.length) {
+    const msgTokens = msgN.split(/[^a-z0-9]+/i).filter((w) => w && w.length >= 5);
+    tipo = tipi.find((t) => {
+      const n = normText(t.nome || "");
+      if (!n || n.length < 4) return false;
+      const words = n.split(/\s+/).filter((x) => x.length >= 4);
+      for (let i = 0; i < words.length; i++) {
+        if (msgN.includes(words[i])) return true;
+      }
+      for (let j = 0; j < msgTokens.length; j++) {
+        const mt = msgTokens[j];
+        if (n.includes(mt) || (mt.length >= 6 && n.includes(mt.slice(0, 6)))) return true;
+      }
+      return false;
+    });
+  }
+  if (tipo && tipo.nome) out["tipo-lavoro"] = tipo.nome;
+
+  // Terreno: se c'è match nome/cultura univoco dentro i terreni del cliente scelto, usa nome (non id incerto).
+  const terreniPool = out["cliente-id"]
+    ? terreniClienti.filter((t) => String(t.clienteId || "") === String(out["cliente-id"]))
+    : terreniClienti;
+  function normalizeWordRoot(w) {
+    const s = normText(w);
+    if (!s) return "";
+    return s.replace(/[aeiou]$/i, "");
+  }
+  function getHintTokens(text) {
+    const stop = new Set(["per", "con", "del", "della", "dello", "nel", "nella", "campo", "terreno", "cliente", "preventivo", "fare", "fai", "compila", "nuovo", "luca", "fabbri"]);
+    return normText(text)
+      .split(/[^a-z0-9]+/i)
+      .filter((t) => t && t.length >= 4 && !stop.has(t));
+  }
+  function textScore(hay, needle) {
+    if (!hay || !needle) return 0;
+    if (hay.includes(needle) || needle.includes(hay)) return 100;
+    const toks = needle.split(/\s+/).filter((x) => x && x.length >= 4);
+    if (!toks.length) return 0;
+    let hits = 0;
+    toks.forEach((tk) => { if (hay.includes(tk)) hits++; });
+    const r = hits / toks.length;
+    if (r >= 1) return 80;
+    if (r >= 0.66) return 55;
+    if (r >= 0.5) return 35;
+    return 0;
+  }
+
+  const hintTokens = getHintTokens(msgN);
+  const terrScored = terreniPool.map((t) => {
+    const blob = normText([
+      t.nome, t.coltura, t.colturaSottocategoria, t.colturaSottoCategoria, t.colturaCategoria, t.note
+    ].filter(Boolean).join(" "));
+    const blobRoot = normalizeWordRoot(blob);
+    let partialHit = 0;
+    hintTokens.forEach((tk) => {
+      const r = normalizeWordRoot(tk);
+      if (!r || r.length < 4) return;
+      if (blob.includes(tk) || blobRoot.includes(r)) partialHit = Math.max(partialHit, 45);
+    });
+    const score = Math.max(
+      textScore(blob, msgN),
+      textScore(normText(t.nome || ""), msgN),
+      textScore(normText(t.coltura || ""), msgN),
+      textScore(msgN, normText(t.coltura || "")),
+      partialHit
+    );
+    return { terreno: t, score };
+  }).filter((x) => x.score >= 35).sort((a, b) => b.score - a.score);
+
+  const terrMatches = terrScored.map((x) => x.terreno);
+  if (terrMatches.length === 1) {
+    out["terreno-id"] = terrMatches[0].nome || terrMatches[0].id;
+  } else if (terrScored.length > 1 && terrScored[0].score > terrScored[1].score + 20) {
+    // Match migliore nettamente dominante: usa il più probabile.
+    out["terreno-id"] = terrScored[0].terreno.nome || terrScored[0].terreno.id;
+  } else if (terrScored.length > 1 && hintTokens.length > 0) {
+    // Ambiguità: passa un hint testuale per attivare la disambiguazione lato client.
+    out["terreno-id"] = hintTokens[0];
+  }
+
+  return out;
+}
+
+function enrichPreventivoCommandFormData(formData, message, ctxFinal) {
+  const fd = formData && typeof formData === "object" ? { ...formData } : {};
+  const inferred = inferPreventivoFallbackFormData(message, ctxFinal);
+  if (!fd["cliente-id"] && inferred["cliente-id"]) fd["cliente-id"] = inferred["cliente-id"];
+  if (!fd["tipo-lavoro"] && inferred["tipo-lavoro"]) fd["tipo-lavoro"] = inferred["tipo-lavoro"];
+  if (!fd["terreno-id"] && inferred["terreno-id"]) fd["terreno-id"] = inferred["terreno-id"];
+  const azi = (ctxFinal && ctxFinal.azienda) || {};
+  const terreniClienti = Array.isArray(azi.terreniClienti) ? azi.terreniClienti : [];
+  const clienti = Array.isArray(azi.clienti) ? azi.clienti : [];
+  let clienteId = String(fd["cliente-id"] || "").trim();
+  if (clienteId && !clienti.some((c) => String(c.id || "") === clienteId)) {
+    const idNorm = normText(clienteId);
+    const clienteByName = clienti.find((c) => {
+      const n = normText(c.ragioneSociale || c.nome || c.id);
+      return n && (n === idNorm || n.includes(idNorm) || idNorm.includes(n));
+    });
+    if (clienteByName && clienteByName.id) {
+      clienteId = String(clienteByName.id);
+      fd["cliente-id"] = clienteId;
+    }
+  }
+
+  let pool = terreniClienti;
+  if (clienteId) {
+    pool = terreniClienti.filter((t) => String(t.clienteId || "") === clienteId);
+  }
+
+  // Guardrail anti-selezione ambigua:
+  // se arriva terreno-id ma il cliente ha più terreni "compatibili" e
+  // il messaggio non contiene il nome terreno scelto in modo esplicito,
+  // rimuoviamo terreno-id per forzare la domanda di disambiguazione.
+  if (fd["terreno-id"] && pool.length > 1) {
+    const msgN = normText(message);
+    const selectedRaw = String(fd["terreno-id"] || "").trim();
+    const selected = pool.find((t) =>
+      String(t.id || "") === selectedRaw ||
+      normText(t.nome || "") === normText(selectedRaw)
+    );
+    if (selected) {
+      const selectedNameN = normText(selected.nome || "");
+      // Nome terreno "esplicito" = il messaggio contiene il nome completo normalizzato
+      // (evita di fidarsi solo di match parziali tipo coltura vs più terreni con colture diverse in DB).
+      const nameExplicitInMessage = !!selectedNameN && selectedNameN.length >= 3 && msgN.includes(selectedNameN);
+      if (!nameExplicitInMessage) {
+        delete fd["terreno-id"];
+      }
+    } else if (pool.length > 1) {
+      // terreno-id non risolvibile nel pool cliente: non iniettare un id opaco
+      delete fd["terreno-id"];
+    }
+  }
+
+  // Fallback robusto: se per il cliente c'è un solo terreno, pre-selezionalo.
+  if (!fd["terreno-id"] && pool.length === 1) {
+    fd["terreno-id"] = pool[0].id || pool[0].nome;
+  }
+  return fd;
+}
+
+/**
+ * Campi OPEN_MODAL/APRI_PAGINA preventivo: modello Gemini sopra inferenza, poi un solo enrich
+ * (evita `{ ...inferred, ...enriched }` che reintroduceva terreno-id dopo il guardrail).
+ */
+function buildPreventivoOpenModalFields(modelFields, message, ctxFinal) {
+  const inferred = inferPreventivoFallbackFormData(message, ctxFinal);
+  const base = {
+    ...inferred,
+    ...(modelFields && typeof modelFields === "object" ? modelFields : {}),
+  };
+  return enrichPreventivoCommandFormData(base, message, ctxFinal);
+}
+
+/** Se togliamo terreno-id per ambiguità, non ripetere in chat un terreno "scelto" dal modello. */
+function neutralPreventivoReplyWhenTerrenoStripped() {
+  return "Ok, apro Nuovo Preventivo con cliente e lavorazione indicati. Per il terreno ci sono più possibilità: sceglilo nel modulo oppure scrivimi il nome preciso del terreno.";
+}
+
+async function callGeminiWithRetry(url, body, label) {
+  const maxAttempts = 3;
+  const baseDelay = 900;
+  let lastStatus = 0;
+  let lastText = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return res;
+    lastStatus = res.status;
+    lastText = await res.text();
+    console.error("Gemini API error:", res.status, lastText);
+    const retriable = res.status === 429 || res.status === 500 || res.status === 503;
+    if (!retriable || attempt === maxAttempts) break;
+    const waitMs = baseDelay * attempt;
+    console.warn(`[Tony Cloud Function] ${label} retry ${attempt}/${maxAttempts - 1} dopo ${waitMs}ms (status ${res.status})`);
+    await sleep(waitMs);
+  }
+  throw new HttpsError("internal", "Errore chiamata Gemini: " + (lastStatus || "unknown"));
+}
+
+/** Messaggio inviato dal widget come promemoria (timer proattivo): non è conferma utente al salvataggio. */
+function tonyIsProactiveSaveReminderUserMessage(userMessage) {
+  if (!userMessage || typeof userMessage !== "string") return false;
+  const t = userMessage.trim();
+  return /confermi\s+salvataggio/i.test(t) || /^form\s+completo,?\s*confermi/i.test(t);
+}
 
 /**
  * Sub-Agente Vignaiolo: personalità quando l'utente è in una pagina del modulo vigneto.
@@ -841,7 +1418,7 @@ Se [CONTESTO].page.availableRoutes è fornito (array di { target, path, label })
  * Body: { message: string, context?: object }
  */
 exports.tonyAsk = onCall(
-  { region: "europe-west1" },
+  { region: "europe-west1", secrets: [sentryDsn] },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Utente non autenticato.");
@@ -923,8 +1500,8 @@ exports.tonyAsk = onCall(
       || (pageTitle && /mezzi|macchine|parco\s*macchine|gestione\s*mezzi/i.test(pageTitle));
     let extraBlocks = "";
     if (isTonyAdvanced) {
-      extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, tipi lavoro, colture, poderi, summaryScadenze, guastiAperti) sono in [CONTESTO].azienda. azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
-      extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, azienda.macchine. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
+      extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, movimenti magazzino recenti, tipi lavoro, colture, poderi, summaryScadenze, guastiAperti) sono in [CONTESTO].azienda. azienda.movimentiRecenti (ultimi fino a 50, ordinati per data) e azienda.summaryMovimentiRecenti servono per domande su carichi/scarichi da qualsiasi pagina; la lista filtrabile completa resta sulla pagina Movimenti (page.currentTableData). azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
+      extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"ultimi movimenti magazzino\", \"quali carichi/scarichi\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, azienda.movimentiRecenti, azienda.summaryMovimentiRecenti, azienda.macchine. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
       extraBlocks += SMARTFORMVALIDATOR_RULE;
       if (pagePath.includes("/vigneto/")) {
         extraBlocks += SUBAGENT_VIGNAIOLO;
@@ -975,9 +1552,9 @@ exports.tonyAsk = onCall(
     let preventiviReminder = "";
     if (isTonyAdvanced && isPreventiviQuestion) {
       if (isPreventiviPage && hasPreventiviTableData) {
-        preventiviReminder = "\n\n[OBBLIGATORIO: L'utente è sulla pagina PREVENTIVI. Rispondi usando i dati in context.page.tableDataSummary e context.page.currentTableData.items (numero, cliente, stato, totale).]";
+        preventiviReminder = "\n\n[OBBLIGATORIO: L'utente è sulla pagina PREVENTIVI. Rispondi usando context.page.tableDataSummary e context.page.currentTableData.items (id, numero, cliente, tipoLavoro, coltura, stato, totale). Per inviare per email o accettare (manager) usa command type PREVENTIVO_LIST_ACTION con params.action invia o accetta_manager e preventivoId.]";
       } else if (ctxFinal.azienda && Array.isArray(ctxFinal.azienda.preventivi)) {
-        preventiviReminder = "\n\n[OBBLIGATORIO: Rispondi usando context.azienda.preventivi (id, numero, clienteId, stato). Per \"quanti preventivi\" conta azienda.preventivi.length. Per stato (bozza, inviato, accettati) filtra per stato. Per \"quanti per [cliente]\" cerca in azienda.clienti il cliente per ragioneSociale, prendi id, conta preventivi dove clienteId === id. NON dire che non hai i dati.]";
+        preventiviReminder = "\n\n[OBBLIGATORIO: Rispondi usando context.azienda.preventivi (id, numero, clienteId, stato, tipoLavoro, coltura). Per \"quanti preventivi\" conta azienda.preventivi.length. Per stato (bozza, inviato, accettati) filtra per stato. Per \"quanti per [cliente]\" cerca in azienda.clienti il cliente per ragioneSociale, prendi id, conta preventivi dove clienteId === id. Per invio email / accetta manager: PREVENTIVO_LIST_ACTION. NON dire che non hai i dati.]";
       }
     }
     const isTariffePage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "tariffe")) || pagePath.includes("tariffe");
@@ -1000,7 +1577,30 @@ exports.tonyAsk = onCall(
     const isClientiFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|clienti)\b.*\b(attivi|sospesi|archiviati)\b|\b(attivi|sospesi|archiviati)\b|\b(clienti)\s+(attivi|sospesi|archiviati)\b|\b(cerca|trova|cercami)\b.*(clienti)?\b|\b(clienti)\s+(con|che|che\s+contengono)\b|\b(clienti)\s+([a-zA-Z0-9@.\s]+)\b|\bpulisci\s+filtri\b/i.test(message);
     const isPreventiviFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|preventivi)\b.*\b(bozz|inviati|accettat|rifiutat|scadut|pianificat|annullat)\b|\b(bozze|inviati|accettati|rifiutati|scaduti|pianificati|annullati)\b|\b(preventivi)\s+(in\s+)?(bozza|inviat|accettat)\b|\b(preventivi)\s+(di|per)\b|\b(solo\s+)?(i\s+)?preventivi\s+di\b|\b(preventivi)\s+(vigneto|frutteto|seminativo|erpicatur|potatur|trinciatur|vendemmi)\b|\b(vigneto|frutteto|seminativo)\s+(preventivi)?\b|\b(vendemmie|potature|raccolte|trattamenti|lavorazioni\s+del\s+terreno)\b|\b(preventivi)\s+(vendemmi|potatur|raccolt|trattament|lavoraz)\b|\b(fammi\s+vedere)\s+(le\s+)?(vendemmie|potature|raccolte)\b|\bpulisci\s+filtri\b/i.test(message);
     const isTariffeFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|tariffe)\b.*\b(erpicatur|vigneto|frutteto|coltura|pianura|collina|montagna|attive|disattivat)\b|\b(tariffe)\s+(per|di|in)\b|\b(tariffe)\s+(erpicatur|vigneto|pianura|attive)\b|\b(solo\s+)?(le\s+)?tariffe\s+(attive|per)\b|\bpulisci\s+filtri\b/i.test(message);
-    const filterReminder = isTonyAdvanced && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest) || (isClientiPage && isClientiFilterLikeRequest) || (isPreventiviPage && isPreventiviFilterLikeRequest) || (isTariffePage && isTariffeFilterLikeRequest))
+    const isTerreniClientiPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "terreniClienti")) || pagePath.includes("terreni-clienti");
+    const isTerreniClientiFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi|terreni)\b.*\b(di|del|per)\b|\b(terreni)\s+(di|del|per)\s+[a-zA-Z\s]+|\bpulisci\s+filtri\b/i.test(message);
+    const isProdottiPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "prodotti")) || pagePath.includes("prodotti");
+    const isMovimentiPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "movimenti")) || pagePath.includes("movimenti");
+    const isProdottiFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi)\b.*\b(prodott|attivi|disattiv|fitofarmaci|fertilizz|ricambi|sementi|categoria)\b|\b(solo\s+)?(i\s+)?prodotti\s+(attivi|disattiv)\b|\bprodotti\s+(in\s+)?(fitofarmaci|fertilizzanti)\b|\bpulisci\s+filtri\b|\b(cerca|trova)\b.*\b(prodott|magazzino|anagrafica)\b/i.test(message);
+    const isMovimentiFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi)\b.*\b(movimenti|entrata|uscita|entrate|uscite)\b|\b(solo\s+)?(le\s+)?(entrate|uscite)\b|\bmovimenti\s+(del|di|per)\b|\bpulisci\s+filtri\b/i.test(message);
+    const hasMovimentiTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "movimenti";
+    const isMovimentiInfoQuestion =
+      /\b(quali|ultimi|elenco|lista|storico|dimmi|fammi\s+vedere|hai\s+registrato)\s+(i\s+|gli\s+|le\s+)?(movimenti|carichi|scarichi)\b|\bmovimenti\s+(recenti|ultimi|del\s+magazzino|in\s+magazzino|registrati)\b|\bultimi\s+(movimenti|carichi|scarichi)\b|\bcarichi\s+e\s+scarichi\b|\b(entrate|uscite)\s+(del\s+|in\s+)?magazzino\b|\bcosa\s+è\s+(entrato|uscito)\b/i.test(message);
+    const isMovimentiNavOnly = /^\s*(apri|vai|portami|mandami)\s+(a\s+|alla\s+|al\s+)?(pagina\s+)?movimenti\b/i.test(String(message).trim());
+    let movimentiReminder = "";
+    if (isTonyAdvanced && !isMovimentiNavOnly && (isMovimentiInfoQuestion || isMovimentiFilterLikeRequest)) {
+      if (isMovimentiPage && hasMovimentiTableData) {
+        movimentiReminder =
+          "\n\n[OBBLIGATORIO: L'utente è sulla pagina MOVIMENTI. Usa context.page.currentTableData (summary + items) e FILTER_TABLE con params tipo, prodotto, reset per filtrare.]";
+      } else if (ctxFinal.azienda && Array.isArray(ctxFinal.azienda.movimentiRecenti) && ctxFinal.azienda.movimentiRecenti.length > 0) {
+        movimentiReminder =
+          "\n\n[OBBLIGATORIO: Movimenti magazzino (non sei sulla pagina lista o tabella non nel contesto): rispondi usando context.azienda.movimentiRecenti e context.azienda.summaryMovimentiRecenti (ultimi fino a 50 per data). Per elenco completo o filtri (solo entrate/uscite, prodotto) usa APRI_PAGINA target movimenti. NON dire di non avere dati se movimentiRecenti non è vuoto.]";
+      } else {
+        movimentiReminder =
+          "\n\n[Contesto server: nessun movimento in movimentiRecenti. Suggerisci APRI_PAGINA target movimenti per la lista aggiornata.]";
+      }
+    }
+    const filterReminder = isTonyAdvanced && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest) || (isClientiPage && isClientiFilterLikeRequest) || (isPreventiviPage && isPreventiviFilterLikeRequest) || (isTariffePage && isTariffeFilterLikeRequest) || (isTerreniClientiPage && isTerreniClientiFilterLikeRequest) || (isProdottiPage && isProdottiFilterLikeRequest) || (isMovimentiPage && isMovimentiFilterLikeRequest))
       ? "\n\n[IMPORTANTE: L'utente chiede di filtrare o vedere dati. Rispondi SEMPRE con JSON completo: {\"text\": \"...\", \"command\": {\"type\": \"FILTER_TABLE\", \"params\": {...}}}]"
       : "";
 
@@ -1009,6 +1609,16 @@ exports.tonyAsk = onCall(
     // Modalità Treasure Map: form attività o lavoro aperto, OPPURE crea lavoro da pagina lavori (modal chiuso)
     const isAttivitaForm = ctxFinal.form?.formId === "attivita-form" || ctxFinal.form?.modalId === "attivita-modal";
     const isLavoroForm = ctxFinal.form?.formId === "lavoro-form" || ctxFinal.form?.modalId === "lavoro-modal";
+    const isPreventivoForm = ctxFinal.form?.formId === "preventivo-form";
+    const isNuovoPreventivoPage = pagePath.includes("nuovo-preventivo");
+    const isCreaPreventivoIntent =
+      /\b(crea|nuovo|compila|prepara|fai|fammi|serve|servono|mi\s+serve)\s*(un?\s*)?(preventivo|offerta|quotazione)/i.test(message) ||
+      /\b(preventivo|offerta|quotazione)\s+(per|di|del|della)\s+/i.test(message) ||
+      /\b(compila|riempi)\s+(il\s+)?form\s+(del\s+)?preventivo/i.test(message) ||
+      /\b(preventivo|offerta)\s+(commerciale|conto\s+terzi)\b/i.test(message) ||
+      /\bconto\s+terzi\b.*\b(preventivo|offerta|preventiv|quotaz)/i.test(message) ||
+      /\b(bozza|preventivo)\s+(per|di)\b/i.test(message) ||
+      /\bmi\s+fai\s+(un\s+)?preventivo/i.test(message);
     const isCreaLavoroIntent = /\b(crea|nuovo|programma|pianifica|assegna|schedula)\s*(un?\s*)?(lavoro|potatur|erpicatur|trinciatur|vendemmi|fresatur)/i.test(message)
       || /\blavoro\s*(di|di\s+erpicatur|di\s+potatur|di\s+trinciatur|nel\s+sangiovese|nel\s+pinot|assegnat)/i.test(message)
       || /\b(potatur|erpicatur|trinciatur|vendemmi|fresatur|vangatur|diserbo)\s+(nel|nel\s+)\w+/i.test(message)
@@ -1018,7 +1628,14 @@ exports.tonyAsk = onCall(
       || (isLavoriPage && !isLavoriFilterLikeRequest && /\b(potatur|erpicatur|trinciatur|vendemmi|fresatur|vangatur|diserbo)\b/i.test(message) && !/\b(mostrami|mostra|filtra|solo|soltanto|vedi)\b/i.test(message));
     const isFormApertoTrigger = /form\s*aperto/i.test(message);
     const useStructuredFormOutput =
-      isTonyAdvancedActive && (isAttivitaForm || isLavoroForm || (isLavoriPage && (isCreaLavoroIntent || isFormApertoTrigger)) || (isFormApertoTrigger && (isAttivitaForm || isLavoroForm)));
+      isTonyAdvancedActive &&
+      (isAttivitaForm ||
+        isLavoroForm ||
+        isPreventivoForm ||
+        isCreaPreventivoIntent ||
+        (isNuovoPreventivoPage && (isCreaPreventivoIntent || isFormApertoTrigger)) ||
+        (isLavoriPage && (isCreaLavoroIntent || isFormApertoTrigger)) ||
+        (isFormApertoTrigger && (isAttivitaForm || isLavoroForm || isPreventivoForm)));
 
     let systemInstructionToUse = systemInstruction;
     const generationConfig = {
@@ -1032,8 +1649,29 @@ exports.tonyAsk = onCall(
       if (isLavoriPage && isCreaLavoroIntent && !ctxFinal.form) {
         ctxForLavori = { ...ctxFinal, form: { formId: null, modalId: "lavoro-modal", requiredEmpty: [], formSummary: "Modal chiuso. PRIMO COLPO: massimizza inferenza. Da 'potatura di rinnovamento sangiovese casetti' inferisci: lavoro-nome, lavoro-terreno, lavoro-tipo-lavoro, lavoro-categoria-principale, lavoro-sottocategoria. Da 'assegnata a X' inferisci tipo-assegnazione, lavoro-operaio/caposquadra, lavoro-stato. Includi TUTTO in formData. Chiedi in replyText SOLO ciò che manca." } };
       }
+      let ctxForPreventivo = ctxFinal;
+      if (isCreaPreventivoIntent && !ctxFinal.form) {
+        ctxForPreventivo = {
+          ...ctxFinal,
+          form: {
+            formId: null,
+            modalId: "preventivo-form",
+            requiredEmpty: [],
+            formSummary: isNuovoPreventivoPage
+              ? "Pagina Nuovo Preventivo ma form non ancora nel contesto. PRIMO COLPO: inferisci cliente-id (ragione sociale), tipo-lavoro, colture, terreno se noto. Preferisci apri_pagina target nuovo preventivo + formData o open_modal preventivo-form + formData."
+              : "Utente vuole un preventivo da un'altra schermata (dashboard modulo, magazzino, ecc.): NON usare attivita-modal. Preferisci apri_pagina target nuovo preventivo + formData con tutto ciò che è inferibile da contesto.azienda.clienti / terreniClienti / tariffe / tipi lavoro.",
+          },
+        };
+      }
       const ctxJson = JSON.stringify(ctxForLavori, null, 2);
-      if (isLavoroForm || (isLavoriPage && isCreaLavoroIntent)) {
+      const ctxJsonPreventivo = JSON.stringify(ctxForPreventivo, null, 2);
+      if (isPreventivoForm || isCreaPreventivoIntent) {
+        console.log("[Tony Cloud Function] Usando modalità Treasure Map Preventivo");
+        systemInstructionToUse = SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED.replace(
+          "{CONTESTO_PLACEHOLDER}",
+          ctxJsonPreventivo || '"Nessun dato"'
+        );
+      } else if (isLavoroForm || (isLavoriPage && isCreaLavoroIntent)) {
         console.log("[Tony Cloud Function] Usando modalità Treasure Map Lavori");
         systemInstructionToUse = SYSTEM_INSTRUCTION_LAVORO_STRUCTURED.replace(
           "{CONTESTO_PLACEHOLDER}",
@@ -1052,8 +1690,8 @@ exports.tonyAsk = onCall(
       ? "\n\n[OBBLIGATORIO: Rispondi SOLO con un blocco ```json contenente action, replyText, formData. Non scrivere testo prima o dopo il blocco.]"
       : "";
     const fullPrompt = statoUtenteLine + (historyFormatted
-      ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${structuredOutputReminder}`
-      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${structuredOutputReminder}`);
+      ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${movimentiReminder}${structuredOutputReminder}`
+      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${movimentiReminder}${structuredOutputReminder}`);
 
     const body = {
       contents: [{ parts: [{ text: fullPrompt }] }],
@@ -1061,17 +1699,7 @@ exports.tonyAsk = onCall(
       generationConfig,
     };
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Gemini API error:", res.status, errText);
-      throw new HttpsError("internal", "Errore chiamata Gemini: " + (res.statusText || res.status));
-    }
+    const res = await callGeminiWithRetry(url, body, "initial");
 
     const data = await res.json();
     let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -1089,18 +1717,122 @@ exports.tonyAsk = onCall(
           const result = { text: cleanedText };
           if (structured.action === "open_modal" && structured.modalId) {
             result.command = { type: "OPEN_MODAL", id: structured.modalId };
-            if (structured.formData && typeof structured.formData === "object" && Object.keys(structured.formData).length > 0) {
-              result.command.fields = structured.formData;
+            const isPreventivoOpenModal = String(structured.modalId || "").toLowerCase().indexOf("preventivo") >= 0;
+            const rawFdOpen =
+              (structured.formData && typeof structured.formData === "object" ? structured.formData : null) ||
+              (structured.params && structured.params.formData && typeof structured.params.formData === "object" ? structured.params.formData : null) ||
+              {};
+            if (isPreventivoOpenModal) {
+              const hadModelTerreno = !!rawFdOpen["terreno-id"];
+              const merged = buildPreventivoOpenModalFields(rawFdOpen, message, ctxFinal);
+              if (Object.keys(merged).length > 0) {
+                result.command.fields = merged;
+              }
+              if (hadModelTerreno && !merged["terreno-id"]) {
+                result.text = neutralPreventivoReplyWhenTerrenoStripped();
+              }
+            } else if (Object.keys(rawFdOpen).length > 0) {
+              result.command.fields = rawFdOpen;
+            }
+          } else if (structured.action === "apri_pagina" || structured.action === "APRI_PAGINA") {
+            const navTarget =
+              (structured.params && structured.params.target) || structured.target || "";
+            if (navTarget) {
+              result.command = { type: "APRI_PAGINA", target: navTarget };
+              const nt = String(navTarget).toLowerCase();
+              const isPreventivoNav = nt.indexOf("preventivo") >= 0;
+              const fdData = structured.formData && typeof structured.formData === "object" ? structured.formData : {};
+              const fdParams = structured.params && structured.params.formData && typeof structured.params.formData === "object" ? structured.params.formData : {};
+              const fd = { ...fdParams, ...fdData };
+              if (isPreventivoNav) {
+                const hadModelTerreno = !!fd["terreno-id"];
+                const merged = buildPreventivoOpenModalFields(fd, message, ctxFinal);
+                if (Object.keys(merged).length > 0) {
+                  result.command.fields = merged;
+                }
+                result.command._tonyPendingModal = "preventivo-form";
+                if (hadModelTerreno && !merged["terreno-id"]) {
+                  result.text = neutralPreventivoReplyWhenTerrenoStripped();
+                }
+              } else if (Object.keys(fd).length > 0) {
+                result.command.fields = fd;
+              }
             }
           } else if (structured.action === "save") {
-            result.command = { type: "SAVE_ACTIVITY" };
+            if (tonyIsProactiveSaveReminderUserMessage(message)) {
+              result.text = isPreventivoForm
+                ? "Tutti i campi obbligatori sono compilati. Vuoi che salvi il preventivo in bozza? Rispondi sì, conferma o salva per procedere."
+                : "Tutti i campi obbligatori sono compilati. Vuoi che salvi? Rispondi sì, conferma o salva per procedere.";
+              console.log("[Tony Cloud Function] Treasure Map: save ignorato (messaggio proattivo sistema, niente SAVE_ACTIVITY)");
+            } else {
+              result.command = { type: "SAVE_ACTIVITY" };
+            }
           } else if ((structured.action === "fill_form" || structured.action === "ask") && structured.formData && Object.keys(structured.formData).length > 0) {
             const formDataKeys = Object.keys(structured.formData);
-            const isLavoroData = formDataKeys.some((k) => k.startsWith("lavoro-") || k === "tipo-assegnazione");
-            const formId = isLavoroData ? "lavoro-form" : "attivita-form";
+            const explicitLavoroGestione = formDataKeys.some((k) => k === "lavoro-tipo-lavoro" || k === "lavoro-nome" || k === "tipo-assegnazione");
+            const explicitPreventivo =
+              formDataKeys.includes("cliente-id") &&
+              (formDataKeys.includes("tipo-lavoro") ||
+                formDataKeys.includes("coltura-categoria") ||
+                formDataKeys.includes("coltura") ||
+                formDataKeys.includes("terreno-id"));
+            let formId = "attivita-form";
+            if (explicitPreventivo && !explicitLavoroGestione) {
+              formId = "preventivo-form";
+            } else {
+              const isLavoroData = formDataKeys.some((k) => k.startsWith("lavoro-") || k === "tipo-assegnazione");
+              if (isLavoroData) formId = "lavoro-form";
+            }
             result.command = { type: "INJECT_FORM_DATA", formId, formData: structured.formData };
           }
-          console.log("[Tony Cloud Function] Treasure Map - JSON estratto:", JSON.stringify(result.command, null, 2));
+          // Guardrail Preventivo: se terreno-id è un id non verificabile nel contesto cliente, non forzarlo.
+          if (result.command && result.command.type === "INJECT_FORM_DATA" && result.command.formId === "preventivo-form") {
+            const fd = enrichPreventivoCommandFormData(result.command.formData || {}, message, ctxFinal);
+            result.command.formData = fd;
+            if (fd["data-prevista"] && !userMentionsExplicitDate(message)) {
+              console.log("[Tony Cloud Function] Guardrail preventivo: data-prevista rimossa (data non esplicitata dall'utente).");
+              delete fd["data-prevista"];
+              result.command.formData = fd;
+            }
+            const terrenoVal = String(fd["terreno-id"] || "").trim();
+            const clienteVal = String(fd["cliente-id"] || "").trim();
+            const idLike = /^[a-zA-Z0-9_-]{15,}$/.test(terrenoVal);
+            if (idLike) {
+              const terreniClienti = (ctxFinal && ctxFinal.azienda && Array.isArray(ctxFinal.azienda.terreniClienti))
+                ? ctxFinal.azienda.terreniClienti
+                : [];
+              const pool = clienteVal
+                ? terreniClienti.filter((t) => String(t.clienteId || "") === clienteVal)
+                : terreniClienti;
+              const okTerr = pool.some((t) => String(t.id || "") === terrenoVal);
+              if (!okTerr) {
+                console.warn("[Tony Cloud Function] Guardrail preventivo: terreno-id id non verificabile nel contesto cliente, rimosso per disambiguazione client.");
+                delete fd["terreno-id"];
+                result.command.formData = fd;
+              }
+            }
+          }
+
+          if (!result.command && (isPreventivoForm || isCreaPreventivoIntent)) {
+            const fd = (structured && structured.formData && typeof structured.formData === "object") ? structured.formData : {};
+            const merged = { ...inferPreventivoFallbackFormData(message, ctxFinal), ...fd };
+            if (Object.keys(merged).length > 0) {
+              result.command = {
+                type: "INJECT_FORM_DATA",
+                formId: "preventivo-form",
+                formData: merged,
+              };
+              if (!result.text || result.text.trim() === "" || result.text.trim() === "Ok.") {
+                result.text = "Compilo il preventivo con i dati trovati e ti chiedo i campi mancanti.";
+              }
+              console.log("[Tony Cloud Function] Treasure Map fallback preventivo: comando sintetico generato");
+            }
+          }
+
+          console.log(
+            "[Tony Cloud Function] Treasure Map - JSON estratto:",
+            result.command ? JSON.stringify(result.command, null, 2) : "(nessun comando)"
+          );
           return result;
         } catch (parseErr) {
           console.warn("[Tony Cloud Function] Parse blocco json fallito:", parseErr.message);
@@ -1109,8 +1841,8 @@ exports.tonyAsk = onCall(
         console.log("[Tony Cloud Function] Treasure Map - nessun blocco ```json trovato, retry con prompt forzato");
         const retryPrompt = `${fullPrompt}\n\n[ERRORE: La risposta precedente non conteneva il blocco JSON. Riprova: rispondi SOLO con \`\`\`json\n{"action":"open_modal","modalId":"lavoro-modal","replyText":"...","formData":{...}}\n\`\`\`]`;
         const retryBody = { ...body, contents: [{ parts: [{ text: retryPrompt }] }] };
-        const retryRes = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(retryBody) });
-        if (retryRes.ok) {
+        const retryRes = await callGeminiWithRetry(url, retryBody, "structured-retry");
+        if (retryRes && retryRes.ok) {
           const retryData = await retryRes.json();
           const retryText = retryData?.candidates?.[0]?.content?.parts?.[0]?.text;
           const retryMatch = retryText && typeof retryText === "string" ? retryText.match(/```(?:json)?\s*([\s\S]*?)```/) : null;
@@ -1121,15 +1853,90 @@ exports.tonyAsk = onCall(
               const result = { text: cleanedText };
               if (structured.action === "open_modal" && structured.modalId) {
                 result.command = { type: "OPEN_MODAL", id: structured.modalId };
-                if (structured.formData && typeof structured.formData === "object" && Object.keys(structured.formData).length > 0) {
-                  result.command.fields = structured.formData;
+                const isPreventivoOpenModalR = String(structured.modalId || "").toLowerCase().indexOf("preventivo") >= 0;
+                const rawFdOpenR =
+                  (structured.formData && typeof structured.formData === "object" ? structured.formData : null) ||
+                  (structured.params && structured.params.formData && typeof structured.params.formData === "object" ? structured.params.formData : null) ||
+                  {};
+                if (isPreventivoOpenModalR) {
+                  const hadModelTerreno = !!rawFdOpenR["terreno-id"];
+                  const merged = buildPreventivoOpenModalFields(rawFdOpenR, message, ctxFinal);
+                  if (Object.keys(merged).length > 0) {
+                    result.command.fields = merged;
+                  }
+                  if (hadModelTerreno && !merged["terreno-id"]) {
+                    result.text = neutralPreventivoReplyWhenTerrenoStripped();
+                  }
+                } else if (Object.keys(rawFdOpenR).length > 0) {
+                  result.command.fields = rawFdOpenR;
+                }
+              } else if (structured.action === "apri_pagina" || structured.action === "APRI_PAGINA") {
+                const navTarget =
+                  (structured.params && structured.params.target) || structured.target || "";
+                if (navTarget) {
+                  result.command = { type: "APRI_PAGINA", target: navTarget };
+                  const nt = String(navTarget).toLowerCase();
+                  const isPreventivoNav = nt.indexOf("preventivo") >= 0;
+                  const fdDataR = structured.formData && typeof structured.formData === "object" ? structured.formData : {};
+                  const fdParamsR = structured.params && structured.params.formData && typeof structured.params.formData === "object" ? structured.params.formData : {};
+                  const fd = { ...fdParamsR, ...fdDataR };
+                  if (isPreventivoNav) {
+                    const hadModelTerreno = !!fd["terreno-id"];
+                    const merged = buildPreventivoOpenModalFields(fd, message, ctxFinal);
+                    if (Object.keys(merged).length > 0) {
+                      result.command.fields = merged;
+                    }
+                    result.command._tonyPendingModal = "preventivo-form";
+                    if (hadModelTerreno && !merged["terreno-id"]) {
+                      result.text = neutralPreventivoReplyWhenTerrenoStripped();
+                    }
+                  } else if (Object.keys(fd).length > 0) {
+                    result.command.fields = fd;
+                  }
                 }
               } else if (structured.action === "save") {
+                if (tonyIsProactiveSaveReminderUserMessage(message)) {
+                  result.text = isPreventivoForm
+                    ? "Tutti i campi obbligatori sono compilati. Vuoi che salvi il preventivo in bozza? Rispondi sì, conferma o salva per procedere."
+                    : "Tutti i campi obbligatori sono compilati. Vuoi che salvi? Rispondi sì, conferma o salva per procedere.";
+                  console.log("[Tony Cloud Function] Retry: save ignorato (messaggio proattivo sistema)");
+                  return result;
+                }
                 result.command = { type: "SAVE_ACTIVITY" };
               } else if ((structured.action === "fill_form" || structured.action === "ask") && structured.formData && Object.keys(structured.formData).length > 0) {
                 const formDataKeys = Object.keys(structured.formData);
-                const isLavoroData = formDataKeys.some((k) => k.startsWith("lavoro-") || k === "tipo-assegnazione");
-                result.command = { type: "INJECT_FORM_DATA", formId: isLavoroData ? "lavoro-form" : "attivita-form", formData: structured.formData };
+                const explicitLavoroGestione = formDataKeys.some((k) => k === "lavoro-tipo-lavoro" || k === "lavoro-nome" || k === "tipo-assegnazione");
+                const explicitPreventivo =
+                  formDataKeys.includes("cliente-id") &&
+                  (formDataKeys.includes("tipo-lavoro") ||
+                    formDataKeys.includes("coltura-categoria") ||
+                    formDataKeys.includes("coltura") ||
+                    formDataKeys.includes("terreno-id"));
+                let formId = "attivita-form";
+                if (explicitPreventivo && !explicitLavoroGestione) {
+                  formId = "preventivo-form";
+                } else {
+                  const isLavoroData = formDataKeys.some((k) => k.startsWith("lavoro-") || k === "tipo-assegnazione");
+                  if (isLavoroData) formId = "lavoro-form";
+                }
+                result.command = { type: "INJECT_FORM_DATA", formId, formData: structured.formData };
+              }
+              if (!result.command && (isPreventivoForm || isCreaPreventivoIntent)) {
+                const fd = (structured && structured.formData && typeof structured.formData === "object") ? structured.formData : {};
+                const merged = { ...inferPreventivoFallbackFormData(message, ctxFinal), ...fd };
+                if (Object.keys(merged).length > 0) {
+                  result.command = { type: "INJECT_FORM_DATA", formId: "preventivo-form", formData: merged };
+                  if (!result.text || result.text.trim() === "" || result.text.trim() === "Ok.") {
+                    result.text = "Compilo il preventivo con i dati trovati e ti chiedo i campi mancanti.";
+                  }
+                }
+              }
+              if (result.command && result.command.type === "INJECT_FORM_DATA" && result.command.formId === "preventivo-form") {
+                result.command.formData = enrichPreventivoCommandFormData(result.command.formData || {}, message, ctxFinal);
+                if (result.command.formData["data-prevista"] && !userMentionsExplicitDate(message)) {
+                  console.log("[Tony Cloud Function] Guardrail preventivo retry: data-prevista rimossa (non esplicitata).");
+                  delete result.command.formData["data-prevista"];
+                }
               }
               if (result.command) {
                 console.log("[Tony Cloud Function] Retry - JSON estratto:", JSON.stringify(result.command, null, 2));
@@ -1141,6 +1948,27 @@ exports.tonyAsk = onCall(
           }
         }
         console.log("[Tony Cloud Function] Treasure Map - retry fallito");
+        if (useStructuredFormOutput && (isPreventivoForm || isCreaPreventivoIntent)) {
+          const fd = inferPreventivoFallbackFormData(message, ctxFinal);
+          if (Object.keys(fd).length > 0) {
+            console.log("[Tony Cloud Function] Fallback sintetico: INJECT_FORM_DATA preventivo-form");
+            return {
+              text: "Compilo il preventivo con i dati trovati e ti chiedo i campi mancanti.",
+              command: { type: "INJECT_FORM_DATA", formId: "preventivo-form", formData: fd },
+            };
+          }
+          if (isCreaPreventivoIntent && !isPreventivoForm) {
+            console.log("[Tony Cloud Function] Fallback sintetico: APRI_PAGINA nuovo preventivo (nessun field inferito)");
+            return {
+              text: "Ti porto al nuovo preventivo.",
+              command: {
+                type: "APRI_PAGINA",
+                target: "nuovo preventivo",
+                _tonyPendingModal: "preventivo-form",
+              },
+            };
+          }
+        }
         if (useStructuredFormOutput && (isLavoroForm || (isLavoriPage && isCreaLavoroIntent))) {
           const fallbackText = (rawText && typeof rawText === "string" ? rawText.replace(/```[\s\S]*?```/g, "").trim() : "") || "Apro il form per creare il lavoro.";
           console.log("[Tony Cloud Function] Fallback sintetico: OPEN_MODAL lavoro-modal");
@@ -1443,7 +2271,44 @@ exports.tonyAsk = onCall(
     
     // DEBUG: Log risultato finale
     console.log('[Tony Cloud Function] DEBUG - result finale:', JSON.stringify(result, null, 2));
-    
+
+    // Path legacy JSON: OPEN_MODAL / APRI_PAGINA preventivo con "fields" non passava da Treasure Map → niente enrich.
+    if (isTonyAdvancedActive && result.command && result.command.type === "OPEN_MODAL") {
+      const mid = String(result.command.id || "").toLowerCase();
+      if (mid.indexOf("preventivo") >= 0) {
+        const rawFields =
+          result.command.fields && typeof result.command.fields === "object" ? { ...result.command.fields } : {};
+        const hadTerreno = !!rawFields["terreno-id"];
+        const merged = buildPreventivoOpenModalFields(rawFields, message, ctxFinal);
+        if (Object.keys(merged).length > 0) {
+          result.command.fields = merged;
+        }
+        if (hadTerreno && !merged["terreno-id"]) {
+          result.text = neutralPreventivoReplyWhenTerrenoStripped();
+        }
+      }
+    }
+    if (isTonyAdvancedActive && result.command && result.command.type === "APRI_PAGINA") {
+      const tgt = String(result.command.target || result.command.params?.target || "").toLowerCase();
+      if (tgt.indexOf("preventivo") >= 0) {
+        const rawFields =
+          result.command.fields && typeof result.command.fields === "object" ? { ...result.command.fields } : {};
+        const hadTerreno = !!rawFields["terreno-id"];
+        const merged = buildPreventivoOpenModalFields(rawFields, message, ctxFinal);
+        if (Object.keys(merged).length > 0) {
+          result.command.fields = merged;
+        }
+        result.command._tonyPendingModal = result.command._tonyPendingModal || "preventivo-form";
+        if (hadTerreno && !merged["terreno-id"]) {
+          result.text = neutralPreventivoReplyWhenTerrenoStripped();
+        }
+      }
+    }
+
+    if (isTonyAdvancedActive) {
+      result = applyPreventivoListActionResolution(result, message, ctxFinal);
+    }
+
     return result;
   }
 );
@@ -1454,7 +2319,7 @@ exports.tonyAsk = onCall(
  * Richiede utente autenticato. Abilita "Cloud Text-to-Speech API" in Google Cloud Console.
  */
 exports.getTonyAudio = onCall(
-  { region: "europe-west1" },
+  { region: "europe-west1", secrets: [sentryDsn] },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Utente non autenticato.");

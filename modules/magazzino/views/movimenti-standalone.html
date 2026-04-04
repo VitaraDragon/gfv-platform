@@ -166,6 +166,7 @@
         };
         document.head.appendChild(configScript);
     </script>
+    <!-- Tony: canone liste — placeholder; renderMovimenti aggiorna summary/items, merge setContext('page'), table-data-ready -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module">
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
@@ -374,11 +375,11 @@
                 }))
             };
             if (window.Tony && typeof window.Tony.setContext === 'function') {
-                window.Tony.setContext('page', {
+                window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
                     pageType: 'movimenti',
                     tableDataSummary: window.currentTableData.summary,
                     currentTableData: window.currentTableData
-                });
+                }));
             }
             try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
 

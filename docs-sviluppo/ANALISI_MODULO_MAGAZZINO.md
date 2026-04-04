@@ -338,4 +338,10 @@ Per rendere il modulo Magazzino **caldamente consigliato** con i trattamenti:
 
 ---
 
+## 7. Appendice – Tracciabilità, dashboard a card, viste tematiche (2026-04-02)
+
+Decisioni di prodotto/architettura consolidate (home Magazzino a **card**, elenchi per trattamenti/concimazioni/ricambi/sementi, fonti dati da movimenti + attività + lavori + trattamenti, stato **scarico automatico** da trattamenti): vedi **`MAGAZZINO_APPENDICE_TRACCIABILITA_DASHBOARD_E_SCARICO.md`**.
+
+---
+
 Se vuoi, il passo successivo può essere un **piano di sviluppo dettagliato** (stile `PLAN_MODULO_CONTO_TERZI.md`) con elenco file da creare, campi dei modelli e passi per integrare la dashboard e le regole Firestore.

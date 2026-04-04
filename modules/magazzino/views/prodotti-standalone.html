@@ -203,6 +203,7 @@
         };
         document.head.appendChild(configScript);
     </script>
+    <!-- Tony: canone liste — placeholder; renderProdotti aggiorna summary/items, merge setContext('page'), table-data-ready -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module">
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
@@ -315,18 +316,21 @@
 
             const sottoScortaCount = filtered.filter(p => p.scortaMinima != null && p.scortaMinima > 0 && (p.giacenza == null || p.giacenza < p.scortaMinima)).length;
             const summaryParts = [];
-            if (filtered.length === 0) summaryParts.push('Nessun prodotto in elenco.');
+            const n = filtered.length;
+            if (n === 0) summaryParts.push('Nessun prodotto in elenco.');
             else {
-                summaryParts.push('Ci sono ' + filtered.length + ' prodotti in elenco.');
-                if (sottoScortaCount) summaryParts.push(sottoScortaCount + ' sotto scorta.');
+                summaryParts.push(n === 1 ? 'C\'è 1 prodotto in elenco.' : ('Ci sono ' + n + ' prodotti in elenco.'));
+                if (sottoScortaCount) summaryParts.push(sottoScortaCount === 1 ? '1 sotto scorta.' : (sottoScortaCount + ' sotto scorta.'));
             }
             window.currentTableData = {
                 pageType: 'prodotti',
-                summary: summaryParts.join(' ') + (summaryParts.length ? '.' : ''),
+                summary: summaryParts.join(' ') + (summaryParts.length ? '' : ''),
                 items: filtered.map(p => ({
+                    id: p.id,
                     codice: p.codice || '-',
                     nome: p.nome || '-',
                     categoria: p.categoria || '-',
+                    unitaMisura: p.unitaMisura || '-',
                     giacenza: p.giacenza != null ? p.giacenza : '-',
                     scortaMinima: p.scortaMinima != null ? p.scortaMinima : '-',
                     sottoScorta: (p.scortaMinima != null && p.scortaMinima > 0 && (p.giacenza == null || p.giacenza < p.scortaMinima)),

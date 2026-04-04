@@ -198,6 +198,145 @@ IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
 {CONTESTO_PLACEHOLDER}
 **[/CONTESTO_AZIENDALE]**`;
 
+  /** Mappa form Nuovo Preventivo (Conto Terzi) – id DOM come in nuovo-preventivo-standalone.html */
+  const PREVENTIVO_FORM_MAP = {
+    formId: 'preventivo-form',
+    modalId: '',
+    injectionOrder: [
+      'cliente-id',
+      'terreno-id',
+      'lavoro-categoria-principale',
+      'lavoro-sottocategoria',
+      'tipo-lavoro',
+      'coltura-categoria',
+      'coltura',
+      'tipo-campo',
+      'superficie',
+      'iva',
+      'giorni-scadenza',
+      'data-prevista',
+      'note'
+    ],
+    hierarchy: {
+      categoria: { fieldId: 'lavoro-categoria-principale', description: 'Categoria principale lavorazione (es. Lavorazione del Terreno, Raccolta)' },
+      sottocategoria: { fieldId: 'lavoro-sottocategoria', description: 'Sottocategoria lavoro se presente' },
+      tipoLavoro: { fieldId: 'tipo-lavoro', description: 'Tipo lavoro (nome esatto dal catalogo)' },
+      colturaCategoria: { fieldId: 'coltura-categoria', description: 'Categoria coltura (Frutteto, Vigneto, Seminativo…)' },
+      coltura: { fieldId: 'coltura', description: 'Coltura specifica (es. Albicocche, Sangiovese)' }
+    },
+    fields: {
+      'cliente-id': { type: 'select', resolve: 'by_name', description: 'Cliente: ragione sociale o id' },
+      'terreno-id': { type: 'select', resolve: 'by_name', description: 'Terreno del cliente (nome o id), opzionale' },
+      'lavoro-categoria-principale': { type: 'select', resolve: 'by_name', description: 'Categoria lavoro' },
+      'lavoro-sottocategoria': { type: 'select', resolve: 'by_name', description: 'Sottocategoria' },
+      'tipo-lavoro': { type: 'select', resolve: 'by_name', description: 'Tipo lavoro' },
+      'coltura-categoria': { type: 'select', resolve: 'by_name', description: 'Categoria coltura' },
+      'coltura': { type: 'select', resolve: 'by_name', description: 'Nome coltura' },
+      'tipo-campo': { type: 'select', resolve: 'as_is', description: 'pianura | collina | montagna' },
+      'superficie': { type: 'number', resolve: 'as_is', description: 'Ettari' },
+      'iva': { type: 'number', resolve: 'as_is', description: 'Percentuale IVA (default 22)' },
+      'giorni-scadenza': { type: 'number', resolve: 'as_is', description: 'Giorni validità preventivo' },
+      'data-prevista': { type: 'date', resolve: 'as_is', description: 'Data prevista lavoro YYYY-MM-DD' },
+      'note': { type: 'text', resolve: 'as_is', description: 'Note' }
+    }
+  };
+
+  const SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED = `Ruolo: Tony, compilazione form Nuovo Preventivo (Conto Terzi).
+
+CHIAVI CAMPO (usa ESATTAMENTE questi id nel JSON formData / fields):
+cliente-id, terreno-id (opzionale), lavoro-categoria-principale, lavoro-sottocategoria, tipo-lavoro, coltura-categoria, coltura, tipo-campo (pianura|collina|montagna), superficie (ettari), iva, giorni-scadenza, data-prevista, note.
+
+REGOLE:
+- Usa NOMI leggibili (ragione sociale cliente, nome terreno, nomi categoria/tipo lavoro/coltura), non inventare id.
+- Se l'utente non è sulla pagina Nuovo Preventivo: command OPEN_MODAL con id "preventivo-form" (o testo equivalente) + fields; il client aprirà la pagina e inietterà i dati.
+- Se il form è già aperto (formId preventivo-form): command INJECT_FORM_DATA con formId "preventivo-form" e formData.
+- Ordine logico: cliente → terreno (se noto) → tipo lavoro (categoria/sottocategoria derivabili dal tipo se nel contesto) → colture → morfologia e superficie.
+- Superficie e tipo campo possono essere dedotti dal terreno se selezionato; altrimenti chiedi o usa quanto detto dall'utente.
+
+**[CONTESTO_AZIENDALE]**
+{CONTESTO_PLACEHOLDER}
+**[/CONTESTO_AZIENDALE]**`;
+
+  /** Magazzino – anagrafica prodotto (`prodotti-standalone.html`, `#prodotto-form`) */
+  const PRODOTTO_FORM_MAP = {
+    formId: 'prodotto-form',
+    modalId: 'prodotto-modal',
+    /** Domande Tony finché vuoti (non sono tutti HTML required; la proattività usa questa lista, il salvataggio solo i required). */
+    tonyInterviewFieldIds: [
+      'prodotto-nome',
+      'prodotto-categoria',
+      'prodotto-unita',
+      'prodotto-scorta-minima',
+      'prodotto-prezzo',
+      'prodotto-dosaggio-min',
+      'prodotto-dosaggio-max',
+      'prodotto-giorni-carenza'
+    ],
+    /**
+     * Solo queste categorie (value del select) usano i giorni di carenza in interviewEmpty; tutte le altre no.
+     */
+    prodottoCategoriaRichiedeGiorniCarenza: ['fitofarmaci'],
+    injectionOrder: [
+      'prodotto-codice',
+      'prodotto-nome',
+      'prodotto-categoria',
+      'prodotto-unita',
+      'prodotto-scorta-minima',
+      'prodotto-prezzo',
+      'prodotto-dosaggio-min',
+      'prodotto-dosaggio-max',
+      'prodotto-giorni-carenza',
+      'prodotto-note'
+    ],
+    fields: {
+      'prodotto-codice': { type: 'text', resolve: 'as_is', description: 'Codice interno opzionale' },
+      'prodotto-nome': { type: 'text', resolve: 'as_is', description: 'Nome prodotto (obbligatorio in salvataggio)' },
+      'prodotto-categoria': { type: 'select', resolve: 'as_is', description: 'fitofarmaci|fertilizzanti|materiale_impianto|ricambi|sementi|altro' },
+      'prodotto-unita': { type: 'select', resolve: 'as_is', description: 'kg|L|pezzi|m|m2|confezione|sacchi|altro' },
+      'prodotto-scorta-minima': { type: 'number', resolve: 'as_is', description: 'Scorta minima' },
+      'prodotto-prezzo': { type: 'number', resolve: 'as_is', description: 'Prezzo unitario €' },
+      'prodotto-dosaggio-min': { type: 'number', resolve: 'as_is', description: 'Dosaggio min per ha' },
+      'prodotto-dosaggio-max': { type: 'number', resolve: 'as_is', description: 'Dosaggio max per ha' },
+      'prodotto-giorni-carenza': { type: 'number', resolve: 'as_is', description: 'Giorni di carenza (solo categoria fitofarmaci; altre categorie: non applicabile)' },
+      'prodotto-note': { type: 'text', resolve: 'as_is', description: 'Note' }
+    }
+  };
+
+  /** Magazzino – movimento (`movimenti-standalone.html`, `#movimento-form`) */
+  const MOVIMENTO_FORM_MAP = {
+    formId: 'movimento-form',
+    modalId: 'movimento-modal',
+    /** Campi opzionali da chiedere se ancora vuoti (i required HTML sono gestiti da requiredEmpty). */
+    tonyInterviewFieldIds: ['mov-confezione', 'mov-prezzo', 'mov-note', 'mov-lavoro', 'mov-attivita'],
+    injectionOrder: [
+      'mov-prodotto',
+      'mov-data',
+      'mov-tipo',
+      'mov-quantita',
+      'mov-confezione',
+      'mov-prezzo',
+      'mov-note',
+      'mov-lavoro',
+      'mov-attivita'
+    ],
+    fields: {
+      'mov-prodotto': { type: 'select', resolve: 'by_name', description: 'Prodotto: nome o id Firestore (da elenco o da azienda.prodotti)' },
+      'mov-data': { type: 'date', resolve: 'as_is', description: 'Data movimento YYYY-MM-DD' },
+      'mov-tipo': { type: 'select', resolve: 'as_is', description: 'entrata | uscita' },
+      'mov-quantita': { type: 'number', resolve: 'as_is', description: 'Quantità (positiva)' },
+      'mov-confezione': { type: 'text', resolve: 'as_is', description: 'Testo confezione opzionale' },
+      'mov-prezzo': { type: 'number', resolve: 'as_is', description: 'Prezzo unitario € (tipico entrata)' },
+      'mov-note': { type: 'text', resolve: 'as_is', description: 'Note' },
+      'mov-lavoro': { type: 'select', resolve: 'by_name', description: 'Collegamento lavoro opzionale (id o testo)' },
+      'mov-attivita': { type: 'select', resolve: 'by_name', description: 'Collegamento attività opzionale (id o testo)' }
+    }
+  };
+
+  const SYSTEM_INSTRUCTION_MAGAZZINO_FORMS = `Form Magazzino (id DOM = chiavi in fields / INJECT_FORM_DATA):
+- Prodotto: formId "prodotto-form", OPEN_MODAL "prodotto-modal". Campi: prodotto-nome (obbligatorio), prodotto-categoria, prodotto-unita, prodotto-scorta-minima, prodotto-prezzo, prodotto-dosaggio-min/max, prodotto-giorni-carenza (solo fitofarmaci), prodotto-note, prodotto-codice. Il contesto form include interviewEmpty: **i giorni di carenza servono solo se prodotto-categoria è fitofarmaci**; per ogni altra categoria non esistono giorni di carenza — non chiedere e non usare SET_FIELD su prodotto-giorni-carenza salvo richiesta esplicita dell'utente. Altrimenti domande su categoria, unità, scorta, prezzo, dosaggi. Non solo il nome.
+- Movimento: formId "movimento-form", OPEN_MODAL "movimento-modal". Campi: mov-prodotto (nome prodotto o id, obbligatorio), mov-data, mov-tipo (entrata|uscita), mov-quantita (obbligatori insieme agli altri required), mov-confezione, mov-prezzo (entrata), mov-note, mov-lavoro, mov-attivita (opzionali). interviewEmpty per i campi opzionali ancora vuoti.
+Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrispondente; dopo iniezione il client può chiedere conferma salvataggio (SAVE_ACTIVITY) se tutti i required sono ok. Da altra pagina: OPEN_MODAL + fields o APRI_PAGINA target "prodotti"/"movimenti" con fields.`;
+
   /** Mappa form Terreno (aggiungi terreno) */
   const TERRENO_FORM_MAP = {
     formId: 'terreno-form',
@@ -258,7 +397,16 @@ IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
     lavori: LAVORO_FORM_MAP,
     'terreno-modal': TERRENO_FORM_MAP,
     'terreno-form': TERRENO_FORM_MAP,
-    terreni: TERRENO_FORM_MAP
+    terreni: TERRENO_FORM_MAP,
+    'preventivo-form': PREVENTIVO_FORM_MAP,
+    preventivo: PREVENTIVO_FORM_MAP,
+    'nuovo-preventivo': PREVENTIVO_FORM_MAP,
+    'prodotto-form': PRODOTTO_FORM_MAP,
+    'prodotto-modal': PRODOTTO_FORM_MAP,
+    prodotto: PRODOTTO_FORM_MAP,
+    'movimento-form': MOVIMENTO_FORM_MAP,
+    'movimento-modal': MOVIMENTO_FORM_MAP,
+    movimento: MOVIMENTO_FORM_MAP
   };
 
   const schemas = {
@@ -271,7 +419,12 @@ IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
     attivita: SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED,
     'lavoro-modal': SYSTEM_INSTRUCTION_LAVORO_STRUCTURED,
     'lavoro-form': SYSTEM_INSTRUCTION_LAVORO_STRUCTURED,
-    lavori: SYSTEM_INSTRUCTION_LAVORO_STRUCTURED
+    lavori: SYSTEM_INSTRUCTION_LAVORO_STRUCTURED,
+    'preventivo-form': SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED,
+    preventivo: SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED,
+    'nuovo-preventivo': SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED,
+    'prodotto-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS,
+    'movimento-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS
   };
 
   global.TONY_FORM_MAPPING = {
@@ -281,9 +434,14 @@ IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
     ATTIVITA_RESPONSE_SCHEMA,
     ATTIVITA_FORM_MAP,
     LAVORO_FORM_MAP,
+    PREVENTIVO_FORM_MAP,
     TERRENO_FORM_MAP,
     TERRENO_SOTTOCATEGORIA_PREFERENCE,
     getSottocategoriaPreferenceFromColtura,
-    SYSTEM_INSTRUCTION_LAVORO_STRUCTURED
+    SYSTEM_INSTRUCTION_LAVORO_STRUCTURED,
+    SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED,
+    PRODOTTO_FORM_MAP,
+    MOVIMENTO_FORM_MAP,
+    SYSTEM_INSTRUCTION_MAGAZZINO_FORMS
   };
 })(typeof window !== 'undefined' ? window : globalThis);

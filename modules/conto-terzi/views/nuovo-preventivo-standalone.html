@@ -313,9 +313,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="data-prevista">Data Prevista Lavoro</label>
-                    <input type="date" id="data-prevista">
-                    <small>Data prevista per l'esecuzione del lavoro (opzionale)</small>
+                    <label for="data-prevista">Data Prevista Lavoro *</label>
+                    <input type="date" id="data-prevista" required>
+                    <small>Obbligatoria per salvare il preventivo e per la pianificazione.</small>
                 </div>
 
                 <div class="form-group">
@@ -366,7 +366,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
+        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
 
@@ -396,6 +396,7 @@
 
         const firebaseConfig = await waitForConfig();
         initializeFirebase(firebaseConfig);
+        const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
 
@@ -410,6 +411,22 @@
         let categorieLavoriPrincipali = [];
         let sottocategorieLavoriMap = new Map();
         let tipiLavoroList = []; // Lista completa di tutti i tipi lavoro con struttura gerarchica
+
+        /** Stato esposto per Tony Form Injector (allineato a tipi/lavori/categorie in pagina) */
+        function syncPreventivoTonyState() {
+            try {
+                window.preventivoState = {
+                    clienti: Array.isArray(clienti) ? clienti.slice() : [],
+                    terreni: Array.isArray(terreni) ? terreni.slice() : [],
+                    categorieLavoriPrincipali: Array.isArray(categorieLavoriPrincipali) ? categorieLavoriPrincipali.slice() : [],
+                    sottocategorieLavoriMap: sottocategorieLavoriMap,
+                    tipiLavoroList: Array.isArray(tipiLavoroList) ? tipiLavoroList.slice() : [],
+                    categorieColturePreventivo: Array.isArray(categorieColturePreventivo) ? categorieColturePreventivo.slice() : []
+                };
+            } catch (e) {
+                console.warn('[Preventivo] syncPreventivoTonyState:', e);
+            }
+        }
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
@@ -505,6 +522,7 @@
                     option.textContent = data.ragioneSociale;
                     select.appendChild(option);
                 });
+                syncPreventivoTonyState();
             } catch (error) {
                 console.error('Errore caricamento clienti:', error);
             }
@@ -595,6 +613,7 @@
                 }
                 
                 populateCategoriaLavoroDropdown();
+                syncPreventivoTonyState();
             } catch (error) {
                 console.error('Errore caricamento categorie lavori:', error);
                 categorieLavoriPrincipali = [];
@@ -727,6 +746,7 @@
                 
                 // Mantieni anche lista piatta per compatibilità con codice esistente
                 tipiLavoro = tipiLavoroFiltrati.map(tipo => ({ nome: tipo.nome }));
+                syncPreventivoTonyState();
             } catch (error) {
                 console.error('Errore caricamento tipi lavoro:', error);
                 tipiLavoroList = [];
@@ -1138,6 +1158,7 @@
                 console.warn('⚠️ [PREVENTIVO] Dropdown categoria non trovato per aggiungere listener');
             }
             console.log('✅ [PREVENTIVO] loadColture completata');
+            syncPreventivoTonyState();
         }
 
         // Mostra input personalizzato (solo per tipo lavoro ora, coltura gestita da struttura gerarchica)
@@ -1174,13 +1195,31 @@
             calcolaTotale();
         };
 
+        /** Evita che una richiesta Firestore lenta sovrascriva il select dopo una più recente (race con Tony INJECT). */
+        let _loadTerreniClienteGen = 0;
+        /** Promise ultimo caricamento terreni (per Tony Form Injector). */
+        let _loadTerreniClientePromise = Promise.resolve();
+
+        window.__preventivoAwaitTerreniClienteReady = function (maxMs) {
+            maxMs = maxMs == null ? 15000 : maxMs;
+            var p = _loadTerreniClientePromise || Promise.resolve();
+            return Promise.race([
+                p,
+                new Promise(function (resolve) { setTimeout(resolve, maxMs); })
+            ]);
+        };
+
         // Carica terreni cliente
         async function loadTerreniCliente(clienteId) {
+            const gen = ++_loadTerreniClienteGen;
             try {
                 if (!currentTenantId || !clienteId) return;
                 // Carica tutti i terreni e filtra client-side per evitare indice Firestore
                 const terreniCollection = collection(db, 'tenants', currentTenantId, 'terreni');
                 const snapshot = await getDocs(terreniCollection);
+                if (gen !== _loadTerreniClienteGen) {
+                    return;
+                }
                 terreni = [];
                 const select = document.getElementById('terreno-id');
                 select.innerHTML = '<option value="">-- Seleziona un terreno (opzionale) --</option>';
@@ -1207,6 +1246,10 @@
                     option.textContent = `${data.nome}${data.superficie ? ` (${data.superficie} ha)` : ''}`;
                     select.appendChild(option);
                 });
+                if (gen !== _loadTerreniClienteGen) {
+                    return;
+                }
+                syncPreventivoTonyState();
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
             }
@@ -1216,8 +1259,10 @@
         window.onClienteChange = function() {
             const clienteId = document.getElementById('cliente-id').value;
             if (clienteId) {
-                loadTerreniCliente(clienteId);
+                _loadTerreniClientePromise = loadTerreniCliente(clienteId);
             } else {
+                _loadTerreniClienteGen++;
+                _loadTerreniClientePromise = Promise.resolve();
                 document.getElementById('terreno-id').innerHTML = '<option value="">-- Seleziona un terreno (opzionale) --</option>';
             }
         };
@@ -1239,12 +1284,17 @@
                         console.log('🔵 [PREVENTIVO] Superficie precompilata:', terreno.superficie);
                     }
                     
-                    // Precompila morfologia (tipoCampo) se disponibile
+                    // Precompila morfologia (tipoCampo) se disponibile (normalizza: DB può avere "Collina" vs option "collina")
                     if (terreno.tipoCampo) {
                         const tipoCampoSelect = document.getElementById('tipo-campo');
                         if (tipoCampoSelect) {
-                            tipoCampoSelect.value = terreno.tipoCampo;
-                            console.log('🔵 [PREVENTIVO] Tipo campo precompilato:', terreno.tipoCampo);
+                            const raw = String(terreno.tipoCampo).trim().toLowerCase();
+                            if (['pianura', 'collina', 'montagna'].includes(raw)) {
+                                tipoCampoSelect.value = raw;
+                            } else {
+                                tipoCampoSelect.value = String(terreno.tipoCampo).trim();
+                            }
+                            console.log('🔵 [PREVENTIVO] Tipo campo precompilato:', terreno.tipoCampo, '→ select:', tipoCampoSelect.value);
                         }
                     }
                     
@@ -1400,6 +1450,10 @@
                                             console.log('✅ [PREVENTIVO] Coltura selezionata con successo:', colturaNome);
                                             // Trigger onColturaChange per aggiornare tariffe
                                             onColturaChange();
+                                            // Secondo passaggio: dopo inject programmatico il primo calcolaTotale può essere partito senza coltura
+                                            setTimeout(function() {
+                                                if (typeof window.calcolaTotale === 'function') window.calcolaTotale();
+                                            }, 80);
                                         } else if (tentativi >= maxTentativi) {
                                             clearInterval(checkInterval);
                                             console.error('❌ [PREVENTIVO] Coltura non trovata nel dropdown dopo il caricamento:', colturaNome);
@@ -1434,16 +1488,79 @@
             }
         };
 
+        /** Allinea confronti a Firestore / select (trim, tipo campo in minuscolo). */
+        function _normTipoCampoPrev(v) {
+            var s = String(v == null ? '' : v).trim().toLowerCase();
+            return ['pianura', 'collina', 'montagna'].includes(s) ? s : String(v == null ? '' : v).trim();
+        }
+        function _normStrPrev(v) {
+            return String(v == null ? '' : v).trim();
+        }
+
+        /** Chiave confrontabile per tipo lavoro: minuscolo, senza accenti, senza token "meccanico" (spesso nel tipo da anagrafica ma non in Tariffe). */
+        function _normTipoLavoroTariffKey(v) {
+            var s = String(v == null ? '' : v).trim().toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            s = s.replace(/\bmeccanico\b/gi, ' ').replace(/\s+/g, ' ').trim();
+            return s;
+        }
+
+        /**
+         * Score tipo lavoro form vs riga tariffa: esatto > prefisso (scegli il tipo tariffa più lungo tra i prefissi).
+         * Es. form "Diserbo Meccanico Sulla Fila" ↔ tariffa "Diserbo sulla Fila" dopo strip meccanico.
+         */
+        function _scoreTipoLavoroTariff(formTipo, tariffTipo) {
+            var f = _normTipoLavoroTariffKey(formTipo);
+            var t = _normTipoLavoroTariffKey(tariffTipo);
+            if (!f || !t) return 0;
+            if (f === t) return 100000 + t.length;
+            if (f.startsWith(t) && (f.length === t.length || f.charAt(t.length) === ' '))
+                return 50000 + t.length;
+            return 0;
+        }
+
+        function _pickBestTariffaRow(rows, tipoLavoroForm) {
+            var best = null;
+            var bestSc = -1;
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var sc = _scoreTipoLavoroTariff(tipoLavoroForm, row.tipoLavoro);
+                if (sc > bestSc) {
+                    bestSc = sc;
+                    best = row;
+                } else if (sc === bestSc && sc > 0 && best) {
+                    var lenR = _normStrPrev(row.tipoLavoro).length;
+                    var lenB = _normStrPrev(best.tipoLavoro).length;
+                    if (lenR > lenB) best = row;
+                }
+            }
+            return bestSc > 0 ? best : null;
+        }
+
+        function _findTariffaPreventivo(tariffeList, tipoLavoro, coltura, tipoCampo, categoriaId) {
+            var sameCampo = function(t) { return _normTipoCampoPrev(t.tipoCampo) === tipoCampo; };
+            var specific = (tariffeList || []).filter(function(t) {
+                return sameCampo(t) && _normStrPrev(t.coltura) === coltura;
+            });
+            var hit = _pickBestTariffaRow(specific, tipoLavoro);
+            if (hit) return hit;
+            if (!coltura || !categoriaId) return null;
+            var generic = (tariffeList || []).filter(function(t) {
+                return sameCampo(t) && _normStrPrev(t.coltura) === '' && t.categoriaColturaId === categoriaId;
+            });
+            return _pickBestTariffaRow(generic, tipoLavoro);
+        }
+
         // Calcola totale preventivo - rendi globale per accesso da HTML
         window.calcolaTotale = async function() {
             // Prendi valore da select o da input custom
             const tipoLavoroSelect = document.getElementById('tipo-lavoro');
             const tipoLavoroCustom = document.getElementById('tipo-lavoro-custom');
-            const tipoLavoro = tipoLavoroSelect?.value || (tipoLavoroCustom ? tipoLavoroCustom.value.trim() : '');
+            const tipoLavoro = _normStrPrev(tipoLavoroSelect?.value || (tipoLavoroCustom ? tipoLavoroCustom.value : ''));
             
             const colturaSelect = document.getElementById('coltura');
-            const coltura = colturaSelect.value;
-            const tipoCampo = document.getElementById('tipo-campo').value;
+            const coltura = _normStrPrev(colturaSelect && colturaSelect.value);
+            const tipoCampo = _normTipoCampoPrev(document.getElementById('tipo-campo') && document.getElementById('tipo-campo').value);
             const superficie = parseFloat(document.getElementById('superficie').value) || 0;
             const iva = parseFloat(document.getElementById('iva').value) || 22;
 
@@ -1458,29 +1575,11 @@
                 return;
             }
 
-            // Cerca tariffa: prima specifica per coltura, poi generica per categoria
-            let tariffa = tariffe.find(t => 
-                t.tipoLavoro === tipoLavoro && 
-                t.coltura === coltura && 
-                t.tipoCampo === tipoCampo
-            );
+            const categoriaSelect = document.getElementById('coltura-categoria');
+            const categoriaId = categoriaSelect ? categoriaSelect.value : null;
 
-            // Se non trovata tariffa specifica, cerca tariffa generica per categoria
-            if (!tariffa && coltura) {
-                // Determina categoria della coltura selezionata
-                const categoriaSelect = document.getElementById('coltura-categoria');
-                const categoriaId = categoriaSelect ? categoriaSelect.value : null;
-                
-                if (categoriaId) {
-                    // Cerca tariffa generica (coltura vuota) per la stessa categoria
-                    tariffa = tariffe.find(t => 
-                        t.tipoLavoro === tipoLavoro && 
-                        t.coltura === '' && 
-                        t.categoriaColturaId === categoriaId &&
-                        t.tipoCampo === tipoCampo
-                    );
-                }
-            }
+            // Cerca tariffa: coltura specifica poi generica categoria; tipo lavoro con tolleranza (meccanico / prefisso)
+            let tariffa = _findTariffaPreventivo(tariffe, tipoLavoro, coltura, tipoCampo, categoriaId);
 
             if (tariffa) {
                 const tariffaFinale = (tariffa.tariffaBase || 0) * (tariffa.coefficiente || 1);
@@ -1500,8 +1599,21 @@
                 document.getElementById('totale-imponibile').textContent = '€ 0.00';
                 document.getElementById('totale-iva').textContent = '€ 0.00';
                 document.getElementById('totale-con-iva').textContent = '€ 0.00';
+                var catSel = document.getElementById('coltura-categoria');
+                var catId = catSel ? catSel.value : '';
+                var tipiUnici = [];
+                try {
+                    tipiUnici = [...new Set((tariffe || []).map(function(t) { return _normStrPrev(t.tipoLavoro); }).filter(Boolean))];
+                } catch (e) {}
+                console.warn('[PREVENTIVO] Nessuna tariffa attiva per combinazione:', {
+                    tipoLavoro: tipoLavoro,
+                    coltura: coltura,
+                    tipoCampo: tipoCampo,
+                    categoriaColturaId: catId,
+                    tariffeCaricate: (tariffe || []).length
+                }, 'Tipi lavoro presenti in tariffe:', tipiUnici);
                 document.getElementById('tariffa-info-text').textContent = 
-                    `⚠️ Tariffa non trovata per: ${tipoLavoro} - ${coltura} - ${tipoCampo}. Verifica che esista una tariffa attiva per questa combinazione.`;
+                    `⚠️ Tariffa non trovata per: ${tipoLavoro} - ${coltura} - ${tipoCampo}. Verifica in Tariffe un tipo lavoro compatibile (stesso nome o più corto: es. "Diserbo sulla Fila" se in preventivo compare "Diserbo Meccanico Sulla Fila"). Tariffe generiche: coltura vuota + categoria coltura + tipo campo.`;
                 document.getElementById('tariffa-info').style.display = 'block';
             }
         }
@@ -1561,6 +1673,12 @@
 
                 if (totaleImponibile === 0) {
                     showAlert('Impossibile salvare: totale è 0. Verifica che esista una tariffa per la combinazione selezionata.', 'error');
+                    return;
+                }
+
+                const dataPrevistaInput = document.getElementById('data-prevista');
+                if (!dataPrevistaInput || !String(dataPrevistaInput.value || '').trim()) {
+                    showAlert('Indica la data prevista del lavoro prima di salvare.', 'error');
                     return;
                 }
 

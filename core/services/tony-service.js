@@ -191,6 +191,19 @@ class TonyService {
   }
 
   /**
+   * True se il messaggio utente esprime una conferma di salvataggio (magazzino), non una lunga descrizione del prodotto/movimento.
+   */
+  _magazzinoUserPromptLooksLikeSaveConfirm(userPrompt) {
+    if (!userPrompt || typeof userPrompt !== 'string') return false;
+    const s = userPrompt.trim().toLowerCase();
+    if (/\b(ok\s*salva|salva\s+il\s+prodotto|salva\s+il\s+movimento|conferma\s+salvataggio|registra\s+il\s+prodotto|registra\s+il\s+movimento)\b/i.test(s)) return true;
+    if (/^(ok|salva|sì|si|va\s*bene)(\s*[!.])?\s*$/i.test(s)) return true;
+    if (/^(ok|sì|si)\s*,?\s*salva\b/i.test(s)) return true;
+    if (s.length <= 40 && /^\s*salva\s*$/i.test(s)) return true;
+    return false;
+  }
+
+  /**
    * Helper: Inizializza il context di Tony con i moduli attivi dal tenant.
    * Da chiamare nelle pagine standalone dopo aver caricato i dati del tenant.
    * @param {Array<string>} modules - Array di moduli attivi (es. ['vigneto', 'tony', ...])
@@ -370,6 +383,14 @@ class TonyService {
         stato: item.stato || '-',
         totale: item.totale != null ? item.totale : 0
       }));
+    } else if (pageType === 'terreniClienti') {
+      table.items = table.items.map((item) => ({
+        nome: item.nome || '-',
+        cliente: item.cliente || '-',
+        superficie: item.superficie != null ? item.superficie : '-',
+        coltura: item.coltura || '-',
+        podere: item.podere || '-'
+      }));
     } else if (pageType === 'tariffe') {
       table.items = table.items.map((item) => ({
         tipoLavoro: item.tipoLavoro || '-',
@@ -434,14 +455,37 @@ class TonyService {
   }
 
   /**
+   * @param {{ skipUserHistory?: boolean, proactive?: boolean }} askOptions - skipUserHistory: non aggiunge il turno utente a chatHistory. proactive: turno avviato dal widget (es. verifica modulo); usato per non eseguire SAVE_ACTIVITY sul finto messaggio «Form completo, confermi salvataggio?».
+   */
+  _pushChatTurn(userPrompt, modelText, askOptions) {
+    const skipUser = askOptions && askOptions.skipUserHistory;
+    if (!skipUser) {
+      this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
+    }
+    this.chatHistory.push({ role: 'model', parts: [{ text: modelText }] });
+    while (this.chatHistory.length > CHAT_HISTORY_MAX) {
+      this.chatHistory.shift();
+    }
+  }
+
+  /**
    * Invia una domanda a Tony e restituisce la risposta testuale.
    * Se la risposta contiene un'azione (JSON), viene emessa con triggerAction e il testo restituito è senza il blocco JSON.
    * @param {string} userPrompt - Testo dell'utente
-   * @returns {Promise<string>} Risposta di Tony (testo eventualmente ripulito dalle azioni)
+   * @param {{ skipUserHistory?: boolean, proactive?: boolean }} [askOptions]
+   * @returns {Promise<string|{text:string,command?:object}>} Risposta di Tony (testo eventualmente ripulito dalle azioni)
    */
-  async ask(userPrompt) {
+  async ask(userPrompt, askOptions = {}) {
     if (!this._ready) {
       throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
+    }
+    // Prima di triggerAction / _pushChatTurn: così APRI_PAGINA post-conferma ha il testo utente anche se il dialog viene confermato prima che chatHistory sia aggiornata.
+    if (userPrompt && String(userPrompt).trim() && !(askOptions && askOptions.skipUserHistory)) {
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('tony_last_user_message', String(userPrompt).trim());
+        }
+      } catch (_) {}
     }
     const historyBloc = this._formatHistoryForPrompt(this.chatHistory);
     const promptSuffix = historyBloc
@@ -482,7 +526,49 @@ class TonyService {
       if (fullResponseText && fullResponseText.includes('```json') && typeof window !== 'undefined' && window.TonyFormInjector && window.TonyFormInjector.extractFormDataFromText) {
         const extracted = window.TonyFormInjector.extractFormDataFromText(fullResponseText);
         if (extracted && extracted.formData && Object.keys(extracted.formData).length > 0) {
-          parsedData = { text: extracted.cleanedText || extracted.replyText || 'Ok.', command: { type: 'INJECT_FORM_DATA', formId: 'attivita-form', formData: extracted.formData } };
+          var fd0 = extracted.formData;
+          var keys0 = Object.keys(fd0);
+          var ctxForm = (contextForPrompt && contextForPrompt.form && contextForPrompt.form.formId) ? String(contextForPrompt.form.formId) : '';
+          var pathLow = typeof window !== 'undefined' && window.location && window.location.pathname ? String(window.location.pathname).toLowerCase() : '';
+          var onNuovoPreventivoPage = pathLow.indexOf('nuovo-preventivo') >= 0 || ctxForm === 'preventivo-form';
+          if (onNuovoPreventivoPage) {
+            var needPrevDate =
+              (fd0['data-prevista'] == null || String(fd0['data-prevista']).trim() === '') &&
+              (fd0['attivita-data'] != null && String(fd0['attivita-data']).trim() !== '' ||
+                fd0['dataPrevista'] != null && String(fd0['dataPrevista']).trim() !== '' ||
+                fd0['data_prevista'] != null && String(fd0['data_prevista']).trim() !== '');
+            if (needPrevDate) {
+              fd0 = Object.assign({}, fd0);
+              if (fd0['data-prevista'] == null || String(fd0['data-prevista']).trim() === '') {
+                if (fd0['attivita-data'] != null && String(fd0['attivita-data']).trim() !== '') {
+                  fd0['data-prevista'] = fd0['attivita-data'];
+                  delete fd0['attivita-data'];
+                } else if (fd0['dataPrevista'] != null && String(fd0['dataPrevista']).trim() !== '') {
+                  fd0['data-prevista'] = fd0['dataPrevista'];
+                  delete fd0['dataPrevista'];
+                } else if (fd0['data_prevista'] != null && String(fd0['data_prevista']).trim() !== '') {
+                  fd0['data-prevista'] = fd0['data_prevista'];
+                  delete fd0['data_prevista'];
+                }
+              }
+              keys0 = Object.keys(fd0);
+              extracted.formData = fd0;
+            }
+          }
+          var explicitLavoro0 = keys0.some(function (k) { return k === 'lavoro-tipo-lavoro' || k === 'lavoro-nome' || k === 'tipo-assegnazione'; });
+          var explicitAttivita0 = keys0.some(function (k) { return k.indexOf('attivita-') === 0; });
+          var explicitPreventivo0 =
+            keys0.indexOf('cliente-id') >= 0 &&
+            (keys0.indexOf('tipo-lavoro') >= 0 || keys0.indexOf('coltura-categoria') >= 0 || keys0.indexOf('coltura') >= 0 || keys0.indexOf('terreno-id') >= 0);
+          var preventivoKeyHints = ['tipo-lavoro', 'terreno-id', 'cliente-id', 'coltura-categoria', 'coltura', 'tipo-campo', 'superficie', 'lavoro-categoria-principale', 'lavoro-sottocategoria', 'iva', 'giorni-scadenza', 'data-prevista', 'dataPrevista', 'data_prevista', 'note'];
+          var looksLikePreventivo0 = keys0.some(function (k) { return preventivoKeyHints.indexOf(k) >= 0; });
+          var injectFormId0 = 'attivita-form';
+          if ((explicitPreventivo0 || (onNuovoPreventivoPage && looksLikePreventivo0 && !explicitLavoro0)) && !explicitAttivita0) {
+            injectFormId0 = 'preventivo-form';
+          } else if (keys0.some(function (k) { return k.indexOf('lavoro-') === 0 || k === 'tipo-assegnazione'; })) {
+            injectFormId0 = 'lavoro-form';
+          }
+          parsedData = { text: extracted.cleanedText || extracted.replyText || 'Ok.', command: { type: 'INJECT_FORM_DATA', formId: injectFormId0, formData: extracted.formData } };
           console.log('[Tony Service] Blocco ```json rilevato: uso SOLO INJECT_FORM_DATA, annullo eventuali SET_FIELD');
         }
       }
@@ -490,6 +576,9 @@ class TonyService {
         text = parsedData.text ?? 'Ok.';
         const cmdParams = { formId: parsedData.command.formId, formData: parsedData.command.formData };
         this.triggerAction('INJECT_FORM_DATA', cmdParams);
+        const cleanedInject = this._parseAndTriggerActions(text);
+        this._pushChatTurn(userPrompt, cleanedInject, askOptions);
+        return { text: cleanedInject, command: parsedData.command };
       } else {
       try {
         if (typeof rawData === 'object' && rawData !== null) {
@@ -559,8 +648,57 @@ class TonyService {
       }
       text = parsedData.text ?? 'Nessuna risposta da Tony.';
       if (parsedData.command && typeof parsedData.command === 'object' && parsedData.command.type) {
-        console.log('[Tony] ESEGUO COMANDO:', parsedData.command);
-        this.triggerAction(parsedData.command.type, parsedData.command);
+        var cmdT0 = String(parsedData.command.type).toUpperCase();
+        // Il widget invia «Form completo, confermi salvataggio?» come prompt proattivo; la CF a volte restituisce SAVE_ACTIVITY come se l'utente avesse confermato → click salvataggio prematuro e testo «Attività salvata!». Non eseguire SAVE_ACTIVITY finché l'utente non scrive davvero una conferma (gestita nei turni successivi senza proactive).
+        var blockProactiveFalseSave =
+          cmdT0 === 'SAVE_ACTIVITY' &&
+          askOptions.proactive &&
+          userPrompt &&
+          (/confermi\s+salvataggio/i.test(String(userPrompt)) || /^form\s+completo,?\s*confermi/i.test(String(userPrompt)));
+        if (blockProactiveFalseSave) {
+          console.log('[Tony Service] SAVE_ACTIVITY non eseguito: prompt proattivo di verifica modulo, non conferma utente');
+          parsedData.command = null;
+          var rep = parsedData.text != null ? String(parsedData.text) : '';
+          if (!rep.trim() || /attivit[aà]\s*salvat|salvat[aoe]\s*!|^\s*ok\.?\s*$/i.test(rep.trim())) {
+            parsedData.text =
+              'Il modulo sembra pronto. Per salvare in anagrafica dimmi esplicitamente «ok salva» o «sì, salva». Se vuoi cambiare ancora qualcosa (es. unità di misura), dimmelo prima.';
+          }
+          text = parsedData.text;
+        } else if (
+          cmdT0 === 'SAVE_ACTIVITY' &&
+          typeof window !== 'undefined'
+        ) {
+          try {
+            var cpSave = this._getContextForPrompt();
+            var fidSave = cpSave && cpSave.form && cpSave.form.formId ? String(cpSave.form.formId) : '';
+            var isMagSave = fidSave === 'prodotto-form' || fidSave === 'movimento-form';
+            // Dopo OPEN_MODAL/INJECT il contesto form a volte non ha ancora formId: stessa guardia se siamo su pagina anagrafica prodotti/movimenti.
+            if (!isMagSave && typeof window !== 'undefined' && window.location && window.location.pathname) {
+              var plMag = String(window.location.pathname).toLowerCase();
+              if (plMag.indexOf('prodotti') >= 0 || plMag.indexOf('movimenti') >= 0) {
+                isMagSave = true;
+              }
+            }
+            var upSave = String(userPrompt || '').trim();
+            // Non richiedere upSave truthy: se il prompt è vuoto (replay/turno interno) non è una conferma → bloccare.
+            if (isMagSave && !this._magazzinoUserPromptLooksLikeSaveConfirm(upSave)) {
+              console.log('[Tony Service] SAVE_ACTIVITY non eseguito (magazzino): il messaggio non è una conferma esplicita di salvataggio');
+              parsedData.command = null;
+              var rtMag = parsedData.text != null ? String(parsedData.text) : '';
+              if (!rtMag.trim() || /salvat|registrat|prodotto\s+salv|movimento\s+registr/i.test(rtMag)) {
+                parsedData.text = 'Quando vuoi registrare in anagrafica, dimmi «ok salva».';
+              }
+              text = parsedData.text;
+            }
+          } catch (eMagSave) { /* ignore */ }
+          if (parsedData.command) {
+            console.log('[Tony] ESEGUO COMANDO:', parsedData.command);
+            this.triggerAction(parsedData.command.type, parsedData.command);
+          }
+        } else {
+          console.log('[Tony] ESEGUO COMANDO:', parsedData.command);
+          this.triggerAction(parsedData.command.type, parsedData.command);
+        }
       }
       
       // Se il parsing è fallito ma abbiamo ancora la stringa grezza con JSON,
@@ -568,26 +706,18 @@ class TonyService {
       if (typeof rawData === 'string' && rawData.includes('"command"') && !parsedData.command) {
         console.log('[Tony Service] Parsing fallito ma JSON presente nella risposta grezza, passo al widget come oggetto');
         const cleaned = this._parseAndTriggerActions(rawData.replace(/\{[\s\S]*\}/g, '').trim() || rawData);
-        this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
-        this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
-        while (this.chatHistory.length > CHAT_HISTORY_MAX) this.chatHistory.shift();
+        this._pushChatTurn(userPrompt, cleaned, askOptions);
         return { text: cleaned, command: null };
       }
       // Restituisci al widget l'oggetto { text, command } quando il backend ha già estratto il comando
       if (parsedData.command && typeof parsedData.command === 'object') {
         const cleaned = this._parseAndTriggerActions(text);
-        this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
-        this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
-        while (this.chatHistory.length > CHAT_HISTORY_MAX) {
-          this.chatHistory.shift();
-        }
+        this._pushChatTurn(userPrompt, cleaned, askOptions);
         return { text: cleaned, command: parsedData.command };
       }
       // Sempre oggetto: nessun comando → command: null (evita che il widget riceva stringa e faccia parseRobustTonyResponse)
       const finalText = (parsedData.text ?? text ?? 'Nessuna risposta da Tony.').toString().trim() || 'Ok.';
-      this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
-      this.chatHistory.push({ role: 'model', parts: [{ text: finalText }] });
-      while (this.chatHistory.length > CHAT_HISTORY_MAX) this.chatHistory.shift();
+      this._pushChatTurn(userPrompt, finalText, askOptions);
       return { text: finalText, command: null };
       }
     } else if (this.model) {
@@ -606,11 +736,7 @@ class TonyService {
 
     const cleaned = this._parseAndTriggerActions(text);
 
-    this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
-    this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
-    while (this.chatHistory.length > CHAT_HISTORY_MAX) {
-      this.chatHistory.shift();
-    }
+    this._pushChatTurn(userPrompt, cleaned, askOptions);
 
     return cleaned;
   }
@@ -619,7 +745,7 @@ class TonyService {
    * Invia una domanda a Tony con streaming. Emette chunk via onChunk; restituisce il testo completo finale.
    * Se usa Cloud Function (callable), fa fallback su ask() senza streaming.
    * @param {string} userPrompt - Testo dell'utente
-   * @param {{ onChunk?: (chunk: string) => void }} opts - Callback per ogni chunk di testo
+   * @param {{ onChunk?: (chunk: string) => void, skipUserHistory?: boolean, proactive?: boolean }} opts - Callback chunk; skipUserHistory/proactive come in ask()
    * @returns {Promise<string>} Risposta completa (testo ripulito dalle azioni)
    */
   async askStream(userPrompt, opts = {}) {
@@ -629,7 +755,7 @@ class TonyService {
     const onChunk = opts.onChunk || (() => {});
 
     if (this._useCallable && this._tonyAskCallable) {
-      const text = await this.ask(userPrompt);
+      const text = await this.ask(userPrompt, opts);
       return text;
     }
 
@@ -662,11 +788,7 @@ class TonyService {
 
     const cleaned = this._parseAndTriggerActions(fullText);
 
-    this.chatHistory.push({ role: 'user', parts: [{ text: userPrompt }] });
-    this.chatHistory.push({ role: 'model', parts: [{ text: cleaned }] });
-    while (this.chatHistory.length > CHAT_HISTORY_MAX) {
-      this.chatHistory.shift();
-    }
+    this._pushChatTurn(userPrompt, cleaned, opts);
 
     return cleaned;
   }

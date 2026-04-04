@@ -1,0 +1,83 @@
+---
+description: GFV – canone nuove pagine Tony (tabelle + form); merge contesto; visione futura multimodale
+alwaysApply: true
+---
+
+# Tony – Flusso unificato: liste (occhi) e form (mani)
+
+Usare questo canone per **ogni nuova pagina** da allineare a Tony. Allinea il codice al widget (`core/js/tony/main.js`, comportamento come `applyTableDataToContext`: merge del contesto `page`, non sostituzione totale con sole chiavi tabella).
+
+**Cosa risolve:** stesso approccio tra chat Cursor e nuove pagine, meno “riparti da zero”, meno varianti inutili. **Cosa non risolve:** non elimina differenze tra moduli (colonne, form); non sostituisce test manuali.
+
+## Obiettivo prodotto (allineato al Master Plan)
+
+- **Occhi:** Tony legge la lista/tab attuale tramite **`window.currentTableData`** (dati strutturati), non screenshot.
+- **Mani:** Tony compila form tramite **`core/config/tony-form-mapping.js`** + **`core/js/tony-form-injector.js`** (+ **`functions/index.js`** dove servono intent/comandi), senza eccezioni `if (pagina/form singolo)` nel core.
+- **Da ogni pagina:** domande, navigazione (`APRI_PAGINA` / moduli), avvio form — mobilità globale + Context Builder.
+
+## Documentazione da leggere prima di modificare
+
+1. `docs-sviluppo/tony/MASTER_PLAN.md`
+2. `docs-sviluppo/tony/STATO_ATTUALE.md` (comandi, `currentTableData`, stato componenti)
+3. `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md` (pattern tabelle)
+4. `docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md` (standalone)
+
+## File di riferimento “golden” (copiare struttura, non improvvisare)
+
+| Esigenza | Path esempio |
+|----------|----------------|
+| Lista + placeholder + render + evento | `modules/macchine/views/trattori-list-standalone.html` **oppure** `modules/conto-terzi/views/tariffe-standalone.html` / `preventivi-standalone.html` |
+| Form / Treasure Map | `core/config/tony-form-mapping.js` |
+| Iniezione campi | `core/js/tony-form-injector.js` |
+| Widget (solo integrazioni **generiche**) | `core/js/tony/main.js` — evitare eccezioni dedicate a una sola pagina se esprimibili in config |
+
+## Canone obbligatorio — dati tabella (nuove pagine)
+
+1. **Placeholder** in testa (o fallback all’inizio del modulo): `pageType` univoco; `summary: 'Caricamento dati in corso...'`; `items: []`.
+2. Ad ogni **render** dopo filtri: `summary` + `items` coerenti con ciò che è visibile.
+3. **`window.currentTableData`** aggiornato ad ogni render.
+4. **`setContext('page', …)` — sempre merge** con il `page` già presente (stesso principio del listener `table-data-ready` in `main.js`):
+
+```javascript
+var page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+window.Tony.setContext('page', Object.assign({}, page, {
+  tableDataSummary: window.currentTableData.summary,
+  currentTableData: window.currentTableData
+}));
+```
+
+(Equivalente valido se esiste già una variabile `page` locale costruita allo stesso modo.)
+
+**Evento — formato unico per le nuove pagine:**
+
+```javascript
+window.dispatchEvent(new CustomEvent('table-data-ready', {
+  detail: { currentTableData: window.currentTableData }
+}));
+```
+
+(Il widget accetta ancora formati legacy; le nuove implementazioni usano solo `detail.currentTableData`.)
+
+Nuovo `pageType` e comandi di filtro Tony: estendere `FILTER_TABLE` / istruzioni in `functions/index.js` in modo coerente con gli altri tipi, senza duplicare logica client per singola pagina.
+
+## Canone obbligatorio — form (nuove pagine)
+
+- Nuova voce in `tony-form-mapping.js` (`fields`, `injectionOrder`, chiavi in `TONY_FORM_MAPPING`).
+- Estendere `tony-form-injector.js` solo con helper riusabili o rami guidati dalla mapping.
+- **Vietato:** nuovi `if` nel core legati a un solo `formId`/pagina quando è evitabile con la config.
+
+## Codice già esistente (regressione)
+
+- Sezioni già “mature” possono differire leggermente (es. forma evento, buffer attività/lavori). Non è obbligatorio refactor immediato per allineamento.
+- Non modificare file storici solo per cosmesi senza richiesta esplicita e verifica sulla sezione.
+- Le nuove pagine devono seguire questo canone così il progetto converge senza rompere ciò che funziona.
+
+## Direzione futura (visione — non implementare senza requisito esplicito)
+
+Obiettivi evolutivi: contesto sempre più ricco; in seguito consigli e analisi; possibile multimodale (es. catalogare bolle o riconoscere malattie da foto) per alimentare l’ERP.
+
+**Regola:** non introdurre integrazione visione / upload immagini / callable multimodali finché non esistono flusso utente, persistenza (es. Firestore) e traccia in `TONY_DECISIONI_E_REQUISITI.md` / Master Plan. Fino ad allora: dati strutturati + Context Builder + mapping come oggi.
+
+## Dopo il lavoro
+
+Seguire `tony-agent-onboarding.mdc`: aggiornare solo i 4 file di documentazione consentiti quando cambia lo stato.

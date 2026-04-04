@@ -221,8 +221,27 @@
 
         .action-buttons {
             display: flex;
-            gap: 5px;
+            gap: 8px;
             flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* Pulsanti azioni tabella: stessa altezza dei .btn standard, emoji invio più leggibile */
+        .preventivi-table .action-buttons .btn {
+            padding: 10px 16px;
+            font-size: 14px;
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-sizing: border-box;
+        }
+
+        .preventivi-table .action-buttons .preventivi-email-icon {
+            font-size: 1.45em;
+            line-height: 1;
+            display: inline-block;
         }
 
         .loading {
@@ -544,10 +563,36 @@
                     });
                 });
                 filterPreventivi();
+                tryTonyPendingPreventiviAction();
             } catch (error) {
                 console.error('Errore caricamento preventivi:', error);
                 showAlert('Errore caricamento preventivi: ' + error.message, 'error');
                 container.innerHTML = '<div class="empty-state">Errore caricamento preventivi</div>';
+            }
+        }
+
+        function tryTonyPendingPreventiviAction() {
+            try {
+                var raw = sessionStorage.getItem('tony_pending_preventivi_action');
+                if (!raw) return;
+                sessionStorage.removeItem('tony_pending_preventivi_action');
+                var params = JSON.parse(raw);
+                if (typeof window.tonyPreventivoListAction !== 'function') return;
+                setTimeout(function () {
+                    window.tonyPreventivoListAction(params).then(function (res) {
+                        if (res && res.message) {
+                            if (typeof window.appendMessage === 'function') {
+                                window.appendMessage(res.message, res.ok ? 'tony' : 'error');
+                            } else {
+                                showAlert(res.message, res.ok ? 'success' : 'error');
+                            }
+                        }
+                    }).catch(function (e) {
+                        showAlert((e && e.message) ? e.message : 'Errore azione Tony', 'error');
+                    });
+                }, 500);
+            } catch (e) {
+                console.warn('tryTonyPendingPreventiviAction', e);
             }
         }
 
@@ -783,8 +828,11 @@
                 items: preventiviList.map(p => {
                     const cliente = clienti.find(c => c.id === p.clienteId);
                     return {
+                        id: p.id,
                         numero: p.numero || '-',
                         cliente: cliente ? (cliente.ragioneSociale || '-') : '-',
+                        tipoLavoro: p.tipoLavoro || '-',
+                        coltura: p.coltura || '-',
                         stato: p.stato || '-',
                         totale: p.totaleConIva != null ? p.totaleConIva : (p.totale != null ? p.totale : 0)
                     };
@@ -849,19 +897,19 @@
                 
                 // Azioni in base allo stato
                 if (preventivo.stato === 'bozza') {
-                    html += `<button class="btn btn-sm btn-primary" onclick="inviaPreventivo('${preventivo.id}')">📧 Invia</button>`;
-                    html += `<button class="btn btn-sm btn-success" onclick="accettaPreventivoManager('${preventivo.id}')">✅ Accetta</button>`;
-                    html += `<button class="btn btn-sm btn-danger" onclick="annullaPreventivo('${preventivo.id}')">🚫 Annulla</button>`;
+                    html += `<button type="button" class="btn btn-primary" onclick="inviaPreventivo('${preventivo.id}')"><span class="preventivi-email-icon" aria-hidden="true">📧</span> Invia</button>`;
+                    html += `<button type="button" class="btn btn-success" onclick="accettaPreventivoManager('${preventivo.id}')">✅ Accetta</button>`;
+                    html += `<button type="button" class="btn btn-danger" onclick="annullaPreventivo('${preventivo.id}')">🚫 Annulla</button>`;
                 } else if (preventivo.stato === 'inviato') {
-                    html += `<button class="btn btn-sm btn-success" onclick="accettaPreventivoManager('${preventivo.id}')">✅ Accetta</button>`;
-                    html += `<button class="btn btn-sm btn-warning" onclick="rifiutaPreventivo('${preventivo.id}')">❌ Rifiuta</button>`;
+                    html += `<button type="button" class="btn btn-success" onclick="accettaPreventivoManager('${preventivo.id}')">✅ Accetta</button>`;
+                    html += `<button type="button" class="btn btn-warning" onclick="rifiutaPreventivo('${preventivo.id}')">❌ Rifiuta</button>`;
                 } else if (preventivo.stato === 'accettato_email' || preventivo.stato === 'accettato_manager') {
-                    html += `<button class="btn btn-sm btn-primary" onclick="pianificaPreventivo('${preventivo.id}')">📋 Pianifica</button>`;
+                    html += `<button type="button" class="btn btn-primary" onclick="pianificaPreventivo('${preventivo.id}')">📋 Pianifica</button>`;
                 } else if (preventivo.stato === 'pianificato') {
-                    html += `<span style="color: #28a745; font-size: 12px;">Lavoro creato</span>`;
+                    html += `<span style="color: #28a745; font-size: 13px;">Lavoro creato</span>`;
                 }
                 
-                html += `<button class="btn btn-sm btn-danger" onclick="deletePreventivoConfirm('${preventivo.id}')">🗑️</button>`;
+                html += `<button type="button" class="btn btn-danger" onclick="deletePreventivoConfirm('${preventivo.id}')" title="Elimina">🗑️</button>`;
                 html += `</div></td>`;
                 html += '</tr>';
             });
@@ -1140,6 +1188,34 @@
                 showAlert('Errore: ' + error.message, 'error');
             }
         }
+
+        /** Tony (widget): invio email o accettazione manager dalla lista — stessa logica dei pulsanti */
+        window.tonyPreventivoListAction = async function (params) {
+            const action = params && params.action;
+            const preventivoId = params && params.preventivoId;
+            if (!preventivoId || !action) {
+                return { ok: false, message: 'Parametri azione mancanti.' };
+            }
+            const prev = preventivi.find(function (pr) { return pr.id === preventivoId; });
+            if (!prev) {
+                return { ok: false, message: 'Preventivo non trovato nell\'elenco. Aggiorna la pagina e riprova.' };
+            }
+            if (action === 'invia') {
+                if (prev.stato !== 'bozza') {
+                    return { ok: false, message: 'Solo le bozze possono essere inviate per email.' };
+                }
+                await window.inviaPreventivo(preventivoId);
+                return { ok: true, message: 'Ho eseguito l\'invio del preventivo per email.' };
+            }
+            if (action === 'accetta_manager') {
+                if (prev.stato !== 'bozza' && prev.stato !== 'inviato') {
+                    return { ok: false, message: 'Questo preventivo non può essere accettato dal manager nello stato attuale.' };
+                }
+                await window.accettaPreventivoManager(preventivoId);
+                return { ok: true, message: 'Ho registrato l\'accettazione del preventivo.' };
+            }
+            return { ok: false, message: 'Azione non supportata.' };
+        };
 
         // Rifiuta preventivo - rendi globale per accesso da HTML
         window.rifiutaPreventivo = async function(preventivoId) {

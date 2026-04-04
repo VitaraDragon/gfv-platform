@@ -1,7 +1,7 @@
 # Master Plan – Tony Assistente Universale
 
-**Versione**: 1.1  
-**Data**: 2026-03-08  
+**Versione**: 1.3  
+**Data**: 2026-04-02  
 **Stato**: Documento di riferimento – tutte le modifiche a Tony devono allinearsi a questo piano.
 
 *Consolidato da `docs-sviluppo/MASTER_PLAN_TONY_UNIVERSAL.md`*
@@ -13,11 +13,11 @@
 | Fase | Nome | Stato | Criterio done |
 |------|------|-------|---------------|
 | **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo |
-| **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" da Dashboard → Tony apre modal, compila, chiede campi mancanti |
-| **3** | Context Builder e dati aziendali | ✅ **In corso** | buildContextAzienda in CF; Tony risponde "Quali scadenze?" / "Come stanno i prodotti?" |
-| **4** | Iniezione universale | ✅ **In corso** | Injector + TONY_FORM_MAPPING; form Attività e Lavori; terreno via OPEN_MODAL+fields |
-| **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; descrizione dati dal contesto |
-| **6** | Proattività e memoria | ❌ Da fare | Tony segnala scadenze/sotto scorta proattivamente |
+| **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08) |
+| **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); summarySottoScorta opzionale |
+| **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24); magazzino prodotto/movimento via mapping+injector |
+| **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
+| **6** | Proattività e memoria | ⏳ Parziale | Dashboard + Guasti ok; liste/form magazzino con proattività parziale (timer, interview, conferma salvataggio); "Ho notato X" da fare |
 
 ---
 
@@ -206,26 +206,27 @@ Tony non "compila" grafici. Può:
 - **Criterio done**: Operaio può dire "Ho fatto 8 ore di potatura" da qualsiasi pagina e Tony completa il flusso
 
 ### Fase 3 – Context Builder e dati aziendali ✅ In corso
-- **buildContextAzienda** in CF: terreni (coltura_categoria), macchine, tipi lavoro, colture, summaryScadenze, guastiAperti
+- **buildContextAzienda** in CF: terreni (coltura_categoria), macchine, tipi lavoro, colture, summaryScadenze, guastiAperti, **ultimi movimenti magazzino** (`movimentiMagazzino` → `movimentiRecenti` + testo riassuntivo)
 - summarySottoScorta opzionale (prodotti raw già presenti)
-- **Criterio done**: Tony risponde a "Quali scadenze ho?" e "Come stanno i prodotti?" con dati reali
+- **Criterio done**: Tony risponde a "Quali scadenze ho?", "Come stanno i prodotti?" e domande su **ultimi carichi/scarichi** con dati reali anche fuori dalla pagina Movimenti (lista completa e filtri restano sulla pagina)
 
 ### Fase 4 – Iniezione universale ✅ In corso
 - Injector generico che legge da TONY_FORM_MAPPING
 - Form Attività e Lavori: INJECT_FORM_DATA, deriveCategoriaFromTipo, override Generale→Tra le File
 - Terreno: OPEN_MODAL + fields
-- **Criterio done**: Aggiungere prodotto, cliente, movimento richiede solo aggiornare il mapping
+- Nuovo Preventivo (preventivo-form), Magazzino (prodotto-form / movimento-form): mapping + injector + comandi standard
+- **Criterio done**: Nuovo form/modulo richiede soprattutto mapping e istruzioni CF, non patch per pagina
 
 ### Fase 5 – Grafici e report ⏳ Parziale
 - Tony descrive dati statistici dal contesto
 - Comando APRI_PAGINA per pagine statistiche/report
+- Comando MOSTRA_GRAFICO: da fare
 - **Criterio done**: "Mostrami le statistiche vigneto" → Tony apre la pagina e/o riassume i dati
 
-### Fase 6 – Proattività e memoria ❌ Da fare
-- Alert automatici nel contesto ("2 affitti in scadenza")
-- Tony propone: "Ho notato X, vuoi che...?"
-- Confronti temporali (anno corrente vs precedente) dove i dati sono disponibili
-- **Criterio done**: Tony segnala proattivamente almeno scadenze e sotto scorta
+### Fase 6 – Proattività e memoria ⏳ Parziale
+- Parziale: briefing/dashboard, modulo Guasti, avvisi sotto scorta in pagina prodotti (TTS), form magazzino con domande/intervista e promemoria conferma salvataggio (senza salvataggio automatico da solo testo modello)
+- Da fare: frasi tipo "Ho notato X, vuoi che...?" cross-modulo; confronti temporali strutturati dove i dati sono disponibili
+- **Criterio done (obiettivo)**: Tony segnala proattivamente scadenze e sotto scorta in modo uniforme sui moduli + memoria/confronti ove previsto
 
 ---
 

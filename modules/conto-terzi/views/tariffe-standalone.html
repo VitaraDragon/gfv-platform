@@ -519,7 +519,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
+        import { initializeFirebase } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
 
@@ -548,9 +548,7 @@
         }
 
         const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
-        const auth = getAuthInstance();
-        const db = getDb();
+        const { app, db, auth } = initializeFirebase(firebaseConfig);
 
         if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
             window.currentTableData = { pageType: 'tariffe', summary: 'Caricamento dati in corso...', items: [] };
@@ -1502,6 +1500,7 @@
                 document.getElementById('tipo-campo').value = '';
                 document.getElementById('coefficiente-group').style.display = 'none';
                 document.getElementById('info-crea-multiple').style.display = 'block';
+                document.getElementById('btn-crea-multiple').style.display = 'inline-block';
                 // Popola dropdown tipi lavoro
                 populateTipiLavoroDropdown();
             }
@@ -1567,9 +1566,24 @@
                 return;
             }
 
+            const tariffaColtura = (tariffa.coltura || '').trim();
+            const tariffaCategoriaColturaId = tariffa.categoriaColturaId || null;
+
             // Determina le morfologie mancanti
             const morfologieEsistenti = tariffe
-                .filter(t => t.tipoLavoro === tariffa.tipoLavoro && t.coltura === tariffa.coltura && t.id !== tariffa.id)
+                .filter(t => {
+                    if (t.id === tariffa.id || t.tipoLavoro !== tariffa.tipoLavoro) {
+                        return false;
+                    }
+                    const currentColtura = (t.coltura || '').trim();
+                    if (currentColtura !== tariffaColtura) {
+                        return false;
+                    }
+                    if (!tariffaColtura) {
+                        return (t.categoriaColturaId || null) === tariffaCategoriaColturaId;
+                    }
+                    return true;
+                })
                 .map(t => t.tipoCampo);
 
             const tutteMorfologie = ['pianura', 'collina', 'montagna'];
@@ -1632,11 +1646,22 @@
                         const tariffeEsistenti = await getDocs(query(
                             collection(db, 'tenants', currentTenantId, 'tariffe'),
                             where('tipoLavoro', '==', tariffa.tipoLavoro),
-                            where('coltura', '==', (tariffa.coltura || '').trim() || ''),
                             where('tipoCampo', '==', morf)
                         ));
 
-                        if (!tariffeEsistenti.empty) {
+                        const esisteGia = tariffeEsistenti.docs.some((docSnap) => {
+                            const data = docSnap.data() || {};
+                            const currentColtura = (data.coltura || '').trim();
+                            if (currentColtura !== tariffaColtura) {
+                                return false;
+                            }
+                            if (!tariffaColtura) {
+                                return (data.categoriaColturaId || null) === tariffaCategoriaColturaId;
+                            }
+                            return true;
+                        });
+
+                        if (esisteGia) {
                             continue;
                         }
 
@@ -1691,6 +1716,8 @@
             const tipoLavoro = document.getElementById('tipo-lavoro').value.trim();
             const colturaValue = document.getElementById('coltura').value.trim();
             const categoriaColturaId = document.getElementById('coltura-categoria').value || null;
+            const colturaScope = colturaValue || '';
+            const categoriaScope = (!colturaScope && categoriaColturaId) ? categoriaColturaId : null;
             const tariffaBase = parseFloat(document.getElementById('tariffa-base').value);
             const attiva = document.getElementById('attiva').value === 'true';
             const note = document.getElementById('note').value.trim() || '';
@@ -1741,11 +1768,22 @@
                         const tariffeEsistenti = await getDocs(query(
                             collection(db, 'tenants', currentTenantId, 'tariffe'),
                             where('tipoLavoro', '==', tipoLavoro),
-                            where('coltura', '==', colturaValue || ''),
                             where('tipoCampo', '==', morf.tipo)
                         ));
 
-                        if (!tariffeEsistenti.empty) {
+                        const esisteGia = tariffeEsistenti.docs.some((docSnap) => {
+                            const data = docSnap.data() || {};
+                            const currentColtura = (data.coltura || '').trim();
+                            if (currentColtura !== colturaScope) {
+                                return false;
+                            }
+                            if (!colturaScope) {
+                                return (data.categoriaColturaId || null) === categoriaScope;
+                            }
+                            return true;
+                        });
+
+                        if (esisteGia) {
                             skipCount++;
                             continue;
                         }

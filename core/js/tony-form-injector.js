@@ -67,24 +67,200 @@
     'tipo-assegnazione': 200
   };
 
+  const INJECTION_ORDER_PREVENTIVO = [
+    'cliente-id',
+    // Prima seleziona il terreno cliente: innesca onTerrenoChange e precompila campi dipendenti
+    // (superficie, tipo-campo, coltura*) prima della cascata lavorazione.
+    'terreno-id',
+    'lavoro-categoria-principale',
+    'lavoro-sottocategoria',
+    'tipo-lavoro',
+    'coltura-categoria',
+    'coltura',
+    'tipo-campo',
+    'superficie',
+    'iva',
+    'giorni-scadenza',
+    'data-prevista',
+    'note'
+  ];
+
+  /** Allineato a main.js OPEN_MODAL lavoro + `enqueueTonyCommand(INJECT, delayMs: 1800)` dopo openCreaModal. */
+  const PREVENTIVO_POST_CLIENTE_MS = 1800;
+
+  const DELAYS_PREVENTIVO = {
+    'cliente-id': PREVENTIVO_POST_CLIENTE_MS,
+    'terreno-id': 600,
+    /** loadTipiLavoro(categoria) è async: tempo per ripopolare #tipo-lavoro prima della sottocategoria/tipo */
+    'lavoro-categoria-principale': 900,
+    'lavoro-sottocategoria': 900,
+    'tipo-lavoro': 250,
+    'coltura-categoria': 350,
+    'coltura': 200
+  };
+
   function delay(ms) {
     return new Promise(function (r) { setTimeout(r, ms); });
   }
 
-  /** Attende che un select abbia opzioni (max 3s). Per attivita-sottocategoria dopo categoria. */
-  function waitForSelectOptions(selectId, minOptions) {
+  /** Attende che un select abbia opzioni. Nuovo Preventivo: loadTipiLavoro async → maxMs più alto. */
+  function waitForSelectOptions(selectId, minOptions, maxMs) {
     minOptions = minOptions || 2;
+    maxMs = maxMs == null ? 3000 : maxMs;
     var el = document.getElementById(selectId);
     if (!el || el.tagName !== 'SELECT') return Promise.resolve();
     if (el.options.length >= minOptions) return Promise.resolve();
     return new Promise(function (resolve) {
       var start = Date.now();
       var iv = setInterval(function () {
-        if (el.options.length >= minOptions || Date.now() - start > 3000) {
+        if (el.options.length >= minOptions || Date.now() - start > maxMs) {
           clearInterval(iv);
           resolve();
         }
       }, 80);
+    });
+  }
+
+  /**
+   * Attende che la pagina Nuovo Preventivo abbia finito il bootstrap (tipi lavoro + categorie colture).
+   * Evita injectPreventivoForm che fallisce o lascia campi vuoti se Tony risponde mentre loadColture/loadTipiLavoro sono in corso.
+   */
+  function waitForPreventivoPageDataReady(maxMs) {
+    maxMs = maxMs || 20000;
+    var t0 = Date.now();
+    return new Promise(function (resolve) {
+      var iv = setInterval(function () {
+        var ps = window.preventivoState;
+        var tipiOk = ps && Array.isArray(ps.tipiLavoroList) && ps.tipiLavoroList.length > 0;
+        var catLavOk = ps && Array.isArray(ps.categorieLavoriPrincipali) && ps.categorieLavoriPrincipali.length > 0;
+        var elColCat = document.getElementById('coltura-categoria');
+        var nOptCol = elColCat && elColCat.options ? elColCat.options.length : 0;
+        var coltureOk = nOptCol >= 2 || (ps && Array.isArray(ps.categorieColturePreventivo) && ps.categorieColturePreventivo.length > 0);
+        if (tipiOk && catLavOk && coltureOk) {
+          clearInterval(iv);
+          resolve();
+          return;
+        }
+        if (Date.now() - t0 > maxMs) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 120);
+    });
+  }
+
+  /**
+   * Attende che nel select esista un'option con value esatto (es. id Firestore).
+   * Nuovo Preventivo: dopo cliente-id, loadTerreniCliente() è async e ricostruisce terreno-id.
+   */
+  /**
+   * True se dal terreno si capisce coltura arborata / filari (vite, frutteto, olivo…).
+   * Conto Terzi: campi camelCase (colturaCategoria spesso è id Firestore) + coltura nome.
+   */
+  function terrenoHasFilariColtura(terreno) {
+    if (!terreno) return false;
+    var blob = [
+      terreno.coltura,
+      terreno.colturaSottocategoria,
+      terreno.colturaSottoCategoria,
+      terreno.coltura_categoria,
+      terreno.colturaCategoria,
+      terreno.colturaDettaglio && terreno.colturaDettaglio.nome,
+      terreno.colturaDettaglio && terreno.colturaDettaglio.categoria,
+      terreno.nome
+    ].filter(function (x) { return x != null && String(x).trim() !== ''; }).join(' ').toLowerCase();
+    // Filari: vigneto e colture arboree/frutteto (es. albicocche, pesco, ciliegio...)
+    return /vite|vigneto|frutteto|olivo|oliveto|arboreo|alberi|albicocc|pesc|cilieg|susin|prugn|pero|melo|kaki|mandorl|nocciol|noce|kiwi|melograno|castagn|pistac|fico|nespol|giuggiol|gelso/.test(blob);
+  }
+
+  /**
+   * Dopo change cliente, loadTerreniCliente() è async. Attende ≥2 option (placeholder + terreno) oppure
+   * solo placeholder stabilo dopo 6s+0.5s (cliente senza terreni). Max 12s.
+   * Stesso spirito di attesa dropdown del modal Gestione Lavori prima della prima INJECT.
+   */
+  function waitForPreventivoTerrenoSelectHydrated(maxMs) {
+    maxMs = maxMs || 12000;
+    var t0 = Date.now();
+    var lastN = -1;
+    var stableOneSince = null;
+    return new Promise(function (resolve) {
+      var iv = setInterval(function () {
+        var el = document.getElementById('terreno-id');
+        var n = el && el.options ? el.options.length : 0;
+        var elapsed = Date.now() - t0;
+        if (n >= 2) {
+          clearInterval(iv);
+          resolve();
+          return;
+        }
+        if (elapsed >= 6000 && n <= 1) {
+          if (lastN === n) {
+            if (!stableOneSince) stableOneSince = Date.now();
+            else if (Date.now() - stableOneSince >= 500) {
+              clearInterval(iv);
+              resolve();
+              return;
+            }
+          } else {
+            stableOneSince = null;
+          }
+        }
+        lastN = n;
+        if (elapsed > maxMs) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 100);
+    });
+  }
+
+  function waitForSelectOptionValue(selectId, optionValue, maxMs) {
+    maxMs = maxMs || 10000;
+    var want = String(optionValue || '').trim();
+    if (!want) return Promise.resolve();
+    var el = document.getElementById(selectId);
+    if (!el || el.tagName !== 'SELECT') return Promise.resolve();
+    function hasOption() {
+      if (!el || !el.options) return false;
+      for (var o = 0; o < el.options.length; o++) {
+        if ((el.options[o].value || '') === want) return true;
+      }
+      return false;
+    }
+    if (hasOption()) return Promise.resolve();
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      var iv = setInterval(function () {
+        if (hasOption() || Date.now() - start > maxMs) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 100);
+    });
+  }
+
+  /** Attende la fine del fetch `loadTerreniCliente` (nuovo-preventivo-standalone) per evitare race su innerHTML del select. */
+  function awaitPreventivoTerreniFetchDone(maxMs) {
+    if (typeof window.__preventivoAwaitTerreniClienteReady !== 'function') return Promise.resolve();
+    return window.__preventivoAwaitTerreniClienteReady(maxMs == null ? 15000 : maxMs);
+  }
+
+  /** Attende che syncPreventivoTonyState() abbia messo il terreno in preventivoState.terreni (dopo change cliente). */
+  function waitForPreventivoStateContainsTerreno(terrenoId, maxMs) {
+    maxMs = maxMs || 12000;
+    var want = String(terrenoId || '').trim();
+    if (!want) return Promise.resolve();
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      var iv = setInterval(function () {
+        var ps = window.preventivoState;
+        var list = ps && Array.isArray(ps.terreni) ? ps.terreni : [];
+        var hit = list.some(function (t) { return (t.id || '') === want; });
+        if (hit || Date.now() - start > maxMs) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 100);
     });
   }
 
@@ -102,6 +278,330 @@
       return n && (n.indexOf(search) >= 0 || search.indexOf(n) >= 0);
     });
     return partial && partial.id ? partial.id : raw;
+  }
+
+  function normTxt(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+
+  /** True se sembra id documento Firestore (evita confondere con nome coltura). */
+  function looksLikeFirestoreDocId(s) {
+    return /^[a-zA-Z0-9_-]{15,}$/.test(String(s || '').trim());
+  }
+
+  /**
+   * Incrocia hint coltura con `colturePerCategoriaPreventivo` → id coltura / nomi da confrontare sui terreni.
+   */
+  function colturaHintsFromGlobalMap(hintNorm) {
+    var ids = [];
+    var nomi = [];
+    if (!hintNorm || hintNorm.length < 2) return { ids: ids, nomi: nomi };
+    var map = (typeof window !== 'undefined' && window.colturePerCategoriaPreventivo) || {};
+    Object.keys(map).forEach(function (cid) {
+      var arr = map[cid];
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function (c) {
+        var nome = (c && (c.nome || c)) || '';
+        var n = normTxt(nome);
+        if (!n) return;
+        if (n === hintNorm || n.indexOf(hintNorm) >= 0 || hintNorm.indexOf(n) >= 0) {
+          if (c.id) ids.push(String(c.id));
+          nomi.push(nome);
+        }
+      });
+    });
+    return { ids: ids, nomi: nomi };
+  }
+
+  /**
+   * Risolve terreno-id dal select DOM: value=id o testo opzione `nome (X ha)` che contiene l'hint.
+   */
+  function resolveTerrenoIdViaDomSelect(hint) {
+    if (hint === undefined || hint === null || String(hint).trim() === '') return null;
+    var el = typeof document !== 'undefined' ? document.getElementById('terreno-id') : null;
+    if (!el || el.tagName !== 'SELECT' || !el.options) return null;
+    var v = String(hint).trim();
+    if (looksLikeFirestoreDocId(v)) {
+      for (var i = 0; i < el.options.length; i++) {
+        if ((el.options[i].value || '') === v) return v;
+      }
+    }
+    var vNorm = normTxt(v);
+    if (!vNorm) return null;
+    var bestVal = null;
+    var bestScore = 0;
+    for (var j = 0; j < el.options.length; j++) {
+      var opt = el.options[j];
+      var val = opt.value || '';
+      if (!val) continue;
+      var text = normTxt((opt.text || '').split('(')[0].trim());
+      if (text === vNorm || text.indexOf(vNorm) >= 0 || vNorm.indexOf(text) >= 0) {
+        var sc = text === vNorm ? 100 : Math.min(text.length, vNorm.length);
+        if (sc > bestScore) {
+          bestScore = sc;
+          bestVal = val;
+        }
+      }
+      if (normTxt(opt.text || '').indexOf(vNorm) >= 0 && !bestVal) {
+        bestVal = val;
+        bestScore = 50;
+      }
+    }
+    return bestVal;
+  }
+
+  /**
+   * Se `resolvedId` non compare tra le `<option>` del select (stato Tony vs DOM disallineati dopo race
+   * o sync saltato), prova a mappare su un value presente usando nome terreno dallo stato o hint raw.
+   */
+  function coercePreventivoTerrenoSelectToDomOption(el, resolvedId, rawHint) {
+    if (!el || el.tagName !== 'SELECT' || !el.options) return resolvedId;
+    function hasValue(v) {
+      var s = String(v || '').trim();
+      if (!s) return false;
+      for (var i = 0; i < el.options.length; i++) {
+        if ((el.options[i].value || '') === s) return true;
+      }
+      return false;
+    }
+    var want = String(resolvedId || '').trim();
+    if (want && hasValue(want)) return want;
+    var optionVals = Array.from(el.options || []).map(function (o) { return String(o.value || ''); }).filter(function (v) { return v; });
+    var optionNames = Array.from(el.options || []).map(function (o) { return String((o.text || '').split('(')[0].trim()); }).filter(function (v) { return v; });
+    log('preventivo terreno-id: coerce start rawHint="' + (rawHint == null ? '' : String(rawHint)) + '" resolved="' + want + '" options=' + optionVals.length);
+    var hint = rawHint != null ? String(rawHint).trim() : '';
+    if (hint) {
+      var viaHint = resolveTerrenoIdViaDomSelect(hint);
+      if (viaHint && hasValue(viaHint)) return viaHint;
+    }
+    var ps = window.preventivoState;
+    function chooseTerrenoFromHint(h, terreni) {
+      if (!h || !Array.isArray(terreni) || terreni.length === 0) return null;
+      var hNorm = normTxt(h);
+      if (!hNorm) return null;
+      function hit(v) {
+        var n = normTxt(v);
+        return n && (n === hNorm || n.indexOf(hNorm) >= 0 || hNorm.indexOf(n) >= 0);
+      }
+      var found = terreni.find(function (t) {
+        return hit(t.nome)
+          || hit(t.coltura)
+          || hit(t.colturaSottocategoria)
+          || hit(t.colturaCategoria)
+          || hit(t.coltura_categoria)
+          || hit(t.colturaNome)
+          || hit(t.coltura_nome)
+          || hit(t.nomeColtura);
+      });
+      return found || null;
+    }
+    if (want && ps && Array.isArray(ps.terreni)) {
+      var t = ps.terreni.find(function (x) { return (x.id || '') === want; });
+      if (t) {
+        if (t.nome) {
+          var viaNome = resolveTerrenoIdViaDomSelect(t.nome);
+          if (viaNome && hasValue(viaNome)) return viaNome;
+        }
+        var nn = normTxt(t.nome || '');
+        if (nn) {
+          var bestV = null;
+          var bestSc = 0;
+          for (var j = 0; j < el.options.length; j++) {
+            var o = el.options[j];
+            var ov = o.value || '';
+            if (!ov) continue;
+            var tx = normTxt((o.text || '').split('(')[0].trim());
+            if (!tx) continue;
+            var sc = tx === nn ? 100 : (tx.indexOf(nn) >= 0 || nn.indexOf(tx) >= 0 ? Math.min(tx.length, nn.length) : 0);
+            if (sc > bestSc) {
+              bestSc = sc;
+              bestV = ov;
+            }
+          }
+          if (bestV && bestSc >= 3) {
+            return bestV;
+          }
+        }
+      }
+    }
+    if (hint && ps && Array.isArray(ps.terreni)) {
+      var byHint = chooseTerrenoFromHint(hint, ps.terreni);
+      if (byHint) {
+        if (byHint.id && hasValue(byHint.id)) {
+          log('preventivo terreno-id: coercion via hint stato -> option value id');
+          return String(byHint.id).trim();
+        }
+        if (byHint.nome) {
+          var byHintNome = resolveTerrenoIdViaDomSelect(byHint.nome);
+          if (byHintNome && hasValue(byHintNome)) {
+            log('preventivo terreno-id: coercion via hint stato -> option text nome');
+            return byHintNome;
+          }
+        }
+      }
+    }
+    // Fallback hard: se c'e' un solo terreno selezionabile, usa quello.
+    if (optionVals.length === 1) {
+      log('preventivo terreno-id: fallback unico terreno nel select -> ' + optionVals[0]);
+      return optionVals[0];
+    }
+    // Fallback ambiguo: prepara disambiguazione dalla UI corrente.
+    if (optionVals.length > 1 && typeof window !== 'undefined') {
+      var opts = [];
+      for (var k = 0; k < el.options.length; k++) {
+        var oo = el.options[k];
+        if (!oo || !oo.value) continue;
+        opts.push({ id: String(oo.value), nome: String((oo.text || '').trim()) });
+      }
+      window.__tonyPreventivoTerrenoDisambiguation = {
+        hint: hint || want || '',
+        options: opts.slice(0, 10)
+      };
+      log('preventivo terreno-id: fallback ambiguo, richiesta disambiguazione. Hint="' + (hint || want) + '" opzioni=' + opts.length + ' [' + optionNames.join(' | ') + ']');
+      return '';
+    }
+    /** Ultimo tentativo: stesso nome su qualsiasi terreno in lista (hint era id sbagliato / tenant) */
+    if (hint && ps && Array.isArray(ps.terreni)) {
+      var t2 = ps.terreni.find(function (x) {
+        var n = normTxt(x.nome || '');
+        var h = normTxt(hint);
+        return n && h && (n === h || n.indexOf(h) >= 0 || h.indexOf(n) >= 0);
+      });
+      if (t2 && t2.id && hasValue(t2.id)) return String(t2.id).trim();
+    }
+    return resolvedId;
+  }
+
+  /**
+   * Nuovo Preventivo: il modello spesso passa coltura ("trebbiano") o nome parziale in `terreno-id`.
+   * Le option del select usano `value = id` Firestore; il testo è `nome (ha)`. Risolve per id, nome, coltura.
+   */
+  function resolveTerrenoIdForPreventivo(raw, list) {
+    if (raw === undefined || raw === null || raw === '') return raw;
+    if (!Array.isArray(list) || list.length === 0) return raw;
+    var v = String(raw).trim();
+    if (!v) return raw;
+    var vNorm = normTxt(v);
+
+    if (typeof window !== 'undefined') {
+      window.__tonyPreventivoTerrenoDisambiguation = null;
+    }
+
+    var byId = list.find(function (t) { return (t.id || '') === v; });
+    if (byId) return byId.id;
+
+    var byNome = _resolveByName(v, list, 'nome');
+    if (byNome !== v && byNome != null && String(byNome).trim() !== '') return byNome;
+
+    var colMap = colturaHintsFromGlobalMap(vNorm);
+
+    function terrenoBlob(t) {
+      return [
+        t.nome,
+        t.descrizione,
+        t.note,
+        t.coltura,
+        t.colturaSottocategoria,
+        t.colturaSottoCategoria,
+        t.colturaNome,
+        t.coltura_nome,
+        t.nomeColtura,
+        t.colturaCategoria,
+        t.coltura_categoria,
+        t.colturaDettaglio && t.colturaDettaglio.nome,
+        t.colturaDettaglio && t.colturaDettaglio.categoria,
+        t.colturaId,
+        t.coltura_id
+      ].map(normTxt).join(' ');
+    }
+
+    function tokenScore(t) {
+      var blob = terrenoBlob(t);
+      if (!blob) return 0;
+      var toks = vNorm.split(/\s+/).filter(function (x) { return x && x.length >= 3; });
+      if (!toks.length) toks = [vNorm];
+      var hits = 0;
+      toks.forEach(function (tk) {
+        if (blob.indexOf(tk) >= 0) hits++;
+      });
+      var ratio = hits / toks.length;
+      if (ratio >= 1) return 70;
+      if (ratio >= 0.66) return 45;
+      if (ratio >= 0.5) return 25;
+      return 0;
+    }
+
+    var candidates = list.filter(function (t) {
+      var nome = normTxt(t.nome);
+      var col = normTxt(t.coltura);
+      var cs = normTxt(t.colturaSottocategoria);
+      var cs2 = normTxt(t.colturaSottoCategoria);
+      var colCat = normTxt(t.colturaCategoria || t.coltura_categoria);
+      var colDet = normTxt((t.colturaDettaglio && t.colturaDettaglio.nome) || '');
+      var colId = String(t.colturaId || t.coltura_id || '').trim();
+      if (colMap.ids.length && colId && colMap.ids.indexOf(colId) >= 0) return true;
+      if (colMap.nomi.length) {
+        for (var mi = 0; mi < colMap.nomi.length; mi++) {
+          var cn = normTxt(colMap.nomi[mi]);
+          if (cn && (col === cn || cs === cn || cs2 === cn || colDet === cn || col.indexOf(cn) >= 0 || cs.indexOf(cn) >= 0 || cs2.indexOf(cn) >= 0 || colDet.indexOf(cn) >= 0)) return true;
+        }
+      }
+      return (nome && (nome === vNorm || nome.indexOf(vNorm) >= 0 || vNorm.indexOf(nome) >= 0))
+        || (col && (col === vNorm || col.indexOf(vNorm) >= 0 || vNorm.indexOf(col) >= 0))
+        || (cs && (cs === vNorm || cs.indexOf(vNorm) >= 0 || vNorm.indexOf(cs) >= 0))
+        || (cs2 && (cs2 === vNorm || cs2.indexOf(vNorm) >= 0 || vNorm.indexOf(cs2) >= 0))
+        || (colDet && (colDet === vNorm || colDet.indexOf(vNorm) >= 0 || vNorm.indexOf(colDet) >= 0))
+        || (colCat && (colCat === vNorm || colCat.indexOf(vNorm) >= 0))
+        || tokenScore(t) >= 45
+        || (vNorm.length >= 3 && terrenoBlob(t).indexOf(vNorm) >= 0);
+    });
+    if (candidates.length === 1) return candidates[0].id || raw;
+    if (candidates.length > 1) {
+      var exact = candidates.find(function (t) {
+        var col = normTxt(t.coltura);
+        var cs = normTxt(t.colturaSottocategoria);
+        return col === vNorm || cs === vNorm;
+      });
+      if (exact) return exact.id || raw;
+      if (colMap.ids.length) {
+        var byCid = candidates.find(function (t) {
+          var cid = String(t.colturaId || t.coltura_id || '').trim();
+          return cid && colMap.ids.indexOf(cid) >= 0;
+        });
+        if (byCid) return byCid.id || raw;
+      }
+      candidates.sort(function (a, b) {
+        var sb = tokenScore(b);
+        var sa = tokenScore(a);
+        if (sb !== sa) return sb - sa;
+        return String(a.nome || '').localeCompare(String(b.nome || ''), 'it');
+      });
+      var topScore = tokenScore(candidates[0]);
+      var secondScore = candidates.length > 1 ? tokenScore(candidates[1]) : -1;
+      if (topScore >= 45 && secondScore < topScore) {
+        log('preventivo: match elastico terreno univoco per hint "' + v + '" → ' + (candidates[0].nome || candidates[0].id));
+        return candidates[0].id || raw;
+      }
+      var opts = candidates
+        .map(function (t) {
+          return {
+            id: t.id || '',
+            nome: String(t.nome || t.id || '').trim(),
+            superficie: t.superficie
+          };
+        })
+        .filter(function (x) { return x.nome; })
+        .sort(function (a, b) { return a.nome.localeCompare(b.nome, 'it'); });
+      if (typeof window !== 'undefined') {
+        window.__tonyPreventivoTerrenoDisambiguation = {
+          hint: v,
+          options: opts.slice(0, 8)
+        };
+      }
+      log('preventivo: hint terreno ambiguo "' + v + '" (' + opts.length + ' opzioni) → richiedo chiarimento utente');
+      return '';
+    }
+    return raw;
   }
 
   function resolveTerrenoByName(name, context) {
@@ -177,7 +677,11 @@
     if (exact && exact.nome) return exact.nome;
     var matches = list.filter(function (t) {
       var n = (t.nome || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      return n && (n.indexOf(search) >= 0 || search.indexOf(n) >= 0);
+      if (!n) return false;
+      if (n.indexOf(search) >= 0) return true;
+      /** Evita match spuri su nomi corti (es. "e" in "trinciatura") */
+      if (n.length >= 3 && search.indexOf(n) >= 0) return true;
+      return false;
     });
     if (matches.length === 0) return rawValue;
     var best = matches.sort(function (a, b) {
@@ -257,6 +761,89 @@
     }
   }
 
+  /** Converte testo/ISO/DD-MM-YYYY in YYYY-MM-DD per input type="date". */
+  function normalizeDateForPreventivoInput(value) {
+    if (value === undefined || value === null) return value;
+    var s = String(value).trim();
+    if (!s) return value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var low = s.toLowerCase();
+    if (low === 'oggi' || low === 'today') return new Date().toISOString().slice(0, 10);
+    var m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+    if (m) {
+      var d = parseInt(m[1], 10);
+      var mo = parseInt(m[2], 10);
+      var y = parseInt(m[3], 10);
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+        return y + '-' + (mo < 10 ? '0' : '') + mo + '-' + (d < 10 ? '0' : '') + d;
+      }
+    }
+    var parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+    return value;
+  }
+
+  /**
+   * Resolver campi Nuovo Preventivo (usa window.preventivoState; per categoria/tipo lavoro
+   * injectPreventivoForm rispecchia temporaneamente lavoriState).
+   */
+  function resolveValuePreventivo(fieldId, value, context) {
+    if (value === undefined || value === null || value === '') return value;
+    var ps = window.preventivoState;
+    switch (fieldId) {
+      case 'data-prevista':
+        return normalizeDateForPreventivoInput(value);
+      case 'cliente-id':
+        if (!ps || !Array.isArray(ps.clienti)) return value;
+        return _resolveByName(value, ps.clienti, 'ragioneSociale') || value;
+      case 'terreno-id': {
+        var listT = ps && ps.terreni;
+        if (!ps || !Array.isArray(listT)) {
+          return resolveTerrenoIdViaDomSelect(value) || value;
+        }
+        var rT = resolveTerrenoIdForPreventivo(value, listT);
+        if (rT !== value) return rT;
+        if (looksLikeFirestoreDocId(value)) return value;
+        var domT = resolveTerrenoIdViaDomSelect(value);
+        return domT || rT;
+      }
+      case 'lavoro-categoria-principale':
+      case 'lavoro-sottocategoria':
+        return resolveCategoriaLavori(value);
+      case 'tipo-lavoro':
+        return resolveTipoLavoroToNome(value);
+      case 'coltura-categoria':
+        if (!ps || !Array.isArray(ps.categorieColturePreventivo)) return value;
+        return _resolveByName(value, ps.categorieColturePreventivo, 'nome') || value;
+      case 'coltura': {
+        var mapCol = (typeof window !== 'undefined' && window.colturePerCategoriaPreventivo) || {};
+        var searchC = String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (!searchC) return value;
+        var bestNome = null;
+        var bestLen = 0;
+        Object.keys(mapCol).forEach(function (cid) {
+          var arr = mapCol[cid];
+          if (!Array.isArray(arr)) return;
+          arr.forEach(function (c) {
+            var nome = (c && (c.nome || c)) || '';
+            var n = String(nome).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (!n) return;
+            if (n === searchC || n.indexOf(searchC) >= 0 || searchC.indexOf(n) >= 0) {
+              var L = n.length;
+              if (L > bestLen) {
+                bestLen = L;
+                bestNome = nome;
+              }
+            }
+          });
+        });
+        return bestNome || value;
+      }
+      default:
+        return value;
+    }
+  }
+
   function resolveValueLavoro(fieldId, value, context) {
     if (value === undefined || value === null || value === '') return value;
     switch (fieldId) {
@@ -321,8 +908,7 @@
           return n === terrenoNome || n.indexOf(terrenoNome) >= 0 || terrenoNome.indexOf(n) >= 0;
         });
       }
-      var colturaCat = (terreno && (terreno.coltura_categoria || terreno.coltura)) ? String(terreno.coltura_categoria || terreno.coltura).toLowerCase() : '';
-      var hasFilari = /vite|vigneto|frutteto|olivo|arboreo|alberi/.test(colturaCat);
+      var hasFilari = terrenoHasFilariColtura(terreno);
       var preferTraLeFile = hasFilari;
       job = matches.find(function (t) {
         var n = (t.nome || '').toLowerCase();
@@ -422,7 +1008,7 @@
     } else if (opts.some(function (o) { return (o.text || '').toLowerCase() === valStr.toLowerCase(); })) {
       var opt = opts.find(function (o) { return (o.text || '').toLowerCase() === valStr.toLowerCase(); });
       resolved = opt ? opt.value : value;
-    } else if ((fieldId === 'attivita-tipo-lavoro-gerarchico' || fieldId === 'lavoro-tipo-lavoro') && valStr && !/^[a-zA-Z0-9_-]{15,}$/.test(valStr)) {
+    } else if ((fieldId === 'attivita-tipo-lavoro-gerarchico' || fieldId === 'lavoro-tipo-lavoro' || fieldId === 'tipo-lavoro' || fieldId === 'coltura') && valStr && !/^[a-zA-Z0-9_-]{15,}$/.test(valStr)) {
       var partial = opts.find(function (o) {
         var t = (o.text || o.value || '').toLowerCase();
         var v = valStr.toLowerCase();
@@ -442,6 +1028,43 @@
         return t === searchStr || nomePart === searchStr || t.startsWith(searchStr) || nomePart.startsWith(searchStr) || searchStr.includes(nomePart) || nomePart.includes(searchStr);
       });
       if (partialTerreno) resolved = partialTerreno.value;
+    } else if (fieldId === 'cliente-id' && valStr && window.preventivoState && Array.isArray(window.preventivoState.clienti)) {
+      var searchCliente = valStr.toLowerCase().trim();
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(valStr)) {
+        var clById = window.preventivoState.clienti.find(function (c) { return (c.id || '') === valStr; });
+        if (clById && clById.ragioneSociale) searchCliente = String(clById.ragioneSociale).toLowerCase().trim();
+      }
+      var partialCliente = opts.find(function (o) {
+        if (!o.value) return false;
+        var t = (o.text || '').toLowerCase();
+        var nomePart = t.split('(')[0].trim();
+        return t === searchCliente || nomePart === searchCliente || t.startsWith(searchCliente) || nomePart.startsWith(searchCliente) || searchCliente.includes(nomePart) || nomePart.includes(searchCliente);
+      });
+      if (partialCliente) resolved = partialCliente.value;
+    } else if (fieldId === 'terreno-id' && valStr && window.preventivoState && Array.isArray(window.preventivoState.terreni)) {
+      var searchTerrenoP = valStr.toLowerCase().trim();
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(valStr)) {
+        var trById = window.preventivoState.terreni.find(function (t) { return (t.id || '') === valStr; });
+        if (trById && trById.nome) searchTerrenoP = String(trById.nome).toLowerCase().trim();
+      }
+      var partialTerrenoP = opts.find(function (o) {
+        if (!o.value) return false;
+        var t = (o.text || '').toLowerCase();
+        var nomePart = t.split('(')[0].trim();
+        return t === searchTerrenoP || nomePart === searchTerrenoP || t.startsWith(searchTerrenoP) || nomePart.startsWith(searchTerrenoP) || searchTerrenoP.includes(nomePart) || nomePart.includes(searchTerrenoP);
+      });
+      if (partialTerrenoP) resolved = partialTerrenoP.value;
+    } else if (fieldId === 'mov-prodotto' && valStr) {
+      var searchMov = valStr.toLowerCase().trim();
+      if (!/^[a-zA-Z0-9_-]{15,}$/.test(valStr)) {
+        var partialMov = opts.find(function (o) {
+          if (!o.value) return false;
+          var t = (o.text || '').toLowerCase();
+          var nomePart = t.split(/[–-]/)[0].trim();
+          return t === searchMov || nomePart === searchMov || t.indexOf(searchMov) >= 0 || nomePart.indexOf(searchMov) >= 0 || searchMov.indexOf(nomePart.split(/\s+/)[0] || '') >= 0;
+        });
+        if (partialMov) resolved = partialMov.value;
+      }
     } else if ((fieldId === 'lavoro-operaio' || fieldId === 'lavoro-caposquadra') && valStr && window.lavoriState) {
       var searchStr = valStr.toLowerCase();
       var list = fieldId === 'lavoro-operaio' ? (window.lavoriState.operaiList || []) : (window.lavoriState.caposquadraList || []);
@@ -476,12 +1099,23 @@
       }
     }
     el.value = resolved;
+    if (fieldId === 'terreno-id' && resolved != null && String(resolved).trim() !== '') {
+      var wantT = String(resolved).trim();
+      if (String(el.value) !== wantT) {
+        var idxT = Array.from(el.options).findIndex(function (o) { return (o.value || '') === wantT; });
+        if (idxT >= 0) el.selectedIndex = idxT;
+      }
+      if (String(el.value) !== wantT) {
+        var dbgVals = Array.from(el.options || []).map(function (o) { return (o.value || '') + '::' + (o.text || ''); }).join(' || ');
+        log('preventivo terreno-id: browser non ha accettato il value (effettivo="' + el.value + '" atteso="' + wantT + '", opzioni=' + (el.options ? el.options.length : 0) + ') values=' + dbgVals);
+      }
+    }
     el.dispatchEvent(new Event('change', { bubbles: true }));
     el.dispatchEvent(new Event('input', { bubbles: true }));
     if (typeof window.jQuery === 'function') {
       try { window.jQuery(el).trigger('change').trigger('input'); } catch (_) {}
     }
-    log('Iniettato campo SELECT ' + fieldId + ' = "' + resolved + '"');
+    log('Iniettato campo SELECT ' + fieldId + ' = "' + resolved + '" (DOM value="' + (el && el.value != null ? el.value : '') + '")');
     return true;
   }
 
@@ -528,6 +1162,44 @@
   }
 
   /**
+   * Resolver per form magazzino (movimento): mov-prodotto da nome tramite context.azienda.prodotti;
+   * mov-lavoro / mov-attivita per testo su option DOM se non è già id.
+   */
+  function resolveValueMagazzino(fieldId, value, context) {
+    if (value === undefined || value === null) return value;
+    var str = String(value).trim();
+    if (!str) return value;
+    context = context || (window.Tony && window.Tony.context) || {};
+    if (fieldId === 'mov-prodotto') {
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(str)) return str;
+      var prodotti = (context.azienda && Array.isArray(context.azienda.prodotti)) ? context.azienda.prodotti : [];
+      var low = str.toLowerCase();
+      var hit = prodotti.find(function (p) {
+        var n = (p.nome || '').toLowerCase();
+        return n === low || n.indexOf(low) >= 0 || low.indexOf(n) >= 0;
+      });
+      if (hit && hit.id) return hit.id;
+      return value;
+    }
+    if (fieldId === 'mov-lavoro' || fieldId === 'mov-attivita') {
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(str)) return str;
+      var el = document.getElementById(fieldId);
+      if (el && el.tagName === 'SELECT' && el.options && el.options.length) {
+        var search = str.toLowerCase();
+        var opt = Array.from(el.options).find(function (o) {
+          if (!o.value) return false;
+          var t = (o.text || '').toLowerCase();
+          var first = (t.split(/\s+/)[0] || '').trim();
+          return t === search || t.indexOf(search) >= 0 || search.indexOf(first) >= 0;
+        });
+        if (opt) return opt.value;
+      }
+      return value;
+    }
+    return value;
+  }
+
+  /**
    * Imposta valore su un singolo campo in base al tipo elemento.
    */
   function setFieldValue(fieldId, value, mapConfig, context) {
@@ -547,6 +1219,9 @@
       return setRadioValue(fieldId, resolved, fieldId);
     }
     if (el && el.tagName === 'SELECT') {
+      if (fieldId === 'terreno-id' && mapConfig && mapConfig.formId === 'preventivo-form') {
+        resolved = coercePreventivoTerrenoSelectToDomOption(el, resolved, value);
+      }
       return setSelectValue(el, resolved, fieldId);
     }
     if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
@@ -570,9 +1245,10 @@
    *   fields: { [fieldId]: { resolver, type, ... } }
    * }
    * @param {Object} context - contesto Tony (attivita, lavori, ecc.)
+   * @param {{ skipFieldIds?: Object.<string, boolean> }} [injectOpts] - es. salta cliente-id se già impostato in pre-sync preventivo
    * @returns {Promise<boolean>}
    */
-  async function injectForm(formData, mapConfig, context) {
+  async function injectForm(formData, mapConfig, context, injectOpts) {
     if (!formData || typeof formData !== 'object') {
       log('injectForm: formData vuoto o non valido');
       return false;
@@ -581,6 +1257,9 @@
       log('injectForm: mapConfig.injectionOrder mancante');
       return false;
     }
+
+    injectOpts = injectOpts || {};
+    var skipFieldIds = injectOpts.skipFieldIds || null;
 
     context = context || (window.Tony && window.Tony.context) || {};
     var formId = mapConfig.formId || mapConfig.modalId || 'unknown';
@@ -595,6 +1274,11 @@
       var value = formData[fieldId];
       if (value === undefined || value === null) continue;
 
+      if (skipFieldIds && skipFieldIds[fieldId]) {
+        log('injectForm: salto ' + fieldId + ' (già sincronizzato prima del loop)');
+        continue;
+      }
+
       if (fieldId === 'attivita-sottocategoria') {
         await waitForSelectOptions('attivita-sottocategoria', 2);
       }
@@ -608,15 +1292,72 @@
         if (tipoGroup) tipoGroup.style.display = 'block';
         await waitForSelectOptions('lavoro-tipo-lavoro', 2);
       }
+      if (formId === 'preventivo-form' && fieldId === 'lavoro-sottocategoria') {
+        var subGroupP = document.getElementById('lavoro-sottocategoria-group');
+        if (subGroupP) subGroupP.style.display = 'block';
+        await waitForSelectOptions('lavoro-sottocategoria', 2);
+        // loadTipiLavoro popola le sottocategorie dopo la categoria: 2 option non bastano se l'id cercato non è ancora nel DOM
+        var rawSubW = formData[fieldId];
+        var rawSubStrW = rawSubW != null ? String(rawSubW).trim() : '';
+        if (rawSubStrW && looksLikeFirestoreDocId(rawSubStrW)) {
+          await waitForSelectOptionValue('lavoro-sottocategoria', rawSubStrW, 12000);
+        }
+      }
+      if (formId === 'preventivo-form' && fieldId === 'tipo-lavoro') {
+        await waitForSelectOptions('tipo-lavoro', 2, 14000);
+      }
+      if (formId === 'preventivo-form' && fieldId === 'coltura') {
+        if (typeof window.updateColtureDropdownPreventivo === 'function') {
+          window.updateColtureDropdownPreventivo();
+        }
+        await waitForSelectOptions('coltura', 2);
+      }
       if (fieldId === 'lavoro-operaio' || fieldId === 'lavoro-caposquadra') {
         await waitForSelectOptions(fieldId, 2);
       }
+      if (formId === 'movimento-form' && fieldId === 'mov-prodotto') {
+        await waitForSelectOptions('mov-prodotto', 2, 12000);
+      }
+      if (formId === 'movimento-form' && (fieldId === 'mov-lavoro' || fieldId === 'mov-attivita')) {
+        await waitForSelectOptions(fieldId, 2, 8000);
+      }
+      if (formId === 'preventivo-form' && fieldId === 'terreno-id') {
+        await awaitPreventivoTerreniFetchDone(12000);
+        var rawTerreno = value;
+        if (rawTerreno !== undefined && rawTerreno !== null && String(rawTerreno).trim() !== '') {
+          var resTerreno = rawTerreno;
+          if (typeof mapConfig.resolver === 'function') {
+            resTerreno = mapConfig.resolver('terreno-id', rawTerreno, context);
+          }
+          if (resTerreno === undefined || resTerreno === null) resTerreno = rawTerreno;
+          var resStr = String(resTerreno).trim();
+          if (resStr) {
+            log('Attesa opzione terreno-id nel select (loadTerreniCliente async dopo cliente)...');
+            if (looksLikeFirestoreDocId(resStr)) {
+              await waitForSelectOptionValue('terreno-id', resStr, 10000);
+            } else {
+              log('preventivo: terreno hint non ancora id dopo resolver, attendo solo dropdown popolato');
+              await waitForSelectOptions('terreno-id', 2, 8000);
+            }
+          }
+        }
+      }
       setFieldValue(fieldId, value, mapConfig, context);
+
+      if (formId === 'preventivo-form' && fieldId === 'coltura-categoria') {
+        if (typeof window.updateColtureDropdownPreventivo === 'function') {
+          window.updateColtureDropdownPreventivo();
+        }
+        await delay(280);
+      }
 
       var ms = delays[fieldId];
       if (ms && ms > 0) {
         log('Attesa ' + ms + 'ms dopo ' + fieldId + ' (dropdown dipendenti)...');
         await delay(ms);
+      }
+      if (formId === 'preventivo-form' && fieldId === 'cliente-id') {
+        await awaitPreventivoTerreniFetchDone(12000);
       }
     }
 
@@ -893,16 +1634,31 @@
             formData['lavoro-sottocategoria'] = derived.sottocategoriaNome;
             log('deriveParentsFromTipoLavoro: sottocategoria = ' + derived.sottocategoriaNome);
           } else if (existingSub === 'generale') {
-            // Vigneto/frutteto: lavorazione meccanica deve essere "Tra le File", non "Generale"
             var terrenoVal = String(formData['lavoro-terreno'] || '').trim();
             var terreniList = (window.lavoriState && window.lavoriState.terreniList) || (context && context.lavori && context.lavori.terreni) || [];
             var terreno = terreniList.find(function (t) { return (t.id || '') === terrenoVal; });
             if (!terreno) terreno = terreniList.find(function (t) { var n = (t.nome || '').toLowerCase(); return n === terrenoVal.toLowerCase() || (terrenoVal && n.indexOf(terrenoVal.toLowerCase()) >= 0); });
-            var colturaCat = (terreno && (terreno.coltura_categoria || terreno.coltura)) ? String(terreno.coltura_categoria || terreno.coltura).toLowerCase() : '';
-            if (/vite|vigneto|frutteto|olivo|arboreo|alberi/.test(colturaCat)) {
+            if (terrenoHasFilariColtura(terreno)) {
               formData['lavoro-sottocategoria'] = 'Tra le File';
               log('Sottocategoria Generale ignorata: terreno ha filari (vigneto/frutteto) → Tra le File');
             }
+          }
+        }
+        var subNormL = String(formData['lavoro-sottocategoria'] || '').trim().toLowerCase();
+        if (subNormL === 'generale' && formData['lavoro-terreno']) {
+          var terrenoValL = String(formData['lavoro-terreno'] || '').trim();
+          var terreniListL = (window.lavoriState && window.lavoriState.terreniList) || (context && context.lavori && context.lavori.terreni) || [];
+          var terrenoL = terreniListL.find(function (t) { return (t.id || '') === terrenoValL; });
+          if (!terrenoL) {
+            var tvl = terrenoValL.toLowerCase();
+            terrenoL = terreniListL.find(function (t) {
+              var n = (t.nome || '').toLowerCase();
+              return n === tvl || (tvl && n.indexOf(tvl) >= 0) || (n && tvl.indexOf(n) >= 0);
+            });
+          }
+          if (terrenoHasFilariColtura(terrenoL)) {
+            formData['lavoro-sottocategoria'] = 'Tra le File';
+            log('Generale → Tra le File dopo derive (lavoro, terreno con filari)');
           }
         }
       }
@@ -960,6 +1716,203 @@
     return ok;
   }
 
+  /**
+   * Form anagrafica prodotto (magazzino).
+   */
+  async function injectProdottoForm(formData, context) {
+    if (!formData || typeof formData !== 'object') return false;
+    context = context || (window.Tony && window.Tony.context) || {};
+    var tonyMapping = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING && window.TONY_FORM_MAPPING.getFormMap)
+      ? window.TONY_FORM_MAPPING.getFormMap('prodotto-form')
+      : null;
+    if (!tonyMapping || !Array.isArray(tonyMapping.injectionOrder)) {
+      log('injectProdottoForm: mapping mancante');
+      return false;
+    }
+    var mapConfig = {
+      formId: 'prodotto-form',
+      injectionOrder: tonyMapping.injectionOrder,
+      fields: tonyMapping.fields || {}
+    };
+    return injectForm(formData, mapConfig, context);
+  }
+
+  /**
+   * Form movimento magazzino.
+   */
+  async function injectMovimentoForm(formData, context) {
+    if (!formData || typeof formData !== 'object') return false;
+    context = context || (window.Tony && window.Tony.context) || {};
+    var tonyMapping = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING && window.TONY_FORM_MAPPING.getFormMap)
+      ? window.TONY_FORM_MAPPING.getFormMap('movimento-form')
+      : null;
+    if (!tonyMapping || !Array.isArray(tonyMapping.injectionOrder)) {
+      log('injectMovimentoForm: mapping mancante');
+      return false;
+    }
+    var mapConfig = {
+      formId: 'movimento-form',
+      injectionOrder: tonyMapping.injectionOrder,
+      fields: tonyMapping.fields || {},
+      resolver: resolveValueMagazzino
+    };
+    return injectForm(formData, mapConfig, context);
+  }
+
+  /**
+   * Inietta form Nuovo Preventivo (Conto Terzi). Rispecchia preventivoState in lavoriState
+   * per riusare deriveParentsFromTipoLavoro e resolveCategoriaLavori.
+   */
+  async function injectPreventivoForm(formData, context) {
+    if (!formData || typeof formData !== 'object') return false;
+    context = context || (window.Tony && window.Tony.context) || {};
+    if (!document.getElementById('preventivo-form')) {
+      log('preventivo-form non presente nel DOM');
+      return false;
+    }
+    await waitForPreventivoPageDataReady(20000);
+    if (!window.preventivoState) {
+      log('preventivoState non disponibile dopo attesa bootstrap pagina');
+      return false;
+    }
+    var savedLavori = window.lavoriState;
+    var ps = window.preventivoState;
+    window.lavoriState = {
+      terreniList: ps.terreni || [],
+      categorieLavoriPrincipali: ps.categorieLavoriPrincipali || [],
+      sottocategorieLavoriMap: ps.sottocategorieLavoriMap,
+      tipiLavoroList: ps.tipiLavoroList || [],
+      caposquadraList: savedLavori && savedLavori.caposquadraList,
+      operaiList: savedLavori && savedLavori.operaiList,
+      trattoriList: savedLavori && savedLavori.trattoriList,
+      attrezziList: savedLavori && savedLavori.attrezziList
+    };
+    try {
+      var fd = Object.assign({}, formData);
+      var tipoNome = fd['tipo-lavoro'];
+      var preMapCliente = { formId: 'preventivo-form', resolver: resolveValuePreventivo };
+      var skipClienteInLoop = false;
+      /** Cliente + terreno insieme: sempre pre-sync (non solo se c'è tipo-lavoro), come atomicità Gestione Lavori su terreno→tipo */
+      var terrenoHint = fd['terreno-id'];
+      var hasTerrenoHint = terrenoHint != null && String(terrenoHint).trim() !== '';
+      if (fd['cliente-id'] && hasTerrenoHint) {
+        log('preventivo: pre-inietto cliente + attesa terreni (derive/inject sempre coerenti con lista terreni caricata)');
+        setFieldValue('cliente-id', fd['cliente-id'], preMapCliente, context);
+        await delay(PREVENTIVO_POST_CLIENTE_MS);
+        await awaitPreventivoTerreniFetchDone(15000);
+        await waitForPreventivoTerrenoSelectHydrated(12000);
+        var resolvedTid = resolveValuePreventivo('terreno-id', fd['terreno-id'], context);
+        resolvedTid = resolvedTid != null ? String(resolvedTid).trim() : '';
+        if (resolvedTid) {
+          await waitForPreventivoStateContainsTerreno(resolvedTid, 12000);
+        }
+        ps = window.preventivoState;
+        window.lavoriState.terreniList = (ps && ps.terreni) || [];
+        if (resolvedTid && ps && Array.isArray(ps.terreni) && ps.terreni.some(function (t) { return (t.id || '') === resolvedTid; })) {
+          fd['terreno-id'] = resolvedTid;
+        }
+        skipClienteInLoop = true;
+      }
+      if (tipoNome) {
+        var fdDerive = Object.assign({}, fd);
+        if (fdDerive['terreno-id'] && !fdDerive['lavoro-terreno']) {
+          fdDerive['lavoro-terreno'] = fdDerive['terreno-id'];
+        }
+        var derived = deriveParentsFromTipoLavoro(tipoNome, context, fdDerive);
+        if (derived) {
+          if (!fd['lavoro-categoria-principale']) {
+            fd['lavoro-categoria-principale'] = derived.categoriaNome;
+            log('preventivo deriveParents: categoria = ' + derived.categoriaNome);
+          }
+          if (derived.sottocategoriaNome) {
+            var existingSub = (fd['lavoro-sottocategoria'] || '').toString().trim().toLowerCase();
+            if (!existingSub || existingSub === '-- nessuna sottocategoria --') {
+              fd['lavoro-sottocategoria'] = derived.sottocategoriaNome;
+              log('preventivo deriveParents: sottocategoria = ' + derived.sottocategoriaNome);
+            } else if (existingSub === 'generale') {
+              var terrenoValG = String(fd['terreno-id'] || '').trim();
+              var terreniListG = (window.lavoriState && window.lavoriState.terreniList) || [];
+              var terrenoG = terreniListG.find(function (t) { return (t.id || '') === terrenoValG; });
+              if (!terrenoG) {
+                terrenoG = terreniListG.find(function (t) {
+                  var n = (t.nome || '').toLowerCase();
+                  return n === terrenoValG.toLowerCase() || (terrenoValG && n.indexOf(terrenoValG.toLowerCase()) >= 0);
+                });
+              }
+              if (terrenoHasFilariColtura(terrenoG)) {
+                fd['lavoro-sottocategoria'] = 'Tra le File';
+                log('preventivo: Generale → Tra le File (terreno con filari)');
+              }
+            }
+          }
+          var subNorm = String(fd['lavoro-sottocategoria'] || '').trim().toLowerCase();
+          if (subNorm === 'generale') {
+            var terrenoValO = String(fd['terreno-id'] || fdDerive['lavoro-terreno'] || '').trim();
+            if (terrenoValO) {
+              var terreniListO = (window.lavoriState && window.lavoriState.terreniList) || [];
+              var terrenoO = terreniListO.find(function (t) { return (t.id || '') === terrenoValO; });
+              if (!terrenoO) {
+                var tvl = terrenoValO.toLowerCase();
+                terrenoO = terreniListO.find(function (t) {
+                  var n = (t.nome || '').toLowerCase();
+                  return n === tvl || (tvl && n.indexOf(tvl) >= 0) || (n && tvl.indexOf(n) >= 0);
+                });
+              }
+              if (terrenoHasFilariColtura(terrenoO)) {
+                fd['lavoro-sottocategoria'] = 'Tra le File';
+                log('preventivo: Generale → Tra le File dopo derive (terreno con filari, come Gestione Lavori)');
+              }
+            }
+          }
+        }
+      }
+
+      var mapConfig = {
+        formId: 'preventivo-form',
+        injectionOrder: INJECTION_ORDER_PREVENTIVO,
+        delays: DELAYS_PREVENTIVO,
+        resolver: resolveValuePreventivo
+      };
+
+      var injectOptsPrev = skipClienteInLoop ? { skipFieldIds: { 'cliente-id': true } } : {};
+      var ok = await injectForm(fd, mapConfig, context, injectOptsPrev);
+
+      if (ok && fd['terreno-id']) {
+        var tt = resolveValuePreventivo('terreno-id', fd['terreno-id'], context);
+        tt = tt != null ? String(tt).trim() : '';
+        if (tt) {
+          await awaitPreventivoTerreniFetchDone(12000);
+          await waitForSelectOptionValue('terreno-id', tt, 10000);
+          var st = document.getElementById('terreno-id');
+          if (st && st.value !== tt) {
+            setFieldValue('terreno-id', fd['terreno-id'], mapConfig, context);
+            log('Second pass preventivo: terreno-id dopo caricamento opzioni');
+          }
+        }
+      }
+
+      if (ok && fd['tipo-lavoro'] && fd['terreno-id']) {
+        await delay(650);
+        var selTipo = document.getElementById('tipo-lavoro');
+        if (selTipo && !selTipo.value) {
+          var resolvedTipo = resolveValuePreventivo('tipo-lavoro', fd['tipo-lavoro'], context);
+          if (resolvedTipo) {
+            setFieldValue('tipo-lavoro', resolvedTipo, mapConfig, context);
+            log('Second pass preventivo: tipo-lavoro dopo terreno');
+          }
+        }
+      }
+      if (ok && fd['tipo-lavoro']) {
+        await delay(200);
+        var reT = resolveValuePreventivo('tipo-lavoro', fd['tipo-lavoro'], context);
+        setFieldValue('tipo-lavoro', reT, mapConfig, context);
+      }
+      return ok;
+    } finally {
+      window.lavoriState = savedLavori;
+    }
+  }
+
   function extractFormDataFromText(responseText) {
     if (!responseText || typeof responseText !== 'string') return null;
     var match = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -986,17 +1939,31 @@
     }
     out.cleanedText = extracted.cleanedText || extracted.replyText || responseText;
     context = context || (window.Tony && window.Tony.context) || {};
+    var fd = extracted.formData;
+    var looksLavoroModal = fd && Object.keys(fd).some(function (k) {
+      return k === 'lavoro-tipo-lavoro' || k === 'lavoro-nome' || k === 'tipo-assegnazione';
+    });
+    var usePreventivoForm = !!(formCtx && formCtx.formId === 'preventivo-form');
+    if (!usePreventivoForm && fd && !looksLavoroModal) {
+      var hasCliente = fd['cliente-id'] != null && String(fd['cliente-id']).trim() !== '';
+      if (hasCliente && (fd['tipo-lavoro'] || fd['coltura-categoria'] || fd['coltura'] || fd['terreno-id'])) {
+        usePreventivoForm = true;
+      }
+    }
     var useLavoroForm = false;
-    if (formCtx && (formCtx.formId === 'lavoro-form' || formCtx.modalId === 'lavoro-modal')) {
-      useLavoroForm = true;
-    } else {
-      var fd = extracted.formData;
-      useLavoroForm = Object.keys(fd || {}).some(function(k) {
-        return k.indexOf('lavoro-') === 0 || k === 'tipo-assegnazione';
-      });
+    if (!usePreventivoForm) {
+      if (formCtx && (formCtx.formId === 'lavoro-form' || formCtx.modalId === 'lavoro-modal')) {
+        useLavoroForm = true;
+      } else if (fd) {
+        useLavoroForm = Object.keys(fd).some(function (k) {
+          return k.indexOf('lavoro-') === 0 || k === 'tipo-assegnazione';
+        });
+      }
     }
     try {
-      if (useLavoroForm) {
+      if (usePreventivoForm) {
+        out.injected = await injectPreventivoForm(extracted.formData, context);
+      } else if (useLavoroForm) {
         out.injected = await injectLavoroForm(extracted.formData, context);
       } else {
         out.injected = await injectAttivitaForm(extracted.formData, context);
@@ -1012,12 +1979,18 @@
     injectForm: injectForm,
     injectAttivitaForm: injectAttivitaForm,
     injectLavoroForm: injectLavoroForm,
+    injectPreventivoForm: injectPreventivoForm,
+    injectProdottoForm: injectProdottoForm,
+    injectMovimentoForm: injectMovimentoForm,
+    resolveValueMagazzino: resolveValueMagazzino,
     applyBusinessRules: applyBusinessRules,
     extractFormDataFromText: extractFormDataFromText,
     extractAndInjectFromResponse: extractAndInjectFromResponse,
     INJECTION_ORDER_ATTIVITA: INJECTION_ORDER_ATTIVITA,
     INJECTION_ORDER_LAVORO: INJECTION_ORDER_LAVORO,
+    INJECTION_ORDER_PREVENTIVO: INJECTION_ORDER_PREVENTIVO,
     DELAYS_ATTIVITA: DELAYS_ATTIVITA,
-    DELAYS_LAVORO: DELAYS_LAVORO
+    DELAYS_LAVORO: DELAYS_LAVORO,
+    DELAYS_PREVENTIVO: DELAYS_PREVENTIVO
   };
 })(typeof window !== 'undefined' ? window : globalThis);

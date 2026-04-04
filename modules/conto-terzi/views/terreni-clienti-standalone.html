@@ -183,6 +183,26 @@
             transform: translateY(-2px);
         }
 
+        .terreno-card.terreno-card-has-mappa {
+            cursor: pointer;
+        }
+
+        .terreno-card.terreno-card-has-mappa .actions {
+            pointer-events: auto;
+        }
+
+        #mappa-terreno-view-lavorazioni table th,
+        #mappa-terreno-view-lavorazioni table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        #mappa-terreno-view-lavorazioni table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
         .terreno-card h3 {
             color: #1976D2;
             margin-bottom: 10px;
@@ -655,6 +675,50 @@
         </div>
     </div>
 
+    <!-- Modal Visualizzazione Mappa Terreno + Lavorazioni (sola lettura) -->
+    <div id="mappa-terreno-view-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 id="mappa-terreno-view-title">Mappa terreno</h3>
+                <button class="close-btn" onclick="closeMappaTerrenoView()">&times;</button>
+            </div>
+            <div id="mappa-terreno-view-container" style="width: 100%; height: 400px; background: #f0f0f0; border-radius: 8px;"></div>
+            <div id="mappa-terreno-view-message" style="display: none; padding: 20px; text-align: center; color: #666;"></div>
+            <div id="mappa-terreno-view-lavorazioni" style="margin-top: 20px;">
+                <h4 style="margin-bottom: 12px; color: #1976D2;">Lavorazioni sul terreno</h4>
+                <div id="mappa-terreno-view-lavorazioni-table-wrapper" class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                    <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Tipo lavoro</th>
+                                <th>Coltura</th>
+                                <th>Ore</th>
+                                <th>Spesa stimata</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mappa-terreno-view-lavorazioni-body">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="mappa-terreno-view-lavorazioni-empty" style="display: none; padding: 15px; text-align: center; color: #999;">
+                    Nessuna lavorazione registrata su questo terreno.
+                </div>
+                <div id="mappa-terreno-view-lavorazioni-loading" style="display: none; padding: 15px; text-align: center; color: #666;">
+                    Caricamento lavorazioni...
+                </div>
+                <div id="mappa-terreno-view-lavorazioni-totale" style="margin-top: 10px; font-weight: 600; text-align: right; color: #1976D2;"></div>
+            </div>
+            <div style="padding: 15px; text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="closeMappaTerrenoView()">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Placeholder Tony currentTableData (aggiornato da renderTerreni) -->
+    <script>window.currentTableData = window.currentTableData || { pageType: 'terreniClienti', summary: 'Caricamento dati in corso...', items: [] };</script>
+    
     <!-- Load Firebase and Google Maps config from external files -->
     <script>
         const firebaseConfigScript = document.createElement('script');
@@ -678,7 +742,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
+        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
 
@@ -725,8 +789,13 @@
 
         const firebaseConfig = await waitForConfig();
         initializeFirebase(firebaseConfig);
+        const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
+
+        if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
+            window.currentTableData = { pageType: 'terreniClienti', summary: 'Caricamento dati in corso...', items: [] };
+        }
 
         let currentUser = null;
         let currentTenantId = null;
@@ -737,6 +806,8 @@
         // Google Maps variables (per terreni)
         let map = null;
         let polygon = null;
+        let viewMap = null;
+        let viewMapPolygon = null;
         let isDrawing = false;
         let currentPolygonCoords = [];
         
@@ -948,6 +1019,37 @@
             const container = document.getElementById('terreni-container');
             document.getElementById('terreni-count').textContent = `${terreniList.length} terreni`;
 
+            // --- currentTableData per Tony (domande informative sulla lista) ---
+            const clienteNome = currentClienteId ? (clienti.find(c => c.id === currentClienteId)?.ragioneSociale || '') : '';
+            const summaryParts = terreniList.length === 0
+                ? [(clienteNome ? `Nessun terreno per ${clienteNome}.` : 'Seleziona un cliente per vedere i suoi terreni.')]
+                : [`Ci sono ${terreniList.length} terreni` + (clienteNome ? ` per ${clienteNome}` : '') + ' in elenco.'];
+            window.currentTableData = {
+                pageType: 'terreniClienti',
+                summary: summaryParts.join(' ').trim() + (summaryParts.length ? '.' : ''),
+                items: terreniList.map(t => {
+                    const cliente = clienti.find(c => c.id === t.clienteId);
+                    const coltura = (t.colturaSottocategoria || t.coltura || '').trim() || '-';
+                    return {
+                        nome: t.nome || '-',
+                        cliente: cliente ? (cliente.ragioneSociale || '-') : '-',
+                        superficie: t.superficie != null ? t.superficie : '-',
+                        coltura: coltura,
+                        podere: (t.podere || '').trim() || '-'
+                    };
+                })
+            };
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            try {
+                window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+            } catch (e) {}
+            // --- Fine currentTableData per Tony ---
+
             if (terreniList.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🗺️</div><p>Nessun terreno trovato per questo cliente</p></div>';
                 return;
@@ -956,7 +1058,9 @@
             let html = '<div class="terreni-grid">';
             terreniList.forEach(terreno => {
                 const terrenoObj = new Terreno(terreno);
-                html += '<div class="terreno-card">';
+                const hasMappa = terrenoObj.polygonCoords && terrenoObj.polygonCoords.length > 0;
+                const cardClass = 'terreno-card terreno-card-has-mappa';
+                html += `<div class="${cardClass}" onclick="handleTerrenoCardClick(event, '${escapeHtml(terrenoObj.id)}')">`;
                 html += `<h3>${escapeHtml(terrenoObj.nome)}</h3>`;
                 if (terrenoObj.superficie) {
                     html += `<div class="info"><strong>Superficie:</strong> ${terrenoObj.superficie.toFixed(2)} ha</div>`;
@@ -978,7 +1082,7 @@
                 if (terrenoObj.note) {
                     html += `<div class="info"><strong>Note:</strong> ${escapeHtml(terrenoObj.note)}</div>`;
                 }
-                html += `<div class="actions">
+                html += `<div class="actions" onclick="event.stopPropagation()">
                     <button class="btn btn-sm btn-primary" onclick="window.editTerreno('${escapeHtml(terrenoObj.id)}')">✏️ Modifica</button>
                     <button class="btn btn-sm btn-danger" onclick="window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">🗑️ Elimina</button>
                 </div>`;
@@ -1083,6 +1187,266 @@
             clearPolygon();
             isDrawing = false;
         }
+
+        // Click su card terreno: apri mappa (solo visualizzazione)
+        window.handleTerrenoCardClick = function(event, terrenoId) {
+            if (event.target.closest('.actions')) return;
+            openMappaTerrenoView(terrenoId);
+        };
+
+        // Apri modal mappa terreno + lavorazioni (sola visualizzazione)
+        window.openMappaTerrenoView = async function(terrenoId) {
+            const terreno = terreni.find(t => t.id === terrenoId);
+            if (!terreno) return;
+
+            const modal = document.getElementById('mappa-terreno-view-modal');
+            const titleEl = document.getElementById('mappa-terreno-view-title');
+            const mapContainer = document.getElementById('mappa-terreno-view-container');
+            const messageEl = document.getElementById('mappa-terreno-view-message');
+            const tableWrapper = document.getElementById('mappa-terreno-view-lavorazioni-table-wrapper');
+            const tableBody = document.getElementById('mappa-terreno-view-lavorazioni-body');
+            const emptyEl = document.getElementById('mappa-terreno-view-lavorazioni-empty');
+            const loadingEl = document.getElementById('mappa-terreno-view-lavorazioni-loading');
+            const totaleEl = document.getElementById('mappa-terreno-view-lavorazioni-totale');
+
+            titleEl.textContent = (terreno.nome || 'Terreno') + ' – Mappa e lavorazioni';
+            mapContainer.style.display = 'none';
+            messageEl.style.display = 'none';
+            tableWrapper.style.display = 'none';
+            emptyEl.style.display = 'none';
+            loadingEl.style.display = 'block';
+            totaleEl.textContent = '';
+
+            const polygonCoords = terreno.polygonCoords;
+            if (!polygonCoords || polygonCoords.length < 3) {
+                messageEl.textContent = 'Questo terreno non ha una mappa tracciata.';
+                messageEl.style.display = 'block';
+            } else {
+                mapContainer.style.display = 'block';
+                await waitForGoogleMaps();
+                if (window.googleMapsReady && google && google.maps) {
+                    try {
+                        if (viewMap) viewMap = null;
+                        if (viewMapPolygon) {
+                            viewMapPolygon.setMap(null);
+                            viewMapPolygon = null;
+                        }
+                        const coords = polygonCoords.map(coord => {
+                            if (coord.lat != null && coord.lng != null) {
+                                return new google.maps.LatLng(coord.lat, coord.lng);
+                            }
+                            return coord;
+                        });
+                        const bounds = new google.maps.LatLngBounds();
+                        coords.forEach(c => bounds.extend(c));
+                        viewMap = new google.maps.Map(mapContainer, {
+                            zoom: 15,
+                            center: bounds.getCenter(),
+                            mapTypeId: google.maps.MapTypeId.SATELLITE
+                        });
+                        viewMapPolygon = new google.maps.Polygon({
+                            paths: coords,
+                            fillColor: '#1976D2',
+                            fillOpacity: 0.35,
+                            strokeColor: '#1976D2',
+                            strokeWeight: 2,
+                            editable: false,
+                            draggable: false,
+                            clickable: false
+                        });
+                        viewMapPolygon.setMap(viewMap);
+                        viewMap.fitBounds(bounds);
+                    } catch (error) {
+                        console.error('Errore apertura mappa:', error);
+                        messageEl.textContent = 'Errore caricamento mappa: ' + (error.message || 'Errore sconosciuto');
+                        messageEl.style.display = 'block';
+                        mapContainer.style.display = 'none';
+                    }
+                } else {
+                    messageEl.textContent = 'Google Maps non disponibile. Configura la chiave API.';
+                    messageEl.style.display = 'block';
+                }
+            }
+
+            modal.classList.add('active');
+
+            // Carica e mostra lavorazioni (costi: tariffe operai + macchine Parco Macchine)
+            try {
+                const { setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+                const { getDocumentData } = await import('../../../core/services/firebase-service.js');
+                setCurrentTenantId(currentTenantId);
+
+                const attivitaRef = collection(db, 'tenants', currentTenantId, 'attivita');
+                const attivitaQuery = query(attivitaRef, where('terrenoId', '==', terrenoId));
+                const attivitaSnap = await getDocs(attivitaQuery);
+                const attivitaList = [];
+                attivitaSnap.forEach(d => attivitaList.push({ id: d.id, ...d.data() }));
+                attivitaList.sort((a, b) => {
+                    const da = a.data ? (typeof a.data === 'string' ? a.data : (a.data.toDate ? a.data.toDate().toISOString().slice(0, 10) : '')) : '';
+                    const db = b.data ? (typeof b.data === 'string' ? b.data : (b.data.toDate ? b.data.toDate().toISOString().slice(0, 10) : '')) : '';
+                    return db.localeCompare(da);
+                });
+
+                const processedLavoroIds = new Set();
+                let hasParcoMacchine = false;
+                let hasManodopera = false;
+                try {
+                    const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                    hasParcoMacchine = await hasModuleAccess('parcoMacchine');
+                    hasManodopera = await hasModuleAccess('manodopera');
+                } catch (e) {}
+
+                let tariffeList = [];
+                try {
+                    const { getAllTariffe } = await import('../../../modules/conto-terzi/services/tariffe-service.js');
+                    try {
+                        tariffeList = await getAllTariffe({ soloAttive: true });
+                    } catch (idxErr) {
+                        if ((idxErr.message || '').includes('index')) {
+                            tariffeList = (await getAllTariffe({ soloAttive: false })).filter(t => t.attiva !== false);
+                        } else throw idxErr;
+                    }
+                } catch (e) { console.warn('Tariffe non disponibili per fallback:', e); }
+
+                function findTariffaPerAttivita(tipoLavoro, coltura, tipoCampo, categoriaColturaId) {
+                    const tl = (tipoLavoro || '').trim();
+                    const col = (coltura || '').trim();
+                    const tc = (tipoCampo || '').trim();
+                    const eq = (a, b) => (a || '').toLowerCase() === (b || '').toLowerCase();
+                    let t = tariffeList.find(x => eq(x.tipoLavoro, tl) && eq(x.coltura, col) && eq(x.tipoCampo, tc));
+                    if (!t && col && categoriaColturaId) {
+                        t = tariffeList.find(x => eq(x.tipoLavoro, tl) && !(x.coltura || '').trim() && x.categoriaColturaId === categoriaColturaId && eq(x.tipoCampo, tc));
+                    }
+                    return t;
+                }
+
+                async function calcCostoAttivita(a) {
+                    let costo = 0;
+                    if (a.lavoroId) {
+                        if (processedLavoroIds.has(a.lavoroId)) return { spesa: null, addToTotale: false };
+                        processedLavoroIds.add(a.lavoroId);
+                        let costoManodopera = 0, costoMacchine = 0;
+                        try {
+                            const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', a.lavoroId, 'oreOperai');
+                            const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+                            const oreSnap = await getDocs(oreQuery);
+                            const macchineMap = {};
+                            const orePerOperaio = {};
+                            oreSnap.forEach(oraDoc => {
+                                const ora = oraDoc.data();
+                                const operaioId = ora.operaioId;
+                                if (operaioId) {
+                                    if (!orePerOperaio[operaioId]) orePerOperaio[operaioId] = 0;
+                                    orePerOperaio[operaioId] += parseFloat(ora.oreNette) || 0;
+                                }
+                                const oreMacchina = parseFloat(ora.oreMacchina) || 0;
+                                if (ora.macchinaId && oreMacchina > 0) {
+                                    if (!macchineMap[ora.macchinaId]) macchineMap[ora.macchinaId] = 0;
+                                    macchineMap[ora.macchinaId] += oreMacchina;
+                                }
+                                if (ora.attrezzoId && oreMacchina > 0) {
+                                    if (!macchineMap[ora.attrezzoId]) macchineMap[ora.attrezzoId] = 0;
+                                    macchineMap[ora.attrezzoId] += oreMacchina;
+                                }
+                            });
+                            if (hasManodopera) {
+                                const { getTariffaOperaio } = await import('../../../core/services/calcolo-compensi-service.js');
+                                for (const [opId, oreTotali] of Object.entries(orePerOperaio)) {
+                                    const opData = await getDocumentData('users', opId);
+                                    if (opData) {
+                                        const tariffa = await getTariffaOperaio(currentTenantId, {
+                                            tipoOperaio: opData.tipoOperaio || null,
+                                            tariffaPersonalizzata: opData.tariffaPersonalizzata != null ? opData.tariffaPersonalizzata : undefined
+                                        });
+                                        costoManodopera += oreTotali * tariffa;
+                                    }
+                                }
+                            }
+                            if (hasParcoMacchine) {
+                                const { getMacchina } = await import('../../../modules/parco-macchine/services/macchine-service.js');
+                                for (const [macId, oreTotali] of Object.entries(macchineMap)) {
+                                    const mac = await getMacchina(macId);
+                                    if (mac && mac.costoOra) costoMacchine += oreTotali * mac.costoOra;
+                                }
+                            }
+                        } catch (e) { console.warn('Errore calc costo lavoro:', e); }
+                        costo = costoManodopera + costoMacchine;
+                    } else {
+                        const oreMacchina = parseFloat(a.oreMacchina) || 0;
+                        if (hasParcoMacchine && oreMacchina > 0 && (a.macchinaId || a.attrezzoId)) {
+                            const { getMacchina } = await import('../../../modules/parco-macchine/services/macchine-service.js');
+                            if (a.macchinaId) {
+                                const mac = await getMacchina(a.macchinaId);
+                                if (mac && mac.costoOra) costo += oreMacchina * mac.costoOra;
+                            }
+                            if (a.attrezzoId) {
+                                const mac = await getMacchina(a.attrezzoId);
+                                if (mac && mac.costoOra) costo += oreMacchina * mac.costoOra;
+                            }
+                        }
+                    }
+                    if (costo === 0 && tariffeList.length > 0 && terreno && terreno.superficie > 0) {
+                        const colturaAttivita = (a.coltura || terreno.colturaSottocategoria || terreno.coltura || '').trim();
+                        const tariffa = findTariffaPerAttivita(a.tipoLavoro, colturaAttivita, terreno.tipoCampo, terreno.colturaCategoria);
+                        if (tariffa) {
+                            const tariffaFinale = (tariffa.tariffaBase || 0) * (tariffa.coefficiente || 1);
+                            costo = tariffaFinale * terreno.superficie;
+                        }
+                    }
+                    return { spesa: costo, addToTotale: true };
+                }
+
+                loadingEl.style.display = 'none';
+
+                let totaleSpesa = 0;
+                if (attivitaList.length === 0) {
+                    emptyEl.style.display = 'block';
+                } else {
+                    tableWrapper.style.display = 'block';
+                    const rows = [];
+                    for (const a of attivitaList) {
+                        const { spesa } = await calcCostoAttivita(a);
+                        if (spesa != null) totaleSpesa += spesa;
+                        const ore = parseFloat(a.oreNette) || 0;
+                        let dataFormattata = '-';
+                        if (a.data) {
+                            if (typeof a.data === 'string') dataFormattata = a.data;
+                            else if (a.data.toDate) dataFormattata = a.data.toDate().toISOString().slice(0, 10);
+                        }
+                        const spesaStr = spesa != null && spesa > 0 ? '€ ' + spesa.toFixed(2) : (a.lavoroId && processedLavoroIds.has(a.lavoroId) && spesa === null ? '(v. sopra)' : '—');
+                        rows.push(`<tr>
+                            <td>${escapeHtml(dataFormattata)}</td>
+                            <td>${escapeHtml(a.tipoLavoro || '-')}</td>
+                            <td>${escapeHtml(a.coltura || '-')}</td>
+                            <td>${ore.toFixed(2)}</td>
+                            <td>${spesaStr}</td>
+                            <td>${escapeHtml((a.note || '').slice(0, 50))}${(a.note || '').length > 50 ? '…' : ''}</td>
+                        </tr>`);
+                    }
+                    tableBody.innerHTML = rows.join('');
+                    if (totaleSpesa > 0) {
+                        totaleEl.textContent = 'Totale spesa: € ' + totaleSpesa.toFixed(2);
+                    }
+                }
+            } catch (err) {
+                console.error('Errore caricamento lavorazioni:', err);
+                loadingEl.style.display = 'none';
+                emptyEl.textContent = 'Errore caricamento lavorazioni.';
+                emptyEl.style.display = 'block';
+            }
+        };
+
+        // Chiudi modal mappa terreno
+        window.closeMappaTerrenoView = function() {
+            document.getElementById('mappa-terreno-view-modal').classList.remove('active');
+            if (viewMapPolygon) {
+                viewMapPolygon.setMap(null);
+                viewMapPolygon = null;
+            }
+            if (viewMap) {
+                viewMap = null;
+            }
+        };
 
         // Salva terreno
         async function handleSalvaTerreno(event) {
