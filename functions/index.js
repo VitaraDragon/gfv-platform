@@ -23,6 +23,53 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 /**
+ * Preventivo pubblico (link email): ricerca per token via collection group.
+ * @returns {{ tenantId: string, preventivoId: string, ref: FirebaseFirestore.DocumentReference, data: object } | null}
+ */
+async function findPreventivoByTokenForPublic(token) {
+  if (!token || typeof token !== "string" || token.length < 10) {
+    return null;
+  }
+  const snap = await db.collectionGroup("preventivi").where("tokenAccettazione", "==", token).limit(5).get();
+  if (snap.empty) {
+    return null;
+  }
+  const valid = [];
+  for (const doc of snap.docs) {
+    const parts = doc.ref.path.split("/");
+    if (parts.length === 4 && parts[0] === "tenants" && parts[2] === "preventivi") {
+      valid.push({
+        tenantId: parts[1],
+        preventivoId: parts[3],
+        ref: doc.ref,
+        data: doc.data(),
+      });
+    }
+  }
+  if (valid.length === 0) {
+    return null;
+  }
+  if (valid.length > 1) {
+    console.warn("[getPreventivoPubblico] token duplicato (più documenti)", String(token).substring(0, 12));
+  }
+  return valid[0];
+}
+
+function firestoreTimestampToIso(v) {
+  if (!v) {
+    return null;
+  }
+  if (typeof v.toDate === "function") {
+    try {
+      return v.toDate().toISOString();
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
  * Context Builder - Recupera dati aziendali da Firestore per arricchire il contesto Tony.
  * Vedi docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md
  */
@@ -2358,5 +2405,105 @@ exports.getTonyAudio = onCall(
       ts: new Date().toISOString(),
     });
     return { audioContent, voice: VOICE_NAME };
+  }
+);
+
+/**
+ * Callable pubblica (senza login): dati preventivo per pagina accetta-preventivo-standalone.html.
+ * Sostituisce letture Firestore pubbliche su tenants/clienti/preventivi.
+ */
+exports.getPreventivoPubblico = onCall(
+  { region: "europe-west1", cors: true, invoker: "public", secrets: [sentryDsn] },
+  async (request) => {
+    const token = request.data?.token;
+    if (!token || typeof token !== "string" || token.length < 10) {
+      throw new HttpsError("invalid-argument", "Token non valido.");
+    }
+
+    const found = await findPreventivoByTokenForPublic(token);
+    if (!found) {
+      throw new HttpsError("not-found", "Preventivo non trovato o link non valido.");
+    }
+
+    const d = found.data;
+    let clienteRagioneSociale = "";
+    if (d.clienteId) {
+      try {
+        const clienteSnap = await db.doc(`tenants/${found.tenantId}/clienti/${d.clienteId}`).get();
+        if (clienteSnap.exists) {
+          const cd = clienteSnap.data();
+          clienteRagioneSociale = (cd && cd.ragioneSociale) || "";
+        }
+      } catch (e) {
+        console.warn("[getPreventivoPubblico] lettura cliente:", e.message);
+      }
+    }
+
+    return {
+      ok: true,
+      preventivo: {
+        id: found.preventivoId,
+        numero: d.numero ?? null,
+        tipoLavoro: d.tipoLavoro ?? "",
+        coltura: d.coltura ?? "",
+        tipoCampo: d.tipoCampo ?? "pianura",
+        superficie: d.superficie != null ? Number(d.superficie) : 0,
+        totale: d.totale != null ? Number(d.totale) : 0,
+        iva: d.iva != null ? Number(d.iva) : 22,
+        totaleConIva: d.totaleConIva != null ? Number(d.totaleConIva) : 0,
+        note: d.note ?? "",
+        stato: d.stato ?? "bozza",
+        dataScadenza: firestoreTimestampToIso(d.dataScadenza),
+        dataInvio: firestoreTimestampToIso(d.dataInvio),
+      },
+      clienteRagioneSociale,
+    };
+  }
+);
+
+/**
+ * Callable pubblica: accetta o rifiuta preventivo (validazione token lato server).
+ */
+exports.aggiornaStatoPreventivoPubblico = onCall(
+  { region: "europe-west1", cors: true, invoker: "public", secrets: [sentryDsn] },
+  async (request) => {
+    const token = request.data?.token;
+    const azione = request.data?.azione;
+    if (!token || typeof token !== "string" || token.length < 10) {
+      throw new HttpsError("invalid-argument", "Token non valido.");
+    }
+    if (azione !== "accetta" && azione !== "rifiuta") {
+      throw new HttpsError("invalid-argument", "Azione deve essere accetta o rifiuta.");
+    }
+
+    const found = await findPreventivoByTokenForPublic(token);
+    if (!found) {
+      throw new HttpsError("not-found", "Preventivo non trovato.");
+    }
+
+    const d = found.data;
+    const stato = d.stato;
+    const dataScadenza = d.dataScadenza && typeof d.dataScadenza.toDate === "function" ? d.dataScadenza.toDate() : null;
+    const isScaduto = dataScadenza && new Date() > dataScadenza;
+
+    if (isScaduto) {
+      throw new HttpsError("failed-precondition", "Preventivo scaduto.");
+    }
+    if (!["bozza", "inviato"].includes(stato)) {
+      throw new HttpsError("failed-precondition", "Stato preventivo non consente questa operazione.");
+    }
+
+    if (azione === "accetta") {
+      await found.ref.update({
+        stato: "accettato_email",
+        dataAccettazione: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return { ok: true, stato: "accettato_email" };
+    }
+
+    await found.ref.update({
+      stato: "rifiutato",
+    });
+    return { ok: true, stato: "rifiutato" };
   }
 );

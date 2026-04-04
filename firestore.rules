@@ -113,8 +113,8 @@ service cloud.firestore {
     
     // Collection: tenants (globale)
     match /tenants/{tenantId} {
-      // Lettura: autenticati del tenant O lettura pubblica (necessaria per pagina accettazione preventivo che cerca in tutti i tenant)
-      allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
+      // Lettura: solo membri del tenant (pagina pubblica preventivo usa Cloud Functions, non Firestore client)
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
       
       // Scrittura: 
       // - Manager/admin del tenant possono scrivere (operazioni normali)
@@ -196,9 +196,7 @@ service cloud.firestore {
     
     // Collection: clienti
     match /tenants/{tenantId}/clienti/{clienteId} {
-      // Lettura: autenticati del tenant O lettura pubblica (necessaria per pagina accettazione preventivo)
-      // NOTA: Meno sicuro, ma necessario per mostrare dati cliente nel preventivo pubblico
-      allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
     
@@ -210,21 +208,14 @@ service cloud.firestore {
     
     // Collection: preventivi
     match /tenants/{tenantId}/preventivi/{preventivoId} {
-      // Lettura: autenticati del tenant O lettura pubblica (necessaria per query con tokenAccettazione)
-      // NOTA: Per query, dobbiamo permettere lettura pubblica, ma solo preventivi con tokenAccettazione saranno accessibili
-      // La sicurezza è garantita dal fatto che il token è unico e casuale
-      allow read: if isAuthenticated() && belongsToTenant(tenantId) || true;
+      // Lettura/scrittura: solo tenant autenticato (accettazione cliente via Cloud Function getPreventivoPubblico / aggiornaStatoPreventivoPubblico)
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
       
       // Creazione: solo manager/admin autenticati
       allow create: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
       
-      // Aggiornamento: manager/admin autenticati O aggiornamento pubblico solo di stato/dataAccettazione per preventivi con token
-      allow update: if (isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId)) ||
-                     (resource.data.tokenAccettazione != null && 
-                      // Permetti aggiornamento solo di questi campi specifici
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'dataAccettazione', 'dataRifiuto']) &&
-                      // Verifica che lo stato sia valido per accettazione/rifiuto
-                      (request.resource.data.stato == 'accettato_email' || request.resource.data.stato == 'rifiutato'));
+      // Aggiornamento: solo manager/admin (stato da link pubblico aggiornato lato server)
+      allow update: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
       
       // Eliminazione: solo manager/admin autenticati
       allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);

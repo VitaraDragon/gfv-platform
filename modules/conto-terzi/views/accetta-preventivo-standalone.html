@@ -251,15 +251,12 @@
         }, 1000);
     </script>
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK + Callable pubbliche (nessuna lettura Firestore client su tenants/clienti/preventivi) -->
     <script type="module">
-        import { initializeFirebase, getDb } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, updateDoc, query, where, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
+        import { initializeFirebase, getAppInstance } from '../../../core/services/firebase-service.js';
 
         // Variabili globali per le funzioni di accettazione/rifiuto
         let preventivoData = null;
-        let tenantIdData = null;
-        let dbInstance = null;
 
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
@@ -300,10 +297,19 @@
         }
 
         // Funzioni accetta/rifiuta (definite globalmente)
+        async function getPreventivoCallable() {
+            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
+            const app = getAppInstance();
+            const functions = getFunctions(app, 'europe-west1');
+            return {
+                getPreventivoPubblico: httpsCallable(functions, 'getPreventivoPubblico'),
+                aggiornaStatoPreventivoPubblico: httpsCallable(functions, 'aggiornaStatoPreventivoPubblico'),
+            };
+        }
+
         window.accettaPreventivo = async function() {
-            if (!preventivoData || !tenantIdData || !dbInstance) {
+            if (!preventivoData) {
                 showAlert('Errore: Dati preventivo non disponibili. Ricarica la pagina.', 'error');
-                console.error('Dati mancanti:', { preventivoData, tenantIdData, dbInstance });
                 return;
             }
 
@@ -319,19 +325,19 @@
             }
 
             try {
-                await updateDoc(doc(dbInstance, 'tenants', tenantIdData, 'preventivi', preventivoData.id), {
-                    stato: 'accettato_email',
-                    dataAccettazione: serverTimestamp()
-                });
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const { aggiornaStatoPreventivoPubblico } = await getPreventivoCallable();
+                await aggiornaStatoPreventivoPubblico({ token, azione: 'accetta' });
                 
                 showAlert('Preventivo accettato con successo!', 'success');
                 actionsContainer.innerHTML = '<div class="alert alert-success">✅ Preventivo accettato con successo!</div>';
                 
-                // Aggiorna i dati locali
                 preventivoData.stato = 'accettato_email';
             } catch (error) {
                 console.error('Errore accettazione:', error);
-                showAlert('Errore: ' + error.message, 'error');
+                const msg = error.message || 'Operazione non riuscita';
+                showAlert('Errore: ' + msg, 'error');
                 if (btnAccetta) {
                     btnAccetta.disabled = false;
                     btnAccetta.textContent = '✅ Accetta Preventivo';
@@ -340,9 +346,8 @@
         };
 
         window.rifiutaPreventivo = async function() {
-            if (!preventivoData || !tenantIdData || !dbInstance) {
+            if (!preventivoData) {
                 showAlert('Errore: Dati preventivo non disponibili. Ricarica la pagina.', 'error');
-                console.error('Dati mancanti:', { preventivoData, tenantIdData, dbInstance });
                 return;
             }
 
@@ -358,18 +363,19 @@
             }
 
             try {
-                await updateDoc(doc(dbInstance, 'tenants', tenantIdData, 'preventivi', preventivoData.id), {
-                    stato: 'rifiutato'
-                });
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const { aggiornaStatoPreventivoPubblico } = await getPreventivoCallable();
+                await aggiornaStatoPreventivoPubblico({ token, azione: 'rifiuta' });
                 
                 showAlert('Preventivo rifiutato.', 'success');
                 actionsContainer.innerHTML = '<div class="alert alert-error">❌ Preventivo rifiutato.</div>';
                 
-                // Aggiorna i dati locali
                 preventivoData.stato = 'rifiutato';
             } catch (error) {
                 console.error('Errore rifiuto:', error);
-                showAlert('Errore: ' + error.message, 'error');
+                const msg = error.message || 'Operazione non riuscita';
+                showAlert('Errore: ' + msg, 'error');
                 if (btnRifiuta) {
                     btnRifiuta.disabled = false;
                     btnRifiuta.textContent = '❌ Rifiuta Preventivo';
@@ -388,53 +394,24 @@
             try {
                 const firebaseConfig = await waitForConfig();
                 initializeFirebase(firebaseConfig);
-                dbInstance = getDb();
 
-                // Cerca preventivo per token
-                let preventivo = null;
-                let tenantId = null;
-
-                // Cerca in tutti i tenant (non abbiamo tenantId dal token)
-                const tenantsSnapshot = await getDocs(collection(dbInstance, 'tenants'));
-                
-                for (const tenantDoc of tenantsSnapshot.docs) {
-                    const tenantIdCheck = tenantDoc.id;
-                    const preventiviQuery = query(
-                        collection(dbInstance, 'tenants', tenantIdCheck, 'preventivi'),
-                        where('tokenAccettazione', '==', token)
-                    );
-                    const preventiviSnapshot = await getDocs(preventiviQuery);
-                    
-                    if (!preventiviSnapshot.empty) {
-                        tenantId = tenantIdCheck;
-                        const preventivoDoc = preventiviSnapshot.docs[0];
-                        preventivo = { id: preventivoDoc.id, ...preventivoDoc.data() };
-                        break;
-                    }
-                }
-
-                if (!preventivo) {
-                    document.getElementById('loading').innerHTML = '<div class="alert alert-error">Preventivo non trovato. Link non valido o scaduto.</div>';
+                const { getPreventivoPubblico } = await getPreventivoCallable();
+                const res = await getPreventivoPubblico({ token });
+                const payload = res.data;
+                if (!payload || !payload.ok || !payload.preventivo) {
+                    document.getElementById('loading').innerHTML = '<div class="alert alert-error">Risposta non valida dal server.</div>';
                 } else {
-                    // Salva i dati globalmente per le funzioni
+                    const preventivo = payload.preventivo;
                     preventivoData = preventivo;
-                    tenantIdData = tenantId;
 
-                    // Carica dati cliente
-                    const clienteDoc = await getDoc(doc(dbInstance, 'tenants', tenantId, 'clienti', preventivo.clienteId));
-                    const cliente = clienteDoc.exists() ? clienteDoc.data() : null;
+                    const dataScadenza = preventivo.dataScadenza ? new Date(preventivo.dataScadenza) : null;
+                    const isScaduto = dataScadenza && !isNaN(dataScadenza.getTime()) && new Date() > dataScadenza;
 
-                    // Verifica stato
-                    const dataScadenza = preventivo.dataScadenza?.toDate ? preventivo.dataScadenza.toDate() : null;
-                    const isScaduto = dataScadenza && new Date() > dataScadenza;
-
-                    // Mostra preventivo
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('preventivo-content').style.display = 'block';
 
-                    // Popola dati
                     document.getElementById('numero-preventivo').textContent = preventivo.numero || '-';
-                    document.getElementById('cliente-nome').textContent = cliente?.ragioneSociale || 'Cliente non trovato';
+                    document.getElementById('cliente-nome').textContent = payload.clienteRagioneSociale || 'Cliente';
                     document.getElementById('tipo-lavoro').textContent = preventivo.tipoLavoro || '-';
                     document.getElementById('coltura').textContent = preventivo.coltura || '-';
                     
@@ -456,7 +433,6 @@
                         document.getElementById('note-section').style.display = 'block';
                     }
 
-                    // Mostra azioni in base allo stato
                     const actionsContainer = document.getElementById('actions-container');
                     const stato = preventivo.stato;
 
@@ -469,7 +445,6 @@
                     } else if (stato === 'pianificato') {
                         actionsContainer.innerHTML = '<div class="alert alert-success">📋 Questo preventivo è stato pianificato e il lavoro è stato creato.</div>';
                     } else if (stato === 'inviato' || stato === 'bozza') {
-                        // Mostra pulsanti accetta/rifiuta
                         actionsContainer.innerHTML = `
                             <button class="btn btn-success" onclick="accettaPreventivo()">✅ Accetta Preventivo</button>
                             <button class="btn btn-danger" onclick="rifiutaPreventivo()">❌ Rifiuta Preventivo</button>
@@ -480,7 +455,8 @@
                 }
             } catch (error) {
                 console.error('Errore caricamento preventivo:', error);
-                document.getElementById('loading').innerHTML = '<div class="alert alert-error">Errore caricamento preventivo: ' + error.message + '</div>';
+                const msg = error.message || 'Errore sconosciuto';
+                document.getElementById('loading').innerHTML = '<div class="alert alert-error">Errore caricamento preventivo: ' + msg + '</div>';
             }
         }
     </script>

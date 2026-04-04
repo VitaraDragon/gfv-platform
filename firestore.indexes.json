@@ -1,6 +1,13 @@
 {
   "indexes": [
     {
+      "collectionGroup": "preventivi",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "tokenAccettazione", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "tariffe",
       "queryScope": "COLLECTION",
       "fields": [

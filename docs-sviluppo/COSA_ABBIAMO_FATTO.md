@@ -1,6 +1,32 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-02.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-04.**
+
+## ✅ Sicurezza preventivi pubblici — Cloud Functions + rules (2026-04-04)
+
+- **Problema**: letture pubbliche Firestore su `tenants`, `clienti`, `preventivi` per la pagina `accetta-preventivo-standalone.html` (enumerazione tenant, query token, update cliente).
+- **Soluzione**:
+  - **`functions/index.js`**: callable **`getPreventivoPubblico`** e **`aggiornaStatoPreventivoPubblico`** (Admin SDK, `collectionGroup('preventivi')` su `tokenAccettazione`), `invoker: "public"`, regione `europe-west1`.
+  - **`firestore.rules`**: lettura `tenants` / `clienti` / `preventivi` solo **`isAuthenticated() && belongsToTenant`**; update preventivi solo manager/admin (niente update anonimo).
+  - **`firestore.indexes.json`**: indice **collection group** `preventivi` + campo `tokenAccettazione`.
+  - **`accetta-preventivo-standalone.html`**: niente più `getDocs` sui tenant né lettura `clienti`; usa solo le callable.
+- **Deploy**: `firebase deploy --only functions,firestore:rules,firestore:indexes` (e hosting se serve). Verificare indice creato e callable invocabili senza login (403 → IAM Cloud Run o `invoker`).
+
+## ✅ Sicurezza Firestore — inviti: chiusura `create` aperto (2026-04-04)
+
+- **`firestore.rules`** (`match /inviti/{invitoId}`): rimosso `allow create: if true` (test). Creazione consentita solo se utente autenticato, `inviatoDa == request.auth.uid`, `stato == 'invitato'`, campi minimi (`email`, `token`, `tenantId`), e **`belongsToTenant` + `isManagerOrAdmin`** sul `tenantId` indicato.
+- **Deploy**: `firebase deploy --only firestore:rules` quando si aggiornano le rules.
+
+## ✅ Dashboard — tenant Tony / briefing vocale / GitHub Pages (2026-04-04)
+
+- **`core/dashboard-standalone.html`**
+  - **`resolveCurrentTenantId(userData)`**: da utenti con solo `tenantMemberships` (es. dopo invito) deriva il tenant e chiama **`setCurrentTenantId`**, così i servizi non vedono più «Nessun tenant corrente».
+  - **`loadTonyVignetoContext(availableModules, tenantIdExplicit)`**: passa il tenant esplicito e sincronizza `tenant-service` prima di `getStatisticheVigneto` (evita race al reload).
+  - **`checkGlobalStatus(tenantId, ruoli)`**: caricamento + messaggio vocale su scorte/scadenze/guasti **solo** per ruoli **`manager`** e **`amministratore`**; operaio e caposquadra non ricevono quel promemoria.
+- **Deploy GitHub Pages (`/gfv-platform/`)**
+  - **`.gitignore`**: eccezioni `!manifest.json`, `!core/config/tony-routes.json`, `!firestore.indexes.json` (prima `*.json` escludeva file necessari al sito → 404).
+  - **Link PWA**: sostituito `href="/manifest.json"` con percorsi **relativi** per pagine in `core/`, `core/auth/`, `modules/*/views/`, e `manifest.json` in root.
+  - **`core/config/tony-routes.json`** versionato: Tony logga `[Tony] Rotte disponibili caricate: N` senza 404.
 
 ## ✅ Magazzino – Appendice tracciabilità / dashboard a card / viste tematiche (2026-04-02)
 

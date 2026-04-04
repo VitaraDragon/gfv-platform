@@ -41,6 +41,19 @@ La callable **tonyAsk** chiama l’API Gemini con la chiave sul server, così il
    ```
    La function viene creata in **europe-west1**. Il client in `tony-service.js` deve usare **getFunctions(app, 'europe-west1')**; altrimenti le chiamate vanno a us-central1 e si ottiene CORS/404.
 
+## Preventivo pubblico (link email cliente)
+
+Callable **senza login** (regione `europe-west1`, come Tony):
+
+- **`getPreventivoPubblico`** — input `{ token }` (stesso `tokenAccettazione` nel link). Restituisce dati mostrati su `accetta-preventivo-standalone.html`.
+- **`aggiornaStatoPreventivoPubblico`** — input `{ token, azione: 'accetta' | 'rifiuta' }`. Aggiorna Firestore con Admin SDK.
+
+Dopo `firebase deploy --only functions`, se il client riceve **403** sulle callable senza utente loggato, in **Google Cloud Console → Cloud Run** apri il servizio corrispondente alla function e verifica che **Invokers** includa accesso pubblico (o usa `invoker: "public"` nel codice, già impostato per queste due).
+
+È necessario un **indice collection group** su `preventivi` + `tokenAccettazione` (`firestore.indexes.json`). Deploy: `firebase deploy --only firestore:indexes` (o deploy completo).
+
+Le **Firestore rules** non espongono più letture pubbliche su `tenants`, `clienti`, `preventivi` per questa pagina.
+
 ## Cleanup policy (opzionale)
 
 Al primo deploy la CLI può chiedere quanti giorni conservare le immagini container. Es. 7 giorni. Se la policy non si applica: `firebase functions:artifacts:setpolicy` o `firebase deploy --only functions --force`.
