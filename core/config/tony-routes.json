@@ -1,0 +1,341 @@
+{
+  "routes": [
+    {
+      "target": "abbonamento",
+      "path": "core/admin/abbonamento-standalone.html",
+      "label": "Abbonamento",
+      "module": "core"
+    },
+    {
+      "target": "amministrazione",
+      "path": "core/admin/amministrazione-standalone.html",
+      "label": "Amministrazione",
+      "module": "core"
+    },
+    {
+      "target": "compensi operai",
+      "path": "core/admin/compensi-operai-standalone.html",
+      "label": "Compensi Operai",
+      "module": "core"
+    },
+    {
+      "target": "gestione guasti admin",
+      "path": "core/admin/gestione-guasti-standalone.html",
+      "label": "Gestione Guasti",
+      "module": "core"
+    },
+    {
+      "target": "lavori",
+      "path": "core/admin/gestione-lavori-standalone.html",
+      "label": "Gestione Lavori",
+      "module": "core"
+    },
+    {
+      "target": "gestione macchine",
+      "path": "core/admin/gestione-macchine-standalone.html",
+      "label": "Gestione Macchine",
+      "module": "core"
+    },
+    {
+      "target": "gestione operai",
+      "path": "core/admin/gestione-operai-standalone.html",
+      "label": "Gestione Operai",
+      "module": "core"
+    },
+    {
+      "target": "gestione squadre",
+      "path": "core/admin/gestione-squadre-standalone.html",
+      "label": "Gestione Squadre",
+      "module": "core"
+    },
+    {
+      "target": "gestisci utenti",
+      "path": "core/admin/gestisci-utenti-standalone.html",
+      "label": "Gestisci Utenti",
+      "module": "core"
+    },
+    {
+      "target": "impostazioni",
+      "path": "core/admin/impostazioni-standalone.html",
+      "label": "Impostazioni",
+      "module": "core"
+    },
+    {
+      "target": "lavori caposquadra",
+      "path": "core/admin/lavori-caposquadra-standalone.html",
+      "label": "Lavori Caposquadra",
+      "module": "core"
+    },
+    {
+      "target": "report",
+      "path": "core/admin/report-standalone.html",
+      "label": "Report",
+      "module": "core"
+    },
+    {
+      "target": "segnalazione guasti",
+      "path": "core/admin/segnalazione-guasti-standalone.html",
+      "label": "Segnalazione Guasti",
+      "module": "core"
+    },
+    {
+      "target": "statistiche manodopera",
+      "path": "core/admin/statistiche-manodopera-standalone.html",
+      "label": "Statistiche Manodopera",
+      "module": "core"
+    },
+    {
+      "target": "validazione ore",
+      "path": "core/admin/validazione-ore-standalone.html",
+      "label": "Validazione Ore",
+      "module": "core"
+    },
+    {
+      "target": "attivita",
+      "path": "core/attivita-standalone.html",
+      "label": "Attivita",
+      "module": "core"
+    },
+    {
+      "target": "login",
+      "path": "core/auth/login-standalone.html",
+      "label": "Login",
+      "module": "core"
+    },
+    {
+      "target": "registrazione invito",
+      "path": "core/auth/registrazione-invito-standalone.html",
+      "label": "Registrazione Invito",
+      "module": "core"
+    },
+    {
+      "target": "registrazione",
+      "path": "core/auth/registrazione-standalone.html",
+      "label": "Registrazione",
+      "module": "core"
+    },
+    {
+      "target": "reset password",
+      "path": "core/auth/reset-password-standalone.html",
+      "label": "Reset Password",
+      "module": "core"
+    },
+    {
+      "target": "dashboard",
+      "path": "core/dashboard-standalone.html",
+      "label": "Dashboard",
+      "module": "core"
+    },
+    {
+      "target": "segnatura ore",
+      "path": "core/segnatura-ore-standalone.html",
+      "label": "Segnatura Ore",
+      "module": "core"
+    },
+    {
+      "target": "statistiche",
+      "path": "core/statistiche-standalone.html",
+      "label": "Statistiche",
+      "module": "core"
+    },
+    {
+      "target": "terreni",
+      "path": "core/terreni-standalone.html",
+      "label": "Terreni",
+      "module": "core"
+    },
+    {
+      "target": "accetta preventivo",
+      "path": "modules/conto-terzi/views/accetta-preventivo-standalone.html",
+      "label": "Accetta Preventivo",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "clienti",
+      "path": "modules/conto-terzi/views/clienti-standalone.html",
+      "label": "Clienti",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "conto terzi",
+      "path": "modules/conto-terzi/views/conto-terzi-home-standalone.html",
+      "label": "Conto Terzi Home",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "clienti",
+      "path": "modules/conto-terzi/views/mappa-clienti-standalone.html",
+      "label": "Mappa Clienti",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "nuovo preventivo",
+      "path": "modules/conto-terzi/views/nuovo-preventivo-standalone.html",
+      "label": "Nuovo Preventivo",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "preventivi",
+      "path": "modules/conto-terzi/views/preventivi-standalone.html",
+      "label": "Preventivi",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "tariffe",
+      "path": "modules/conto-terzi/views/tariffe-standalone.html",
+      "label": "Tariffe",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "clienti",
+      "path": "modules/conto-terzi/views/terreni-clienti-standalone.html",
+      "label": "Terreni Clienti",
+      "module": "conto-terzi"
+    },
+    {
+      "target": "frutteti",
+      "path": "modules/frutteto/views/frutteti-standalone.html",
+      "label": "Frutteti",
+      "module": "frutteto"
+    },
+    {
+      "target": "frutteto",
+      "path": "modules/frutteto/views/frutteto-dashboard-standalone.html",
+      "label": "Frutteto Dashboard",
+      "module": "frutteto"
+    },
+    {
+      "target": "statistiche frutteto",
+      "path": "modules/frutteto/views/frutteto-statistiche-standalone.html",
+      "label": "Frutteto Statistiche",
+      "module": "frutteto"
+    },
+    {
+      "target": "potatura frutteto",
+      "path": "modules/frutteto/views/potatura-standalone.html",
+      "label": "Potatura",
+      "module": "frutteto"
+    },
+    {
+      "target": "raccolta frutta",
+      "path": "modules/frutteto/views/raccolta-frutta-standalone.html",
+      "label": "Raccolta Frutta",
+      "module": "frutteto"
+    },
+    {
+      "target": "trattamenti frutteto",
+      "path": "modules/frutteto/views/trattamenti-standalone.html",
+      "label": "Trattamenti",
+      "module": "frutteto"
+    },
+    {
+      "target": "elenco attrezzi",
+      "path": "modules/macchine/views/attrezzi-list-standalone.html",
+      "label": "Attrezzi List",
+      "module": "macchine"
+    },
+    {
+      "target": "elenco flotta",
+      "path": "modules/macchine/views/flotta-list-standalone.html",
+      "label": "Flotta List",
+      "module": "macchine"
+    },
+    {
+      "target": "guasti",
+      "path": "modules/macchine/views/guasti-list-standalone.html",
+      "label": "Guasti List",
+      "module": "macchine"
+    },
+    {
+      "target": "macchine",
+      "path": "modules/macchine/views/macchine-dashboard-standalone.html",
+      "label": "Macchine Dashboard",
+      "module": "macchine"
+    },
+    {
+      "target": "scadenze",
+      "path": "modules/macchine/views/scadenze-list-standalone.html",
+      "label": "Scadenze List",
+      "module": "macchine"
+    },
+    {
+      "target": "elenco trattori",
+      "path": "modules/macchine/views/trattori-list-standalone.html",
+      "label": "Trattori List",
+      "module": "macchine"
+    },
+    {
+      "target": "magazzino",
+      "path": "modules/magazzino/views/magazzino-home-standalone.html",
+      "label": "Magazzino Home",
+      "module": "magazzino"
+    },
+    {
+      "target": "movimenti",
+      "path": "modules/magazzino/views/movimenti-standalone.html",
+      "label": "Movimenti",
+      "module": "magazzino"
+    },
+    {
+      "target": "prodotti",
+      "path": "modules/magazzino/views/prodotti-standalone.html",
+      "label": "Prodotti",
+      "module": "magazzino"
+    },
+    {
+      "target": "report",
+      "path": "modules/report/views/report-standalone.html",
+      "label": "Report",
+      "module": "report"
+    },
+    {
+      "target": "calcolo materiali",
+      "path": "modules/vigneto/views/calcolo-materiali-standalone.html",
+      "label": "Calcolo Materiali",
+      "module": "vigneto"
+    },
+    {
+      "target": "pianificazione impianto",
+      "path": "modules/vigneto/views/pianifica-impianto-standalone.html",
+      "label": "Pianifica Impianto",
+      "module": "vigneto"
+    },
+    {
+      "target": "potatura vigneto",
+      "path": "modules/vigneto/views/potatura-standalone.html",
+      "label": "Potatura",
+      "module": "vigneto"
+    },
+    {
+      "target": "trattamenti vigneto",
+      "path": "modules/vigneto/views/trattamenti-standalone.html",
+      "label": "Trattamenti",
+      "module": "vigneto"
+    },
+    {
+      "target": "vendemmia",
+      "path": "modules/vigneto/views/vendemmia-standalone.html",
+      "label": "Vendemmia",
+      "module": "vigneto"
+    },
+    {
+      "target": "vigneti",
+      "path": "modules/vigneto/views/vigneti-standalone.html",
+      "label": "Vigneti",
+      "module": "vigneto"
+    },
+    {
+      "target": "vigneto",
+      "path": "modules/vigneto/views/vigneto-dashboard-standalone.html",
+      "label": "Vigneto Dashboard",
+      "module": "vigneto"
+    },
+    {
+      "target": "statistiche vigneto",
+      "path": "modules/vigneto/views/vigneto-statistiche-standalone.html",
+      "label": "Vigneto Statistiche",
+      "module": "vigneto"
+    }
+  ],
+  "generatedAt": "2026-02-24T10:37:40.466Z"
+}

@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "tariffe",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "attiva", "order": "ASCENDING" },
+        { "fieldPath": "tipoLavoro", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

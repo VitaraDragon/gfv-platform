@@ -52,8 +52,11 @@ firebase-service-account.json
 !tsconfig.json
 !cors.json
 !firebase.json
+!firestore.indexes.json
 !firestore.rules
 !storage.rules
+!manifest.json
+!core/config/tony-routes.json
 
 # Vecchia app - repository separato, non tracciare come submodule
 vecchia app/
