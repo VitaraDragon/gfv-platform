@@ -1,7 +1,7 @@
 # Master Plan – Tony Assistente Universale
 
-**Versione**: 1.3  
-**Data**: 2026-04-02  
+**Versione**: 1.4  
+**Data**: 2026-04-04  
 **Stato**: Documento di riferimento – tutte le modifiche a Tony devono allinearsi a questo piano.
 
 *Consolidato da `docs-sviluppo/MASTER_PLAN_TONY_UNIVERSAL.md`*
@@ -160,6 +160,19 @@ Tony può leggere tutti i dati necessari per rispondere. I dati arrivano dal Con
 | **Eliminare** | ⚠️ Solo su richiesta esplicita e conferma. Mai azione automatica. |
 | **Azioni irreversibili** (es. eliminazione bulk) | ❌ Tony non le esegue. Propone all'utente di farlo manualmente. |
 
+### 6.3 Sicurezza: accettazione preventivo da link email (cliente esterno)
+
+Flusso **fuori** dal login GFV: pagina `accetta-preventivo-standalone.html` con token in querystring. Non è una funzione Tony (nessun contesto `moduli_attivi` / tenant); eventuali warning del widget sulla pagina pubblica sono attesi.
+
+**Perimetro tecnico** (obbligatorio per non esporre Firestore al pubblico):
+
+- Lettura e aggiornamento **solo** tramite callable **`getPreventivoPubblico`** e **`aggiornaStatoPreventivoPubblico`** (`europe-west1`, `invoker: "public"`, Admin SDK). La pagina **non** usa il client Firestore per `tenants` / `clienti` / `preventivi`.
+- **Firestore rules**: dati aziendali solo utenti autenticati nel tenant; il cliente anonimo non legge le collection.
+- **Indici**: `firebase.json` deve dichiarare `firestore.indexes.json`; per `collectionGroup('preventivi')` su `tokenAccettazione` serve il **field override** (non un falso “composito” a un campo). Deploy indici insieme alle rules quando si tocca la query.
+- **Segreti**: non associare `SENTRY_DSN` come secret obbligatorio a queste callable (rischio 500 se il secret non è legato). Dettagli in `functions/README.md` e `docs-sviluppo/SICUREZZA_FLUSSI.md`.
+
+**Scalabilità**: nuove azioni pubbliche sullo stesso modello → nuova callable centralizzata, mai patch “solo questa pagina” con letture client anonime.
+
 ---
 
 ## 7. Entry point da ovunque
@@ -245,9 +258,11 @@ Tony non "compila" grafici. Può:
 - **Stato attuale**: `docs-sviluppo/tony/STATO_ATTUALE.md`
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - **Changelog**: `docs-sviluppo/COSA_ABBIAMO_FATTO.md`
+- **Sicurezza (Firestore, link pubblici, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 - **Guida sviluppo**: `docs-sviluppo/GUIDA_SVILUPPO_TONY.md`
 - **Form mapping**: `core/config/tony-form-mapping.js`
 - **Rotte**: `core/config/tony-routes.json`
+- **Cloud Functions (incl. preventivo pubblico)**: `functions/README.md`
 
 ---
 

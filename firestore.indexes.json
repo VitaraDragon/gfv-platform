@@ -1,13 +1,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "preventivi",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "tokenAccettazione", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "tariffe",
       "queryScope": "COLLECTION",
       "fields": [
@@ -16,5 +9,25 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "oreOperai",
+      "fieldPath": "operaioId",
+      "ttl": false,
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "preventivi",
+      "fieldPath": "tokenAccettazione",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }

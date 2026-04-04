@@ -1,4 +1,5 @@
-> **ARCHIVIATO 2026-03-08** – Sostituito da `docs-sviluppo/tony/MASTER_PLAN.md`
+> **ARCHIVIATO 2026-03-08** – Sostituito da `docs-sviluppo/tony/MASTER_PLAN.md`  
+> Per **sicurezza flussi pubblici** (preventivo via link) e aggiornamenti post-2026-03-08 usare il Master Plan attivo (`tony/MASTER_PLAN.md`, §6.3) e `docs-sviluppo/SICUREZZA_FLUSSI.md`.
 
 ---
 

@@ -1,7 +1,8 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-04-02  
-**Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md`
+**Data**: 2026-04-04  
+**Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md`  
+**Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
 ---
 

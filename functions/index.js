@@ -30,7 +30,22 @@ async function findPreventivoByTokenForPublic(token) {
   if (!token || typeof token !== "string" || token.length < 10) {
     return null;
   }
-  const snap = await db.collectionGroup("preventivi").where("tokenAccettazione", "==", token).limit(5).get();
+  let snap;
+  try {
+    snap = await db.collectionGroup("preventivi").where("tokenAccettazione", "==", token).limit(5).get();
+  } catch (e) {
+    const code = e && e.code;
+    const msg = (e && e.message) || String(e);
+    console.error("[findPreventivoByTokenForPublic] Firestore", code, msg);
+    // gRPC 9 / FAILED_PRECONDITION: indice mancante o in costruzione
+    if (code === 9 || code === "FAILED_PRECONDITION" || /index|FAILED_PRECONDITION/i.test(msg)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Servizio temporaneamente non disponibile (indice database in aggiornamento). Riprova tra pochi minuti."
+      );
+    }
+    throw new HttpsError("internal", "Errore lettura preventivo.");
+  }
   if (snap.empty) {
     return null;
   }
@@ -2413,7 +2428,7 @@ exports.getTonyAudio = onCall(
  * Sostituisce letture Firestore pubbliche su tenants/clienti/preventivi.
  */
 exports.getPreventivoPubblico = onCall(
-  { region: "europe-west1", cors: true, invoker: "public", secrets: [sentryDsn] },
+  { region: "europe-west1", cors: true, invoker: "public" },
   async (request) => {
     const token = request.data?.token;
     if (!token || typeof token !== "string" || token.length < 10) {
@@ -2465,7 +2480,7 @@ exports.getPreventivoPubblico = onCall(
  * Callable pubblica: accetta o rifiuta preventivo (validazione token lato server).
  */
 exports.aggiornaStatoPreventivoPubblico = onCall(
-  { region: "europe-west1", cors: true, invoker: "public", secrets: [sentryDsn] },
+  { region: "europe-west1", cors: true, invoker: "public" },
   async (request) => {
     const token = request.data?.token;
     const azione = request.data?.azione;

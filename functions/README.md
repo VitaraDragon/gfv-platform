@@ -50,9 +50,16 @@ Callable **senza login** (regione `europe-west1`, come Tony):
 
 Dopo `firebase deploy --only functions`, se il client riceve **403** sulle callable senza utente loggato, in **Google Cloud Console → Cloud Run** apri il servizio corrispondente alla function e verifica che **Invokers** includa accesso pubblico (o usa `invoker: "public"` nel codice, già impostato per queste due).
 
-È necessario un **indice collection group** su `preventivi` + `tokenAccettazione` (`firestore.indexes.json`). Deploy: `firebase deploy --only firestore:indexes` (o deploy completo).
+**Indici Firestore** (`firestore.indexes.json`):
+
+- In **`firebase.json`** la sezione `firestore` deve includere **`"indexes": "firestore.indexes.json"`**: senza questo file gli indici **non vengono mai deployati** anche se presenti nel repo.
+- Per la query `collectionGroup('preventivi').where('tokenAccettazione', '==', token)` serve un **field override** su `preventivi` / `tokenAccettazione` con `queryScope` **COLLECTION** e **COLLECTION_GROUP** (Firestore rifiuta un “composito” a un solo campo: usare gli override, non una voce in `indexes` solo per quel campo).
+
+**Sentry / secret**: non associare **`SENTRY_DSN`** (`secrets: [sentryDsn]`) a queste due callable. Se il secret non è legato correttamente alla revisione Cloud Run, le richieste possono rispondere **500 INTERNAL**; `instrument.js` funziona comunque se `SENTRY_DSN` è assente (solo warning in log).
 
 Le **Firestore rules** non espongono più letture pubbliche su `tenants`, `clienti`, `preventivi` per questa pagina.
+
+**Note operative**: se il client ottiene **404** sulla URL della callable, la function non è deployata. **CORS** senza `Access-Control-Allow-Origin` su preflight spesso maschera 404/403: verificare deploy e IAM (`invoker: "public"`).
 
 ## Cleanup policy (opzionale)
 

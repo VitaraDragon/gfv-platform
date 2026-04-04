@@ -2,15 +2,17 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-04.**
 
-## ✅ Sicurezza preventivi pubblici — Cloud Functions + rules (2026-04-04)
+## ✅ Sicurezza preventivi pubblici — Cloud Functions + rules (2026-04-04, doc agg. indici/secret 2026-04-04)
 
 - **Problema**: letture pubbliche Firestore su `tenants`, `clienti`, `preventivi` per la pagina `accetta-preventivo-standalone.html` (enumerazione tenant, query token, update cliente).
 - **Soluzione**:
-  - **`functions/index.js`**: callable **`getPreventivoPubblico`** e **`aggiornaStatoPreventivoPubblico`** (Admin SDK, `collectionGroup('preventivi')` su `tokenAccettazione`), `invoker: "public"`, regione `europe-west1`.
+  - **`functions/index.js`**: callable **`getPreventivoPubblico`** e **`aggiornaStatoPreventivoPubblico`** (Admin SDK, `collectionGroup('preventivi')` su `tokenAccettazione`), `cors: true`, `invoker: "public"`, regione **`europe-west1`**. **Senza** `secrets: [sentryDsn]` su queste due (evita 500 se il secret non è legato a Cloud Run; vedi `functions/README.md`).
   - **`firestore.rules`**: lettura `tenants` / `clienti` / `preventivi` solo **`isAuthenticated() && belongsToTenant`**; update preventivi solo manager/admin (niente update anonimo).
-  - **`firestore.indexes.json`**: indice **collection group** `preventivi` + campo `tokenAccettazione`.
+  - **`firebase.json`**: `firestore` include **`indexes`: `firestore.indexes.json`** — obbligatorio affinché `firebase deploy --only firestore:indexes` pubblichi davvero gli indici.
+  - **`firestore.indexes.json`**: per `tokenAccettazione` su collection group **`preventivi`** si usa un **field override** (scope COLLECTION + COLLECTION_GROUP), non una voce “composito” a un campo sola (Firestore risponde 400 *index is not necessary*). Altri indici (es. `tariffe`) e override esistenti (es. `oreOperai`) restano nel file.
   - **`accetta-preventivo-standalone.html`**: niente più `getDocs` sui tenant né lettura `clienti`; usa solo le callable.
-- **Deploy**: `firebase deploy --only functions,firestore:rules,firestore:indexes` (e hosting se serve). Verificare indice creato e callable invocabili senza login (403 → IAM Cloud Run o `invoker`).
+- **Deploy**: `firebase deploy --only functions,firestore:rules,firestore:indexes` (e hosting se serve). Callable da deployare esplicitamente se mancanti (404 sulla URL). Warning Tony `moduli_attivi` sulla pagina pubblica: atteso (nessun tenant/moduli).
+- **Riferimenti**: perimetro e checklist deploy → **`docs-sviluppo/SICUREZZA_FLUSSI.md`**; allineamento architetturale (Master Plan §6.3) → **`docs-sviluppo/tony/MASTER_PLAN.md`**.
 
 ## ✅ Sicurezza Firestore — inviti: chiusura `create` aperto (2026-04-04)
 
