@@ -44,6 +44,12 @@ const TIPI_LAVORO_PREDEFINITI = [
   { nome: 'Trattamento Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento eseguito con macchine' },
   { nome: 'Trattamento Anticrittogamico Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento contro malattie fungine con macchine' },
   { nome: 'Trattamento Insetticida Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento contro insetti con macchine' },
+  // Concimazione - Manuale
+  { nome: 'Concimazione manuale sulla fila', sottocategoriaCodice: 'concimazione_manuale', descrizione: 'Distribuzione manuale lungo la fila' },
+  { nome: 'Concimazione manuale a pieno campo', sottocategoriaCodice: 'concimazione_manuale', descrizione: 'Distribuzione manuale su tutta la superficie' },
+  // Concimazione - Meccanico
+  { nome: 'Concimazione meccanica sulla fila', sottocategoriaCodice: 'concimazione_meccanico', descrizione: 'Distribuzione meccanica lungo la fila' },
+  { nome: 'Concimazione meccanica a pieno campo', sottocategoriaCodice: 'concimazione_meccanico', descrizione: 'Distribuzione meccanica su tutta la superficie' },
   // Potatura - Manuale
   { nome: 'Potatura', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura eseguita manualmente' },
   { nome: 'Potatura di Formazione', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura di formazione per giovani piante' },
@@ -615,7 +621,7 @@ export async function migraListaPiatta(listaPiatta, createdBy) {
       'Semina': 'semina_piantagione',
       'Aratura': 'lavorazione_terreno',
       'Irrigazione': 'trattamenti',
-      'Concimazione': 'trattamenti',
+      'Concimazione': 'concimazione',
       'Diserbo': 'gestione_verde'
     };
     

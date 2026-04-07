@@ -215,6 +215,19 @@
             return date.toLocaleDateString('it-IT');
         }
 
+        function formatPrezzoCell(prezzo) {
+            if (prezzo === undefined || prezzo === null || prezzo === '') return '-';
+            const n = Number(prezzo);
+            return Number.isFinite(n) ? n.toFixed(2) : '-';
+        }
+
+        function formatPrezzoTotaleCell(prezzo, quantita) {
+            const pu = Number(prezzo);
+            const q = Number(quantita);
+            if (!Number.isFinite(pu) || !Number.isFinite(q)) return '-';
+            return (pu * q).toFixed(2);
+        }
+
         onAuthStateChanged(auth, async (user) => {
             if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
             try {
@@ -402,8 +415,8 @@
                                 <td><span class="badge-${m.tipo === 'entrata' ? 'entrata' : 'uscita'}">${m.tipo === 'entrata' ? '➕ Entrata' : '➖ Uscita'}</span></td>
                                 <td>${Number(m.quantita)} ${getProdottoUnita(m.prodottoId) || ''}</td>
                                 <td>${(m.confezione || '').substring(0, 25)}${(m.confezione || '').length > 25 ? '...' : ''}</td>
-                                <td>${m.prezzoUnitario != null ? Number(m.prezzoUnitario).toFixed(2) : '-'}</td>
-                                <td>${m.prezzoUnitario != null && m.quantita != null ? (Number(m.prezzoUnitario) * Number(m.quantita)).toFixed(2) : '-'}</td>
+                                <td>${formatPrezzoCell(m.prezzoUnitario)}</td>
+                                <td>${formatPrezzoTotaleCell(m.prezzoUnitario, m.quantita)}</td>
                                 <td>${getLavoroNome(m.lavoroId)}</td>
                                 <td>${getAttivitaLabel(m.attivitaId)}</td>
                                 <td>${(m.note || '').substring(0, 30)}${(m.note || '').length > 30 ? '...' : ''}</td>
@@ -450,7 +463,9 @@
             document.getElementById('mov-tipo').value = m.tipo || 'entrata';
             document.getElementById('mov-quantita').value = m.quantita != null ? m.quantita : '';
             document.getElementById('mov-confezione').value = m.confezione || '';
-            document.getElementById('mov-prezzo').value = m.prezzoUnitario != null ? m.prezzoUnitario : '';
+            const pu = m.prezzoUnitario;
+            document.getElementById('mov-prezzo').value =
+                pu !== undefined && pu !== null && pu !== '' && Number.isFinite(Number(pu)) ? String(pu) : '';
             document.getElementById('mov-note').value = m.note || '';
             document.getElementById('mov-lavoro').value = m.lavoroId || '';
             document.getElementById('mov-attivita').value = m.attivitaId || '';

@@ -1939,12 +1939,13 @@
                     // Categorie principali predefinite per lavori
                     const categorieLavoriPredefinite = [
                         { nome: 'Lavorazione del Terreno', codice: 'lavorazione_terreno', descrizione: 'Aratura, erpicatura, fresatura, vangatura, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
-                        { nome: 'Trattamenti', codice: 'trattamenti', descrizione: 'Fitofarmaci, concimazione, irrigazione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
-                        { nome: 'Potatura', codice: 'potatura', descrizione: 'Potatura manuale e meccanica', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
-                        { nome: 'Raccolta', codice: 'raccolta', descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 4 },
-                        { nome: 'Gestione del Verde', codice: 'gestione_verde', descrizione: 'Falciatura, taglio erba, manutenzione estetica, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 5 },
-                        { nome: 'Diserbo', codice: 'diserbo', descrizione: 'Eliminazione delle erbe infestanti', applicabileA: 'entrambi', predefinita: true, ordine: 6 },
-                        { nome: 'Semina e Piantagione', codice: 'semina_piantagione', descrizione: 'Semina, trapianto, piantagione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 7 },
+                        { nome: 'Trattamenti', codice: 'trattamenti', descrizione: 'Fitofarmaci, irrigazione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        { nome: 'Concimazione', codice: 'concimazione', descrizione: 'Concimazioni di fondo, fogliari, organici, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
+                        { nome: 'Potatura', codice: 'potatura', descrizione: 'Potatura manuale e meccanica', applicabileA: 'entrambi', predefinita: true, ordine: 4 },
+                        { nome: 'Raccolta', codice: 'raccolta', descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 5 },
+                        { nome: 'Gestione del Verde', codice: 'gestione_verde', descrizione: 'Falciatura, taglio erba, manutenzione estetica, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 6 },
+                        { nome: 'Diserbo', codice: 'diserbo', descrizione: 'Eliminazione delle erbe infestanti', applicabileA: 'entrambi', predefinita: true, ordine: 7 },
+                        { nome: 'Semina e Piantagione', codice: 'semina_piantagione', descrizione: 'Semina, trapianto, piantagione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 8 },
                         { nome: 'Manutenzione', codice: 'manutenzione', descrizione: 'Riparazioni, manutenzione impianti, ecc.', applicabileA: 'lavori', predefinita: true, ordine: 9 },
                         { nome: 'Altro', codice: 'altro', descrizione: 'Altri tipi non categorizzabili', applicabileA: 'entrambi', predefinita: true, ordine: 10 }
                     ];
@@ -1983,6 +1984,9 @@
                         // Trattamenti
                         { nome: 'Manuale', codice: 'trattamenti_manuale', parentCodice: 'trattamenti', descrizione: 'Trattamenti eseguiti manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
                         { nome: 'Meccanico', codice: 'trattamenti_meccanico', parentCodice: 'trattamenti', descrizione: 'Trattamenti eseguiti con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+                        // Concimazione
+                        { nome: 'Manuale', codice: 'concimazione_manuale', parentCodice: 'concimazione', descrizione: 'Concimazione eseguita manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+                        { nome: 'Meccanico', codice: 'concimazione_meccanico', parentCodice: 'concimazione', descrizione: 'Concimazione eseguita con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
                         // Potatura
                         { nome: 'Manuale', codice: 'potatura_manuale', parentCodice: 'potatura', descrizione: 'Potatura eseguita manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
                         { nome: 'Meccanico', codice: 'potatura_meccanico', parentCodice: 'potatura', descrizione: 'Potatura eseguita con attrezzi meccanici', applicabileA: 'entrambi', predefinita: true, ordine: 2 },

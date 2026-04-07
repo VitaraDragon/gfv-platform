@@ -9,6 +9,8 @@ alwaysApply: true
 
 **REFERENCE FILE**: Consulta sempre `docs-sviluppo/tony/MASTER_PLAN.md` prima di ogni azione.
 
+**Modulo Magazzino – evoluzioni (ipotesi OCR/Gemini, DDT/fattura)**: se l’attività riguarda acquisizione documenti o movimenti d’acquisto collegati a bolla/fattura, considera anche `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (riferito anche in MASTER_PLAN §11).
+
 **Pagine standalone e responsive**: Per layout, breakpoint, tabelle e architettura CSS/JS delle pagine standalone, segui `docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md`.
 
 ## MANDATORY ARCHITECTURE

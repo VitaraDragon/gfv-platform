@@ -321,8 +321,7 @@ export async function updateLavoro(lavoroId, updates) {
     if (!user.ruoli || (!user.ruoli.includes('manager') && !user.ruoli.includes('amministratore'))) {
       // Se è caposquadra, può modificare solo certi campi
       if (user.ruoli && user.ruoli.includes('caposquadra') && lavoroEsistente.caposquadraId === user.id) {
-        // Caposquadra può modificare solo stato e note
-        const allowedFields = ['stato', 'note'];
+        const allowedFields = ['stato', 'note', 'sospensioneCausa', 'sospensioneIl'];
         const updatesFiltered = {};
         Object.keys(updates).forEach(key => {
           if (allowedFields.includes(key)) {
@@ -331,6 +330,18 @@ export async function updateLavoro(lavoroId, updates) {
         });
         updates = updatesFiltered;
         
+        if (Object.keys(updates).length === 0) {
+          throw new Error('Non hai i permessi per modificare questi campi');
+        }
+      } else if (user.ruoli && user.ruoli.includes('operaio') && lavoroEsistente.operaioId === user.id && !lavoroEsistente.caposquadraId) {
+        const allowedFields = ['stato', 'note', 'sospensioneCausa', 'sospensioneIl'];
+        const updatesFiltered = {};
+        Object.keys(updates).forEach(key => {
+          if (allowedFields.includes(key)) {
+            updatesFiltered[key] = updates[key];
+          }
+        });
+        updates = updatesFiltered;
         if (Object.keys(updates).length === 0) {
           throw new Error('Non hai i permessi per modificare questi campi');
         }
@@ -424,6 +435,103 @@ export async function getNumeroLavoriCaposquadra(caposquadraId, stato = null) {
   }
 }
 
+/**
+ * Sospende un lavoro in corso o assegnato (caposquadra/operaio tramite updateLavoro).
+ * @param {string} lavoroId
+ * @param {string} [causa]
+ */
+export async function sospendiLavoro(lavoroId, causa = '') {
+  const lavoro = await getLavoro(lavoroId);
+  if (!lavoro) throw new Error('Lavoro non trovato');
+  if (!['in_corso', 'assegnato'].includes(lavoro.stato)) {
+    throw new Error('Solo lavori assegnati o in corso possono essere sospesi');
+  }
+  await updateLavoro(lavoroId, {
+    stato: 'sospeso',
+    sospensioneCausa: (causa || '').trim(),
+    sospensioneIl: new Date()
+  });
+}
+
+/**
+ * Crea un nuovo lavoro di ripresa collegato a un lavoro sospeso (solo manager/amministratore).
+ * @param {string} lavoroSospesoId
+ * @param {Object} [options]
+ * @param {string} [options.tenantId] - Override tenant (es. pagine standalone)
+ * @param {Object} [options.userData] - Override profilo utente (se getCurrentUserData() non è sincronizzato)
+ * @param {Date|string} [options.dataInizio] - Data inizio del nuovo lavoro (default: oggi)
+ * @returns {Promise<string>} ID nuovo lavoro
+ */
+export async function creaLavoroRipresa(lavoroSospesoId, options = {}) {
+  const tenantId = options.tenantId ?? getCurrentTenantId();
+  if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
+  const user = options.userData ?? getCurrentUserData();
+  if (!user || (!user.ruoli?.includes('manager') && !user.ruoli?.includes('amministratore'))) {
+    throw new Error('Solo manager o amministratore possono creare il lavoro di ripresa');
+  }
+  const creatoDaId = user.id || user.uid;
+  if (!creatoDaId) {
+    throw new Error('Utente senza id: impossibile registrare chi ha creato il lavoro');
+  }
+  const prev = await getLavoro(lavoroSospesoId);
+  if (!prev) throw new Error('Lavoro non trovato');
+  if (prev.stato !== 'sospeso') {
+    throw new Error('Il lavoro deve essere in stato sospeso per creare una ripresa');
+  }
+  if (prev.ripresaDaLavoroId) {
+    throw new Error('Usa il lavoro originale sospeso, non un lavoro di ripresa');
+  }
+  const radiceId = prev.lavoroRadiceId || lavoroSospesoId;
+  const nomeBase = (prev.nome || 'Lavoro').replace(/\s*\(ripresa\)\s*$/i, '').trim();
+  const noteRipresa = [
+    `Ripresa da lavoro sospeso (${lavoroSospesoId}).`,
+    prev.sospensioneCausa ? `Motivo sospensione: ${prev.sospensioneCausa}.` : '',
+    prev.note || ''
+  ].filter(Boolean).join(' ');
+
+  let dataInizioRipresa = options.dataInizio != null ? options.dataInizio : new Date();
+  if (typeof dataInizioRipresa === 'string') {
+    const s = dataInizioRipresa.trim();
+    dataInizioRipresa = new Date(s.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T12:00:00` : s);
+  }
+  if (!(dataInizioRipresa instanceof Date) || isNaN(dataInizioRipresa.getTime())) {
+    throw new Error('Data inizio non valida');
+  }
+
+  const nuovo = new Lavoro({
+    nome: `${nomeBase || 'Lavoro'} (ripresa)`,
+    terrenoId: prev.terrenoId,
+    caposquadraId: prev.caposquadraId,
+    operaioId: prev.operaioId,
+    tipoLavoro: prev.tipoLavoro,
+    dataInizio: dataInizioRipresa,
+    durataPrevista: prev.durataPrevista != null ? prev.durataPrevista : 1,
+    stato: 'assegnato',
+    note: noteRipresa,
+    clienteId: prev.clienteId,
+    preventivoId: prev.preventivoId,
+    pianificazioneId: prev.pianificazioneId,
+    macchinaId: prev.macchinaId,
+    attrezzoId: prev.attrezzoId,
+    operatoreMacchinaId: prev.operatoreMacchinaId,
+    ripresaDaLavoroId: lavoroSospesoId,
+    lavoroRadiceId: radiceId,
+    creatoDa: creatoDaId
+  });
+  const validation = nuovo.validate();
+  if (!validation.valid) {
+    throw new Error(`Validazione fallita: ${validation.errors.join(', ')}`);
+  }
+  const { getTerreno } = await import('./terreni-service.js');
+  const terreno = await getTerreno(prev.terrenoId);
+  if (!terreno) throw new Error('Terreno non trovato');
+  if (!prev.caposquadraId && !prev.operaioId) {
+    throw new Error('Il lavoro sospeso non ha un caposquadra o operaio assegnato');
+  }
+  const lavoroId = await createDocument(COLLECTION_NAME, nuovo.toFirestore(), tenantId);
+  return lavoroId;
+}
+
 // Export default
 export default {
   getAllLavori,
@@ -433,6 +541,8 @@ export default {
   createLavoro,
   updateLavoro,
   deleteLavoro,
-  getNumeroLavoriCaposquadra
+  getNumeroLavoriCaposquadra,
+  sospendiLavoro,
+  creaLavoroRipresa
 };
 

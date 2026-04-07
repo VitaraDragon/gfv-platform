@@ -102,14 +102,15 @@ export async function initializeCategorie(tenantId, dependencies, migraCategorie
         // Categorie principali predefinite per attrezzi
         const categoriePrincipaliPredefinite = [
             { nome: 'Lavorazione del Terreno', codice: 'lavorazione_terreno', descrizione: 'Aratura, erpicatura, fresatura, vangatura, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
-            { nome: 'Trattamenti', codice: 'trattamenti', descrizione: 'Fitofarmaci, concimazione, irrigazione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
-            { nome: 'Potatura', codice: 'potatura', descrizione: 'Potatura manuale e meccanica', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
-            { nome: 'Raccolta', codice: 'raccolta', descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 4 },
-            { nome: 'Gestione del Verde', codice: 'gestione_verde', descrizione: 'Falciatura, taglio erba, manutenzione estetica, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 5 },
-            { nome: 'Diserbo', codice: 'diserbo', descrizione: 'Eliminazione delle erbe infestanti', applicabileA: 'entrambi', predefinita: true, ordine: 6 },
-            { nome: 'Semina e Piantagione', codice: 'semina_piantagione', descrizione: 'Semina, trapianto, piantagione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 7 },
-            { nome: 'Trasporto', codice: 'trasporto', descrizione: 'Rimorchi, carri, carrelli, ecc.', applicabileA: 'attrezzi', predefinita: true, ordine: 8 },
-            { nome: 'Altro', codice: 'altro', descrizione: 'Altri tipi non categorizzabili', applicabileA: 'entrambi', predefinita: true, ordine: 10 }
+            { nome: 'Trattamenti', codice: 'trattamenti', descrizione: 'Fitofarmaci, irrigazione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
+            { nome: 'Concimazione', codice: 'concimazione', descrizione: 'Concimazioni di fondo, fogliari, organici, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
+            { nome: 'Potatura', codice: 'potatura', descrizione: 'Potatura manuale e meccanica', applicabileA: 'entrambi', predefinita: true, ordine: 4 },
+            { nome: 'Raccolta', codice: 'raccolta', descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 5 },
+            { nome: 'Gestione del Verde', codice: 'gestione_verde', descrizione: 'Falciatura, taglio erba, manutenzione estetica, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 6 },
+            { nome: 'Diserbo', codice: 'diserbo', descrizione: 'Eliminazione delle erbe infestanti', applicabileA: 'entrambi', predefinita: true, ordine: 7 },
+            { nome: 'Semina e Piantagione', codice: 'semina_piantagione', descrizione: 'Semina, trapianto, piantagione, ecc.', applicabileA: 'entrambi', predefinita: true, ordine: 8 },
+            { nome: 'Trasporto', codice: 'trasporto', descrizione: 'Rimorchi, carri, carrelli, ecc.', applicabileA: 'attrezzi', predefinita: true, ordine: 9 },
+            { nome: 'Altro', codice: 'altro', descrizione: 'Altri tipi non categorizzabili', applicabileA: 'entrambi', predefinita: true, ordine: 11 }
         ];
         
         const categorieMap = new Map(); // codice -> id
@@ -142,6 +143,8 @@ export async function initializeCategorie(tenantId, dependencies, migraCategorie
             { nome: 'Generale', codice: 'lavorazione_terreno_generale', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione standard per campi aperti', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
             { nome: 'Tra le File', codice: 'lavorazione_terreno_tra_file', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione tra le file di frutteti/vigneti', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
             { nome: 'Sulla Fila', codice: 'lavorazione_terreno_sulla_fila', parentCodice: 'lavorazione_terreno', descrizione: 'Lavorazione sulla fila di frutteti/vigneti', applicabileA: 'entrambi', predefinita: true, ordine: 3 },
+            { nome: 'Manuale', codice: 'concimazione_manuale', parentCodice: 'concimazione', descrizione: 'Concimazione eseguita manualmente', applicabileA: 'entrambi', predefinita: true, ordine: 1 },
+            { nome: 'Meccanico', codice: 'concimazione_meccanico', parentCodice: 'concimazione', descrizione: 'Concimazione eseguita con macchine', applicabileA: 'entrambi', predefinita: true, ordine: 2 },
             { nome: 'Meccanica', codice: 'potatura_meccanica', parentCodice: 'potatura', descrizione: 'Potatura eseguita con attrezzi meccanici', applicabileA: 'attrezzi', predefinita: true, ordine: 2 }
         ];
         

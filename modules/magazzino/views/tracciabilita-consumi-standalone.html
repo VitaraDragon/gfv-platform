@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracciabilità consumi - Prodotti e Magazzino - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .header h1 { font-size: 28px; }
+        .header p { opacity: 0.92; margin-top: 6px; font-size: 15px; max-width: 560px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters { display: flex; gap: 15px; margin-bottom: 16px; flex-wrap: wrap; padding: 20px; background: #f8f9fa; border-radius: 8px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
+        .filter-group select { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; min-width: 200px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .section-header h2 { color: #2E7D32; font-size: 22px; }
+        .hint { font-size: 13px; color: #6c757d; margin-bottom: 12px; line-height: 1.45; }
+        .movimenti-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .movimenti-table th, .movimenti-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e9ecef; vertical-align: top; }
+        .movimenti-table th { background: #E8F5E9; font-weight: 600; color: #495057; font-size: 13px; }
+        .movimenti-table tr:hover { background: #f1f8e9; }
+        .badge-cat { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; background: #e3f2fd; color: #1565c0; }
+        .badge-suggerito { font-size: 11px; color: #5d4037; background: #fff3e0; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-left: 8px; }
+        .group-block { border: 1px solid #a5d6a7; border-radius: 10px; margin-bottom: 18px; padding: 16px; background: linear-gradient(180deg, #f9fff9 0%, #fff 100%); }
+        .group-head { font-size: 15px; font-weight: 600; color: #1b5e20; margin-bottom: 10px; line-height: 1.5; }
+        .group-meta { font-size: 13px; color: #555; margin-bottom: 12px; line-height: 1.5; }
+        .terreni-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 12px; padding: 10px; background: #f1f8e9; border-radius: 8px; border: 1px dashed #81c784; }
+        .terreni-label { font-size: 12px; font-weight: 600; color: #2e7d32; width: 100%; margin-bottom: 4px; }
+        .chk-terreno { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #333; }
+        .chk-terreno input { width: 16px; height: 16px; accent-color: #2e7d32; cursor: default; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+        .alert-info { background: #e7f3ff; color: #0c5460; border: 1px solid #b8daff; font-size: 14px; line-height: 1.45; }
+        .flat-wrap { margin-top: 8px; }
+        .btn-qta-detail { background: none; border: none; color: #1565c0; cursor: pointer; font: inherit; text-align: left; text-decoration: underline; padding: 0; }
+        .btn-qta-detail:hover { color: #0d47a1; }
+        .btn-sessione-detail {
+            margin-top: 10px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid #2e7d32;
+            background: #e8f5e9;
+            color: #1b5e20;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-sessione-detail:hover { background: #c8e6c9; }
+        .badge-sessione { font-size: 11px; color: #33691e; background: #f1f8e9; padding: 4px 8px; border-radius: 4px; margin-left: 8px; }
+        .seg-block { border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fafafa; }
+        .seg-block h4 { margin: 0 0 8px 0; font-size: 15px; color: #1b5e20; }
+        .tot-cell-compact { text-align: right; font-weight: 600; white-space: nowrap; }
+        .modal-tracc { display: none; position: fixed; inset: 0; z-index: 2000; align-items: center; justify-content: center; padding: 16px; }
+        .modal-tracc.active { display: flex; }
+        .modal-tracc-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+        .modal-tracc-dialog { position: relative; background: #fff; border-radius: 12px; max-width: 520px; width: 100%; max-height: 85vh; overflow: auto; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .modal-tracc-dialog h3 { color: #1b5e20; margin-bottom: 8px; font-size: 18px; }
+        .modal-tracc-meta { font-size: 13px; color: #666; margin-bottom: 16px; }
+        .modal-tracc-close { margin-top: 16px; padding: 8px 16px; border-radius: 8px; border: none; background: #6c757d; color: #fff; cursor: pointer; font-size: 14px; }
+        .modal-tracc-close:hover { background: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🔍 Tracciabilità consumi</h1>
+                <p>Consultazione in sola lettura delle uscite da magazzino, filtrabili per categoria prodotto. In vista raggruppata, interventi nello <strong>stesso giorno</strong> con stessa miscela e stessi dati operativi possono essere mostrati insieme se riguardano <strong>appezzamenti diversi</strong>. Interventi in <strong>giorni diversi</strong> (es. ripetizione dopo 15 giorni) restano in blocchi separati. Il flag &quot;prosegue precedente&quot; indica solo un collegamento tra registri, non unifica due trattamenti in un unico documento.</p>
+            </div>
+            <div>
+                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Prodotti e Magazzino</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="alert alert-info">
+                Solo lettura: dati da movimenti di <strong>uscita</strong>. Il <strong>raggruppamento suggerito</strong> usa stessa data di movimento, modulo, operatore, attrezzatura, tipo intervento e stesso insieme di prodotti (firma miscela). Trattamenti in <strong>catena sospeso/ripresa</strong> (campo prosegue precedente) compaiono come <strong>un’unica scheda</strong> con data dell’ultimo passaggio e totale prodotti; il pulsante apre il dettaglio per ogni data. Non sostituisce i singoli registri in Vigneto/Frutteto.
+            </div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-categoria">Categoria prodotto</label>
+                    <select id="filter-categoria" aria-label="Filtra per categoria prodotto">
+                        <option value="">Tutte le categorie</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-vista">Visualizzazione</label>
+                    <select id="filter-vista" aria-label="Modalità elenco">
+                        <option value="raggruppata">Raggruppata (consigliata)</option>
+                        <option value="dettaglio">Elenco dettagliato (una riga per movimento)</option>
+                    </select>
+                </div>
+            </div>
+            <p class="hint">Categorie come in anagrafica prodotti. In vista raggruppata, le colture/terreni coinvolti compaiono come elenco con caselle (solo lettura).</p>
+            <div class="section-header">
+                <h2>Uscite registrate</h2>
+                <div id="righe-count">0 righe</div>
+            </div>
+            <div id="tabella-container">
+                <div class="loading">Caricamento…</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-dettaglio-qta" class="modal-tracc" aria-hidden="true">
+        <div class="modal-tracc-backdrop" id="modal-dettaglio-qta-backdrop"></div>
+        <div class="modal-tracc-dialog" role="dialog" aria-labelledby="modal-dettaglio-qta-title">
+            <h3 id="modal-dettaglio-qta-title">Prodotto</h3>
+            <p class="modal-tracc-meta" id="modal-dettaglio-qta-meta"></p>
+            <div id="modal-dettaglio-qta-body"></div>
+            <button type="button" class="modal-tracc-close" id="modal-dettaglio-qta-close">Chiudi</button>
+        </div>
+    </div>
+
+    <div id="modal-sessione-trattamento" class="modal-tracc" aria-hidden="true">
+        <div class="modal-tracc-backdrop" id="modal-sessione-trattamento-backdrop"></div>
+        <div class="modal-tracc-dialog" role="dialog" aria-labelledby="modal-sessione-trattamento-title" style="max-width: 640px;">
+            <h3 id="modal-sessione-trattamento-title">Sessione trattamento</h3>
+            <p class="modal-tracc-meta" id="modal-sessione-trattamento-meta"></p>
+            <div id="modal-sessione-trattamento-body"></div>
+            <button type="button" class="modal-tracc-close" id="modal-sessione-trattamento-close">Chiudi</button>
+        </div>
+    </div>
+
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    <script>window.currentTableData = window.currentTableData || { pageType: 'tracciabilita_consumi', summary: 'Caricamento…', items: [] };</script>
+    <script type="module">
+        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
+        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
+        import { collection, getDocs, getDoc, doc, query, orderBy } from '../../../core/services/firebase-service.js';
+        import { CATEGORIE_PRODOTTO } from '../config/categorie-prodotto.js';
+
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') { resolve(window.firebaseConfig); return; }
+                let attempts = 0;
+                const iv = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') { clearInterval(iv); resolve(window.firebaseConfig); }
+                    else if (attempts >= 50) { clearInterval(iv); reject(new Error('Config timeout')); }
+                }, 100);
+            });
+        }
+
+        const categoriaNomeById = Object.fromEntries(CATEGORIE_PRODOTTO.map(c => [c.id, c.nome]));
+        const firebaseConfig = await waitForConfig();
+        initializeFirebase(firebaseConfig);
+        const auth = getAuthInstance();
+        const db = getDb();
+
+        let currentTenantId = null;
+        let prodottiById = {};
+        let vignetiById = {};
+        let fruttetiById = {};
+        let terreniById = {};
+        let lavori = [];
+        let attivita = [];
+        let movimentiUscita = [];
+        let userNamesCache = {};
+        let macchineCache = {};
+        /** Dati per popup dettaglio quantità (indice = data-popup-idx nel DOM). */
+        let groupPopupData = [];
+        /** Sessioni collassate sospeso/ripresa (indice = data-chain-idx). */
+        let chainSessionPopupData = [];
+
+        function escapeHtml(s) {
+            if (s == null || s === undefined) return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function formatData(d) {
+            if (!d) return '-';
+            const date = d.toDate ? d.toDate() : new Date(d);
+            return date.toLocaleDateString('it-IT');
+        }
+
+        function dateKeyOnly(d) {
+            if (!d) return '';
+            const date = d.toDate ? d.toDate() : new Date(d);
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function formatQty(n) {
+            const x = Number(n);
+            if (!Number.isFinite(x)) return '—';
+            return x.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+        }
+
+        function round3(n) {
+            const x = Number(n);
+            if (!Number.isFinite(x)) return null;
+            return Math.round(x * 1000) / 1000;
+        }
+
+        /** Note automatiche scarico: niente ID in vista */
+        function sanitizeNote(note) {
+            if (!note || !String(note).trim()) return '';
+            let t = String(note).trim();
+            if (/^Scarico da trattamento\s+\w+\s*\([^)]*\)\s*\.?$/i.test(t)) {
+                return 'Scarico da trattamento (registrato automaticamente)';
+            }
+            t = t.replace(/Scarico da trattamento\s+(\w+)\s*\([^)]*\)/gi, 'Scarico da trattamento ($1)');
+            t = t.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '');
+            t = t.replace(/\(\s*…\s*\)/g, '').replace(/\s+/g, ' ').trim();
+            return t || '';
+        }
+
+        function getInitialCategoriaFromUrl() {
+            try {
+                const p = new URLSearchParams(window.location.search).get('categoria');
+                if (p && CATEGORIE_PRODOTTO.some(c => c.id === p)) return p;
+            } catch (e) { /* ignore */ }
+            return '';
+        }
+
+        function setFilterCategoriaOptions() {
+            const sel = document.getElementById('filter-categoria');
+            const initial = getInitialCategoriaFromUrl();
+            sel.innerHTML = '<option value="">Tutte le categorie</option>' +
+                CATEGORIE_PRODOTTO.map(c => `<option value="${c.id}">${c.icona ? c.icona + ' ' : ''}${c.nome}</option>`).join('');
+            if (initial) sel.value = initial;
+        }
+
+        function getProdottoCategoria(prodottoId) {
+            const p = prodottiById[prodottoId];
+            return p && p.categoria ? p.categoria : 'altro';
+        }
+
+        function getProdottoNome(prodottoId) {
+            const p = prodottiById[prodottoId];
+            if (p) return p.nome || p.codice || 'Prodotto';
+            return 'Prodotto (anagrafica non disponibile)';
+        }
+
+        function getProdottoUnita(prodottoId) {
+            const p = prodottiById[prodottoId];
+            return p && p.unitaMisura ? p.unitaMisura : '';
+        }
+
+        /**
+         * Etichette allineate a trattamenti-standalone: vigneto spesso usa varietà, non "nome";
+         * opzionale prefisso con nome terreno (come colonna terreno in lista trattamenti).
+         */
+        function colturaLabel(modulo, colturaId) {
+            if (!colturaId) return 'Coltura (nome non disponibile)';
+            if (modulo === 'vigneto') {
+                const v = vignetiById[colturaId];
+                if (!v) return 'Vigneto (anagrafica non disponibile)';
+                const pezzo = (v.nome || v.nomeVigneto || v.varieta || '').trim();
+                let terrenoNome = '';
+                if (v.terrenoId && terreniById[v.terrenoId]) {
+                    terrenoNome = String(terreniById[v.terrenoId].nome || '').trim();
+                }
+                if (terrenoNome && pezzo) return `${terrenoNome} · ${pezzo}`;
+                if (pezzo) return pezzo;
+                if (terrenoNome) return terrenoNome;
+                return 'Vigneto (nome non disponibile)';
+            }
+            if (modulo === 'frutteto') {
+                const f = fruttetiById[colturaId];
+                if (!f) return 'Frutteto (anagrafica non disponibile)';
+                const pezzo = (f.nome || f.nomeFrutteto || f.specie || f.varieta || '').trim();
+                let terrenoNome = '';
+                if (f.terrenoId && terreniById[f.terrenoId]) {
+                    terrenoNome = String(terreniById[f.terrenoId].nome || '').trim();
+                }
+                if (terrenoNome && pezzo) return `${terrenoNome} · ${pezzo}`;
+                if (pezzo) return pezzo;
+                if (terrenoNome) return terrenoNome;
+                return 'Frutteto (nome non disponibile)';
+            }
+            return 'Coltura (nome non disponibile)';
+        }
+
+        function getLavoroNome(id) {
+            if (!id) return '';
+            const l = lavori.find(x => x.id === id);
+            return l ? (l.nome || 'Lavoro') : '';
+        }
+
+        function getAttivitaLabel(id) {
+            if (!id) return '';
+            const a = attivita.find(x => x.id === id);
+            if (!a) return '';
+            const parts = [a.data, a.tipoLavoro, a.terrenoNome].filter(Boolean);
+            return parts.length ? parts.join(' – ') : '';
+        }
+
+        /** Risolve operatore: nome da users/uid, oppure testo libero; mai mostrare UID grezzo. */
+        async function resolveOperatoreNome(raw) {
+            if (!raw || typeof raw !== 'string') return '—';
+            const s = raw.trim();
+            if (!s) return '—';
+            if (userNamesCache[s] !== undefined) return userNamesCache[s];
+            const looksLikeUid = /^[a-zA-Z0-9]{20,35}$/.test(s);
+            if (!looksLikeUid) {
+                userNamesCache[s] = s;
+                return s;
+            }
+            try {
+                const snap = await getDoc(doc(db, 'users', s));
+                if (!snap.exists()) {
+                    userNamesCache[s] = 'Operatore';
+                    return userNamesCache[s];
+                }
+                const u = snap.data();
+                const name = `${(u.nome || '').trim()} ${(u.cognome || '').trim()}`.trim() || u.email || 'Operatore';
+                userNamesCache[s] = name;
+                return name;
+            } catch (e) {
+                userNamesCache[s] = 'Operatore';
+                return userNamesCache[s];
+            }
+        }
+
+        async function nomeMacchina(macchinaId) {
+            if (!macchinaId || !currentTenantId) return '';
+            if (macchineCache[macchinaId] !== undefined) return macchineCache[macchinaId];
+            try {
+                const s = await getDoc(doc(db, 'tenants', currentTenantId, 'macchine', macchinaId));
+                if (!s.exists()) {
+                    macchineCache[macchinaId] = 'Attrezzatura';
+                    return macchineCache[macchinaId];
+                }
+                const d = s.data();
+                const n = (d.nome || d.marca || d.modello || '').trim() || 'Attrezzatura';
+                macchineCache[macchinaId] = n;
+                return n;
+            } catch (e) {
+                macchineCache[macchinaId] = 'Attrezzatura';
+                return macchineCache[macchinaId];
+            }
+        }
+
+        async function fetchTrattamentoDoc(modulo, colturaId, trattamentoId) {
+            if (!modulo || !colturaId || !trattamentoId) return null;
+            const coll = modulo === 'vigneto' ? 'vigneti' : 'frutteti';
+            try {
+                const ref = doc(db, 'tenants', currentTenantId, coll, colturaId, 'trattamenti', trattamentoId);
+                const s = await getDoc(ref);
+                return s.exists() ? s.data() : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        const trattamentoDocCache = new Map();
+        async function fetchTrattamentoDocCached(modulo, colturaId, trattamentoId) {
+            const k = `${modulo}|${colturaId}|${trattamentoId}`;
+            if (trattamentoDocCache.has(k)) return trattamentoDocCache.get(k);
+            const d = await fetchTrattamentoDoc(modulo, colturaId, trattamentoId);
+            trattamentoDocCache.set(k, d);
+            return d;
+        }
+
+        /** Stessa miscela = stesso insieme di prodotti (ID ordinate). Le quantità non entrano: su terreni diversi le dosi sono quasi sempre diverse. */
+        function lineSignatureFromMovements(movs) {
+            return [...new Set(movs.map(m => m.prodottoId).filter(Boolean))].sort().join('|');
+        }
+
+        function labelCoperturaTerreno(c) {
+            if (c === 'completa') return 'Completa';
+            if (c === 'parziale') return 'Parziale';
+            return 'Non dichiarata';
+        }
+
+        function filterRows() {
+            const cat = document.getElementById('filter-categoria').value;
+            return movimentiUscita.filter(m => {
+                if (!cat) return true;
+                return getProdottoCategoria(m.prodottoId) === cat;
+            });
+        }
+
+        function contestoNonTrattamento(m) {
+            const parti = [];
+            const lav = getLavoroNome(m.lavoroId);
+            if (lav) parti.push('Lavoro: ' + escapeHtml(lav));
+            const att = getAttivitaLabel(m.attivitaId);
+            if (att) parti.push('Attività: ' + escapeHtml(att));
+            return parti.length ? parti.join('<br>') : '—';
+        }
+
+        function openDettaglioPopup(popupIdx, pid) {
+            const g = groupPopupData[popupIdx];
+            if (!g || !g.byPid) return;
+            const entry = g.byPid[pid];
+            if (!entry || !entry.terrains) return;
+            document.getElementById('modal-dettaglio-qta-title').textContent = getProdottoNome(pid);
+            document.getElementById('modal-dettaglio-qta-meta').textContent = g.titoloGruppo || '';
+            const rows = entry.terrains.map(t => {
+                const cop = labelCoperturaTerreno(t.coperturaTerreno);
+                const copBadge = ` <span class="badge-cat" style="background:#e8f5e9;font-size:11px">${escapeHtml(cop)}</span>`;
+                const prog = t.prosegueDaTrattamentoId ? ' <span style="font-size:12px;color:#555">· prosegue sessione precedente</span>' : '';
+                return `<tr><td>${escapeHtml(t.label)}${copBadge}${prog}</td><td style="text-align:right;white-space:nowrap">${t.qty != null ? escapeHtml(t.qty) + (t.unit ? ' ' + escapeHtml(t.unit) : '') : '—'}</td></tr>`;
+            }).join('');
+            document.getElementById('modal-dettaglio-qta-body').innerHTML =
+                `<table class="movimenti-table" style="margin-top:4px"><thead><tr><th>Appezzamento / coltura</th><th style="text-align:right">Quantità</th></tr></thead><tbody>${rows}</tbody></table>`;
+            const modal = document.getElementById('modal-dettaglio-qta');
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeDettaglioModal() {
+            const modal = document.getElementById('modal-dettaglio-qta');
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function closeSessioneTrattamentoModal() {
+            const modal = document.getElementById('modal-sessione-trattamento');
+            if (!modal) return;
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        function segmentTimeMs(u) {
+            const d = u.movs && u.movs[0] ? u.movs[0].data : null;
+            if (!d) return 0;
+            const dt = d.toDate ? d.toDate() : new Date(d);
+            return isNaN(dt.getTime()) ? 0 : dt.getTime();
+        }
+
+        function findProsegueRoot(unit, byId) {
+            let x = unit;
+            while (x.prosegueDaTrattamentoId && byId.has(x.prosegueDaTrattamentoId)) {
+                x = byId.get(x.prosegueDaTrattamentoId);
+            }
+            return x;
+        }
+
+        function collectProsegueChainFromRoot(rootId, byId, allUnits) {
+            const chain = [];
+            const queue = [rootId];
+            const seen = new Set();
+            while (queue.length) {
+                const id = queue.shift();
+                if (seen.has(id)) continue;
+                seen.add(id);
+                const node = byId.get(id);
+                if (!node) continue;
+                chain.push(node);
+                for (const v of allUnits) {
+                    if (v.prosegueDaTrattamentoId === id) queue.push(v.trattamentoId);
+                }
+            }
+            return chain;
+        }
+
+        /**
+         * Raggruppa documenti trattamento collegati da prosegueDaTrattamentoId (stessa coltura nel filtro corrente).
+         */
+        function collapseProsegueChains(units) {
+            if (!units.length) return [];
+            const byId = new Map(units.map(u => [u.trattamentoId, u]));
+            const visited = new Set();
+            const out = [];
+            for (const u of units) {
+                if (visited.has(u.trattamentoId)) continue;
+                const root = findProsegueRoot(u, byId);
+                const chain = collectProsegueChainFromRoot(root.trattamentoId, byId, units);
+                chain.forEach(c => visited.add(c.trattamentoId));
+                chain.sort((a, b) => segmentTimeMs(a) - segmentTimeMs(b));
+                out.push(chain.length > 1 ? { type: 'chain', segments: chain } : { type: 'single', unit: chain[0] });
+            }
+            return out;
+        }
+
+        function buildVirtualChainUnit(segments) {
+            const last = segments[segments.length - 1];
+            const first = segments[0];
+            const lastData = last.movs[0].data;
+            const firstData = first.movs[0].data;
+            const qtyByPid = new Map();
+            for (const seg of segments) {
+                for (const m of seg.movs) {
+                    const pid = m.prodottoId;
+                    if (!pid) continue;
+                    const q = m.quantita != null ? Number(m.quantita) : NaN;
+                    if (!Number.isFinite(q)) continue;
+                    qtyByPid.set(pid, (qtyByPid.get(pid) || 0) + q);
+                }
+            }
+            const movsTotal = [...qtyByPid.entries()]
+                .map(([prodottoId, quantita]) => ({ prodottoId, quantita, note: '', data: lastData }))
+                .sort((a, b) => (a.prodottoId || '').localeCompare(b.prodottoId || ''));
+            return {
+                _virtual: 'chain',
+                segments,
+                key: segments.map(s => s.key).join('||'),
+                modulo: last.modulo,
+                colturaId: last.colturaId,
+                trattamentoId: last.trattamentoId,
+                movs: movsTotal,
+                dateKey: dateKeyOnly(lastData),
+                datePrimaIso: firstData,
+                dateFinaleIso: lastData,
+                lineSig: last.lineSig,
+                operatoreKey: last.operatoreKey,
+                operatoreDisplay: last.operatoreDisplay,
+                macchinaId: last.macchinaId,
+                macchinaDisplay: last.macchinaDisplay,
+                tipoTrattamento: last.tipoTrattamento,
+                coperturaTerreno: last.coperturaTerreno,
+                prosegueDaTrattamentoId: ''
+            };
+        }
+
+        function buildSessioneTrattamentoModalHtml(entry) {
+            const { segments, modulo, colturaId } = entry;
+            const nomeCol = escapeHtml(colturaLabel(modulo, colturaId));
+            let html = `<p style="margin-bottom:12px;font-size:14px">Coltura: <strong>${nomeCol}</strong></p>`;
+            segments.forEach((seg, i) => {
+                const dataSeg = formatData(seg.movs[0].data);
+                const cop = labelCoperturaTerreno(seg.coperturaTerreno);
+                const n = i + 1;
+                const titoloPass = seg.prosegueDaTrattamentoId ? `Passaggio ${n} (ripresa / prosegue)` : `Passaggio ${n}`;
+                html += `<div class="seg-block"><h4>${escapeHtml(titoloPass)} — ${escapeHtml(dataSeg)}</h4>`;
+                html += `<p style="font-size:13px;color:#555;margin:0 0 8px">Copertura terreno: <strong>${escapeHtml(cop)}</strong></p>`;
+                html += '<table class="movimenti-table"><thead><tr><th>Prodotto</th><th>Quantità</th></tr></thead><tbody>';
+                seg.movs.forEach(m => {
+                    const pid = m.prodottoId;
+                    html += `<tr><td>${escapeHtml(getProdottoNome(pid))}</td><td>${escapeHtml(formatQty(m.quantita))} ${escapeHtml(getProdottoUnita(pid) || '')}</td></tr>`;
+                });
+                html += '</tbody></table></div>';
+            });
+            return html;
+        }
+
+        function openSessioneTrattamentoModal(idx) {
+            const entry = chainSessionPopupData[idx];
+            if (!entry) return;
+            document.getElementById('modal-sessione-trattamento-title').textContent = 'Dettaglio sessione trattamento';
+            document.getElementById('modal-sessione-trattamento-meta').textContent =
+                'Ogni passaggio con data di applicazione e dosi (uscite magazzino).';
+            document.getElementById('modal-sessione-trattamento-body').innerHTML = buildSessioneTrattamentoModalHtml(entry);
+            const modal = document.getElementById('modal-sessione-trattamento');
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        async function renderTabella() {
+            groupPopupData = [];
+            chainSessionPopupData = [];
+            trattamentoDocCache.clear();
+            const rows = filterRows();
+            const vista = document.getElementById('filter-vista').value;
+            const summary = 'Ci sono ' + rows.length + ' uscite in elenco' +
+                (document.getElementById('filter-categoria').value ? ' (categoria filtrata).' : '.');
+
+            window.currentTableData = {
+                pageType: 'tracciabilita_consumi',
+                summary,
+                items: rows.map(m => ({
+                    data: formatData(m.data),
+                    prodotto: getProdottoNome(m.prodottoId),
+                    categoria: categoriaNomeById[getProdottoCategoria(m.prodottoId)] || getProdottoCategoria(m.prodottoId),
+                    quantita: round3(m.quantita)
+                }))
+            };
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
+                    pageType: 'tracciabilita_consumi',
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
+
+            document.getElementById('righe-count').textContent = rows.length + ' righe';
+            const container = document.getElementById('tabella-container');
+            if (rows.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nessuna uscita trovata per i filtri selezionati.</div>';
+                return;
+            }
+
+            if (vista === 'dettaglio') {
+                container.innerHTML = `
+                    <div class="flat-wrap">
+                    <table class="movimenti-table">
+                        <thead><tr>
+                            <th>Data</th>
+                            <th>Prodotto</th>
+                            <th>Categoria</th>
+                            <th>Quantità</th>
+                            <th>Contesto</th>
+                            <th>Note</th>
+                        </tr></thead>
+                        <tbody>
+                            ${(await Promise.all(rows.map(async m => {
+                                const cid = getProdottoCategoria(m.prodottoId);
+                                const cnome = escapeHtml(categoriaNomeById[cid] || cid);
+                                const sn = sanitizeNote(m.note || '');
+                                const noteCell = sn ? escapeHtml(sn.length > 160 ? sn.substring(0, 160) + '…' : sn) : '—';
+                                let ctx = '—';
+                                if (m.origineTrattamentoModulo && m.origineTrattamentoColturaId && m.origineTrattamentoId) {
+                                    const mod = m.origineTrattamentoModulo === 'vigneto' ? 'Vigneto' : (m.origineTrattamentoModulo === 'frutteto' ? 'Frutteto' : escapeHtml(m.origineTrattamentoModulo));
+                                    const nomeCol = escapeHtml(colturaLabel(m.origineTrattamentoModulo, m.origineTrattamentoColturaId));
+                                    const meta = await fetchTrattamentoDocCached(m.origineTrattamentoModulo, m.origineTrattamentoColturaId, m.origineTrattamentoId);
+                                    const cop = escapeHtml(labelCoperturaTerreno(meta && meta.coperturaTerreno ? meta.coperturaTerreno : 'non_dichiarata'));
+                                    const prog = meta && meta.prosegueDaTrattamentoId
+                                        ? '<br><span style="font-size:12px;color:#555">Prosegue sessione precedente</span>'
+                                        : '';
+                                    ctx = `<span class="badge-cat" style="background:#efebe9;color:#4e342e;">Trattamento ${mod}</span><br>${nomeCol}<br><small style="color:#555">Copertura: ${cop}</small>${prog}`;
+                                } else if (m.origineTrattamentoModulo && m.origineTrattamentoId) {
+                                    const mod = m.origineTrattamentoModulo === 'vigneto' ? 'Vigneto' : (m.origineTrattamentoModulo === 'frutteto' ? 'Frutteto' : escapeHtml(m.origineTrattamentoModulo));
+                                    const nomeCol = escapeHtml(colturaLabel(m.origineTrattamentoModulo, m.origineTrattamentoColturaId));
+                                    ctx = `<span class="badge-cat" style="background:#efebe9;color:#4e342e;">Trattamento ${mod}</span><br>${nomeCol}`;
+                                } else {
+                                    ctx = contestoNonTrattamento(m);
+                                }
+                                return `<tr>
+                                    <td>${formatData(m.data)}</td>
+                                    <td>${escapeHtml(getProdottoNome(m.prodottoId))}</td>
+                                    <td><span class="badge-cat">${cnome}</span></td>
+                                    <td>${escapeHtml(formatQty(m.quantita))} ${escapeHtml(getProdottoUnita(m.prodottoId) || '')}</td>
+                                    <td>${ctx}</td>
+                                    <td>${noteCell}</td>
+                                </tr>`;
+                            }))).join('')}
+                        </tbody>
+                    </table></div>`;
+                return;
+            }
+
+            const conTratt = rows.filter(m => m.origineTrattamentoModulo && m.origineTrattamentoColturaId && m.origineTrattamentoId);
+            const senzaTratt = rows.filter(m => !m.origineTrattamentoModulo || !m.origineTrattamentoColturaId || !m.origineTrattamentoId);
+
+            const byT = new Map();
+            for (const m of conTratt) {
+                const k = `${m.origineTrattamentoModulo}|${m.origineTrattamentoColturaId}|${m.origineTrattamentoId}`;
+                if (!byT.has(k)) byT.set(k, []);
+                byT.get(k).push(m);
+            }
+
+            const unitPromises = [];
+            for (const [, movs] of byT) {
+                unitPromises.push((async () => {
+                    const sorted = movs.slice().sort((a, b) => (a.prodottoId || '').localeCompare(b.prodottoId || ''));
+                    const first = sorted[0];
+                    const meta = await fetchTrattamentoDocCached(first.origineTrattamentoModulo, first.origineTrattamentoColturaId, first.origineTrattamentoId);
+                    const operatoreRaw = meta && meta.operatore ? String(meta.operatore).trim() : '';
+                    const opDisplay = operatoreRaw ? await resolveOperatoreNome(operatoreRaw) : '—';
+                    const macId = meta && meta.macchinaId ? String(meta.macchinaId).trim() : '';
+                    const macNome = macId ? await nomeMacchina(macId) : '';
+                    const tipoT = meta && meta.tipoTrattamento ? String(meta.tipoTrattamento) : '';
+                    const copT = meta && meta.coperturaTerreno ? String(meta.coperturaTerreno) : 'non_dichiarata';
+                    const progId = meta && meta.prosegueDaTrattamentoId ? String(meta.prosegueDaTrattamentoId).trim() : '';
+                    return {
+                        key: `${first.origineTrattamentoModulo}|${first.origineTrattamentoColturaId}|${first.origineTrattamentoId}`,
+                        modulo: first.origineTrattamentoModulo,
+                        colturaId: first.origineTrattamentoColturaId,
+                        trattamentoId: first.origineTrattamentoId,
+                        movs: sorted,
+                        dateKey: dateKeyOnly(first.data),
+                        lineSig: lineSignatureFromMovements(sorted),
+                        operatoreKey: operatoreRaw || '—',
+                        operatoreDisplay: opDisplay,
+                        macchinaId: macId,
+                        macchinaDisplay: macNome,
+                        tipoTrattamento: tipoT,
+                        coperturaTerreno: copT,
+                        prosegueDaTrattamentoId: progId
+                    };
+                })());
+            }
+            const units = await Promise.all(unitPromises);
+            const collapsedUnits = collapseProsegueChains(units);
+            const virtualUnits = collapsedUnits.map(c =>
+                c.type === 'chain' ? buildVirtualChainUnit(c.segments) : { ...c.unit, _virtual: 'single' }
+            );
+
+            const clusterMap = new Map();
+            for (const u of virtualUnits) {
+                const clusterKey = `${u.dateKey}|${u.modulo}|${u.operatoreKey}|${u.macchinaId}|${u.tipoTrattamento}|${u.lineSig}`;
+                if (!clusterMap.has(clusterKey)) clusterMap.set(clusterKey, []);
+                clusterMap.get(clusterKey).push(u);
+            }
+
+            /**
+             * Stesso giorno/sessione operativa: raggruppa più appezzamenti diversi.
+             * Se sulla stessa coltura compaiono più documenti trattamento (ripetizioni distinte), non unirli in un unico blocco.
+             */
+            function refineClusterUnits(unitList) {
+                const colturaKey = (u) => `${u.modulo}|${u.colturaId}`;
+                const counts = new Map();
+                for (const u of unitList) {
+                    const k = colturaKey(u);
+                    counts.set(k, (counts.get(k) || 0) + 1);
+                }
+                const dupKeys = new Set();
+                for (const [k, n] of counts) if (n > 1) dupKeys.add(k);
+                if (dupKeys.size === 0) return [unitList];
+                const merged = [];
+                const singles = [];
+                for (const u of unitList) {
+                    if (dupKeys.has(colturaKey(u))) singles.push([u]);
+                    else merged.push(u);
+                }
+                const out = [];
+                if (merged.length) out.push(merged);
+                for (const s of singles) out.push(s);
+                return out;
+            }
+
+            const clusterEntriesExpanded = [];
+            for (const [k, unitList] of clusterMap) {
+                for (const sub of refineClusterUnits(unitList)) {
+                    clusterEntriesExpanded.push([k, sub]);
+                }
+            }
+
+            const blocksHtml = [];
+
+            const sortedClusters = clusterEntriesExpanded.sort((a, b) => {
+                const da = a[0].split('|')[0];
+                const db = b[0].split('|')[0];
+                return db.localeCompare(da);
+            });
+
+            for (const [, unitList] of sortedClusters) {
+                const uniqUnits = unitList.filter((u, i, arr) => arr.findIndex(x => x.key === u.key) === i)
+                    .sort((a, b) => colturaLabel(a.modulo, a.colturaId).localeCompare(colturaLabel(b.modulo, b.colturaId), 'it'));
+
+                if (uniqUnits.length >= 2) {
+                    const u0 = uniqUnits[0];
+                    const modLabel = u0.modulo === 'vigneto' ? 'Vigneto' : 'Frutteto';
+                    const terreniHtml = uniqUnits.map(u => {
+                        const nome = escapeHtml(colturaLabel(u.modulo, u.colturaId));
+                        return `<label class="chk-terreno"><input type="checkbox" checked disabled title="Intervento registrato su questa coltura"><span>${nome}</span></label>`;
+                    }).join('');
+
+                    const prodottiIds = [...new Set(u0.movs.map(m => m.prodottoId).filter(Boolean))].sort();
+                    const byPid = {};
+                    for (const pid of prodottiIds) {
+                        const um = getProdottoUnita(pid) || '';
+                        let sum = 0;
+                        const terrains = uniqUnits.map(u => {
+                            const mm = u.movs.find(x => x.prodottoId === pid);
+                            const q = mm && mm.quantita != null ? Number(mm.quantita) : NaN;
+                            if (Number.isFinite(q)) sum += q;
+                            return {
+                                label: colturaLabel(u.modulo, u.colturaId),
+                                qty: mm && mm.quantita != null ? formatQty(mm.quantita) : null,
+                                unit: um,
+                                coperturaTerreno: u.coperturaTerreno,
+                                prosegueDaTrattamentoId: u.prosegueDaTrattamentoId
+                            };
+                        });
+                        byPid[pid] = {
+                            terrains,
+                            totaleFmt: Number.isFinite(sum) ? formatQty(sum) : '—',
+                            unit: um
+                        };
+                    }
+                    groupPopupData.push({
+                        titoloGruppo: `${formatData(u0.movs[0].data)} · Trattamento ${modLabel} · raggruppamento ${uniqUnits.length} interventi`,
+                        byPid
+                    });
+                    const popupIdx = groupPopupData.length - 1;
+
+                    const righeProd = prodottiIds.map(pid => {
+                        const cid = getProdottoCategoria(pid);
+                        const cnome = escapeHtml(categoriaNomeById[cid] || cid);
+                        const d = byPid[pid];
+                        const totDisplay = d.totaleFmt !== '—'
+                            ? `${escapeHtml(d.totaleFmt)}${d.unit ? ' ' + escapeHtml(d.unit) : ''}`
+                            : '—';
+                        const pidEnc = encodeURIComponent(pid);
+                        return `<tr>
+                            <td><button type="button" class="btn-qta-detail" data-popup-idx="${popupIdx}" data-pid="${pidEnc}">${escapeHtml(getProdottoNome(pid))}</button></td>
+                            <td><span class="badge-cat">${cnome}</span></td>
+                            <td class="tot-cell-compact">${totDisplay}</td>
+                        </tr>`;
+                    }).join('');
+
+                    const opDisp = escapeHtml(u0.operatoreDisplay);
+                    const macDisp = escapeHtml(u0.macchinaDisplay || '');
+                    const tipoDisp = escapeHtml(u0.tipoTrattamento || '—');
+                    const coperteLine = uniqUnits.map(u => {
+                        const lab = escapeHtml(colturaLabel(u.modulo, u.colturaId));
+                        const c = escapeHtml(labelCoperturaTerreno(u.coperturaTerreno));
+                        const p = u.prosegueDaTrattamentoId ? ' <span style="color:#555">(prosegue precedente)</span>' : '';
+                        return `<span style="margin-right:14px">${lab}: <strong>${c}</strong>${p}</span>`;
+                    }).join('');
+                    blocksHtml.push(`
+                        <div class="group-block">
+                            <div class="group-head">${formatData(u0.movs[0].data)} · Trattamento ${escapeHtml(modLabel)}
+                                <span class="badge-suggerito">Raggruppamento suggerito · ${uniqUnits.length} interventi</span>
+                            </div>
+                            <div class="group-meta">
+                                Tipo: <strong>${tipoDisp}</strong> · Operatore: <strong>${opDisp}</strong>
+                                ${macDisp ? ` · Attrezzatura: <strong>${macDisp}</strong>` : ''}
+                            </div>
+                            <div class="group-meta" style="margin-top:6px;font-size:13px;color:#444">Copertura terreno: ${coperteLine}</div>
+                            <div class="terreni-row">
+                                <span class="terreni-label">Colture / appezzamenti coinvolti</span>
+                                ${terreniHtml}
+                            </div>
+                            <p class="hint" style="margin-bottom:8px;">Totale = somma delle uscite del giorno per quel prodotto. Clic sul <strong>nome prodotto</strong> per il dettaglio per terreno.</p>
+                            <table class="movimenti-table">
+                                <thead><tr><th>Prodotto</th><th>Categoria</th><th>Totale (giornata)</th></tr></thead>
+                                <tbody>${righeProd}</tbody>
+                            </table>
+                        </div>`);
+                } else if (uniqUnits.length === 1) {
+                    const u = uniqUnits[0];
+                    const modLabel = u.modulo === 'vigneto' ? 'Vigneto' : 'Frutteto';
+                    const nomeCol = escapeHtml(colturaLabel(u.modulo, u.colturaId));
+                    const opDisp = escapeHtml(u.operatoreDisplay);
+                    const macDisp = escapeHtml(u.macchinaDisplay || '');
+                    const tipoDisp = escapeHtml(u.tipoTrattamento || '—');
+                    const copDisp = escapeHtml(labelCoperturaTerreno(u.coperturaTerreno));
+                    if (u._virtual === 'chain' && u.segments && u.segments.length > 1) {
+                        const nPass = u.segments.length;
+                        const dataFin = formatData(u.dateFinaleIso);
+                        const dataPri = formatData(u.datePrimaIso);
+                        const rangeMeta = dataPri !== dataFin
+                            ? ` · Dal <strong>${escapeHtml(dataPri)}</strong> al <strong>${escapeHtml(dataFin)}</strong> (${nPass} passaggi)`
+                            : ` · <strong>${nPass} passaggi</strong> nello stesso giorno`;
+                        chainSessionPopupData.push({
+                            segments: u.segments,
+                            modulo: u.modulo,
+                            colturaId: u.colturaId
+                        });
+                        const chainIdx = chainSessionPopupData.length - 1;
+                        const righeProd = u.movs.map(m => {
+                            const pid = m.prodottoId;
+                            const cid = getProdottoCategoria(pid);
+                            const cnome = escapeHtml(categoriaNomeById[cid] || cid);
+                            const sn = sanitizeNote(m.note || '');
+                            const noteCell = sn ? escapeHtml(sn.length > 120 ? sn.substring(0, 120) + '…' : sn) : '—';
+                            return `<tr>
+                                <td>${escapeHtml(getProdottoNome(pid))}</td>
+                                <td><span class="badge-cat">${cnome}</span></td>
+                                <td>${escapeHtml(formatQty(m.quantita))} ${escapeHtml(getProdottoUnita(pid) || '')}</td>
+                                <td>${noteCell}</td>
+                            </tr>`;
+                        }).join('');
+                        blocksHtml.push(`
+                        <div class="group-block">
+                            <div class="group-head">${escapeHtml(dataFin)} · Trattamento ${escapeHtml(modLabel)} · ${nomeCol}
+                                <span class="badge-sessione">Sospeso / ripresa · ${nPass} passaggi</span>
+                            </div>
+                            <div class="group-meta">
+                                Tipo: <strong>${tipoDisp}</strong> · Operatore: <strong>${opDisp}</strong>
+                                ${macDisp ? ` · Attrezzatura: <strong>${macDisp}</strong>` : ''}
+                                · Copertura (ultimo passaggio): <strong>${copDisp}</strong>
+                                <span style="color:#555">${rangeMeta}</span>
+                            </div>
+                            <p class="hint" style="margin-bottom:8px">In elenco la <strong>data</strong> è quella dell’ultimo passaggio. La tabella mostra il <strong>totale complessivo</strong> dei prodotti su tutti i passaggi.</p>
+                            <table class="movimenti-table">
+                                <thead><tr><th>Prodotto</th><th>Categoria</th><th>Totale (intera sessione)</th><th>Note</th></tr></thead>
+                                <tbody>${righeProd}</tbody>
+                            </table>
+                            <button type="button" class="btn-sessione-detail" data-chain-idx="${chainIdx}">Dettaglio per data e dosi</button>
+                        </div>`);
+                    } else {
+                        const prosegHtml = u.prosegueDaTrattamentoId
+                            ? ' · <span style="color:#555">Prosegue sessione precedente</span>'
+                            : '';
+                        const righeProd = u.movs.map(m => {
+                            const pid = m.prodottoId;
+                            const cid = getProdottoCategoria(pid);
+                            const cnome = escapeHtml(categoriaNomeById[cid] || cid);
+                            const sn = sanitizeNote(m.note || '');
+                            const noteCell = sn ? escapeHtml(sn.length > 120 ? sn.substring(0, 120) + '…' : sn) : '—';
+                            return `<tr>
+                                <td>${escapeHtml(getProdottoNome(pid))}</td>
+                                <td><span class="badge-cat">${cnome}</span></td>
+                                <td>${escapeHtml(formatQty(m.quantita))} ${escapeHtml(getProdottoUnita(pid) || '')}</td>
+                                <td>${noteCell}</td>
+                            </tr>`;
+                        }).join('');
+                        blocksHtml.push(`
+                        <div class="group-block">
+                            <div class="group-head">${formatData(u.movs[0].data)} · Trattamento ${escapeHtml(modLabel)} · ${nomeCol}</div>
+                            <div class="group-meta">
+                                Tipo: <strong>${tipoDisp}</strong> · Operatore: <strong>${opDisp}</strong>
+                                ${macDisp ? ` · Attrezzatura: <strong>${macDisp}</strong>` : ''}
+                                · Copertura: <strong>${copDisp}</strong>${prosegHtml}
+                            </div>
+                            <table class="movimenti-table">
+                                <thead><tr><th>Prodotto</th><th>Categoria</th><th>Quantità</th><th>Note</th></tr></thead>
+                                <tbody>${righeProd}</tbody>
+                            </table>
+                        </div>`);
+                    }
+                }
+            }
+
+            let flatAltro = '';
+            if (senzaTratt.length) {
+                flatAltro = `
+                    <h3 style="margin: 20px 0 10px; color:#2E7D32; font-size:17px;">Altre uscite (non da trattamento coltura)</h3>
+                    <table class="movimenti-table">
+                        <thead><tr>
+                            <th>Data</th><th>Prodotto</th><th>Categoria</th><th>Quantità</th><th>Contesto</th><th>Note</th>
+                        </tr></thead>
+                        <tbody>
+                            ${senzaTratt.map(m => {
+                                const cid = getProdottoCategoria(m.prodottoId);
+                                const cnome = escapeHtml(categoriaNomeById[cid] || cid);
+                                const sn = sanitizeNote(m.note || '');
+                                const noteCell = sn ? escapeHtml(sn.length > 160 ? sn.substring(0, 160) + '…' : sn) : '—';
+                                return `<tr>
+                                    <td>${formatData(m.data)}</td>
+                                    <td>${escapeHtml(getProdottoNome(m.prodottoId))}</td>
+                                    <td><span class="badge-cat">${cnome}</span></td>
+                                    <td>${escapeHtml(formatQty(m.quantita))} ${escapeHtml(getProdottoUnita(m.prodottoId) || '')}</td>
+                                    <td>${contestoNonTrattamento(m)}</td>
+                                    <td>${noteCell}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>`;
+            }
+
+            container.innerHTML = blocksHtml.join('') + flatAltro;
+
+            document.getElementById('tabella-container').onclick = function(e) {
+                const btnS = e.target.closest('.btn-sessione-detail');
+                if (btnS) {
+                    e.preventDefault();
+                    const cidx = parseInt(btnS.getAttribute('data-chain-idx'), 10);
+                    if (!isNaN(cidx)) openSessioneTrattamentoModal(cidx);
+                    return;
+                }
+                const btn = e.target.closest('.btn-qta-detail');
+                if (!btn) return;
+                e.preventDefault();
+                const idx = parseInt(btn.getAttribute('data-popup-idx'), 10);
+                const pid = decodeURIComponent(btn.getAttribute('data-pid') || '');
+                if (pid) openDettaglioPopup(idx, pid);
+            };
+        }
+
+        async function loadProdotti() {
+            if (!currentTenantId) return;
+            const q = query(collection(db, 'tenants', currentTenantId, 'prodotti'), orderBy('nome'));
+            const snapshot = await getDocs(q);
+            prodottiById = {};
+            snapshot.forEach(d => {
+                prodottiById[d.id] = { id: d.id, ...d.data() };
+            });
+        }
+
+        async function loadVignetiFruttetiTerreni() {
+            if (!currentTenantId) return;
+            vignetiById = {};
+            fruttetiById = {};
+            terreniById = {};
+            try {
+                const sv = await getDocs(collection(db, 'tenants', currentTenantId, 'vigneti'));
+                sv.forEach(d => { vignetiById[d.id] = { id: d.id, ...d.data() }; });
+            } catch (e) { console.warn('[tracciabilità consumi] Vigneti:', e); }
+            try {
+                const sf = await getDocs(collection(db, 'tenants', currentTenantId, 'frutteti'));
+                sf.forEach(d => { fruttetiById[d.id] = { id: d.id, ...d.data() }; });
+            } catch (e) { console.warn('[tracciabilità consumi] Frutteti:', e); }
+            try {
+                const st = await getDocs(collection(db, 'tenants', currentTenantId, 'terreni'));
+                st.forEach(d => { terreniById[d.id] = { id: d.id, ...d.data() }; });
+            } catch (e) { console.warn('[tracciabilità consumi] Terreni:', e); }
+        }
+
+        async function loadLavori() {
+            if (!currentTenantId) return;
+            try {
+                const q = query(collection(db, 'tenants', currentTenantId, 'lavori'), orderBy('dataInizio', 'desc'));
+                const snapshot = await getDocs(q);
+                lavori = [];
+                snapshot.forEach(d => lavori.push({ id: d.id, ...d.data() }));
+            } catch (err) {
+                console.warn('Lavori non caricati:', err);
+                lavori = [];
+            }
+        }
+
+        async function loadAttivita() {
+            if (!currentTenantId) return;
+            try {
+                const q = query(collection(db, 'tenants', currentTenantId, 'attivita'), orderBy('data', 'desc'));
+                const snapshot = await getDocs(q);
+                attivita = [];
+                snapshot.forEach(d => attivita.push({ id: d.id, ...d.data() }));
+            } catch (err) {
+                console.warn('Attività non caricate:', err);
+                attivita = [];
+            }
+        }
+
+        async function loadMovimentiUscita() {
+            const container = document.getElementById('tabella-container');
+            container.innerHTML = '<div class="loading">Caricamento movimenti…</div>';
+            try {
+                if (!currentTenantId) {
+                    container.innerHTML = '<div class="empty-state">Sessione non valida.</div>';
+                    return;
+                }
+                userNamesCache = {};
+                macchineCache = {};
+                const q = query(collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'), orderBy('data', 'desc'));
+                const snapshot = await getDocs(q);
+                movimentiUscita = [];
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    if (data.tipo === 'uscita') movimentiUscita.push({ id: d.id, ...data });
+                });
+                await renderTabella();
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<div class="empty-state">Errore durante il caricamento.</div>';
+            }
+        }
+
+        setFilterCategoriaOptions();
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                const userData = userDoc.data();
+                currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => ((r || '').toLowerCase()).includes('manager') || ((r || '').toLowerCase()).includes('amministratore'));
+                if (!isManager) {
+                    document.getElementById('tabella-container').innerHTML = '<div class="empty-state">Solo Manager o Amministratore.</div>';
+                    setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                const onFilter = async () => {
+                    try {
+                        const v = document.getElementById('filter-categoria').value;
+                        const url = new URL(window.location.href);
+                        if (v) url.searchParams.set('categoria', v);
+                        else url.searchParams.delete('categoria');
+                        window.history.replaceState({}, '', url);
+                    } catch (e) { /* ignore */ }
+                    await renderTabella();
+                };
+                document.getElementById('filter-categoria').onchange = onFilter;
+                document.getElementById('filter-vista').onchange = async () => { await renderTabella(); };
+                await loadProdotti();
+                await loadVignetiFruttetiTerreni();
+                await loadLavori();
+                await loadAttivita();
+                await loadMovimentiUscita();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('tabella-container').innerHTML = '<div class="empty-state">Errore caricamento.</div>';
+            }
+        });
+
+        document.getElementById('modal-dettaglio-qta-close').addEventListener('click', closeDettaglioModal);
+        document.getElementById('modal-dettaglio-qta-backdrop').addEventListener('click', closeDettaglioModal);
+        document.getElementById('modal-sessione-trattamento-close').addEventListener('click', closeSessioneTrattamentoModal);
+        document.getElementById('modal-sessione-trattamento-backdrop').addEventListener('click', closeSessioneTrattamentoModal);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeDettaglioModal();
+                closeSessioneTrattamentoModal();
+            }
+        });
+    </script>
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
+    </script>
+</body>
+</html>

@@ -92,7 +92,17 @@ Solo Manager e Amministratore possono accedere al modulo Prodotti e Magazzino.
 ### Se hai moduli specializzati attivi (es. Trattamenti Vigneto/Frutteto)
 
 - Nei **Trattamenti** (Vigneto e Frutteto) puoi scegliere uno o più prodotti dall’anagrafica Magazzino: per ogni riga si indicano prodotto, dosaggio per ha e (opzionale) costo; **quantità** e **costo** vengono calcolati in base a superficie trattata e prezzo/dosaggio. I campi dosaggio min/max e giorni di carenza dell’anagrafica prodotti vengono usati per calcoli e avvisi nel modal Trattamenti (alert in salvataggio se fuori range, colonna Avvisi in lista con bollino verde/⚠️). Vedi la guida [Trattamenti Vigneto e Frutteto](TRATTAMENTI_VIGNETO_FRUTTETO.md)
-- Lo **scarico automatico** in magazzino dal trattamento (un clic per creare l’uscita collegata) è previsto in una fase successiva; in Magazzino le entrate e uscite restano comunque registrabili anche a mano
+- Se hai anche il modulo **Prodotti e Magazzino** attivo, in salvataggio trattamento puoi spuntare **«Registra scarico in magazzino»**: vengono creati movimenti di **uscita** in base alle quantità delle righe con prodotto dall’anagrafica; il movimento si collega all’**attività** e/o al **lavoro** di origine (se il trattamento viene dal Diario o da Gestione Lavori). Puoi disattivare la spunta per non movimentare le giacenze. I prezzi in elenco movimenti usano il prezzo in anagrafica prodotto, oppure il costo della riga diviso per la quantità se manca il prezzo in anagrafica
+
+---
+
+## 🔍 Tracciabilità consumi (uscite da trattamenti)
+
+Dalla **home Prodotti e Magazzino** è disponibile la voce **Tracciabilità consumi** (solo **Manager** e **Amministratore**): lettura delle **uscite** legate ai trattamenti (e altre uscite senza origine trattamento in coda), con filtro per **categoria prodotto**.
+
+- **Vista raggruppata (consigliata):** raggruppa in modo intelligente le uscite della stessa giornata operativa quando coinvolgono **appezzamenti diversi** con la stessa miscela e gli stessi riferimenti (operatore, attrezzatura, tipo intervento). Non sostituisce i registri Vigneto/Frutteto.
+- **Trattamenti in più tempi (sospensione / ripresa):** se due registri trattamento sono collegati con **«prosegue il trattamento precedente»**, in questa vista compaiono come **un’unica scheda** con la **data dell’ultimo passaggio** in evidenza e i **totali complessivi** dei prodotti; il pulsante **«Dettaglio per data e dosi»** mostra ogni passaggio con data e quantità usate.
+- **Vista dettagliata:** una riga per ogni movimento di magazzino, senza raggruppamenti.
 
 ---
 

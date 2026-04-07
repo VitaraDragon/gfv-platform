@@ -10,6 +10,12 @@
 // Le importazioni Firebase verranno fatte nel file HTML principale
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
+import {
+    DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO,
+    filterTipiLavoroNascondiTipiGenericiTrattamenti,
+    isCategoriaTrattamentiFitosanitari
+} from '../../config/trattamenti-lavoro-defaults.js';
+
 // ============================================
 // FUNZIONI HELPER
 // ============================================
@@ -398,12 +404,20 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
             });
         });
 
-        // Ordina in memoria se non è stato fatto dalla query
+        // Ordina in memoria: data inizio (più recente prima), poi createdAt (più nuovo prima) così le riprese appena create non “affondano” solo per data inizio antica
+        const createdSec = (lav) => {
+            const c = lav.createdAt;
+            if (!c) return 0;
+            if (typeof c.seconds === 'number') return c.seconds;
+            if (typeof c._seconds === 'number') return c._seconds;
+            if (c.toDate && typeof c.toDate === 'function') return Math.floor(c.toDate().getTime() / 1000);
+            return 0;
+        };
         lavoriList.sort((a, b) => {
-            if (!a.dataInizio && !b.dataInizio) return 0;
-            if (!a.dataInizio) return 1;
-            if (!b.dataInizio) return -1;
-            return b.dataInizio - a.dataInizio;
+            const ta = a.dataInizio ? new Date(a.dataInizio).getTime() : 0;
+            const tb = b.dataInizio ? new Date(b.dataInizio).getTime() : 0;
+            if (tb !== ta) return tb - ta;
+            return createdSec(b) - createdSec(a);
         });
 
         // Corregge macchine ancora in uso per lavori completati
@@ -1546,6 +1560,13 @@ export function populateTipoLavoroDropdown(
     } else if (isRaccolta && terrenoId && !isTerrenoVite) {
         console.log('[GESTIONE-LAVORI] Categoria RACCOLTA ma terreno non è VITE, mostro tutti i tipi raccolta');
     }
+
+    tipiFiltrati = filterTipiLavoroNascondiTipiGenericiTrattamenti(
+        tipiFiltrati,
+        categoriaId,
+        categorieLavoriPrincipali,
+        sottocategorieLavoriMap
+    );
     
     if (tipiFiltrati.length === 0) {
         const option = document.createElement('option');
@@ -1555,12 +1576,20 @@ export function populateTipoLavoroDropdown(
         select.appendChild(option);
         return;
     }
+
+    let effectiveSelectedValue = selectedValue;
+    if (!effectiveSelectedValue && isCategoriaTrattamentiFitosanitari(categoriaId, categorieLavoriPrincipali, sottocategorieLavoriMap)) {
+        const matchDefault = tipiFiltrati.find(t => (t.nome || '') === DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO);
+        if (matchDefault) {
+            effectiveSelectedValue = matchDefault.nome;
+        }
+    }
     
     tipiFiltrati.forEach(tipo => {
         const option = document.createElement('option');
         option.value = tipo.nome; // Usa nome per retrocompatibilità con lavori esistenti
         option.textContent = tipo.nome;
-        if (selectedValue === tipo.nome) {
+        if (effectiveSelectedValue === tipo.nome) {
             option.selected = true;
         }
         select.appendChild(option);
@@ -1768,7 +1797,10 @@ export async function renderLavori(
     const progressoFilter = document.getElementById('filter-progresso')?.value || '';
     let lavoriFiltratiPerProgresso = lavoriConProgressi;
     if (progressoFilter) {
-        lavoriFiltratiPerProgresso = lavoriConProgressi.filter(l => l.statoProgresso === progressoFilter);
+        // Include lavori senza statoProgresso (N/A), altrimenti i nuovi (es. ripresa) spariscono con filtri attivi
+        lavoriFiltratiPerProgresso = lavoriConProgressi.filter(
+            (l) => !l.statoProgresso || l.statoProgresso === progressoFilter
+        );
     }
     
     // Separa lavori in attesa di approvazione dagli altri
@@ -1969,7 +2001,7 @@ export async function renderLavori(
         const contoTerziBadge = isContoTerzi ? '<span class="badge" style="background: #1976D2; color: white; margin-left: 5px; font-size: 10px;">💼 Conto Terzi</span>' : '';
         
         html += `
-            <tr class="${isContoTerzi ? 'lavoro-conto-terzi' : ''}">
+            <tr id="lavoro-row-${lavoro.id}" class="${isContoTerzi ? 'lavoro-conto-terzi' : ''}" data-lavoro-id="${lavoro.id}">
                 <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong>${contoTerziBadge}${macchineInfo}</td>
                 <td>${escapeHtml(terrenoNome)}</td>
                 ${hasManodoperaModule ? `<td>${responsabileHtml}</td>` : ''}
@@ -1982,6 +2014,7 @@ export async function renderLavori(
                     <div class="action-buttons">
                         <button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">👁️ Dettagli</button>
                         <button class="btn btn-info btn-sm" onclick="openModificaModal('${lavoro.id}')">✏️ Modifica</button>
+                        ${lavoro.stato === 'sospeso' ? `<button type="button" class="btn btn-primary btn-sm" onclick="creaLavoroRipresa('${lavoro.id}')" title="Nuovo lavoro collegato per completare dopo la sospensione">🔁 Crea ripresa</button>` : ''}
                         <button class="btn btn-danger btn-sm" onclick="openEliminaModal('${lavoro.id}')">🗑️ Elimina</button>
                     </div>
                 </td>

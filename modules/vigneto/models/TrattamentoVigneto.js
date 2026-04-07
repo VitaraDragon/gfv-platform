@@ -27,6 +27,7 @@ export class TrattamentoVigneto extends Base {
    * @param {string} data.operatore - ID operatore che ha eseguito (obbligatorio)
    * @param {string} data.macchinaId - ID macchina utilizzata (opzionale)
  * @param {number} data.superficieTrattata - Superficie trattata in ettari (obbligatorio)
+ * @param {boolean} [data.superficieDaAnagrafeTerreno] - Se true, superficie = anagrafe terreno (niente tracciamento mappa)
  * @param {Array<{lat: number, lng: number}>} data.poligonoTrattamento - Coordinate zona trattata (opzionale, da mappa)
  * @param {number} data.costoProdotto - Costo prodotto in € (obbligatorio)
    * @param {number} data.costoManodopera - Costo manodopera in € (calcolato)
@@ -80,6 +81,7 @@ export class TrattamentoVigneto extends Base {
     this.operatore = data.operatore || null;
     this.macchinaId = data.macchinaId || null;
     this.superficieTrattata = data.superficieTrattata !== undefined ? parseFloat(data.superficieTrattata) : null;
+    this.superficieDaAnagrafeTerreno = data.superficieDaAnagrafeTerreno === true;
     this.poligonoTrattamento = Array.isArray(data.poligonoTrattamento) ? data.poligonoTrattamento : null;
     
     // Costi
@@ -95,6 +97,17 @@ export class TrattamentoVigneto extends Base {
     // Note
     this.parcella = data.parcella || null;
     this.note = data.note || '';
+
+    /** Copertura del terreno in questo intervento: `completa` | `parziale` | `non_dichiarata` */
+    const cop = data.coperturaTerreno;
+    this.coperturaTerreno = cop === 'completa' || cop === 'parziale' || cop === 'non_dichiarata' ? cop : 'non_dichiarata';
+    /** Opzionale: ID documento trattamento (stesso vigneto) che questo intervento prosegue */
+    this.prosegueDaTrattamentoId = data.prosegueDaTrattamentoId || null;
+
+    /** ID documenti in `movimentiMagazzino` creati dallo scarico automatico (sincronizzati al salvataggio) */
+    this.magazzinoMovimentoIds = Array.isArray(data.magazzinoMovimentoIds)
+      ? data.magazzinoMovimentoIds.filter(Boolean)
+      : [];
   }
   
   /**

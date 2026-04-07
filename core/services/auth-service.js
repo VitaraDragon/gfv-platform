@@ -252,6 +252,14 @@ export function getCurrentUserData() {
 }
 
 /**
+ * Sincronizza la cache utente usata da getCurrentUserData (es. pagine standalone che caricano users/{uid} senza initializeAuthService).
+ * @param {Object|null} userData - Profilo utente o null (logout)
+ */
+export function setCurrentUserDataCache(userData) {
+  currentUserData = userData;
+}
+
+/**
  * Verifica se l'utente è autenticato
  * @returns {boolean} true se autenticato
  */
@@ -354,6 +362,7 @@ export default {
   signOutUser,
   getCurrentFirebaseUser,
   getCurrentUserData,
+  setCurrentUserDataCache,
   isAuthenticated,
   resetPassword,
   updateUserPassword,

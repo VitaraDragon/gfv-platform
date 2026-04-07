@@ -1,6 +1,38 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-04.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-07.**
+
+## ✅ Tony Gestione Lavori — niente domanda ridondante su trattore/attrezzo (2026-04-07)
+
+- **Problema**: il modello poteva ancora chiedere «Quale trattore e attrezzo…» nel testo della risposta anche quando l’utente aveva già indicato mezzi (es. «con Agrifull e nebulizzatore»); il check post-iniettivo `isMeccanico` non considerava i tipi lavoro con «meccanico» nel nome (es. trattamento anticrittogamico meccanico).
+- **Intervento** (`core/js/tony/main.js`): helper `tonyUserMentionedLavoroMacchine` + `tonySanitizeLavoroMacchineQuestionInReply` sul testo mostrato dopo la risposta; istruzioni extra nel prompt forzato Gestione Lavori per valorizzare subito `lavoro-trattore` / `lavoro-attrezzo`; `isMeccanico` esteso con `\bmeccanic[oa]\b` sul nome tipo; reminder proattivo «mancano macchine» non inviato se `tony_last_user_message` contiene già riferimenti a trattore/attrezzo (evita doppio messaggio prima di una seconda `INJECT_FORM_DATA`).
+
+## ✅ Magazzino – Tracciabilità consumi: catene sospeso/ripresa + doc (2026-04-05)
+
+- **Vista raggruppata** (`modules/magazzino/views/tracciabilita-consumi-standalone.html`): collasso in **una scheda** dei trattamenti collegati da `prosegueDaTrattamentoId` (stessa coltura nel filtro corrente), con **data di testata = ultimo passaggio**, totali prodotti per sessione, pulsante **«Dettaglio per data e dosi»** (modale per passaggio); testi informativi in pagina aggiornati. Split per **stessa coltura / più trattamenti senza legame** resta attivo (non si confondono interventi indipendenti).
+- **Gestione lavori** (`core/admin/gestione-lavori-standalone.html`, `core/services/lavori-service.js`): creazione lavoro di ripresa con **`dataInizio` scelta** dall’utente (modale; default oggi).
+- **Documentazione**: `docs-sviluppo/MAGAZZINO_APPENDICE_TRACCIABILITA_DASHBOARD_E_SCARICO.md` (§9), `documentazione-utente/04-FUNZIONALITA/PRODOTTI_E_MAGAZZINO.md`, `documentazione-utente/04-FUNZIONALITA/GESTIONE_LAVORI.md`, `docs-sviluppo/guida-app/moduli/magazzino.md`.
+
+## ✅ Trattamenti Vigneto / Frutteto – performance lista + superficie da anagrafe (2026-04-05)
+
+- **Performance lista (lavori/attività categoria Trattamenti)**  
+  - **Problema**: per ogni riga si ripetevano ricerche globali su tutti i vigneti/frutteti e tutte le sottocollezioni trattamenti; lookup ripetuti su tipi lavoro/categorie; vista “tutti” in sequenza.  
+  - **Intervento**: indice trattamenti costruito **per terreno** (tutti i vigneti o frutteti sullo stesso `terrenoId` in parallelo) + mappe `lavoroId` / `attivitaId` → trattamento; **cache** per `isTipoLavoroCategoriaTrattamenti` nel singolo caricamento; **`Promise.all`** per la vista “tutti i vigneti/frutteti”; **`findTrattamentoByLavoroId` / `ByAttivitaId`** limitati al terreno del lavoro/attività (letture parallele sui soli contesti collegati).  
+  - **File**: `modules/vigneto/services/trattamenti-vigneto-service.js`, `modules/frutteto/services/trattamenti-frutteto-service.js`.
+
+- **Superficie = anagrafe terreno (opzione “tutto il terreno”)**  
+  - **Campo modello**: `superficieDaAnagrafeTerreno` (boolean) su `TrattamentoVigneto` e `TrattamentoFrutteto`.  
+  - **UI**: checkbox nel modal trattamenti; se attiva e il terreno ha **superficie** in anagrafe: campo ha in sola lettura allineato al terreno, pulsante mappa disabilitato, apertura mappa non necessaria per l’area; in salvataggio si rilegge la superficie dal terreno e si azzera `poligonoTrattamento`. Se manca la superficie in anagrafe, la checkbox resta disabilitata con messaggio esplicativo.  
+  - **`syncTrattamentoFromLavoro`**: aggiorna `superficieTrattata` dal terreno **solo** se `superficieDaAnagrafeTerreno` è true (non sovrascrive aree da mappa).  
+  - **File**: modelli `TrattamentoVigneto.js`, `TrattamentoFrutteto.js`; `trattamenti-vigneto-service.js`, `trattamenti-frutteto-service.js`; viste `modules/vigneto/views/trattamenti-standalone.html`, `modules/frutteto/views/trattamenti-standalone.html`.
+
+- **Documentazione utente/sviluppo aggiornata**: `documentazione-utente/04-FUNZIONALITA/TRATTAMENTI_VIGNETO_FRUTTETO.md`; `docs-sviluppo/guida-app/moduli/vigneto.md` e `frutteto.md` (e copie in `core/guida-app/moduli/`).
+
+## ✅ Magazzino – scarico automatico da trattamenti Vigneto/Frutteto (2026-04)
+
+- **Implementazione**: servizio `modules/magazzino/services/trattamento-scarico-magazzino-service.js` (`syncScarichiMagazzinoTrattamento`, prezzo da anagrafica prodotto o costo/quantità riga); `magazzinoMovimentoIds` su documento trattamento; `updateTrattamento` / `deleteTrattamento` in `trattamenti-vigneto-service.js` e `trattamenti-frutteto-service.js`; checkbox **«Registra scarico in magazzino»** nelle pagine `trattamenti-standalone.html` (modulo `magazzino` attivo); campi origine su `MovimentoMagazzino`; fix `prezzoUnitario` null vs NaN nel modello movimento; tabella movimenti con formattazione prezzi sicura; mappa trattamenti con coordinate poligono validate (vigneto/frutteto).
+- **Verifica utente**: flusso da **Diario (attività)** e da **Gestione lavori** — colonna **Lavoro** valorizzata quando presente `lavoroId`; **Attività** quando presente solo `attivitaId`.
+- **Documentazione aggiornata**: `MAGAZZINO_APPENDICE_TRACCIABILITA_DASHBOARD_E_SCARICO.md` (§5 stato implementato), `ANALISI_MODULO_MAGAZZINO.md` (nota Fase 3), `documentazione-utente/.../PRODOTTI_E_MAGAZZINO.md`, `docs-sviluppo/guida-app/moduli/magazzino.md`.
 
 ## ✅ Sicurezza preventivi pubblici — Cloud Functions + rules (2026-04-04, doc agg. indici/secret 2026-04-04)
 

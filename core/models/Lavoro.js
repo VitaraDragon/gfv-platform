@@ -89,6 +89,13 @@ export class Lavoro extends Base {
       ? parseInt(data.giorniEffettivi) 
       : 0;
     this.statoProgresso = data.statoProgresso || null; // "in_anticipo" | "in_tempo" | "in_ritardo"
+
+    /** Collegamento tra segmenti: nuovo lavoro di ripresa punta al lavoro sospeso chiuso */
+    this.ripresaDaLavoroId = data.ripresaDaLavoroId || null;
+    /** Primo lavoro della catena (ripresa multipla); assente = questo documento è la radice */
+    this.lavoroRadiceId = data.lavoroRadiceId || null;
+    this.sospensioneCausa = data.sospensioneCausa != null ? String(data.sospensioneCausa) : '';
+    this.sospensioneIl = data.sospensioneIl ? timestampToDate(data.sospensioneIl) : null;
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;
@@ -157,7 +164,7 @@ export class Lavoro extends Base {
       errors.push('Durata prevista non può superare 365 giorni');
     }
     
-    const statiValidi = ['da_pianificare', 'assegnato', 'in_corso', 'completato', 'annullato'];
+    const statiValidi = ['da_pianificare', 'assegnato', 'in_corso', 'sospeso', 'completato', 'completato_da_approvare', 'annullato'];
     if (this.stato && !statiValidi.includes(this.stato)) {
       errors.push(`Stato non valido. Stati validi: ${statiValidi.join(', ')}`);
     }
@@ -244,7 +251,9 @@ export class Lavoro extends Base {
       'da_pianificare': '📝 Da pianificare',
       'assegnato': '📋 Assegnato',
       'in_corso': '🔄 In corso',
+      'sospeso': '⏸️ Sospeso',
       'completato': '✅ Completato',
+      'completato_da_approvare': '⏳ In attesa approvazione',
       'annullato': '❌ Annullato'
     };
     return statiFormattati[this.stato] || this.stato;
@@ -286,7 +295,10 @@ export class Lavoro extends Base {
     if (this.dataInizio instanceof Date) {
       data.dataInizio = dateToTimestamp(this.dataInizio);
     }
-    
+    if (this.sospensioneIl instanceof Date) {
+      data.sospensioneIl = dateToTimestamp(this.sospensioneIl);
+    }
+
     // Rimuovi dati derivati se sono null o 0 (verranno ricalcolati)
     // Mantieni solo quelli già calcolati se presenti
     if (data.superficieTotaleLavorata === 0) {

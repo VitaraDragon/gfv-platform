@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trattamenti Vigneto - GFV Platform</title>
-    <meta name="theme-color" content="#6A1B9A">
+    <title>Concimazioni Frutteto - GFV Platform</title>
+    <meta name="theme-color" content="#FF6F00">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%); color: #333; min-height: 100vh; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%); color: #333; min-height: 100vh; }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .header { background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
         .header h1 { font-size: 28px; margin-bottom: 10px; }
         .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
@@ -31,14 +31,14 @@
         .table-container { overflow-x: auto; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
-        th { background: #F3E5F5; font-weight: 600; color: #4A148C; }
-        tbody tr:hover { background: #F3E5F5; }
+        th { background: #FFF3E0; font-weight: 600; color: #E65100; }
+        tbody tr:hover { background: #FFF8E1; }
         .empty-state { text-align: center; padding: 40px 20px; color: #6c757d; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
         .modal.active { display: flex; }
         .modal-content { background: white; border-radius: 12px; padding: 30px; max-width: 640px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #E1BEE7; }
-        .modal-header h2 { color: #6A1B9A; font-size: 22px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #FFCC80; }
+        .modal-header h2 { color: #FF6F00; font-size: 22px; }
         .close { font-size: 28px; font-weight: bold; color: #aaa; cursor: pointer; border: none; background: none; }
         .close:hover { color: #000; }
         .form-group { margin-bottom: 16px; }
@@ -53,33 +53,30 @@
         .alert-badge { width: 20px; height: 20px; border-radius: 50%; display: inline-block; vertical-align: middle; cursor: help; }
         .alert-badge.green { background: #28a745; }
         .avviso-dosaggio { cursor: help; vertical-align: middle; }
-        .modal-mappa { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); overflow-y: auto; }
-        .modal-mappa.active { display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-mappa { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .modal-mappa.active { display: flex !important; }
         .modal-mappa-content { background: white; border-radius: 12px; padding: 20px; max-width: 95%; width: 100%; max-height: 95vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .modal-mappa-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .modal-mappa-body.drawing-mode #mappa-trattamento-container { cursor: crosshair !important; }
-        .modal-mappa-body.drawing-mode #mappa-trattamento-container * { cursor: crosshair !important; }
-        .modal-mappa-body.drawing-mode #mappa-trattamento-container div { cursor: crosshair !important; }
-        .modal-mappa-body.drawing-mode #mappa-trattamento-container canvas { cursor: crosshair !important; }
         #mappa-trattamento-container { width: 100%; height: 500px; border-radius: 8px; overflow: hidden; border: 2px solid #e9ecef; margin-bottom: 15px; }
         .mappa-controls { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
         .mappa-info { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
         .mappa-info-item { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .mappa-info-label { font-weight: 600; color: #495057; }
-        .mappa-info-value { color: #6A1B9A; font-weight: 600; }
+        .mappa-info-value { color: #FF6F00; font-weight: 600; }
         .modal-mappa-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e9ecef; }
-        .modal-mappa-header h3 { color: #6A1B9A; margin: 0; }
+        .modal-mappa-header h3 { color: #FF6F00; margin: 0; }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="header">
             <div>
-                <h1>🧪 Trattamenti Vigneto</h1>
-                <p>I trattamenti fitosanitari provengono da lavori o attività con categoria <strong>Trattamenti</strong> (non concimazioni). Completa qui i dati aggiuntivi (prodotto, dosaggio, giorni carenza, costi). Dati base in sola lettura.</p>
+                <h1>🌱 Concimazioni Frutteto</h1>
+                <p>Le concimazioni di campo provengono da lavori o attività con categoria <strong>Concimazione</strong>. Completa qui i dati aggiuntivi (prodotto, dosaggio, costi). Dati base in sola lettura.</p>
             </div>
             <div class="header-actions">
-                <a href="vigneto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+                <a href="frutteto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
             </div>
         </header>
 
@@ -87,9 +84,9 @@
             <div id="alert-container"></div>
             <section class="filters">
                 <div class="filter-group">
-                    <label for="filter-vigneto">Vigneto (filtro)</label>
-                    <select id="filter-vigneto">
-                        <option value="">Seleziona vigneto</option>
+                    <label for="filter-frutteto">Frutteto (filtro)</label>
+                    <select id="filter-frutteto">
+                        <option value="">Tutti i frutteti</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -98,13 +95,13 @@
                 </div>
             </section>
 
-            <div id="loading" class="empty-state" style="display: none;">Caricamento trattamenti...</div>
+            <div id="loading" class="empty-state" style="display: none;">Caricamento concimazioni...</div>
             <div id="table-wrap" class="table-container" style="display: none;">
                 <table>
                     <thead>
                         <tr>
                             <th>Data</th>
-                            <th>Vigneto</th>
+                            <th>Frutteto</th>
                             <th>Lavoro / Attività</th>
                             <th>Terreno</th>
                             <th>Prodotto</th>
@@ -119,7 +116,7 @@
                 </table>
             </div>
             <div id="empty-state" class="empty-state">
-                <p>Seleziona un vigneto e un anno per vedere i lavori e le attività fitosanitarie (categoria Trattamenti). Completa i dati aggiuntivi dalla lista.</p>
+                <p>Seleziona un frutteto (opzionale) e un anno per vedere i lavori e le attività di concimazione (categoria Concimazione). Completa i dati aggiuntivi dalla lista.</p>
             </div>
         </main>
     </div>
@@ -127,17 +124,17 @@
     <div id="modal-trattamento" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">Nuovo trattamento</h2>
+                <h2 id="modal-title">Nuova concimazione</h2>
                 <button type="button" class="close" id="close-modal">&times;</button>
             </div>
             <form id="form-trattamento">
                 <input type="hidden" id="trattamento-id">
-                <input type="hidden" id="trattamento-vigneto-id">
+                <input type="hidden" id="trattamento-frutteto-id">
                 <input type="hidden" id="trattamento-lavoro-id">
                 <input type="hidden" id="trattamento-attivita-id">
                 <div id="dati-lavoro-section" class="form-group" style="display: none;">
                     <label>Dati da lavoro/attività (sola lettura)</label>
-                    <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border-left: 4px solid #6A1B9A;">
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border-left: 4px solid #FF6F00;">
                         <table style="width: 100%; font-size: 14px;">
                             <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Data</td><td id="dati-base-data">-</td></tr>
                             <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Terreno</td><td id="dati-base-terreno">-</td></tr>
@@ -167,8 +164,8 @@
                     <small id="trattamento-superficie-anagrafe-hint" style="display: none; color: #856404; margin-top: 6px;">Valorizza la superficie del terreno in anagrafe per abilitare questa opzione.</small>
                 </div>
                 <div id="form-campi-base" class="form-group" style="display: none;">
-                    <label for="trattamento-vigneto">Vigneto *</label>
-                    <select id="trattamento-vigneto"></select>
+                    <label for="trattamento-frutteto">Frutteto *</label>
+                    <select id="trattamento-frutteto"></select>
                 </div>
                 <div id="form-campi-data-row" class="form-row" style="display: none;">
                     <div class="form-group">
@@ -184,7 +181,7 @@
                     <div class="table-container" style="overflow-x: auto;">
                         <table style="width: 100%; font-size: 13px;">
                             <thead>
-                                <tr style="background: #F3E5F5;">
+                                <tr style="background: #FFF3E0;">
                                     <th style="padding: 6px 8px;">Prodotto</th>
                                     <th style="padding: 6px 8px; width: 75px;">Dosaggio (per ha)</th>
                                     <th style="padding: 6px 8px;">Unità</th>
@@ -196,7 +193,7 @@
                             <tbody id="tbody-prodotti-trattamento"></tbody>
                         </table>
                     </div>
-                    <p id="totale-costo-prodotti-trattamento" style="margin-top: 8px; font-weight: 600; color: #4A148C;">Totale costo prodotti: 0 €</p>
+                    <p id="totale-costo-prodotti-trattamento" style="margin-top: 8px; font-weight: 600; color: #E65100;">Totale costo prodotti: 0 €</p>
                 </div>
                 <div id="trattamento-operatore-group" class="form-group">
                     <label for="trattamento-operatore">Operatore *</label>
@@ -234,11 +231,11 @@
                 <div class="form-group">
                     <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-weight: normal;">
                         <input type="checkbox" id="trattamento-prosegue-precedente" style="margin-top: 4px;">
-                        <span>Questo intervento prosegue un trattamento non completato in una sessione precedente</span>
+                        <span>Questo intervento prosegue una concimazione non completata in una sessione precedente</span>
                     </label>
                 </div>
                 <div id="trattamento-precedente-wrap" class="form-group" style="display: none;">
-                    <label for="trattamento-precedente-id">Trattamento precedente (stesso vigneto)</label>
+                    <label for="trattamento-precedente-id">Intervento precedente (stesso frutteto)</label>
                     <select id="trattamento-precedente-id">
                         <option value="">— Seleziona —</option>
                     </select>
@@ -270,16 +267,15 @@
                 <div class="mappa-controls">
                     <button type="button" class="btn btn-primary btn-sm" id="btn-draw-polygon-trattamento">✏️ Traccia Poligono</button>
                     <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-polygon-trattamento" style="display: none;">🗑️ Elimina</button>
-                    <button type="button" class="btn btn-success btn-sm" id="btn-save-polygon-trattamento" style="display: none;">💾 Salva Area</button>
+                    <button type="button" class="btn btn-success btn-sm" id="btn-conferma-polygon-trattamento" style="display: none;">✓ Conferma e Applica</button>
                 </div>
                 <div class="mappa-info" id="mappa-info-trattamento" style="display: none;">
-                    <div class="mappa-info-item"><span class="mappa-info-label">Superficie tracciata:</span><span class="mappa-info-value" id="superficie-calcolata-trattamento">0.00 ha</span></div>
-                    <div class="mappa-info-item"><span class="mappa-info-label">Punti tracciati:</span><span class="mappa-info-value" id="punti-tracciati-trattamento">0</span></div>
+                    <div class="mappa-info-item"><span class="mappa-info-label">Superficie:</span><span class="mappa-info-value" id="superficie-calcolata-trattamento">0.00 ha</span></div>
+                    <div class="mappa-info-item"><span class="mappa-info-label">Punti:</span><span class="mappa-info-value" id="punti-tracciati-trattamento">0</span></div>
                 </div>
                 <div id="mappa-trattamento-container"></div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
                     <button type="button" class="btn btn-secondary" id="btn-annulla-mappa-trattamento">Annulla</button>
-                    <button type="button" class="btn btn-success" id="btn-conferma-polygon-trattamento" style="display: none;">✓ Conferma e Applica</button>
                 </div>
             </div>
         </div>
@@ -287,50 +283,14 @@
 
     <script>
         (function() {
-            const base = (function() {
-                if (window.location.protocol === 'file:') return '';
-                const pathname = window.location.pathname;
-                const idx = pathname.indexOf('/modules/');
-                return idx !== -1 ? pathname.substring(0, idx) : '/';
-            })();
-            const src = base ? (base + '/core/config/google-maps-config.js').replace(/\/+/g, '/') : '../../../core/config/google-maps-config.js';
-            const s = document.createElement('script');
-            s.src = src;
-            s.onerror = function() {
-                const f = document.createElement('script');
-                f.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-                document.head.appendChild(f);
-            };
+            if (typeof google !== 'undefined' && google.maps) return;
+            if (document.querySelector('script[src*="maps.googleapis.com"]')) return;
+            var apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+            var s = document.createElement('script');
+            s.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=geometry&loading=async';
+            s.async = true;
             document.head.appendChild(s);
         })();
-    </script>
-    <script>
-        let googleMapsReadyTrattamento = false;
-        function loadGoogleMapsAPITrattamento() {
-            if (typeof google !== 'undefined' && google.maps) {
-                googleMapsReadyTrattamento = true;
-                return;
-            }
-            if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-                const checkInterval = setInterval(function() {
-                    if (typeof google !== 'undefined' && google.maps) {
-                        clearInterval(checkInterval);
-                        googleMapsReadyTrattamento = true;
-                    }
-                }, 100);
-                setTimeout(function() { clearInterval(checkInterval); }, 5000);
-                return;
-            }
-            const apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
-            const script = document.createElement('script');
-            script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=geometry&loading=async';
-            script.async = true;
-            script.defer = true;
-            script.onload = function() { googleMapsReadyTrattamento = true; };
-            script.onerror = function() { console.warn('Google Maps API non disponibile'); };
-            document.head.appendChild(script);
-        }
-        setTimeout(loadGoogleMapsAPITrattamento, 500);
     </script>
     <script>window.GFV_CONFIG_BASE = '../../../core';</script>
     <script src="../../../core/js/config-loader.js"></script>
@@ -369,13 +329,11 @@
         }
 
         /**
-         * @param {string} vignetoId
-         * @param {string} currentTrattamentoId
-         * @param {{ filterLavoroId?: string|null }} [options] - Se impostato (ripresa da lavoro sospeso), solo il trattamento legato a quel lavoro
+         * @param {{ filterLavoroId?: string|null }} [options] - Ripresa: solo trattamento collegato al lavoro sospeso
          */
-        async function populateTrattamentiPrecedentiSelect(vignetoId, currentTrattamentoId, options = {}) {
+        async function populateTrattamentiPrecedentiSelect(fruttetoId, currentTrattamentoId, options = {}) {
             const sel = document.getElementById('trattamento-precedente-id');
-            if (!sel || !vignetoId) return;
+            if (!sel || !fruttetoId) return;
             const filterLavoroId = options.filterLavoroId || null;
             const hintEl = document.querySelector('#trattamento-precedente-wrap small');
             if (hintEl) {
@@ -389,9 +347,9 @@
             opt0.textContent = '— Seleziona —';
             sel.appendChild(opt0);
             try {
-                const { getTrattamenti } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
+                const { getTrattamenti } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
                 const { getLavoro } = await import(resolvePath('../../../core/services/lavori-service.js'));
-                const list = await getTrattamenti(vignetoId, { orderBy: 'data', orderDirection: 'desc' });
+                const list = await getTrattamenti(fruttetoId, { orderBy: 'data', orderDirection: 'desc' });
                 const candidati = list.filter(tr => tr.id !== currentTrattamentoId && (!filterLavoroId || tr.lavoroId === filterLavoroId));
                 const lavoroIds = [...new Set(candidati.map(tr => tr.lavoroId).filter(Boolean))];
                 const lavoroLabelById = new Map();
@@ -421,14 +379,14 @@
                     o.textContent = label || tr.id;
                     sel.appendChild(o);
                 }
-            } catch (e) { console.warn('[TRATTAMENTI-VIGNETO] lista precedenti', e); }
+            } catch (e) { console.warn('[CONCIMazioni-FRUTTETO] lista precedenti', e); }
         }
 
-        async function applicaDatiDaTrattamentoPrecedenteVigneto(vignetoId, precedenteId) {
-            if (!vignetoId || !precedenteId) return;
+        async function applicaDatiDaTrattamentoPrecedenteFrutteto(fruttetoId, precedenteId) {
+            if (!fruttetoId || !precedenteId) return;
             try {
-                const { getTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                const parent = await getTrattamento(vignetoId, precedenteId);
+                const { getTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                const parent = await getTrattamento(fruttetoId, precedenteId);
                 if (!parent) return;
                 let rowsProdotti;
                 if (parent.prodotti && parent.prodotti.length) {
@@ -458,13 +416,13 @@
                 const cop = document.getElementById('trattamento-copertura-terreno');
                 if (cop && parent.coperturaTerreno) cop.value = parent.coperturaTerreno;
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] applicaDatiDaTrattamentoPrecedenteVigneto', e);
+                console.warn('[CONCIMazioni-FRUTTETO] applicaDatiDaTrattamentoPrecedenteFrutteto', e);
             }
         }
 
-        let vigneti = [];
+        let frutteti = [];
         let listRows = [];
-        let currentVignetoId = null;
+        let currentFruttetoId = null;
         let currentAnno = null;
         let trattamentoFromAttivitaOnly = false;
         let poligonoCoordsTrattamento = [];
@@ -478,25 +436,24 @@
         const VERTEX_SNAP_DISTANCE_METERS_TRATTAMENTO = 8;
         let listProdottiAnagrafica = [];
         let hasMagazzinoModule = false;
-        /** Superficie terreno (ha) da anagrafe, per checkbox "tutto il terreno" */
         let cachedTerrenoSuperficieHa = null;
 
-        async function loadTerrenoSuperficieForModal(vignetoId) {
+        async function loadTerrenoSuperficieForModal(fruttetoId) {
             cachedTerrenoSuperficieHa = null;
             const hint = document.getElementById('trattamento-superficie-anagrafe-hint');
             if (hint) hint.style.display = 'none';
-            if (!vignetoId) return null;
-            const vigneto = vigneti.find(v => v.id === vignetoId);
-            if (!vigneto || !vigneto.terrenoId) return null;
+            if (!fruttetoId) return null;
+            const frutteto = frutteti.find(f => f.id === fruttetoId);
+            if (!frutteto || !frutteto.terrenoId) return null;
             try {
                 const { getTerreno } = await import(resolvePath('../../../core/services/terreni-service.js'));
-                const terreno = await getTerreno(vigneto.terrenoId);
+                const terreno = await getTerreno(frutteto.terrenoId);
                 if (terreno && terreno.superficie != null && terreno.superficie !== '') {
                     const n = parseFloat(terreno.superficie);
                     if (!isNaN(n) && n > 0) cachedTerrenoSuperficieHa = n;
                 }
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] loadTerrenoSuperficieForModal', e);
+                console.warn('[CONCIMazioni-FRUTTETO] loadTerrenoSuperficieForModal', e);
             }
             return cachedTerrenoSuperficieHa;
         }
@@ -525,8 +482,8 @@
             if (typeof ricalcolaQuantitaCostoProdotti === 'function') ricalcolaQuantitaCostoProdotti();
         }
 
-        async function syncSuperficieAnagrafeCheckboxUi(t, vignetoId) {
-            await loadTerrenoSuperficieForModal(vignetoId);
+        async function syncSuperficieAnagrafeCheckboxUi(t, fruttetoId) {
+            await loadTerrenoSuperficieForModal(fruttetoId);
             const cbAn = document.getElementById('trattamento-superficie-anagrafe');
             const hint = document.getElementById('trattamento-superficie-anagrafe-hint');
             if (!cbAn) return;
@@ -548,7 +505,7 @@
                 const { getAllProdotti } = await import(resolvePath('../../../modules/magazzino/services/prodotti-service.js'));
                 listProdottiAnagrafica = await getAllProdotti({ soloAttivi: true }) || [];
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] Anagrafica prodotti non disponibile:', e);
+                console.warn('[CONCIMazioni-FRUTTETO] Anagrafica prodotti non disponibile:', e);
                 listProdottiAnagrafica = [];
             }
         }
@@ -595,7 +552,6 @@
             tbody.querySelectorAll('.prodotto-select').forEach(sel => {
                 sel.addEventListener('change', function() {
                     const idx = parseInt(this.getAttribute('data-idx'), 10);
-                    const row = rows[idx];
                     const opt = listProdottiAnagrafica.find(p => p.id === this.value);
                     const nomeAltro = tbody.querySelector(`.prodotto-nome-altro[data-idx="${idx}"]`);
                     if (nomeAltro) nomeAltro.style.display = this.value ? 'none' : 'block';
@@ -611,12 +567,8 @@
                     ricalcolaQuantitaCostoProdotti();
                 });
             });
-            tbody.querySelectorAll('.prodotto-dosaggio').forEach(inp => {
-                inp.addEventListener('input', () => ricalcolaQuantitaCostoProdotti());
-            });
-            tbody.querySelectorAll('.prodotto-costo').forEach(inp => {
-                inp.addEventListener('input', () => aggiornaTotaleCostoProdotti());
-            });
+            tbody.querySelectorAll('.prodotto-dosaggio').forEach(inp => { inp.addEventListener('input', () => ricalcolaQuantitaCostoProdotti()); });
+            tbody.querySelectorAll('.prodotto-costo').forEach(inp => { inp.addEventListener('input', () => aggiornaTotaleCostoProdotti()); });
             tbody.querySelectorAll('.rimuovi-prodotto').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const idx = parseInt(this.getAttribute('data-idx'), 10);
@@ -699,7 +651,6 @@
             const tbody = document.getElementById('tbody-prodotti-trattamento');
             if (!tbody) return;
             tbody.querySelectorAll('tr[data-idx]').forEach((tr, i) => {
-                const idx = tr.getAttribute('data-idx');
                 const r = rows[i];
                 if (!r) return;
                 const qta = (r.dosaggio != null && superficie > 0) ? r.dosaggio * superficie : null;
@@ -770,7 +721,7 @@
                     });
                     if (coords.length >= 3) return coords;
                 }
-            } catch (e) { console.warn('[TRATTAMENTI] loadPoligonoFromZoneLavorate:', e); }
+            } catch (e) { console.warn('[CONCIMazioni-FRUTTETO] loadPoligonoFromZoneLavorate:', e); }
             return null;
         }
 
@@ -811,7 +762,6 @@
             mappaTrattamento.fitBounds(bounds);
         }
 
-        /** Normalizza coordinate poligono ed esclude punti non numerici (evita NaN su Google Maps). */
         function coordsToValidLatLngArrayForTrattamento(coordinate) {
             if (!coordinate || !coordinate.length || typeof google === 'undefined' || !google.maps) return [];
             const out = [];
@@ -860,9 +810,9 @@
             if (poligonoTrattamentoPoly) { poligonoTrattamentoPoly.setMap(null); poligonoTrattamentoPoly = null; }
             poligonoTrattamentoPoly = new google.maps.Polygon({
                 paths: poligonoCoordsTrattamento,
-                fillColor: '#6A1B9A',
+                fillColor: '#FF6F00',
                 fillOpacity: 0.4,
-                strokeColor: '#4A148C',
+                strokeColor: '#E65100',
                 strokeWeight: 4,
                 editable: true,
                 draggable: false
@@ -877,16 +827,16 @@
             if (!coordinate || coordinate.length < 3 || !mappaTrattamento) return;
             poligonoCoordsTrattamento = coordsToValidLatLngArrayForTrattamento(coordinate);
             if (poligonoCoordsTrattamento.length < 3) {
-                console.warn('[TRATTAMENTI-VIGNETO] Poligono non mostrato: meno di 3 coordinate valide (lat/lng).');
+                console.warn('[CONCIMazioni-FRUTTETO] Poligono non mostrato: meno di 3 coordinate valide (lat/lng).');
                 return;
             }
             if (soloConsultazione) {
                 if (poligonoTrattamentoPoly) poligonoTrattamentoPoly.setMap(null);
                 poligonoTrattamentoPoly = new google.maps.Polygon({
                     paths: poligonoCoordsTrattamento,
-                    fillColor: '#6A1B9A',
+                    fillColor: '#FF6F00',
                     fillOpacity: 0.4,
-                    strokeColor: '#4A148C',
+                    strokeColor: '#E65100',
                     strokeWeight: 4,
                     editable: false,
                     draggable: false,
@@ -917,12 +867,12 @@
             }
             const lavoroId = document.getElementById('trattamento-lavoro-id').value.trim();
             const soloConsultazione = lavoroId !== '' && !trattamentoFromAttivitaOnly;
-            const vignetoId = document.getElementById('trattamento-vigneto-id').value || document.getElementById('trattamento-vigneto').value;
-            if (!vignetoId) { alert('Seleziona un vigneto'); return; }
-            const vigneto = vigneti.find(v => v.id === vignetoId);
-            if (!vigneto || !vigneto.terrenoId) { alert('Vigneto senza terreno associato'); return; }
+            const fruttetoId = document.getElementById('trattamento-frutteto-id').value || document.getElementById('trattamento-frutteto').value;
+            if (!fruttetoId) { alert('Seleziona un frutteto'); return; }
+            const frutteto = frutteti.find(f => f.id === fruttetoId);
+            if (!frutteto || !frutteto.terrenoId) { alert('Frutteto senza terreno associato'); return; }
             const { getTerreno } = await import(resolvePath('../../../core/services/terreni-service.js'));
-            const terreno = await getTerreno(vigneto.terrenoId);
+            const terreno = await getTerreno(frutteto.terrenoId);
             if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length === 0) {
                 alert('Il terreno non ha confini tracciati. Traccia prima i confini del terreno.');
                 return;
@@ -946,10 +896,10 @@
                     }
                 } else {
                     const trattamentoId = document.getElementById('trattamento-id').value;
-                    if (trattamentoId && vignetoId) {
+                    if (trattamentoId && fruttetoId) {
                         try {
-                            const { getTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                            const t = await getTrattamento(vignetoId, trattamentoId);
+                            const { getTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                            const t = await getTrattamento(fruttetoId, trattamentoId);
                             if (t && t.poligonoTrattamento && t.poligonoTrattamento.length >= 3) {
                                 caricaPoligonoEsistenteTrattamento(t.poligonoTrattamento, soloConsultazione);
                             }
@@ -1231,18 +1181,18 @@
             });
         };
 
-        async function loadVigneti() {
-            const { getAllVigneti } = await import(resolvePath('../services/vigneti-service.js'));
-            vigneti = await getAllVigneti();
-            const selFilter = document.getElementById('filter-vigneto');
-            const selModal = document.getElementById('trattamento-vigneto');
+        async function loadFrutteti() {
+            const { getAllFrutteti } = await import(resolvePath('../services/frutteti-service.js'));
+            frutteti = await getAllFrutteti();
+            const selFilter = document.getElementById('filter-frutteto');
+            const selModal = document.getElementById('trattamento-frutteto');
             [selFilter, selModal].forEach(sel => {
                 if (!sel) return;
-                sel.innerHTML = sel === selFilter ? '<option value="">Tutti i vigneti</option>' : '<option value="">Seleziona vigneto</option>';
-                vigneti.forEach(v => {
+                sel.innerHTML = sel === selFilter ? '<option value="">Tutti i frutteti</option>' : '<option value="">Seleziona frutteto</option>';
+                frutteti.forEach(f => {
                     const opt = document.createElement('option');
-                    opt.value = v.id;
-                    opt.textContent = v.varieta || v.nome || v.id;
+                    opt.value = f.id;
+                    opt.textContent = f.specie || f.varieta || f.nome || f.id;
                     sel.appendChild(opt);
                 });
             });
@@ -1260,10 +1210,10 @@
         }
 
         async function loadTrattamenti() {
-            const vid = document.getElementById('filter-vigneto').value || null;
+            const fid = document.getElementById('filter-frutteto').value || null;
             const annoVal = document.getElementById('filter-anno').value;
             const anno = annoVal ? parseInt(annoVal, 10) : null;
-            currentVignetoId = vid;
+            currentFruttetoId = fid;
             currentAnno = anno;
 
             const loading = document.getElementById('loading');
@@ -1276,7 +1226,7 @@
                 loading.style.display = 'none';
                 tableWrap.style.display = 'none';
                 empty.style.display = 'block';
-                empty.innerHTML = '<p>Seleziona un anno per vedere i lavori e le attività fitosanitarie (categoria Trattamenti).</p>';
+                empty.innerHTML = '<p>Seleziona un anno per vedere i lavori e le attività di concimazione (categoria Concimazione).</p>';
                 return;
             }
 
@@ -1285,24 +1235,24 @@
             empty.style.display = 'none';
 
             try {
-                const svc = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                const filtroLista = { filtroCategoria: 'trattamenti' };
-                if (vid) {
-                    listRows = await svc.getLavoriAttivitaTrattamentiPerVigneto(vid, annoEffettivo, filtroLista);
+                const svc = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                const filtroLista = { filtroCategoria: 'concimazione' };
+                if (fid) {
+                    listRows = await svc.getLavoriAttivitaTrattamentiPerFrutteto(fid, annoEffettivo, filtroLista);
                 } else {
-                    listRows = await svc.getLavoriAttivitaTrattamentiTuttiVigneti(annoEffettivo, filtroLista);
+                    listRows = await svc.getLavoriAttivitaTrattamentiTuttiFrutteti(annoEffettivo, filtroLista);
                 }
             } catch (e) {
-                console.error('[TRATTAMENTI-VIGNETO view] loadTrattamenti errore', e);
+                console.error('[CONCIMazioni-FRUTTETO] loadTrattamenti errore:', e);
                 listRows = [];
             }
 
             loading.style.display = 'none';
             if (listRows.length === 0) {
                 empty.style.display = 'block';
-                empty.innerHTML = vid
-                    ? '<p>Nessun lavoro o attività fitosanitaria (categoria Trattamenti) per questo vigneto/anno. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Trattamenti su un terreno con vigneto.</p>'
-                    : '<p>Nessun lavoro o attività fitosanitaria (categoria Trattamenti) per l\'anno selezionato. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Trattamenti su un terreno con vigneto.</p>';
+                empty.innerHTML = fid
+                    ? '<p>Nessun lavoro o attività di concimazione (categoria Concimazione) per questo frutteto/anno. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Concimazione su un terreno con frutteto.</p>'
+                    : '<p>Nessun lavoro o attività di concimazione (categoria Concimazione) per l\'anno selezionato. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Concimazione su un terreno con frutteto.</p>';
                 return;
             }
 
@@ -1331,10 +1281,10 @@
                     ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
                        <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
                     : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`;
-                const vignetoLabel = row.vignetoNome || (vigneti.find(v => v.id === row.vignetoId) && (vigneti.find(v => v.id === row.vignetoId).varieta || vigneti.find(v => v.id === row.vignetoId).nome)) || row.vignetoId || '-';
+                const fruttetoLabel = row.fruttetoNome || (frutteti.find(f => f.id === row.fruttetoId) && (frutteti.find(f => f.id === row.fruttetoId).specie || frutteti.find(f => f.id === row.fruttetoId).varieta || frutteti.find(f => f.id === row.fruttetoId).nome)) || row.fruttetoId || '-';
                 return `<tr>
                     <td>${formatDate(row.data)}</td>
-                    <td>${vignetoLabel}</td>
+                    <td>${fruttetoLabel}</td>
                     <td>${(row.lavoroLabel || '').substring(0, 40)}${(row.lavoroLabel && row.lavoroLabel.length > 40) ? '…' : ''}</td>
                     <td>${row.terrenoLabel || '-'}</td>
                     <td>${t ? (t.prodotti && t.prodotti.length ? t.prodotti.map(p => (p.prodotto || '-').trim()).filter(Boolean).join(', ') || '-' : (t.prodotto || '-')) : '-'}</td>
@@ -1375,29 +1325,24 @@
             tbody.innerHTML = macchineData.map(m => '<tr><td style="padding:6px 8px;">' + (m.tipo || '-') + '</td><td style="padding:6px 8px;">' + (m.nome || '-') + '</td><td style="padding:6px 8px;">' + (typeof m.ore === 'number' ? m.ore.toFixed(2) : (m.ore || '-')) + '</td></tr>').join('');
         }
 
-        function nascondiTabellaMacchineTrattamento() {
-            const section = document.getElementById('macchine-tabella-section');
-            if (section) section.style.display = 'none';
-        }
-
         async function openModalCompleta(idx) {
             const row = listRows[idx];
             if (!row) return;
             if (row.trattamento) { openModalEditRow(idx); return; }
             try {
-                const svc = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
+                const svc = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
                 if (row.lavoroId) {
                     await svc.createTrattamentoFromLavoro(row.lavoroId);
                 } else if (row.attivitaId) {
                     await svc.createTrattamentoFromAttivita(row.attivitaId);
                 } else { showAlert('Riga senza lavoro/attività', 'error'); return; }
                 const found = row.lavoroId ? await svc.findTrattamentoByLavoroId(row.lavoroId) : await svc.findTrattamentoByAttivitaId(row.attivitaId);
-                if (!found || found.vignetoId !== row.vignetoId) { showAlert('Trattamento creato ma non trovato per questo vigneto', 'error'); await loadTrattamenti(); return; }
+                if (!found || found.fruttetoId !== row.fruttetoId) { showAlert('Intervento creato ma non trovato per questo frutteto', 'error'); await loadTrattamenti(); return; }
                 row.trattamento = found.trattamento;
-                document.getElementById('modal-title').textContent = 'Completa dati trattamento';
+                document.getElementById('modal-title').textContent = 'Completa dati concimazione';
                 setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
                 document.getElementById('trattamento-id').value = found.trattamentoId;
-                document.getElementById('trattamento-vigneto-id').value = row.vignetoId;
+                document.getElementById('trattamento-frutteto-id').value = row.fruttetoId;
                 document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
                 document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
                 const t = found.trattamento;
@@ -1405,7 +1350,7 @@
                 document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
                 document.getElementById('trattamento-operatore').value = t.operatore || '';
                 document.getElementById('trattamento-superficie').value = (t.superficieTrattata != null && t.superficieTrattata !== '') ? Number(t.superficieTrattata).toFixed(2) : '';
-                await syncSuperficieAnagrafeCheckboxUi(t, row.vignetoId);
+                await syncSuperficieAnagrafeCheckboxUi(t, row.fruttetoId);
                 document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
                 document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
                 document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
@@ -1420,11 +1365,11 @@
                 const prosegueP = !!(t.prosegueDaTrattamentoId) || !!lavoroRipresaDa;
                 document.getElementById('trattamento-prosegue-precedente').checked = prosegueP;
                 document.getElementById('trattamento-precedente-wrap').style.display = prosegueP ? 'block' : 'none';
-                await populateTrattamentiPrecedentiSelect(row.vignetoId, found.trattamentoId, lavoroRipresaDa ? { filterLavoroId: lavoroRipresaDa } : {});
+                await populateTrattamentiPrecedentiSelect(row.fruttetoId, found.trattamentoId, lavoroRipresaDa ? { filterLavoroId: lavoroRipresaDa } : {});
                 let parentTrattamentoIdRipresa = t.prosegueDaTrattamentoId || '';
                 if (lavoroRipresaDa && !parentTrattamentoIdRipresa) {
                     const parentFound = await svc.findTrattamentoByLavoroId(lavoroRipresaDa);
-                    if (parentFound && parentFound.vignetoId === row.vignetoId) {
+                    if (parentFound && parentFound.fruttetoId === row.fruttetoId) {
                         parentTrattamentoIdRipresa = parentFound.trattamentoId;
                     }
                 }
@@ -1436,20 +1381,20 @@
                 document.getElementById('trattamento-operatore').removeAttribute('required');
                 document.getElementById('trattamento-superficie').removeAttribute('required');
                 if (lavoroRipresaDa && parentTrattamentoIdRipresa) {
-                    await applicaDatiDaTrattamentoPrecedenteVigneto(row.vignetoId, parentTrattamentoIdRipresa);
+                    await applicaDatiDaTrattamentoPrecedenteFrutteto(row.fruttetoId, parentTrattamentoIdRipresa);
                 } else {
                     let rowsProdotti = (t.prodotti && t.prodotti.length) ? t.prodotti.map(r => ({ prodottoId: r.prodottoId || null, prodotto: r.prodotto || '', dosaggio: r.dosaggio, unitaDosaggio: r.unitaDosaggio || null, quantita: r.quantita, costo: r.costo })) : [{ prodottoId: null, prodotto: t.prodotto || '', dosaggio: t.dosaggio != null && t.dosaggio !== '' ? parseFloat(t.dosaggio) : null, unitaDosaggio: null, quantita: null, costo: t.costoProdotto ?? 0 }];
                     if (!rowsProdotti.length) rowsProdotti = [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }];
                     renderProdottiTrattamento(rowsProdotti);
                 }
                 try {
-                    const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                    const prefill = await getDatiPrecompilazioneTrattamento(row.vignetoId, found.trattamento);
+                    const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                    const prefill = await getDatiPrecompilazioneTrattamento(row.fruttetoId, found.trattamento);
                     document.getElementById('trattamento-costo-mano').value = prefill.costoManodopera ?? 0;
                     document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? 0;
                     popolaTabellaMacchineTrattamento(prefill.macchine || []);
                 } catch (e) {
-                    console.warn('[TRATTAMENTI-VIGNETO] prefill costi/macchine:', e);
+                    console.warn('[CONCIMazioni-FRUTTETO] prefill costi/macchine:', e);
                     popolaTabellaMacchineTrattamento([]);
                 }
                 trattamentoFromAttivitaOnly = !!(row.attivitaId && !row.lavoroId);
@@ -1467,7 +1412,7 @@
                 applyScaricoMagazzinoUi(t);
                 document.getElementById('modal-trattamento').classList.add('active');
             } catch (err) {
-                showAlert(err.message || 'Errore creazione trattamento', 'error');
+                showAlert(err.message || 'Errore creazione concimazione', 'error');
                 await loadTrattamenti();
             }
         }
@@ -1487,19 +1432,19 @@
             const row = listRows[idx];
             if (!row || !row.trattamento) return;
             const t = row.trattamento;
-            const vignetoId = row.vignetoId;
+            const fruttetoId = row.fruttetoId;
             const trattamentoId = t.id;
-            document.getElementById('modal-title').textContent = 'Modifica dati trattamento';
+            document.getElementById('modal-title').textContent = 'Modifica dati concimazione';
             setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
             document.getElementById('trattamento-id').value = trattamentoId;
-            document.getElementById('trattamento-vigneto-id').value = vignetoId;
+            document.getElementById('trattamento-frutteto-id').value = fruttetoId;
             document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
             document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
             const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));
             document.getElementById('trattamento-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
             document.getElementById('trattamento-operatore').value = t.operatore || '';
             document.getElementById('trattamento-superficie').value = (t.superficieTrattata != null && t.superficieTrattata !== '') ? Number(t.superficieTrattata).toFixed(2) : '';
-            await syncSuperficieAnagrafeCheckboxUi(t, vignetoId);
+            await syncSuperficieAnagrafeCheckboxUi(t, fruttetoId);
             document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
             document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
             document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
@@ -1514,12 +1459,12 @@
             const prosegueEd = !!(t.prosegueDaTrattamentoId) || !!lavoroRipresaDaEd;
             document.getElementById('trattamento-prosegue-precedente').checked = prosegueEd;
             document.getElementById('trattamento-precedente-wrap').style.display = prosegueEd ? 'block' : 'none';
-            await populateTrattamentiPrecedentiSelect(vignetoId, trattamentoId, lavoroRipresaDaEd ? { filterLavoroId: lavoroRipresaDaEd } : {});
+            await populateTrattamentiPrecedentiSelect(fruttetoId, trattamentoId, lavoroRipresaDaEd ? { filterLavoroId: lavoroRipresaDaEd } : {});
             let parentIdEdit = t.prosegueDaTrattamentoId || '';
             if (lavoroRipresaDaEd && !parentIdEdit) {
-                const { findTrattamentoByLavoroId } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
+                const { findTrattamentoByLavoroId } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
                 const parentFound = await findTrattamentoByLavoroId(lavoroRipresaDaEd);
-                if (parentFound && parentFound.vignetoId === vignetoId) parentIdEdit = parentFound.trattamentoId;
+                if (parentFound && parentFound.fruttetoId === fruttetoId) parentIdEdit = parentFound.trattamentoId;
             }
             document.getElementById('trattamento-precedente-id').value = parentIdEdit || '';
             if (t.operatore) {
@@ -1535,20 +1480,20 @@
             }
             const hasProdotti = t.prodotti && t.prodotti.some(r => (r.prodotto || '').trim());
             if (lavoroRipresaDaEd && parentIdEdit && !hasProdotti) {
-                await applicaDatiDaTrattamentoPrecedenteVigneto(vignetoId, parentIdEdit);
+                await applicaDatiDaTrattamentoPrecedenteFrutteto(fruttetoId, parentIdEdit);
             } else {
                 let rowsProdotti = (t.prodotti && t.prodotti.length) ? t.prodotti.map(r => ({ prodottoId: r.prodottoId || null, prodotto: r.prodotto || '', dosaggio: r.dosaggio, unitaDosaggio: r.unitaDosaggio || null, quantita: r.quantita, costo: r.costo })) : [{ prodottoId: null, prodotto: t.prodotto || '', dosaggio: t.dosaggio != null && t.dosaggio !== '' ? parseFloat(t.dosaggio) : null, unitaDosaggio: null, quantita: null, costo: t.costoProdotto ?? 0 }];
                 if (!rowsProdotti.length) rowsProdotti = [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }];
                 renderProdottiTrattamento(rowsProdotti);
             }
             try {
-                const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                const prefill = await getDatiPrecompilazioneTrattamento(vignetoId, t);
+                const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                const prefill = await getDatiPrecompilazioneTrattamento(fruttetoId, t);
                 document.getElementById('trattamento-costo-mano').value = prefill.costoManodopera ?? t.costoManodopera ?? 0;
                 document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? t.costoMacchina ?? 0;
                 popolaTabellaMacchineTrattamento(prefill.macchine || []);
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] prefill costi/macchine:', e);
+                console.warn('[CONCIMazioni-FRUTTETO] prefill costi/macchine:', e);
                 popolaTabellaMacchineTrattamento([]);
             }
             trattamentoFromAttivitaOnly = !!(row.attivitaId && !row.lavoroId);
@@ -1600,10 +1545,10 @@
         async function saveTrattamento(e) {
             e.preventDefault();
             const id = document.getElementById('trattamento-id').value.trim();
-            const vignetoIdFromHidden = document.getElementById('trattamento-vigneto-id').value;
-            const vignetoIdFromSelect = document.getElementById('trattamento-vigneto').value;
-            const vignetoId = vignetoIdFromHidden || vignetoIdFromSelect;
-            if (!vignetoId) { showAlert('Vigneto mancante', 'error'); return; }
+            const fruttetoIdFromHidden = document.getElementById('trattamento-frutteto-id').value;
+            const fruttetoIdFromSelect = document.getElementById('trattamento-frutteto').value;
+            const fruttetoId = fruttetoIdFromHidden || fruttetoIdFromSelect;
+            if (!fruttetoId) { showAlert('Frutteto mancante', 'error'); return; }
 
             let costoManodopera = parseFloat(document.getElementById('trattamento-costo-mano').value) || 0;
             let costoMacchina = parseFloat(document.getElementById('trattamento-costo-macchina').value) || 0;
@@ -1611,12 +1556,12 @@
             const attivitaIdVal = document.getElementById('trattamento-attivita-id').value.trim();
             if ((lavoroIdVal || attivitaIdVal) && costoManodopera === 0 && costoMacchina === 0) {
                 try {
-                    const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                    const prefill = await getDatiPrecompilazioneTrattamento(vignetoId, { lavoroId: lavoroIdVal || null, attivitaId: attivitaIdVal || null });
+                    const { getDatiPrecompilazioneTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                    const prefill = await getDatiPrecompilazioneTrattamento(fruttetoId, { lavoroId: lavoroIdVal || null, attivitaId: attivitaIdVal || null });
                     costoManodopera = prefill.costoManodopera ?? 0;
                     costoMacchina = prefill.costoMacchina ?? 0;
                 } catch (err) {
-                    console.warn('[TRATTAMENTI-VIGNETO] ricalcolo costi in salvataggio:', err);
+                    console.warn('[CONCIMazioni-FRUTTETO] ricalcolo costi in salvataggio:', err);
                 }
             }
 
@@ -1637,9 +1582,9 @@
             let superficieTrattataNum = (() => { const v = document.getElementById('trattamento-superficie').value; const n = parseFloat(v); return isNaN(n) ? null : Math.round(n * 100) / 100; })();
             if (usaSuperficieAnagrafe) {
                 const { getTerreno } = await import(resolvePath('../../../core/services/terreni-service.js'));
-                const vObj = vigneti.find(x => x.id === vignetoId);
-                if (vObj && vObj.terrenoId) {
-                    const ter = await getTerreno(vObj.terrenoId);
+                const fObj = frutteti.find(x => x.id === fruttetoId);
+                if (fObj && fObj.terrenoId) {
+                    const ter = await getTerreno(fObj.terrenoId);
                     if (ter && ter.superficie != null && ter.superficie !== '') {
                         const n = parseFloat(ter.superficie);
                         if (!isNaN(n) && n > 0) superficieTrattataNum = Math.round(n * 100) / 100;
@@ -1652,13 +1597,13 @@
             }
             let tipoTrattamentoResolved = '';
             try {
-                const { getTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                const existingTr = await getTrattamento(vignetoId, id);
+                const { getTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                const existingTr = await getTrattamento(fruttetoId, id);
                 if (existingTr && existingTr.tipoTrattamento) {
                     tipoTrattamentoResolved = existingTr.tipoTrattamento;
                 }
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] tipo trattamento esistente:', e);
+                console.warn('[CONCIMAZIONI-FRUTTETO] tipo trattamento esistente:', e);
             }
             if (!tipoTrattamentoResolved) {
                 const { inferTipoTrattamentoColturaFromTipoLavoroNome } = await import(resolvePath('../../../core/config/trattamenti-lavoro-defaults.js'));
@@ -1706,22 +1651,22 @@
             if (prosegueCb && prosegueCb.checked) {
                 const prevId = data.prosegueDaTrattamentoId;
                 if (!prevId) {
-                    showAlert('Seleziona il trattamento precedente oppure deseleziona l’opzione.', 'error');
+                    showAlert('Seleziona l’intervento precedente oppure deseleziona l’opzione.', 'error');
                     return;
                 }
                 if (prevId === id) {
-                    showAlert('Il trattamento precedente non può coincidere con il trattamento corrente.', 'error');
+                    showAlert('L’intervento precedente non può coincidere con l’intervento corrente.', 'error');
                     return;
                 }
                 try {
-                    const { getTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                    const prev = await getTrattamento(vignetoId, prevId);
+                    const { getTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                    const prev = await getTrattamento(fruttetoId, prevId);
                     if (!prev) {
-                        showAlert('Trattamento precedente non trovato in questo vigneto.', 'error');
+                        showAlert('Intervento precedente non trovato in questo frutteto.', 'error');
                         return;
                     }
                 } catch (ve) {
-                    showAlert(ve.message || 'Verifica trattamento precedente non riuscita.', 'error');
+                    showAlert(ve.message || 'Verifica intervento precedente non riuscita.', 'error');
                     return;
                 }
             }
@@ -1736,14 +1681,14 @@
             if (attivitaIdVal) data.attivitaId = attivitaIdVal;
 
             try {
-                const { updateTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                if (!id) { showAlert('Trattamento non trovato', 'error'); return; }
+                const { updateTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                if (!id) { showAlert('Intervento non trovato', 'error'); return; }
                 const scaricoGroup = document.getElementById('trattamento-scarico-magazzino-group');
                 const scaricoOpts = (scaricoGroup && scaricoGroup.style.display !== 'none')
                     ? { registraScaricoMagazzino: !!document.getElementById('trattamento-registra-scarico-magazzino')?.checked }
                     : {};
-                await updateTrattamento(vignetoId, id, data, scaricoOpts);
-                showAlert('Trattamento aggiornato.', 'success');
+                await updateTrattamento(fruttetoId, id, data, scaricoOpts);
+                showAlert('Concimazione aggiornata.', 'success');
                 closeModal();
                 await loadTrattamenti();
             } catch (err) {
@@ -1754,11 +1699,11 @@
         async function deleteTrattamentoConfirmRow(idx) {
             const row = listRows[idx];
             if (!row || !row.trattamento) return;
-            if (!confirm('Eliminare i dati trattamento? Il lavoro/attività resterà; potrai completare di nuovo dalla lista.')) return;
+            if (!confirm('Eliminare i dati di concimazione? Il lavoro/attività resterà; potrai completare di nuovo dalla lista.')) return;
             try {
-                const { deleteTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                await deleteTrattamento(row.vignetoId, row.trattamento.id);
-                showAlert('Trattamento eliminato. La riga resta come "da completare".', 'success');
+                const { deleteTrattamento } = await import(resolvePath('../services/trattamenti-frutteto-service.js'));
+                await deleteTrattamento(row.fruttetoId, row.trattamento.id);
+                showAlert('Dati concimazione eliminati. La riga resta come "da completare".', 'success');
                 await loadTrattamenti();
             } catch (err) {
                 showAlert(err.message || 'Errore eliminazione', 'error');
@@ -1808,7 +1753,7 @@
                                             info_azienda: { moduli_attivi: modules },
                                             moduli_attivi: modules
                                         });
-                                        console.log('[Vigneto Trattamenti] Context Tony inizializzato con moduli:', modules);
+                                        console.log('[Frutteto Trattamenti] Context Tony inizializzato con moduli:', modules);
                                     } else if (retries < 10) {
                                         setTimeout(function() { initTonyContext(retries + 1); }, 500);
                                     }
@@ -1822,11 +1767,11 @@
                 const proprietarioMsg = document.getElementById('trattamento-proprietario-message');
                 if (operatoreGroup) operatoreGroup.style.display = hasManodoperaModule ? 'block' : 'none';
                 if (proprietarioMsg) proprietarioMsg.style.display = hasManodoperaModule ? 'none' : 'block';
-                await loadVigneti();
+                await loadFrutteti();
                 await loadProdottiAnagrafica();
                 document.getElementById('btn-aggiungi-prodotto-trattamento').addEventListener('click', aggiungiRigaProdottoTrattamento);
                 document.getElementById('trattamento-superficie').addEventListener('input', ricalcolaQuantitaCostoProdotti);
-                document.getElementById('filter-vigneto').addEventListener('change', loadTrattamenti);
+                document.getElementById('filter-frutteto').addEventListener('change', loadTrattamenti);
                 document.getElementById('filter-anno').addEventListener('change', loadTrattamenti);
                 document.getElementById('close-modal').addEventListener('click', closeModal);
                 document.getElementById('cancel-btn').addEventListener('click', closeModal);
@@ -1841,11 +1786,11 @@
                 const selPrecedente = document.getElementById('trattamento-precedente-id');
                 if (selPrecedente) {
                     selPrecedente.addEventListener('change', async function() {
-                        const vid = document.getElementById('trattamento-vigneto-id').value;
+                        const fid = document.getElementById('trattamento-frutteto-id').value;
                         const pid = this.value;
-                        if (!pid || !vid) return;
+                        if (!pid || !fid) return;
                         if (!document.getElementById('trattamento-prosegue-precedente').checked) return;
-                        await applicaDatiDaTrattamentoPrecedenteVigneto(vid, pid);
+                        await applicaDatiDaTrattamentoPrecedenteFrutteto(fid, pid);
                     });
                 }
                 const cbSupAnag = document.getElementById('trattamento-superficie-anagrafe');

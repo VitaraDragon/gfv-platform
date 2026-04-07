@@ -28,7 +28,13 @@ const CATEGORIE_PREDEFINITE = [
   {
     nome: 'Trattamenti',
     codice: 'trattamenti',
-    descrizione: 'Fitofarmaci, concimazione, irrigazione, ecc.',
+    descrizione: 'Fitofarmaci, irrigazione, ecc.',
+    predefinita: true
+  },
+  {
+    nome: 'Concimazione',
+    codice: 'concimazione',
+    descrizione: 'Concimazioni di fondo, fogliari, organici, ecc.',
     predefinita: true
   },
   {

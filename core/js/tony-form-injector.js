@@ -660,6 +660,20 @@
    * matchi il tipo sbagliato sotto Gestione del Verde.
    * Se Gemini invia un ID Firestore (es. 1pUgzBjZLer6gPxjMDO9), risolvi a nome.
    */
+  function getDefaultTipoTrattamentoAnticrittogamico() {
+    var m = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING) || {};
+    return m.DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO || 'Trattamento Anticrittogamico Meccanico';
+  }
+
+  function getDefaultSottocategoriaTrattamentiTony() {
+    var m = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING) || {};
+    return m.DEFAULT_SOTTOCATEGORIA_TRATTAMENTI_TONY || 'Meccanico';
+  }
+
+  /**
+   * Risolve il nome tipo lavoro dal catalogo. Per "Trattamento Anticrittogamico …" con match multipli
+   * (Manuale vs Meccanico) preferisce Meccanico se l'input non specifica "manuale" (default Tony).
+   */
   function resolveTipoLavoroToNome(rawValue) {
     if (!rawValue || !window.lavoriState || !Array.isArray(window.lavoriState.tipiLavoroList)) return rawValue;
     var list = window.lavoriState.tipiLavoroList;
@@ -684,6 +698,39 @@
       return false;
     });
     if (matches.length === 0) return rawValue;
+
+    var defAnticritto = getDefaultTipoTrattamentoAnticrittogamico();
+    var anticrittoHits = matches.filter(function (t) {
+      var n = (t.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n.indexOf('anticrittogamico') >= 0;
+    });
+    if (anticrittoHits.length >= 2) {
+      if (search.indexOf('manuale') >= 0) {
+        var onlyM = anticrittoHits.find(function (t) {
+          return (t.nome || '').toLowerCase().indexOf('manuale') >= 0;
+        });
+        if (onlyM && onlyM.nome) return onlyM.nome;
+      }
+      if (search.indexOf('meccanico') >= 0) {
+        var onlyMc = anticrittoHits.find(function (t) {
+          return (t.nome || '').toLowerCase().indexOf('meccanico') >= 0;
+        });
+        if (onlyMc && onlyMc.nome) return onlyMc.nome;
+      }
+      var defObj = anticrittoHits.find(function (t) { return (t.nome || '') === defAnticritto; });
+      if (defObj && defObj.nome) return defObj.nome;
+      var preferMc = anticrittoHits.find(function (t) {
+        var n = (t.nome || '').toLowerCase();
+        return n.indexOf('meccanico') >= 0;
+      });
+      if (preferMc && preferMc.nome) return preferMc.nome;
+    }
+
+    if (matches.length > 1 && search.indexOf('anticrittogamico') >= 0 && search.indexOf('manuale') < 0 && search.indexOf('meccanico') < 0) {
+      var defHit2 = matches.find(function (t) { return (t.nome || '') === defAnticritto; });
+      if (defHit2 && defHit2.nome) return defHit2.nome;
+    }
+
     var best = matches.sort(function (a, b) {
       var lenA = (a.nome || '').length;
       var lenB = (b.nome || '').length;
@@ -719,6 +766,96 @@
       });
     }
     return _resolveByName(rawValue, all, 'nome') || rawValue;
+  }
+
+  /**
+   * Risolve la sottocategoria nel contesto della categoria principale attualmente selezionata.
+   * Evita di prendere un id "Meccanico/Manuale" appartenente a un'altra categoria.
+   */
+  function resolveSottocategoriaLavoriForCurrentCategory(rawValue) {
+    if (rawValue === undefined || rawValue === null || rawValue === '' || !window.lavoriState) return rawValue;
+    var categoriaEl = document.getElementById('lavoro-categoria-principale');
+    var categoriaId = categoriaEl ? categoriaEl.value : null;
+    var subMap = window.lavoriState.sottocategorieLavoriMap;
+    if (!categoriaId || !subMap || typeof subMap.get !== 'function') return resolveCategoriaLavori(rawValue);
+    var subs = subMap.get(categoriaId) || [];
+    if (!Array.isArray(subs) || subs.length === 0) return resolveCategoriaLavori(rawValue);
+    var raw = String(rawValue).trim();
+    var byId = subs.find(function (s) { return s && (s.id || '') === raw; });
+    if (byId && byId.id) return byId.id;
+    var search = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var byName = subs.find(function (s) {
+      var n = String((s && (s.nome || s.text)) || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n && (n === search || n.indexOf(search) >= 0 || search.indexOf(n) >= 0);
+    });
+    return byName && byName.id ? byName.id : rawValue;
+  }
+
+  /**
+   * True se il valore di lavoro-categoria-principale punta alla categoria Trattamenti (id o nome) o a una sua sottocategoria.
+   */
+  function isTrattamentiLavoroCategoryFromFormValue(catRaw) {
+    if (catRaw == null || String(catRaw).trim() === '' || !window.lavoriState) return false;
+    var main = window.lavoriState.categorieLavoriPrincipali || [];
+    var subMap = window.lavoriState.sottocategorieLavoriMap;
+    var flat = main.slice();
+    if (subMap && typeof subMap.forEach === 'function') {
+      subMap.forEach(function (items) {
+        if (Array.isArray(items)) flat = flat.concat(items);
+      });
+    }
+    var id = String(catRaw).trim();
+    var cat = flat.find(function (c) { return c && c.id === id; });
+    if (!cat) {
+      var idLow = id.toLowerCase();
+      cat = flat.find(function (c) {
+        return c && (c.nome || '').toLowerCase() === idLow;
+      });
+    }
+    if (!cat && !looksLikeFirestoreDocId(id)) {
+      var resolved = resolveCategoriaLavori(catRaw);
+      var rid = resolved != null ? String(resolved).trim() : '';
+      if (rid && rid !== id) cat = flat.find(function (c) { return c && c.id === rid; });
+    }
+    if (!cat) return false;
+    if ((cat.codice || '').toLowerCase() === 'trattamenti') return true;
+    if (cat.parentId) {
+      var parent = main.find(function (p) { return p && p.id === cat.parentId; });
+      if (parent && (parent.codice || '').toLowerCase() === 'trattamenti') return true;
+    }
+    return false;
+  }
+
+  /**
+   * Dopo navigazione (pending-after-nav) la CF può inviare formData parziale senza tipo/sottocategoria.
+   * Per categoria Trattamenti compila default Tony (Meccanico + Anticrittogamico meccanico).
+   */
+  function ensureTrattamentiDefaultsForLavoroForm(formData) {
+    if (!formData || !window.lavoriState) return;
+    if (!isTrattamentiLavoroCategoryFromFormValue(formData['lavoro-categoria-principale'])) return;
+    var defTipo = getDefaultTipoTrattamentoAnticrittogamico();
+    var defSub = getDefaultSottocategoriaTrattamentiTony();
+    var tipoStr = formData['lavoro-tipo-lavoro'] != null ? String(formData['lavoro-tipo-lavoro']).trim() : '';
+    if (!tipoStr) {
+      formData['lavoro-tipo-lavoro'] = defTipo;
+      log('ensureTrattamentiDefaults: tipo lavoro (mancante) → ' + defTipo);
+    } else {
+      formData['lavoro-tipo-lavoro'] = resolveTipoLavoroToNome(formData['lavoro-tipo-lavoro']);
+    }
+    var tipoNorm = String(formData['lavoro-tipo-lavoro'] || '').toLowerCase();
+    if (tipoNorm.indexOf('anticrittogamico manuale') >= 0) {
+      formData['lavoro-tipo-lavoro'] = defTipo;
+      log('ensureTrattamentiDefaults: override anticrittogamico manuale → default meccanico');
+    }
+    var subStr = formData['lavoro-sottocategoria'] != null ? String(formData['lavoro-sottocategoria']).trim() : '';
+    if (!subStr) {
+      formData['lavoro-sottocategoria'] = defSub;
+      log('ensureTrattamentiDefaults: sottocategoria (mancante) → ' + defSub);
+    }
+    if (formData['lavoro-tipo-lavoro'] === defTipo) {
+      formData['lavoro-sottocategoria'] = defSub;
+      log('ensureTrattamentiDefaults: sottocategoria allineata al tipo default → ' + defSub);
+    }
   }
 
   function resolveValueAttivita(fieldId, value, context) {
@@ -848,7 +985,9 @@
     if (value === undefined || value === null || value === '') return value;
     switch (fieldId) {
       case 'lavoro-categoria-principale':
-      case 'lavoro-sottocategoria': return resolveCategoriaLavori(value);
+        return resolveCategoriaLavori(value);
+      case 'lavoro-sottocategoria':
+        return resolveSottocategoriaLavoriForCurrentCategory(value);
       case 'lavoro-tipo-lavoro': return resolveTipoLavoroToNome(value);
       case 'lavoro-terreno': return resolveFromLavoriState(value, 'terreniList', 'nome');
       case 'lavoro-caposquadra': return resolveFromLavoriState(value, 'caposquadraList', 'nome');
@@ -1286,6 +1425,11 @@
         var subGroup = document.getElementById('lavoro-sottocategoria-group');
         if (subGroup) subGroup.style.display = 'block';
         await waitForSelectOptions('lavoro-sottocategoria', 2);
+        var rawSubLav = formData[fieldId];
+        var rawSubStrLav = rawSubLav != null ? String(rawSubLav).trim() : '';
+        if (rawSubStrLav && looksLikeFirestoreDocId(rawSubStrLav)) {
+          await waitForSelectOptionValue('lavoro-sottocategoria', rawSubStrLav, 12000);
+        }
       }
       if (fieldId === 'lavoro-tipo-lavoro') {
         var tipoGroup = document.getElementById('tipo-lavoro-group');
@@ -1314,6 +1458,22 @@
       }
       if (fieldId === 'lavoro-operaio' || fieldId === 'lavoro-caposquadra') {
         await waitForSelectOptions(fieldId, 2);
+      }
+      if (formId === 'lavoro-form' && fieldId === 'lavoro-trattore') {
+        await waitForSelectOptions('lavoro-trattore', 2, 12000);
+        var rawTrInj = formData[fieldId];
+        var rawTrStrInj = rawTrInj != null ? String(rawTrInj).trim() : '';
+        if (rawTrStrInj && looksLikeFirestoreDocId(rawTrStrInj)) {
+          await waitForSelectOptionValue('lavoro-trattore', rawTrStrInj, 12000);
+        }
+      }
+      if (formId === 'lavoro-form' && fieldId === 'lavoro-attrezzo') {
+        await waitForSelectOptions('lavoro-attrezzo', 2, 12000);
+        var rawAtInj = formData[fieldId];
+        var rawAtStrInj = rawAtInj != null ? String(rawAtInj).trim() : '';
+        if (rawAtStrInj && looksLikeFirestoreDocId(rawAtStrInj)) {
+          await waitForSelectOptionValue('lavoro-attrezzo', rawAtStrInj, 12000);
+        }
       }
       if (formId === 'movimento-form' && fieldId === 'mov-prodotto') {
         await waitForSelectOptions('mov-prodotto', 2, 12000);
@@ -1620,6 +1780,8 @@
 
     applyAssignmentIntelligence(formData);
 
+    ensureTrattamentiDefaultsForLavoroForm(formData);
+
     var tipoNome = formData['lavoro-tipo-lavoro'];
     if (tipoNome) {
       var derived = deriveParentsFromTipoLavoro(tipoNome, context, formData);
@@ -1699,17 +1861,24 @@
       }
     }
 
-    // Second pass: se lavoro-terreno era presente, il suo change handler può aver ricaricato
-    // il dropdown tipo-lavoro e azzerato la selezione. Re-inietta lavoro-tipo-lavoro dopo
-    // un delay per dare tempo a loadTipiLavoro di completare (600ms per ricaricamento asincrono).
-    if (ok && formData['lavoro-tipo-lavoro'] && formData['lavoro-terreno']) {
+    // Second pass: il change su terreno può ricaricare dropdown e azzerare tipo/sottocategoria.
+    if (ok && formData['lavoro-terreno']) {
       await delay(600);
-      var select = document.getElementById('lavoro-tipo-lavoro');
-      if (select && !select.value) {
-        var resolved = resolveValueLavoro('lavoro-tipo-lavoro', formData['lavoro-tipo-lavoro'], context);
-        if (resolved) {
-          setFieldValue('lavoro-tipo-lavoro', resolved, mapConfig, context);
+      ensureTrattamentiDefaultsForLavoroForm(formData);
+      var tipoSel = document.getElementById('lavoro-tipo-lavoro');
+      var subSel = document.getElementById('lavoro-sottocategoria');
+      if (tipoSel && (!tipoSel.value || String(tipoSel.value).trim() === '') && formData['lavoro-tipo-lavoro']) {
+        var resolvedTipo = resolveValueLavoro('lavoro-tipo-lavoro', formData['lavoro-tipo-lavoro'], context);
+        if (resolvedTipo) {
+          setFieldValue('lavoro-tipo-lavoro', resolvedTipo, mapConfig, context);
           log('Second pass: re-iniettato lavoro-tipo-lavoro dopo cambio terreno');
+        }
+      }
+      if (subSel && (!subSel.value || String(subSel.value).trim() === '') && formData['lavoro-sottocategoria']) {
+        var resolvedSub = resolveValueLavoro('lavoro-sottocategoria', formData['lavoro-sottocategoria'], context);
+        if (resolvedSub) {
+          setFieldValue('lavoro-sottocategoria', resolvedSub, mapConfig, context);
+          log('Second pass: re-iniettato lavoro-sottocategoria dopo cambio terreno');
         }
       }
     }

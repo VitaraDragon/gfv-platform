@@ -24,6 +24,33 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
     var POST_INJECT_CHECK_DELAY_MS = 2800;
     var IDLE_REMINDER_MS = 7000;
 
+    /** True se il messaggio utente sembra già indicare trattore e/o attrezzo (Gestione Lavori). */
+    function tonyUserMentionedLavoroMacchine(userText) {
+        if (!userText) return false;
+        var t = String(userText).toLowerCase();
+        if (/\bcon\s+[^\n,]{1,48}\s+e\s+[^\n,]{1,48}/.test(t)) return true;
+        if (/\b(trattrice|trattor)\b/.test(t)) return true;
+        if (/\b(agrifull|erpice|nebulizz|atomizz|irrorat|spand|zappat|spread)\w*\b/.test(t)) return true;
+        return false;
+    }
+
+    /** Rimuove domande ridondanti su trattore/attrezzo se l'utente li aveva già nel messaggio. */
+    function tonySanitizeLavoroMacchineQuestionInReply(displayText, userText) {
+        if (!displayText || !userText || !tonyUserMentionedLavoroMacchine(userText)) return displayText;
+        var s = String(displayText);
+        var patterns = [
+            /\b[Qq]uale\s+trattor[ei]?\s+e\s+attrezzo\b[^?]*\?/gi,
+            /\b[Qq]uale\s+trattor[ei]\b[^?]*\?/gi,
+            /\b[Cc]he\s+trattor[ei]\b[^?]*\?/gi
+        ];
+        for (var pi = 0; pi < patterns.length; pi++) {
+            s = s.replace(patterns[pi], '');
+        }
+        s = s.replace(/\s{2,}/g, ' ').replace(/\s+([.!?])/g, '$1').trim();
+        s = s.replace(/^[\s.,;]+|[\s.,;]+$/g, '').trim();
+        return s.length ? s : displayText;
+    }
+
     function getTonyCommandPriority(command) {
         var type = command && command.type ? String(command.type).toUpperCase() : '';
         if (type === 'OPEN_MODAL') return 10;
@@ -980,7 +1007,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                         var needsMacchine = false;
                                         var tipoEl = document.getElementById('lavoro-tipo-lavoro');
                                         var tipoVal = (tipoEl && tipoEl.options && tipoEl.options[tipoEl.selectedIndex]) ? (tipoEl.options[tipoEl.selectedIndex].text || '').toLowerCase() : '';
-                                        var isMeccanico = /erpicatur|trinciatur|fresatur|pre-potatur|potatur\s+meccanica|vendemmia\s+meccanica|vangatur|raccolta\s+meccanica/.test(tipoVal);
+                                        var isMeccanico = /erpicatur|trinciatur|fresatur|pre-potatur|potatur\s+meccanica|vendemmia\s+meccanica|vangatur|raccolta\s+meccanica/.test(tipoVal)
+                                            || /\bmeccanic[oa]\b/.test(tipoVal);
                                         if (isMeccanico) {
                                             var trEl = document.getElementById('lavoro-trattore');
                                             var atEl = document.getElementById('lavoro-attrezzo');
@@ -1000,8 +1028,14 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                             if (state.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
                                                 window.__tonyTriggerAskForSaveConfirmation();
                                             } else if (state.type === 'missing_fields' && typeof window.__tonyTriggerAskForMissingFields === 'function') {
-                                                var msg = (state.needsMacchineOnly) ? 'Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e erpice vuoi usare?' : null;
-                                                window.__tonyTriggerAskForMissingFields(msg);
+                                                var lastUpM = '';
+                                                try { lastUpM = String(sessionStorage.getItem('tony_last_user_message') || '').trim(); } catch (eMk) {}
+                                                if (state.needsMacchineOnly && lastUpM && tonyUserMentionedLavoroMacchine(lastUpM)) {
+                                                    window.__tonyProactiveFormState = null;
+                                                } else {
+                                                    var msg = (state.needsMacchineOnly) ? 'Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e erpice vuoi usare?' : null;
+                                                    window.__tonyTriggerAskForMissingFields(msg);
+                                                }
                                             }
                                             window.__tonyProactiveFormState = null;
                                         }, IDLE_REMINDER_MS);
@@ -3118,6 +3152,33 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
             }
             saveTonyState();
 
+            function shouldForceLavoroStructuredReply(userText) {
+                if (!userText) return false;
+                var p = (window.location && window.location.pathname ? String(window.location.pathname).toLowerCase() : '');
+                var onGestioneLavori = p.indexOf('gestione-lavori') >= 0;
+                if (!onGestioneLavori) return false;
+                var t = String(userText).toLowerCase();
+                var hasCreateIntent = /crea\s+un?\s+lavor|nuovo\s+lavor|pianifica\s+lavor|assegna\s+lavor/.test(t);
+                var hasWorkKeywords = /trattament|potatur|trinciatur|fresatur|erpicatur|concimaz|raccolt|vendemmi/.test(t);
+                return hasCreateIntent || hasWorkKeywords;
+            }
+
+            function buildForcedLavoroPrompt(userText) {
+                var extra = '\n\n[ISTRUZIONE CLIENT OBBLIGATORIA]\n' +
+                    'Se la richiesta riguarda creazione/compilazione lavoro in Gestione Lavori, rispondi SOLO con comando strutturato, non testo libero.\n' +
+                    'Output ammessi:\n' +
+                    '1) OPEN_MODAL con id "lavoro-modal" e fields popolati, oppure\n' +
+                    '2) INJECT_FORM_DATA con formId "lavoro-form" e formData popolato.\n' +
+                    'Usa default trattamenti quando l\'utente dice solo "trattamento":\n' +
+                    '- lavoro-categoria-principale = "Trattamenti"\n' +
+                    '- lavoro-sottocategoria = "Meccanico"\n' +
+                    '- lavoro-tipo-lavoro = "Trattamento Anticrittogamico Meccanico"\n' +
+                    'Macchine: se l\'utente indica trattore e attrezzo (es. "con Agrifull e nebulizzatore"), includi nel primo formData le chiavi lavoro-trattore e lavoro-attrezzo (nome o id dal contesto parco macchine). ' +
+                    'Nel campo "text" NON chiedere trattore o attrezzo se sono già nel messaggio utente; testo breve ok (es. conferma o salva).\n' +
+                    'Non rispondere con sola domanda se i dati sono già presenti nel messaggio utente.[/ISTRUZIONE CLIENT OBBLIGATORIA]';
+                return String(userText || '') + extra;
+            }
+
             // Intercetta richiesta riassunto briefing (Dashboard)
             var textTrimmed = text.replace(/\s+/g, ' ').trim().toLowerCase();
             var riassuntoIntents = ['sì', 'si', 'ok', 'fammi il riassunto', 'dammi il riassunto', 'voglio il riassunto', 'dimmi il riassunto', 'riassunto'];
@@ -3565,6 +3626,12 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     else if (isSumColumnCmd) finalSpeech = '';
                     else finalSpeech = finalSpeech || 'Ok';
                 }
+                if (!opts.proactive) {
+                    var pathGestLavSan = (window.location && window.location.pathname) ? String(window.location.pathname).toLowerCase() : '';
+                    if (pathGestLavSan.indexOf('gestione-lavori') >= 0) {
+                        finalSpeech = tonySanitizeLavoroMacchineQuestionInReply(finalSpeech, text);
+                    }
+                }
                 function doDisplay(txt) {
                     var out = (txt != null && String(txt).trim()) ? String(txt).trim() : finalSpeech;
                     appendMessage(out, 'tony');
@@ -3582,7 +3649,14 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             window.Tony.setContext('lavori', (window.Tony.context && window.Tony.context.lavori) || {});
                         }
                         window.TonyFormInjector.extractAndInjectFromResponse(finalSpeech, window.Tony ? window.Tony.context : {}, formCtxForInject).then(function(res) {
-                            doDisplay(res.injected ? res.cleanedText : finalSpeech);
+                            var toShow = res.injected ? res.cleanedText : finalSpeech;
+                            if (!opts.proactive) {
+                                var pathExtract = (window.location && window.location.pathname) ? String(window.location.pathname).toLowerCase() : '';
+                                if (pathExtract.indexOf('gestione-lavori') >= 0) {
+                                    toShow = tonySanitizeLavoroMacchineQuestionInReply(toShow, text);
+                                }
+                            }
+                            doDisplay(toShow);
                         });
                     } else {
                         doDisplay(finalSpeech);
@@ -3616,9 +3690,14 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 inputEl.focus();
             }
 
+                var textForTony = text;
+                if (!opts.proactive && shouldForceLavoroStructuredReply(text)) {
+                    textForTony = buildForcedLavoroPrompt(text);
+                }
+
                 if (useStream) {
                     var streamingAccum = '';
-                    window.Tony.askStream(text, {
+                    window.Tony.askStream(textForTony, {
                         skipUserHistory: !!opts.proactive,
                         proactive: !!opts.proactive,
                         onChunk: function(chunk) {
@@ -3636,7 +3715,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         }
                     }).then(onComplete).catch(onError).finally(onFinally);
                 } else {
-                    window.Tony.ask(text, { skipUserHistory: !!opts.proactive, proactive: !!opts.proactive }).then(onComplete).catch(onError).finally(onFinally);
+                    window.Tony.ask(textForTony, { skipUserHistory: !!opts.proactive, proactive: !!opts.proactive }).then(onComplete).catch(onError).finally(onFinally);
                 }
             };
             

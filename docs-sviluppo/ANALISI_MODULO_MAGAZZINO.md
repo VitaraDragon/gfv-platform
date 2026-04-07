@@ -203,7 +203,7 @@ Stile e pattern delle pagine: come in `conto-terzi` o `vigneto` (standalone, ste
    Modello MovimentoMagazzino + movimenti-service, aggiornamento giacenza a ogni movimento. Pagina movimenti (lista + form entrata/scarico/rettifica). Home magazzino con lista giacenze e alert scorta minima.
 
 3. **Fase 3 – Integrazione trattamenti**  
-   In trattamenti vigneto/frutteto: scelta prodotto da anagrafica; opzionale creazione scarico automatico alla conferma trattamento.
+   In trattamenti vigneto/frutteto: scelta prodotto da anagrafica; **opzionale creazione scarico in magazzino** alla conferma trattamento (checkbox se modulo magazzino attivo; servizio `trattamento-scarico-magazzino-service.js`; verificato da attività e da lavoro — 2026-04).
 
 4. **Fase 4 – Report e ottimizzazioni**  
    Report consumi, valore magazzino, storico; eventuale confronto con “calcolo materiali” e lista “da acquistare”.
@@ -227,6 +227,8 @@ Stile e pattern delle pagine: come in `conto-terzi` o `vigneto` (standalone, ste
 | **Unità / Confezioni / Uso parziale** | Un prodotto = un’unità base (L o kg); stock e movimenti sempre in quella unità; confezioni come nota sul movimento; uso parziale (es. 0,3 L da trattamento) supportato; stesso prodotto non duplicato per formati confezione diversi. Vedi sezione 5. |
 | **Come svilupparlo** | Stesso pattern di Conto Terzi / Vigneto: modelli Base, servizi Firestore multi-tenant, viste standalone, modulo attivabile dalla nuova pagina abbonamento e visibile in dashboard (con alert in dashboard Manager). |
 | **Ordine consigliato** | Prima anagrafica e movimenti + giacenza; poi collegamento lavori/attività e integrazione trattamenti; infine report e funzionalità avanzate (lotti, ubicazioni). |
+
+**Evoluzioni pianificate (non implementate)**: ipotesi su acquisizione documenti con Gemini/fotocamera (bolla vs fattura, prezzi in attesa) e compatibilità con questo modello → `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md`.
 
 ---
 

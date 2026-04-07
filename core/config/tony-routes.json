@@ -193,6 +193,12 @@
       "module": "conto-terzi"
     },
     {
+      "target": "concimazioni frutteto",
+      "path": "modules/frutteto/views/concimazioni-standalone.html",
+      "label": "Concimazioni",
+      "module": "frutteto"
+    },
+    {
       "target": "frutteti",
       "path": "modules/frutteto/views/frutteti-standalone.html",
       "label": "Frutteti",
@@ -283,6 +289,12 @@
       "module": "magazzino"
     },
     {
+      "target": "tracciabilita consumi",
+      "path": "modules/magazzino/views/tracciabilita-consumi-standalone.html",
+      "label": "Tracciabilita Consumi",
+      "module": "magazzino"
+    },
+    {
       "target": "report",
       "path": "modules/report/views/report-standalone.html",
       "label": "Report",
@@ -292,6 +304,12 @@
       "target": "calcolo materiali",
       "path": "modules/vigneto/views/calcolo-materiali-standalone.html",
       "label": "Calcolo Materiali",
+      "module": "vigneto"
+    },
+    {
+      "target": "concimazioni vigneto",
+      "path": "modules/vigneto/views/concimazioni-standalone.html",
+      "label": "Concimazioni",
       "module": "vigneto"
     },
     {
@@ -337,5 +355,5 @@
       "module": "vigneto"
     }
   ],
-  "generatedAt": "2026-02-24T10:37:40.466Z"
+  "generatedAt": "2026-04-06T14:10:18.413Z"
 }

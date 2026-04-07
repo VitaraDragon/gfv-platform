@@ -23,6 +23,9 @@ export class MovimentoMagazzino extends Base {
    * @param {string} data.note - Note (opzionale)
    * @param {string} data.userId - ID utente che ha registrato (opzionale)
    * @param {string} data.confezione - Descrizione confezione (opzionale, es. "1 bidone 5 L")
+   * @param {'vigneto'|'frutteto'|null} [data.origineTrattamentoModulo] - Scarico generato da trattamento coltura
+   * @param {string|null} [data.origineTrattamentoColturaId] - vignetoId / fruttetoId
+   * @param {string|null} [data.origineTrattamentoId] - ID documento trattamento nella sub-collection
    */
   constructor(data = {}) {
     super(data);
@@ -31,12 +34,21 @@ export class MovimentoMagazzino extends Base {
     this.data = data.data ? timestampToDate(data.data) : null;
     this.tipo = data.tipo || 'entrata';
     this.quantita = data.quantita !== undefined ? parseFloat(data.quantita) : 0;
-    this.prezzoUnitario = data.prezzoUnitario !== undefined ? parseFloat(data.prezzoUnitario) : null;
+    // parseFloat(null) è NaN: trattare null/'' come assenza prezzo (uscite senza valore economico)
+    if (data.prezzoUnitario === undefined || data.prezzoUnitario === null || data.prezzoUnitario === '') {
+      this.prezzoUnitario = null;
+    } else {
+      const p = parseFloat(data.prezzoUnitario);
+      this.prezzoUnitario = Number.isFinite(p) ? p : null;
+    }
     this.lavoroId = data.lavoroId || null;
     this.attivitaId = data.attivitaId || null;
     this.note = data.note || '';
     this.userId = data.userId || null;
     this.confezione = data.confezione || '';
+    this.origineTrattamentoModulo = data.origineTrattamentoModulo || null;
+    this.origineTrattamentoColturaId = data.origineTrattamentoColturaId || null;
+    this.origineTrattamentoId = data.origineTrattamentoId || null;
   }
 
   /**

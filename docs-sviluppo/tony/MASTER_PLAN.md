@@ -256,6 +256,7 @@ Tony non "compila" grafici. Può:
 ## 11. Riferimenti
 
 - **Stato attuale**: `docs-sviluppo/tony/STATO_ATTUALE.md`
+- **Magazzino – ipotesi future (OCR/Gemini, bolla/fattura, prezzi in attesa)**: `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — da considerare quando si lavora su acquisizione documenti e movimenti d’acquisto
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - **Changelog**: `docs-sviluppo/COSA_ABBIAMO_FATTO.md`
 - **Sicurezza (Firestore, link pubblici, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`

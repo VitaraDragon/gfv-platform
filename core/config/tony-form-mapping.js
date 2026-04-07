@@ -114,6 +114,7 @@ REGOLE:
 5. Per "oggi" usa la data odierna. Per "alle 7" usa "07:00".
 6. Se l'utente dice "ho trinciato nel Sangiovese": formData = { attivita-tipo-lavoro-gerarchico: "Trinciatura", attivita-terreno: "Sangiovese" }. La categoria e sottocategoria sono derivabili dal tipo lavoro, puoi includerle se conosci la tassonomia dal contesto.
 7. Se l'utente dice solo "erpicatura": formData = { attivita-tipo-lavoro-gerarchico: "Erpicatura" } (o "Erpicatura Tra le File" se nel contesto).
+8. TRATTAMENTI: Se l'utente dice solo "trattamento" (o sinonimi generici) senza specificare insetticida, imposta in formData: attivita-categoria-principale nome "Trattamenti", attivita-sottocategoria nome "Meccanico" (usa il nome esatto presente nel contesto, es. Meccanica se così è in anagrafica), attivita-tipo-lavoro-gerarchico nome esatto "Trattamento Anticrittogamico Meccanico" se nel contesto tipi_lavoro. "Trattamento Insetticida" solo se l'utente lo chiede esplicitamente. I tipi Anticrittogamico e Insetticida sono entrambi validi sia in sottocategoria Manuale che Meccanico; il default resta Trattamenti → Meccanico → Anticrittogamico meccanico. Se hasParcoMacchineModule è true e servono macchine, chiedi attivita-macchina e attivita-attrezzo se vuoti in formSummary.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -190,6 +191,8 @@ CAMPI OBBLIGATORI (tutti richiesti prima di salvare):
 CAMPI OPZIONALI: lavoro-trattore, lavoro-attrezzo, lavoro-operatore-macchina, lavoro-note.
 
 REGOLE MACCHINE (proattivo): Se hasParcoMacchineModule true e lavoro-tipo è meccanico (Trinciatura, Erpicatura, Fresatura, ecc.) e lavoro-trattore vuoto in formSummary → chiedi "Vuoi assegnare un trattore? Quale trattore e attrezzo?" prima di salvare. Risposta no → procedi senza.
+
+TRATTAMENTI (default Tony): Se l'utente dice solo "trattamento" senza altri dettagli, compila: lavoro-categoria-principale nome "Trattamenti", lavoro-sottocategoria nome "Meccanico" (nome esatto dal contesto), lavoro-tipo-lavoro nome esatto "Trattamento Anticrittogamico Meccanico" se nel contesto. Se chiede trattamento insetticida, usa nome esatto "Trattamento Insetticida" dal contesto. Anticrittogamico e Insetticida restano scelta valida sia con sottocategoria Manuale che Meccanico; se l'utente non specifica, resta il default Trattamenti → Meccanico → Anticrittogamico meccanico. Con hasParcoMacchineModule true, chiedi lavoro-trattore e lavoro-attrezzo se pertinenti e ancora vuoti in formSummary.
 
 REGOLE: formData con TUTTI i campi per cui hai valore; usa formSummary; NON save se required vuoti; ordine domande: nome→terreno→tipo→assegnazione→caposquadra/operaio→data→durata.
 IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
@@ -427,10 +430,16 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     'movimento-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS
   };
 
+  /** Allineato a core/config/trattamenti-lavoro-defaults.js */
+  const DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO = 'Trattamento Anticrittogamico Meccanico';
+  const DEFAULT_SOTTOCATEGORIA_TRATTAMENTI_TONY = 'Meccanico';
+
   global.TONY_FORM_MAPPING = {
     getFormMap: (formKey) => mapping[formKey] || null,
     getSchema: (formKey) => schemas[formKey] || null,
     getSystemInstruction: (formKey) => systemInstructions[formKey] || null,
+    DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO,
+    DEFAULT_SOTTOCATEGORIA_TRATTAMENTI_TONY,
     ATTIVITA_RESPONSE_SCHEMA,
     ATTIVITA_FORM_MAP,
     LAVORO_FORM_MAP,

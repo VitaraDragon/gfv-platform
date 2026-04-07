@@ -68,6 +68,12 @@ Gestisci l’intero ciclo di vita dei lavori: pianificazione, assegnazione, avan
 | In corso | Lavoro iniziato | Caposquadra → “Inizia lavoro” |
 | Completato | Attività finite | Caposquadra/Manager → “Completa lavoro” |
 | Approvato | Validato dal Manager | Manager → “Approva lavoro” |
+| Sospeso | Lavoro interrotto (es. condizioni meteo); si può creare una **ripresa** | Caposquadra → sospensione; Manager → **Crea ripresa** |
+
+### ⏸️ Sospensione e ripresa
+
+- Il **caposquadra** può **sospendere** un lavoro **In corso** (con indicazione del motivo). Il lavoro passa allo stato **Sospeso**.
+- Il **Manager**, in **Gestione Lavori**, può creare un **nuovo lavoro di ripresa** collegato al lavoro sospeso tramite il pulsante **Crea ripresa**. Si apre una finestra in cui scegliere la **data di inizio** del nuovo lavoro (non è impostata automaticamente sul solo “oggi”): vengono copiati terreno, tipo lavoro e assegnazione; il nuovo lavoro è in stato **Assegnato** e collegato al precedente per tracciabilità.
 
 ---
 

@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-04-04  
+**Data**: 2026-04-05  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md`  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -112,4 +112,10 @@
 - Non toccare Tony Guida durante lavori su Operativo
 - Non introdurre logica hardcoded per singolo modal
 - Nuovo form = voce in TONY_FORM_MAPPING, non if/else
+
+---
+
+## 9. Riferimento incrociato (moduli non Tony)
+
+Lo stato delle **fasi e dei componenti Tony** in questo file non è cambiato rispetto alla verifica precedente. Per modifiche di codice su **trattamenti Vigneto/Frutteto** (ottimizzazione caricamento liste, flag **superficie da anagrafe terreno**, documentazione utente/sviluppo aggiornata) vedi **`docs-sviluppo/COSA_ABBIAMO_FATTO.md`** (voce **2026-04-05**).
 

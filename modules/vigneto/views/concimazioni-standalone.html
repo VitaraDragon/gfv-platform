@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trattamenti Vigneto - GFV Platform</title>
+    <title>Concimazioni Vigneto - GFV Platform</title>
     <meta name="theme-color" content="#6A1B9A">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
@@ -75,8 +75,8 @@
     <div class="container">
         <header class="header">
             <div>
-                <h1>🧪 Trattamenti Vigneto</h1>
-                <p>I trattamenti fitosanitari provengono da lavori o attività con categoria <strong>Trattamenti</strong> (non concimazioni). Completa qui i dati aggiuntivi (prodotto, dosaggio, giorni carenza, costi). Dati base in sola lettura.</p>
+                <h1>🌱 Concimazioni Vigneto</h1>
+                <p>Le concimazioni di campo provengono da lavori o attività con categoria <strong>Concimazione</strong>. Completa qui i dati aggiuntivi (prodotto, dosaggio, costi). Dati base in sola lettura.</p>
             </div>
             <div class="header-actions">
                 <a href="vigneto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
@@ -98,7 +98,7 @@
                 </div>
             </section>
 
-            <div id="loading" class="empty-state" style="display: none;">Caricamento trattamenti...</div>
+            <div id="loading" class="empty-state" style="display: none;">Caricamento concimazioni...</div>
             <div id="table-wrap" class="table-container" style="display: none;">
                 <table>
                     <thead>
@@ -119,7 +119,7 @@
                 </table>
             </div>
             <div id="empty-state" class="empty-state">
-                <p>Seleziona un vigneto e un anno per vedere i lavori e le attività fitosanitarie (categoria Trattamenti). Completa i dati aggiuntivi dalla lista.</p>
+                <p>Seleziona un vigneto e un anno per vedere i lavori e le attività di concimazione (categoria Concimazione). Completa i dati aggiuntivi dalla lista.</p>
             </div>
         </main>
     </div>
@@ -127,7 +127,7 @@
     <div id="modal-trattamento" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">Nuovo trattamento</h2>
+                <h2 id="modal-title">Nuova concimazione</h2>
                 <button type="button" class="close" id="close-modal">&times;</button>
             </div>
             <form id="form-trattamento">
@@ -234,11 +234,11 @@
                 <div class="form-group">
                     <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-weight: normal;">
                         <input type="checkbox" id="trattamento-prosegue-precedente" style="margin-top: 4px;">
-                        <span>Questo intervento prosegue un trattamento non completato in una sessione precedente</span>
+                        <span>Questo intervento prosegue una concimazione non completata in una sessione precedente</span>
                     </label>
                 </div>
                 <div id="trattamento-precedente-wrap" class="form-group" style="display: none;">
-                    <label for="trattamento-precedente-id">Trattamento precedente (stesso vigneto)</label>
+                    <label for="trattamento-precedente-id">Intervento precedente (stesso vigneto)</label>
                     <select id="trattamento-precedente-id">
                         <option value="">— Seleziona —</option>
                     </select>
@@ -421,7 +421,7 @@
                     o.textContent = label || tr.id;
                     sel.appendChild(o);
                 }
-            } catch (e) { console.warn('[TRATTAMENTI-VIGNETO] lista precedenti', e); }
+            } catch (e) { console.warn('[CONCIMazioni-VIGNETO] lista precedenti', e); }
         }
 
         async function applicaDatiDaTrattamentoPrecedenteVigneto(vignetoId, precedenteId) {
@@ -458,7 +458,7 @@
                 const cop = document.getElementById('trattamento-copertura-terreno');
                 if (cop && parent.coperturaTerreno) cop.value = parent.coperturaTerreno;
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] applicaDatiDaTrattamentoPrecedenteVigneto', e);
+                console.warn('[CONCIMazioni-VIGNETO] applicaDatiDaTrattamentoPrecedenteVigneto', e);
             }
         }
 
@@ -496,7 +496,7 @@
                     if (!isNaN(n) && n > 0) cachedTerrenoSuperficieHa = n;
                 }
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] loadTerrenoSuperficieForModal', e);
+                console.warn('[CONCIMazioni-VIGNETO] loadTerrenoSuperficieForModal', e);
             }
             return cachedTerrenoSuperficieHa;
         }
@@ -548,7 +548,7 @@
                 const { getAllProdotti } = await import(resolvePath('../../../modules/magazzino/services/prodotti-service.js'));
                 listProdottiAnagrafica = await getAllProdotti({ soloAttivi: true }) || [];
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] Anagrafica prodotti non disponibile:', e);
+                console.warn('[CONCIMazioni-VIGNETO] Anagrafica prodotti non disponibile:', e);
                 listProdottiAnagrafica = [];
             }
         }
@@ -877,7 +877,7 @@
             if (!coordinate || coordinate.length < 3 || !mappaTrattamento) return;
             poligonoCoordsTrattamento = coordsToValidLatLngArrayForTrattamento(coordinate);
             if (poligonoCoordsTrattamento.length < 3) {
-                console.warn('[TRATTAMENTI-VIGNETO] Poligono non mostrato: meno di 3 coordinate valide (lat/lng).');
+                console.warn('[CONCIMazioni-VIGNETO] Poligono non mostrato: meno di 3 coordinate valide (lat/lng).');
                 return;
             }
             if (soloConsultazione) {
@@ -1276,7 +1276,7 @@
                 loading.style.display = 'none';
                 tableWrap.style.display = 'none';
                 empty.style.display = 'block';
-                empty.innerHTML = '<p>Seleziona un anno per vedere i lavori e le attività fitosanitarie (categoria Trattamenti).</p>';
+                empty.innerHTML = '<p>Seleziona un anno per vedere i lavori e le attività di concimazione (categoria Concimazione).</p>';
                 return;
             }
 
@@ -1286,14 +1286,14 @@
 
             try {
                 const svc = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                const filtroLista = { filtroCategoria: 'trattamenti' };
+                const filtroLista = { filtroCategoria: 'concimazione' };
                 if (vid) {
                     listRows = await svc.getLavoriAttivitaTrattamentiPerVigneto(vid, annoEffettivo, filtroLista);
                 } else {
                     listRows = await svc.getLavoriAttivitaTrattamentiTuttiVigneti(annoEffettivo, filtroLista);
                 }
             } catch (e) {
-                console.error('[TRATTAMENTI-VIGNETO view] loadTrattamenti errore', e);
+                console.error('[CONCIMazioni-VIGNETO view] loadTrattamenti errore', e);
                 listRows = [];
             }
 
@@ -1301,8 +1301,8 @@
             if (listRows.length === 0) {
                 empty.style.display = 'block';
                 empty.innerHTML = vid
-                    ? '<p>Nessun lavoro o attività fitosanitaria (categoria Trattamenti) per questo vigneto/anno. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Trattamenti su un terreno con vigneto.</p>'
-                    : '<p>Nessun lavoro o attività fitosanitaria (categoria Trattamenti) per l\'anno selezionato. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Trattamenti su un terreno con vigneto.</p>';
+                    ? '<p>Nessun lavoro o attività di concimazione (categoria Concimazione) per questo vigneto/anno. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Concimazione su un terreno con vigneto.</p>'
+                    : '<p>Nessun lavoro o attività di concimazione (categoria Concimazione) per l\'anno selezionato. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Concimazione su un terreno con vigneto.</p>';
                 return;
             }
 
@@ -1392,9 +1392,9 @@
                     await svc.createTrattamentoFromAttivita(row.attivitaId);
                 } else { showAlert('Riga senza lavoro/attività', 'error'); return; }
                 const found = row.lavoroId ? await svc.findTrattamentoByLavoroId(row.lavoroId) : await svc.findTrattamentoByAttivitaId(row.attivitaId);
-                if (!found || found.vignetoId !== row.vignetoId) { showAlert('Trattamento creato ma non trovato per questo vigneto', 'error'); await loadTrattamenti(); return; }
+                if (!found || found.vignetoId !== row.vignetoId) { showAlert('Intervento creato ma non trovato per questo vigneto', 'error'); await loadTrattamenti(); return; }
                 row.trattamento = found.trattamento;
-                document.getElementById('modal-title').textContent = 'Completa dati trattamento';
+                document.getElementById('modal-title').textContent = 'Completa dati concimazione';
                 setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
                 document.getElementById('trattamento-id').value = found.trattamentoId;
                 document.getElementById('trattamento-vigneto-id').value = row.vignetoId;
@@ -1449,7 +1449,7 @@
                     document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? 0;
                     popolaTabellaMacchineTrattamento(prefill.macchine || []);
                 } catch (e) {
-                    console.warn('[TRATTAMENTI-VIGNETO] prefill costi/macchine:', e);
+                    console.warn('[CONCIMazioni-VIGNETO] prefill costi/macchine:', e);
                     popolaTabellaMacchineTrattamento([]);
                 }
                 trattamentoFromAttivitaOnly = !!(row.attivitaId && !row.lavoroId);
@@ -1467,7 +1467,7 @@
                 applyScaricoMagazzinoUi(t);
                 document.getElementById('modal-trattamento').classList.add('active');
             } catch (err) {
-                showAlert(err.message || 'Errore creazione trattamento', 'error');
+                showAlert(err.message || 'Errore creazione concimazione', 'error');
                 await loadTrattamenti();
             }
         }
@@ -1489,7 +1489,7 @@
             const t = row.trattamento;
             const vignetoId = row.vignetoId;
             const trattamentoId = t.id;
-            document.getElementById('modal-title').textContent = 'Modifica dati trattamento';
+            document.getElementById('modal-title').textContent = 'Modifica dati concimazione';
             setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
             document.getElementById('trattamento-id').value = trattamentoId;
             document.getElementById('trattamento-vigneto-id').value = vignetoId;
@@ -1548,7 +1548,7 @@
                 document.getElementById('trattamento-costo-macchina').value = prefill.costoMacchina ?? t.costoMacchina ?? 0;
                 popolaTabellaMacchineTrattamento(prefill.macchine || []);
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] prefill costi/macchine:', e);
+                console.warn('[CONCIMazioni-VIGNETO] prefill costi/macchine:', e);
                 popolaTabellaMacchineTrattamento([]);
             }
             trattamentoFromAttivitaOnly = !!(row.attivitaId && !row.lavoroId);
@@ -1616,7 +1616,7 @@
                     costoManodopera = prefill.costoManodopera ?? 0;
                     costoMacchina = prefill.costoMacchina ?? 0;
                 } catch (err) {
-                    console.warn('[TRATTAMENTI-VIGNETO] ricalcolo costi in salvataggio:', err);
+                    console.warn('[CONCIMazioni-VIGNETO] ricalcolo costi in salvataggio:', err);
                 }
             }
 
@@ -1658,7 +1658,7 @@
                     tipoTrattamentoResolved = existingTr.tipoTrattamento;
                 }
             } catch (e) {
-                console.warn('[TRATTAMENTI-VIGNETO] tipo trattamento esistente:', e);
+                console.warn('[CONCIMAZIONI-VIGNETO] tipo trattamento esistente:', e);
             }
             if (!tipoTrattamentoResolved) {
                 const { inferTipoTrattamentoColturaFromTipoLavoroNome } = await import(resolvePath('../../../core/config/trattamenti-lavoro-defaults.js'));
@@ -1706,22 +1706,22 @@
             if (prosegueCb && prosegueCb.checked) {
                 const prevId = data.prosegueDaTrattamentoId;
                 if (!prevId) {
-                    showAlert('Seleziona il trattamento precedente oppure deseleziona l’opzione.', 'error');
+                    showAlert('Seleziona l’intervento precedente oppure deseleziona l’opzione.', 'error');
                     return;
                 }
                 if (prevId === id) {
-                    showAlert('Il trattamento precedente non può coincidere con il trattamento corrente.', 'error');
+                    showAlert('L’intervento precedente non può coincidere con l’intervento corrente.', 'error');
                     return;
                 }
                 try {
                     const { getTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
                     const prev = await getTrattamento(vignetoId, prevId);
                     if (!prev) {
-                        showAlert('Trattamento precedente non trovato in questo vigneto.', 'error');
+                        showAlert('Intervento precedente non trovato in questo vigneto.', 'error');
                         return;
                     }
                 } catch (ve) {
-                    showAlert(ve.message || 'Verifica trattamento precedente non riuscita.', 'error');
+                    showAlert(ve.message || 'Verifica intervento precedente non riuscita.', 'error');
                     return;
                 }
             }
@@ -1737,13 +1737,13 @@
 
             try {
                 const { updateTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
-                if (!id) { showAlert('Trattamento non trovato', 'error'); return; }
+                if (!id) { showAlert('Intervento non trovato', 'error'); return; }
                 const scaricoGroup = document.getElementById('trattamento-scarico-magazzino-group');
                 const scaricoOpts = (scaricoGroup && scaricoGroup.style.display !== 'none')
                     ? { registraScaricoMagazzino: !!document.getElementById('trattamento-registra-scarico-magazzino')?.checked }
                     : {};
                 await updateTrattamento(vignetoId, id, data, scaricoOpts);
-                showAlert('Trattamento aggiornato.', 'success');
+                showAlert('Concimazione aggiornata.', 'success');
                 closeModal();
                 await loadTrattamenti();
             } catch (err) {
@@ -1754,11 +1754,11 @@
         async function deleteTrattamentoConfirmRow(idx) {
             const row = listRows[idx];
             if (!row || !row.trattamento) return;
-            if (!confirm('Eliminare i dati trattamento? Il lavoro/attività resterà; potrai completare di nuovo dalla lista.')) return;
+            if (!confirm('Eliminare i dati di concimazione? Il lavoro/attività resterà; potrai completare di nuovo dalla lista.')) return;
             try {
                 const { deleteTrattamento } = await import(resolvePath('../services/trattamenti-vigneto-service.js'));
                 await deleteTrattamento(row.vignetoId, row.trattamento.id);
-                showAlert('Trattamento eliminato. La riga resta come "da completare".', 'success');
+                showAlert('Dati concimazione eliminati. La riga resta come "da completare".', 'success');
                 await loadTrattamenti();
             } catch (err) {
                 showAlert(err.message || 'Errore eliminazione', 'error');

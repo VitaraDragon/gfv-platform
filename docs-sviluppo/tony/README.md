@@ -1,7 +1,7 @@
 # Tony – Documentazione consolidata
 
 **Cartella**: `docs-sviluppo/tony/`  
-**Ultimo aggiornamento**: 2026-03-08
+**Ultimo aggiornamento**: 2026-04-05
 
 Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la documentazione consolidata per riferimento rapido e sviluppo.
 
@@ -26,6 +26,8 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | **Context Builder** | `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md` – struttura ctx.azienda |
 | **currentTableData + FILTER_TABLE** | `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md` – pattern per tabelle, keyToId, estensione |
 | **Changelog** | `docs-sviluppo/COSA_ABBIAMO_FATTO.md` – modifiche con date |
+| **Trattamenti Vigneto/Frutteto** (performance lista, superficie da anagrafe terreno; non Tony) | `COSA_ABBIAMO_FATTO.md` §2026-04-05; guide `docs-sviluppo/guida-app/moduli/vigneto.md` e `frutteto.md` |
+| **Magazzino – roadmap ipotesi (Gemini/fotocamera, DDT/fattura)** | `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` |
 | **Archivio** | `docs-sviluppo/archivio/` – doc obsoleti (MASTER_PLAN_TONY_UNIVERSAL, STATO_TONY) |
 
 ---

@@ -717,7 +717,7 @@
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     // Include lavori attivi (assegnato o in_corso) O lavori completati recenti (ultimi 7 giorni)
-                    const isAttivo = data.stato === 'assegnato' || data.stato === 'in_corso';
+                    const isAttivo = data.stato === 'assegnato' || data.stato === 'in_corso' || data.stato === 'sospeso';
                     const isCompletatoRecente = (data.stato === 'completato' || data.stato === 'completato_da_approvare') && 
                                                 data.completatoIl && 
                                                 data.completatoIl.toDate && 

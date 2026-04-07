@@ -477,6 +477,9 @@
                             <button type="button" class="btn btn-info" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Segmento</button>
                             <button type="button" class="btn btn-secondary" onclick="clearSegment()">🗑️ Cancella</button>
                         </div>
+                        <p id="ripresa-storico-hint" style="display:none; font-size: 13px; color: #bf360c; background: #fff3e0; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #e65100;">
+                            <strong>Legenda:</strong> linee <span style="color:#e65100">arancioni</span> = percorso già tracciato sul lavoro sospeso (prima della ripresa). Linee <span style="color:#28a745">verdi</span> = segmenti già salvati su questo incarico di ripresa.
+                        </p>
                         <div id="map"></div>
                         <div class="map-info" id="map-info">
                             <p><strong>Lunghezza segmento:</strong> <span id="calculated-length">0.00</span> metri</p>
@@ -584,6 +587,11 @@
         const SNAP_DISTANCE_METERS = 5; // Distanza massima per snap al confine (5 metri) - ridotto per maggiore precisione
         const VERTEX_SNAP_DISTANCE_METERS = 8; // Distanza massima per snap ai vertici (8 metri) - ridotto per maggiore precisione
         const PROXIMITY_TOLERANCE_METERS = 5; // Tolleranza per estendere fino al confine nel calcolo (5 metri)
+
+        /** % minima tracciata (su questo incarico) per mostrare «Segna come completato» — standard */
+        const SOGLIA_SEGNA_COMPLETATO_PERCENT = 90;
+        /** Eccezione lavori di ripresa: il resto era sul lavoro sospeso, qui basta poco tracciato */
+        const SOGLIA_SEGNA_COMPLETATO_PERCENT_RIPRESA = 2;
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
@@ -736,8 +744,18 @@
                     }
                 });
 
-                // Ordina lato client per dataInizio (più recente prima)
+                // Ordina: lavori attivi (assegnato/in_corso/…) prima dei sospesi, così la ripresa compare sopra al vecchio sospeso con data più “alta”
+                const ordineStato = (s) => {
+                    const x = s || 'assegnato';
+                    if (x === 'completato' || x === 'annullato') return 40;
+                    if (x === 'completato_da_approvare') return 30;
+                    if (x === 'sospeso') return 20;
+                    return 0;
+                };
                 lavoriList.sort((a, b) => {
+                    const oa = ordineStato(a.stato);
+                    const ob = ordineStato(b.stato);
+                    if (oa !== ob) return oa - ob;
                     if (!a.dataInizio && !b.dataInizio) return 0;
                     if (!a.dataInizio) return 1;
                     if (!b.dataInizio) return -1;
@@ -837,6 +855,9 @@
                 const superficieLavorata = lavoro.superficieLavorata || lavoro.superficieTotaleLavorata || 0;
                 const superficieTotale = lavoro.superficieTotale || 0;
                 const percentuale = superficieTotale > 0 ? Math.min((superficieLavorata / superficieTotale * 100), 100).toFixed(1) : 0;
+                const sogliaSegnaCompletato = lavoro.ripresaDaLavoroId
+                    ? SOGLIA_SEGNA_COMPLETATO_PERCENT_RIPRESA
+                    : SOGLIA_SEGNA_COMPLETATO_PERCENT;
 
                 html += `
                     <div class="lavoro-card">
@@ -897,9 +918,20 @@
                         ` : ''}
 
                         <div class="action-buttons">
-                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' ? `
+                            ${lavoro.stato === 'sospeso' ? `
+                                <div style="background: #eceff1; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #607d8b;">
+                                    <strong>⏸️ Lavoro sospeso</strong><br>
+                                    <small>${lavoro.sospensioneCausa ? escapeHtml(String(lavoro.sospensioneCausa)) : 'In attesa del lavoro di ripresa dal Manager.'}</small>
+                                </div>
+                            ` : ''}
+                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' ? `
                                 <button class="btn btn-primary" onclick="openTracciaZonaModal('${lavoro.id}')">
                                     📍 Traccia Segmento Lavorato
+                                </button>
+                            ` : ''}
+                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'annullato' ? `
+                                <button type="button" class="btn btn-secondary" onclick="sospendiLavoroDaCaposquadra('${lavoro.id}')" title="Sospendi per meteo o altro; il Manager creerà il lavoro di ripresa">
+                                    ⏸️ Sospendi lavoro
                                 </button>
                             ` : ''}
                             
@@ -910,7 +942,7 @@
                                 </div>
                             ` : ''}
                             
-                            ${parseFloat(percentuale) >= 90 && lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' ? `
+                            ${parseFloat(percentuale) >= sogliaSegnaCompletato && lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' && lavoro.stato !== 'sospeso' ? `
                                 <button class="btn btn-info" onclick="segnaCompletato('${lavoro.id}', ${parseFloat(percentuale).toFixed(1)})" style="background: #ffc107; color: #000;">
                                     ✅ Segna come Completato
                                 </button>
@@ -957,6 +989,7 @@
             const stati = {
                 'assegnato': '📋 Assegnato',
                 'in_corso': '🔄 In corso',
+                'sospeso': '⏸️ Sospeso',
                 'completato': '✅ Completato',
                 'completato_da_approvare': '⏳ In attesa approvazione',
                 'annullato': '❌ Annullato'
@@ -1039,8 +1072,13 @@
             // Inizializza mappa se non già fatto
             await initMap();
             
-            // Carica e visualizza segmenti già salvati
-            await loadAndDisplaySavedSegments(lavoroId);
+            const hintEl = document.getElementById('ripresa-storico-hint');
+            if (hintEl) {
+                hintEl.style.display = lavoro.ripresaDaLavoroId ? 'block' : 'none';
+            }
+
+            // Carica e visualizza segmenti (e, se ripresa, anche lo storico dal lavoro sospeso)
+            await loadAndDisplaySavedSegments(lavoroId, lavoro.ripresaDaLavoroId || null);
             
             document.getElementById('zona-modal').classList.add('active');
         };
@@ -1597,50 +1635,65 @@
             }
         };
         
-        // Carica e visualizza segmenti già salvati sulla mappa
-        async function loadAndDisplaySavedSegments(lavoroId) {
+        // Disegna una polyline salvata (segmenti da subcollection zoneLavorate)
+        function displaySavedSegmentPolyline(segmento, options = {}) {
+            const { color, strokeWeight, zIndex, idPrefix } = options;
+            if (!segmento.coordinate || segmento.coordinate.length < 2) return;
+            const coords = segmento.coordinate.map(c =>
+                new google.maps.LatLng(c.lat, c.lng)
+            );
+            const savedPolyline = new google.maps.Polyline({
+                path: coords,
+                strokeColor: color || '#28a745',
+                strokeWeight: strokeWeight != null ? strokeWeight : 3,
+                strokeOpacity: 0.75,
+                clickable: false,
+                editable: false,
+                zIndex: zIndex != null ? zIndex : 100
+            });
+            savedPolyline.setMap(map);
+            const sid = (idPrefix || '') + segmento.id;
+            savedSegments.push({
+                id: sid,
+                polyline: savedPolyline,
+                data: segmento
+            });
+        }
+
+        // Carica e visualizza segmenti già salvati sulla mappa (più storico pre-sospensione se lavoro di ripresa)
+        async function loadAndDisplaySavedSegments(lavoroId, ripresaDaLavoroId) {
             try {
-                // Carica segmenti salvati
-                const segmenti = await loadZoneLavorate(lavoroId);
-                
-                // Rimuovi segmenti precedenti
+                const segmentiCorrente = await loadZoneLavorate(lavoroId);
+                let segmentiPreRipresa = [];
+                if (ripresaDaLavoroId) {
+                    segmentiPreRipresa = await loadZoneLavorate(ripresaDaLavoroId);
+                }
+
                 savedSegments.forEach(segment => {
                     if (segment.polyline) {
                         segment.polyline.setMap(null);
                     }
                 });
                 savedSegments = [];
-                
-                // Visualizza ogni segmento sulla mappa
-                segmenti.forEach((segmento, index) => {
-                    if (!segmento.coordinate || segmento.coordinate.length < 2) return;
-                    
-                    // Colori diversi per data (più recenti più scuri)
+
+                // Prima lo storico dal lavoro sospeso (sotto i segmenti del nuovo incarico)
+                segmentiPreRipresa.forEach((segmento) => {
+                    displaySavedSegmentPolyline(segmento, {
+                        color: '#e65100',
+                        strokeWeight: 4,
+                        zIndex: 80,
+                        idPrefix: 'pre-ripresa-'
+                    });
+                });
+
+                segmentiCorrente.forEach((segmento, index) => {
                     const colors = ['#28a745', '#20c997', '#17a2b8', '#6c757d'];
                     const colorIndex = Math.min(index, colors.length - 1);
-                    const color = colors[colorIndex];
-                    
-                    // Crea polyline per il segmento salvato
-                    const coords = segmento.coordinate.map(c => 
-                        new google.maps.LatLng(c.lat, c.lng)
-                    );
-                    
-                    const savedPolyline = new google.maps.Polyline({
-                        path: coords,
-                        strokeColor: color,
+                    displaySavedSegmentPolyline(segmento, {
+                        color: colors[colorIndex],
                         strokeWeight: 3,
-                        strokeOpacity: 0.7,
-                        clickable: false,
-                        editable: false,
-                        zIndex: 100 // Sotto al nuovo segmento in tracciamento
-                    });
-                    
-                    savedPolyline.setMap(map);
-                    
-                    savedSegments.push({
-                        id: segmento.id,
-                        polyline: savedPolyline,
-                        data: segmento
+                        zIndex: 100,
+                        idPrefix: ''
                     });
                 });
             } catch (error) {
@@ -2349,6 +2402,39 @@
             }
         }
 
+        /** Sospensione segmento: il Manager crea poi il “lavoro di ripresa” da Gestione lavori. */
+        window.sospendiLavoroDaCaposquadra = async function(lavoroId) {
+            const causa = window.prompt('Motivo della sospensione (es. meteo, pioggia):', '');
+            if (causa === null) return;
+            const lavoro = lavoriList.find(l => l.id === lavoroId);
+            if (!lavoro) {
+                showAlert('Lavoro non trovato', 'error');
+                return;
+            }
+            const userId = currentUserData.id || currentUserData.uid;
+            const assegnato = (lavoro.caposquadraId === userId && !lavoro.operaioId) || (lavoro.operaioId === userId && !lavoro.caposquadraId);
+            if (!assegnato) {
+                showAlert('Non puoi sospendere questo lavoro', 'error');
+                return;
+            }
+            if (!['in_corso', 'assegnato'].includes(lavoro.stato)) {
+                showAlert('Solo lavori assegnati o in corso possono essere sospesi', 'error');
+                return;
+            }
+            try {
+                await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
+                    stato: 'sospeso',
+                    sospensioneCausa: (causa || '').trim(),
+                    sospensioneIl: serverTimestamp(),
+                    aggiornatoIl: serverTimestamp()
+                });
+                showAlert('Lavoro sospeso. Il Manager può creare il lavoro di ripresa da Gestione lavori.', 'success');
+                await loadLavori();
+            } catch (e) {
+                showAlert(e.message || 'Errore', 'error');
+            }
+        };
+
         // Segna lavoro come completato (in attesa approvazione)
         window.segnaCompletato = async function(lavoroId, percentuale) {
             const lavoro = lavoriList.find(l => l.id === lavoroId);
@@ -2405,6 +2491,19 @@
                 } else {
                     showAlert('Errore: Questo lavoro non è assegnato a te', 'error');
                 }
+                return;
+            }
+
+            const percNum = typeof percentuale === 'number' ? percentuale : parseFloat(String(percentuale).replace(',', '.'));
+            const sogliaMinPerc = lavoro.ripresaDaLavoroId
+                ? SOGLIA_SEGNA_COMPLETATO_PERCENT_RIPRESA
+                : SOGLIA_SEGNA_COMPLETATO_PERCENT;
+            if (Number.isNaN(percNum) || percNum < sogliaMinPerc) {
+                showAlert(
+                    `Per inviare il completamento al manager serve almeno il ${sogliaMinPerc}% di superficie tracciata su questo incarico (rispetto al terreno)` +
+                    (lavoro.ripresaDaLavoroId ? ' — soglia ridotta per i lavori di ripresa.' : '.'),
+                    'error'
+                );
                 return;
             }
             

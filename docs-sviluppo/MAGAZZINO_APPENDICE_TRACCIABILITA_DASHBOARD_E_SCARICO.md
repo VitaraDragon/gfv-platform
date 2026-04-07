@@ -54,19 +54,19 @@ La UI delle viste tematiche è quindi un **report / elenco arricchito** (join lo
 **Decisione di intento:** per ogni prodotto si vuole poter rispondere: *storico movimenti*, *usi per tipo di intervento*, *collegamento a terreno e soggetti* — senza duplicare fonti di verità contraddittorie.
 
 - **Fonte contabile:** resta il **movimento** (e la giacenza aggiornata dall’anagrafica prodotto).
-- **Fonte contesto agronomico:** trattamenti, attività, lavori — con **link** espliciti ove possibile (oggi: `lavoroId` / `attivitaId` sul movimento; in futuro: riferimento a trattamento se si implementa lo scarico automatico).
+- **Fonte contesto agronomico:** trattamenti, attività, lavori — con **link** espliciti ove possibile (`lavoroId` / `attivitaId` sul movimento; metadati origine trattamento su movimento da scarico automatico).
 
 ---
 
 ## 5. Scarico automatico dai trattamenti
 
-**Stato al 2026-04-02:** la funzionalità **non è implementata** nel codice. È descritta come evoluzione in `ANALISI_MODULO_MAGAZZINO.md` (§ 6.3–6.4) e in documentazione utente (`documentazione-utente/.../PRODOTTI_E_MAGAZZINO.md`: fase successiva).
+**Stato al 2026-04-04:** la funzionalità è **implementata** (`trattamento-scarico-magazzino-service.js`, integrazione in `updateTrattamento` / `deleteTrattamento` vigneto e frutteto). Checkbox **«Registra scarico in magazzino»** nei modal trattamenti se il tenant ha il modulo `magazzino`; movimenti di **uscita** tramite `movimenti-service` / `createMovimento`; **idempotenza** tramite `magazzinoMovimentoIds` sul documento trattamento (rigenerazione al salvataggio); prezzo unitario da anagrafica prodotto o da costo/quantità riga. Verificato con trattamento da **attività (diario)** e da **lavoro (Gestione lavori)**.
 
-**Decisioni già discusse (da realizzare in sviluppo):**
+**Resta da fare (evoluzioni UX/report, non bloccanti per lo scarico):**
 
-- Alla conferma trattamento, opzione tipo **«Registra scarico in magazzino»**; creazione movimento di **uscita** tramite lo stesso flusso centralizzato (`movimenti-service` / `createMovimento`), non logica duplicata.
-- **Idempotenza** in modifica trattamento (stesso movimento aggiornato / storno + nuovo — strategia da fissare).
-- **Visuale:** gli scarichi automatici compaiono nel **registro Movimenti** come gli altri; in più **link** dal trattamento al movimento e viste tematiche come sopra.
+- **Link** esplicito trattamento ↔ movimento in UI (oltre a note e metadati su `movimentiMagazzino`).
+- Viste tematiche / dashboard a card come da §2–3.
+- Affinare strategia modifica se in futuro si preferisce aggiornare in place invece di eliminare e ricreare movimenti (oggi: sync = rimuovi vecchi ID + crea nuovi).
 
 ---
 
@@ -89,8 +89,30 @@ L’assistente Tony può in una fase successiva **riusare gli stessi dati** (con
 
 Aggiornare questo file quando le decisioni sopra cambiano o quando una fase di sviluppo viene completata (breve changelog in coda).
 
+---
+
+## 9. Vista «Tracciabilità consumi» (`tracciabilita-consumi-standalone.html`)
+
+**Stato al 2026-04-05:** pagina di **sola lettura** (Manager/Amministratore) che elenca le **uscite** da `movimentiMagazzino`, filtrabili per categoria prodotto, con due modalità:
+
+| Vista | Comportamento |
+|--------|----------------|
+| **Raggruppata (consigliata)** | Raggruppamento **suggerito** per stessa **data movimento**, modulo origine (vigneto/frutteto), operatore, macchina, tipo trattamento e **firma miscela** (insieme ordinato di `prodottoId` sulle righe dello stesso trattamento). Su **appezzamenti diversi** nella stessa giornata operativa compare un unico blocco con più colture; le quantità per prodotto sono **sommate** (con dettaglio per terreno aprendo il nome prodotto). |
+| **Dettaglio** | Una riga per ogni movimento. |
+
+**Regole aggiuntive (implementate):**
+
+1. **Stessa coltura, più trattamenti indipendenti nello stesso giorno** (nessun legame `prosegueDaTrattamentoId`): non vanno fusi nello stesso blocco raggruppato (split per evitare ambiguità).
+2. **Catena sospeso / ripresa** (`prosegueDaTrattamentoId` tra documenti trattamento della stessa coltura tra le uscite visibili): i passaggi vengono **collassati in un’unica scheda** in lista, con **data di testata = ultimo passaggio** (completamento), tabella con **totali complessivi** per prodotto, pulsante **«Dettaglio per data e dosi»** che apre un modale con ogni passaggio (data, copertura, righe prodotto/quantità).
+
+**Non** sostituisce i registri ufficiali in Vigneto/Frutteto; è una lettura aggregata a fini operativi e magazzino.
+
+---
+
 ### Changelog
 
 | Data | Modifica |
 |------|----------|
 | 2026-04-02 | Prima stesura: dashboard a card, viste tematiche, fonti dati, stato scarico automatico, principi implementativi. |
+| 2026-04-04 | §5: scarico automatico segnato come **implementato**; note su resto roadmap (link UI, viste tematiche). |
+| 2026-04-05 | §9: vista **Tracciabilità consumi** (raggruppata vs dettaglio, split stessa coltura, collasso catene prosegue precedente, data finale e modale passaggi). |

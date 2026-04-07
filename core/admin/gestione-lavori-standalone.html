@@ -70,6 +70,11 @@
             color: white !important;
         }
 
+        tr.gfv-lavoro-row-highlight {
+            outline: 3px solid #2e8b57;
+            background: #e8f5e9 !important;
+        }
+
         .header h1 {
             font-size: 28px;
             margin-bottom: 10px;
@@ -246,6 +251,11 @@
         .badge-in_corso {
             background: #fff3e0;
             color: #f57c00;
+        }
+
+        .badge-sospeso {
+            background: #eceff1;
+            color: #455a64;
         }
 
         .badge-completato {
@@ -690,6 +700,7 @@
                         <option value="da_pianificare">📝 Da Pianificare</option>
                         <option value="assegnato">Assegnato</option>
                         <option value="in_corso">In corso</option>
+                        <option value="sospeso">⏸️ Sospeso</option>
                         <option value="completato_da_approvare">In attesa approvazione</option>
                         <option value="completato">Completato</option>
                         <option value="annullato">Annullato</option>
@@ -1087,6 +1098,7 @@
                         <option value="da_pianificare">📝 Da Pianificare</option>
                         <option value="assegnato">Assegnato</option>
                         <option value="in_corso">In corso</option>
+                        <option value="sospeso">⏸️ Sospeso</option>
                         <option value="completato">Completato</option>
                         <option value="annullato">Annullato</option>
                     </select>
@@ -1139,6 +1151,25 @@
                     <button type="button" class="btn btn-secondary" onclick="closeLavoroModal()">Annulla</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal data inizio lavoro di ripresa -->
+    <div id="ripresa-lavoro-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3>Data inizio ripresa</h3>
+                <button type="button" class="close-btn" onclick="closeRipresaLavoroModal()">&times;</button>
+            </div>
+            <p style="margin-bottom: 12px; color: #555; font-size: 14px;">Scegli la data di inizio del nuovo lavoro collegato al lavoro sospeso. Verranno copiati terreno, tipo e assegnazione.</p>
+            <div class="form-group">
+                <label for="ripresa-data-inizio">Data inizio *</label>
+                <input type="date" id="ripresa-data-inizio" required />
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-primary" style="flex: 1;" id="ripresa-conferma-btn" onclick="confermaRipresaLavoro()">Crea ripresa</button>
+                <button type="button" class="btn btn-secondary" onclick="closeRipresaLavoroModal()">Annulla</button>
+            </div>
         </div>
     </div>
 
@@ -2567,7 +2598,75 @@
             );
         }
 
-        // Wrapper per approvaLavoro
+        let ripresaLavoroPendingId = null;
+
+        function formatDateInputLocal(d) {
+            const y = d.getFullYear();
+            const mo = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${mo}-${day}`;
+        }
+
+        function closeRipresaLavoroModal() {
+            const m = document.getElementById('ripresa-lavoro-modal');
+            if (m) m.classList.remove('active');
+            ripresaLavoroPendingId = null;
+        }
+
+        function openRipresaLavoroModal(lavoroId) {
+            ripresaLavoroPendingId = lavoroId;
+            const input = document.getElementById('ripresa-data-inizio');
+            if (input) {
+                const today = new Date();
+                const minD = new Date(today);
+                minD.setFullYear(minD.getFullYear() - 1);
+                input.min = formatDateInputLocal(minD);
+                input.removeAttribute('max');
+                input.value = formatDateInputLocal(today);
+            }
+            const m = document.getElementById('ripresa-lavoro-modal');
+            if (m) m.classList.add('active');
+        }
+
+        async function confermaRipresaLavoro() {
+            const lavoroId = ripresaLavoroPendingId;
+            const input = document.getElementById('ripresa-data-inizio');
+            if (!lavoroId || !input || !input.value) {
+                showAlertUtil('Seleziona la data di inizio.', 'error');
+                return;
+            }
+            try {
+                const { creaLavoroRipresa } = await import('../services/lavori-service.js');
+                const tid = currentTenantId || lavoriState.currentTenantId;
+                const udata = currentUserData
+                    ? { ...currentUserData, id: currentUserData.id || currentUserData.uid }
+                    : undefined;
+                const nuovoId = await creaLavoroRipresa(lavoroId, {
+                    tenantId: tid,
+                    userData: udata,
+                    dataInizio: input.value
+                });
+                closeRipresaLavoroModal();
+                showAlertUtil('Lavoro di ripresa creato (stato: Assegnato). La riga in elenco viene evidenziata.', 'success');
+                await loadLavoriWrapper();
+                requestAnimationFrame(() => {
+                    const row = document.getElementById('lavoro-row-' + nuovoId);
+                    if (row) {
+                        row.classList.add('gfv-lavoro-row-highlight');
+                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => row.classList.remove('gfv-lavoro-row-highlight'), 5000);
+                    }
+                });
+            } catch (e) {
+                console.error('[Gestione Lavori] creaLavoroRipresa:', e);
+                showAlertUtil(e.message || 'Errore', 'error');
+            }
+        }
+
+        function creaLavoroRipresaWrapper(lavoroId) {
+            openRipresaLavoroModal(lavoroId);
+        }
+
         async function approvaLavoroWrapper(lavoroId) {
             await approvaLavoroModule(
                 lavoroId,
@@ -2804,6 +2903,9 @@
         window.closeDettaglioModal = closeDettaglioModalWrapper;
         window.switchTab = switchTabWrapper;
         window.approvaLavoro = approvaLavoroWrapper;
+        window.creaLavoroRipresa = creaLavoroRipresaWrapper;
+        window.closeRipresaLavoroModal = closeRipresaLavoroModal;
+        window.confermaRipresaLavoro = confermaRipresaLavoro;
         window.rifiutaLavoro = rifiutaLavoroWrapper;
         window.openEliminaModal = openEliminaModalWrapper;
         // Nota: editLavoro e deleteLavoro sono alias di openModificaModal e openEliminaModal
@@ -2844,6 +2946,13 @@
                         setFirebaseInstances({ app, db, auth });
                     } catch (error) {
                         console.warn('Impossibile impostare Firebase instances nel servizio:', error);
+                    }
+
+                    try {
+                        const { setCurrentUserDataCache } = await import('../services/auth-service.js');
+                        setCurrentUserDataCache({ ...currentUserData, id: currentUserData.id || user.uid });
+                    } catch (error) {
+                        console.warn('Impossibile sincronizzare cache utente auth-service:', error);
                     }
 
                     // Verifica permessi (solo manager e amministratore)

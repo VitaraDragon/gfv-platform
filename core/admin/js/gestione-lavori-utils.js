@@ -54,8 +54,10 @@ export function escapeHtml(text) {
  */
 export function getStatoFormattato(stato) {
     const stati = {
+        'da_pianificare': '📝 Da pianificare',
         'assegnato': '📋 Assegnato',
         'in_corso': '🔄 In corso',
+        'sospeso': '⏸️ Sospeso',
         'completato': '✅ Completato',
         'completato_da_approvare': '⏳ In attesa approvazione',
         'annullato': '❌ Annullato'

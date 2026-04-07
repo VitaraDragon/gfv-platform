@@ -111,6 +111,7 @@ function main() {
           else if (rel.includes('vigneti')) targetKey = 'vigneti';
           else if (rel.includes('vendemmia')) targetKey = 'vendemmia';
           else if (rel.includes('potatura')) targetKey = 'potatura vigneto';
+          else if (rel.includes('concimazioni')) targetKey = 'concimazioni vigneto';
           else if (rel.includes('trattamenti')) targetKey = 'trattamenti vigneto';
           else if (rel.includes('vigneto-statistiche')) targetKey = 'statistiche vigneto';
           else if (rel.includes('calcolo-materiali')) targetKey = 'calcolo materiali';
@@ -121,6 +122,7 @@ function main() {
           else if (rel.includes('frutteto-statistiche')) targetKey = 'statistiche frutteto';
           else if (rel.includes('raccolta-frutta')) targetKey = 'raccolta frutta';
           else if (rel.includes('potatura')) targetKey = 'potatura frutteto';
+          else if (rel.includes('concimazioni')) targetKey = 'concimazioni frutteto';
           else if (rel.includes('trattamenti')) targetKey = 'trattamenti frutteto';
         } else if (mod === 'magazzino') {
           if (rel.includes('magazzino-home')) targetKey = 'magazzino';

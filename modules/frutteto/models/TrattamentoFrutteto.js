@@ -51,6 +51,7 @@ export class TrattamentoFrutteto extends Base {
     this.operatore = data.operatore || null;
     this.macchinaId = data.macchinaId || null;
     this.superficieTrattata = data.superficieTrattata !== undefined ? parseFloat(data.superficieTrattata) : null;
+    this.superficieDaAnagrafeTerreno = data.superficieDaAnagrafeTerreno === true;
     this.poligonoTrattamento = Array.isArray(data.poligonoTrattamento) ? data.poligonoTrattamento : null;
 
     this.costoProdotto = data.costoProdotto !== undefined ? parseFloat(data.costoProdotto) : null;
@@ -63,6 +64,17 @@ export class TrattamentoFrutteto extends Base {
 
     this.parcella = data.parcella || null;
     this.note = data.note || '';
+
+    /** Copertura del terreno: `completa` | `parziale` | `non_dichiarata` */
+    const cop = data.coperturaTerreno;
+    this.coperturaTerreno = cop === 'completa' || cop === 'parziale' || cop === 'non_dichiarata' ? cop : 'non_dichiarata';
+    /** Opzionale: ID trattamento precedente (stesso frutteto) */
+    this.prosegueDaTrattamentoId = data.prosegueDaTrattamentoId || null;
+
+    /** ID documenti in `movimentiMagazzino` creati dallo scarico automatico (sincronizzati al salvataggio) */
+    this.magazzinoMovimentoIds = Array.isArray(data.magazzinoMovimentoIds)
+      ? data.magazzinoMovimentoIds.filter(Boolean)
+      : [];
   }
 
   validate() {

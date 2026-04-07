@@ -21,12 +21,21 @@ Guida al modal **Completa trattamento** nei moduli Vigneto e Frutteto: mappa per
 
 ---
 
+## ⚡ Lista trattamenti
+
+Il caricamento dell’elenco (lavori e attività di categoria “Trattamenti”) è ottimizzato lato applicazione: con molti vigneti/frutteti o molti dati storici dovresti notare tempi di attesa più brevi rispetto a versioni precedenti.
+
+---
+
 ## 📋 Modal “Completa trattamento”
 
 Il modal contiene:
 
 1. **Dati da lavoro/attività** (sola lettura): terreno, tipo lavoro, data, operatore, **macchine impiegate**
-2. **Superficie trattata (ha)** – subito sotto le macchine: campo numerico obbligatorio; pulsante **Mappa** per tracciare il poligono e calcolare la superficie
+2. **Superficie trattata (ha)** – subito sotto le macchine:
+   - **Opzione “Tutto il terreno”**: se attivi la casella, la superficie viene presa dall’**anagrafe del terreno** (stesso valore in archivio), con decimali allineati al dato ufficiale: non serve aprire la mappa per definire l’area quando hai trattato l’intero appezzamento. Il campo superficie è in sola lettura e il pulsante mappa resta disabilitato per questo caso.
+   - Se **non** usi l’opzione (es. trattamento su una parte del terreno), compili o modifichi gli ha a mano e puoi usare il pulsante **Traccia** per aprire la **mappa** e disegnare il poligono della zona trattata.
+   - La casella è disponibile solo se sul **terreno** è già indicata la **superficie** in anagrafe; altrimenti compare un messaggio che invita a completarla.
 3. **Prodotti**: tabella con più righe (prodotto, dosaggio per ha, unità, quantità calcolata, costo €) e totale costo prodotti
 4. **Costo manodopera** (opzionale) e **Note**
 
@@ -36,7 +45,8 @@ L’ordine è pensato per compilare prima macchine e superficie, poi aggiungere 
 
 ## 🗺️ Mappa – Tracciamento superficie
 
-- Clic su **Mappa** apre un modal con la mappa del terreno. Puoi **tracciare un poligono** per definire la zona trattata.
+- Se hai scelto **superficie da anagrafe (tutto il terreno)**, non è necessario usare la mappa per l’area: il pulsante **Traccia** resta disabilitato.
+- Clic su **Traccia** (quando attivo) apre un modal con la mappa del terreno. Puoi **tracciare un poligono** per definire la zona trattata.
 - **Avvio**: clic su **Traccia poligono**; il cursore diventa a croce. Clicca sulla mappa per aggiungere i vertici.
 - **Snap e validazione**:
   - I punti si **agganciano** al confine del terreno (bordo) o ai vertici esistenti quando sei vicino, con indicazione visiva (es. marker verde).
@@ -77,7 +87,7 @@ Nella lista trattamenti (Vigneto o Frutteto):
 ## 🔗 Collegamento con Prodotti e Magazzino
 
 - I prodotti selezionabili nella tabella provengono dall’**Anagrafica Prodotti** (modulo Prodotti e Magazzino). Per usare dosaggio min/max e giorni di carenza nei trattamenti, compila questi campi in anagrafica; vedi [Prodotti e Magazzino](PRODOTTI_E_MAGAZZINO.md).
-- Lo **scarico automatico** in magazzino (prelievo collegato al trattamento) è previsto in una fase successiva; fino ad allora le uscite vanno registrate manualmente da Movimenti Magazzino se necessario.
+- Con il modulo **Prodotti e Magazzino** attivo, nel modal puoi spuntare **Registra scarico in magazzino** al salvataggio per generare le uscite in base alle quantità delle righe prodotto collegate all’anagrafica; vedi la guida [Prodotti e Magazzino](PRODOTTI_E_MAGAZZINO.md) per i dettagli.
 
 ---
 
@@ -85,9 +95,9 @@ Nella lista trattamenti (Vigneto o Frutteto):
 
 | Cosa | Dove |
 |------|------|
-| Superficie trattata | Campo “Superficie trattata (ha)” + mappa (poligono con snap e validazione) |
+| Superficie trattata | Campo “Superficie trattata (ha)”; opzione **tutto il terreno** = valore da anagrafe terreno; oppure mappa (**Traccia**) con poligono (snap e validazione) |
 | Prodotti e dosaggi | Tabella prodotti (più righe, quantità = dosaggio × ha) |
 | Totale costo prodotti | Sotto la tabella, salvato con il trattamento |
-| Mappa | Snap al confine/vertice, pausa tracciamento, chiusura con doppio clic o clic vicino al primo punto |
+| Mappa | Solo se non usi solo l’anagrafe per l’intera superficie: snap al confine/vertice, pausa tracciamento, chiusura con doppio clic o clic vicino al primo punto |
 
 Per l’anagrafica prodotti (dosaggio min/max, giorni di carenza) vedi [Prodotti e Magazzino](PRODOTTI_E_MAGAZZINO.md).

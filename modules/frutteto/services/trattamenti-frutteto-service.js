@@ -17,6 +17,7 @@ import {
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { TrattamentoFrutteto } from '../models/TrattamentoFrutteto.js';
 import { getFrutteto, updateFrutteto } from './frutteti-service.js';
+import { inferTipoTrattamentoColturaFromTipoLavoroNome } from '../../../core/config/trattamenti-lavoro-defaults.js';
 
 const SUB_COLLECTION_NAME = 'trattamenti';
 
@@ -95,7 +96,11 @@ export async function createTrattamento(fruttetoId, trattamentoData) {
   }
 }
 
-export async function updateTrattamento(fruttetoId, trattamentoId, updates) {
+/**
+ * @param {Object} [options]
+ * @param {boolean} [options.registraScaricoMagazzino] - Se impostato, sincronizza movimenti uscita in magazzino (modulo attivo)
+ */
+export async function updateTrattamento(fruttetoId, trattamentoId, updates, options = {}) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
@@ -103,6 +108,10 @@ export async function updateTrattamento(fruttetoId, trattamentoId, updates) {
 
     const trattamentoEsistente = await getTrattamento(fruttetoId, trattamentoId);
     if (!trattamentoEsistente) throw new Error('Trattamento non trovato');
+
+    const prevMagazzinoIds = Array.isArray(trattamentoEsistente.magazzinoMovimentoIds)
+      ? trattamentoEsistente.magazzinoMovimentoIds.filter(Boolean)
+      : [];
 
     trattamentoEsistente.update(updates);
     const validation = trattamentoEsistente.validate();
@@ -112,6 +121,29 @@ export async function updateTrattamento(fruttetoId, trattamentoId, updates) {
     const collectionPath = getTrattamentiPath(fruttetoId);
     await updateDocument(collectionPath, trattamentoId, trattamentoEsistente.toFirestore(), tenantId);
     await aggiornaFruttetoDaTrattamento(fruttetoId, trattamentoEsistente);
+
+    const registraOpt = options.registraScaricoMagazzino;
+    if (registraOpt !== undefined) {
+      const { syncScarichiMagazzinoTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
+      const merged = await getTrattamento(fruttetoId, trattamentoId);
+      const { movimentoIds } = await syncScarichiMagazzinoTrattamento({
+        modulo: 'frutteto',
+        colturaId: fruttetoId,
+        trattamentoId,
+        dataTrattamento: merged.data,
+        lavoroId: merged.lavoroId,
+        attivitaId: merged.attivitaId,
+        prodotti: merged.prodotti,
+        registraScaricoMagazzino: !!registraOpt,
+        previousMovimentoIds: prevMagazzinoIds
+      });
+      await updateDocument(
+        collectionPath,
+        trattamentoId,
+        { magazzinoMovimentoIds: movimentoIds.length ? movimentoIds : [] },
+        tenantId
+      );
+    }
   } catch (error) {
     console.error('Errore aggiornamento trattamento:', error);
     throw new Error(`Errore aggiornamento trattamento: ${error.message}`);
@@ -123,6 +155,12 @@ export async function deleteTrattamento(fruttetoId, trattamentoId) {
     const tenantId = getCurrentTenantId();
     if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
     if (!fruttetoId || !trattamentoId) throw new Error('ID frutteto e trattamento obbligatori');
+
+    const existing = await getTrattamento(fruttetoId, trattamentoId);
+    if (existing?.magazzinoMovimentoIds?.length) {
+      const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
+      await rimuoviMovimentiTrattamento(existing.magazzinoMovimentoIds);
+    }
 
     const collectionPath = getTrattamentiPath(fruttetoId);
     await deleteDocument(collectionPath, trattamentoId, tenantId);
@@ -174,29 +212,80 @@ async function ricalcolaSpeseTrattamentiFrutteto(fruttetoId) {
   }
 }
 
-async function isTipoLavoroCategoriaTrattamenti(tipoLavoroNome) {
+const CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA = ['trattamenti', 'concimazione'];
+
+async function getCodiceCategoriaModuloTrattamentiColtura(tipoLavoroNome, cache = null) {
   try {
-    if (!tipoLavoroNome) return false;
+    if (!tipoLavoroNome) return null;
+    if (cache && cache.has(tipoLavoroNome)) return cache.get(tipoLavoroNome);
     const { getTipoLavoroByNome } = await import('../../../core/services/tipi-lavoro-service.js');
     const { getCategoria } = await import('../../../core/services/categorie-service.js');
     const tipo = await getTipoLavoroByNome(tipoLavoroNome);
-    if (!tipo || !tipo.categoriaId) return false;
+    if (!tipo || !tipo.categoriaId) {
+      if (cache) cache.set(tipoLavoroNome, null);
+      return null;
+    }
     let cat = await getCategoria(tipo.categoriaId);
-    if (!cat) return false;
-    if (cat.parentId) { cat = await getCategoria(cat.parentId); if (!cat) return false; }
-    return (cat.codice || '').toLowerCase() === 'trattamenti';
-  } catch (e) { return false; }
+    if (!cat) {
+      if (cache) cache.set(tipoLavoroNome, null);
+      return null;
+    }
+    if (cat.parentId) {
+      cat = await getCategoria(cat.parentId);
+      if (!cat) {
+        if (cache) cache.set(tipoLavoroNome, null);
+        return null;
+      }
+    }
+    const cod = (cat.codice || '').toLowerCase();
+    const out = CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA.includes(cod) ? cod : null;
+    if (cache) cache.set(tipoLavoroNome, out);
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function isTipoLavoroCategoriaTrattamenti(tipoLavoroNome, cache = null) {
+  const c = await getCodiceCategoriaModuloTrattamentiColtura(tipoLavoroNome, cache);
+  return c === 'trattamenti' || c === 'concimazione';
 }
 
 /**
- * Lista lavori e attività (categoria Trattamenti) per un frutteto e anno, con eventuale trattamento collegato.
+ * Indice trattamenti per tutti i frutteti sullo stesso terreno.
+ * @param {string} terrenoId
+ */
+async function buildIndiceTrattamentiPerTerreno(terrenoId) {
+  const { getAllFrutteti } = await import('./frutteti-service.js');
+  const fruttetiTerreno = await getAllFrutteti({ terrenoId });
+  const byLavoro = new Map();
+  const byAttivita = new Map();
+  if (!fruttetiTerreno.length) return { byLavoro, byAttivita };
+  const lists = await Promise.all(fruttetiTerreno.map(f => getTrattamenti(f.id)));
+  fruttetiTerreno.forEach((f, i) => {
+    for (const t of lists[i]) {
+      if (t.lavoroId && !byLavoro.has(t.lavoroId)) {
+        byLavoro.set(t.lavoroId, { fruttetoId: f.id, trattamento: t });
+      }
+      if (t.attivitaId && !byAttivita.has(t.attivitaId)) {
+        byAttivita.set(t.attivitaId, { fruttetoId: f.id, trattamento: t });
+      }
+    }
+  });
+  return { byLavoro, byAttivita };
+}
+
+/**
+ * Lista lavori e attività (categoria Trattamenti o Concimazione) per un frutteto e anno, con eventuale trattamento collegato.
  * Solo righe da Gestione lavori / Diario; esclude lavori/attività già collegati a un altro frutteto sullo stesso terreno.
  * @param {string} fruttetoId - ID frutteto
  * @param {number} anno - Anno (es. 2026)
+ * @param {{ filtroCategoria?: 'trattamenti' | 'concimazione' }} [options] - default: solo fitosanitari (`trattamenti`)
  * @returns {Promise<Array<{source: string, lavoroId?: string, attivitaId?: string, data: Date, lavoroLabel: string, terrenoLabel: string, fruttetoId: string, trattamento?: TrattamentoFrutteto|null}>>}
  */
-export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno) {
+export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno, options = {}) {
   try {
+    const filtroCategoria = options.filtroCategoria || 'trattamenti';
     const tenantId = getCurrentTenantId();
     if (!tenantId) return [];
     if (!fruttetoId || !anno) return [];
@@ -209,39 +298,42 @@ export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno) 
     const { getLavoriByTerreno } = await import('../../../core/services/lavori-service.js');
     const { getAttivitaByTerreno } = await import('../../../core/services/attivita-service.js');
 
-    const terreno = await getTerreno(frutteto.terrenoId);
-    const terrenoLabel = terreno ? (terreno.nome || frutteto.terrenoId) : frutteto.terrenoId;
-
     const dataDaStr = `${anno}-01-01`;
     const dataAStr = `${anno}-12-31`;
 
-    const [lavoriRaw, attivitaRawAll] = await Promise.all([
+    const [terreno, lavoriRaw, attivitaRawAll, indiceTrattamenti] = await Promise.all([
+      getTerreno(frutteto.terrenoId),
       getLavoriByTerreno(frutteto.terrenoId),
-      getAttivitaByTerreno(frutteto.terrenoId)
+      getAttivitaByTerreno(frutteto.terrenoId),
+      buildIndiceTrattamentiPerTerreno(frutteto.terrenoId)
     ]);
+    const { byLavoro, byAttivita } = indiceTrattamenti;
+    const terrenoLabel = terreno ? (terreno.nome || frutteto.terrenoId) : frutteto.terrenoId;
 
     const attivitaRaw = attivitaRawAll.filter(att => {
       const dataStr = typeof att.data === 'string' ? att.data : (att.data?.toDate ? att.data.toDate().toISOString().slice(0, 10) : '');
       return dataStr >= dataDaStr && dataStr <= dataAStr;
     });
 
+    const tipoLavoroCache = new Map();
     const lavori = [];
     for (const l of lavoriRaw) {
       const dataInizio = l.dataInizio instanceof Date ? l.dataInizio : (l.dataInizio?.toDate ? l.dataInizio.toDate() : new Date(l.dataInizio));
       if (dataInizio.getFullYear() !== anno) continue;
-      if (await isTipoLavoroCategoriaTrattamenti(l.tipoLavoro || '')) lavori.push(l);
+      const codLav = await getCodiceCategoriaModuloTrattamentiColtura(l.tipoLavoro || '', tipoLavoroCache);
+      if (codLav === filtroCategoria) lavori.push(l);
     }
 
     const attivitaFiltrate = [];
     for (const att of attivitaRaw) {
-      const ok = await isTipoLavoroCategoriaTrattamenti(att.tipoLavoro || '');
-      if (ok) attivitaFiltrate.push(att);
+      const codAtt = await getCodiceCategoriaModuloTrattamentiColtura(att.tipoLavoro || '', tipoLavoroCache);
+      if (codAtt === filtroCategoria) attivitaFiltrate.push(att);
     }
 
     const rows = [];
 
     for (const lavoro of lavori) {
-      const found = await findTrattamentoByLavoroId(lavoro.id);
+      const found = byLavoro.get(lavoro.id);
       if (found && found.fruttetoId !== fruttetoId) continue;
       const dataInizio = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio));
       const trattamento = found && found.fruttetoId === fruttetoId ? found.trattamento : null;
@@ -258,7 +350,7 @@ export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno) 
     }
 
     for (const att of attivitaFiltrate) {
-      const found = await findTrattamentoByAttivitaId(att.id);
+      const found = byAttivita.get(att.id);
       if (found && found.fruttetoId !== fruttetoId) continue;
       const dataAtt = att.data && (typeof att.data.toDate === 'function') ? att.data.toDate() : (att.data ? new Date(att.data) : new Date());
       const trattamento = found && found.fruttetoId === fruttetoId ? found.trattamento : null;
@@ -286,22 +378,23 @@ export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno) 
  * Lista lavori e attività (categoria Trattamenti) per TUTTI i frutteti e anno.
  * Usata quando non è selezionato un frutteto; il frutteto serve poi come filtro in UI.
  * @param {number} anno - Anno (es. 2026)
+ * @param {{ filtroCategoria?: 'trattamenti' | 'concimazione' }} [options]
  * @returns {Promise<Array<{source: string, lavoroId?: string, attivitaId?: string, data: Date, lavoroLabel: string, terrenoLabel: string, fruttetoId: string, fruttetoNome?: string, trattamento?: TrattamentoFrutteto|null}>>}
  */
-export async function getLavoriAttivitaTrattamentiTuttiFrutteti(anno) {
+export async function getLavoriAttivitaTrattamentiTuttiFrutteti(anno, options = {}) {
   try {
     const { getAllFrutteti } = await import('./frutteti-service.js');
     const frutteti = await getAllFrutteti();
     if (!frutteti || frutteti.length === 0) return [];
 
-    const allRows = [];
-    for (const f of frutteti) {
-      const rows = await getLavoriAttivitaTrattamentiPerFrutteto(f.id, anno);
-      const fruttetoNome = f.specie || f.varieta || f.nome || f.id;
-      for (const row of rows) {
-        allRows.push({ ...row, fruttetoNome });
-      }
-    }
+    const chunks = await Promise.all(
+      frutteti.map(async f => {
+        const rows = await getLavoriAttivitaTrattamentiPerFrutteto(f.id, anno, options);
+        const fruttetoNome = f.specie || f.varieta || f.nome || f.id;
+        return rows.map(row => ({ ...row, fruttetoNome }));
+      })
+    );
+    const allRows = chunks.flat();
     allRows.sort((a, b) => (b.data.getTime ? b.data.getTime() : 0) - (a.data.getTime ? a.data.getTime() : 0));
     return allRows;
   } catch (error) {
@@ -421,12 +514,18 @@ export async function findTrattamentoByLavoroId(lavoroId) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId || !lavoroId) return null;
+    const { getLavoro } = await import('../../../core/services/lavori-service.js');
+    const lavoro = await getLavoro(lavoroId);
+    if (!lavoro?.terrenoId) return null;
     const { getAllFrutteti } = await import('./frutteti-service.js');
-    const frutteti = await getAllFrutteti();
-    for (const frutteto of frutteti) {
-      const trattamenti = await getTrattamenti(frutteto.id);
-      const trattamento = trattamenti.find(t => t.lavoroId === lavoroId);
-      if (trattamento) return { fruttetoId: frutteto.id, trattamentoId: trattamento.id, trattamento };
+    const frutteti = await getAllFrutteti({ terrenoId: lavoro.terrenoId });
+    if (!frutteti.length) return null;
+    const lists = await Promise.all(frutteti.map(f => getTrattamenti(f.id)));
+    for (let i = 0; i < frutteti.length; i++) {
+      const trattamento = lists[i].find(t => t.lavoroId === lavoroId);
+      if (trattamento) {
+        return { fruttetoId: frutteti[i].id, trattamentoId: trattamento.id, trattamento };
+      }
     }
     return null;
   } catch (error) {
@@ -439,12 +538,18 @@ export async function findTrattamentoByAttivitaId(attivitaId) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId || !attivitaId) return null;
+    const { getAttivita } = await import('../../../core/services/attivita-service.js');
+    const attivita = await getAttivita(attivitaId);
+    if (!attivita?.terrenoId) return null;
     const { getAllFrutteti } = await import('./frutteti-service.js');
-    const frutteti = await getAllFrutteti();
-    for (const frutteto of frutteti) {
-      const trattamenti = await getTrattamenti(frutteto.id);
-      const trattamento = trattamenti.find(t => t.attivitaId === attivitaId);
-      if (trattamento) return { fruttetoId: frutteto.id, trattamentoId: trattamento.id, trattamento };
+    const frutteti = await getAllFrutteti({ terrenoId: attivita.terrenoId });
+    if (!frutteti.length) return null;
+    const lists = await Promise.all(frutteti.map(f => getTrattamenti(f.id)));
+    for (let i = 0; i < frutteti.length; i++) {
+      const trattamento = lists[i].find(t => t.attivitaId === attivitaId);
+      if (trattamento) {
+        return { fruttetoId: frutteti[i].id, trattamentoId: trattamento.id, trattamento };
+      }
     }
     return null;
   } catch (error) {
@@ -482,7 +587,7 @@ export async function createTrattamentoFromLavoro(lavoroId) {
       data: dataTrattamento,
       prodotto: '',
       dosaggio: '',
-      tipoTrattamento: '',
+      tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(lavoro.tipoLavoro || ''),
       operatore,
       superficieTrattata: terreno.superficie ? parseFloat(terreno.superficie) : null,
       costoProdotto: 0,
@@ -528,7 +633,7 @@ export async function createTrattamentoFromAttivita(attivitaId) {
       data: dataTrattamento,
       prodotto: '',
       dosaggio: '',
-      tipoTrattamento: '',
+      tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(attivita.tipoLavoro || ''),
       operatore: null,
       superficieTrattata: null,
       costoProdotto: 0,
@@ -558,7 +663,11 @@ export async function syncTrattamentoFromLavoro(lavoroId) {
     const terreno = await getTerreno(lavoro.terrenoId);
     const superficieTrattata = terreno && terreno.superficie ? parseFloat(terreno.superficie) : null;
     const dataTrattamento = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date());
-    await updateTrattamento(found.fruttetoId, found.trattamentoId, { data: dataTrattamento, operatore, superficieTrattata });
+    const updates = { data: dataTrattamento, operatore };
+    if (found.trattamento.superficieDaAnagrafeTerreno) {
+      updates.superficieTrattata = superficieTrattata;
+    }
+    await updateTrattamento(found.fruttetoId, found.trattamentoId, updates);
     return found.trattamentoId;
   } catch (error) {
     console.error('[TRATTAMENTI-FRUTTETO] syncTrattamentoFromLavoro:', error);

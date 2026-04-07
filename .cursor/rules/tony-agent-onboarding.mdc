@@ -21,6 +21,7 @@ alwaysApply: true
 - Per il Context Builder: `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md`
 - Per currentTableData e FILTER_TABLE (estendere tabelle): `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md`
 - Per pagine standalone (responsive, tabelle, filtri, CSS/JS centralizzato): `docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md`
+- Per ipotesi future su magazzino + acquisizione documenti (Gemini/fotocamera, DDT/fattura, prezzi in attesa): `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (v. anche `tony/MASTER_PLAN.md` §11)
 
 ## Dopo ogni lavoro completato – Documentazione da aggiornare
 

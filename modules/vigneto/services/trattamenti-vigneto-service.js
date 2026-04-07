@@ -17,6 +17,7 @@ import {
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { TrattamentoVigneto } from '../models/TrattamentoVigneto.js';
 import { getVigneto, updateVigneto } from './vigneti-service.js';
+import { inferTipoTrattamentoColturaFromTipoLavoroNome } from '../../../core/config/trattamenti-lavoro-defaults.js';
 
 const SUB_COLLECTION_NAME = 'trattamenti';
 
@@ -172,9 +173,11 @@ export async function createTrattamento(vignetoId, trattamentoData) {
  * @param {string} vignetoId - ID vigneto
  * @param {string} trattamentoId - ID trattamento
  * @param {Object} updates - Dati da aggiornare
+ * @param {Object} [options]
+ * @param {boolean} [options.registraScaricoMagazzino] - Se impostato, sincronizza movimenti uscita in magazzino (modulo attivo)
  * @returns {Promise<void>}
  */
-export async function updateTrattamento(vignetoId, trattamentoId, updates) {
+export async function updateTrattamento(vignetoId, trattamentoId, updates, options = {}) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) {
@@ -189,6 +192,10 @@ export async function updateTrattamento(vignetoId, trattamentoId, updates) {
     if (!trattamentoEsistente) {
       throw new Error('Trattamento non trovato');
     }
+
+    const prevMagazzinoIds = Array.isArray(trattamentoEsistente.magazzinoMovimentoIds)
+      ? trattamentoEsistente.magazzinoMovimentoIds.filter(Boolean)
+      : [];
     
     trattamentoEsistente.update(updates);
     
@@ -203,6 +210,29 @@ export async function updateTrattamento(vignetoId, trattamentoId, updates) {
     await updateDocument(collectionPath, trattamentoId, trattamentoEsistente.toFirestore(), tenantId);
     
     await aggiornaVignetoDaTrattamento(vignetoId, trattamentoEsistente);
+
+    const registraOpt = options.registraScaricoMagazzino;
+    if (registraOpt !== undefined) {
+      const { syncScarichiMagazzinoTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
+      const merged = await getTrattamento(vignetoId, trattamentoId);
+      const { movimentoIds } = await syncScarichiMagazzinoTrattamento({
+        modulo: 'vigneto',
+        colturaId: vignetoId,
+        trattamentoId,
+        dataTrattamento: merged.data,
+        lavoroId: merged.lavoroId,
+        attivitaId: merged.attivitaId,
+        prodotti: merged.prodotti,
+        registraScaricoMagazzino: !!registraOpt,
+        previousMovimentoIds: prevMagazzinoIds
+      });
+      await updateDocument(
+        collectionPath,
+        trattamentoId,
+        { magazzinoMovimentoIds: movimentoIds.length ? movimentoIds : [] },
+        tenantId
+      );
+    }
   } catch (error) {
     console.error('Errore aggiornamento trattamento:', error);
     throw new Error(`Errore aggiornamento trattamento: ${error.message}`);
@@ -224,6 +254,12 @@ export async function deleteTrattamento(vignetoId, trattamentoId) {
     
     if (!vignetoId || !trattamentoId) {
       throw new Error('ID vigneto e trattamento obbligatori');
+    }
+
+    const existing = await getTrattamento(vignetoId, trattamentoId);
+    if (existing?.magazzinoMovimentoIds?.length) {
+      const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
+      await rimuoviMovimentiTrattamento(existing.magazzinoMovimentoIds);
     }
     
     const collectionPath = getTrattamentiPath(vignetoId);
@@ -322,39 +358,93 @@ export async function getProssimiTrattamenti(vignetoId, dataVendemmiaPrevista = 
   }
 }
 
+/** Categorie lavoro collegate al modulo Trattamenti (fitosanitari) e concimazioni di campo. */
+const CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA = ['trattamenti', 'concimazione'];
+
 /**
- * Verifica se il tipo lavoro appartiene alla categoria Trattamenti
- * @param {string} tipoLavoroNome - Nome tipo lavoro
- * @returns {Promise<boolean>}
+ * Codice categoria radice per tipi lavoro che aprono il flusso dati coltura (stesso subcollection `trattamenti`).
+ * @param {string} tipoLavoroNome
+ * @param {Map<string, string|null>|null} [cache] - nome tipo → 'trattamenti' | 'concimazione' | null
+ * @returns {Promise<'trattamenti'|'concimazione'|null>}
  */
-async function isTipoLavoroCategoriaTrattamenti(tipoLavoroNome) {
+async function getCodiceCategoriaModuloTrattamentiColtura(tipoLavoroNome, cache = null) {
   try {
-    if (!tipoLavoroNome) return false;
+    if (!tipoLavoroNome) return null;
+    if (cache && cache.has(tipoLavoroNome)) return cache.get(tipoLavoroNome);
     const { getTipoLavoroByNome } = await import('../../../core/services/tipi-lavoro-service.js');
     const { getCategoria } = await import('../../../core/services/categorie-service.js');
     const tipo = await getTipoLavoroByNome(tipoLavoroNome);
-    if (!tipo || !tipo.categoriaId) return false;
+    if (!tipo || !tipo.categoriaId) {
+      if (cache) cache.set(tipoLavoroNome, null);
+      return null;
+    }
     let cat = await getCategoria(tipo.categoriaId);
-    if (!cat) return false;
+    if (!cat) {
+      if (cache) cache.set(tipoLavoroNome, null);
+      return null;
+    }
     if (cat.parentId) {
       cat = await getCategoria(cat.parentId);
-      if (!cat) return false;
+      if (!cat) {
+        if (cache) cache.set(tipoLavoroNome, null);
+        return null;
+      }
     }
-    return (cat.codice || '').toLowerCase() === 'trattamenti';
+    const cod = (cat.codice || '').toLowerCase();
+    const out = CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA.includes(cod) ? cod : null;
+    if (cache) cache.set(tipoLavoroNome, out);
+    return out;
   } catch (e) {
-    return false;
+    return null;
   }
 }
 
 /**
- * Lista lavori e attività (categoria Trattamenti) per un vigneto e anno, con eventuale trattamento collegato.
- * Usata dalla pagina Trattamenti per mostrare solo righe da Gestione lavori / Diario (Fase 1).
+ * Verifica se il tipo lavoro appartiene a una categoria che apre il flusso Trattamenti/Concimazioni (Vigneto/Frutteto)
+ * @param {string} tipoLavoroNome - Nome tipo lavoro
+ * @param {Map<string, string|null>|null} [cache]
+ * @returns {Promise<boolean>}
+ */
+async function isTipoLavoroCategoriaTrattamenti(tipoLavoroNome, cache = null) {
+  const c = await getCodiceCategoriaModuloTrattamentiColtura(tipoLavoroNome, cache);
+  return c === 'trattamenti' || c === 'concimazione';
+}
+
+/**
+ * Indice trattamenti per tutti i vigneti sullo stesso terreno (una lettura per vigneto, in parallelo).
+ * @param {string} terrenoId
+ */
+async function buildIndiceTrattamentiPerTerreno(terrenoId) {
+  const { getAllVigneti } = await import('./vigneti-service.js');
+  const vignetiTerreno = await getAllVigneti({ terrenoId });
+  const byLavoro = new Map();
+  const byAttivita = new Map();
+  if (!vignetiTerreno.length) return { byLavoro, byAttivita };
+  const lists = await Promise.all(vignetiTerreno.map(v => getTrattamenti(v.id)));
+  vignetiTerreno.forEach((v, i) => {
+    for (const t of lists[i]) {
+      if (t.lavoroId && !byLavoro.has(t.lavoroId)) {
+        byLavoro.set(t.lavoroId, { vignetoId: v.id, trattamento: t });
+      }
+      if (t.attivitaId && !byAttivita.has(t.attivitaId)) {
+        byAttivita.set(t.attivitaId, { vignetoId: v.id, trattamento: t });
+      }
+    }
+  });
+  return { byLavoro, byAttivita };
+}
+
+/**
+ * Lista lavori e attività (categoria Trattamenti o Concimazione) per un vigneto e anno, con eventuale trattamento collegato.
+ * Usata dalla pagina Trattamenti / Concimazioni per mostrare solo righe da Gestione lavori / Diario (Fase 1).
  * @param {string} vignetoId - ID vigneto
  * @param {number} anno - Anno (es. 2026)
+ * @param {{ filtroCategoria?: 'trattamenti' | 'concimazione' }} [options] - default: solo fitosanitari (`trattamenti`)
  * @returns {Promise<Array<{source: string, lavoroId?: string, attivitaId?: string, data: Date, lavoroLabel: string, terrenoLabel: string, vignetoId: string, trattamento?: TrattamentoVigneto|null}>>}
  */
-export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno) {
+export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno, options = {}) {
   try {
+    const filtroCategoria = options.filtroCategoria || 'trattamenti';
     const tenantId = getCurrentTenantId();
     if (!tenantId) return [];
     if (!vignetoId || !anno) return [];
@@ -366,39 +456,43 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno) {
     const { getLavoriByTerreno } = await import('../../../core/services/lavori-service.js');
     const { getAttivitaByTerreno } = await import('../../../core/services/attivita-service.js');
 
-    const terreno = await getTerreno(vigneto.terrenoId);
-    const terrenoLabel = terreno ? (terreno.nome || vigneto.terrenoId) : vigneto.terrenoId;
-
     const dataDaStr = `${anno}-01-01`;
     const dataAStr = `${anno}-12-31`;
 
-    const [lavoriRaw, attivitaRawAll] = await Promise.all([
+    const [terreno, lavoriRaw, attivitaRawAll, indiceTrattamenti] = await Promise.all([
+      getTerreno(vigneto.terrenoId),
       getLavoriByTerreno(vigneto.terrenoId),
-      getAttivitaByTerreno(vigneto.terrenoId)
+      getAttivitaByTerreno(vigneto.terrenoId),
+      buildIndiceTrattamentiPerTerreno(vigneto.terrenoId)
     ]);
+    const { byLavoro, byAttivita } = indiceTrattamenti;
+    const terrenoLabel = terreno ? (terreno.nome || vigneto.terrenoId) : vigneto.terrenoId;
 
     const attivitaRaw = attivitaRawAll.filter(att => {
       const dataStr = typeof att.data === 'string' ? att.data : (att.data?.toDate ? att.data.toDate().toISOString().slice(0, 10) : '');
       return dataStr >= dataDaStr && dataStr <= dataAStr;
     });
 
+    const tipoLavoroCache = new Map();
     const lavori = [];
     for (const l of lavoriRaw) {
       const dataInizio = l.dataInizio instanceof Date ? l.dataInizio : (l.dataInizio?.toDate ? l.dataInizio.toDate() : new Date(l.dataInizio));
       if (dataInizio.getFullYear() !== anno) continue;
-      if (await isTipoLavoroCategoriaTrattamenti(l.tipoLavoro || '')) lavori.push(l);
+      const codLav = await getCodiceCategoriaModuloTrattamentiColtura(l.tipoLavoro || '', tipoLavoroCache);
+      if (codLav === filtroCategoria) lavori.push(l);
     }
 
     const attivitaFiltrate = [];
     for (const att of attivitaRaw) {
-      if (await isTipoLavoroCategoriaTrattamenti(att.tipoLavoro || '')) attivitaFiltrate.push(att);
+      const codAtt = await getCodiceCategoriaModuloTrattamentiColtura(att.tipoLavoro || '', tipoLavoroCache);
+      if (codAtt === filtroCategoria) attivitaFiltrate.push(att);
     }
 
     const rows = [];
 
     for (const lavoro of lavori) {
       const dataInizio = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio));
-      const found = await findTrattamentoByLavoroId(lavoro.id);
+      const found = byLavoro.get(lavoro.id);
       const trattamento = found && found.vignetoId === vignetoId ? found.trattamento : null;
       rows.push({
         source: 'lavoro',
@@ -414,7 +508,7 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno) {
 
     for (const att of attivitaFiltrate) {
       const dataAtt = att.data && (typeof att.data.toDate === 'function') ? att.data.toDate() : (att.data ? new Date(att.data) : new Date());
-      const found = await findTrattamentoByAttivitaId(att.id);
+      const found = byAttivita.get(att.id);
       const trattamento = found && found.vignetoId === vignetoId ? found.trattamento : null;
       rows.push({
         source: 'attivita',
@@ -440,22 +534,23 @@ export async function getLavoriAttivitaTrattamentiPerVigneto(vignetoId, anno) {
  * Lista lavori e attività (categoria Trattamenti) per TUTTI i vigneti e anno.
  * Usata quando non è selezionato un vigneto; il vigneto serve poi come filtro in UI.
  * @param {number} anno - Anno (es. 2026)
+ * @param {{ filtroCategoria?: 'trattamenti' | 'concimazione' }} [options]
  * @returns {Promise<Array<{source: string, lavoroId?: string, attivitaId?: string, data: Date, lavoroLabel: string, terrenoLabel: string, vignetoId: string, vignetoNome?: string, trattamento?: TrattamentoVigneto|null}>>}
  */
-export async function getLavoriAttivitaTrattamentiTuttiVigneti(anno) {
+export async function getLavoriAttivitaTrattamentiTuttiVigneti(anno, options = {}) {
   try {
     const { getAllVigneti } = await import('./vigneti-service.js');
     const vigneti = await getAllVigneti();
     if (!vigneti || vigneti.length === 0) return [];
 
-    const allRows = [];
-    for (const v of vigneti) {
-      const rows = await getLavoriAttivitaTrattamentiPerVigneto(v.id, anno);
-      const vignetoNome = v.varieta || v.nome || v.id;
-      for (const row of rows) {
-        allRows.push({ ...row, vignetoNome });
-      }
-    }
+    const chunks = await Promise.all(
+      vigneti.map(async v => {
+        const rows = await getLavoriAttivitaTrattamentiPerVigneto(v.id, anno, options);
+        const vignetoNome = v.varieta || v.nome || v.id;
+        return rows.map(row => ({ ...row, vignetoNome }));
+      })
+    );
+    const allRows = chunks.flat();
     allRows.sort((a, b) => (b.data.getTime ? b.data.getTime() : 0) - (a.data.getTime ? a.data.getTime() : 0));
     return allRows;
   } catch (error) {
@@ -581,13 +676,17 @@ export async function findTrattamentoByLavoroId(lavoroId) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId || !lavoroId) return null;
+    const { getLavoro } = await import('../../../core/services/lavori-service.js');
+    const lavoro = await getLavoro(lavoroId);
+    if (!lavoro?.terrenoId) return null;
     const { getAllVigneti } = await import('./vigneti-service.js');
-    const vigneti = await getAllVigneti();
-    for (const vigneto of vigneti) {
-      const trattamenti = await getTrattamenti(vigneto.id);
-      const trattamento = trattamenti.find(t => t.lavoroId === lavoroId);
+    const vigneti = await getAllVigneti({ terrenoId: lavoro.terrenoId });
+    if (!vigneti.length) return null;
+    const lists = await Promise.all(vigneti.map(v => getTrattamenti(v.id)));
+    for (let i = 0; i < vigneti.length; i++) {
+      const trattamento = lists[i].find(t => t.lavoroId === lavoroId);
       if (trattamento) {
-        return { vignetoId: vigneto.id, trattamentoId: trattamento.id, trattamento };
+        return { vignetoId: vigneti[i].id, trattamentoId: trattamento.id, trattamento };
       }
     }
     return null;
@@ -606,13 +705,17 @@ export async function findTrattamentoByAttivitaId(attivitaId) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId || !attivitaId) return null;
+    const { getAttivita } = await import('../../../core/services/attivita-service.js');
+    const attivita = await getAttivita(attivitaId);
+    if (!attivita?.terrenoId) return null;
     const { getAllVigneti } = await import('./vigneti-service.js');
-    const vigneti = await getAllVigneti();
-    for (const vigneto of vigneti) {
-      const trattamenti = await getTrattamenti(vigneto.id);
-      const trattamento = trattamenti.find(t => t.attivitaId === attivitaId);
+    const vigneti = await getAllVigneti({ terrenoId: attivita.terrenoId });
+    if (!vigneti.length) return null;
+    const lists = await Promise.all(vigneti.map(v => getTrattamenti(v.id)));
+    for (let i = 0; i < vigneti.length; i++) {
+      const trattamento = lists[i].find(t => t.attivitaId === attivitaId);
       if (trattamento) {
-        return { vignetoId: vigneto.id, trattamentoId: trattamento.id, trattamento };
+        return { vignetoId: vigneti[i].id, trattamentoId: trattamento.id, trattamento };
       }
     }
     return null;
@@ -654,7 +757,7 @@ export async function createTrattamentoFromLavoro(lavoroId) {
       data: dataTrattamento,
       prodotto: '',
       dosaggio: '',
-      tipoTrattamento: '',
+      tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(lavoro.tipoLavoro || ''),
       operatore,
       superficieTrattata,
       costoProdotto: 0,
@@ -702,7 +805,7 @@ export async function createTrattamentoFromAttivita(attivitaId) {
       data: dataTrattamento,
       prodotto: '',
       dosaggio: '',
-      tipoTrattamento: '',
+      tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(attivita.tipoLavoro || ''),
       operatore: null,
       superficieTrattata: null,
       costoProdotto: 0,
@@ -737,7 +840,11 @@ export async function syncTrattamentoFromLavoro(lavoroId) {
     const terreno = await getTerreno(lavoro.terrenoId);
     const superficieTrattata = terreno && terreno.superficie ? parseFloat(terreno.superficie) : null;
     const dataTrattamento = lavoro.dataInizio instanceof Date ? lavoro.dataInizio : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date());
-    await updateTrattamento(found.vignetoId, found.trattamentoId, { data: dataTrattamento, operatore, superficieTrattata });
+    const updates = { data: dataTrattamento, operatore };
+    if (found.trattamento.superficieDaAnagrafeTerreno) {
+      updates.superficieTrattata = superficieTrattata;
+    }
+    await updateTrattamento(found.vignetoId, found.trattamentoId, updates);
     return found.trattamentoId;
   } catch (error) {
     console.error('[TRATTAMENTI-VIGNETO] syncTrattamentoFromLavoro:', error);

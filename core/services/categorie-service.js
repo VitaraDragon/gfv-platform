@@ -30,10 +30,18 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
   {
     nome: 'Trattamenti',
     codice: 'trattamenti',
-    descrizione: 'Fitofarmaci, concimazione, irrigazione, ecc.',
+    descrizione: 'Fitofarmaci, irrigazione, ecc.',
     applicabileA: 'entrambi',
     predefinita: true,
     ordine: 2
+  },
+  {
+    nome: 'Concimazione',
+    codice: 'concimazione',
+    descrizione: 'Concimazioni di fondo, fogliari, organici, ecc.',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 3
   },
   {
     nome: 'Potatura',
@@ -41,7 +49,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Potatura manuale e meccanica',
     applicabileA: 'entrambi',
     predefinita: true,
-    ordine: 3
+    ordine: 4
   },
   {
     nome: 'Raccolta',
@@ -49,7 +57,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Raccolta frutta, raccolta verdura, vendemmia, ecc.',
     applicabileA: 'entrambi',
     predefinita: true,
-    ordine: 4
+    ordine: 5
   },
   {
     nome: 'Gestione del Verde',
@@ -57,7 +65,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Falciatura, taglio erba, manutenzione estetica, ecc.',
     applicabileA: 'entrambi',
     predefinita: true,
-    ordine: 5
+    ordine: 6
   },
   {
     nome: 'Diserbo',
@@ -65,7 +73,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Eliminazione delle erbe infestanti',
     applicabileA: 'entrambi',
     predefinita: true,
-    ordine: 6
+    ordine: 7
   },
   {
     nome: 'Semina e Piantagione',
@@ -73,7 +81,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Semina, trapianto, piantagione, ecc.',
     applicabileA: 'entrambi',
     predefinita: true,
-    ordine: 7
+    ordine: 8
   },
   {
     nome: 'Trasporto',
@@ -81,7 +89,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Rimorchi, carri, carrelli, ecc.',
     applicabileA: 'attrezzi',
     predefinita: true,
-    ordine: 8
+    ordine: 9
   },
   {
     nome: 'Manutenzione',
@@ -89,7 +97,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Riparazioni, manutenzione impianti, ecc.',
     applicabileA: 'lavori',
     predefinita: true,
-    ordine: 9
+    ordine: 10
   },
   {
     nome: 'Altro',
@@ -97,7 +105,7 @@ const CATEGORIE_PRINCIPALI_PREDEFINITE = [
     descrizione: 'Altri tipi non categorizzabili',
     applicabileA: 'entrambi',
     predefinita: true,
-    ordine: 10
+    ordine: 11
   }
 ];
 
@@ -222,6 +230,25 @@ const SOTTOCATEGORIE_PREDEFINITE = [
     codice: 'trattamenti_meccanico',
     parentCodice: 'trattamenti',
     descrizione: 'Trattamenti eseguiti con macchine',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 2
+  },
+  // Sottocategorie per Concimazione
+  {
+    nome: 'Manuale',
+    codice: 'concimazione_manuale',
+    parentCodice: 'concimazione',
+    descrizione: 'Concimazione eseguita manualmente',
+    applicabileA: 'entrambi',
+    predefinita: true,
+    ordine: 1
+  },
+  {
+    nome: 'Meccanico',
+    codice: 'concimazione_meccanico',
+    parentCodice: 'concimazione',
+    descrizione: 'Concimazione eseguita con macchine',
     applicabileA: 'entrambi',
     predefinita: true,
     ordine: 2

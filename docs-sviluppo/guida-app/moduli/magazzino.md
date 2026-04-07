@@ -22,6 +22,7 @@ Permettere di **gestire l’anagrafica prodotti** (nome, codice, categoria, unit
 - **Home Magazzino:** punto di ingresso del modulo; statistiche (prodotti sotto scorta minima, prodotti attivi, movimenti ultimi 30 giorni); card per:
   - **Anagrafica Prodotti** → `prodotti-standalone.html`
   - **Movimenti** → `movimenti-standalone.html`
+  - **Tracciabilità consumi** → `tracciabilita-consumi-standalone.html` (solo lettura uscite; vista raggruppata con raggruppamento multi-appezzamento e collasso catene **prosegue precedente** sospeso/ripresa; v. appendice `MAGAZZINO_APPENDICE_TRACCIABILITA_DASHBOARD_E_SCARICO.md` §9)
 - Nella Dashboard principale può essere mostrato un **alert** (es. numero prodotti sotto scorta minima) con link alla anagrafica prodotti. Accesso tipicamente riservato a **Manager** e **Amministratore**.
 
 ---
@@ -60,7 +61,8 @@ Permettere di **gestire l’anagrafica prodotti** (nome, codice, categoria, unit
 - **Permessi:** l’accesso al modulo (Home Magazzino, Anagrafica prodotti, Movimenti) è tipicamente riservato a **Manager** e **Amministratore**. Altri ruoli non vedono la card o ricevono un messaggio di errore.
 - **Prodotti:** non si eliminano fisicamente; si **disattivano** (attivo = false) per mantenere lo storico movimenti e riferimenti nei trattamenti. I prodotti disattivati possono essere esclusi dalle liste (filtro “solo attivi”).
 - **Movimenti:** ogni movimento modifica la **giacenza** del prodotto. Lo **scarico oltre giacenza** è consentito (giacenza può andare in negativo); l’UI può mostrare un avviso. I movimenti possono essere collegati a **lavoroId** e **attivitaId** per tracciare l’uso (es. uscita per un trattamento collegato a un lavoro).
-- **Relazione con trattamenti:** nei moduli Vigneto e Frutteto i trattamenti possono referenziare un prodotto tramite **prodottoId**; in quel caso nome, dosaggio, costo e eventuale scarico (uscita movimento) sono coerenti con l’anagrafica Magazzino. Senza modulo Magazzino i trattamenti usano solo nome e costo liberi.
+- **Relazione con trattamenti:** nei moduli Vigneto e Frutteto i trattamenti possono referenziare un prodotto tramite **prodottoId**. Con modulo Magazzino attivo, opzione **«Registra scarico in magazzino»** al salvataggio: crea **uscite** collegate (`lavoroId` / `attivitaId` dal trattamento, `magazzinoMovimentoIds` sul trattamento per sync). Senza modulo Magazzino i trattamenti usano solo nome e costo liberi; senza spunta sullo scarico le giacenze non si movimentano automaticamente.
+- **Tracciabilità consumi:** pagina di lettura delle uscite con origine trattamento (e metadati `origineTrattamentoModulo` / `origineTrattamentoColturaId` / `origineTrattamentoId` su movimento); UX raggruppata documentata in appendice §9.
 
 ---
 
