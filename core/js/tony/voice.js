@@ -5,6 +5,37 @@
 
 var lastTTSCache = { text: '', audioBase64: '' };
 
+    /**
+     * Sigle e codici unità → parole adatte alla lettura vocale (italiano).
+     * Copre tutte le risposte Tony passate da speakWithTTS / pulisciTestoPerVoce
+     * (indipendente dalla pagina: vendemmia, magazzino, concimazioni, ecc.).
+     */
+    function expandSpokenUnitsForItalianTTS(testo) {
+        if (!testo || typeof testo !== 'string') return testo;
+        var s = testo;
+        // quintali
+        s = s.replace(/\bq\.?\s*li\b/gi, 'quintali');
+        s = s.replace(/\b(\d+(?:[.,]\d+)?)\s*ql\b/gi, '$1 quintali');
+        // litri (maiuscola o minuscola dopo numero)
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*L\b/g, '$1 litri');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s+l\b(?=\s|[.,;:!?]|$)/gi, '$1 litri');
+        // ettari (sigla ha dopo numero — uso agricolo/ERP)
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s+ha\b/gi, '$1 ettari');
+        // ettolitri, metri cubi, millilitri
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*hl\b/gi, '$1 ettolitri');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*m3\b/gi, '$1 metri cubi');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*mc\b/gi, '$1 metri cubi');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*ml\b/gi, '$1 millilitri');
+        // peso
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*kg\b/gi, '$1 chilogrammi');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*g\b(?=\s|[.,;:!?]|$)/gi, '$1 grammi');
+        // superficie
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*m2\b/gi, '$1 metri quadri');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*mq\b/gi, '$1 metri quadri');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*m²/g, '$1 metri quadri');
+        return s;
+    }
+
     function pulisciTestoPerVoce(testo) {
         if (!testo || typeof testo !== 'string') return '';
         var t = testo;
@@ -19,6 +50,7 @@ var lastTTSCache = { text: '', audioBase64: '' };
         t = t.replace(/\b(asterisco|virgolette)\b/gi, '');
         t = t.replace(/\s{2,}/g, ' ').trim();
         t = t.replace(/\s*[{}]+\s*$/g, '').trim();
+        t = expandSpokenUnitsForItalianTTS(t);
         return t;
     }
 

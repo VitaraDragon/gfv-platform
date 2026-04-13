@@ -115,6 +115,7 @@ REGOLE:
 6. Se l'utente dice "ho trinciato nel Sangiovese": formData = { attivita-tipo-lavoro-gerarchico: "Trinciatura", attivita-terreno: "Sangiovese" }. La categoria e sottocategoria sono derivabili dal tipo lavoro, puoi includerle se conosci la tassonomia dal contesto.
 7. Se l'utente dice solo "erpicatura": formData = { attivita-tipo-lavoro-gerarchico: "Erpicatura" } (o "Erpicatura Tra le File" se nel contesto).
 8. TRATTAMENTI: Se l'utente dice solo "trattamento" (o sinonimi generici) senza specificare insetticida, imposta in formData: attivita-categoria-principale nome "Trattamenti", attivita-sottocategoria nome "Meccanico" (usa il nome esatto presente nel contesto, es. Meccanica se così è in anagrafica), attivita-tipo-lavoro-gerarchico nome esatto "Trattamento Anticrittogamico Meccanico" se nel contesto tipi_lavoro. "Trattamento Insetticida" solo se l'utente lo chiede esplicitamente. I tipi Anticrittogamico e Insetticida sono entrambi validi sia in sottocategoria Manuale che Meccanico; il default resta Trattamenti → Meccanico → Anticrittogamico meccanico. Se hasParcoMacchineModule è true e servono macchine, chiedi attivita-macchina e attivita-attrezzo se vuoti in formSummary.
+9. LAVORAZIONI GENERICHE: per intenti come trinciatura/erpicatura/fresatura/diserbo/concimazione, se l'utente non specifica manuale o meccanico preferisci la variante meccanica. Copertura: su terreni a filari evita "Generale" (preferisci "Tra le File"/"Sulla Fila"), su seminativi evita "Tra le File"/"Sulla Fila" (preferisci "Generale"). Se Tony mostra in chat un elenco di trattori o attrezzi tra cui scegliere, nella risposta successiva l'utente può indicare il nome esatto: compila attivita-macchina / attivita-attrezzo oppure lavoro-trattore / lavoro-attrezzo.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -190,9 +191,10 @@ CAMPI OBBLIGATORI (tutti richiesti prima di salvare):
 
 CAMPI OPZIONALI: lavoro-trattore, lavoro-attrezzo, lavoro-operatore-macchina, lavoro-note.
 
-REGOLE MACCHINE (proattivo): Se hasParcoMacchineModule true e lavoro-tipo è meccanico (Trinciatura, Erpicatura, Fresatura, ecc.) e lavoro-trattore vuoto in formSummary → chiedi "Vuoi assegnare un trattore? Quale trattore e attrezzo?" prima di salvare. Risposta no → procedi senza.
+REGOLE MACCHINE (proattivo): Se hasParcoMacchineModule true e lavoro-tipo è meccanico (Trinciatura, Erpicatura, Fresatura, Diserbo meccanico, ecc.) e lavoro-trattore vuoto in formSummary → chiedi "Vuoi assegnare un trattore? Quale trattore e attrezzo?" prima di salvare. Risposta no → procedi senza.
 
 TRATTAMENTI (default Tony): Se l'utente dice solo "trattamento" senza altri dettagli, compila: lavoro-categoria-principale nome "Trattamenti", lavoro-sottocategoria nome "Meccanico" (nome esatto dal contesto), lavoro-tipo-lavoro nome esatto "Trattamento Anticrittogamico Meccanico" se nel contesto. Se chiede trattamento insetticida, usa nome esatto "Trattamento Insetticida" dal contesto. Anticrittogamico e Insetticida restano scelta valida sia con sottocategoria Manuale che Meccanico; se l'utente non specifica, resta il default Trattamenti → Meccanico → Anticrittogamico meccanico. Con hasParcoMacchineModule true, chiedi lavoro-trattore e lavoro-attrezzo se pertinenti e ancora vuoti in formSummary.
+LAVORAZIONI GENERICHE: per trinciatura/erpicatura/fresatura/diserbo/concimazione, se l'utente non indica manuale o meccanico scegli di default la variante meccanica. Copertura da terreno: seminativo -> "Generale"; vigneto/frutteto/oliveto (filari) -> "Tra le File" o "Sulla Fila". Se in chat compare un elenco di trattori o attrezzi (disambiguazione), nella risposta successiva accetta il nome scelto dall'utente e valorizza lavoro-trattore / lavoro-attrezzo (o attivita-macchina / attivita-attrezzo) con INJECT_FORM_DATA o SET_FIELD.
 
 REGOLE: formData con TUTTI i campi per cui hai valore; usa formSummary; NON save se required vuoti; ordine domande: nome→terreno→tipo→assegnazione→caposquadra/operaio→data→durata.
 IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
@@ -335,6 +337,63 @@ REGOLE:
     }
   };
 
+  /**
+   * Registro concimazioni / trattamenti campo (vigneto e frutteto): `#form-trattamento` nel modal `#modal-trattamento`.
+   * L’iniezione righe prodotti usa `ctx.azienda.prodotti` o l’anagrafica caricata in pagina.
+   */
+  const TRATTAMENTO_CAMPO_FORM_MAP = {
+    formId: 'form-trattamento',
+    modalId: 'modal-trattamento',
+    tonyInterviewFieldIds: ['trattamento-note', 'trattamento-copertura-terreno'],
+    injectionOrder: [
+      'trattamento-prodotti',
+      'trattamento-superficie',
+      'trattamento-note',
+      'trattamento-copertura-terreno',
+      'trattamento-superficie-anagrafe',
+      'trattamento-prosegue-precedente',
+      'trattamento-registra-scarico-magazzino'
+    ],
+    fields: {
+      'trattamento-prodotti': {
+        type: 'json',
+        description:
+          '**dosaggio** = kg/ha. Se l’utente esprime dose **per ettaro** (o risponde a «per ettaro»), è già kg/ha. Se esprime **totale** sul campo (ql/kg totali), la cloud function può ricavare kg/ha = kg_totali/ha. Opzionale prodottoId.'
+      },
+      'trattamento-superficie': { type: 'number', resolve: 'as_is', description: 'Superficie trattata (ha)' },
+      'trattamento-note': { type: 'text', resolve: 'as_is', description: 'Note' },
+      'trattamento-copertura-terreno': {
+        type: 'select',
+        resolve: 'as_is',
+        description: 'non_dichiarata | completa | parziale'
+      },
+      'trattamento-superficie-anagrafe': {
+        type: 'checkbox',
+        resolve: 'as_is',
+        description: 'true = tutta la superficie da anagrafe terreni (richiede dato in anagrafe)'
+      },
+      'trattamento-prosegue-precedente': {
+        type: 'checkbox',
+        resolve: 'as_is',
+        description: 'true = prosegue intervento precedente (mostra select collegamento)'
+      },
+      'trattamento-registra-scarico-magazzino': {
+        type: 'checkbox',
+        resolve: 'as_is',
+        description: 'true = registra uscita magazzino (modulo Magazzino attivo)'
+      }
+    }
+  };
+
+  const SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO = `Form completamento intervento in campo (registro Concimazioni o Trattamenti vigneto/frutteto) — **stesso schema dei trattamenti**:
+- formId DOM: **form-trattamento** (alias: **trattamento-concimazione-form**). Modal **modal-trattamento** già aperto ("Completa"). Altrimenti non INJECT: aprire dalla lista o APRI_PAGINA concimazioni/trattamenti.
+- **Primario**: **trattamento-prodotti** = [{ "prodotto", "dosaggio": kg/ha }, …]. Quantità totale sul campo = dosaggio × ha (il form aggiorna righe/costi).
+- **Dose per ettaro** (ql/ha, kg/ha, o risposta a «dosaggio per ettaro»): dosaggio = **ql×100** kg/ha — non confondere con kg_totali/ha.
+- **Superficie da anagrafe** / **scarico magazzino**: **trattamento-superficie-anagrafe**, **trattamento-registra-scarico-magazzino** — solo dopo **conferma utente** o richiesta esplicita; non insieme al solo dosaggio senza chiedere.
+- **Totale sul campo** (ql o kg totali): dosaggio = kg_totali / ha. **1 ql = 100 kg**.
+- Opzionali: trattamento-superficie, trattamento-note, trattamento-copertura-terreno (non_dichiarata|completa|parziale). Checkbox: **trattamento-superficie-anagrafe**, **trattamento-prosegue-precedente**, **trattamento-registra-scarico-magazzino**.
+- Non sovrascrivere costi manodopera/macchina se già precompilati da lavoro.`;
+
   const SYSTEM_INSTRUCTION_MAGAZZINO_FORMS = `Form Magazzino (id DOM = chiavi in fields / INJECT_FORM_DATA):
 - Prodotto: formId "prodotto-form", OPEN_MODAL "prodotto-modal". Campi: prodotto-nome (obbligatorio), prodotto-categoria, prodotto-unita, prodotto-scorta-minima, prodotto-prezzo, prodotto-dosaggio-min/max, prodotto-giorni-carenza (solo fitofarmaci), prodotto-note, prodotto-codice. Il contesto form include interviewEmpty: **i giorni di carenza servono solo se prodotto-categoria è fitofarmaci**; per ogni altra categoria non esistono giorni di carenza — non chiedere e non usare SET_FIELD su prodotto-giorni-carenza salvo richiesta esplicita dell'utente. Altrimenti domande su categoria, unità, scorta, prezzo, dosaggi. Non solo il nome.
 - Movimento: formId "movimento-form", OPEN_MODAL "movimento-modal". Campi: mov-prodotto (nome prodotto o id, obbligatorio), mov-data, mov-tipo (entrata|uscita), mov-quantita (obbligatori insieme agli altri required), mov-confezione, mov-prezzo (entrata), mov-note, mov-lavoro, mov-attivita (opzionali). interviewEmpty per i campi opzionali ancora vuoti.
@@ -409,7 +468,10 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     prodotto: PRODOTTO_FORM_MAP,
     'movimento-form': MOVIMENTO_FORM_MAP,
     'movimento-modal': MOVIMENTO_FORM_MAP,
-    movimento: MOVIMENTO_FORM_MAP
+    movimento: MOVIMENTO_FORM_MAP,
+    'form-trattamento': TRATTAMENTO_CAMPO_FORM_MAP,
+    'trattamento-concimazione-form': TRATTAMENTO_CAMPO_FORM_MAP,
+    'modal-trattamento': TRATTAMENTO_CAMPO_FORM_MAP
   };
 
   const schemas = {
@@ -427,12 +489,24 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     preventivo: SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED,
     'nuovo-preventivo': SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED,
     'prodotto-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS,
-    'movimento-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS
+    'movimento-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS,
+    'form-trattamento': SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO,
+    'trattamento-concimazione-form': SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO
   };
 
   /** Allineato a core/config/trattamenti-lavoro-defaults.js */
   const DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO = 'Trattamento Anticrittogamico Meccanico';
   const DEFAULT_SOTTOCATEGORIA_TRATTAMENTI_TONY = 'Meccanico';
+  const LAVORAZIONI_DEFAULTS_TONY = {
+    // Se il tipo non esplicita manuale/meccanico, questi intenti tendono a meccanico di default.
+    mechanicalDefaultKeywords: ['trinciatur', 'erpicatur', 'fresatur', 'vangatur', 'ripunt', 'diserb', 'sfalci', 'trattament', 'concimaz', 'pre-potatur', 'potatura meccanica', 'vendemmia meccanica'],
+    // Per questi intenti, se possibile Tony prova a valorizzare trattore/attrezzo.
+    machineRequiredKeywords: ['trinciatur', 'erpicatur', 'fresatur', 'vangatur', 'ripunt', 'diserb', 'trattament', 'concimaz', 'pre-potatur', 'potatura meccanica', 'vendemmia meccanica'],
+    coverageRules: {
+      rowCropSubcategories: ['Tra le File', 'Sulla Fila'],
+      openFieldSubcategory: 'Generale'
+    }
+  };
 
   global.TONY_FORM_MAPPING = {
     getFormMap: (formKey) => mapping[formKey] || null,
@@ -440,6 +514,7 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     getSystemInstruction: (formKey) => systemInstructions[formKey] || null,
     DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO,
     DEFAULT_SOTTOCATEGORIA_TRATTAMENTI_TONY,
+    LAVORAZIONI_DEFAULTS_TONY,
     ATTIVITA_RESPONSE_SCHEMA,
     ATTIVITA_FORM_MAP,
     LAVORO_FORM_MAP,
@@ -451,6 +526,8 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     SYSTEM_INSTRUCTION_PREVENTIVO_STRUCTURED,
     PRODOTTO_FORM_MAP,
     MOVIMENTO_FORM_MAP,
-    SYSTEM_INSTRUCTION_MAGAZZINO_FORMS
+    TRATTAMENTO_CAMPO_FORM_MAP,
+    SYSTEM_INSTRUCTION_MAGAZZINO_FORMS,
+    SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO
   };
 })(typeof window !== 'undefined' ? window : globalThis);

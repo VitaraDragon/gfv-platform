@@ -4,6 +4,8 @@
  * @module core/js/dashboard-utils-extended
  */
 
+import { formatDateLikeToItalianLongLocal } from './date-format-it.js';
+
 // ============================================
 // FUNZIONI UTILITY
 // ============================================
@@ -50,8 +52,7 @@ export function calcolaAlertAffitto(dataScadenza) {
  */
 export function formattaDataScadenza(data) {
     if (!data) return '';
-    const d = data.toDate ? data.toDate() : new Date(data);
-    return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDateLikeToItalianLongLocal(data);
 }
 
 

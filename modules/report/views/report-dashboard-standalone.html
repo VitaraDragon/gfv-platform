@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report — Dashboard modulo GFV</title>
+  <meta name="theme-color" content="#1F2937" />
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #111827 0%, #374151 100%);
+      color: #111827;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .header {
+      background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .header h1 { font-size: 24px; }
+    .header p { opacity: .9; font-size: 14px; margin-top: 8px; max-width: 640px; line-height: 1.45; }
+    .btn {
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.18); }
+    .panel {
+      margin-top: 18px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .panel h2 { font-size: 16px; color: #374151; margin-bottom: 14px; }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    a.section-card {
+      display: block;
+      text-decoration: none;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s;
+      color: inherit;
+    }
+    a.section-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      border-color: #93c5fd;
+    }
+    a.section-card.featured {
+      border-color: #3b82f6;
+      background: linear-gradient(135deg, #eff6ff 0%, #f9fafb 100%);
+    }
+    .section-card .icon { font-size: 28px; margin-bottom: 8px; }
+    .section-card h3 { font-size: 16px; color: #111827; margin-bottom: 6px; }
+    .section-card p { font-size: 13px; color: #6b7280; line-height: 1.4; }
+    .badge-soon {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .alert {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid;
+      margin-top: 12px;
+    }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>📑 Report</h1>
+        <p>Sintesi e confronti per area. I dettagli operativi restano nei moduli dedicati.</p>
+      </div>
+      <a class="btn" href="../../../core/dashboard-standalone.html">← Dashboard principale</a>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden">
+      <div class="alert alert-error" id="gate-message"></div>
+    </div>
+
+    <div id="report-main" class="panel hidden">
+      <h2>Sezioni report</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">Le card dei moduli compaiono in base ai moduli attivi sul tuo abbonamento. <strong>Terreni</strong> è sempre in cima.</p>
+      <div class="cards-grid" id="sections-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const configScript = document.createElement('script');
+    configScript.src = '../../../core/config/firebase-config.js';
+    configScript.onerror = function () {
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+      document.head.appendChild(fallbackScript);
+    };
+    document.head.appendChild(configScript);
+  </script>
+
+  <script type="module">
+    function waitForConfig() {
+      return new Promise((resolve, reject) => {
+        if (typeof window.firebaseConfig !== 'undefined') {
+          resolve(window.firebaseConfig);
+          return;
+        }
+        let attempts = 0;
+        const t = setInterval(() => {
+          attempts++;
+          if (typeof window.firebaseConfig !== 'undefined') {
+            clearInterval(t);
+            resolve(window.firebaseConfig);
+          } else if (attempts >= 50) {
+            clearInterval(t);
+            reject(new Error('Config Firebase non caricata'));
+          }
+        }, 100);
+      });
+    }
+
+    const {
+      initializeFirebase,
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } = await import('../../../core/services/firebase-service.js');
+    const { initializeTenantService, getCurrentTenant, setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+    const { hasReportModuleAccess } = await import('../services/report-service.js');
+    const { canAccessStrategicReports } = await import('../js/report-access.js');
+
+    await waitForConfig();
+    initializeFirebase(window.firebaseConfig);
+    const auth = getAuthInstance();
+    initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const gateMessage = document.getElementById('gate-message');
+    const reportMain = document.getElementById('report-main');
+    const grid = document.getElementById('sections-grid');
+
+    function showBlocked(msg) {
+      gateMessage.textContent = msg;
+      gateBlocked.classList.remove('hidden');
+      reportMain.classList.add('hidden');
+    }
+
+    function buildSectionCards(activeModules) {
+      const mods = new Set((activeModules || []).map((m) => String(m || '').toLowerCase()));
+
+      /** @type {{ id: string, title: string, desc: string, href: string, icon: string, featured?: boolean, soon?: boolean }[]} */
+      const rows = [];
+
+      rows.push({
+        id: 'terreni',
+        title: 'Terreni',
+        desc: 'Stato dei campi, confronti annata, input e ore sul terreno selezionato.',
+        href: './report-terreni-standalone.html',
+        icon: '🗺️',
+        featured: true
+      });
+
+      if (mods.has('vigneto')) {
+        rows.push({
+          id: 'vigneto',
+          title: 'Vigneto',
+          desc: 'Export e tabelle vendemmie/lavori (MVP esistente).',
+          href: './report-standalone.html',
+          icon: '🍇'
+        });
+      }
+      if (mods.has('frutteto')) {
+        rows.push({
+          id: 'frutteto',
+          title: 'Frutteto',
+          desc: 'Report frutteto in arrivo.',
+          href: '#',
+          icon: '🌳',
+          soon: true
+        });
+      }
+      if (mods.has('magazzino')) {
+        rows.push({
+          id: 'magazzino',
+          title: 'Magazzino',
+          desc: 'Report magazzino in arrivo.',
+          href: '#',
+          icon: '📦',
+          soon: true
+        });
+      }
+      if (mods.has('manodopera')) {
+        rows.push({
+          id: 'manodopera',
+          title: 'Manodopera',
+          desc: 'Report ore e squadre in arrivo.',
+          href: '#',
+          icon: '👷',
+          soon: true
+        });
+      }
+      if (mods.has('contoterzi')) {
+        rows.push({
+          id: 'contoTerzi',
+          title: 'Conto terzi',
+          desc: 'Report preventivi/clienti in arrivo.',
+          href: '#',
+          icon: '💼',
+          soon: true
+        });
+      }
+
+      rows.push({
+        id: 'sintesi',
+        title: 'Sintesi',
+        desc: 'Visione trasversale tra moduli (in progettazione).',
+        href: '#',
+        icon: '📈',
+        soon: true
+      });
+      rows.push({
+        id: 'economici',
+        title: 'Economici',
+        desc: 'Indicatori economici e confronti (in progettazione).',
+        href: '#',
+        icon: '💶',
+        soon: true
+      });
+
+      grid.innerHTML = '';
+      for (const r of rows) {
+        const a = document.createElement(r.href === '#' ? 'div' : 'a');
+        if (r.href !== '#') {
+          a.href = r.href;
+        } else {
+          a.style.cursor = 'default';
+        }
+        a.className = 'section-card' + (r.featured ? ' featured' : '');
+        a.innerHTML = `
+          <div class="icon">${r.icon}</div>
+          <h3>${r.title}</h3>
+          <p>${r.desc}</p>
+          ${r.soon ? '<span class="badge-soon">In sviluppo</span>' : ''}
+        `;
+        grid.appendChild(a);
+      }
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '../../../core/auth/login-standalone.html';
+        return;
+      }
+
+      const userData = await getDocumentData('users', user.uid);
+      if (!userData) {
+        showBlocked('Profilo utente non trovato.');
+        return;
+      }
+
+      if (userData.tenantId) {
+        setCurrentTenantId(userData.tenantId);
+      }
+
+      const okReport = await hasReportModuleAccess();
+      if (!okReport) {
+        showBlocked('Il modulo Report non è attivo per questo account. Attivalo da Abbonamento oppure contatta l’amministratore.');
+        return;
+      }
+
+      if (!canAccessStrategicReports(userData)) {
+        showBlocked('Questa area è riservata a Manager e Amministratore.');
+        return;
+      }
+      const tenant = await getCurrentTenant();
+      const activeModules = tenant && Array.isArray(tenant.modules) ? tenant.modules : [];
+
+      buildSectionCards(activeModules);
+      reportMain.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>

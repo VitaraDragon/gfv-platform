@@ -169,6 +169,7 @@
     <!-- Tony: canone liste — placeholder; renderMovimenti aggiorna summary/items, merge setContext('page'), table-data-ready -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
@@ -211,8 +212,8 @@
 
         function formatData(d) {
             if (!d) return '-';
-            const date = d.toDate ? d.toDate() : new Date(d);
-            return date.toLocaleDateString('it-IT');
+            const s = formatDateLikeToItalianLongLocal(d);
+            return s || '-';
         }
 
         function formatPrezzoCell(prezzo) {
@@ -288,7 +289,7 @@
                 snapshot.forEach(d => lavori.push({ id: d.id, ...d.data() }));
                 const sel = document.getElementById('mov-lavoro');
                 sel.innerHTML = '<option value="">Nessuno</option>' + lavori.map(l => {
-                    const dataStr = l.dataInizio && (l.dataInizio.toDate ? l.dataInizio.toDate().toLocaleDateString('it-IT') : l.dataInizio);
+                    const dataStr = l.dataInizio ? formatDateLikeToItalianLongLocal(l.dataInizio) : '';
                     return `<option value="${l.id}">${(l.nome || l.id)}${dataStr ? ' – ' + dataStr : ''}</option>`;
                 }).join('');
             } catch (err) {

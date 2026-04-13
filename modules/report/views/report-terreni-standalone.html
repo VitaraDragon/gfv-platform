@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report — Terreni GFV</title>
+  <meta name="theme-color" content="#1F2937" />
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #111827 0%, #374151 100%);
+      color: #111827;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .header {
+      background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+      color: white;
+      padding: 22px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .header h1 { font-size: 22px; }
+    .header p { opacity: .9; font-size: 13px; margin-top: 6px; }
+    .nav-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.18); }
+    .panel {
+      margin-top: 14px;
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+    .filter-group label { font-size: 12px; font-weight: 700; color: #374151; }
+    select, input[type="date"] {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 9px 11px;
+      font-size: 14px;
+      background: white;
+    }
+    .period-hint {
+      font-size: 13px;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .terreno-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: default;
+      transition: box-shadow .15s;
+    }
+    .terreno-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+    .terreno-card h3 { font-size: 15px; color: #111827; margin-bottom: 6px; }
+    .terreno-card .meta { font-size: 12px; color: #6b7280; line-height: 1.4; }
+    .status-ok { color: #047857; font-weight: 700; font-size: 12px; margin-top: 8px; }
+    .status-warn { color: #b45309; font-weight: 700; font-size: 12px; margin-top: 8px; }
+    .placeholder-strip {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #6b7280;
+      border-top: 1px dashed #e5e7eb;
+      padding-top: 8px;
+    }
+    .alert { padding: 12px 14px; border-radius: 12px; border: 1px solid; margin-top: 10px; }
+    .alert-error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+    .alert-info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; }
+    .hidden { display: none !important; }
+    .muted { color: #6b7280; font-size: 13px; }
+    .stats-row {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #374151;
+      line-height: 1.55;
+      display: grid;
+      gap: 4px;
+    }
+    .stats-row strong { color: #111827; }
+    .loading-box { padding: 20px; text-align: center; color: #6b7280; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>🗺️ Report — Terreni</h1>
+        <p>Sintesi per campo nel periodo scelto. Dettaglio agronomico e grafici in evoluzione.</p>
+      </div>
+      <div class="nav-row">
+        <a class="btn" href="./report-dashboard-standalone.html">← Dashboard Report</a>
+        <a class="btn" href="../../../core/dashboard-standalone.html">Home</a>
+      </div>
+    </div>
+
+    <div id="gate-blocked" class="panel hidden"><div class="alert alert-error" id="gate-message"></div></div>
+
+    <div id="main-content" class="hidden">
+      <div class="panel">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="sel-mode">Tipo periodo</label>
+            <select id="sel-mode">
+              <option value="agrarian">Annata agraria (11 nov – 10 nov)</option>
+              <option value="solar">Anno solare</option>
+              <option value="custom">Intervallo personalizzato</option>
+            </select>
+          </div>
+          <div class="filter-group" id="group-year">
+            <label for="sel-year">Anno di riferimento</label>
+            <select id="sel-year"></select>
+          </div>
+          <div class="filter-group hidden" id="group-from">
+            <label for="date-from">Da</label>
+            <input type="date" id="date-from" />
+          </div>
+          <div class="filter-group hidden" id="group-to">
+            <label for="date-to">A</label>
+            <input type="date" id="date-to" />
+          </div>
+        </div>
+        <div class="period-hint" id="period-label"></div>
+        <p class="muted" style="margin-top:10px;">
+          Totali da trattamenti (vigneto/frutteto collegati), vendemmie e attività con ore nel periodo. I kg prodotti sono la somma delle quantità registrate per riga.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2 style="font-size:16px;color:#374151;margin-bottom:8px;">Campi aziendali</h2>
+        <div id="alert-terreni"></div>
+        <div class="cards-grid" id="terreni-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const configScript = document.createElement('script');
+    configScript.src = '../../../core/config/firebase-config.js';
+    configScript.onerror = function () {
+      const s2 = document.createElement('script');
+      s2.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(configScript);
+  </script>
+
+  <script type="module">
+    function waitForConfig() {
+      return new Promise((resolve, reject) => {
+        if (typeof window.firebaseConfig !== 'undefined') {
+          resolve(window.firebaseConfig);
+          return;
+        }
+        let n = 0;
+        const t = setInterval(() => {
+          n++;
+          if (typeof window.firebaseConfig !== 'undefined') {
+            clearInterval(t);
+            resolve(window.firebaseConfig);
+          } else if (n >= 50) {
+            clearInterval(t);
+            reject(new Error('Config Firebase'));
+          }
+        }, 100);
+      });
+    }
+
+    import {
+      initializeFirebase,
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData
+    } from '../../../core/services/firebase-service.js';
+    import { initializeTenantService, setCurrentTenantId } from '../../../core/services/tenant-service.js';
+    import { hasReportModuleAccess } from '../services/report-service.js';
+    import { canAccessStrategicReports } from '../js/report-access.js';
+    import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
+    import { buildReportTerreniRows } from '../services/report-terreni-service.js';
+
+    await waitForConfig();
+    initializeFirebase(window.firebaseConfig);
+    const auth = getAuthInstance();
+    initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const gateMessage = document.getElementById('gate-message');
+    const mainContent = document.getElementById('main-content');
+    const selMode = document.getElementById('sel-mode');
+    const selYear = document.getElementById('sel-year');
+    const groupYear = document.getElementById('group-year');
+    const groupFrom = document.getElementById('group-from');
+    const groupTo = document.getElementById('group-to');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+    const periodLabel = document.getElementById('period-label');
+    const terreniGrid = document.getElementById('terreni-grid');
+    const alertTerreni = document.getElementById('alert-terreni');
+
+    let tenantId = null;
+
+    function showGate(msg) {
+      gateMessage.textContent = msg;
+      gateBlocked.classList.remove('hidden');
+      mainContent.classList.add('hidden');
+    }
+
+    function fillYearSelect() {
+      const y = new Date().getFullYear();
+      selYear.innerHTML = '';
+      for (let i = 0; i < 8; i++) {
+        const yy = y - i;
+        const o = document.createElement('option');
+        o.value = String(yy);
+        o.textContent = String(yy);
+        selYear.appendChild(o);
+      }
+      selYear.value = String(y);
+    }
+
+    function currentPeriodBounds() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        let a = dateFrom.value ? new Date(dateFrom.value + 'T00:00:00') : new Date();
+        let b = dateTo.value ? new Date(dateTo.value + 'T23:59:59.999') : new Date();
+        if (a > b) {
+          const x = a;
+          a = b;
+          b = x;
+        }
+        return { start: a, end: b, label: formatRangeIt(a, b) };
+      }
+      const refY = parseInt(selYear.value, 10) || new Date().getFullYear();
+      if (mode === 'solar') {
+        return getSolarYearBounds(new Date(refY, 5, 15));
+      }
+      return getAgrarianYearBounds(new Date(refY, 10, 15));
+    }
+
+    function updatePeriodLabel() {
+      const mode = selMode.value;
+      if (mode === 'custom') {
+        groupYear.classList.add('hidden');
+        groupFrom.classList.remove('hidden');
+        groupTo.classList.remove('hidden');
+        if (!dateFrom.value) {
+          const t = new Date();
+          t.setMonth(t.getMonth() - 3);
+          dateFrom.value = t.toISOString().slice(0, 10);
+        }
+        if (!dateTo.value) {
+          dateTo.value = new Date().toISOString().slice(0, 10);
+        }
+      } else {
+        groupYear.classList.remove('hidden');
+        groupFrom.classList.add('hidden');
+        groupTo.classList.add('hidden');
+      }
+      const p = currentPeriodBounds();
+      periodLabel.textContent = p.label || formatRangeIt(p.start, p.end);
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    function renderReportRows(reportRows) {
+      terreniGrid.innerHTML = '';
+      if (!reportRows || reportRows.length === 0) {
+        alertTerreni.innerHTML = '<div class="alert alert-info">Nessun terreno aziendale trovato.</div>';
+        return;
+      }
+      alertTerreni.innerHTML = '';
+      for (const row of reportRows) {
+        const t = row.terreno;
+        const st = row.stats;
+        const ha = t.superficie != null ? Number(t.superficie) : null;
+        const haStr =
+          ha != null && !Number.isNaN(ha)
+            ? ha.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : '';
+        const card = document.createElement('div');
+        card.className = 'terreno-card';
+        const nome = t.nome || t.podere || 'Senza nome';
+        const col = t.coltura || '—';
+        const alerts = row.alerts || [];
+        const statusHtml = alerts.length
+          ? alerts.map((a) => `<div class="status-warn">${escHtml(a)}</div>`).join('')
+          : '<div class="status-ok">Nessun alert</div>';
+        const vend = st.hasVigneto
+          ? `<strong>Vendemmia:</strong> ${st.qliVendemmia.toLocaleString('it-IT')} q.li (${st.vendemmiaCount} registraz.)`
+          : '<strong>Vendemmia:</strong> — (nessun vigneto)';
+        card.innerHTML = `
+          <h3>${escHtml(nome)}</h3>
+          <div class="meta">Coltura: ${escHtml(col)}${haStr ? ` · ${haStr} ha` : ''}</div>
+          ${statusHtml}
+          <div class="stats-row">
+            <div><strong>Concimi (fertilizzante):</strong> ${st.kgConcime.toLocaleString('it-IT')} kg · ${st.interventiConcime} interventi</div>
+            <div><strong>Trattamenti fitosanitari:</strong> ${st.kgTrattamento.toLocaleString('it-IT')} kg · ${st.interventiTrattamento} interventi</div>
+            <div>${vend}</div>
+            <div><strong>Ore attività:</strong> ${st.oreAttivita.toLocaleString('it-IT')} h (somma ore nette)</div>
+          </div>
+        `;
+        terreniGrid.appendChild(card);
+      }
+    }
+
+    async function refreshReport() {
+      if (!tenantId) return;
+      terreniGrid.innerHTML = '<div class="loading-box">Caricamento dati nel periodo…</div>';
+      alertTerreni.innerHTML = '';
+      try {
+        const p = currentPeriodBounds();
+        const rows = await buildReportTerreniRows(p.start, p.end);
+        renderReportRows(rows);
+      } catch (e) {
+        console.error(e);
+        terreniGrid.innerHTML = '';
+        alertTerreni.innerHTML = `<div class="alert alert-error">Errore report: ${escHtml(e.message || e)}</div>`;
+      }
+    }
+
+    function onPeriodChange() {
+      updatePeriodLabel();
+      if (mainContent && !mainContent.classList.contains('hidden') && tenantId) {
+        refreshReport();
+      }
+    }
+
+    selMode.addEventListener('change', onPeriodChange);
+    selYear.addEventListener('change', onPeriodChange);
+    dateFrom.addEventListener('change', onPeriodChange);
+    dateTo.addEventListener('change', onPeriodChange);
+
+    fillYearSelect();
+    updatePeriodLabel();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '../../../core/auth/login-standalone.html';
+        return;
+      }
+      const userData = await getDocumentData('users', user.uid);
+      if (!userData) {
+        showGate('Profilo utente non trovato.');
+        return;
+      }
+      tenantId = userData.tenantId;
+      if (tenantId) {
+        setCurrentTenantId(tenantId);
+      }
+      if (!(await hasReportModuleAccess())) {
+        showGate('Modulo Report non attivo.');
+        return;
+      }
+      if (!canAccessStrategicReports(userData)) {
+        showGate('Area riservata a Manager e Amministratore.');
+        return;
+      }
+      mainContent.classList.remove('hidden');
+      await refreshReport();
+    });
+  </script>
+</body>
+</html>

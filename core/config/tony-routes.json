@@ -296,8 +296,20 @@
     },
     {
       "target": "report",
+      "path": "modules/report/views/report-dashboard-standalone.html",
+      "label": "Report Dashboard",
+      "module": "report"
+    },
+    {
+      "target": "report terreni",
+      "path": "modules/report/views/report-terreni-standalone.html",
+      "label": "Report Terreni",
+      "module": "report"
+    },
+    {
+      "target": "report vigneto",
       "path": "modules/report/views/report-standalone.html",
-      "label": "Report",
+      "label": "Report Vigneto",
       "module": "report"
     },
     {
@@ -355,5 +367,5 @@
       "module": "vigneto"
     }
   ],
-  "generatedAt": "2026-04-06T14:10:18.413Z"
+  "generatedAt": "2026-04-11T12:00:00.000Z"
 }

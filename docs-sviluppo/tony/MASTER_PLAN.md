@@ -14,7 +14,7 @@
 |------|------|-------|---------------|
 | **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo |
 | **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08) |
-| **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); summarySottoScorta opzionale |
+| **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); **summarySottoScorta** + prodottiSottoScorta (2026-04-11) |
 | **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24); magazzino prodotto/movimento via mapping+injector |
 | **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
 | **6** | Proattività e memoria | ⏳ Parziale | Dashboard + Guasti ok; liste/form magazzino con proattività parziale (timer, interview, conferma salvataggio); "Ho notato X" da fare |
@@ -137,7 +137,7 @@ Tony non legge solo la "tabella della pagina corrente". Attinge a un **Context B
 - **form**: stato form corrente (se modal aperto) – getCurrentFormContext
 - **dashboard**: moduli_attivi, info azienda
 - **summaryScadenze**: "3 mezzi in scadenza, 2 affitti scaduti" ✅ implementato
-- **summaryAlert**: "2 prodotti sotto scorta, 1 guasto aperto" (summarySottoScorta pianificato)
+- **summaryAlert**: "2 prodotti sotto scorta, 1 guasto aperto" (summarySottoScorta in ctx.azienda da buildContextAzienda)
 - **summaryStats**: aggregati ore, superfici, rese (da costruire)
 - **terreni.poderi, terreni.colture**: quando rilevante ✅ implementato
 
@@ -220,7 +220,7 @@ Tony non "compila" grafici. Può:
 
 ### Fase 3 – Context Builder e dati aziendali ✅ In corso
 - **buildContextAzienda** in CF: terreni (coltura_categoria), macchine, tipi lavoro, colture, summaryScadenze, guastiAperti, **ultimi movimenti magazzino** (`movimentiMagazzino` → `movimentiRecenti` + testo riassuntivo)
-- summarySottoScorta opzionale (prodotti raw già presenti)
+- **summarySottoScorta** + **prodottiSottoScorta** in CF (2026-04-11); lettura prodotti con **scortaMinima** (campo reale in Firestore)
 - **Criterio done**: Tony risponde a "Quali scadenze ho?", "Come stanno i prodotti?" e domande su **ultimi carichi/scarichi** con dati reali anche fuori dalla pagina Movimenti (lista completa e filtri restano sulla pagina)
 
 ### Fase 4 – Iniezione universale ✅ In corso

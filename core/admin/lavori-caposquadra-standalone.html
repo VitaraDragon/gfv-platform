@@ -530,6 +530,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -846,7 +847,7 @@
             lavoriConZone.forEach(lavoro => {
                 const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
                 const dataInizioFormatted = lavoro.dataInizio 
-                    ? new Date(lavoro.dataInizio).toLocaleDateString('it-IT')
+                    ? (formatDateLikeToItalianLongLocal(lavoro.dataInizio) || 'N/A')
                     : 'N/A';
                 const durata = lavoro.durataPrevista ? `${lavoro.durataPrevista} giorni` : 'N/A';
                 const statoBadge = `<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>`;

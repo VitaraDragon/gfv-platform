@@ -34,6 +34,50 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
         return false;
     }
 
+    /** True se il messaggio utente assegna già il lavoro a una persona ("per Luca", "assegna a Marco"). */
+    function tonyUserMentionedLavoroAssignee(userText) {
+        if (!userText) return false;
+        var t = String(userText);
+        if (/\bassegn\w*\s+(a|ad|al|alla|allo)\s+/i.test(t)) return true;
+        if (/\bper\s+(un|una|il|lo|la|l'|domani|oggi|esempio|favore|conto)\b/i.test(t)) return false;
+        if (/\bper\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'`\-\s]{0,35}?\s+(nel|nella|nello|in|sul|sulla|al|alla)\b/i.test(t)) return true;
+        if (/\bper\s+[A-Za-zÀ-ÿ]{2,}\b/.test(t)) return true;
+        return false;
+    }
+
+    /** Rimuove "A chi assegni?" se l'utente aveva già indicato il destinatario (per Luca, ecc.). */
+    function tonySanitizeLavoroOperaioQuestionInReply(displayText, userText) {
+        if (!displayText || !userText || !tonyUserMentionedLavoroAssignee(userText)) return displayText;
+        var s = String(displayText);
+        s = s.replace(/\bA\s+chi\s+(lo\s+)?assegni\s*\??\s*/gi, '');
+        s = s.replace(/\bA\s+chi\s+lo\s+assegno\s*\??\s*/gi, '');
+        s = s.replace(/\s{2,}/g, ' ').trim();
+        return s.length ? s : displayText;
+    }
+
+    /** True se il messaggio utente indica già inizio e/o durata (Gestione Lavori). */
+    function tonyUserMentionedLavoroDataDurata(userText) {
+        if (!userText) return false;
+        var t = String(userText).toLowerCase();
+        if (/\b(domani|oggi|ieri|dopodomani|luned[iì]|marted[iì]|mercoled[iì]|gioved[iì]|venerd[iì]|sabato|domenica)\b/.test(t)) return true;
+        if (/\b(inizio|inizia|parte|partenza)\s+(domani|oggi|luned)/.test(t)) return true;
+        if (/\b(durata|giornat[ae]|giorn[oi])\b/.test(t) && /\b(un|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|\d+)\b/.test(t)) return true;
+        if (/\b(per|di)\s+(un|due|tre|\d+)\s+giorn/.test(t)) return true;
+        return false;
+    }
+
+    /** Rimuove domande ridondanti su data/durata se l'utente le aveva già nel messaggio. */
+    function tonySanitizeLavoroDataDurataQuestionInReply(displayText, userText) {
+        if (!displayText || !userText || !tonyUserMentionedLavoroDataDurata(userText)) return displayText;
+        var s = String(displayText);
+        s = s.replace(/\b[Qq]uando\s+vuoi\s+iniziare\s*\??\s*/gi, '');
+        s = s.replace(/\b[Ee]\s+per\s+quanti\s+giorni\s+dura\s*\??\s*/gi, '');
+        s = s.replace(/\b[Qq]uando\s+inizi\b[^?.!]*[?.!]/gi, '');
+        s = s.replace(/\bper\s+quanti\s+giorni\b[^?.!]*[?.!]/gi, '');
+        s = s.replace(/\s{2,}/g, ' ').replace(/^\s*[.,;]+\s*/g, '').replace(/\s+[.,;]+$/g, '').trim();
+        return s.length ? s : displayText;
+    }
+
     /** Rimuove domande ridondanti su trattore/attrezzo se l'utente li aveva già nel messaggio. */
     function tonySanitizeLavoroMacchineQuestionInReply(displayText, userText) {
         if (!displayText || !userText || !tonyUserMentionedLavoroMacchine(userText)) return displayText;
@@ -925,6 +969,15 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             }
                             break;
                         }
+                        var modalTrattamentoInjectGuard = (function() {
+                            var m = document.getElementById('modal-trattamento');
+                            return m && m.classList.contains('active');
+                        })();
+                        if (modalTrattamentoInjectGuard && (data.formId === 'attivita-form' || data.formId === 'attivita-modal')) {
+                            window.__tonyInjectionInProgress = false;
+                            console.warn('[Tony] INJECT attivita-form ignorato: modal Completa trattamento/concimazione attivo (evita comando errato dalla CF).');
+                            break;
+                        }
                         if (data.formData && typeof data.formData === 'object') {
                             var fdInj = data.formData;
                             if (data.formId === 'attivita-form' && tonyPayloadLooksLikePreventivoFormData(fdInj)) {
@@ -1032,8 +1085,10 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                                 try { lastUpM = String(sessionStorage.getItem('tony_last_user_message') || '').trim(); } catch (eMk) {}
                                                 if (state.needsMacchineOnly && lastUpM && tonyUserMentionedLavoroMacchine(lastUpM)) {
                                                     window.__tonyProactiveFormState = null;
+                                                } else if (state.formId === 'lavoro-form' && lastUpM && tonyUserMentionedLavoroAssignee(lastUpM)) {
+                                                    window.__tonyProactiveFormState = null;
                                                 } else {
-                                                    var msg = (state.needsMacchineOnly) ? 'Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e erpice vuoi usare?' : null;
+                                                    var msg = (state.needsMacchineOnly) ? 'Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e attrezzo vuoi usare?' : null;
                                                     window.__tonyTriggerAskForMissingFields(msg);
                                                 }
                                             }
@@ -1368,6 +1423,59 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                     console.warn('[Tony] Iniezione form movimento fallita');
                                 }
                             });
+                        } else if (data.formId === 'form-trattamento' || data.formId === 'trattamento-concimazione-form') {
+                            var fdTratt0 = data.formData;
+                            var ctxTratt0 = ctx;
+                            var tryInjectTrattamento = function(attempt) {
+                                attempt = attempt || 0;
+                                var formTratt = document.getElementById('form-trattamento');
+                                var modalTratt = document.getElementById('modal-trattamento');
+                                var active = modalTratt && modalTratt.classList.contains('active');
+                                if (formTratt && modalTratt && !active && attempt < 15) {
+                                    setTimeout(function() { tryInjectTrattamento(attempt + 1); }, 100);
+                                    return;
+                                }
+                                if (!formTratt || !modalTratt || !active) {
+                                    window.__tonyInjectionInProgress = false;
+                                    console.warn('[Tony] INJECT form-trattamento: apri prima «Completa» dalla lista concimazioni/trattamenti.');
+                                    return;
+                                }
+                                var fdTratt = fdTratt0;
+                                var formCtxTratt = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+                                if (formCtxTratt && formCtxTratt.fields && fdTratt) {
+                                    var mergedTratt = Object.assign({}, fdTratt);
+                                    formCtxTratt.fields.forEach(function(f) {
+                                        if (!f || !f.id) return;
+                                        // Non copiare checkbox dal DOM se il comando Cloud Function non le ha incluse:
+                                        // nel contesto `value` è spesso `false` (non spuntato) ma `hasVal` risulta true,
+                                        // e si reiniettava sempre false sovrascrivendo un eventuale true dal modello.
+                                        var skipCheckboxMerge =
+                                            (f.id === 'trattamento-superficie-anagrafe' ||
+                                                f.id === 'trattamento-prosegue-precedente' ||
+                                                f.id === 'trattamento-registra-scarico-magazzino') &&
+                                            !(f.id in fdTratt);
+                                        if (skipCheckboxMerge) return;
+                                        var hasVal = f.value != null && (f.value === 0 || f.value !== '');
+                                        if (hasVal && !(f.id in fdTratt)) mergedTratt[f.id] = f.value;
+                                    });
+                                    if (Object.keys(mergedTratt).length > Object.keys(fdTratt).length) fdTratt = mergedTratt;
+                                }
+                                window.TonyFormInjector.injectTrattamentoCampoForm(fdTratt, ctxTratt0).then(function(ok) {
+                                    window.__tonyInjectionInProgress = false;
+                                    if (ok) console.log('[Tony] Form trattamento campo iniettato');
+                                    else console.warn('[Tony] Iniezione form trattamento campo fallita');
+                                    // Nessun timer proattivo «Form completo, confermi salvataggio?» qui: dopo ~10s inviava un secondo
+                                    // messaggio alla CF mentre l’utente stava ancora leggendo / rispondendo alla domanda su
+                                    // anagrafe/scarico, causava inject duplicati o comandi errati (es. attivita-form). La CF
+                                    // già invita a «ok salva» nel replyText; l’utente conferma quando vuole.
+                                });
+                            };
+                            if (!document.getElementById('form-trattamento')) {
+                                window.__tonyInjectionInProgress = false;
+                                console.warn('[Tony] INJECT form-trattamento: form assente dalla pagina.');
+                                break;
+                            }
+                            tryInjectTrattamento(0);
                         } else {
                             window.__tonyInjectionInProgress = false;
                             console.warn('[Tony] INJECT_FORM_DATA: formId non supportato:', data.formId);
@@ -1393,6 +1501,14 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         
                         // Se attivita-modal richiesto ma non esiste (es. dashboard): Diario — salvo che i campi siano chiaramente Nuovo Preventivo (errore comune del modello).
                         if ((modalId === 'attivita-modal' || (modalKey && modalKey.indexOf('attivita') >= 0)) && !document.getElementById('attivita-modal')) {
+                            var modalTrattamentoAttivo = (function() {
+                                var m = document.getElementById('modal-trattamento');
+                                return m && m.classList.contains('active');
+                            })();
+                            if (modalTrattamentoAttivo) {
+                                console.log('[Tony] OPEN_MODAL attivita-modal ignorato: aperto modal Completa trattamento/concimazione campo (usa INJECT su form-trattamento).');
+                                break;
+                            }
                             if (tonyOpenModalShouldRouteToPreventivo(data.fields) && window.Tony && typeof window.Tony.triggerAction === 'function') {
                                 console.log('[Tony] OPEN_MODAL attivita-modal → Nuovo Preventivo (campi preventivo o ultimo messaggio utente)');
                                 window.Tony.triggerAction('APRI_PAGINA', {
@@ -1993,8 +2109,15 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 case 'SAVE_ACTIVITY':
                     console.log('[DEBUG CURSOR] processTonyCommand: Caso SAVE_ACTIVITY');
                     var preventivoFormEl = document.getElementById('preventivo-form');
+                    var modalTrattamentoAct = (function() {
+                        var m = document.getElementById('modal-trattamento');
+                        return m && m.classList.contains('active');
+                    })();
                     var saveValidation = null;
-                    if (preventivoFormEl) {
+                    /** Modal concimazioni/trattamenti: niente schema TONY_FORM_SCHEMAS — SmartFormFiller confondeva .btn-primary «Traccia» col Salva. */
+                    if (modalTrattamentoAct) {
+                        saveValidation = tonyCheckFormCompletenessSafe();
+                    } else if (preventivoFormEl) {
                         saveValidation = tonyCheckFormCompletenessSafe();
                     } else if (window.SmartFormFiller) {
                         try {
@@ -2025,12 +2148,17 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         return;
                     }
 
-                    // Cerca il bottone di salvataggio nel form attivo
+                    // Cerca il bottone di salvataggio nel form attivo (preferisci submit reale, non primi .btn-primary tipo «Traccia»)
                     var saveBtn = null;
-                    if (preventivoFormEl) {
+                    if (modalTrattamentoAct) {
+                        var ftSave = document.getElementById('form-trattamento');
+                        if (ftSave) saveBtn = ftSave.querySelector('button[type="submit"], .form-actions button[type="submit"]');
+                    }
+                    if (preventivoFormEl && !saveBtn) {
                         saveBtn = preventivoFormEl.querySelector('button[type="submit"]');
                     }
-                    if (!saveBtn) saveBtn = document.querySelector('.modal.active button[type="submit"], .modal.active .btn-primary, .modal.show button[type="submit"]');
+                    if (!saveBtn) saveBtn = document.querySelector('.modal.active button[type="submit"], .modal.show button[type="submit"]');
+                    if (!saveBtn) saveBtn = document.querySelector('.modal.active .form-actions button[type="submit"]');
                     // Fallback specifico per moduli noti
                     if (!saveBtn) saveBtn = document.getElementById('attivita-form');
                     if (!saveBtn) saveBtn = document.getElementById('ora-form');
@@ -2238,7 +2366,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         var params = data.params || {};
                         var pathStr = (window.location.pathname || '');
                         var pageType = (window.currentTableData && window.currentTableData.pageType) ||
-                            (pathStr.indexOf('terreni-clienti') !== -1 ? 'terreniClienti' : pathStr.indexOf('clienti') !== -1 ? 'clienti' : pathStr.indexOf('preventivi') !== -1 ? 'preventivi' : pathStr.indexOf('tariffe') !== -1 ? 'tariffe' : pathStr.indexOf('prodotti') !== -1 ? 'prodotti' : pathStr.indexOf('movimenti') !== -1 ? 'movimenti' : pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
+                            (pathStr.indexOf('terreni-clienti') !== -1 ? 'terreniClienti' : pathStr.indexOf('tracciabilita-consumi') !== -1 ? 'tracciabilita_consumi' : pathStr.indexOf('vendemmia-standalone') !== -1 ? 'vendemmia' : (pathStr.indexOf('modules/vigneto') !== -1 || pathStr.indexOf('/vigneto/') !== -1) && pathStr.indexOf('concimazioni') !== -1 ? 'concimazioni_vigneto' : (pathStr.indexOf('modules/frutteto') !== -1 || pathStr.indexOf('/frutteto/') !== -1) && pathStr.indexOf('concimazioni') !== -1 ? 'concimazioni_frutteto' : pathStr.indexOf('clienti') !== -1 ? 'clienti' : pathStr.indexOf('preventivi') !== -1 ? 'preventivi' : pathStr.indexOf('tariffe') !== -1 ? 'tariffe' : pathStr.indexOf('prodotti') !== -1 ? 'prodotti' : pathStr.indexOf('movimenti') !== -1 ? 'movimenti' : pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
                         var FILTER_KEY_MAP = {
                             attivita: { terreno: 'filter-terreno', tipoLavoro: 'filter-tipo-lavoro', coltura: 'filter-coltura', origine: 'filter-origine', dataDa: 'filter-data-da', dataA: 'filter-data-a', data: 'filter-data-da', ricerca: 'filter-ricerca' },
                             terreni: { podere: 'filter-podere', possesso: 'filter-tipo-possesso', alert: 'filter-alert', coltura: 'filter-coltura', categoria: 'filter-categoria' },
@@ -2248,7 +2376,11 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             terreniClienti: { cliente: 'filter-cliente' },
                             tariffe: { tipoLavoro: 'filter-tipo-lavoro', coltura: 'filter-coltura', tipoCampo: 'filter-tipo-campo', attiva: 'filter-attiva' },
                             prodotti: { attivo: 'filter-attivo', categoria: 'filter-categoria', ricerca: 'filter-search' },
-                            movimenti: { tipo: 'filter-tipo', prodotto: 'filter-prodotto' }
+                            movimenti: { tipo: 'filter-tipo', prodotto: 'filter-prodotto' },
+                            concimazioni_vigneto: { vigneto: 'filter-vigneto', anno: 'filter-anno' },
+                            concimazioni_frutteto: { frutteto: 'filter-frutteto', anno: 'filter-anno' },
+                            tracciabilita_consumi: { categoria: 'filter-categoria', terreno: 'filter-terreno', vista: 'filter-vista' },
+                            vendemmia: { vigneto: 'filter-vigneto', varieta: 'filter-varieta', anno: 'filter-anno' }
                         };
                         var keyToId = FILTER_KEY_MAP[pageType] || FILTER_KEY_MAP.terreni;
                         var isAttivita = pageType === 'attivita';
@@ -2299,7 +2431,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         }
 
                         if (params.filterType === 'reset' || params.reset === true) {
-                            var resetSel = (pageType === 'attivita' || pageType === 'clienti' || pageType === 'preventivi' || pageType === 'tariffe' || pageType === 'terreniClienti' || pageType === 'prodotti' || pageType === 'movimenti') ? 'select[id^="filter-"], input[id^="filter-"]' : 'select[id^="filter-"]';
+                            var resetSel = (pageType === 'attivita' || pageType === 'clienti' || pageType === 'preventivi' || pageType === 'tariffe' || pageType === 'terreniClienti' || pageType === 'prodotti' || pageType === 'movimenti' || pageType === 'concimazioni_vigneto' || pageType === 'concimazioni_frutteto' || pageType === 'tracciabilita_consumi' || pageType === 'vendemmia') ? 'select[id^="filter-"], input[id^="filter-"]' : 'select[id^="filter-"]';
                             document.querySelectorAll(resetSel).forEach(function(el) {
                                 el.value = '';
                                 try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
@@ -2336,9 +2468,12 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                             el.appendChild(opt);
                                         }
                                     }
-                                    var matchByText = (isAttivita && (key === 'terreno' || key === 'origine')) || (pageType === 'lavori' && (key === 'terreno' || key === 'caposquadra' || key === 'operaio' || key === 'tipoLavoro')) || (pageType === 'preventivi' && (key === 'cliente' || key === 'categoriaLavoro' || key === 'categoriaColtura')) || (pageType === 'terreniClienti' && key === 'cliente') || (pageType === 'movimenti' && key === 'prodotto') || (pageType === 'prodotti' && key === 'categoria');
+                                    var matchByText = (isAttivita && (key === 'terreno' || key === 'origine')) || (pageType === 'lavori' && (key === 'terreno' || key === 'caposquadra' || key === 'operaio' || key === 'tipoLavoro')) || (pageType === 'preventivi' && (key === 'cliente' || key === 'categoriaLavoro' || key === 'categoriaColtura')) || (pageType === 'terreniClienti' && key === 'cliente') || (pageType === 'movimenti' && key === 'prodotto') || (pageType === 'prodotti' && key === 'categoria') || (pageType === 'concimazioni_vigneto' && key === 'vigneto') || (pageType === 'concimazioni_frutteto' && key === 'frutteto') || (pageType === 'tracciabilita_consumi' && (key === 'categoria' || key === 'terreno')) || (pageType === 'vendemmia' && (key === 'varieta' || key === 'vigneto'));
                                     var paramVal = params[key];
                                     if (pageType === 'prodotti' && key === 'categoria' && realId === 'filter-categoria') {
+                                        paramVal = normalizeTonyProdottiCategoriaValue(paramVal);
+                                    }
+                                    if (pageType === 'tracciabilita_consumi' && key === 'categoria' && realId === 'filter-categoria') {
                                         paramVal = normalizeTonyProdottiCategoriaValue(paramVal);
                                     }
                                     setFilterValue(el, paramVal, matchByText);
@@ -2375,9 +2510,12 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                 var realId = keyToId[filterType] || ('filter-' + filterType);
                                 var el = document.getElementById(realId);
                                 if (el && (el.tagName === 'SELECT' || 'value' in el)) {
-                                    var matchByTextRetro = (pageType === 'attivita' && (filterType === 'terreno' || filterType === 'origine')) || (pageType === 'lavori' && (filterType === 'terreno' || filterType === 'caposquadra' || filterType === 'operaio' || filterType === 'tipoLavoro')) || (pageType === 'preventivi' && (filterType === 'cliente' || filterType === 'categoriaLavoro' || filterType === 'categoriaColtura')) || (pageType === 'terreniClienti' && filterType === 'cliente') || (pageType === 'movimenti' && (filterType === 'prodotto' || filterType === 'tipo')) || (pageType === 'prodotti' && filterType === 'categoria');
+                                    var matchByTextRetro = (pageType === 'attivita' && (filterType === 'terreno' || filterType === 'origine')) || (pageType === 'lavori' && (filterType === 'terreno' || filterType === 'caposquadra' || filterType === 'operaio' || filterType === 'tipoLavoro')) || (pageType === 'preventivi' && (filterType === 'cliente' || filterType === 'categoriaLavoro' || filterType === 'categoriaColtura')) || (pageType === 'terreniClienti' && filterType === 'cliente') || (pageType === 'movimenti' && (filterType === 'prodotto' || filterType === 'tipo')) || (pageType === 'prodotti' && filterType === 'categoria') || (pageType === 'concimazioni_vigneto' && filterType === 'vigneto') || (pageType === 'concimazioni_frutteto' && filterType === 'frutteto') || (pageType === 'tracciabilita_consumi' && (filterType === 'categoria' || filterType === 'terreno')) || (pageType === 'vendemmia' && (filterType === 'varieta' || filterType === 'vigneto' || filterType === 'anno'));
                                     var retroVal = value;
                                     if (pageType === 'prodotti' && filterType === 'categoria' && el.id === 'filter-categoria') {
+                                        retroVal = normalizeTonyProdottiCategoriaValue(retroVal);
+                                    }
+                                    if (pageType === 'tracciabilita_consumi' && filterType === 'categoria' && el.id === 'filter-categoria') {
                                         retroVal = normalizeTonyProdottiCategoriaValue(retroVal);
                                     }
                                     setFilterValue(el, retroVal, matchByTextRetro);
@@ -2538,6 +2676,21 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
 
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
+
+    window.addEventListener('tony-macchine-disambiguation', function(ev) {
+        try {
+            var d = ev && ev.detail ? ev.detail : {};
+            var msg = d.message;
+            if (!msg || typeof msg !== 'string') return;
+            if (typeof appendMessage === 'function') appendMessage(msg, 'tony');
+            var voice = d.voiceText != null && String(d.voiceText).trim() !== ''
+                ? String(d.voiceText).trim()
+                : String(msg).replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+            if (voice.length > 420) voice = voice.slice(0, 420) + '…';
+            if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(voice);
+        } catch (e) { console.warn('[Tony] tony-macchine-disambiguation:', e); }
+    });
+
     var fab = document.getElementById('tony-fab');
     var panel = document.getElementById('tony-panel');
     var messagesEl = document.getElementById('tony-messages');
@@ -2885,14 +3038,18 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         }
                     }
                 }
-                var isRelevant = (form.id === 'preventivo-form') || !!label || /^(attivita|lavoro|ora|terreno|vigneto|frutteto|cliente|prodotto|movimento|macchina)-/.test(el.id) || el.id === 'lavoro-id';
+                var isRelevant = (form.id === 'preventivo-form') || !!label || /^(attivita|lavoro|ora|terreno|vigneto|frutteto|cliente|prodotto|movimento|macchina|trattamento)-/.test(el.id) || el.id === 'lavoro-id';
                 if (!isRelevant) continue;
+                var rawFieldVal = el.value || '';
+                if (el.tagName === 'INPUT' && (el.type || '').toLowerCase() === 'checkbox') {
+                    rawFieldVal = el.checked ? 'true' : 'false';
+                }
                 var fieldInfo = {
                     id: el.id,
                     label: label || el.id,
                     type: (el.type || el.tagName).toLowerCase(),
                     required: isRequired,
-                    value: el.value || '',
+                    value: rawFieldVal,
                     valueLabel: valueLabel || undefined,
                     options: options.length > 0 ? options : undefined,
                     isVisible: isFieldVisible
@@ -2921,6 +3078,23 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
         /** Esposto per timer/async fuori dal blocco sendBtn (es. runProactiveCheckPreventivo dopo INJECT). */
         window.__tonyBuildTonyFormContext = buildTonyFormContext;
 
+        function getTrattamentoCampoFormContextIfActive() {
+            var mt = document.getElementById('modal-trattamento');
+            if (!mt || !mt.classList.contains('active')) return null;
+            var ft = document.getElementById('form-trattamento');
+            if (ft && ft.id) {
+                return buildTonyFormContext(ft, mt, 'modal-trattamento', 'modal-trattamento attivo');
+            }
+            return {
+                formId: 'form-trattamento',
+                modalId: 'modal-trattamento',
+                fields: [],
+                formSummary: '',
+                requiredEmpty: [],
+                interviewEmpty: []
+            };
+        }
+
         function getCurrentFormContext() {
             var preventivoFormEl = document.getElementById('preventivo-form');
             // Un solo preventivo-form nel progetto (nuovo-preventivo-standalone): niente dipendenza da pathname/rewrite.
@@ -2929,15 +3103,15 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
             }
             var modal = document.querySelector('.modal.active');
             if (!modal) {
-                return null;
+                return getTrattamentoCampoFormContextIfActive();
             }
             var modalStyle = window.getComputedStyle(modal);
             if (modalStyle.display === 'none' || modalStyle.visibility === 'hidden') {
-                return null;
+                return getTrattamentoCampoFormContextIfActive();
             }
             var form = modal.querySelector('form');
             if (!form || !form.id) {
-                return null;
+                return getTrattamentoCampoFormContextIfActive();
             }
             return buildTonyFormContext(form, modal, modal.id || '', 'modal attivo');
         }
@@ -3158,8 +3332,14 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 var onGestioneLavori = p.indexOf('gestione-lavori') >= 0;
                 if (!onGestioneLavori) return false;
                 var t = String(userText).toLowerCase();
+                if (/\b(portami|porta\s+in|portaci|aprimi|vai\s+(a|al|alla|allo|all\')|porta\s+a|mostrami|indirizzami|naviga)\b/i.test(t)) {
+                    return false;
+                }
+                if (/\bapri\s+(il\s+|la\s+|l\')?(pagina|modulo|moduli|form|menu|menù|sezione)\b/i.test(t)) {
+                    return false;
+                }
                 var hasCreateIntent = /crea\s+un?\s+lavor|nuovo\s+lavor|pianifica\s+lavor|assegna\s+lavor/.test(t);
-                var hasWorkKeywords = /trattament|potatur|trinciatur|fresatur|erpicatur|concimaz|raccolt|vendemmi/.test(t);
+                var hasWorkKeywords = /trattament|potatur|trinciatur|fresatur|erpicatur|\bconcimazione\b|\bconcima\b|\bconcimiamo\b|raccolt|vendemmi/.test(t);
                 return hasCreateIntent || hasWorkKeywords;
             }
 
@@ -3174,6 +3354,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     '- lavoro-sottocategoria = "Meccanico"\n' +
                     '- lavoro-tipo-lavoro = "Trattamento Anticrittogamico Meccanico"\n' +
                     'Macchine: se l\'utente indica trattore e attrezzo (es. "con Agrifull e nebulizzatore"), includi nel primo formData le chiavi lavoro-trattore e lavoro-attrezzo (nome o id dal contesto parco macchine). ' +
+                    'Data/durata: se il messaggio contiene "domani", "oggi", "durata un giorno", "un giorno", "per X giorni", ecc., imposta lavoro-data-inizio e lavoro-durata nel formData e NON chiedere in chat quando inizi o per quanti giorni.\n' +
+                    'Assegnazione: se c\'è "per Luca", "a Marco", "assegna a…" nel messaggio, includi subito tipo-assegnazione e lavoro-operaio (o caposquadra) e NON chiedere "A chi assegni?". Lavoro pianificato: per trattore/attrezzo usa "vuoi usare" / "userai", MAI "hai usato".\n' +
                     'Nel campo "text" NON chiedere trattore o attrezzo se sono già nel messaggio utente; testo breve ok (es. conferma o salva).\n' +
                     'Non rispondere con sola domanda se i dati sono già presenti nel messaggio utente.[/ISTRUZIONE CLIENT OBBLIGATORIA]';
                 return String(userText || '') + extra;
@@ -3629,6 +3811,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 if (!opts.proactive) {
                     var pathGestLavSan = (window.location && window.location.pathname) ? String(window.location.pathname).toLowerCase() : '';
                     if (pathGestLavSan.indexOf('gestione-lavori') >= 0) {
+                        finalSpeech = tonySanitizeLavoroOperaioQuestionInReply(finalSpeech, text);
+                        finalSpeech = tonySanitizeLavoroDataDurataQuestionInReply(finalSpeech, text);
                         finalSpeech = tonySanitizeLavoroMacchineQuestionInReply(finalSpeech, text);
                     }
                 }
@@ -3653,6 +3837,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             if (!opts.proactive) {
                                 var pathExtract = (window.location && window.location.pathname) ? String(window.location.pathname).toLowerCase() : '';
                                 if (pathExtract.indexOf('gestione-lavori') >= 0) {
+                                    toShow = tonySanitizeLavoroOperaioQuestionInReply(toShow, text);
+                                    toShow = tonySanitizeLavoroDataDurataQuestionInReply(toShow, text);
                                     toShow = tonySanitizeLavoroMacchineQuestionInReply(toShow, text);
                                 }
                             }
@@ -3695,11 +3881,17 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     textForTony = buildForcedLavoroPrompt(text);
                 }
 
+                var tonyAskOpts = {
+                    skipUserHistory: !!opts.proactive,
+                    proactive: !!opts.proactive
+                };
+                if (!opts.proactive && text && String(textForTony) !== String(text)) {
+                    tonyAskOpts.historyUserMessage = text;
+                }
+
                 if (useStream) {
                     var streamingAccum = '';
-                    window.Tony.askStream(textForTony, {
-                        skipUserHistory: !!opts.proactive,
-                        proactive: !!opts.proactive,
+                    window.Tony.askStream(textForTony, Object.assign({}, tonyAskOpts, {
                         onChunk: function(chunk) {
                             streamingAccum += chunk;
                             var daMostrare = nascondiJsonDaStreaming(streamingAccum);
@@ -3713,9 +3905,9 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             streamingMsgEl.textContent = daMostrare;
                             messagesEl.scrollTop = messagesEl.scrollHeight;
                         }
-                    }).then(onComplete).catch(onError).finally(onFinally);
+                    })).then(onComplete).catch(onError).finally(onFinally);
                 } else {
-                    window.Tony.ask(textForTony, { skipUserHistory: !!opts.proactive, proactive: !!opts.proactive }).then(onComplete).catch(onError).finally(onFinally);
+                    window.Tony.ask(textForTony, tonyAskOpts).then(onComplete).catch(onError).finally(onFinally);
                 }
             };
             

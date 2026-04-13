@@ -4,6 +4,8 @@
  * @module core/js/statistiche-utils
  */
 
+import { formatDateLikeToItalianLongLocal } from './date-format-it.js';
+
 // ============================================
 // FUNZIONI UTILITY FORMATTAZIONE
 // ============================================
@@ -80,11 +82,10 @@ export function calcolaAlertAffitto(dataScadenza) {
 /**
  * Formatta data scadenza in formato italiano
  * @param {Date|Timestamp} data - Data da formattare
- * @returns {string} Data formattata (es. "15/01/2024")
+ * @returns {string} Data formattata (es. "15 gennaio 2026")
  */
 export function formattaDataScadenza(data) {
     if (!data) return '';
-    const d = data.toDate ? data.toDate() : new Date(data);
-    return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDateLikeToItalianLongLocal(data);
 }
 

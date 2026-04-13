@@ -11,8 +11,7 @@
 ## 1. Priorità alta
 
 ### 1.1 Sicurezza – Firestore inviti
-- **Cosa**: La collection `inviti` ha `allow create: if true` (TEMP). Chiunque può creare inviti.
-- **Da fare**: Sostituire con una regola che consenta la creazione **solo** a utenti autenticati con ruolo manager o amministratore per il tenant. Documentare in ISTRUZIONI_FIRESTORE_RULES (o equivalente).
+- **Aggiornamento 2026-04-11**: **FATTO** in codice (verifica incrociata). In `firestore.rules`, `match /inviti/{invitoId}` — `allow create` è vincolata a utente autenticato, campi obbligatori, `inviatoDa == request.auth.uid`, `belongsToTenant` + `isManagerOrAdmin` sul `tenantId` (non più `create: if true`). Dettaglio storico: `COSA_ABBIAMO_FATTO.md` §2026-04-04; perimetro `docs-sviluppo/SICUREZZA_FLUSSI.md`.
 
 ### 1.2 Documentazione – Indice unico
 - **Cosa**: Molti file in docs-sviluppo; manca un indice che indichi “stato attuale” vs “storico” e dove trovare sicurezza, moduli, Tony.
@@ -86,7 +85,7 @@
 
 | Area | Cosa fare |
 |------|-----------|
-| **Sicurezza** | Restringere regola Firestore su `inviti` (solo manager/admin). |
+| **Sicurezza** | ~~Inviti `create` aperto~~ — **chiuso** in rules (2026-04-04; verifica doc 2026-04-11). |
 | **Documentazione** | Indice (INDICE_DOCUMENTAZIONE.md), README/roadmap allineati, consolidamento doc storica. |
 | **Tony** | Riepilogo su altre liste (vigneti, clienti, validazione ore, …); terreni, attivita, gestione lavori già dotati; log debug condizionati; opzionale lazy load. *(Widget già spezzato in core/js/tony/.)* |
 | **Codice** | Bootstrap unico, escapeHtml/showAlert condivisi, path-resolver ovunque, CSS condiviso liste, list-utils macchine, service-helper coerente. |

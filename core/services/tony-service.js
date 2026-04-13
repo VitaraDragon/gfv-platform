@@ -362,7 +362,7 @@ class TonyService {
     if (pageType === 'attivita') {
       table.items = table.items.map((item) => ({
         id: item.id,
-        data: item.data || '-',
+        data: item.dataItaliana || item.data || '-',
         terreno: item.terreno || '-',
         tipoLavoro: item.tipoLavoro || '-',
         oreNette: item.oreNette != null ? item.oreNette : '-',
@@ -401,6 +401,18 @@ class TonyService {
         attiva: !!item.attiva,
         tariffaFinale: item.tariffaFinale != null ? item.tariffaFinale : 0
       }));
+    } else if (pageType === 'lavori') {
+      table.items = table.items.map((item) => ({
+        id: item.id,
+        nome: item.nome || '-',
+        terreno: item.terreno || '-',
+        stato: item.stato || '-',
+        tipo: item.tipo || '-',
+        tipoLavoro: item.tipoLavoro || '-',
+        dataInizio: item.dataInizioItaliana || item.dataInizio || '-',
+        caposquadra: item.caposquadra || '-',
+        operaio: item.operaio || '-'
+      }));
     } else if (pageType === 'terreni') {
       table.items = table.items.map((item) => ({
         id: item.id,
@@ -408,8 +420,24 @@ class TonyService {
         podere: item.podere,
         coltura: item.coltura,
         tipoPossesso: item.tipoPossesso,
-        scadenza: item.scadenza || item.dataScadenzaAffitto || 'N/A',
+        scadenza: item.scadenzaItaliana || item.scadenza || item.dataScadenzaAffitto || 'N/A',
         superficie: item.superficie != null ? Math.round(Number(item.superficie) * 100) / 100 : null
+      }));
+    } else if (pageType === 'vendemmia') {
+      if (Array.isArray(table.vendemmiaAggregates)) {
+        table.vendemmiaAggregates = table.vendemmiaAggregates.map((a) => ({
+          varieta: a.varieta || '-',
+          totaleQli: a.totaleQli != null ? a.totaleQli : 0,
+          numeroVendemmie: a.numeroVendemmie != null ? a.numeroVendemmie : 0
+        }));
+      }
+      table.items = table.items.map((item) => ({
+        dataItaliana: item.dataItaliana || item.data || '-',
+        varieta: item.varieta || '-',
+        vignetoNome: item.vignetoNome || '-',
+        quantitaQli: item.quantitaQli != null ? item.quantitaQli : null,
+        quantitaEttari: item.quantitaEttari != null ? item.quantitaEttari : null,
+        resaQliHa: item.resaQliHa != null ? item.resaQliHa : null
       }));
     } else {
       // Altri pageType (lavori, prodotti, movimenti, trattori, attrezzi, guasti, scadenze, flotta): mantieni struttura leggera
@@ -455,7 +483,7 @@ class TonyService {
   }
 
   /**
-   * @param {{ skipUserHistory?: boolean, proactive?: boolean }} askOptions - skipUserHistory: non aggiunge il turno utente a chatHistory. proactive: turno avviato dal widget (es. verifica modulo); usato per non eseguire SAVE_ACTIVITY sul finto messaggio «Form completo, confermi salvataggio?».
+   * @param {{ skipUserHistory?: boolean, proactive?: boolean, historyUserMessage?: string }} askOptions - skipUserHistory: non aggiunge il turno utente a chatHistory. proactive: turno avviato dal widget (es. verifica modulo); usato per non eseguire SAVE_ACTIVITY sul finto messaggio «Form completo, confermi salvataggio?». historyUserMessage: testo utente da mostrare/salvare in cronologia (es. senza istruzioni client augment); se assente si usa userPrompt.
    */
   _pushChatTurn(userPrompt, modelText, askOptions) {
     const skipUser = askOptions && askOptions.skipUserHistory;
@@ -471,19 +499,23 @@ class TonyService {
   /**
    * Invia una domanda a Tony e restituisce la risposta testuale.
    * Se la risposta contiene un'azione (JSON), viene emessa con triggerAction e il testo restituito è senza il blocco JSON.
-   * @param {string} userPrompt - Testo dell'utente
-   * @param {{ skipUserHistory?: boolean, proactive?: boolean }} [askOptions]
+   * @param {string} userPrompt - Testo inviato al modello (può includere augment client)
+   * @param {{ skipUserHistory?: boolean, proactive?: boolean, historyUserMessage?: string }} [askOptions]
    * @returns {Promise<string|{text:string,command?:object}>} Risposta di Tony (testo eventualmente ripulito dalle azioni)
    */
   async ask(userPrompt, askOptions = {}) {
     if (!this._ready) {
       throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
     }
+    const historyUserText =
+      askOptions && askOptions.historyUserMessage != null && String(askOptions.historyUserMessage).trim() !== ''
+        ? String(askOptions.historyUserMessage).trim()
+        : String(userPrompt || '').trim();
     // Prima di triggerAction / _pushChatTurn: così APRI_PAGINA post-conferma ha il testo utente anche se il dialog viene confermato prima che chatHistory sia aggiornata.
-    if (userPrompt && String(userPrompt).trim() && !(askOptions && askOptions.skipUserHistory)) {
+    if (historyUserText && !(askOptions && askOptions.skipUserHistory)) {
       try {
         if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem('tony_last_user_message', String(userPrompt).trim());
+          sessionStorage.setItem('tony_last_user_message', historyUserText);
         }
       } catch (_) {}
     }
@@ -563,7 +595,9 @@ class TonyService {
           var preventivoKeyHints = ['tipo-lavoro', 'terreno-id', 'cliente-id', 'coltura-categoria', 'coltura', 'tipo-campo', 'superficie', 'lavoro-categoria-principale', 'lavoro-sottocategoria', 'iva', 'giorni-scadenza', 'data-prevista', 'dataPrevista', 'data_prevista', 'note'];
           var looksLikePreventivo0 = keys0.some(function (k) { return preventivoKeyHints.indexOf(k) >= 0; });
           var injectFormId0 = 'attivita-form';
-          if ((explicitPreventivo0 || (onNuovoPreventivoPage && looksLikePreventivo0 && !explicitLavoro0)) && !explicitAttivita0) {
+          if (keys0.some(function (k) { return k.indexOf('trattamento-') === 0; })) {
+            injectFormId0 = 'form-trattamento';
+          } else if ((explicitPreventivo0 || (onNuovoPreventivoPage && looksLikePreventivo0 && !explicitLavoro0)) && !explicitAttivita0) {
             injectFormId0 = 'preventivo-form';
           } else if (keys0.some(function (k) { return k.indexOf('lavoro-') === 0 || k === 'tipo-assegnazione'; })) {
             injectFormId0 = 'lavoro-form';
@@ -577,7 +611,7 @@ class TonyService {
         const cmdParams = { formId: parsedData.command.formId, formData: parsedData.command.formData };
         this.triggerAction('INJECT_FORM_DATA', cmdParams);
         const cleanedInject = this._parseAndTriggerActions(text);
-        this._pushChatTurn(userPrompt, cleanedInject, askOptions);
+        this._pushChatTurn(historyUserText, cleanedInject, askOptions);
         return { text: cleanedInject, command: parsedData.command };
       } else {
       try {
@@ -679,7 +713,7 @@ class TonyService {
                 isMagSave = true;
               }
             }
-            var upSave = String(userPrompt || '').trim();
+            var upSave = String(historyUserText || '').trim();
             // Non richiedere upSave truthy: se il prompt è vuoto (replay/turno interno) non è una conferma → bloccare.
             if (isMagSave && !this._magazzinoUserPromptLooksLikeSaveConfirm(upSave)) {
               console.log('[Tony Service] SAVE_ACTIVITY non eseguito (magazzino): il messaggio non è una conferma esplicita di salvataggio');
@@ -706,18 +740,18 @@ class TonyService {
       if (typeof rawData === 'string' && rawData.includes('"command"') && !parsedData.command) {
         console.log('[Tony Service] Parsing fallito ma JSON presente nella risposta grezza, passo al widget come oggetto');
         const cleaned = this._parseAndTriggerActions(rawData.replace(/\{[\s\S]*\}/g, '').trim() || rawData);
-        this._pushChatTurn(userPrompt, cleaned, askOptions);
+        this._pushChatTurn(historyUserText, cleaned, askOptions);
         return { text: cleaned, command: null };
       }
       // Restituisci al widget l'oggetto { text, command } quando il backend ha già estratto il comando
       if (parsedData.command && typeof parsedData.command === 'object') {
         const cleaned = this._parseAndTriggerActions(text);
-        this._pushChatTurn(userPrompt, cleaned, askOptions);
+        this._pushChatTurn(historyUserText, cleaned, askOptions);
         return { text: cleaned, command: parsedData.command };
       }
       // Sempre oggetto: nessun comando → command: null (evita che il widget riceva stringa e faccia parseRobustTonyResponse)
       const finalText = (parsedData.text ?? text ?? 'Nessuna risposta da Tony.').toString().trim() || 'Ok.';
-      this._pushChatTurn(userPrompt, finalText, askOptions);
+      this._pushChatTurn(historyUserText, finalText, askOptions);
       return { text: finalText, command: null };
       }
     } else if (this.model) {
@@ -736,7 +770,7 @@ class TonyService {
 
     const cleaned = this._parseAndTriggerActions(text);
 
-    this._pushChatTurn(userPrompt, cleaned, askOptions);
+    this._pushChatTurn(historyUserText, cleaned, askOptions);
 
     return cleaned;
   }
@@ -745,7 +779,7 @@ class TonyService {
    * Invia una domanda a Tony con streaming. Emette chunk via onChunk; restituisce il testo completo finale.
    * Se usa Cloud Function (callable), fa fallback su ask() senza streaming.
    * @param {string} userPrompt - Testo dell'utente
-   * @param {{ onChunk?: (chunk: string) => void, skipUserHistory?: boolean, proactive?: boolean }} opts - Callback chunk; skipUserHistory/proactive come in ask()
+   * @param {{ onChunk?: (chunk: string) => void, skipUserHistory?: boolean, proactive?: boolean, historyUserMessage?: string }} opts - Callback chunk; skipUserHistory/proactive/historyUserMessage come in ask()
    * @returns {Promise<string>} Risposta completa (testo ripulito dalle azioni)
    */
   async askStream(userPrompt, opts = {}) {
@@ -753,6 +787,10 @@ class TonyService {
       throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
     }
     const onChunk = opts.onChunk || (() => {});
+    const historyUserText =
+      opts && opts.historyUserMessage != null && String(opts.historyUserMessage).trim() !== ''
+        ? String(opts.historyUserMessage).trim()
+        : String(userPrompt || '').trim();
 
     if (this._useCallable && this._tonyAskCallable) {
       const text = await this.ask(userPrompt, opts);
@@ -761,6 +799,14 @@ class TonyService {
 
     if (!this.model) {
       throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
+    }
+
+    if (historyUserText && !(opts && opts.skipUserHistory)) {
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('tony_last_user_message', historyUserText);
+        }
+      } catch (_) {}
     }
 
     const contextForPrompt = this._getContextForPrompt();
@@ -788,7 +834,7 @@ class TonyService {
 
     const cleaned = this._parseAndTriggerActions(fullText);
 
-    this._pushChatTurn(userPrompt, cleaned, opts);
+    this._pushChatTurn(historyUserText, cleaned, opts);
 
     return cleaned;
   }

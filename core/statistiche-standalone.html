@@ -1942,13 +1942,6 @@
             }
         }
 
-        // Formatta data scadenza
-        function formattaDataScadenza(data) {
-            if (!data) return '';
-            const d = data.toDate ? data.toDate() : new Date(data);
-            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
-
         // Escape HTML per prevenire XSS
         // Funzione escapeHtml rimossa - usa utils.escapeHtml
 
@@ -2031,7 +2024,7 @@
                 } else {
                     let html = '';
                     affitti.forEach(affitto => {
-                        const dataFormattata = formattaDataScadenza(affitto.dataScadenzaAffitto);
+                        const dataFormattata = utils.formattaDataScadenza(affitto.dataScadenzaAffitto);
                         const pallinoEmoji = affitto.alert.colore === 'red' ? '🔴' : affitto.alert.colore === 'yellow' ? '🟡' : affitto.alert.colore === 'green' ? '🟢' : '⚫';
                         const coloreBordo = affitto.alert.colore === 'red' ? '#dc3545' : affitto.alert.colore === 'yellow' ? '#ffc107' : affitto.alert.colore === 'green' ? '#28a745' : '#6c757d';
                         const coloreSfondo = affitto.alert.colore === 'red' ? '#f8d7da' : affitto.alert.colore === 'yellow' ? '#fff3cd' : affitto.alert.colore === 'green' ? '#d4edda' : '#e9ecef';

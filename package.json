@@ -4,6 +4,7 @@
   "description": "GFV Platform - SaaS multi-tenant per gestione aziende agricole",
   "type": "module",
   "scripts": {
+    "build:landing": "cd landing && npm install && npm run build",
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",

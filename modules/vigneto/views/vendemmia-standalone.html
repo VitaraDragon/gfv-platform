@@ -833,6 +833,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal, dateLikeToLocalCalendarIso } from '../../../core/js/date-format-it.js';
         const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
 
         // Calcola base path per GitHub Pages
@@ -1161,22 +1162,85 @@
             }
         }
 
+        function syncTonyTableDataVendemmia() {
+            const n = vendemmie.length;
+            const byVarieta = {};
+            vendemmie.forEach((v) => {
+                const name = (v.varieta && String(v.varieta).trim()) || '';
+                if (!name) return;
+                const qRaw = v.quantitaQli;
+                const q = typeof qRaw === 'number' && !isNaN(qRaw) ? qRaw : 0;
+                if (!byVarieta[name]) {
+                    byVarieta[name] = { varieta: name, totaleQli: 0, numeroVendemmie: 0 };
+                }
+                byVarieta[name].totaleQli += q;
+                byVarieta[name].numeroVendemmie += 1;
+            });
+            const vendemmiaAggregates = Object.keys(byVarieta).sort(function (a, b) {
+                return a.localeCompare(b, 'it', { sensitivity: 'base' });
+            }).map(function (k) {
+                const row = byVarieta[k];
+                return {
+                    varieta: row.varieta,
+                    totaleQli: Math.round(row.totaleQli * 100) / 100,
+                    numeroVendemmie: row.numeroVendemmie
+                };
+            });
+            let summary = n === 0
+                ? 'Nessuna vendemmia in elenco con i filtri attuali.'
+                : (n === 1 ? '1 vendemmia in elenco (filtri attuali).' : `${n} vendemmie in elenco (filtri attuali).`);
+            if (vendemmiaAggregates.length > 0) {
+                const parts = vendemmiaAggregates.map(function (a) {
+                    return `${a.varieta}: ${a.totaleQli} quintali totali (${a.numeroVendemmie} vendemmie)`;
+                });
+                summary += ' Totali per varietà (lista filtrata): ' + parts.join('; ') + '.';
+            }
+            const items = vendemmie.map((v) => ({
+                id: v.id,
+                vignetoId: v.vignetoId,
+                data: dateLikeToLocalCalendarIso(v.data),
+                dataItaliana: formatDateLikeToItalianLongLocal(v.data),
+                vignetoNome: v.vignetoNome || '',
+                varieta: v.varieta || '',
+                quantitaQli: v.quantitaQli,
+                quantitaEttari: v.quantitaEttari,
+                resaQliHa: v.resaQliHa,
+                destinazione: v.destinazione || '',
+                statoCompleta: v.quantitaQli != null && v.quantitaQli > 0 && v.quantitaEttari != null && v.quantitaEttari > 0 && v.destinazione && String(v.destinazione).trim().length > 0,
+                lavoroId: v.lavoroId || null
+            }));
+            window.currentTableData = {
+                pageType: 'vendemmia',
+                summary,
+                items,
+                vendemmiaAggregates
+            };
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                const page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+                window.Tony.setContext('page', Object.assign({}, page, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            window.dispatchEvent(new CustomEvent('table-data-ready', {
+                detail: { currentTableData: window.currentTableData }
+            }));
+        }
+
         function renderVendemmie() {
             const tbody = document.getElementById('vendemmie-tbody');
             tbody.innerHTML = '';
 
             if (vendemmie.length === 0) {
                 document.getElementById('empty-state').style.display = 'block';
+                syncTonyTableDataVendemmia();
                 return;
             }
 
             document.getElementById('vendemmie-table').style.display = 'table';
 
             vendemmie.forEach(vendemmia => {
-                const dataVendemmia = vendemmia.data instanceof Date 
-                    ? vendemmia.data 
-                    : (vendemmia.data?.toDate ? vendemmia.data.toDate() : new Date(vendemmia.data));
-                const dataFormattata = dataVendemmia.toLocaleDateString('it-IT');
+                const dataFormattata = formatDateLikeToItalianLongLocal(vendemmia.data) || '-';
 
                 // Verifica se vendemmia è completa
                 const isCompleta = vendemmia.quantitaQli !== null && 
@@ -1214,6 +1278,7 @@
                 `;
                 tbody.innerHTML += row;
             });
+            syncTonyTableDataVendemmia();
         }
 
         function getDestinazioneLabel(destinazione) {

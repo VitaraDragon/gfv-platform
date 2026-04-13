@@ -218,6 +218,7 @@
                 <div class="form-group">
                     <label for="trattamento-giorni-carenza">Giorni di carenza</label>
                     <input type="number" id="trattamento-giorni-carenza" min="0" step="1" placeholder="Max dai prodotti (precompilato)">
+                    <small style="display: block; color: #6c757d; margin-top: 6px;">Per soli concimi è spesso 0. Utile se aggiungi prodotti fitosanitari o miscelati: il massimo viene dai prodotti scelti.</small>
                 </div>
                 <div class="form-group">
                     <label for="trattamento-note">Note</label>
@@ -333,9 +334,14 @@
         setTimeout(loadGoogleMapsAPITrattamento, 500);
     </script>
     <script>window.GFV_CONFIG_BASE = '../../../core';</script>
+    <script>window.currentTableData = window.currentTableData || { pageType: 'concimazioni_vigneto', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        if (!window.currentTableData || !window.currentTableData.pageType || !window.currentTableData.summary) {
+            window.currentTableData = { pageType: 'concimazioni_vigneto', summary: 'Caricamento dati in corso...', items: [] };
+        }
         function getBasePath() {
             if (window.location.protocol === 'file:') return '';
             const pathname = window.location.pathname;
@@ -358,14 +364,34 @@
 
         function formatDate(d) {
             if (!d) return '-';
-            const date = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
-            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('it-IT');
+            const s = formatDateLikeToItalianLongLocal(d);
+            return s || '-';
         }
 
         function showAlert(msg, type) {
             const c = document.getElementById('alert-container');
             c.innerHTML = `<div class="alert alert-${type === 'error' ? 'error' : 'success'}">${msg}</div>`;
             setTimeout(() => { c.innerHTML = ''; }, 5000);
+        }
+
+        const TONY_PAGE_TYPE_LISTA = 'concimazioni_vigneto';
+
+        function pushTonyListContext(summary, items) {
+            window.currentTableData = {
+                pageType: TONY_PAGE_TYPE_LISTA,
+                summary: summary || '',
+                items: Array.isArray(items) ? items : []
+            };
+            const page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, page, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            try {
+                window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+            } catch (e) {}
         }
 
         /**
@@ -409,8 +435,7 @@
                     return '';
                 }
                 for (const tr of candidati) {
-                    const dv = tr.data instanceof Date ? tr.data : (tr.data?.toDate ? tr.data.toDate() : new Date(tr.data));
-                    const ds = isNaN(dv.getTime()) ? '—' : dv.toLocaleDateString('it-IT');
+                    const ds = formatDateLikeToItalianLongLocal(tr.data) || '—';
                     const tipo = tr.tipoTrattamento || '';
                     const daLavoro = tr.lavoroId ? lavoroLabelById.get(tr.lavoroId) : '';
                     const primi = labelFallbackProdotti(tr);
@@ -543,6 +568,17 @@
             }
         }
 
+        /** Dopo INJECT Tony sulla checkbox anagrafe: ricarica ha terreno e riallinea il campo superficie (come change manuale). */
+        async function syncSuperficieAnagrafeAfterTonyInject() {
+            const vidEl = document.getElementById('trattamento-vigneto-id');
+            const vid = vidEl && vidEl.value ? String(vidEl.value).trim() : '';
+            await loadTerrenoSuperficieForModal(vid);
+            const cb = document.getElementById('trattamento-superficie-anagrafe');
+            if (cb && cb.checked && !cb.disabled) {
+                applySuperficieDaAnagrafeTerreno(true);
+            }
+        }
+
         async function loadProdottiAnagrafica() {
             try {
                 const { getAllProdotti } = await import(resolvePath('../../../modules/magazzino/services/prodotti-service.js'));
@@ -585,7 +621,7 @@
                         </select>
                         <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${isAltro ? (r.prodotto || '').replace(/"/g, '&quot;') : ''}" style="margin-top: 4px; width: 100%; max-width: 180px; display: ${isAltro ? 'block' : 'none'};">
                     </td>
-                    <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${r.dosaggio != null ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
+                    <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
                     <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
                     <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${qta != null ? qta.toFixed(2) : '-'}</span></td>
                     <td style="padding: 6px 8px;"><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" style="width: 100px; min-width: 100px; box-sizing: border-box;" ${r.prodottoId && prezzoUnit ? 'readonly' : ''} title="${r.prodottoId ? 'Calcolato da anagrafica' : 'Inserisci manuale'}"></td>
@@ -1299,6 +1335,12 @@
 
             loading.style.display = 'none';
             if (listRows.length === 0) {
+                const annoLabel = String(annoEffettivo);
+                const filtroNome = vid ? ((document.getElementById('filter-vigneto').selectedOptions[0] && document.getElementById('filter-vigneto').selectedOptions[0].textContent) || '').trim() : 'tutti i vigneti';
+                pushTonyListContext(
+                    'Nessuna concimazione in elenco per anno ' + annoLabel + (vid ? (' (vigneto: ' + filtroNome + ').') : ' (tutti i vigneti).'),
+                    []
+                );
                 empty.style.display = 'block';
                 empty.innerHTML = vid
                     ? '<p>Nessun lavoro o attività di concimazione (categoria Concimazione) per questo vigneto/anno. Crea un lavoro o un\'attività (Gestione lavori o Diario) con categoria Concimazione su un terreno con vigneto.</p>'
@@ -1307,6 +1349,34 @@
             }
 
             tableWrap.style.display = 'block';
+            const itemsTony = listRows.map((row) => {
+                const t = row.trattamento;
+                const avviso = avvisoDosaggioTrattamento(row);
+                const hasTrattamento = !!t;
+                const vignetoLabel = row.vignetoNome || (vigneti.find(v => v.id === row.vignetoId) && (vigneti.find(v => v.id === row.vignetoId).varieta || vigneti.find(v => v.id === row.vignetoId).nome)) || row.vignetoId || '-';
+                const prod = t ? (t.prodotti && t.prodotti.length ? t.prodotti.map(p => (p.prodotto || '-').trim()).filter(Boolean).join(', ') || '-' : (t.prodotto || '-')) : '-';
+                const supNum = t && t.superficieTrattata != null ? Number(t.superficieTrattata) : null;
+                const costoNum = t && t.costoTotale != null ? Number(t.costoTotale) : null;
+                return {
+                    data: formatDate(row.data),
+                    vigneto: vignetoLabel,
+                    vignetoId: row.vignetoId || '',
+                    lavoroAttivita: (row.lavoroLabel || '').trim(),
+                    terreno: row.terrenoLabel || '-',
+                    prodotto: prod,
+                    superficieHa: supNum != null && !isNaN(supNum) ? supNum : null,
+                    costoEuro: costoNum != null && !isNaN(costoNum) ? costoNum : null,
+                    lavoroId: row.lavoroId || '',
+                    attivitaId: row.attivitaId || '',
+                    trattamentoId: (t && t.id) ? t.id : '',
+                    completato: hasTrattamento,
+                    avvisoDosaggio: !!(avviso && avviso.hasWarning)
+                };
+            });
+            const annoSumm = String(annoEffettivo);
+            const nomeFiltro = vid ? ((document.getElementById('filter-vigneto').selectedOptions[0] && document.getElementById('filter-vigneto').selectedOptions[0].textContent) || '').trim() : 'tutti i vigneti';
+            pushTonyListContext('Ci sono ' + listRows.length + ' righe in elenco (anno ' + annoSumm + ', vigneto: ' + nomeFiltro + ').', itemsTony);
+
             const basePath = getBasePath();
             const rootPrefix = basePath && basePath !== '/' ? basePath.replace(/\/$/, '') : '';
             const gestioneLavoriUrl = `${rootPrefix}/core/admin/gestione-lavori-standalone.html`;
@@ -1808,7 +1878,7 @@
                                             info_azienda: { moduli_attivi: modules },
                                             moduli_attivi: modules
                                         });
-                                        console.log('[Vigneto Trattamenti] Context Tony inizializzato con moduli:', modules);
+                                        console.log('[Concimazioni vigneto] Context Tony inizializzato con moduli:', modules);
                                     } else if (retries < 10) {
                                         setTimeout(function() { initTonyContext(retries + 1); }, 500);
                                     }
@@ -1824,6 +1894,11 @@
                 if (proprietarioMsg) proprietarioMsg.style.display = hasManodoperaModule ? 'none' : 'block';
                 await loadVigneti();
                 await loadProdottiAnagrafica();
+                window.__tonyTrattamentoCampoApi = {
+                    renderProdotti: function(rows) { renderProdottiTrattamento(rows); },
+                    getProdottiAnagrafica: function() { return listProdottiAnagrafica; },
+                    syncSuperficieAnagrafeAfterTonyInject: syncSuperficieAnagrafeAfterTonyInject
+                };
                 document.getElementById('btn-aggiungi-prodotto-trattamento').addEventListener('click', aggiungiRigaProdottoTrattamento);
                 document.getElementById('trattamento-superficie').addEventListener('input', ricalcolaQuantitaCostoProdotti);
                 document.getElementById('filter-vigneto').addEventListener('change', loadTrattamenti);

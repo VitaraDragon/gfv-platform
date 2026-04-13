@@ -419,6 +419,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -776,9 +777,7 @@
             `;
 
             oreDaValidare.forEach(ora => {
-                const data = ora.data instanceof Date 
-                    ? ora.data.toLocaleDateString('it-IT')
-                    : new Date(ora.data).toLocaleDateString('it-IT');
+                const data = formatDateLikeToItalianLongLocal(ora.data) || '';
                 
                 const operaio = operaiMap.get(ora.operaioId);
                 const operaioNome = operaio 
@@ -938,9 +937,7 @@
                 ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A'
                 : 'N/A';
             
-            const data = ora.data instanceof Date 
-                ? ora.data.toLocaleDateString('it-IT')
-                : new Date(ora.data).toLocaleDateString('it-IT');
+            const data = formatDateLikeToItalianLongLocal(ora.data) || '';
             
             const oreFormattate = formattaOre(ora.oreNette || 0);
             

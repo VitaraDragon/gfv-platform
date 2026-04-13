@@ -744,6 +744,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
+        import { formatDateLikeToItalianLongWeekday } from '../js/date-format-it.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -4451,13 +4452,7 @@
                 }
                 
                 container.innerHTML = comunicazioniArray.map(comm => {
-                    const dataCom = comm.data?.toDate ? comm.data.toDate() : new Date(comm.data);
-                    const dataFormatted = dataCom.toLocaleDateString('it-IT', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    });
+                    const dataFormatted = formatDateLikeToItalianLongWeekday(comm.data) || '';
                     const oraFormatted = comm.orario || '07:00';
                     
                     const numDestinatari = comm.destinatari?.length || 0;

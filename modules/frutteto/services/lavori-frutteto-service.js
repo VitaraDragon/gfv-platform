@@ -501,9 +501,11 @@ export async function getAttivitaDirettePerTerreno(terrenoId, anno, lavori = [])
  * Calcola costi di un lavoro (manodopera + macchine + prodotti)
  * @param {string} lavoroId - ID lavoro
  * @param {Object} lavoro - Dati lavoro (opzionale, se non passato viene caricato)
+ * @param {{ includeDaValidarePerPrefill?: boolean }} [options] - Se true, include anche ore `da_validare` per prefill registro trattamenti/concimazioni
  * @returns {Promise<Object>} { costoManodopera, costoMacchine, costoProdotti, costoTotale }
  */
-export async function calcolaCostiLavoro(lavoroId, lavoro = null) {
+export async function calcolaCostiLavoro(lavoroId, lavoro = null, options = {}) {
+  const { includeDaValidarePerPrefill = false } = options || {};
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) {
@@ -532,11 +534,13 @@ export async function calcolaCostiLavoro(lavoroId, lavoro = null) {
     let costoMacchine = 0;
     let costoProdotti = 0;
     
-    // Carica ore validate per questo lavoro
+    // Carica ore per questo lavoro
     const { collection, getDocs, query, where, doc } = await import('../../../core/services/firebase-service.js');
     const { getDocumentData } = await import('../../../core/services/firebase-service.js');
     const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
-    const oreQuery = query(oreRef, where('stato', '==', 'validate'));
+    const oreQuery = includeDaValidarePerPrefill
+      ? query(oreRef, where('stato', 'in', ['validate', 'da_validare']))
+      : query(oreRef, where('stato', '==', 'validate'));
     const oreSnapshot = await getDocs(oreQuery);
     
     // Mappa per aggregare ore per operaio

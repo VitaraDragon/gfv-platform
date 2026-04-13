@@ -336,6 +336,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         function getBasePath() {
             if (window.location.protocol === 'file:') return '';
             const pathname = window.location.pathname;
@@ -358,8 +359,8 @@
 
         function formatDate(d) {
             if (!d) return '-';
-            const date = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
-            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('it-IT');
+            const s = formatDateLikeToItalianLongLocal(d);
+            return s || '-';
         }
 
         function showAlert(msg, type) {
@@ -409,8 +410,7 @@
                     return '';
                 }
                 for (const tr of candidati) {
-                    const dv = tr.data instanceof Date ? tr.data : (tr.data?.toDate ? tr.data.toDate() : new Date(tr.data));
-                    const ds = isNaN(dv.getTime()) ? '—' : dv.toLocaleDateString('it-IT');
+                    const ds = formatDateLikeToItalianLongLocal(tr.data) || '—';
                     const tipo = tr.tipoTrattamento || '';
                     const daLavoro = tr.lavoroId ? lavoroLabelById.get(tr.lavoroId) : '';
                     const primi = labelFallbackProdotti(tr);
@@ -543,6 +543,16 @@
             }
         }
 
+        async function syncSuperficieAnagrafeAfterTonyInject() {
+            const vidEl = document.getElementById('trattamento-vigneto-id');
+            const vid = vidEl && vidEl.value ? String(vidEl.value).trim() : '';
+            await loadTerrenoSuperficieForModal(vid);
+            const cb = document.getElementById('trattamento-superficie-anagrafe');
+            if (cb && cb.checked && !cb.disabled) {
+                applySuperficieDaAnagrafeTerreno(true);
+            }
+        }
+
         async function loadProdottiAnagrafica() {
             try {
                 const { getAllProdotti } = await import(resolvePath('../../../modules/magazzino/services/prodotti-service.js'));
@@ -585,7 +595,7 @@
                         </select>
                         <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${isAltro ? (r.prodotto || '').replace(/"/g, '&quot;') : ''}" style="margin-top: 4px; width: 100%; max-width: 180px; display: ${isAltro ? 'block' : 'none'};">
                     </td>
-                    <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${r.dosaggio != null ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
+                    <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
                     <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
                     <td style="padding: 6px 8px;"><span class="prodotto-quantita" data-idx="${idx}">${qta != null ? qta.toFixed(2) : '-'}</span></td>
                     <td style="padding: 6px 8px;"><input type="number" class="prodotto-costo" data-idx="${idx}" min="0" step="0.01" value="${(Number(costo) || 0).toFixed(2)}" style="width: 100px; min-width: 100px; box-sizing: border-box;" ${r.prodottoId && prezzoUnit ? 'readonly' : ''} title="${r.prodottoId ? 'Calcolato da anagrafica' : 'Inserisci manuale'}"></td>
@@ -1824,6 +1834,11 @@
                 if (proprietarioMsg) proprietarioMsg.style.display = hasManodoperaModule ? 'none' : 'block';
                 await loadVigneti();
                 await loadProdottiAnagrafica();
+                window.__tonyTrattamentoCampoApi = {
+                    renderProdotti: function(rows) { renderProdottiTrattamento(rows); },
+                    getProdottiAnagrafica: function() { return listProdottiAnagrafica; },
+                    syncSuperficieAnagrafeAfterTonyInject: syncSuperficieAnagrafeAfterTonyInject
+                };
                 document.getElementById('btn-aggiungi-prodotto-trattamento').addEventListener('click', aggiungiRigaProdottoTrattamento);
                 document.getElementById('trattamento-superficie').addEventListener('input', ricalcolaQuantitaCostoProdotti);
                 document.getElementById('filter-vigneto').addEventListener('change', loadTrattamenti);

@@ -1,7 +1,7 @@
 /**
  * Tony Form Injector - Universal Injection Engine
  * Motore di iniezione basato su mappe di configurazione.
- * Supporta SELECT, RADIO, TEXT, NUMBER, DATE, TIME, TEXTAREA.
+ * Supporta SELECT, RADIO, TEXT, NUMBER, DATE, TIME, TEXTAREA, CHECKBOX.
  * Gestisce delay asincroni per dropdown dipendenti e regole di business.
  */
 
@@ -63,7 +63,7 @@
     'lavoro-terreno': 500,
     'lavoro-categoria-principale': 350,
     'lavoro-sottocategoria': 350,
-    'lavoro-trattore': 350,
+    'lavoro-trattore': 450,
     'tipo-assegnazione': 200
   };
 
@@ -173,6 +173,104 @@
     return /vite|vigneto|frutteto|olivo|oliveto|arboreo|alberi|albicocc|pesc|cilieg|susin|prugn|pero|melo|kaki|mandorl|nocciol|noce|kiwi|melograno|castagn|pistac|fico|nespol|giuggiol|gelso/.test(blob);
   }
 
+  function normalizeTonyText(v) {
+    try {
+      return String(v || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    } catch (e) {
+      return String(v || '').toLowerCase().trim();
+    }
+  }
+
+  function getLavorazioniDefaultsTony() {
+    var m = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING) || {};
+    return m.LAVORAZIONI_DEFAULTS_TONY || {
+      mechanicalDefaultKeywords: ['trinciatur', 'erpicatur', 'fresatur', 'vangatur', 'ripunt', 'diserb', 'trattament', 'concimaz'],
+      machineRequiredKeywords: ['trinciatur', 'erpicatur', 'fresatur', 'vangatur', 'ripunt', 'diserb', 'trattament', 'concimaz'],
+      coverageRules: { rowCropSubcategories: ['Tra le File', 'Sulla Fila'], openFieldSubcategory: 'Generale' }
+    };
+  }
+
+  function inferPreferMechanicalFromTipo(tipoNome) {
+    var s = normalizeTonyText(tipoNome);
+    if (!s) return false;
+    if (s.indexOf('manual') >= 0) return false;
+    if (s.indexOf('meccanic') >= 0) return true;
+    var cfg = getLavorazioniDefaultsTony();
+    var list = Array.isArray(cfg.mechanicalDefaultKeywords) ? cfg.mechanicalDefaultKeywords : [];
+    return list.some(function (k) { return s.indexOf(normalizeTonyText(k)) >= 0; });
+  }
+
+  function inferRequiresMachineFromTipo(tipoNome) {
+    var s = normalizeTonyText(tipoNome);
+    if (!s) return false;
+    if (s.indexOf('manual') >= 0) return false;
+    if (s.indexOf('meccanic') >= 0) return true;
+    var cfg = getLavorazioniDefaultsTony();
+    var list = Array.isArray(cfg.machineRequiredKeywords) ? cfg.machineRequiredKeywords : [];
+    return list.some(function (k) { return s.indexOf(normalizeTonyText(k)) >= 0; });
+  }
+
+  function forceCoverageByTerreno(existingSub, terrenoHasFilari) {
+    var cfg = getLavorazioniDefaultsTony();
+    var rules = cfg.coverageRules || {};
+    var rowSubs = Array.isArray(rules.rowCropSubcategories) ? rules.rowCropSubcategories : ['Tra le File', 'Sulla Fila'];
+    var openField = String(rules.openFieldSubcategory || 'Generale');
+    var sub = String(existingSub || '').trim();
+    if (!sub) return terrenoHasFilari ? rowSubs[0] : openField;
+    var subNorm = normalizeTonyText(sub);
+    var isGenerale = subNorm === normalizeTonyText(openField);
+    var isRow = rowSubs.some(function (x) { return normalizeTonyText(x) === subNorm; });
+    if (terrenoHasFilari && isGenerale) return rowSubs[0];
+    if (!terrenoHasFilari && isRow) return openField;
+    return sub;
+  }
+
+  function chooseSingleActiveByType(list, tipo) {
+    if (!Array.isArray(list)) return '';
+    var hasTipoField = list.some(function (m) { return m && m.tipoMacchina; });
+    var active = list.filter(function (m) {
+      if (!m) return false;
+      if ((m.stato || '') === 'dismesso') return false;
+      if (hasTipoField) return m.tipoMacchina === tipo;
+      return true;
+    });
+    return active.length === 1 ? String(active[0].nome || active[0].id || '') : '';
+  }
+
+  /** Keyword attrezzo da nome tipo lavoro (minuscolo). */
+  function keywordAttrezzoFromTipoNomeLower(tipoNomeLower) {
+    var tn = tipoNomeLower || '';
+    if (tn.indexOf('pre-potatur') >= 0 || (tn.indexOf('potatur') >= 0 && tn.indexOf('meccanic') >= 0)) return 'potatric';
+    if (tn.indexOf('trinciatur') >= 0) return 'trincia';
+    if (tn.indexOf('erpicatur') >= 0) return 'erpice';
+    if (tn.indexOf('fresatur') >= 0) return 'fresa';
+    if (tn.indexOf('vangatur') >= 0) return 'vanga';
+    if (tn.indexOf('ripasso') >= 0) return 'ripasso';
+    return '';
+  }
+
+  function elencoOptionLabels(options, max) {
+    max = max || 8;
+    return Array.from(options).filter(function (o) { return o && o.value; }).slice(0, max).map(function (o) {
+      return String((o.text || o.value || '')).trim();
+    }).filter(Boolean);
+  }
+
+  var __tonyMacchineDisambGuard = { k: '', t: 0 };
+  function postTonyMacchineDisambiguation(payload) {
+    try {
+      var msg = payload && payload.message;
+      if (!msg || typeof msg !== 'string') return;
+      var sig = String(payload.formId || '') + '|' + String(payload.field || '') + '|' + msg.slice(0, 160);
+      var now = Date.now();
+      if (__tonyMacchineDisambGuard.k === sig && now - __tonyMacchineDisambGuard.t < 2500) return;
+      __tonyMacchineDisambGuard = { k: sig, t: now };
+      window.dispatchEvent(new CustomEvent('tony-macchine-disambiguation', { detail: payload }));
+    } catch (e) {
+      log('postTonyMacchineDisambiguation: ' + e);
+    }
+  }
+
   /**
    * Dopo change cliente, loadTerreniCliente() è async. Attende ≥2 option (placeholder + terreno) oppure
    * solo placeholder stabilo dopo 6s+0.5s (cliente senza terreni). Max 12s.
@@ -239,6 +337,36 @@
     });
   }
 
+  /**
+   * Attende opzioni con value non vuoto e non disabled (es. lavoro-attrezzo dopo populate da change trattore).
+   * Evita che waitForSelectOptions(2) si soddisfi con due placeholder a value "".
+   */
+  function waitForSelectOptionsWithValue(selectId, minCount, maxMs) {
+    minCount = minCount || 1;
+    maxMs = maxMs == null ? 12000 : maxMs;
+    var el = document.getElementById(selectId);
+    if (!el || el.tagName !== 'SELECT') return Promise.resolve();
+    function countWithValue() {
+      var n = 0;
+      var opts = el.options || [];
+      for (var i = 0; i < opts.length; i++) {
+        var o = opts[i];
+        if ((o.value || '') !== '' && !o.disabled) n++;
+      }
+      return n;
+    }
+    if (countWithValue() >= minCount) return Promise.resolve();
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      var iv = setInterval(function () {
+        if (countWithValue() >= minCount || Date.now() - start > maxMs) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 80);
+    });
+  }
+
   /** Attende la fine del fetch `loadTerreniCliente` (nuovo-preventivo-standalone) per evitare race su innerHTML del select. */
   function awaitPreventivoTerreniFetchDone(maxMs) {
     if (typeof window.__preventivoAwaitTerreniClienteReady !== 'function') return Promise.resolve();
@@ -287,6 +415,76 @@
   /** True se sembra id documento Firestore (evita confondere con nome coltura). */
   function looksLikeFirestoreDocId(s) {
     return /^[a-zA-Z0-9_-]{15,}$/.test(String(s || '').trim());
+  }
+
+  /** Lista attrezzi: se gli oggetti hanno tipoMacchina filtra; altrimenti assume che la lista sia già solo attrezzi. */
+  function macchineListSoloAttrezzi(list) {
+    if (!Array.isArray(list)) return [];
+    var hasTipo = list.some(function (m) { return m && m.tipoMacchina; });
+    if (!hasTipo) return list.slice();
+    return list.filter(function (m) {
+      return m && (m.tipoMacchina || m.tipo) === 'attrezzo';
+    });
+  }
+
+  /** Trattori attivi da lista unificata o da lista solo-trattori. */
+  function macchineListSoloTrattori(list) {
+    if (!Array.isArray(list)) return [];
+    var hasTipo = list.some(function (m) { return m && m.tipoMacchina; });
+    if (!hasTipo) {
+      return list.filter(function (m) { return m && (m.stato || '') !== 'dismesso'; });
+    }
+    return list.filter(function (m) {
+      return m && (m.stato || '') !== 'dismesso' && (m.tipoMacchina || m.tipo) === 'trattore';
+    });
+  }
+
+  /**
+   * Risolve un attrezzo da valore form (id o nome fuzzy). Un solo match sicuro, altrimenti null.
+   * @param {string} raw - lavoro-attrezzo / attivita-attrezzo
+   * @param {Array} attrezziOMacchineList - attrezziList lavori o macchineList attività
+   */
+  function resolveAttrezzoFromState(raw, attrezziOMacchineList) {
+    if (raw == null || String(raw).trim() === '' || !Array.isArray(attrezziOMacchineList)) return null;
+    var attList = macchineListSoloAttrezzi(attrezziOMacchineList);
+    var v = String(raw).trim();
+    if (looksLikeFirestoreDocId(v)) {
+      var byId = attList.find(function (a) { return (a.id || '') === v; });
+      if (byId) return byId;
+    }
+    var low = normalizeTonyText(v);
+    if (!low) return null;
+    var matches = attList.filter(function (a) {
+      if (!a || (a.stato || '') === 'dismesso') return false;
+      var n = normalizeTonyText(a.nome || '');
+      return n && (n === low || n.indexOf(low) >= 0 || low.indexOf(n) >= 0);
+    });
+    if (matches.length === 1) return matches[0];
+    return null;
+  }
+
+  /** Trattori con cavalli >= cavalliMinimiRichiesti attrezzo; senza minimo valido → tutti i trattori attivi. */
+  function trattoriCompatibiliCv(trattoriList, attrezzo) {
+    if (!Array.isArray(trattoriList)) return [];
+    var active = trattoriList.filter(function (t) {
+      return t && (t.stato || '') !== 'dismesso';
+    });
+    if (!attrezzo) return active;
+    var min = attrezzo.cavalliMinimiRichiesti;
+    if (min == null || min === '') return active;
+    var minN = Number(min);
+    if (!Number.isFinite(minN) || minN <= 0) return active;
+    return active.filter(function (t) {
+      var cv = Number(t.cavalli);
+      return Number.isFinite(cv) && cv >= minN;
+    });
+  }
+
+  function labelsFromTrattoriRecords(trattori, max) {
+    max = max || 8;
+    return (trattori || []).slice(0, max).map(function (t) {
+      return String((t.nome || t.id || '')).trim();
+    }).filter(Boolean);
   }
 
   /**
@@ -1036,32 +1234,44 @@
       return n === search || (n && (n.indexOf(search) >= 0 || search.indexOf(n) >= 0));
     });
     var job = null;
-    if (matches.length > 1 && formData && formData['lavoro-terreno']) {
+    var terreno = null;
+    var hasFilari = false;
+    if (formData && formData['lavoro-terreno']) {
       var terrenoVal = String(formData['lavoro-terreno'] || '').trim();
       var terrenoNome = terrenoVal.toLowerCase();
-      // Risolvi terreno per ID (la CF/injector può passare l'id del select) oppure per nome
-      var terreno = terreniList.find(function (t) { return (t.id || '') === terrenoVal; });
+      terreno = terreniList.find(function (t) { return (t.id || '') === terrenoVal; });
       if (!terreno) {
         terreno = terreniList.find(function (t) {
           var n = (t.nome || '').toLowerCase();
           return n === terrenoNome || n.indexOf(terrenoNome) >= 0 || terrenoNome.indexOf(n) >= 0;
         });
       }
-      var hasFilari = terrenoHasFilariColtura(terreno);
-      var preferTraLeFile = hasFilari;
-      job = matches.find(function (t) {
-        var n = (t.nome || '').toLowerCase();
-        if (preferTraLeFile) return n.indexOf('tra le file') >= 0 || n.indexOf('sulla fila') >= 0;
-        return n.indexOf('tra le file') < 0 && n.indexOf('sulla fila') < 0;
-      }) || matches[0];
+      hasFilari = terrenoHasFilariColtura(terreno);
+    }
+    if (matches.length > 1) {
+      var preferMechanical = inferPreferMechanicalFromTipo(tipoNome);
+      job = matches.slice().sort(function (a, b) {
+        function score(t) {
+          var n = normalizeTonyText(t && t.nome);
+          if (!n) return -999;
+          var sc = 0;
+          if (hasFilari) {
+            if (n.indexOf('tra le file') >= 0 || n.indexOf('sulla fila') >= 0) sc += 5;
+            if (n.indexOf('pieno campo') >= 0 || n.indexOf('generale') >= 0) sc -= 3;
+          } else {
+            if (n.indexOf('tra le file') < 0 && n.indexOf('sulla fila') < 0) sc += 3;
+          }
+          if (preferMechanical) {
+            if (n.indexOf('meccanic') >= 0) sc += 4;
+            if (n.indexOf('manual') >= 0) sc -= 3;
+          }
+          sc += Math.min((t.nome || '').length, 80) / 100;
+          return sc;
+        }
+        return score(b) - score(a);
+      })[0];
     } else {
-      job = matches.length > 0
-        ? matches.sort(function (a, b) {
-            var lenA = (a.nome || '').length;
-            var lenB = (b.nome || '').length;
-            return lenB - lenA;
-          })[0]
-        : null;
+      job = matches.length > 0 ? matches[0] : null;
     }
     if (!job || !job.categoriaId) return null;
     var catId = job.categoriaId;
@@ -1283,13 +1493,41 @@
   }
 
   /**
-   * Imposta valore su TEXT/NUMBER/DATE/TIME/TEXTAREA: value + input
+   * Imposta valore su TEXT/NUMBER/DATE/TIME/TEXTAREA/CHECKBOX: value + eventi
    */
   function setInputValue(el, value, fieldId) {
     if (!el) return false;
     var tag = (el.tagName || '').toUpperCase();
     var type = (el.type || '').toLowerCase();
     if (tag !== 'INPUT' && tag !== 'TEXTAREA') return false;
+    if (type === 'checkbox') {
+      var checked = false;
+      if (value === true || value === 1) checked = true;
+      else if (value === false || value === 0) checked = false;
+      else if (typeof value === 'string') {
+        var z = value.trim().toLowerCase();
+        checked =
+          z === 'true' ||
+          z === '1' ||
+          z === 'sì' ||
+          z === 'si' ||
+          z === 'yes' ||
+          z === 'on' ||
+          z === 'vero' ||
+          z === 'spuntato' ||
+          z === 'attivo';
+      } else {
+        checked = !!value;
+      }
+      el.checked = checked;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      if (typeof window.jQuery === 'function') {
+        try { window.jQuery(el).trigger('input').trigger('change'); } catch (_) {}
+      }
+      log('Iniettato campo checkbox ' + fieldId + ' = ' + checked);
+      return true;
+    }
     el.value = value;
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1468,11 +1706,17 @@
         }
       }
       if (formId === 'lavoro-form' && fieldId === 'lavoro-attrezzo') {
-        await waitForSelectOptions('lavoro-attrezzo', 2, 12000);
+        var trElForAtt = document.getElementById('lavoro-trattore');
+        if (trElForAtt && trElForAtt.value) {
+          trElForAtt.dispatchEvent(new Event('change', { bubbles: true }));
+          await delay(100);
+        }
         var rawAtInj = formData[fieldId];
         var rawAtStrInj = rawAtInj != null ? String(rawAtInj).trim() : '';
         if (rawAtStrInj && looksLikeFirestoreDocId(rawAtStrInj)) {
           await waitForSelectOptionValue('lavoro-attrezzo', rawAtStrInj, 12000);
+        } else {
+          await waitForSelectOptionsWithValue('lavoro-attrezzo', 1, 12000);
         }
       }
       if (formId === 'movimento-form' && fieldId === 'mov-prodotto') {
@@ -1649,6 +1893,93 @@
     } catch (e) { return null; }
   }
 
+  function applyLavorazioneDefaultsAttivita(formData, context) {
+    if (!formData || typeof formData !== 'object') return;
+    var tipo = String(formData['attivita-tipo-lavoro-gerarchico'] || '').trim();
+    if (!tipo) return;
+    var attivitaState = window.attivitaState || {};
+    var terreni = Array.isArray(attivitaState.terreniList) ? attivitaState.terreniList : ((context && context.attivita && context.attivita.terreni) || []);
+    var terrVal = String(formData['attivita-terreno'] || '').trim();
+    var terreno = terreni.find(function (t) { return (t.id || '') === terrVal; });
+    if (!terreno) {
+      var tv = terrVal.toLowerCase();
+      terreno = terreni.find(function (t) {
+        var n = String(t && t.nome || '').toLowerCase();
+        return n === tv || (tv && (n.indexOf(tv) >= 0 || tv.indexOf(n) >= 0));
+      });
+    }
+    var hasFilari = terrenoHasFilariColtura(terreno);
+    var forcedSub = forceCoverageByTerreno(formData['attivita-sottocategoria'], hasFilari);
+    if (forcedSub && String(formData['attivita-sottocategoria'] || '').trim() !== forcedSub) {
+      formData['attivita-sottocategoria'] = forcedSub;
+      log('Policy attivita: sottocategoria forzata da terreno -> ' + forcedSub);
+    }
+    if (inferRequiresMachineFromTipo(tipo)) {
+      var listMac = (window.attivitaState && window.attivitaState.macchineList) || (context && context.attivita && context.attivita.macchine) || [];
+      if (!formData['attivita-macchina']) {
+        var oneTr = chooseSingleActiveByType(listMac, 'trattore');
+        if (oneTr) {
+          formData['attivita-macchina'] = oneTr;
+          log('Policy attivita: trattore auto-selezionato (unico disponibile) -> ' + oneTr);
+        }
+      }
+      if (!formData['attivita-attrezzo']) {
+        var oneAt = chooseSingleActiveByType(listMac, 'attrezzo');
+        if (oneAt) {
+          formData['attivita-attrezzo'] = oneAt;
+          log('Policy attivita: attrezzo auto-selezionato (unico disponibile) -> ' + oneAt);
+        }
+      }
+    }
+  }
+
+  function applyLavorazioneDefaultsLavoro(formData, context) {
+    if (!formData || typeof formData !== 'object') return;
+    var tipo = String(formData['lavoro-tipo-lavoro'] || '').trim();
+    var terrVal = String(formData['lavoro-terreno'] || '').trim();
+    var terreni = (window.lavoriState && window.lavoriState.terreniList) || (context && context.lavori && context.lavori.terreni) || [];
+    var terreno = terreni.find(function (t) { return (t.id || '') === terrVal; });
+    if (!terreno) {
+      var tv = terrVal.toLowerCase();
+      terreno = terreni.find(function (t) {
+        var n = String(t && t.nome || '').toLowerCase();
+        return n === tv || (tv && (n.indexOf(tv) >= 0 || tv.indexOf(n) >= 0));
+      });
+    }
+    var hasFilari = terrenoHasFilariColtura(terreno);
+    var forcedSub = forceCoverageByTerreno(formData['lavoro-sottocategoria'], hasFilari);
+    if (forcedSub && String(formData['lavoro-sottocategoria'] || '').trim() !== forcedSub) {
+      formData['lavoro-sottocategoria'] = forcedSub;
+      log('Policy lavoro: sottocategoria forzata da terreno -> ' + forcedSub);
+    }
+    if (!tipo) return;
+    if (inferPreferMechanicalFromTipo(tipo)) {
+      var subNorm = normalizeTonyText(formData['lavoro-sottocategoria']);
+      if (!subNorm || subNorm === 'manuale') {
+        formData['lavoro-sottocategoria'] = hasFilari ? 'Tra le File' : 'Meccanico';
+        log('Policy lavoro: default meccanico applicato -> ' + formData['lavoro-sottocategoria']);
+      }
+    }
+    if (inferRequiresMachineFromTipo(tipo)) {
+      var trList = (window.lavoriState && window.lavoriState.trattoriList) || [];
+      var atList = (window.lavoriState && window.lavoriState.attrezziList) || [];
+      if (!formData['lavoro-trattore']) {
+        var oneTr = chooseSingleActiveByType(trList, 'trattore');
+        if (oneTr) {
+          formData['lavoro-trattore'] = oneTr;
+          log('Policy lavoro: trattore auto-selezionato (unico disponibile) -> ' + oneTr);
+        }
+      }
+      if (!formData['lavoro-attrezzo']) {
+        var oneAt = chooseSingleActiveByType(atList, 'attrezzo');
+        if (oneAt) {
+          formData['lavoro-attrezzo'] = oneAt;
+          log('Policy lavoro: attrezzo auto-selezionato (unico disponibile) -> ' + oneAt);
+        }
+      }
+    }
+  }
+
   async function injectAttivitaForm(formData, context) {
     if (!formData || typeof formData !== 'object') return false;
     context = context || (window.Tony && window.Tony.context) || {};
@@ -1675,6 +2006,8 @@
     } else if (hasMacchina && oreMacNum > 0) {
       formData['attivita-ore-macchina'] = (Math.round(oreMacNum * 10) / 10).toFixed(1);
     }
+
+    applyLavorazioneDefaultsAttivita(formData, context);
 
     var tipoNome = formData['attivita-tipo-lavoro-gerarchico'];
     if (tipoNome) {
@@ -1732,15 +2065,90 @@
     var macEl = document.getElementById('attivita-macchina');
     var attEl = document.getElementById('attivita-attrezzo');
     var hasMacOrAttrezzo = !!(macEl && macEl.value) || !!(attEl && attEl.value);
-    if (macEl && macEl.value && attEl && !attEl.value && tipoLavoroValue) {
-      var tn = (tipoLavoroValue || '').toLowerCase();
-      var search = tn.indexOf('erpicatura') >= 0 ? 'erpice' : tn.indexOf('trinciatura') >= 0 ? 'trincia' : tn.indexOf('fresatura') >= 0 ? 'fresa' : tn.indexOf('ripasso') >= 0 ? 'ripasso' : '';
-      if (search && attEl.options && attEl.options.length > 1) {
-        var opt = Array.from(attEl.options).find(function (o) { return o.value && (o.text || '').toLowerCase().indexOf(search) >= 0; });
-        if (opt) {
-          attEl.value = opt.value;
+    var tnAct = (tipoLavoroValue || '').toLowerCase();
+    if (inferRequiresMachineFromTipo(tipoLavoroValue || '') && macEl && macEl.tagName === 'SELECT' &&
+      (!macEl.value || String(macEl.value).trim() === '')) {
+      var listMacCv = (attivitaState && attivitaState.macchineList) || [];
+      var attKnownA = resolveAttrezzoFromState(formData['attivita-attrezzo'], listMacCv);
+      var candidatiMac = attKnownA ? trattoriCompatibiliCv(macchineListSoloTrattori(listMacCv), attKnownA) : null;
+      if (candidatiMac != null) {
+        if (candidatiMac.length === 1) {
+          formData['attivita-macchina'] = String((candidatiMac[0].nome || candidatiMac[0].id || '')).trim();
+          setFieldValue('attivita-macchina', formData['attivita-macchina'], mapConfig, context);
+          var macElCv = document.getElementById('attivita-macchina');
+          if (macElCv && macElCv.value) {
+            macElCv.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          log('Attività: trattore unico compatibile (CV) con attrezzo noto → impostato');
+          await delay(400);
+        } else if (candidatiMac.length > 1) {
+          var minCvA = attKnownA.cavalliMinimiRichiesti;
+          var minStrA = (minCvA != null && minCvA !== '' && Number(minCvA) > 0) ? String(minCvA) : '';
+          var labCvA = labelsFromTrattoriRecords(candidatiMac, 8);
+          postTonyMacchineDisambiguation({
+            message: 'Con l’**attrezzo** indicato ci sono più **trattori** compatibili' +
+              (minStrA ? ' (richiesti almeno **' + minStrA + '** CV)' : '') + ': ' + labCvA.join(', ') +
+              (candidatiMac.length > 8 ? '…' : '') +
+              '.\n\nIndica quale hai usato (nome come in elenco) per **attivita-macchina**.',
+            voiceText: 'Ci sono più trattori compatibili. Quale hai usato?',
+            formId: 'attivita-form',
+            field: 'attivita-macchina'
+          });
+        } else {
+          var attNomeA = String((attKnownA.nome || attKnownA.id || 'attrezzo')).trim();
+          var minN1 = Number(attKnownA.cavalliMinimiRichiesti);
+          var hasMinA = Number.isFinite(minN1) && minN1 > 0;
+          postTonyMacchineDisambiguation({
+            message: hasMinA
+              ? '**Nessun trattore** ha potenza sufficiente per **' + attNomeA + '** (servono almeno **' + String(minN1) + '** CV). Verifica i dati in anagrafica o indica un altro attrezzo.'
+              : '**Nessun trattore** attivo disponibile per **' + attNomeA + '**. Verifica l’anagrafica macchine.',
+            voiceText: hasMinA
+              ? 'Nessun trattore con CV sufficienti per questo attrezzo.'
+              : 'Nessun trattore disponibile.',
+            formId: 'attivita-form',
+            field: 'attivita-macchina'
+          });
+        }
+      } else {
+        var macOptsAll = Array.from(macEl.options || []).filter(function (o) { return o.value; });
+        if (macOptsAll.length === 1) {
+          macEl.value = macOptsAll[0].value;
+          macEl.dispatchEvent(new Event('change', { bubbles: true }));
+          formData['attivita-macchina'] = String((macOptsAll[0].text || macOptsAll[0].value || '')).trim();
+          log('Trattore unico in elenco → impostato automaticamente');
+        } else if (macOptsAll.length > 1) {
+          var labTr = elencoOptionLabels(macOptsAll, 8);
+          postTonyMacchineDisambiguation({
+            message: 'Ci sono più **trattori** disponibili: ' + labTr.join(', ') + (macOptsAll.length > 8 ? '…' : '') +
+              '.\n\nIndica quale hai usato (nome come in elenco) per compilare il trattore nel diario.',
+            voiceText: 'Ci sono più trattori. Quale hai usato?',
+            formId: 'attivita-form',
+            field: 'attivita-macchina'
+          });
+        }
+      }
+    }
+    if (macEl && macEl.value && attEl && attEl.tagName === 'SELECT' &&
+      (!attEl.value || String(attEl.value).trim() === '') && tipoLavoroValue) {
+      await delay(350);
+      var searchA = keywordAttrezzoFromTipoNomeLower(tnAct);
+      if (searchA && attEl.options && attEl.options.length > 1) {
+        var matchesA = Array.from(attEl.options).filter(function (o) {
+          return o.value && (o.text || '').toLowerCase().indexOf(searchA) >= 0;
+        });
+        if (matchesA.length === 1) {
+          attEl.value = matchesA[0].value;
           attEl.dispatchEvent(new Event('change', { bubbles: true }));
-          log('Attrezzo inferito da tipo lavoro: ' + (opt.text || opt.value));
+          log('Attrezzo inferito da tipo lavoro (unico match): ' + (matchesA[0].text || matchesA[0].value));
+        } else if (matchesA.length > 1) {
+          var labAt = elencoOptionLabels(matchesA, 8);
+          postTonyMacchineDisambiguation({
+            message: 'Per **' + String(tipoLavoroValue).trim() + '** ci sono più **attrezzi** compatibili: ' + labAt.join(', ') +
+              (matchesA.length > 8 ? '…' : '') + '.\n\nDimmi quale hai usato (nome esatto) per l’attrezzo nel diario.',
+            voiceText: 'Ci sono più attrezzi compatibili. Quale hai usato?',
+            formId: 'attivita-form',
+            field: 'attivita-attrezzo'
+          });
         }
       }
     }
@@ -1781,6 +2189,7 @@
     applyAssignmentIntelligence(formData);
 
     ensureTrattamentiDefaultsForLavoroForm(formData);
+    applyLavorazioneDefaultsLavoro(formData, context);
 
     var tipoNome = formData['lavoro-tipo-lavoro'];
     if (tipoNome) {
@@ -1836,12 +2245,81 @@
 
     var ok = await injectForm(formData, mapConfig, context);
 
+    if (ok && inferRequiresMachineFromTipo(formData['lavoro-tipo-lavoro'] || '')) {
+      await delay(350);
+      var trEl0 = document.getElementById('lavoro-trattore');
+      if (trEl0 && trEl0.tagName === 'SELECT' && (!trEl0.value || String(trEl0.value).trim() === '')) {
+        var trListCv = (window.lavoriState && window.lavoriState.trattoriList) || [];
+        var atListCv = (window.lavoriState && window.lavoriState.attrezziList) || [];
+        var attKnown = resolveAttrezzoFromState(formData['lavoro-attrezzo'], atListCv);
+        var candidatiTr = attKnown ? trattoriCompatibiliCv(macchineListSoloTrattori(trListCv), attKnown) : null;
+        if (candidatiTr != null) {
+          if (candidatiTr.length === 1) {
+            formData['lavoro-trattore'] = String((candidatiTr[0].nome || candidatiTr[0].id || '')).trim();
+            setFieldValue('lavoro-trattore', formData['lavoro-trattore'], mapConfig, context);
+            var trElCv = document.getElementById('lavoro-trattore');
+            if (trElCv && trElCv.value) {
+              trElCv.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            log('Lavoro: trattore unico compatibile (CV) con attrezzo noto → impostato');
+            await delay(400);
+          } else if (candidatiTr.length > 1) {
+            var minCvL = attKnown.cavalliMinimiRichiesti;
+            var minStrL = (minCvL != null && minCvL !== '' && Number(minCvL) > 0) ? String(minCvL) : '';
+            var labCvL = labelsFromTrattoriRecords(candidatiTr, 8);
+            postTonyMacchineDisambiguation({
+              message: 'Con l’**attrezzo** indicato ci sono più **trattori** compatibili' +
+                (minStrL ? ' (richiesti almeno **' + minStrL + '** CV)' : '') + ': ' + labCvL.join(', ') +
+                (candidatiTr.length > 8 ? '…' : '') +
+                '.\n\nQuale trattore **vuoi usare** per questo lavoro? (nome come in elenco) così compilo **lavoro-trattore**.',
+              voiceText: 'Ci sono più trattori compatibili. Quale vuoi usare?',
+              formId: 'lavoro-form',
+              field: 'lavoro-trattore'
+            });
+          } else {
+            var attNomeL = String((attKnown.nome || attKnown.id || 'attrezzo')).trim();
+            var minN0 = Number(attKnown.cavalliMinimiRichiesti);
+            var hasMinL = Number.isFinite(minN0) && minN0 > 0;
+            postTonyMacchineDisambiguation({
+              message: hasMinL
+                ? '**Nessun trattore** ha potenza sufficiente per **' + attNomeL + '** (servono almeno **' + String(minN0) + '** CV). Verifica i dati in anagrafica o indica un altro attrezzo.'
+                : '**Nessun trattore** attivo disponibile per **' + attNomeL + '**. Verifica l’anagrafica macchine.',
+              voiceText: hasMinL
+                ? 'Nessun trattore con CV sufficienti per questo attrezzo.'
+                : 'Nessun trattore disponibile.',
+              formId: 'lavoro-form',
+              field: 'lavoro-trattore'
+            });
+          }
+        } else {
+          var trOpts0 = Array.from(trEl0.options || []).filter(function (o) { return o.value; });
+          if (trOpts0.length === 1) {
+            trEl0.value = trOpts0[0].value;
+            trEl0.dispatchEvent(new Event('change', { bubbles: true }));
+            formData['lavoro-trattore'] = String((trOpts0[0].text || trOpts0[0].value || '')).trim();
+            log('Lavoro: trattore unico in elenco → impostato automaticamente');
+          } else if (trOpts0.length > 1) {
+            var labTr0 = elencoOptionLabels(trOpts0, 8);
+            postTonyMacchineDisambiguation({
+              message: 'Ci sono più **trattori** disponibili: ' + labTr0.join(', ') + (trOpts0.length > 8 ? '…' : '') +
+                '.\n\nQuale **vuoi usare** per questo lavoro? (nome come in elenco) così compilo **lavoro-trattore**; poi scegliamo l’attrezzo se serve.',
+              voiceText: 'Ci sono più trattori. Quale vuoi usare?',
+              formId: 'lavoro-form',
+              field: 'lavoro-trattore'
+            });
+          }
+        }
+      }
+    }
+
     // Inferenza attrezzo da tipo: se lavoro-trattore è impostato e lavoro-attrezzo vuoto, e tipo è meccanico,
     // cerca nel dropdown attrezzi (già filtrato per compatibilità trattore) l'attrezzo corrispondente al tipo.
-    // Se PIÙ attrezzi compatibili (es. Erpice 2mt, Erpice 3mt) → NON inferire: Tony deve chiedere all'utente.
-    if (ok && formData['lavoro-trattore'] && !formData['lavoro-attrezzo']) {
-      var tipoNome = (formData['lavoro-tipo-lavoro'] || '').toLowerCase();
-      var searchAttrezzo = tipoNome.indexOf('pre-potatur') >= 0 || tipoNome.indexOf('potatur') >= 0 && tipoNome.indexOf('meccanic') >= 0 ? 'potatric' : tipoNome.indexOf('trinciatur') >= 0 ? 'trincia' : tipoNome.indexOf('erpicatur') >= 0 ? 'erpice' : tipoNome.indexOf('fresatur') >= 0 ? 'fresa' : tipoNome.indexOf('vangatur') >= 0 ? 'vanga' : '';
+    // Se PIÙ attrezzi compatibili → messaggio in chat: Tony chiede quale opzione iniettare.
+    var trElDom = document.getElementById('lavoro-trattore');
+    var trattoreNomeEff = formData['lavoro-trattore'] || (trElDom && trElDom.selectedOptions[0] ? (trElDom.selectedOptions[0].text || trElDom.value) : '');
+    if (ok && String(trattoreNomeEff || '').trim() !== '' && !formData['lavoro-attrezzo']) {
+      var tipoNomeLow = (formData['lavoro-tipo-lavoro'] || '').toLowerCase();
+      var searchAttrezzo = keywordAttrezzoFromTipoNomeLower(tipoNomeLow);
       if (searchAttrezzo) {
         await delay(400);
         var attEl = document.getElementById('lavoro-attrezzo');
@@ -1855,7 +2333,15 @@
             attEl.dispatchEvent(new Event('change', { bubbles: true }));
             log('Inferito attrezzo da tipo lavoro (unico match): ' + (opt.text || opt.value));
           } else if (matches.length > 1) {
-            log('Attrezzi compatibili multipli (' + matches.length + '), non inferisco: Tony deve chiedere (es. Erpice 2mt o Erpice 3mt?)');
+            var labM = elencoOptionLabels(matches, 8);
+            var tipoVis = String(formData['lavoro-tipo-lavoro'] || '').trim() || 'questa lavorazione';
+            postTonyMacchineDisambiguation({
+              message: 'Per **' + tipoVis + '** ci sono più **attrezzi** compatibili: ' + labM.join(', ') +
+                (matches.length > 8 ? '…' : '') + '.\n\nIndica quale usare (nome esatto) così compilo **lavoro-attrezzo**.',
+              voiceText: 'Ci sono più attrezzi compatibili. Quale vuoi usare?',
+              formId: 'lavoro-form',
+              field: 'lavoro-attrezzo'
+            });
           }
         }
       }
@@ -1904,6 +2390,158 @@
       fields: tonyMapping.fields || {}
     };
     return injectForm(formData, mapConfig, context);
+  }
+
+  /**
+   * Form completamento trattamento/concimazione in campo (`#form-trattamento`, pagine vigneto/frutteto).
+   * Richiede `window.__tonyTrattamentoCampoApi` esposto dalla pagina (renderProdotti + getProdottiAnagrafica).
+   */
+  async function injectTrattamentoCampoForm(formData, context) {
+    if (!formData || typeof formData !== 'object') return false;
+    if (!document.getElementById('form-trattamento')) {
+      log('injectTrattamentoCampoForm: form-trattamento assente');
+      return false;
+    }
+    var api = window.__tonyTrattamentoCampoApi;
+    if (!api || typeof api.renderProdotti !== 'function') {
+      log('injectTrattamentoCampoApi non disponibile (pagina concimazioni/trattamenti)');
+      return false;
+    }
+    context = context || (window.Tony && window.Tony.context) || {};
+    var list = typeof api.getProdottiAnagrafica === 'function' ? api.getProdottiAnagrafica() : [];
+    if (!Array.isArray(list)) list = [];
+    var prodottiCtx = (context.azienda && Array.isArray(context.azienda.prodotti)) ? context.azienda.prodotti : [];
+    var catalog = list.length ? list : prodottiCtx;
+
+    function resolveProdottoId(val) {
+      if (val === undefined || val === null) return null;
+      var str = String(val).trim();
+      if (!str) return null;
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(str)) return str;
+      var low = str.toLowerCase();
+      var hit = catalog.find(function (p) {
+        var n = (p.nome || '').toLowerCase();
+        var c = (p.codice || '').toLowerCase();
+        return n === low || (n && n.indexOf(low) >= 0) || (low && low.indexOf(n) >= 0) || (c && (c === low || c.indexOf(low) >= 0));
+      });
+      return hit && hit.id ? hit.id : null;
+    }
+
+    var fdLocal = Object.assign({}, formData);
+    if (fdLocal['trattamento-superficie'] != null) {
+      var supElPre = document.getElementById('trattamento-superficie');
+      if (supElPre) {
+        var svPre = parseFloat(String(fdLocal['trattamento-superficie']).replace(',', '.'));
+        if (Number.isFinite(svPre)) {
+          supElPre.value = String(svPre);
+          try {
+            supElPre.dispatchEvent(new Event('input', { bubbles: true }));
+            supElPre.dispatchEvent(new Event('change', { bubbles: true }));
+          } catch (ePre) {}
+        }
+      }
+    }
+    var supElHa = document.getElementById('trattamento-superficie');
+    var haTratt =
+      supElHa && supElHa.value != null && String(supElHa.value).trim() !== ''
+        ? parseFloat(String(supElHa.value).replace(',', '.'))
+        : NaN;
+
+    var raw = formData['trattamento-prodotti'] || formData.trattamento_prodotti || formData.prodotti;
+    var rows = [];
+    if (Array.isArray(raw)) {
+      raw.forEach(function (item) {
+        if (!item || typeof item !== 'object') return;
+        var nome = item.prodotto != null ? String(item.prodotto).trim() : '';
+        var pid = item.prodottoId || item.prodotto_id || resolveProdottoId(nome);
+        var dosaggio = item.dosaggio != null ? parseFloat(String(item.dosaggio).replace(',', '.')) : null;
+        var dosaggioOk = dosaggio != null && Number.isFinite(dosaggio);
+        if (!dosaggioOk) {
+          var kgTot = null;
+          if (item.quantitaTotaleKg != null && String(item.quantitaTotaleKg).trim() !== '') {
+            kgTot = parseFloat(String(item.quantitaTotaleKg).replace(',', '.'));
+          } else if (item.kgTotali != null && String(item.kgTotali).trim() !== '') {
+            kgTot = parseFloat(String(item.kgTotali).replace(',', '.'));
+          } else if (item.kg_totali != null && String(item.kg_totali).trim() !== '') {
+            kgTot = parseFloat(String(item.kg_totali).replace(',', '.'));
+          } else if (item.ql != null && String(item.ql).trim() !== '') {
+            kgTot = parseFloat(String(item.ql).replace(',', '.')) * 100;
+          } else if (item.quintali != null && String(item.quintali).trim() !== '') {
+            kgTot = parseFloat(String(item.quintali).replace(',', '.')) * 100;
+          }
+          if (kgTot != null && Number.isFinite(kgTot) && Number.isFinite(haTratt) && haTratt > 0) {
+            dosaggio = Math.round((kgTot / haTratt) * 100) / 100;
+          } else {
+            dosaggio = null;
+          }
+        }
+        if (pid) {
+          rows.push({
+            prodottoId: pid,
+            prodotto: '',
+            dosaggio: dosaggio == null || isNaN(dosaggio) ? null : dosaggio,
+            unitaDosaggio: null,
+            quantita: null,
+            costo: 0
+          });
+        } else if (nome) {
+          rows.push({
+            prodottoId: null,
+            prodotto: nome,
+            dosaggio: dosaggio == null || isNaN(dosaggio) ? null : dosaggio,
+            unitaDosaggio: null,
+            quantita: null,
+            costo: 0
+          });
+        }
+      });
+    }
+    if (rows.length) {
+      api.renderProdotti(rows);
+      await delay(200);
+    }
+
+    var tonyMapping = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING && window.TONY_FORM_MAPPING.getFormMap)
+      ? window.TONY_FORM_MAPPING.getFormMap('form-trattamento')
+      : null;
+    if (!tonyMapping || !Array.isArray(tonyMapping.injectionOrder)) {
+      log('injectTrattamentoCampoForm: mapping mancante');
+      return rows.length > 0;
+    }
+    var order = tonyMapping.injectionOrder.filter(function (k) {
+      return k !== 'trattamento-prodotti';
+    });
+    var fd = Object.assign({}, formData);
+    delete fd['trattamento-prodotti'];
+    delete fd.trattamento_prodotti;
+    delete fd.prodotti;
+
+    var mapConfig = {
+      formId: 'form-trattamento',
+      injectionOrder: order,
+      fields: tonyMapping.fields || {}
+    };
+    var hasOther = Object.keys(fd).some(function (k) {
+      var v = fd[k];
+      if (v === undefined || v === null) return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return String(v).trim() !== '';
+    });
+    if (!hasOther && rows.length) return true;
+    var ok = await injectForm(fd, mapConfig, context);
+    var anag = fd['trattamento-superficie-anagrafe'];
+    var wantsAnagrafe =
+      anag === true ||
+      anag === 1 ||
+      (typeof anag === 'string' && /^(true|1|si|sì|vero|on)$/i.test(String(anag).trim()));
+    if (ok && wantsAnagrafe && api.syncSuperficieAnagrafeAfterTonyInject) {
+      try {
+        await api.syncSuperficieAnagrafeAfterTonyInject();
+      } catch (e) {
+        log('syncSuperficieAnagrafeAfterTonyInject: ' + (e && e.message ? e.message : e));
+      }
+    }
+    return ok;
   }
 
   /**
@@ -2150,6 +2788,7 @@
     injectLavoroForm: injectLavoroForm,
     injectPreventivoForm: injectPreventivoForm,
     injectProdottoForm: injectProdottoForm,
+    injectTrattamentoCampoForm: injectTrattamentoCampoForm,
     injectMovimentoForm: injectMovimentoForm,
     resolveValueMagazzino: resolveValueMagazzino,
     applyBusinessRules: applyBusinessRules,

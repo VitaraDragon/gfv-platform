@@ -9,11 +9,15 @@ require("./instrument");
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
+const { handleSendTransactionalEmail } = require("./email-resend");
 const textToSpeech = require("@google-cloud/text-to-speech");
 const admin = require("firebase-admin");
 
 /** Secret Manager: valorizza process.env.SENTRY_DSN (vedi instrument.js) */
 const sentryDsn = defineSecret("SENTRY_DSN");
+
+/** API Resend — solo server; impostare con: firebase functions:secrets:set RESEND_API_KEY */
+const resendApiKey = defineSecret("RESEND_API_KEY");
 
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
@@ -136,6 +140,74 @@ function formatMovimentoDataField(val) {
   return isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
 }
 
+/** Data ISO YYYY-MM-DD → testo leggibile per chat/TTS, es. "10 aprile 2026". */
+function formatDataItaliana(isoDateStr) {
+  if (!isoDateStr || typeof isoDateStr !== "string") return "";
+  const m = isoDateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return String(isoDateStr);
+  const months = [
+    "gennaio",
+    "febbraio",
+    "marzo",
+    "aprile",
+    "maggio",
+    "giugno",
+    "luglio",
+    "agosto",
+    "settembre",
+    "ottobre",
+    "novembre",
+    "dicembre",
+  ];
+  const day = parseInt(m[3], 10);
+  const monthIdx = parseInt(m[2], 10) - 1;
+  const year = m[1];
+  if (!Number.isFinite(day) || monthIdx < 0 || monthIdx > 11) return isoDateStr;
+  return `${day} ${months[monthIdx]} ${year}`;
+}
+
+/** Evita artefatti float nei riepiloghi (es. 1.9800000000000002). */
+function formatQuantitaMovimento(q) {
+  if (q == null || !Number.isFinite(Number(q))) return "";
+  const n = Number(q);
+  const rounded = Math.round(n * 10000) / 10000;
+  if (Number.isInteger(rounded)) return String(rounded);
+  const s = rounded.toFixed(4).replace(/\.?0+$/, "");
+  return s;
+}
+
+/** Unità prodotto (magazzino) → parole intere per riepiloghi vocali / Tony (no «L», no «q.li»). */
+/** Allineare a core/js/tony/voice.js expandSpokenUnitsForItalianTTS (testo TTS lato client). */
+function formatUnitaMisuraPerVoce(raw) {
+  if (raw == null || raw === "") return "";
+  const s = String(raw).trim().toLowerCase();
+  const map = {
+    l: "litri",
+    lt: "litri",
+    ml: "millilitri",
+    "l.": "litri",
+    litro: "litro",
+    litri: "litri",
+    kg: "chilogrammi",
+    g: "grammi",
+    q: "quintali",
+    ql: "quintali",
+    qli: "quintali",
+    "q.li": "quintali",
+    ha: "ettari",
+    ettaro: "ettaro",
+    ettari: "ettari",
+    hl: "ettolitri",
+    mq: "metri quadri",
+    m2: "metri quadri",
+    m3: "metri cubi",
+    mc: "metri cubi",
+    "m³": "metri cubi",
+  };
+  if (map[s]) return map[s];
+  return String(raw).trim();
+}
+
 function enrichMovimentiMagazzinoContext(movimentiRaw, prodotti) {
   const byId = {};
   (prodotti || []).forEach((p) => {
@@ -144,9 +216,11 @@ function enrichMovimentiMagazzinoContext(movimentiRaw, prodotti) {
   const movimentiRecenti = (movimentiRaw || []).map((m) => {
     const p = m.prodottoId ? byId[m.prodottoId] : null;
     const tipo = (m.tipo || "").toLowerCase() === "uscita" ? "uscita" : "entrata";
+    const dataIso = formatMovimentoDataField(m.data);
     return {
       id: m.id,
-      data: formatMovimentoDataField(m.data),
+      data: dataIso,
+      dataItaliana: dataIso ? formatDataItaliana(dataIso) : "",
       tipo,
       tipoLabel: tipo === "entrata" ? "carico" : "scarico",
       prodottoId: m.prodottoId || null,
@@ -160,12 +234,14 @@ function enrichMovimentiMagazzinoContext(movimentiRaw, prodotti) {
   if (movimentiRecenti.length === 0) {
     summaryMovimentiRecenti = "Nessun movimento di magazzino tra gli ultimi record caricati dal server.";
   } else {
-    const lines = head.map(
-      (x) =>
-        `${x.data} ${x.tipoLabel} ${x.prodottoNome}${x.quantita != null ? " " + x.quantita : ""}${x.unitaMisura ? " " + x.unitaMisura : ""}`
-    );
+    const lines = head.map((x) => {
+      const qStr = x.quantita != null ? formatQuantitaMovimento(x.quantita) : "";
+      const dataTxt = x.dataItaliana || x.data || "";
+      const uVoce = x.unitaMisura ? formatUnitaMisuraPerVoce(x.unitaMisura) : "";
+      return `${dataTxt} ${x.tipoLabel} ${x.prodottoNome}${qStr ? " " + qStr : ""}${uVoce ? " " + uVoce : ""}`;
+    });
     summaryMovimentiRecenti =
-      `Ultimi ${movimentiRecenti.length} movimenti (max 50, ordinati per data decrescente): ` + lines.join("; ") + ".";
+      `Ultimi ${movimentiRecenti.length} movimenti (max 50, ordinati per data dalla più recente): ` + lines.join("; ") + ".";
     if (movimentiRecenti.length > 15) {
       summaryMovimentiRecenti += " (in contesto JSON trovi l'array completo movimentiRecenti fino al limite.)";
     }
@@ -177,6 +253,12 @@ function formatScadenza(val) {
   if (!val) return "";
   if (typeof val.toDate === "function") return val.toDate().toISOString().slice(0, 10);
   return String(val).slice(0, 10);
+}
+
+/** Data affitto/revisione → testo per riepiloghi vocali (stesso stile di formatDataItaliana). */
+function formatScadenzaItaliana(val) {
+  const iso = formatScadenza(val);
+  return iso ? formatDataItaliana(iso) : "";
 }
 
 function buildSummaryScadenze(terreni, macchine) {
@@ -195,16 +277,71 @@ function buildSummaryScadenze(terreni, macchine) {
     return giorni >= 0 && giorni <= 90;
   });
   if (affittiInScadenza.length > 0) {
-    const elenco = affittiInScadenza.map((t) => `${t.nome || t.id} ${formatScadenza(t.dataScadenzaAffitto)}`).join(", ");
+    const elenco = affittiInScadenza
+      .map((t) => {
+        const label = formatScadenzaItaliana(t.dataScadenzaAffitto);
+        return label ? `${t.nome || t.id} scadenza ${label}` : `${t.nome || t.id}`;
+      })
+      .join(", ");
     parts.push(`${affittiInScadenza.length} affitti in scadenza (${elenco})`);
   }
 
   const mezziConScadenza = (macchine || []).filter((m) => m.prossimaRevisione || m.prossimaAssicurazione);
   if (mezziConScadenza.length > 0) {
-    parts.push(`${mezziConScadenza.length} mezzi con scadenze`);
+    const dettagli = mezziConScadenza.slice(0, 12).map((m) => {
+      const nome = m.nome || m.id || "?";
+      const rev = m.prossimaRevisione ? formatScadenzaItaliana(m.prossimaRevisione) : "";
+      const ass = m.prossimaAssicurazione ? formatScadenzaItaliana(m.prossimaAssicurazione) : "";
+      const bits = [];
+      if (rev) bits.push(`revisione ${rev}`);
+      if (ass) bits.push(`assicurazione ${ass}`);
+      return bits.length ? `${nome} (${bits.join(", ")})` : nome;
+    });
+    parts.push(
+      `${mezziConScadenza.length} mezzi con scadenze imminenti o da monitorare: ${dettagli.join("; ")}` +
+        (mezziConScadenza.length > 12 ? " (altri mezzi in contesto JSON.)" : "")
+    );
   }
 
   return parts.length > 0 ? parts.join(". ") : "Nessuna scadenza imminente.";
+}
+
+/**
+ * Sotto scorta: prodotti con soglia minima > 0 e giacenza assente o sotto soglia.
+ * Allineato alle liste magazzino (campo Firestore canonico: scortaMinima; accetta anche sogliaMinima legacy).
+ */
+function buildSummarySottoScorta(prodotti) {
+  const list = [];
+  (prodotti || []).forEach((p) => {
+    if (p.attivo === false) return;
+    const smRaw = p.scortaMinima != null ? p.scortaMinima : p.sogliaMinima;
+    const sm = smRaw != null ? Number(smRaw) : NaN;
+    if (!Number.isFinite(sm) || sm <= 0) return;
+    const gRaw = p.giacenza;
+    const g = gRaw != null ? Number(gRaw) : null;
+    const under = g == null || !Number.isFinite(g) || g < sm;
+    if (!under) return;
+    list.push({
+      id: p.id,
+      nome: String(p.nome || p.codice || p.id || "").trim() || p.id,
+      giacenza: g != null && Number.isFinite(g) ? g : null,
+      sogliaMinima: sm,
+      unitaMisura: p.unitaMisura != null ? String(p.unitaMisura) : "",
+    });
+  });
+  if (list.length === 0) {
+    return {
+      summarySottoScorta:
+        "Nessun prodotto sotto scorta tra quelli con soglia minima impostata (giacenza inferiore alla soglia).",
+      prodottiSottoScorta: [],
+    };
+  }
+  const names = list.map((x) => x.nome).slice(0, 30);
+  const more = list.length > 30 ? ` (+${list.length - 30} altri)` : "";
+  return {
+    summarySottoScorta: `${list.length} prodotti sotto scorta: ${names.join(", ")}${more}.`,
+    prodottiSottoScorta: list,
+  };
 }
 
 async function buildContextAzienda(tenantId) {
@@ -220,7 +357,7 @@ async function buildContextAzienda(tenantId) {
     getCollectionLight(tenantId, "categorie", ["nome", "codice", "applicabileA"], 50),
     getCollectionLight(tenantId, "tipiLavoro", ["nome", "categoriaId", "sottocategoriaId"], 150),
     getCollectionLight(tenantId, "macchine", ["nome", "tipoMacchina", "stato", "cavalli", "cavalliMinimiRichiesti", "prossimaRevisione", "prossimaAssicurazione"], 100),
-    getCollectionLight(tenantId, "prodotti", ["nome", "unitaMisura", "sogliaMinima", "giacenza"], 200),
+    getCollectionLight(tenantId, "prodotti", ["nome", "codice", "unitaMisura", "scortaMinima", "sogliaMinima", "giacenza", "attivo"], 200),
     getGuastiAperti(tenantId, 50),
     getCollectionLight(tenantId, "lavori", ["clienteId"], 500),
     getCollectionLight(tenantId, "preventivi", ["id", "numero", "clienteId", "stato", "tipoLavoro", "coltura"], 200),
@@ -233,6 +370,8 @@ async function buildContextAzienda(tenantId) {
   );
 
   const { movimentiRecenti, summaryMovimentiRecenti } = enrichMovimentiMagazzinoContext(movimentiRaw, prodotti);
+
+  const { summarySottoScorta, prodottiSottoScorta } = buildSummarySottoScorta(prodotti);
 
   // totaleLavori: calcolo reale da collection lavori (non dipende da aggiornaStatisticheCliente sul documento cliente)
   const countByCliente = {};
@@ -294,6 +433,8 @@ async function buildContextAzienda(tenantId) {
     prodotti,
     guastiAperti,
     summaryScadenze,
+    summarySottoScorta,
+    prodottiSottoScorta,
     tariffe: tariffe || [],
     movimentiRecenti,
     summaryMovimentiRecenti
@@ -325,6 +466,297 @@ function detectPreventivoListActionVerb(message) {
   if (invia) return "invia";
   if (accetta) return "accetta_manager";
   return null;
+}
+
+function getTrattamentoSuperficieHaFromContext(ctxFinal) {
+  if (!ctxFinal || !ctxFinal.form || !Array.isArray(ctxFinal.form.fields)) return null;
+  const f = ctxFinal.form.fields.find((x) => x && x.id === "trattamento-superficie");
+  if (f && f.value != null && String(f.value).trim() !== "") {
+    const v = parseFloat(String(f.value).replace(",", "."));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  }
+  return null;
+}
+
+function getHaForTrattamentoCampo(formData, ctxFinal) {
+  let ha = null;
+  if (formData && formData["trattamento-superficie"] != null && String(formData["trattamento-superficie"]).trim() !== "") {
+    ha = parseFloat(String(formData["trattamento-superficie"]).replace(",", "."));
+  }
+  if (!Number.isFinite(ha) || ha <= 0) {
+    ha = getTrattamentoSuperficieHaFromContext(ctxFinal);
+  }
+  return Number.isFinite(ha) && ha > 0 ? ha : null;
+}
+
+/** Dose espressa come quantità per ettaro (kg/ha, ql/ha), non come totale sul campo. */
+function messageIndicatesDosaggioPerEttaro(message) {
+  if (!message || typeof message !== "string") return false;
+  const t = normalizeItTony(message);
+  return /\b(per\s+ettaro|per\s+ha|\/ha\b|kg\s*\/\s*ha|qli\s*\/\s*ha|ql\s*\/\s*ha|quintal\w*\s+per\s+ettaro|quintal\w*\s+a\s+ettaro|dose\s+per\s+ettaro|dosaggio\s+per\s+ettaro|a\s+ettaro|ad\s+ettaro)\b/i.test(
+    t
+  );
+}
+
+/** Ultima risposta Tony che chiedeva dose/ha (es. «dosaggio … per ettaro»). */
+function lastTonyMessageAskedDosaggioPerEttaro(history) {
+  if (!Array.isArray(history) || history.length === 0) return false;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const m = history[i];
+    if (!m || m.role === "user") continue;
+    const text = String((m.parts && m.parts[0] && m.parts[0].text) || "");
+    const t = normalizeItTony(text);
+    if (/\b(per\s+ettaro|per\s+ha|\/ha\b|kg\s*\/\s*ha|qli\s+per|ql\s+per|dosaggio\s+di\s+[^.]+\s+per\s+ettaro|indica\s+il\s+dosaggio)\b/i.test(t)) return true;
+    if (/\bdosaggio\b/.test(t) && /\bettaro\b/.test(t)) return true;
+    return false;
+  }
+  return false;
+}
+
+/**
+ * Allineato ai trattamenti: valore **canonico** in form = **dosaggio (kg/ha)**.
+ * - Se l'utente indica dose **per ettaro** (o ha risposto a una domanda «per ettaro»): dosaggio = kg/ha o (ql×100)/ha come **valore diretto**, senza dividere ancora per la superficie del campo.
+ * - Se indica quintali/kg **totali** sul campo intero: dosaggio = kg_totali / ha.
+ */
+function enrichTrattamentoCampoProdottiFromUserMessage(formData, message, ctxFinal, history) {
+  if (!formData || typeof formData !== "object" || typeof message !== "string") return formData;
+  const tp = formData["trattamento-prodotti"];
+  if (!Array.isArray(tp) || tp.length === 0) return formData;
+  const first = tp[0];
+  if (!first || typeof first !== "object") return formData;
+
+  const perHaCtx = messageIndicatesDosaggioPerEttaro(message) || lastTonyMessageAskedDosaggioPerEttaro(history || []);
+  const ha = getHaForTrattamentoCampo(formData, ctxFinal);
+
+  let existingDos = first.dosaggio != null ? parseFloat(String(first.dosaggio).replace(",", ".")) : NaN;
+
+  const qlMatch = message.match(/(\d+(?:[.,]\d+)?)\s*ql\b/i);
+
+  // Corregge modello che ha fatto dosaggio = (ql×100)/ha invece di dose/ha = ql×100
+  if (perHaCtx && qlMatch && Number.isFinite(existingDos) && ha != null) {
+    const q = parseFloat(qlMatch[1].replace(",", "."));
+    const expectedKgHa = Math.round(q * 100 * 100) / 100;
+    const wrongDivided =
+      Math.abs(existingDos - (q * 100) / ha) < Math.max(0.5, 0.02 * Math.max(existingDos, 1));
+    if (wrongDivided && Math.abs(existingDos - expectedKgHa) > 0.5) {
+      const next = tp.map((row, idx) => {
+        if (idx !== 0 || !row || typeof row !== "object") return row;
+        const { dosaggio: _d, ...rest } = row;
+        return { ...rest, dosaggio: expectedKgHa };
+      });
+      return { ...formData, "trattamento-prodotti": next };
+    }
+  }
+
+  if (Number.isFinite(existingDos) && existingDos > 0) return formData;
+
+  const kgMatch = message.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|chili|kilogrammi)\b/i);
+  let kgTot = null;
+  if (qlMatch) {
+    const q = parseFloat(qlMatch[1].replace(",", "."));
+    if (Number.isFinite(q)) kgTot = q * 100;
+  } else if (kgMatch) {
+    const k = parseFloat(kgMatch[1].replace(",", "."));
+    if (Number.isFinite(k)) kgTot = k;
+  }
+  if (kgTot == null || !Number.isFinite(kgTot)) return formData;
+
+  if (perHaCtx) {
+    const dosaggio = Math.round(kgTot * 100) / 100;
+    const next = tp.map((row, idx) => {
+      if (idx !== 0 || !row || typeof row !== "object") return row;
+      const { quantitaTotaleKg: _q, ql: _ql, quintali: _qu, kgTotali: _k1, kg_totali: _k2, dosaggio: _d, ...rest } = row;
+      return { ...rest, dosaggio };
+    });
+    return { ...formData, "trattamento-prodotti": next };
+  }
+
+  if (!Number.isFinite(ha) || ha <= 0) return formData;
+
+  const dosaggio = Math.round((kgTot / ha) * 100) / 100;
+  const next = tp.map((row, idx) => {
+    if (idx !== 0 || !row || typeof row !== "object") return row;
+    const { quantitaTotaleKg: _q, ql: _ql, quintali: _qu, kgTotali: _k1, kg_totali: _k2, dosaggio: _d, ...rest } = row;
+    return { ...rest, dosaggio };
+  });
+  return { ...formData, "trattamento-prodotti": next };
+}
+
+/** Ultimo messaggio del modello (Tony) nella history Gemini. */
+function getLastModelMessageText(history) {
+  if (!Array.isArray(history) || history.length === 0) return "";
+  for (let i = history.length - 1; i >= 0; i--) {
+    const m = history[i];
+    if (!m || m.role === "user") continue;
+    return String((m.parts && m.parts[0] && m.parts[0].text) || "");
+  }
+  return "";
+}
+
+/** Il turno precedente Tony ha chiesto conferma su anagrafe e/o scarico magazzino? */
+function lastAssistantAskedTrattamentoSensitiveFlags(history) {
+  const t = normalizeItTony(getLastModelMessageText(history));
+  if (t.length < 20) return false;
+  const asks =
+    /\b(confermi|vuoi che|preferisci|indicami se|devo (mettere|attivare|usare|registrare)|spunto|vuoi (usare|attivare|registrare))\b/i.test(
+      t
+    );
+  const topics =
+    /\b(anagrafe|scarico|magazzino|superficie\s+da\s+anagrafe|superficie\s+totale|ettari\s+da\s+archivio)\b/i.test(t);
+  return asks && topics;
+}
+
+/**
+ * Ultimo messaggio Tony menziona **entrambe** le opzioni (anagrafe + scarico magazzino), anche senza domanda esplicita
+ * (es. modello scrive di averle già impostate nel testo). Serve per accettare «ok entrambi» nel turno successivo.
+ */
+function lastTonyMentionedTrattamentoAnagrafeAndScarico(history) {
+  const t = normalizeItTony(getLastModelMessageText(history));
+  if (t.length < 25) return false;
+  const hasAnagrafe = /\b(anagrafe|superficie\s+da\s+anagrafe|superficie\s+terreni|ettari\s+da\s+archivio)\b/i.test(t);
+  const hasScarico = /\b(scarico(\s+(da|in))?\s+magazzino|registra(re)?\s+(lo\s+)?scarico)\b/i.test(t);
+  return hasAnagrafe && hasScarico;
+}
+
+function messageExplicitlyRequestsTrattamentoAnagrafe(message) {
+  const msg = normalizeItTony(message);
+  return (
+    /\b(usa|usare|attiva|metti|imposta|spunta).{0,45}(anagrafe|superficie\s+da\s+anagrafe|superficie\s+terreni)\b/i.test(
+      msg
+    ) || /\b(superficie|ettari)\s+da\s+anagrafe\b/i.test(msg)
+  );
+}
+
+function messageExplicitlyRequestsTrattamentoScarico(message) {
+  const msg = normalizeItTony(message);
+  return /\b(registra(re)?\s+(lo\s+)?scarico|scarico\s+(in\s+)?magazzino|scala\s+da\s+magazzino)\b/i.test(msg);
+}
+
+/**
+ * Risposta a «Vuoi anagrafe / scarico?»: sì, no, solo una delle due.
+ */
+function resolveTrattamentoFlagsFromFollowUp(message) {
+  const msg = normalizeItTony(message);
+  const trimmed = msg.trim();
+  if (trimmed.length < 1) return { anagrafe: null, scarico: null };
+  if (/^(no|non|nessun|neanche|meglio di no|lascia stare|annulla)\b/i.test(trimmed)) {
+    return { anagrafe: false, scarico: false };
+  }
+  /** «ok salva» / «sì salva» ecc.: intento salvataggio modulo, NON risposta ai soli flag (altrimenti \bok\b matcha «ok» in «ok salva»). */
+  if (
+    /\b(ok\s+)?salva\b|\bs[iì]\s+salva\b|\bconferma\s+(il\s+)?salvataggio\b|\bconfermo\s+(il\s+)?salvataggio\b|\bsalvami\b|^salva[!.]?\s*$/i.test(
+      trimmed
+    )
+  ) {
+    return { anagrafe: null, scarico: null };
+  }
+  if (trimmed.length <= 4 && /^s[iì]?\s*$/i.test(trimmed)) return { anagrafe: true, scarico: true };
+  if (/\bsolo\s+(l[''])?anagrafe|\bsolo\s+superficie\b/i.test(msg)) return { anagrafe: true, scarico: false };
+  if (/\bsolo\s+(lo\s+)?scarico\b/i.test(msg)) return { anagrafe: false, scarico: true };
+  if (/\bentrambi\b/i.test(msg) && !/\bnon\s+entrambi\b/i.test(msg)) return { anagrafe: true, scarico: true };
+  if (
+    /\b(s[iì]|ok|va bene|confermo|esatto|procedi|vai|entramb|entrambi|tutt[eo]\s+e\s+due|perfetto)\b/i.test(msg)
+  ) {
+    return { anagrafe: true, scarico: true };
+  }
+  return { anagrafe: null, scarico: null };
+}
+
+/**
+ * Non impostare in autonomia **trattamento-superficie-anagrafe** / **trattamento-registra-scarico-magazzino**:
+ * solo richiesta esplicita utente oppure conferma dopo che Tony ha chiesto nel turno precedente.
+ */
+function sanitizeTrattamentoCampoSensitiveFlags(formData, message, history) {
+  if (!formData || typeof formData !== "object") return formData;
+  const next = { ...formData };
+  const asked = lastAssistantAskedTrattamentoSensitiveFlags(history);
+  const offerPair = lastTonyMentionedTrattamentoAnagrafeAndScarico(history);
+  const treatAsFlagConfirmTurn = asked || offerPair;
+  const follow = resolveTrattamentoFlagsFromFollowUp(message);
+
+  if (treatAsFlagConfirmTurn) {
+    const explicitAn = messageExplicitlyRequestsTrattamentoAnagrafe(message);
+    const explicitSc = messageExplicitlyRequestsTrattamentoScarico(message);
+    if (explicitAn || follow.anagrafe === true) {
+      next["trattamento-superficie-anagrafe"] = true;
+      const cop = next["trattamento-copertura-terreno"];
+      if (!cop || cop === "non_dichiarata") next["trattamento-copertura-terreno"] = "completa";
+    } else if (follow.anagrafe === false) {
+      delete next["trattamento-superficie-anagrafe"];
+    } else if (!explicitAn && next["trattamento-superficie-anagrafe"] === true) {
+      delete next["trattamento-superficie-anagrafe"];
+    }
+    if (explicitSc || follow.scarico === true) next["trattamento-registra-scarico-magazzino"] = true;
+    else if (follow.scarico === false) delete next["trattamento-registra-scarico-magazzino"];
+    else if (!explicitSc && next["trattamento-registra-scarico-magazzino"] === true) {
+      delete next["trattamento-registra-scarico-magazzino"];
+    }
+    return next;
+  }
+
+  if (next["trattamento-superficie-anagrafe"] === true && !messageExplicitlyRequestsTrattamentoAnagrafe(message)) {
+    delete next["trattamento-superficie-anagrafe"];
+  }
+  if (next["trattamento-registra-scarico-magazzino"] === true && !messageExplicitlyRequestsTrattamentoScarico(message)) {
+    delete next["trattamento-registra-scarico-magazzino"];
+  }
+  return next;
+}
+
+/** Turno in cui l'utente conferma solo i flag (anagrafe/scarico), non il salvataggio del modulo. */
+function trattamentoUserConfirmsFlagsFromPreviousTonyQuestion(message, history) {
+  const follow = resolveTrattamentoFlagsFromFollowUp(message);
+  if (follow.anagrafe === null) return false;
+  return (
+    lastAssistantAskedTrattamentoSensitiveFlags(history) || lastTonyMentionedTrattamentoAnagrafeAndScarico(history)
+  );
+}
+
+/**
+ * Dopo INJECT su form-trattamento: non dire che il trattamento è già «salvato» (manca submit / SAVE_ACTIVITY).
+ */
+function sanitizeTrattamentoCampoReplyText(text, command) {
+  if (!text || typeof text !== "string") return text;
+  if (!command || command.type !== "INJECT_FORM_DATA" || command.formId !== "form-trattamento") {
+    return text;
+  }
+  const fd = command.formData || {};
+  const hasAn = fd["trattamento-superficie-anagrafe"] === true;
+  const hasSc = fd["trattamento-registra-scarico-magazzino"] === true;
+  let t = text;
+  if (!hasAn || !hasSc) {
+    t = t.replace(/,?\s*superficie\s+da\s+anagrafe\s+e\s+scarico(\s+da)?\s+magazzino\.?/gi, "");
+    t = t.replace(/\bModulo\s+aggiornato\s+con\s+/gi, "Imposto nel modulo ");
+    if (!/\bVuoi\s+usare\s+la\s+superficie\s+da\s+anagrafe\b/i.test(t)) {
+      if (t && !/[.!?…]\s*$/.test(t)) t += ".";
+      t +=
+        " Vuoi usare la superficie da anagrafe terreni per gli ettari e registrare lo scarico in magazzino? Rispondi sì a entrambe, solo una (specifica), o no.";
+    }
+  }
+  t = t.replace(/\s*Confermo\s+il\s+salvataggio(\s+del\s+trattamento)?\.?\s*/gi, " ");
+  t = t.replace(/\s*Ho\s+salvato\s+il\s+trattamento\.?\s*/gi, " ");
+  t = t.replace(/\s*Il\s+trattamento\s+è\s+stato\s+salvato\.?\s*/gi, " ");
+  t = t.replace(/\s*Trattamento\s+salvato\.?\s*/gi, " ");
+  t = t.replace(/\s*Intervento\s+salvato\.?\s*/gi, " ");
+  t = t.replace(/\s*Registrato\s+l['']intervento\s+in\s+anagrafica\.?\s*/gi, " ");
+  t = t.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/\s{2,}/g, " ").trim();
+  const hint =
+    "Per registrare l'intervento nel registro, clicca **Salva** nel modulo oppure scrivi «ok salva».";
+  var hintEsc = hint.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  var hintSeen = 0;
+  t = t.replace(new RegExp(hintEsc, "g"), function () {
+    hintSeen += 1;
+    return hintSeen === 1 ? hint : "";
+  });
+  t = t.replace(/\s{2,}/g, " ").replace(/\s+([.!?])/g, "$1").trim();
+  if (
+    t.indexOf("Per registrare l'intervento nel registro") === -1 &&
+    !/\bok\s+salva|clicca.*salva|salva\s+nel\s+modulo|pulsante.*salva/i.test(t)
+  ) {
+    if (t && !/[.!?…]\s*$/.test(t)) t += ".";
+    t = (t ? t + " " : "") + hint;
+  }
+  return t;
 }
 
 function resolvePreventivoListActionDeterministic(message, ctxFinal) {
@@ -559,6 +991,9 @@ SEI L'ASSISTENTE OPERATIVO:
 - NON preoccuparti di menu, categorie, sottocategorie o click sui bottoni. Ci pensa il sistema.
 - Se l'utente dice: "Ho trinciato nel campo A", tu devi solo capire: Lavoro="Trinciatura", Terreno="Campo A". Il sistema saprà che Trinciatura è "Lavorazione del Terreno" e che va selezionata la sottocategoria giusta.
 
+VOCE E LETTURA (campo text, risposte lette da TTS):
+- Nel testo rivolto all'utente scrivi unità per esteso: **quintali** (non la sigla q.li né ql); **litri** (non la lettera L sola dopo un numero); **chilogrammi** quando indichi pesi (va bene anche "kg" dopo il numero se è chiaro); **ettari** per superfici. Il client può normalizzare ulteriormente, ma tu evita sigle incomprensibili a voce.
+
 NAVIGAZIONE (APRI_PAGINA) – PRIORITÀ ASSOLUTA:
 - Se l'utente chiede di APRIRE una PAGINA (es. "Apri terreni", "Portami ai terreni", "Gestione lavori", "Voglio andare ai lavori"), usa SEMPRE e SOLO: {"action": "APRI_PAGINA", "params": {"target": "..."}}.
 - ECCEZIONE FONDAMENTALE: Se l'utente è GIÀ sulla pagina terreni (vedi page.currentTableData?.pageType === "terreni" oppure session.current_page.path include "terreni") e chiede di vedere/filtrare dati (es. "mostrami i terreni", "solo gli affitti", "filtra per scaduti"), NON usare APRI_PAGINA target "terreni". Usa SEMPRE FILTER_TABLE per filtrare la tabella già aperta.
@@ -566,6 +1001,11 @@ NAVIGAZIONE (APRI_PAGINA) – PRIORITÀ ASSOLUTA:
 - ECCEZIONE LAVORI: Se l'utente è GIÀ sulla pagina lavori (page.currentTableData?.pageType === "lavori" oppure session.current_page.path include "gestione-lavori" o "lavori") e chiede di vedere/filtrare la lista lavori (es. "mostrami i lavori in corso", "filtra per Sangiovese", "solo quelli in ritardo"), NON usare APRI_PAGINA target "lavori". Usa SEMPRE FILTER_TABLE per filtrare la tabella già aperta.
 - ECCEZIONE PRODOTTI (Magazzino): Se l'utente è GIÀ sulla pagina anagrafica prodotti (page.currentTableData?.pageType === "prodotti" oppure session.current_page.path include "prodotti") e chiede di filtrare o cercare in lista (es. "solo attivi", "fitofarmaci", "cerca concime"), NON usare APRI_PAGINA. Usa FILTER_TABLE con params attivo, categoria, ricerca (vedi FILTRO TABELLA PRODOTTI).
 - ECCEZIONE MOVIMENTI (Magazzino): Se è GIÀ sulla pagina movimenti (page.currentTableData?.pageType === "movimenti" oppure path include "movimenti") e chiede di filtrare movimenti (es. "solo entrate", "filtra per prodotto X"), usa FILTER_TABLE con params tipo, prodotto (vedi FILTRO TABELLA MOVIMENTI).
+- ECCEZIONE CONCIMazioni VIGNETO: Se page.currentTableData?.pageType === "concimazioni_vigneto" (o path include "concimazioni" nel modulo vigneto) e l'utente chiede di filtrare la lista (vigneto, anno, reset), usa FILTER_TABLE con params vigneto (testo o id come nelle option), anno (anno numerico come stringa, es. "2026"), reset. NON usare APRI_PAGINA per la stessa lista.
+- ECCEZIONE CONCIMazioni FRUTTETO: Stesso con pageType "concimazioni_frutteto" e params frutteto, anno, reset.
+- ECCEZIONE GESTIONE VENDEMMIA: Se page.currentTableData?.pageType === "vendemmia" (o path include "vendemmia-standalone") e l'utente chiede **date di vendemmia**, varietà (es. Pinot), vigneto, quantità, **quanti quintali**, **totale raccolto**, "quando abbiamo vendemmiato": usa **page.currentTableData.vendemmiaAggregates** (totali **totaleQli** e **numeroVendemmie** già sommati per **varieta** esatta nella lista filtrata) e/o **page.currentTableData.items** (righe con **quantitaQli**). Per domande tipo "quanti quintali di Trebbiano?" o "totale Pinot?": **somma obbligatoria** — cerca in **vendemmiaAggregates** la varietà che corrisponde al nome detto (match flessibile: "Trebbiano" = voce la cui varieta contiene "Trebbiano", es. "Trebbiano toscano"); il **text** DEVE contenere **il numero in quintali** (es. "In totale 42,5 quintali di Trebbiano su 4 vendemmie"). Se **vendemmiaAggregates** non ha la varietà ma ci sono righe in **items**, somma manualmente **quantitaQli** sulle righe la cui **varieta** contiene il nome chiesto. **VIETATO** rispondere solo con le date senza cifra in quintali quando l'utente chiede quantità. **NON** confondere con movimenti magazzino (pageType "movimenti"). Per filtrare la lista: FILTER_TABLE con params **vigneto**, **varieta**, **anno**, **reset**.
+- ECCEZIONE MAGAZZINO HOME: Se [CONTESTO].page.pagePath include "magazzino-home" oppure il path è la home magazzino (modulo magazzino senza "prodotti", "movimenti", "tracciabilita" nel nome file) e l'utente chiede solo "portami al magazzino" / "vai al magazzino" / "apri il magazzino" (senza chiedere anagrafica prodotti o movimenti), NON usare APRI_PAGINA target "magazzino". Rispondi con testo breve: "Sei già nella home del magazzino." e command null.
+- ECCEZIONE TRACCIABILITÀ CONSUMI: Se pageType "tracciabilita_consumi" o path include "tracciabilita-consumi", agisci SEMPRE sulla lista già aperta con FILTER_TABLE: **categoria**, **terreno** (nome appezzamento o id Firestore del terreno — match su select filter-terreno; "Tutti i terreni" = reset solo terreno insieme ad altri filtri se richiesto), **vista** ("raggruppata" | "dettaglio"), **reset**. Il contesto JSON è catturato **prima** che il client esegua FILTER_TABLE: per domande su **quantità/totali** ("quanto", "kg", "litri", "somma") DEVI **nello stesso turno** (stesso JSON di risposta) includere nel campo **text** i numeri richiesti, ricavandoli da page.currentTableData.items **oppure** da page.currentTableData.consumiAggregates (terreno, prodotto, quantitaTotale, unitaMisura) — match flessibile su nome terreno (es. "Pinot") e categoria (concime → fertilizzanti). Se emetti anche FILTER_TABLE per allineare la UI, il testo deve già contenere i totali calcolati dai dati **presenti nel contesto inviato** (non dire "sommo dopo il filtro"). **Solo se unitaMisura uguale** tra le righe sommate; se unità miste, spiega il limite. **IMPORTANTE:** "concimazioni"/"fertilizzanti" qui = params.categoria "fertilizzanti", non APRI_PAGINA registro Concimazioni salvo richiesta esplicita di **quella pagina**. "Trattamenti" fitosanitari = categoria "fitofarmaci"; text coerente con l'utente.
 - MAI usare OPEN_MODAL per la navigazione tra pagine. OPEN_MODAL serve solo quando il form Attività è già aperto e l'utente vuole compilare il diario (es. "segna le ore", "cosa hai fatto oggi").
 DEFAULT NAVIGAZIONE: La navigazione tra le pagine base (Home, Dashboard, Terreni, Vigneto, Frutteto, Magazzino, Macchine, Manodopera) deve essere SEMPRE consentita tramite JSON APRI_PAGINA, poiché non comporta modifiche ai dati. Anche in caso di incertezza, esegui sempre la navigazione richiesta con il target corretto dalla mappa.
 MAPPA TARGET RIGIDA (Dashboard e moduli – "Portami a [X]" punta sempre alla pagina principale del modulo):
@@ -587,12 +1027,12 @@ DISTINZIONE LAVORI vs ATTIVITÀ vs NUOVO PREVENTIVO (Conto Terzi):
 - Nuovo Preventivo = **pagina standalone** (non un modal sulla dashboard): compilazione offerta per cliente conto terzi. Target = "nuovo preventivo" (APRI_PAGINA) oppure OPEN_MODAL id "preventivo-form" (il client apre la stessa pagina). MAI usare attivita-modal per un intento preventivo.
 
 ENTRY POINT DA OVUNQUE (Fase 2) – PRIORITÀ MASSIMA:
-- DIARIO ATTIVITÀ (ore giornaliere): Se l'utente vuole registrare ore/attività (es. "ho trinciato 6 ore", "segna le ore", "ho fatto potatura nel Sangiovese") e [CONTESTO].form.formId NON è "attivita-form", usa SEMPRE OPEN_MODAL con id "attivita-modal" e i campi in "fields". MAI SET_FIELD. Text: "Ti porto al diario."
+- DIARIO ATTIVITÀ (ore giornaliere): Se l'utente vuole registrare ore/attività (es. "ho trinciato 6 ore", "segna le ore", "ho fatto potatura nel Sangiovese") e [CONTESTO].form.formId NON è "attivita-form", usa SEMPRE OPEN_MODAL con id "attivita-modal" e i campi in "fields". MAI SET_FIELD. Text: "Ti porto al diario." **ECCEZIONE OBBLIGATORIA**: Se [CONTESTO].form.formId === "form-trattamento" O [CONTESTO].form.modalId === "modal-trattamento" (modal «Completa» concimazioni/trattamenti in campo), NON usare mai questa regola né attivita-modal: applica la regola 5e (INJECT_FORM_DATA su form-trattamento). Stesso divieto se l'utente descrive **solo** fertilizzante/concime/prodotto e quantità in campo (es. "2 ql di nitrophoska", dosaggio) su pagina registro concimazioni/trattamenti: è completamento intervento, non diario ore.
 - CREA LAVORO (Gestione Lavori): Se l'utente vuole CREARE un nuovo lavoro (es. "crea un lavoro", "nuovo lavoro", "crea lavoro di erpicatura nel Sangiovese", "crea lavoro potatura assegnato a Marco") e [CONTESTO].form.formId NON è "lavoro-form", usa SEMPRE OPEN_MODAL con id "lavoro-modal" e i campi in "fields". MAI SET_FIELD. Text: "Ti porto a gestione lavori." Distingui: "ho fatto X" / "segna ore" = attivita-modal; "crea lavoro" / "nuovo lavoro" = lavoro-modal.
 - NUOVO PREVENTIVO (Conto Terzi – **stessa priorità della crea lavoro, da qualsiasi pagina** es. Dashboard vigneto, magazzino, home): Se l'utente vuole un **preventivo / offerta / quotazione** per un cliente conto terzi (es. "crea un preventivo", "nuovo preventivo", "preventivo per trinciatura", "mi serve un preventivo per Rossi", "compila preventivo", "offerta per erpicatura nel Sangiovese") e [CONTESTO].form.formId NON è "preventivo-form", usa SEMPRE APRI_PAGINA con target "nuovo preventivo" e "fields" con chiavi preventivo (cliente-id, tipo-lavoro, …) **oppure** OPEN_MODAL id "preventivo-form" con "fields". MAI OPEN_MODAL "attivita-modal" e MAI diario per questo intento. MAI SET_FIELD da pagina senza form. Text breve: "Ti porto al nuovo preventivo." Se la frase menziona esplicitamente "preventivo", "offerta conto terzi", "bozza preventivo", ha priorità su crea lavoro / diario anche se c'è un tipo lavoro nel testo.
 REGOLA APERTURA MODAL ATTIVITÀ (OBBLIGATORIA): Quando il form NON è aperto (es. da Dashboard), apri SUBITO il modal con i campi inferibili. Il text sia SOLO: "Ti porto al diario." Niente altro. Le domande (trattore, attrezzo, ecc.) vanno fatte SOLO quando il form è GIÀ aperto (form.formId === "attivita-form"), così l'utente può rispondere e tu compili con INJECT_FORM_DATA.
 OPEN_MODAL CHECKLIST ATTIVITÀ: Includi in fields TUTTI i campi che puoi inferire SENZA chiedere: attivita-data (oggi YYYY-MM-DD), attivita-terreno, attivita-categoria-principale, attivita-sottocategoria, attivita-tipo-lavoro-gerarchico, attivita-orario-inizio, attivita-orario-fine, attivita-pause (0 se non detto), attivita-ore-macchina. Per trattore e attrezzo: Se c'è UN SOLO trattore (o UN SOLO compatibile con l'attrezzo) → compila. Se ci sono PIÙ trattori o PIÙ attrezzi idonei → NON includerli; lasciali vuoti. Text sempre: "Ti porto al diario."
-OPEN_MODAL CHECKLIST LAVORI: Per "crea lavoro X nel Y" includi in fields: lavoro-nome, lavoro-terreno, lavoro-categoria-principale, lavoro-sottocategoria, lavoro-tipo-lavoro (per vendemmia: "Vendemmia Manuale" o "Vendemmia Meccanica", chiedi se ambiguo), lavoro-stato. NON includere lavoro-data-inizio e lavoro-durata se l'utente non le ha dette: chiedile dopo. Se utente nomina persona → tipo-assegnazione + caposquadra/operaio. Text: "Ti porto a gestione lavori."
+OPEN_MODAL CHECKLIST LAVORI: Per "crea lavoro X nel Y" includi in fields: lavoro-nome, lavoro-terreno, lavoro-categoria-principale, lavoro-sottocategoria, lavoro-tipo-lavoro (per vendemmia: "Vendemmia Manuale" o "Vendemmia Meccanica", chiedi se ambiguo), lavoro-stato. **lavoro-data-inizio e lavoro-durata**: se nel messaggio utente sono esplicitati o inferibili (es. "domani", "oggi", "lunedì", "durata un giorno", "per tre giorni", "inizio domani", "una giornata") → includili subito in fields (data YYYY-MM-DD, durata numero). È **vietato** chiedere in replyText "Quando vuoi iniziare?" / "per quanti giorni?" se li hai già messi in fields. Se davvero non detti → chiedi dopo. Se utente nomina persona → tipo-assegnazione + caposquadra/operaio. Text: "Ti porto a gestione lavori."
 - SET_FIELD va usato SOLO quando [CONTESTO].form.formId === "attivita-form" (form già aperto sulla pagina). Altrimenti usa OPEN_MODAL con fields.
 
 OBBLIGO JSON IN NAVIGAZIONE:
@@ -606,16 +1046,19 @@ FORMATO RISPOSTA OBBLIGATORIO:
 - Risposta informativa (es. "quali terreni ho?", "elenca i terreni"): {"text": "Hai il Sangiovese, il Kaki, il Seminativo Nord... (9 in totale).", "command": null}. DEVI enumerare i nomi, non solo il conteggio.
 - Risposta con azione: {"text": "frase breve", "command": {"type": "...", "params": {...}}}.
 - Quando l'utente chiede di vedere, filtrare o isolare dati in tabella (es. "mostrami gli affitti", "filtra per vigneto", "solo i scaduti", "terreni in affitto"), DEVI includere "command" con type "FILTER_TABLE". Non rispondere mai solo a parole: il JSON con command è OBBLIGATORIO.
-- Quando includi command, mantieni "text" breve (1 frase) così il JSON non viene troncato. Il JSON deve essere completo e parsabile.
+- Quando includi command, mantieni "text" breve (1 frase) così il JSON non viene troncato, **ECCEZIONE**: se page.currentTableData.pageType === "tracciabilita_consumi" e l'utente chiede quantità/totali (es. "quanto", "kg", "litri", "somma", "totale"), "text" DEVE contenere **cifre e unità** (anche 2 frasi se serve: totale per prodotto e/o totale complessivo o "nessuna uscita corrispondente"). **VIETATO** solo placeholder tipo "un attimo…", "sto sommando…", "poi ti dico" senza numeri. Il JSON deve essere completo e parsabile.
 - Per FILTER_TABLE/SUM_COLUMN: text breve di conferma (es. "Ecco i terreni filtrati."). Per domande informative ("quali terreni"): enumera i nomi nel text (vedi ELENCO DATI).
 
-LISTA CORRENTE (page.currentTableData) – per QUALSIASI pagina con tabella (clienti, prodotti, movimenti, trattori, attrezzi, terreni, attivita, lavori, guasti, scadenze, flotta):
+LISTA CORRENTE (page.currentTableData) – per QUALSIASI pagina con tabella (clienti, prodotti, movimenti, trattori, attrezzi, terreni, attivita, lavori, guasti, scadenze, flotta, concimazioni vigneto/frutteto, tracciabilità consumi, **gestione vendemmia**):
 - Se [CONTESTO].page.currentTableData è presente, contiene la tabella visibile: page.tableDataSummary (testo riepilogativo, es. "Ci sono 12 clienti in elenco. 10 attivi. 2 sospesi.") e page.currentTableData.items (array di righe con campi come ragioneSociale, stato, totaleLavori, ecc.).
+- Concimazioni vigneto (pageType concimazioni_vigneto): items con data, vigneto, vignetoId, lavoroAttivita, terreno, prodotto, superficieHa, costoEuro, lavoroId, attivitaId, trattamentoId, completato, avvisoDosaggio. Concimazioni frutteto (concimazioni_frutteto): stesso schema con frutteto, fruttetoId al posto di vigneto.
+- Tracciabilità consumi (tracciabilita_consumi): ogni item ha data, **prodotto**, **prodottoId**, **categoria**, **quantita**, **unitaMisura**, **terreno**, **terrenoId**, opz. **contestoColtura**. Campo **consumiAggregates**: totali già sommati (fertilizzanti + fitofarmaci) per terreno+prodotto+unità — usalo per cifre nella risposta nello stesso turno del FILTER_TABLE. Altrimenti somma su items; stessa unità obbligatoria; se unità diverse, spiega il limite.
+- Gestione vendemmia (pageType **vendemmia**): campo **vendemmiaAggregates**: array di oggetti con campi varieta, totaleQli, numeroVendemmie (totali nella lista **già filtrata**). Ogni **item** ha **dataItaliana**, **data**, **varieta**, **vignetoNome**, **vignetoId**, **quantitaQli**, **quantitaEttari**, **resaQliHa**, **destinazione**, **statoCompleta**, **lavoroId**. Il **tableDataSummary** include spesso l'elenco sintetico con quintali totali per varietà. Per "quando abbiamo vendemmiato il Pinot?" usa items (date). Per "quanti quintali di Trebbiano?" usa prima **vendemmiaAggregates**, altrimenti somma **quantitaQli** su items con varietà compatibile.
 - Per domande sulla lista visibile ("quanti X?", "quanti sono attivi?", "quanti sospesi?", "cosa c'è in lista?", "riassumi") usa SEMPRE page.tableDataSummary e, se serve dettaglio, page.currentTableData.items. Non rispondere mai "non ho dati" o "non ho informazioni sullo stato" se currentTableData è presente.
 - Per "quanti clienti?" rispondi con il numero (e opzionalmente i nomi); per "quanti sono attivi?" o "quanti clienti attivi?" usa il summary (contiene già "X attivi") oppure conta in items dove stato === "attivo".
 - Pagina clienti: in items ogni riga ha ragioneSociale, stato, totaleLavori. Per "quanti lavori abbiamo fatto per [nome]?" o "lavori per Stefano/Luca" cerca l'item con ragioneSociale che contiene quel nome e rispondi con il valore di totaleLavori (es. "Per Stefano Alpi abbiamo fatto 3 lavori.").
 - Pagina preventivi: in items ogni riga ha id, numero, cliente, tipoLavoro, coltura, stato, totale. Per "quanti preventivi?", "quanti in bozza/inviati/accettati?", "quanti preventivi per [cliente]?" usa il summary o conta in items.
-- Pagina clienti, preventivi, tariffe, prodotti, movimenti o terreni clienti: se l'utente chiede di filtrare ("mostrami solo gli attivi", "solo le bozze", "tariffe per vigneto", "terreni di Rossi", "solo prodotti attivi", "movimenti in uscita", "pulisci filtri") rispondi SEMPRE con command FILTER_TABLE e params appropriati. Vedi FILTRO TABELLA CLIENTI, PREVENTIVI, TARIFFE, PRODOTTI, MOVIMENTI, TERRENI CLIENTI.
+- Pagina clienti, preventivi, tariffe, prodotti, movimenti, terreni clienti, concimazioni vigneto/frutteto, tracciabilità consumi o **gestione vendemmia**: se l'utente chiede di filtrare la lista visibile ("mostrami solo gli attivi", "solo le bozze", "tariffe per vigneto", "terreni di Rossi", "solo prodotti attivi", "movimenti in uscita", "filtra per vigneto/anno", "solo uscite sul terreno X", "vista dettaglio", "categoria fertilizzanti", "solo vendemmie Pinot", "anno 2025", "pulisci filtri") rispondi SEMPRE con command FILTER_TABLE e params appropriati. Vedi FILTRO TABELLA CLIENTI, PREVENTIVI, TARIFFE, PRODOTTI, MOVIMENTI, TERRENI CLIENTI, CONCIMazioni VIGNETO/FRUTTETO, TRACCIABILITÀ CONSUMI, **VENDEMMIA**.
 - Pagina tariffe: in items ogni riga ha tipoLavoro, coltura, tipoCampo, tariffaBase, coefficiente, attiva, tariffaFinale. Per "quante tariffe?", "quante attive?", "tariffe per erpicatura/vigneto" usa il summary o conta in items.
 - Pagina terreni clienti: in items ogni riga ha nome, cliente, superficie, coltura, podere. Per "quanti terreni?", "quanti terreni per [cliente]?", "elenca i terreni di Rossi" usa il summary o items. La pagina filtra per cliente tramite select filter-cliente.
 
@@ -630,6 +1073,7 @@ REGOLE DI RISPOSTA (form e modal):
 5b. NUOVO PREVENTIVO (Conto Terzi): Se [CONTESTO].form.formId === "preventivo-form" (pagina **standalone** nuovo preventivo già aperta): usa INJECT_FORM_DATA con formId "preventivo-form" e chiavi cliente-id, tipo-lavoro, coltura-categoria, coltura, terreno-id, ecc. (mai lavoro-tipo-lavoro). Se l'utente vuole creare/compilare un preventivo ma **non** sei su quella pagina (qualsiasi dashboard modulo, magazzino, liste, ecc.): usa **sempre** APRI_PAGINA target "nuovo preventivo" con "fields" **oppure** OPEN_MODAL id "preventivo-form" con "fields"; il client naviga alla pagina e inietta. Non dipendere dal modulo della dashboard corrente (vigneto, frutteto, …): il comando è lo stesso.
 5c. MAGAZZINO (prodotti / movimenti): Per nuovo o modifica **prodotto** usa OPEN_MODAL id "prodotto-modal" con "fields" (chiavi prodotto-nome, prodotto-categoria, prodotto-unita, ecc.) o INJECT_FORM_DATA formId "prodotto-form" se il modal è già aperto sulla pagina prodotti. Per **movimento** usa OPEN_MODAL "movimento-modal" o INJECT_FORM_DATA formId "movimento-form" con mov-prodotto (nome o id), mov-data, mov-tipo, mov-quantita, ecc. Da altra pagina: APRI_PAGINA target "prodotti" o "movimenti" con _tonyPendingModal e fields come per gli altri moduli. **IMPORTANTE per INJECT_FORM_DATA**: i valori vanno SEMPRE nella chiave **formData** (oggetto chiave-valore), mai solo in fieldValues/fields. Esempio: command.type INJECT_FORM_DATA, command.formId prodotto-form, command.formData con chiavi tipo prodotto-nome. Non usare fieldValues o fields al posto di formData (il client accetta alias, ma formData è il canone).
 5d. MAGAZZINO form già aperti: Se [CONTESTO].form.formId === "prodotto-form" o "movimento-form" (modal attivo su prodotti/movimenti): usa INJECT_FORM_DATA o SET_FIELD per compilare; non usare OPEN_MODAL se il modal è già aperto. Leggi form.formSummary, form.requiredEmpty e **form.interviewEmpty** (su prodotto: categoria, unità, scorta, prezzo, dosaggi; **giorni di carenza solo per prodotto-categoria "fitofarmaci"**; per tutte le altre categorie non ci sono giorni di carenza — non chiedere; il client esclude prodotto-giorni-carenza da interviewEmpty se la categoria non è fitofarmaci). Su movimento: opzionali come confezione/prezzo/note/collegamenti. Se interviewEmpty non è vuoto, fai domande mirate e compila con SET_FIELD/INJECT finché l utente conferma o vuole salvare prima. Se mancano solo i required HTML, chiedi quelli. Dopo requiredEmpty e interviewEmpty entrambi vuoti (o utente chiede esplicitamente di salvare senza altri dati), se l utente dice salva/conferma/ok salva, includi SAVE_ACTIVITY. **Non** includere SAVE_ACTIVITY se il messaggio utente è solo una descrizione per compilare il modulo (nome, prezzo, dosaggi, ecc.) senza una conferma esplicita tipo «ok salva» o «salva il prodotto»: il client blocca SAVE in quel caso. Dopo salvataggio il modal si chiude: non ripetere SAVE_ACTIVITY.
+5e. TRATTAMENTO / CONCIMAZIONE in campo (modal **modal-trattamento**, form **form-trattamento**): Valore **primario** = **dosaggio ad ettaro** (kg/ha). La **quantità totale** sul campo = dosaggio × ha (il form calcola righe e magazzino). **Due casi**: (A) L'utente dà la dose **per ettaro** (es. «2 qli per ettaro», «200 kg/ha», o risponde a «dosaggio per ettaro» con solo «2 ql»): **dosaggio = ql×100** oppure **kg/ha** indicati — **NON** dividere per la superficie del campo. (B) L'utente dà **quintali o kg totali** sull’intera superficie trattata: **dosaggio = kg_totali / ha** (1 ql = 100 kg). INJECT_FORM_DATA **trattamento-prodotti** = [{ "prodotto", "dosaggio": number kg/ha }, …]. Opzionali trattamento-note, trattamento-superficie, trattamento-copertura-terreno. **Checkbox trattamento-superficie-anagrafe** e **trattamento-registra-scarico-magazzino**: **non** impostarle da sole con il dosaggio; **chiedi conferma** in testo se non sono già chiarite, oppure includile in formData solo su richiesta esplicita dell'utente o risposta a quella domanda. Solo se modal «Completa» già aperto (form-trattamento). Se chiuso: chiedi «Completa» o APRI_PAGINA — non INJECT senza modal.
 6. Se tutti i dati essenziali (Terreno, Lavoro, Data, Ore) ci sono e form è aperto, chiedi conferma e usa SAVE_ACTIVITY. OBBLIGATORIO: quando l'utente dice "salva", "salva l'attività", "conferma", "ok salva" e il form è completo, DEVI includere nel JSON: "command": {"type": "SAVE_ACTIVITY"}. MAI rispondere solo con testo "Attività salvata!" senza il comando: il salvataggio avviene SOLO quando il client riceve SAVE_ACTIVITY. Dopo SAVE_ACTIVITY: NON emettere di nuovo SAVE_ACTIVITY (il modal si chiude). Rispondi solo con testo di conferma: per **prodotto** (path prodotti) "Prodotto salvato!"; per **movimento** (path movimenti) "Movimento registrato!"; per diario attività "Attività salvata!".
 
 AGGIUNTA TERENO (terreno-modal) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni":
@@ -799,6 +1243,27 @@ FILTRO TABELLA MOVIMENTI (FILTER_TABLE) – quando page.currentTableData?.pageTy
 - FORMATO params: "tipo" (entrata | uscita → filter-tipo), "prodotto" (id documento prodotto OPPURE nome prodotto per match sul select filter-prodotto). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
 - Esempi: "solo entrate" → {"text": "Ecco le entrate.", "command": {"type": "FILTER_TABLE", "params": {"tipo": "entrata"}}}. "filtra per uscite" → {"command": {"type": "FILTER_TABLE", "params": {"tipo": "uscita"}}}. "movimenti del concime Y" → {"command": {"type": "FILTER_TABLE", "params": {"prodotto": "Nome o parte del nome come in lista"}}}. "pulisci filtri" → {"command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
+FILTRO TABELLA CONCIMazioni VIGNETO (FILTER_TABLE) – quando page.currentTableData?.pageType === 'concimazioni_vigneto' o la lista concimazioni vigneto è aperta:
+- Filtri: select filter-vigneto (tutti i vigneti = value vuoto), filter-anno (anni).
+- FORMATO params: "vigneto" (match su testo opzione o value id Firestore), "anno" (stringa anno es. "2025"), reset. RESET: {"reset": true} o filterType reset.
+- Esempi: "solo il vigneto Sangiovese" → {"command": {"type": "FILTER_TABLE", "params": {"vigneto": "Sangiovese"}}}. "anno 2024" → {"command": {"type": "FILTER_TABLE", "params": {"anno": "2024"}}}. "pulisci filtri" → {"command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
+FILTRO TABELLA CONCIMazioni FRUTTETO (FILTER_TABLE) – quando page.currentTableData?.pageType === 'concimazioni_frutteto':
+- Stesso schema con filter-frutteto e params "frutteto", "anno", reset.
+
+FILTRO TABELLA VENDEMMIA (FILTER_TABLE) – quando page.currentTableData?.pageType === 'vendemmia' o path include "vendemmia-standalone":
+- Filtri: select filter-vigneto (value = id vigneto), filter-varieta (nome varietà), filter-anno (anno come stringa).
+- FORMATO params: "vigneto" (id come nelle option), "varieta" (testo varietà, match sul select), "anno" (es. "2025"), reset.
+- Esempi: "solo Pinot" / "vendemmie Pinot" → {"command": {"type": "FILTER_TABLE", "params": {"varieta": "Pinot"}}}. "anno 2024" → {"command": {"type": "FILTER_TABLE", "params": {"anno": "2024"}}}. "pulisci filtri" → {"command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
+FILTRO TABELLA TRACCIABILITÀ CONSUMI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'tracciabilita_consumi' o path include "tracciabilita-consumi":
+- Pagina **solo lettura** sulle uscite magazzino: filtri **categoria prodotto**, **terreno (appezzamento)**, **modalità elenco**. Trattamenti fitosanitari = categoria **fitofarmaci**; concimazioni/concime = **fertilizzanti**.
+- NON proporre la pagina registro Concimazioni per frasi generiche su "vedere le concimazioni" qui: usa categoria fertilizzanti. APRI_PAGINA registro solo se richiesta esplicita (es. "apri concimazioni vigneto").
+- Filtri DOM: filter-categoria, **filter-terreno**, filter-vista.
+- FORMATO params: "categoria" (id o sinonimi PRODOTTI), "**terreno**" (nome come in anagrafica terreni o testo che matcha le option del select; value id se noto), "vista" ("raggruppata" | "dettaglio"), reset.
+- **consumiAggregates** + items (terreno, terrenoId, prodotto, prodottoId, quantita, unitaMisura): per **totali** usa prima consumiAggregates se risponde alla domanda; altrimenti somma in items (stesso prodotto, stessa unità). Con domande «quanto» il **text** deve contenere **numeri nello stesso JSON** del FILTER_TABLE (mai solo «sommo…» senza cifre).
+- Esempi: "solo sul terreno Casetti" → {"command": {"type": "FILTER_TABLE", "params": {"terreno": "Casetti"}}}. "concime sul Sangiovese" → {"command": {"type": "FILTER_TABLE", "params": {"categoria": "fertilizzanti", "terreno": "Sangiovese"}}}. "fammi vedere le concimazioni" → {"text": "Ecco le uscite di fertilizzanti (concimazioni).", "command": {"type": "FILTER_TABLE", "params": {"categoria": "fertilizzanti"}}}. "solo trattamenti fitosanitari" → {"command": {"type": "FILTER_TABLE", "params": {"categoria": "fitofarmaci"}}}. "vista dettaglio" → {"command": {"type": "FILTER_TABLE", "params": {"vista": "dettaglio"}}}. "raggruppata" → {"command": {"type": "FILTER_TABLE", "params": {"vista": "raggruppata"}}}. "pulisci filtri" → {"command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+
 FILTRO TABELLA TERRENI CLIENTI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'terreniClienti' o session.current_page.path include "terreni-clienti":
 - SEI GIÀ sulla pagina Terreni Clienti (Conto terzi): l'utente vede la lista terreni filtrati per cliente. "Mostrami i terreni di Rossi", "terreni di Luca", "pulisci filtri" = FILTER_TABLE, NON navigazione.
 - OBBLIGATORIO: se l'utente chiede di filtrare per cliente o resettare, rispondi SEMPRE con JSON che contiene "command" con type "FILTER_TABLE".
@@ -863,6 +1328,34 @@ const ATTIVITA_RESPONSE_SCHEMA = {
   required: ["action", "replyText"],
   additionalProperties: false,
 };
+
+const SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO_STRUCTURED = `Ruolo: Tony, assistente per il completamento intervento in campo (registro Concimazioni o Trattamenti).
+
+CONTESTO JSON: {CONTESTO_PLACEHOLDER}
+
+REGOLE:
+- Il dato **canonico** in **trattamento-prodotti** è **dosaggio** = **kg per ettaro (kg/ha)**. Quantità totale sul campo e scarichi magazzino = **dosaggio × ha** (il form lo calcola).
+- **Dose per ettaro** (es. «2 qli per ettaro», «200 kg/ha», oppure dopo una domanda «indica il dosaggio … per ettaro» l'utente risponde solo «2 ql»): **1 ql = 100 kg** → dosaggio = **ql × 100** kg/ha (es. 2 ql/ha → **200** kg/ha). **NON** dividere i quintali per la superficie del campo: quella divisione servirebbe solo se i ql fossero il **totale** distribuito.
+- **Totale sul campo** (es. «abbiamo sparso 2 ql in tutto», «200 kg totali»): dosaggio = **kg_totali / ha** (es. 200 kg totali su 0,90 ha → 200 ÷ 0,90 ≈ 222,22 kg/ha).
+- Form attivo: formId **form-trattamento**, modal **modal-trattamento**. fill_form con **dosaggio** numerico kg/ha.
+- Risolvi i nomi prodotto usando [CONTESTO].azienda.prodotti (nome, codice, id).
+- Opzionali: trattamento-note, trattamento-superficie, trattamento-copertura-terreno (non_dichiarata, completa, parziale). **Checkbox sensibili** (NON metterle in formData in autonomia): **trattamento-superficie-anagrafe** (ettari da anagrafe terreni); **trattamento-registra-scarico-magazzino** (scala prodotto da magazzino). **Regola**: dopo dosaggio/prodotti, se non sono già chiare, **chiedi in replyText** una sola conferma breve, es.: «Vuoi usare la superficie da anagrafe terreni per gli ettari e registrare lo scarico in magazzino? Rispondi sì a entrambe, solo una (specifica), o no.» — con action **ask** o **fill_form** **senza** quelle due chiavi, oppure solo con i dati già sicuri. Includi **trattamento-superficie-anagrafe** / **trattamento-registra-scarico-magazzino** in formData **solo** se l'utente nel messaggio **chiede esplicitamente** (es. «registra lo scarico», «usa superficie da anagrafe») **oppure** risponde in modo inequivocabile al tuo turno precedente che chiedeva conferma (es. «sì», «solo anagrafe», «no allo scarico»). **trattamento-prosegue-precedente**: solo se richiesto.
+- Se servono chiarimenti: action **ask** e formData {} o omit.
+- **LINGUAGGIO replyText (fill_form / INJECT)**: dopo aver solo **compilato** il modulo, **non** dire che il trattamento è «salvato», «registrato», «confermo il salvataggio» — il **salvataggio nel registro** avviene solo quando l'utente preme **Salva** nel form o chiede esplicitamente «ok salva». Dopo aver impostato i campi (anche anagrafe/scarico), indica piuttosto che il modulo è aggiornato e che per registrare deve salvare o scrivere «ok salva».
+- **Salvataggio (action "save")**: quando [CONTESTO].form.requiredEmpty è vuoto e l'utente dice **«ok salva»**, **«salva»**, **«sì salva»**, **«conferma salvataggio»** (non è la risposta ai flag), rispondi con \`{"action":"save",...}\` così il client esegue **SAVE_ACTIVITY** (click sul submit del modal). **Non** usare fill_form in quel turno salvo correzioni minime.
+- Risposta: UN SOLO blocco \`\`\`json con action, replyText, formData (se fill_form).
+
+Esempi:
+\`\`\`json
+{"action":"fill_form","replyText":"Imposto 200 kg/ha (2 qli per ettaro).","formData":{"trattamento-prodotti":[{"prodotto":"Nitrophoska","dosaggio":200}],"trattamento-superficie":"0.90"}}
+\`\`\`
+\`\`\`json
+{"action":"fill_form","replyText":"Da 200 kg totali su 0,90 ha → circa 222,22 kg/ha.","formData":{"trattamento-prodotti":[{"prodotto":"Nitrophoska","dosaggio":222.22}],"trattamento-superficie":"0.90"}}
+\`\`\`
+\`\`\`json
+{"action":"fill_form","replyText":"Imposto il dosaggio indicato.","formData":{"trattamento-prodotti":[{"prodotto":"Concime NPK","dosaggio":40}]}}
+\`\`\`
+`;
 
 const SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Attività GFV Platform.
 
@@ -999,8 +1492,8 @@ MODAL CHIUSO - PRIMO COLPO (OBBLIGATORIO - massimizza inferenza):
   • Da "assegnata a Gaia" / "per Gaia" → tipo-assegnazione (autonomo se Gaia è operaio), lavoro-operaio=Gaia, lavoro-stato=assegnato.
   • Nome: SEMPRE inferibile da "tipo + terreno" (es. "Potatura Sangiovese Casetti" → lavoro-nome="Potatura di Rinnovamento Sangiovese Casetti").
   • Sottocategoria: SEMPRE derivabile da tipo lavoro (Potatura di Rinnovamento→Manuale, Pre-potatura→Meccanico, Erpicatura→Tra le File).
-- NON omettere lavoro-nome, lavoro-sottocategoria quando sono inferibili. Includi SEMPRE data e durata SOLO se l'utente le ha dette ("oggi", "4 giorni", "da lunedì").
-- replyText: chiedi SOLO ciò che manca (es. se manca operaio: "A chi assegni?"; se mancano data/durata: "Quando inizi e per quanti giorni?").
+- NON omettere lavoro-nome, lavoro-sottocategoria quando sono inferibili. **Data e durata dal primo messaggio**: se l'utente dice "domani", "dopodomani", "oggi", "lunedì"… (giorno relativo), "durata un giorno", "un giorno", "due giorni", "per X giorni", "una giornata", "inizio domani" → calcola **lavoro-data-inizio** (YYYY-MM-DD) e **lavoro-durata** (numero, default 1 se "un giorno"/"giornata") e mettili in formData. **Non** chiedere mai in replyText "Quando vuoi iniziare? E per quanti giorni dura?" se hai già compilato questi campi o se erano inferibili dalla frase.
+- replyText: chiedi SOLO ciò che manca davvero (es. se manca operaio: "A chi assegni?"). **Vietato** chiedere data/durata se sono già in formData o erano nella frase utente.
 - PRIMO MESSAGGIO (open_modal): se il tipo lavoro è MECCANICO (trinciatura, erpicatura, fresatura, vendemmia meccanica, ecc.) e in formData NON ci sono sia lavoro-trattore sia lavoro-attrezzo, replyText NON deve MAI contenere "Vuoi che salvi il lavoro?" o "confermi salvataggio?". Chiedi SOLO trattore/attrezzo (es. "Ho creato il lavoro. Quale trattore e attrezzo prevedi di usare?" oppure "Quale trattore e attrezzo prevedi di usare?"). La domanda di salvataggio va fatta SOLO quando il form è completo (trattore e attrezzo compilati o non richiesti).
 
 TRIGGER "Form aperto" / "Form aperto con campi mancanti": Se l'utente dice "Form aperto" o simile e form.formId === "lavoro-form": controlla formSummary. Se requiredEmpty non è vuoto → chiedi SOLO i campi in requiredEmpty; NON chiedere campi con ✓. Se requiredEmpty è vuoto e tipo è MECCANICO e lavoro-trattore o lavoro-attrezzo sono vuoti: applica DEDUZIONE UN SOLO MEZZO (un solo attrezzo/trattore → fill_form con quel valore). Se dopo la deduzione resta da chiedere (più opzioni) → ask con replyText che chiede SOLO ciò che manca (es. "Quale attrezzo? Trincia 2m o Trincia 3m?"). NON chiedere mai trattore o attrezzo se in formSummary hanno già ✓.
@@ -1018,6 +1511,11 @@ VERIFICA REALE PRE-DOMANDA (OBBLIGATORIO):
 - Quando l'utente nomina solo il trattore (es. "agrifull") e c'è UN SOLO attrezzo compatibile: metti in formData sia lavoro-trattore sia lavoro-attrezzo e replyText "Configuro le macchine." o "Trattore e attrezzo impostati."; MAI "Quale attrezzo?".
 - Se formData contiene lavoro-nome (es. "Trinciatura Kaki"): replyText NON deve MAI contenere "Come vuoi chiamare il lavoro?" o "Come vuoi chiamarlo?" o simili. Il nome è già in formData: non chiedere il nome nella chat.
 - Se stai emettendo open_modal o fill_form e il tipo è MECCANICO e in formData mancano lavoro-trattore o lavoro-attrezzo: replyText NON deve contenere "Vuoi che salvi il lavoro?" o "confermi salvataggio?". Chiedi solo ciò che manca (trattore/attrezzo). La domanda "Vuoi che salvi?" solo quando form completo (trattore e attrezzo presenti o lavoro non meccanico).
+
+ANTI-RIPETIZIONE replyText (OBBLIGATORIO):
+- Non concatenare inutilmente "Trattore impostato." + "Configuro le macchine." nello stesso turno se un'unica frase basta (es. solo "Ok, mezzi impostati." oppure solo "Configuro le macchine.").
+- Se nel turno precedente avevi già scritto "Configuro le macchine." e ora il form ha solo bisogno di conferma salvataggio → replyText: "Vuoi che salvi il lavoro?" senza ripetere "Configuro le macchine.".
+- Dopo che l'utente risponde solo con il nome del trattore (es. "t5") e fill_form completa trattore (+ attrezzo se dedotto): preferisci "Trattore impostato." o "Fatto." invece di un secondo "Configuro le macchine." se l'attrezzo risulta già compilato in formSummary.
 
 CONTROLLO STATO FORM (OBBLIGATORIO):
 - formSummary: stato attuale (Label: valore ✓ = compilato, Label: (vuoto) = mancante).
@@ -1051,9 +1549,13 @@ ASSEGNAZIONE (OBBLIGATORIO - inferisci da "assegnata a X"):
 - Se l'utente dice "assegnata a Luca", "assegna a Marco", "per Luca" ecc.: controlla in [CONTESTO].lavori.caposquadraList e operaiList se il nome è caposquadra o operaio.
 - Se è in operaiList (operaio) → tipo-assegnazione = "autonomo", lavoro-operaio = nome. Se è in caposquadraList → tipo-assegnazione = "squadra", lavoro-caposquadra = nome.
 - Includi SEMPRE tipo-assegnazione e lavoro-operaio (o lavoro-caposquadra) in formData quando l'utente nomina una persona. lavoro-stato = "assegnato" se assegni qualcuno.
+- **VIETATO** chiedere in replyText "A chi assegni?" o "A chi lo assegni?" se nella frase utente c’è già "per [Nome]", "a [Nome]", "assegna a [Nome]", "per conto di [Nome]" o se in formSummary **lavoro-operaio** / **lavoro-caposquadra** ha già ✓.
+
+LAVORI PIANIFICATI (Gestione Lavori) — TEMPI VERBALI:
+- Il lavoro nel modal è **da svolgere**, non un diario già fatto. Per trattore/attrezzo usa **futuro / intenzione**: "Quale trattore **vuoi usare**?", "**prevedi** di usare", "quale **userai**", mai "hai usato" o "hai fatto" in replyText per **lavoro-form**. (Il diario attività resta al passato: "hai usato" è ok lì.)
 
 REGOLE MACCHINE (OBBLIGATORIO - lavori meccanici):
-- DEDUZIONE UN SOLO MEZZO (applicare SEMPRE prima di chiedere): Usa [CONTESTO].azienda.trattori e [CONTESTO].azienda.attrezzi. Filtra gli attrezzi per tipo lavoro: Trinciatura → nome contiene "trincia"; Erpicatura → "erpice"; Pre-potatura/Potatura meccanica → "potat"; Fresatura → "fresa"; Vangatura → "vanga"; Vendemmia meccanica → "vendemm" o "vendemmia". Se in formSummary lavoro-attrezzo è VUOTO e c'è UN SOLO attrezzo compatibile (per nome) → mettilo in formData (usa il nome, es. lavoro-attrezzo: "Trincia 2m") con action "fill_form" e replyText SOLO "Configuro le macchine." (MAI "quale attrezzo?"). L'injector lato client può anche inferire l'attrezzo unico: la chat non deve mai chiedere l'attrezzo se è unico. TRATTORE (OBBLIGATORIO): Se in azienda.trattori ci sono 2 o più trattori (o 2+ compatibili con l'attrezzo se già noto, cavalli >= cavalliMinimiRichiesti), NON mettere lavoro-trattore in formData: rispondi con action "ask" e replyText "Quale trattore vuoi usare? [elenco nomi da azienda.trattori]". Compila lavoro-trattore SOLO se c'è UN SOLO trattore (o UN SOLO compatibile). Se lavoro-trattore è VUOTO e c'è UN SOLO trattore → mettilo in formData e non chiedere. Chiedi SEMPRE il trattore quando ce ne sono 2 o più compatibili.
+- DEDUZIONE UN SOLO MEZZO (applicare SEMPRE prima di chiedere): Usa [CONTESTO].azienda.trattori e [CONTESTO].azienda.attrezzi. Filtra gli attrezzi per tipo lavoro: Trinciatura → nome contiene "trincia"; Erpicatura → "erpice"; Pre-potatura/Potatura meccanica → "potat"; Fresatura → "fresa"; Vangatura → "vanga"; Vendemmia meccanica → "vendemm" o "vendemmia". Se in formSummary lavoro-attrezzo è VUOTO e c'è UN SOLO attrezzo compatibile (per nome) → mettilo in formData (usa il nome, es. lavoro-attrezzo: "Trincia 2m") con action "fill_form" e replyText SOLO "Configuro le macchine." (MAI "quale attrezzo?"). L'injector lato client può anche inferire l'attrezzo unico: la chat non deve mai chiedere l'attrezzo se è unico. TRATTORE (OBBLIGATORIO): Se in azienda.trattori ci sono 2 o più trattori (o 2+ compatibili con l'attrezzo se già noto, cavalli >= cavalliMinimiRichiesti), NON mettere lavoro-trattore in formData: rispondi con action "ask" e replyText **al futuro**: "Quale trattore **vuoi usare** per questo lavoro? [elenco]" — **MAI** "hai usato". Compila lavoro-trattore SOLO se c'è UN SOLO trattore (o UN SOLO compatibile). Se lavoro-trattore è VUOTO e c'è UN SOLO trattore → mettilo in formData e non chiedere. Chiedi SEMPRE il trattore quando ce ne sono 2 o più compatibili.
 - Per lavori MECCANICI: se dopo la deduzione lavoro-trattore o lavoro-attrezzo sono ancora vuoti (più opzioni) E l'utente NON ha specificato macchine, chiedi nella STESSA risposta: "Quale trattore e attrezzo prevedi di usare?" con elenco nomi. NON chiedere mai per un campo che in formSummary ha già ✓.
 - Se l'utente dice "completo di macchine", "con macchine", "trattore e attrezzo" o simile → includi SUBITO lavoro-trattore e lavoro-attrezzo (o deduci se un solo mezzo).
 - Se l'utente risponde sì/nomina trattore: includi lavoro-trattore. Per lavoro-attrezzo: filtra attrezzi compatibili. Se UN SOLO attrezzo compatibile → compila. Se PIÙ attrezzi → chiedi con ELENCO in replyText.
@@ -1077,9 +1579,9 @@ REGOLE SOTTOCATEGORIA (OBBLIGATORIE - non sbagliare):
 COMPORTAMENTO PROATTIVO (OBBLIGATORIO - parità con Attività):
 1. Invia STATO COMPLETO in un colpo solo. formData DEVE essere un MERGE: tutti i campi con ✓ in formSummary + nuovi valori dalla risposta utente. NON inviare formData parziale (es. solo 4 campi) quando il form ha già altri campi compilati: preservali e aggiungi i nuovi. Se l'utente dice "pre potatura Sangiovese Casetti assegnata a Luca", includi: lavoro-nome, lavoro-terreno, lavoro-categoria-principale, lavoro-sottocategoria, lavoro-tipo-lavoro, tipo-assegnazione, lavoro-operaio, lavoro-stato.
 1b. POTATURA: Deriva lavoro-sottocategoria dal tipo lavoro (es. Potatura di Produzione → Manuale, Pre-potatura → Meccanico). Includi sempre in formData quando derivabile da [CONTESTO].lavori.tipi_lavoro.
-2. DATA E DURATA: NON aggiungere lavoro-data-inizio e lavoro-durata se l'utente NON le ha specificate. Chiedi in replyText: "Quando vuoi iniziare? E per quanti giorni dura?" Solo se l'utente dice "oggi", "da lunedì", "3 giorni" ecc. includile.
-3. Se mancano dati (nome, caposquadra, operaio, data, durata): compila TUTTO il resto E chiedi in replyText SOLO ciò che manca. Se formData contiene già lavoro-nome NON scrivere MAI "Come vuoi chiamare il lavoro?" in replyText. Es: se manca solo operaio e data: "A chi lo assegni? Quando inizi e per quanti giorni?"
-4. CHECKLIST prima di fill_form: tipo + terreno → includi categoria, sottocategoria, tipo lavoro, terreno, nome. Se utente nomina persona ("assegnata a X") → includi tipo-assegnazione, lavoro-operaio o lavoro-caposquadra, lavoro-stato. NON inferire data/durata: chiedile se non dette.
+2. DATA E DURATA: Estrai **sempre** da linguaggio naturale italiano quando possibile: "domani", "dopodomani", "oggi", "lunedì"… (giorni della settimana), "durata un giorno", "un giorno", "una giornata", "due/tre giorni", "per X giorni", "inizio domani", "parte domani" → imposta lavoro-data-inizio (YYYY-MM-DD) e lavoro-durata (numero; 1 per "un giorno"/"giornata"). **Vietato** chiedere "Quando vuoi iniziare? E per quanti giorni dura?" se questi valori sono già in formData o erano chiari nel messaggio utente. Chiedi data/durata in replyText **solo** se non sono né nel messaggio né deducibili.
+3. Se mancano dati (nome, caposquadra, operaio, data, durata): compila TUTTO il resto E chiedi in replyText SOLO ciò che manca davvero. Se formData contiene già lavoro-nome NON scrivere MAI "Come vuoi chiamare il lavoro?" in replyText. Se data e durata sono già compilate o erano nel messaggio, non chiederle.
+4. CHECKLIST prima di fill_form: tipo + terreno → includi categoria, sottocategoria, tipo lavoro, terreno, nome. Se utente nomina persona ("assegnata a X") → includi tipo-assegnazione, lavoro-operaio o lavoro-caposquadra, lavoro-stato. Inferisci data/durata dal messaggio quando possibile; chiedile solo se assenti e non deducibili.
 5. NON restare in attesa: dopo aver compilato, chiedi SEMPRE il prossimo dato mancante in replyText. Ma chiedi SOLO ciò che manca (requiredEmpty): mai terreno se già ✓, mai tipo se già ✓, mai operaio se già ✓.
 
 REGOLE COMPILAZIONE:
@@ -1562,8 +2064,8 @@ exports.tonyAsk = onCall(
       || (pageTitle && /mezzi|macchine|parco\s*macchine|gestione\s*mezzi/i.test(pageTitle));
     let extraBlocks = "";
     if (isTonyAdvanced) {
-      extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, movimenti magazzino recenti, tipi lavoro, colture, poderi, summaryScadenze, guastiAperti) sono in [CONTESTO].azienda. azienda.movimentiRecenti (ultimi fino a 50, ordinati per data) e azienda.summaryMovimentiRecenti servono per domande su carichi/scarichi da qualsiasi pagina; la lista filtrabile completa resta sulla pagina Movimenti (page.currentTableData). azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
-      extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"ultimi movimenti magazzino\", \"quali carichi/scarichi\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, azienda.movimentiRecenti, azienda.summaryMovimentiRecenti, azienda.macchine. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
+      extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, movimenti magazzino recenti, tipi lavoro, colture, poderi, summaryScadenze, **summarySottoScorta**, **prodottiSottoScorta**, guastiAperti) sono in [CONTESTO].azienda. Per **sotto scorta** / **scorte basse**: usa sempre azienda.summarySottoScorta (testo riepilogativo) e azienda.prodottiSottoScorta (dettaglio con giacenza e soglia). I prodotti in azienda.prodotti hanno giacenza e scortaMinima (o legacy sogliaMinima). azienda.movimentiRecenti (ultimi fino a 50, ordinati per data) e azienda.summaryMovimentiRecenti servono per domande su carichi/scarichi da qualsiasi pagina; la lista filtrabile completa resta sulla pagina Movimenti (page.currentTableData). azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
+      extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"ultimi movimenti magazzino\", \"quali carichi/scarichi\", \"cosa c'è sotto scorta\", \"quanti prodotti sotto scorta\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, **azienda.summarySottoScorta**, **azienda.prodottiSottoScorta**, azienda.movimentiRecenti, azienda.summaryMovimentiRecenti, azienda.macchine. Per **movimenti magazzino** nel testo della risposta (e per voce/TTS): usa **date in italiano** (es. \"10 aprile 2026\"), mai solo ISO \"2026-04-10\" né leggere le cifre anno per anno; in azienda.movimentiRecenti ogni voce ha **dataItaliana** oltre a **data**. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
       extraBlocks += SMARTFORMVALIDATOR_RULE;
       if (pagePath.includes("/vigneto/")) {
         extraBlocks += SUBAGENT_VIGNAIOLO;
@@ -1645,6 +2147,40 @@ exports.tonyAsk = onCall(
     const isMovimentiPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "movimenti")) || pagePath.includes("movimenti");
     const isProdottiFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi)\b.*\b(prodott|attivi|disattiv|fitofarmaci|fertilizz|ricambi|sementi|categoria)\b|\b(solo\s+)?(i\s+)?prodotti\s+(attivi|disattiv)\b|\bprodotti\s+(in\s+)?(fitofarmaci|fertilizzanti)\b|\bpulisci\s+filtri\b|\b(cerca|trova)\b.*\b(prodott|magazzino|anagrafica)\b/i.test(message);
     const isMovimentiFilterLikeRequest = /\b(mostrami|mostra|filtra|solo|soltanto|vedi)\b.*\b(movimenti|entrata|uscita|entrate|uscite)\b|\b(solo\s+)?(le\s+)?(entrate|uscite)\b|\bmovimenti\s+(del|di|per)\b|\bpulisci\s+filtri\b/i.test(message);
+    const isConcimazioniVignetoPage =
+      (ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "concimazioni_vigneto") ||
+      (pagePath.includes("concimazioni") && pagePath.includes("vigneto"));
+    const isConcimazioniFruttetoPage =
+      (ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "concimazioni_frutteto") ||
+      (pagePath.includes("concimazioni") && pagePath.includes("frutteto"));
+    const isTracciabilitaConsumiPage =
+      (ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "tracciabilita_consumi") ||
+      pagePath.includes("tracciabilita-consumi");
+    const isConcimazioniVignetoFilterLikeRequest =
+      isConcimazioniVignetoPage &&
+      /\b(mostrami|mostra|filtra|solo|soltanto|vedi|anno|vignet|vigneto|tutti|pulisci\s+filtri)\b/i.test(message);
+    const isConcimazioniFruttetoFilterLikeRequest =
+      isConcimazioniFruttetoPage &&
+      /\b(mostrami|mostra|filtra|solo|soltanto|vedi|anno|fruttet|tutti|pulisci\s+filtri)\b/i.test(message);
+    const isTracciabilitaFilterLikeRequest =
+      isTracciabilitaConsumiPage &&
+      /\b(mostrami|mostra|filtra|solo|soltanto|vedi|categoria|fertilizz|fitofarm|uscit|dettaglio|raggrupp|concimaz|concime|trattament|terreno|appezz|campo|podere|pulisci\s+filtri)\b/i.test(
+        message
+      );
+    const hasTracciabilitaTableData =
+      ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "tracciabilita_consumi";
+    const isTracciabilitaSemanticHelp =
+      isTonyAdvanced &&
+      isTracciabilitaConsumiPage &&
+      hasTracciabilitaTableData &&
+      /\b(concimaz|concime|fertilizz|trattament|fitosanit|fitofarm|diserbo|pestic|erbicid|nutrizion|dettaglio|raggrupp|elenco\s+per\s+mov|terreno|appezz|campo|quanto|quanti|totale|somma|utilizzat|consumat|kg|litri)\b/i.test(
+        message
+      );
+    let tracciabilitaConsumiReminder = "";
+    if (isTracciabilitaSemanticHelp) {
+      tracciabilitaConsumiReminder =
+        "\n\n[OBBLIGATORIO TRACCIABILITÀ CONSUMI: Filtri = categoria, **terreno** (filter-terreno), vista. Leggi **consumiAggregates** (totali per terreno+prodotto+fertilizzanti/fitofarmaci) e/o **items**. Domande «quanto/quanti/totale/kg/litri» → il **text della risposta DEVE contenere numeri** nello stesso JSON (anche con FILTER_TABLE): calcola dal contesto inviato, mai «un attimo» senza cifre. «Concimazioni» → categoria fertilizzanti. «Trattamenti» fitosanitari → fitofarmaci. Stessa unità per sommare.]";
+    }
     const hasMovimentiTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "movimenti";
     const isMovimentiInfoQuestion =
       /\b(quali|ultimi|elenco|lista|storico|dimmi|fammi\s+vedere|hai\s+registrato)\s+(i\s+|gli\s+|le\s+)?(movimenti|carichi|scarichi)\b|\bmovimenti\s+(recenti|ultimi|del\s+magazzino|in\s+magazzino|registrati)\b|\bultimi\s+(movimenti|carichi|scarichi)\b|\bcarichi\s+e\s+scarichi\b|\b(entrate|uscite)\s+(del\s+|in\s+)?magazzino\b|\bcosa\s+è\s+(entrato|uscito)\b/i.test(message);
@@ -1662,7 +2198,28 @@ exports.tonyAsk = onCall(
           "\n\n[Contesto server: nessun movimento in movimentiRecenti. Suggerisci APRI_PAGINA target movimenti per la lista aggiornata.]";
       }
     }
-    const filterReminder = isTonyAdvanced && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest) || (isClientiPage && isClientiFilterLikeRequest) || (isPreventiviPage && isPreventiviFilterLikeRequest) || (isTariffePage && isTariffeFilterLikeRequest) || (isTerreniClientiPage && isTerreniClientiFilterLikeRequest) || (isProdottiPage && isProdottiFilterLikeRequest) || (isMovimentiPage && isMovimentiFilterLikeRequest))
+    const isMagazzinoStockQuestion =
+      /\b(sotto\s*scorta|sotto\s+soglia|soglia\s+minima|scorte\s+basse|scorte\s+minime|giacenz|mancanz)\b/i.test(message) ||
+      /\b(quanti|quante|quali|cosa)\b[\s\S]{0,80}\b(prodott|articol|referenz|merce)\b[\s\S]{0,60}\b(sotto\s*scorta|sotto\s+soglia)\b/i.test(message) ||
+      /\bprodott[io]\s+(è|e'|sono)\s+(sotto|in\s+sotto)\b/i.test(message) ||
+      /\b(c'è|ci sono)\b[\s\S]{0,40}\b(sotto\s*scorta|sotto\s+soglia)\b/i.test(message);
+    const isMagazzinoHomePath =
+      /magazzino-home/i.test(pagePath) ||
+      (pagePath.includes("/magazzino/") && !/prodotti|movimenti|tracciabilita/i.test(pagePath));
+    let magazzinoScorteReminder = "";
+    if (isTonyAdvanced && isMagazzinoStockQuestion && ctxFinal.azienda && typeof ctxFinal.azienda.summarySottoScorta === "string") {
+      magazzinoScorteReminder =
+        "\n\n[OBBLIGATORIO MAGAZZINO / SCORTE: Usa context.azienda.summarySottoScorta e context.azienda.prodottiSottoScorta (nome, giacenza, sogliaMinima, unitaMisura). Per \"quanti prodotti sotto scorta\" il numero è prodottiSottoScorta.length (coerente col summary). Se prodottiSottoScorta è vuoto ma il summary indica zero sotto scorta, spiega che non risultano prodotti sotto soglia tra quelli con soglia impostata. NON dire \"non ho dati\" se summarySottoScorta è nel contesto JSON.]";
+    }
+    const isMagazzinoNavDup =
+      /\b(portami|vai|mandami|apri)\b\s+(al|alla|nel|in)\s+magazzino\b/i.test(String(message)) &&
+      !/\b(prodotti|movimenti|anagrafica|tracciabilit|uscite|entrate)\b/i.test(String(message).toLowerCase());
+    let magazzinoNavReminder = "";
+    if (isTonyAdvanced && isMagazzinoNavDup && isMagazzinoHomePath) {
+      magazzinoNavReminder =
+        "\n\n[OBBLIGATORIO: Path = home magazzino (magazzino-home o /magazzino/ senza prodotti/movimenti/tracciabilità). L'utente è già nella home del modulo. NON emettere APRI_PAGINA target magazzino. Rispondi: \"Sei già nella home del magazzino.\" e command null.]";
+    }
+    const filterReminder = isTonyAdvanced && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest) || (isClientiPage && isClientiFilterLikeRequest) || (isPreventiviPage && isPreventiviFilterLikeRequest) || (isTariffePage && isTariffeFilterLikeRequest) || (isTerreniClientiPage && isTerreniClientiFilterLikeRequest) || (isProdottiPage && isProdottiFilterLikeRequest) || (isMovimentiPage && isMovimentiFilterLikeRequest) || isConcimazioniVignetoFilterLikeRequest || isConcimazioniFruttetoFilterLikeRequest || isTracciabilitaFilterLikeRequest)
       ? "\n\n[IMPORTANTE: L'utente chiede di filtrare o vedere dati. Rispondi SEMPRE con JSON completo: {\"text\": \"...\", \"command\": {\"type\": \"FILTER_TABLE\", \"params\": {...}}}]"
       : "";
 
@@ -1672,6 +2229,23 @@ exports.tonyAsk = onCall(
     const isAttivitaForm = ctxFinal.form?.formId === "attivita-form" || ctxFinal.form?.modalId === "attivita-modal";
     const isLavoroForm = ctxFinal.form?.formId === "lavoro-form" || ctxFinal.form?.modalId === "lavoro-modal";
     const isPreventivoForm = ctxFinal.form?.formId === "preventivo-form";
+    const isTrattamentoCampoForm =
+      ctxFinal.form?.formId === "form-trattamento" || ctxFinal.form?.modalId === "modal-trattamento";
+    const isRegistroTrattamentiCampoPage =
+      isConcimazioniVignetoPage ||
+      isConcimazioniFruttetoPage ||
+      ((pagePath.includes("trattamenti") || pagePath.includes("trattamento")) &&
+        (pagePath.includes("vigneto") || pagePath.includes("frutteto")));
+    const isMessaggioProdottiInterventoCampo =
+      /\b(ql\b|quintal|quintali|fertilizz|concime|concim|nitro|nitrophosk|dosagg|usat[oaie]?|spars[oaie]?|kg\b|litri|ettar|completato|trattamento\s+in\s+campo|abbiamo\s+usat|ho\s+usat)\b/i.test(
+        message
+      );
+    const isTrattamentoCampoStructuredTrigger =
+      isTrattamentoCampoForm ||
+      (isRegistroTrattamentiCampoPage &&
+        isMessaggioProdottiInterventoCampo &&
+        !isConcimazioniVignetoFilterLikeRequest &&
+        !isConcimazioniFruttetoFilterLikeRequest);
     const isNuovoPreventivoPage = pagePath.includes("nuovo-preventivo");
     const isCreaPreventivoIntent =
       /\b(crea|nuovo|compila|prepara|fai|fammi|serve|servono|mi\s+serve)\s*(un?\s*)?(preventivo|offerta|quotazione)/i.test(message) ||
@@ -1694,10 +2268,12 @@ exports.tonyAsk = onCall(
       (isAttivitaForm ||
         isLavoroForm ||
         isPreventivoForm ||
+        isTrattamentoCampoStructuredTrigger ||
         isCreaPreventivoIntent ||
         (isNuovoPreventivoPage && (isCreaPreventivoIntent || isFormApertoTrigger)) ||
         (isLavoriPage && (isCreaLavoroIntent || isFormApertoTrigger)) ||
-        (isFormApertoTrigger && (isAttivitaForm || isLavoroForm || isPreventivoForm)));
+        (isFormApertoTrigger &&
+          (isAttivitaForm || isLavoroForm || isPreventivoForm || isTrattamentoCampoStructuredTrigger)));
 
     let systemInstructionToUse = systemInstruction;
     const generationConfig = {
@@ -1733,6 +2309,12 @@ exports.tonyAsk = onCall(
           "{CONTESTO_PLACEHOLDER}",
           ctxJsonPreventivo || '"Nessun dato"'
         );
+      } else if (isTrattamentoCampoStructuredTrigger) {
+        console.log("[Tony Cloud Function] Usando modalità Treasure Map Trattamento campo");
+        systemInstructionToUse = SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO_STRUCTURED.replace(
+          "{CONTESTO_PLACEHOLDER}",
+          JSON.stringify(ctxFinal, null, 2) || '"Nessun dato"'
+        );
       } else if (isLavoroForm || (isLavoriPage && isCreaLavoroIntent)) {
         console.log("[Tony Cloud Function] Usando modalità Treasure Map Lavori");
         systemInstructionToUse = SYSTEM_INSTRUCTION_LAVORO_STRUCTURED.replace(
@@ -1752,8 +2334,8 @@ exports.tonyAsk = onCall(
       ? "\n\n[OBBLIGATORIO: Rispondi SOLO con un blocco ```json contenente action, replyText, formData. Non scrivere testo prima o dopo il blocco.]"
       : "";
     const fullPrompt = statoUtenteLine + (historyFormatted
-      ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${movimentiReminder}${structuredOutputReminder}`
-      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${movimentiReminder}${structuredOutputReminder}`);
+      ? `Contesto attuale: ${contextJson}\n\nConversazione precedente:\n${historyFormatted}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${movimentiReminder}${magazzinoScorteReminder}${magazzinoNavReminder}${tracciabilitaConsumiReminder}${structuredOutputReminder}`
+      : `Contesto attuale: ${contextJson}\n\nDomanda utente: ${message}${filterReminder}${clientiReminder}${preventiviReminder}${tariffeReminder}${movimentiReminder}${magazzinoScorteReminder}${magazzinoNavReminder}${tracciabilitaConsumiReminder}${structuredOutputReminder}`);
 
     const body = {
       contents: [{ parts: [{ text: fullPrompt }] }],
@@ -1826,6 +2408,17 @@ exports.tonyAsk = onCall(
                 ? "Tutti i campi obbligatori sono compilati. Vuoi che salvi il preventivo in bozza? Rispondi sì, conferma o salva per procedere."
                 : "Tutti i campi obbligatori sono compilati. Vuoi che salvi? Rispondi sì, conferma o salva per procedere.";
               console.log("[Tony Cloud Function] Treasure Map: save ignorato (messaggio proattivo sistema, niente SAVE_ACTIVITY)");
+            } else if (
+              (isTrattamentoCampoForm || isTrattamentoCampoStructuredTrigger) &&
+              trattamentoUserConfirmsFlagsFromPreviousTonyQuestion(message, history)
+            ) {
+              result.text = sanitizeTrattamentoCampoReplyText(
+                structured.replyText || result.text || "Ok.",
+                { type: "INJECT_FORM_DATA", formId: "form-trattamento" }
+              );
+              console.log(
+                "[Tony Cloud Function] Treasure Map: save ignorato (solo conferma flag anagrafe/scarico, non salvataggio modulo)"
+              );
             } else {
               result.command = { type: "SAVE_ACTIVITY" };
             }
@@ -1838,14 +2431,30 @@ exports.tonyAsk = onCall(
                 formDataKeys.includes("coltura-categoria") ||
                 formDataKeys.includes("coltura") ||
                 formDataKeys.includes("terreno-id"));
+            const isTrattamentoCampoData = formDataKeys.some((k) => k.startsWith("trattamento-"));
             let formId = "attivita-form";
-            if (explicitPreventivo && !explicitLavoroGestione) {
+            if (isTrattamentoCampoData) {
+              formId = "form-trattamento";
+            } else if (explicitPreventivo && !explicitLavoroGestione) {
               formId = "preventivo-form";
             } else {
               const isLavoroData = formDataKeys.some((k) => k.startsWith("lavoro-") || k === "tipo-assegnazione");
               if (isLavoroData) formId = "lavoro-form";
             }
             result.command = { type: "INJECT_FORM_DATA", formId, formData: structured.formData };
+            if (formId === "form-trattamento" && result.command.formData) {
+              result.command.formData = enrichTrattamentoCampoProdottiFromUserMessage(
+                result.command.formData,
+                message,
+                ctxFinal,
+                history
+              );
+              result.command.formData = sanitizeTrattamentoCampoSensitiveFlags(
+                result.command.formData,
+                message,
+                history
+              );
+            }
           }
           // Guardrail Preventivo: se terreno-id è un id non verificabile nel contesto cliente, non forzarlo.
           if (result.command && result.command.type === "INJECT_FORM_DATA" && result.command.formId === "preventivo-form") {
@@ -1889,6 +2498,15 @@ exports.tonyAsk = onCall(
               }
               console.log("[Tony Cloud Function] Treasure Map fallback preventivo: comando sintetico generato");
             }
+          }
+
+          if (
+            result.command &&
+            result.command.type === "INJECT_FORM_DATA" &&
+            result.command.formId === "form-trattamento" &&
+            result.text
+          ) {
+            result.text = sanitizeTrattamentoCampoReplyText(result.text, result.command);
           }
 
           console.log(
@@ -1964,6 +2582,17 @@ exports.tonyAsk = onCall(
                   console.log("[Tony Cloud Function] Retry: save ignorato (messaggio proattivo sistema)");
                   return result;
                 }
+                if (
+                  (isTrattamentoCampoForm || isTrattamentoCampoStructuredTrigger) &&
+                  trattamentoUserConfirmsFlagsFromPreviousTonyQuestion(message, history)
+                ) {
+                  result.text = sanitizeTrattamentoCampoReplyText(
+                    structured.replyText || result.text || "Ok.",
+                    { type: "INJECT_FORM_DATA", formId: "form-trattamento" }
+                  );
+                  console.log("[Tony Cloud Function] Retry: save ignorato (solo conferma flag trattamento)");
+                  return result;
+                }
                 result.command = { type: "SAVE_ACTIVITY" };
               } else if ((structured.action === "fill_form" || structured.action === "ask") && structured.formData && Object.keys(structured.formData).length > 0) {
                 const formDataKeys = Object.keys(structured.formData);
@@ -1974,14 +2603,30 @@ exports.tonyAsk = onCall(
                     formDataKeys.includes("coltura-categoria") ||
                     formDataKeys.includes("coltura") ||
                     formDataKeys.includes("terreno-id"));
+                const isTrattamentoCampoDataRetry = formDataKeys.some((k) => k.startsWith("trattamento-"));
                 let formId = "attivita-form";
-                if (explicitPreventivo && !explicitLavoroGestione) {
+                if (isTrattamentoCampoDataRetry) {
+                  formId = "form-trattamento";
+                } else if (explicitPreventivo && !explicitLavoroGestione) {
                   formId = "preventivo-form";
                 } else {
                   const isLavoroData = formDataKeys.some((k) => k.startsWith("lavoro-") || k === "tipo-assegnazione");
                   if (isLavoroData) formId = "lavoro-form";
                 }
                 result.command = { type: "INJECT_FORM_DATA", formId, formData: structured.formData };
+                if (formId === "form-trattamento" && result.command.formData) {
+                  result.command.formData = enrichTrattamentoCampoProdottiFromUserMessage(
+                    result.command.formData,
+                    message,
+                    ctxFinal,
+                    history
+                  );
+                  result.command.formData = sanitizeTrattamentoCampoSensitiveFlags(
+                    result.command.formData,
+                    message,
+                    history
+                  );
+                }
               }
               if (!result.command && (isPreventivoForm || isCreaPreventivoIntent)) {
                 const fd = (structured && structured.formData && typeof structured.formData === "object") ? structured.formData : {};
@@ -1999,6 +2644,14 @@ exports.tonyAsk = onCall(
                   console.log("[Tony Cloud Function] Guardrail preventivo retry: data-prevista rimossa (non esplicitata).");
                   delete result.command.formData["data-prevista"];
                 }
+              }
+              if (
+                result.command &&
+                result.command.type === "INJECT_FORM_DATA" &&
+                result.command.formId === "form-trattamento" &&
+                result.text
+              ) {
+                result.text = sanitizeTrattamentoCampoReplyText(result.text, result.command);
               }
               if (result.command) {
                 console.log("[Tony Cloud Function] Retry - JSON estratto:", JSON.stringify(result.command, null, 2));
@@ -2520,5 +3173,19 @@ exports.aggiornaStatoPreventivoPubblico = onCall(
       stato: "rifiutato",
     });
     return { ok: true, stato: "rifiutato" };
+  }
+);
+
+/**
+ * Callable: invio email transazionali (preventivi, inviti) via Resend.
+ * Mittente: Global Farm View <no-reply@globalfarmview.net>
+ * Richiede utente autenticato con ruolo manager o amministratore sul tenant.
+ * Body: { type: 'preventivo' | 'invite', tenantId, to, ...campi template }
+ */
+exports.sendTransactionalEmail = onCall(
+  { region: "europe-west1", secrets: [resendApiKey] },
+  async (request) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    return handleSendTransactionalEmail(db, apiKey, request);
   }
 );

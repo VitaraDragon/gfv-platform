@@ -409,6 +409,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -1266,8 +1267,7 @@ orePerOperaio[operaioId].nome = operaioData.nome || '';
         // Formatta data scadenza
         function formattaDataScadenza(data) {
             if (!data) return '';
-            const d = data.toDate ? data.toDate() : new Date(data);
-            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            return formatDateLikeToItalianLongLocal(data) || '';
         }
 
         // Escape HTML

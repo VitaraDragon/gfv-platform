@@ -49,10 +49,10 @@ window.GFVDashboardSections.createCoreBaseSection = function createCoreBaseSecti
     // Aggiungi Report/Bilancio se modulo report è attivo
     if (availableModules && availableModules.includes('report')) {
         actionsHTML += `
-            <a href="../modules/report/views/report-standalone.html" class="action-card">
+            <a href="../modules/report/views/report-dashboard-standalone.html" class="action-card">
                 <span class="action-icon">📑</span>
                 <span class="action-title">Report/Bilancio</span>
-                <span class="action-description">Report unificati ed export (cross-moduli)</span>
+                <span class="action-description">Dashboard report per area e export (cross-moduli)</span>
             </a>
         `;
     }
@@ -600,11 +600,11 @@ window.GFVDashboardSections.createReportCard = function createReportCard() {
             Report unificati ed export (PDF/Excel/CSV) cross-moduli
         </p>
         <div class="quick-actions">
-            <a href="../modules/report/views/report-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #111827;">
+            <a href="../modules/report/views/report-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #111827;">
                 <span class="action-icon" style="font-size: 48px;">📑</span>
                 <span class="action-title" style="font-size: 18px; color: #111827;">Apri Report/Bilancio</span>
                 <span class="action-description" style="color: #666;">
-                    Accedi ai report unificati: esporta dati da tutti i moduli attivi in Excel/PDF
+                    Dashboard report per area (Terreni, Vigneto, …) ed export Excel dove disponibile
                 </span>
             </a>
         </div>

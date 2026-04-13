@@ -701,9 +701,9 @@ class SmartFormFiller {
             }
         });
 
-        const submitSelector = schema && schema.submitSelector ? schema.submitSelector : 'button[type="submit"], input[type="submit"], .btn-primary';
-        const submitEl = activeModal.querySelector(submitSelector);
-        const submitAvailable = !!(submitEl && !submitEl.disabled && this._isVisible(submitEl));
+        /** Preferisci il vero submit del form: il default includeva `.btn-primary` e matchava prima «Traccia» / «Aggiungi prodotto» (prima del Salva in form-trattamento). */
+        const submitEl = this._resolveSubmitControl(activeModal, form, schema);
+        const submitAvailable = !!submitEl;
 
         const state = {
             schemaId: schema ? schema.modalId : null,
@@ -724,6 +724,28 @@ class SmartFormFiller {
             missingFields: missingFields,
             details: state
         };
+    }
+
+    /**
+     * Primo controllo di invio utilizzabile: prima `button[type="submit"]` nel form, poi selettore schema o fallback `.btn-primary`.
+     */
+    _resolveSubmitControl(activeModal, form, schema) {
+        const firstUsable = function(self, nodes) {
+            if (!nodes || !nodes.length) return null;
+            for (let i = 0; i < nodes.length; i++) {
+                const el = nodes[i];
+                if (el && !el.disabled && self._isVisible(el)) return el;
+            }
+            return null;
+        };
+        let el = firstUsable(this, form.querySelectorAll('button[type="submit"], input[type="submit"]'));
+        if (el) return el;
+        const sel =
+            schema && schema.submitSelector
+                ? schema.submitSelector
+                : '.btn-primary, .btn-save';
+        el = firstUsable(this, activeModal.querySelectorAll(sel));
+        return el || null;
     }
 
     _getFieldLabel(activeModal, el) {

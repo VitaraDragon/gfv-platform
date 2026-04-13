@@ -35,6 +35,9 @@ build/
 *.log
 npm-debug.log*
 
+# Artefatti valutazione / bundle locali
+gemini-eval-bundle.txt
+
 # Config files con dati sensibili
 # IMPORTANTE: I file .example possono essere committati, quelli senza .example NO
 core/firebase-config.js

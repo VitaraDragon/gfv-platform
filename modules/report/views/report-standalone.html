@@ -114,7 +114,8 @@
         <p>Report unificati ed export (MVP) — adattivo ai moduli attivi</p>
       </div>
       <div class="header-actions">
-        <a class="btn" href="../../../core/dashboard-standalone.html">← Dashboard</a>
+        <a class="btn" href="./report-dashboard-standalone.html">← Dashboard Report</a>
+        <a class="btn" href="../../../core/dashboard-standalone.html">Home</a>
         <button class="btn btn-primary" id="btn-export-excel">📊 Esporta Excel</button>
       </div>
     </div>
@@ -200,6 +201,7 @@
   </script>
 
   <script type="module">
+    import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
     function waitForConfig() {
       return new Promise((resolve, reject) => {
         if (typeof window.firebaseConfig !== 'undefined') {
@@ -229,9 +231,8 @@
 
     function formatDate(d) {
       if (!d) return '-';
-      const dateObj = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
-      if (Number.isNaN(dateObj.getTime())) return '-';
-      return dateObj.toLocaleDateString('it-IT');
+      const s = formatDateLikeToItalianLongLocal(d);
+      return s || '-';
     }
     function fmtNum(n, decimals = 2) {
       const v = Number(n || 0);

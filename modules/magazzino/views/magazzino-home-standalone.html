@@ -308,5 +308,21 @@
       document.body.appendChild(s);
     })();
     </script>
+    <script>
+    (function syncTonyPageMagazzinoHome() {
+      function run() {
+        if (!window.Tony || typeof window.Tony.setContext !== 'function') {
+          setTimeout(syncTonyPageMagazzinoHome, 250);
+          return;
+        }
+        var p = (window.location.pathname || '').replace(/\\/g, '/');
+        window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
+          pagePath: p,
+          pageTitle: document.title || 'Magazzino'
+        }));
+      }
+      setTimeout(run, 400);
+    })();
+    </script>
 </body>
 </html>

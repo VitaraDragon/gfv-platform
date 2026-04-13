@@ -96,6 +96,9 @@ export class Lavoro extends Base {
     this.lavoroRadiceId = data.lavoroRadiceId || null;
     this.sospensioneCausa = data.sospensioneCausa != null ? String(data.sospensioneCausa) : '';
     this.sospensioneIl = data.sospensioneIl ? timestampToDate(data.sospensioneIl) : null;
+
+    /** Snapshot costi (opzionale, es. da aggregazioni) — usato come fallback in prefill registro trattamenti/concimazioni */
+    this.costi = data.costi && typeof data.costi === 'object' ? data.costi : null;
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;

@@ -403,6 +403,19 @@ export async function getLavoriAttivitaTrattamentiTuttiFrutteti(anno, options = 
   }
 }
 
+function mergeCostiTrattamentoPrefillDaSnapshotLavoro(out, lavoro) {
+  const snap = lavoro && lavoro.costi;
+  if (!snap || typeof snap !== 'object') return;
+  const cm = snap.costoManodopera;
+  const cmac = snap.costoMacchine;
+  if (!(out.costoManodopera > 0) && cm != null && !isNaN(parseFloat(cm))) {
+    out.costoManodopera = parseFloat(cm);
+  }
+  if (!(out.costoMacchina > 0) && cmac != null && !isNaN(parseFloat(cmac))) {
+    out.costoMacchina = parseFloat(cmac);
+  }
+}
+
 /**
  * Dati per precompilare il modal trattamento da lavoro/attività: costi (manodopera, macchina) e macchine impiegate.
  * @param {string} fruttetoId - ID frutteto (non usato per calcolo, per coerenza API)
@@ -424,18 +437,22 @@ export async function getDatiPrecompilazioneTrattamento(fruttetoId, trattamento)
       const lavoro = await getLavoro(lavoroId);
       if (lavoro) {
         const { calcolaCostiLavoro } = await import('./lavori-frutteto-service.js');
-        const costi = await calcolaCostiLavoro(lavoroId, lavoro);
+        let costi = await calcolaCostiLavoro(lavoroId, lavoro);
+        if (costi && costi.costoManodopera === 0 && costi.costoMacchine === 0) {
+          costi = await calcolaCostiLavoro(lavoroId, lavoro, { includeDaValidarePerPrefill: true });
+        }
         if (costi) {
           out.costoManodopera = costi.costoManodopera ?? 0;
           out.costoMacchina = costi.costoMacchine ?? 0;
         }
+        mergeCostiTrattamentoPrefillDaSnapshotLavoro(out, lavoro);
       }
       const tenantId = getCurrentTenantId();
       const db = getDb();
       if (tenantId && db) {
         const { collection, getDocs, query, where } = await import('../../../core/services/firebase-service.js');
         const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
-        const q = query(oreRef, where('stato', '==', 'validate'));
+        const q = query(oreRef, where('stato', 'in', ['validate', 'da_validare']));
         const snap = await getDocs(q);
         const macchineMap = {};
         snap.forEach(oraDoc => {

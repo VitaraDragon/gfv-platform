@@ -511,6 +511,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
         // Verifica che la configurazione Firebase sia caricata
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -771,8 +772,7 @@
             // Scadenza (se disponibile)
             const expiryDate = tenantData.expiryDate;
             if (expiryDate) {
-                const date = expiryDate.toDate ? expiryDate.toDate() : new Date(expiryDate);
-                const formattedDate = date.toLocaleDateString('it-IT');
+                const formattedDate = formatDateLikeToItalianLongLocal(expiryDate) || '';
                 document.getElementById('current-plan-expiry').textContent = formattedDate;
             } else {
                 document.getElementById('current-plan-expiry').textContent = 'Non impostata';
@@ -976,6 +976,7 @@
                                     ${savings > 0 ? `<div style="font-size: 11px; color: #155724;">💰 Risparmi €${savings}/mese</div>` : ''}
                                 </div>
                             </div>
+                            ${bundle.modules.includes('report') ? `<div style="margin-top: 10px;"><button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; background: #1F2937; color: white; border: none; border-radius: 6px; cursor: pointer; width: 100%;" onclick="window.location.href='../../modules/report/views/report-dashboard-standalone.html'">📑 Apri modulo Report</button></div>` : ''}
                         </div>
                     `;
                 });
@@ -1011,6 +1012,7 @@
                                     </div>
                                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
                                         ${mod.id === 'frutteto' ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #2E8B57; color: white; border: none;" onclick="window.location.href='../../modules/frutteto/views/frutteti-standalone.html'">Apri</button>` : ''}
+                                        ${mod.id === 'report' ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #1F2937; color: white; border: none;" onclick="window.location.href='../../modules/report/views/report-dashboard-standalone.html'">Apri Report</button>` : ''}
                                         <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #dc3545; color: white; border: none;" onclick="toggleModule('${mod.id}')">Disattiva</button>
                                     </div>
                                 </div>

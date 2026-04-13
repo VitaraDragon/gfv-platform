@@ -442,6 +442,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
 
         // Import dinamici servizi core (come in frutteti-standalone)
@@ -494,9 +495,8 @@
 
         function formatDate(d) {
             if (!d) return '-';
-            const date = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
-            if (Number.isNaN(date.getTime())) return '-';
-            return date.toLocaleDateString('it-IT');
+            const s = formatDateLikeToItalianLongLocal(d);
+            return s || '-';
         }
 
         async function initDashboard() {
@@ -666,11 +666,8 @@
                         
                         lavoriCompletati.forEach(lavoro => {
                             const dataVal = lavoro.dataInizio || lavoro.data;
-                            const dataInizio = dataVal instanceof Date 
-                                ? dataVal 
-                                : (dataVal?.toDate ? dataVal.toDate() : new Date(dataVal || 0));
-                            const dataFormattata = !isNaN(dataInizio.getTime()) 
-                                ? dataInizio.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            const dataFormattata = dataVal
+                                ? (formatDateLikeToItalianLongLocal(dataVal) || (lavoro.data || '-'))
                                 : (lavoro.data || '-');
                             const statoFormattato = lavoro.stato === 'completato' ? '✅ Completato' : lavoro.stato;
                             const isDiario = lavoro.source === 'diario';

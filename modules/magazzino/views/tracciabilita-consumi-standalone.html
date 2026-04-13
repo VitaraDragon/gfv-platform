@@ -92,6 +92,12 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label for="filter-terreno">Terreno (appezzamento)</label>
+                    <select id="filter-terreno" aria-label="Filtra per terreno">
+                        <option value="">Tutti i terreni</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label for="filter-vista">Visualizzazione</label>
                     <select id="filter-vista" aria-label="Modalità elenco">
                         <option value="raggruppata">Raggruppata (consigliata)</option>
@@ -99,7 +105,7 @@
                     </select>
                 </div>
             </div>
-            <p class="hint">Categorie come in anagrafica prodotti. In vista raggruppata, le colture/terreni coinvolti compaiono come elenco con caselle (solo lettura).</p>
+            <p class="hint">Categorie come in anagrafica prodotti. <strong>Filtro terreno</strong>: associazione da trattamento (vigneto/frutteto collegato al terreno), oppure da lavoro/attività collegati al movimento. In vista raggruppata le colture coinvolte restano visibili nei blocchi.</p>
             <div class="section-header">
                 <h2>Uscite registrate</h2>
                 <div id="righe-count">0 righe</div>
@@ -140,8 +146,9 @@
         };
         document.head.appendChild(configScript);
     </script>
-    <script>window.currentTableData = window.currentTableData || { pageType: 'tracciabilita_consumi', summary: 'Caricamento…', items: [] };</script>
+    <script>window.currentTableData = window.currentTableData || { pageType: 'tracciabilita_consumi', summary: 'Caricamento dati in corso...', consumiAggregates: [], items: [] };</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, getDoc, doc, query, orderBy } from '../../../core/services/firebase-service.js';
@@ -191,8 +198,8 @@
 
         function formatData(d) {
             if (!d) return '-';
-            const date = d.toDate ? d.toDate() : new Date(d);
-            return date.toLocaleDateString('it-IT');
+            const s = formatDateLikeToItalianLongLocal(d);
+            return s || '-';
         }
 
         function dateKeyOnly(d) {
@@ -388,12 +395,123 @@
             return 'Non dichiarata';
         }
 
+        /**
+         * Terreno anagrafe collegato al movimento (trattamento → vigneto/frutteto.terrenoId, altrimenti lavoro/attività).
+         */
+        function resolveTerrenoForMovimento(m) {
+            let terrenoId = '';
+            let terrenoNome = '';
+            if (m.origineTrattamentoModulo === 'vigneto' && m.origineTrattamentoColturaId) {
+                const v = vignetiById[m.origineTrattamentoColturaId];
+                if (v && v.terrenoId) {
+                    terrenoId = v.terrenoId;
+                    const t = terreniById[terrenoId];
+                    terrenoNome = t ? String(t.nome || '').trim() : '';
+                }
+            } else if (m.origineTrattamentoModulo === 'frutteto' && m.origineTrattamentoColturaId) {
+                const f = fruttetiById[m.origineTrattamentoColturaId];
+                if (f && f.terrenoId) {
+                    terrenoId = f.terrenoId;
+                    const t = terreniById[terrenoId];
+                    terrenoNome = t ? String(t.nome || '').trim() : '';
+                }
+            }
+            if (!terrenoId && m.lavoroId) {
+                const l = lavori.find(x => x.id === m.lavoroId);
+                if (l && l.terrenoId) {
+                    terrenoId = l.terrenoId;
+                    const t = terreniById[terrenoId];
+                    terrenoNome = (t && t.nome) ? String(t.nome).trim() : '';
+                }
+            }
+            if (!terrenoId && m.attivitaId) {
+                const a = attivita.find(x => x.id === m.attivitaId);
+                if (a) {
+                    if (a.terrenoId) terrenoId = a.terrenoId;
+                    if (a.terrenoNome) terrenoNome = String(a.terrenoNome).trim();
+                    if (!terrenoNome && terrenoId && terreniById[terrenoId]) {
+                        terrenoNome = String(terreniById[terrenoId].nome || '').trim();
+                    }
+                }
+            }
+            return { terrenoId, terrenoNome };
+        }
+
+        function populateFilterTerrenoOptions() {
+            const sel = document.getElementById('filter-terreno');
+            if (!sel) return;
+            const prev = sel.value;
+            sel.innerHTML = '';
+            const z = document.createElement('option');
+            z.value = '';
+            z.textContent = 'Tutti i terreni';
+            sel.appendChild(z);
+            const list = Object.values(terreniById).slice().sort((a, b) =>
+                String(a.nome || '').localeCompare(String(b.nome || ''), 'it', { sensitivity: 'base' }));
+            for (const t of list) {
+                if (!t || !t.id) continue;
+                const o = document.createElement('option');
+                o.value = t.id;
+                o.textContent = t.nome || t.id;
+                sel.appendChild(o);
+            }
+            if (prev && [...sel.options].some(op => op.value === prev)) sel.value = prev;
+        }
+
         function filterRows() {
             const cat = document.getElementById('filter-categoria').value;
+            const terrenoFiltro = document.getElementById('filter-terreno').value;
             return movimentiUscita.filter(m => {
-                if (!cat) return true;
-                return getProdottoCategoria(m.prodottoId) === cat;
+                if (cat && getProdottoCategoria(m.prodottoId) !== cat) return false;
+                if (terrenoFiltro) {
+                    const tr = resolveTerrenoForMovimento(m);
+                    if (tr.terrenoId !== terrenoFiltro) return false;
+                }
+                return true;
             });
+        }
+
+        /**
+         * Totali per terreno+prodotto (solo fertilizzanti e fitofarmaci), coerenti con le righe visibili.
+         * Tony legge questo campo per rispondere con cifre nello stesso turno del FILTER_TABLE.
+         */
+        function buildConsumiAggregatesForTony(rows) {
+            const map = new Map();
+            for (const m of rows) {
+                const cid = getProdottoCategoria(m.prodottoId);
+                if (cid !== 'fertilizzanti' && cid !== 'fitofarmaci') continue;
+                const tr = resolveTerrenoForMovimento(m);
+                const tnome = (tr.terrenoNome || '').trim() || '—';
+                const pid = m.prodottoId || '';
+                const uid = getProdottoUnita(m.prodottoId) || '';
+                const q = Number(m.quantita);
+                if (!Number.isFinite(q)) continue;
+                const k = cid + '\0' + tnome.toLowerCase() + '\0' + pid + '\0' + uid;
+                let acc = map.get(k);
+                if (!acc) {
+                    acc = {
+                        categoriaId: cid,
+                        categoria: categoriaNomeById[cid] || cid,
+                        terreno: tnome,
+                        terrenoId: tr.terrenoId || '',
+                        prodottoId: pid,
+                        prodotto: getProdottoNome(pid),
+                        unitaMisura: uid,
+                        quantitaTotale: 0
+                    };
+                    map.set(k, acc);
+                }
+                acc.quantitaTotale += q;
+            }
+            const list = Array.from(map.values()).map(v =>
+                Object.assign({}, v, { quantitaTotale: round3(v.quantitaTotale) })
+            );
+            list.sort((a, b) => {
+                const c = String(a.terreno).localeCompare(String(b.terreno), 'it', { sensitivity: 'base' });
+                if (c !== 0) return c;
+                return String(a.prodotto).localeCompare(String(b.prodotto), 'it', { sensitivity: 'base' });
+            });
+            return list;
         }
 
         function contestoNonTrattamento(m) {
@@ -569,18 +687,40 @@
             trattamentoDocCache.clear();
             const rows = filterRows();
             const vista = document.getElementById('filter-vista').value;
-            const summary = 'Ci sono ' + rows.length + ' uscite in elenco' +
-                (document.getElementById('filter-categoria').value ? ' (categoria filtrata).' : '.');
+            const catSel = document.getElementById('filter-categoria').value;
+            const terSel = document.getElementById('filter-terreno');
+            const terrenoFiltroVal = terSel ? terSel.value : '';
+            const partiSumm = [];
+            if (catSel) partiSumm.push('categoria filtrata');
+            if (terrenoFiltroVal) {
+                const lab = terSel && terSel.selectedOptions[0] ? terSel.selectedOptions[0].textContent.trim() : 'terreno selezionato';
+                partiSumm.push('terreno: ' + lab);
+            }
+            const suff = partiSumm.length ? (' (' + partiSumm.join(', ') + ').') : '.';
+            const summary = 'Ci sono ' + rows.length + ' uscite in elenco' + suff;
 
             window.currentTableData = {
                 pageType: 'tracciabilita_consumi',
                 summary,
-                items: rows.map(m => ({
-                    data: formatData(m.data),
-                    prodotto: getProdottoNome(m.prodottoId),
-                    categoria: categoriaNomeById[getProdottoCategoria(m.prodottoId)] || getProdottoCategoria(m.prodottoId),
-                    quantita: round3(m.quantita)
-                }))
+                consumiAggregates: buildConsumiAggregatesForTony(rows),
+                items: rows.map(m => {
+                    const tr = resolveTerrenoForMovimento(m);
+                    const uid = getProdottoUnita(m.prodottoId) || '';
+                    const ctxCol = (m.origineTrattamentoModulo && m.origineTrattamentoColturaId)
+                        ? colturaLabel(m.origineTrattamentoModulo, m.origineTrattamentoColturaId)
+                        : '';
+                    return {
+                        data: formatData(m.data),
+                        prodotto: getProdottoNome(m.prodottoId),
+                        prodottoId: m.prodottoId || '',
+                        categoria: categoriaNomeById[getProdottoCategoria(m.prodottoId)] || getProdottoCategoria(m.prodottoId),
+                        quantita: round3(m.quantita),
+                        unitaMisura: uid,
+                        terrenoId: tr.terrenoId || '',
+                        terreno: tr.terrenoNome || '—',
+                        contestoColtura: ctxCol || undefined
+                    };
+                })
             };
             if (window.Tony && typeof window.Tony.setContext === 'function') {
                 window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
@@ -1065,9 +1205,12 @@
                     await renderTabella();
                 };
                 document.getElementById('filter-categoria').onchange = onFilter;
+                const ft = document.getElementById('filter-terreno');
+                if (ft) ft.onchange = onFilter;
                 document.getElementById('filter-vista').onchange = async () => { await renderTabella(); };
                 await loadProdotti();
                 await loadVignetiFruttetiTerreni();
+                populateFilterTerrenoOptions();
                 await loadLavori();
                 await loadAttivita();
                 await loadMovimentiUscita();

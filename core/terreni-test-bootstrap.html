@@ -789,6 +789,8 @@
             startTerreniTour as startTerreniTourModule
         } from './js/terreni-tour.js';
 
+        import { formatIsoDateToItalianLong } from './js/date-format-it.js';
+
         // Attendi bootstrap (config, Firebase, tenant, Tony già pronti)
         try {
             await window.GFVStandaloneReady;
@@ -978,6 +980,8 @@
                 ? terreno.dataScadenzaAffitto.toDate().toISOString()
                 : (terreno.dataScadenzaAffitto ? String(terreno.dataScadenzaAffitto).slice(0, 19).replace('Z', '') : null);
             out.scadenza = calcolaScadenzaUtil(terreno);
+            var scIsoTb = out.scadenza ? String(out.scadenza).slice(0, 10) : '';
+            out.scadenzaItaliana = /^\d{4}-\d{2}-\d{2}$/.test(scIsoTb) ? formatIsoDateToItalianLong(scIsoTb) : '';
             out.statoContratto = calcolaStatoUtil(terreno);
             return out;
         }

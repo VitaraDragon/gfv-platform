@@ -1,11 +1,220 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-07.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-11.**
+
+## ✅ Concimazioni vigneto / frutteto: prefisso log console Tony (2026-04-11)
+
+- **Problema**: nel fallback `initTonyContext` la pagina **concimazioni vigneto** loggava `[Vigneto Trattamenti]` (ambiguo con trattamenti fitosanitari); il frutteto usava `[Frutteto Trattamenti]`.
+- **Intervento**: `modules/vigneto/views/concimazioni-standalone.html` → `[Concimazioni vigneto]`; `modules/frutteto/views/concimazioni-standalone.html` → `[Concimazioni frutteto]`.
+
+## 📌 Modulo Report — progettazione (2026-04-11)
+
+- **Documento di dettaglio evolutivo** (brainstorming + spec): `docs-sviluppo/MODULO_REPORT_PROGETTAZIONE.md` — dashboard a card per modulo, Terreni sempre prima nel modulo report, ordine card = attivazione moduli, Sintesi/Economici, stesso motore UI/Tony, gating `report` + moduli dominio; riferimenti codice `modules/report/`. Aggiornare quel file man mano che si definiscono KPI e implementazione.
+
+## ✅ Modulo Report — attivazione da Abbonamento (2026-04-11)
+
+- **`core/config/subscription-plans.js`**: modulo `report` impostato **`available: true`** (prima “Prossimamente”); descrizione aggiornata alla dashboard per area.
+- **`core/admin/abbonamento-standalone.html`**: pulsante **“Apri Report”** sui moduli singoli attivi `report`; nei **bundle** che includono `report`, pulsante **“Apri modulo Report”** verso `report-dashboard-standalone.html`.
+
+## ✅ Modulo Report — prima implementazione UI (2026-04-11)
+
+- **Ingresso**: Dashboard principale → `modules/report/views/report-dashboard-standalone.html` (modulo `report` + ruoli Manager/Amministratore).
+- **Dashboard modulo**: card **Terreni** (sempre), **Vigneto** → `report-standalone.html` se modulo attivo, altre aree placeholder “In sviluppo”, **Sintesi** / **Economici** placeholder.
+- **Report Terreni**: `report-terreni-standalone.html` — selettore annata agraria (11 nov–10 nov) / anno solare / intervallo; card per terreno aziendale (dati da Firestore); testo su integrazione concimi/trattamenti/ore in arrivo.
+- **File**: `modules/report/js/report-access.js`, `report-time-range.js`; **Tony** `engine.js` target `report`, `report terreni`, `report vigneto`; `tony-routes.json` aggiornato; link da `dashboard-sections.js` e header `report-standalone.html`.
+
+## ✅ Modulo Report — Terreni: aggregati reali (2026-04-11)
+
+- **`modules/report/services/report-terreni-service.js`**: per ogni terreno aziendale, collega vigneti/frutteti (`terrenoId`), somma nel periodo **trattamenti** (concimi = `tipoTrattamento === 'fertilizzante'`, altrimenti fitosanitari; kg da `prodotti[].quantita`), **vendemmie** (`quantitaQli`) per vigneto, **ore** da `attivita` (`oreNette`, filtro `data`). Alert: affitto in scadenza (≤120 gg), assenza colture collegate.
+- **`report-terreni-standalone.html`**: card con numeri; periodo personalizzato con inizio/fine giornata; ricarica al cambio periodo.
+- **Correzione (2026-04-11)**: query **attività** su `data` come **stringhe ISO** (`YYYY-MM-DD`, come nel modello `Attivita`), non Timestamp — altrimenti ore sempre 0; esclusi record con `clienteId` (conto terzi). **Kg trattamenti**: se `quantita` assente, stima come in UI (`dosaggio × superficieTrattata`). Superficie terreno in card con **2 decimali**.
+
+## ✅ Tony — trattamento: «ok entrambi» senza flag + inject attivita-form (2026-04-11)
+
+- **Problema**: conferma flag dopo un messaggio Tony senza «Vuoi che…» non passava `lastAssistantAskedTrattamentoSensitiveFlags`; `formData` solo checkbox non matchava `isTrattamentoCampoData` → **formId attivita-form** e inject bloccato con modal trattamento aperto.
+- **Intervento**: `functions/index.js` — `lastTonyMentionedTrattamentoAnagrafeAndScarico` + `treatAsFlagConfirmTurn`; routing `form-trattamento` se **qualsiasi** chiave `trattamento-*`; `resolveTrattamentoFlagsFromFollowUp`: `entrambi`; replyText che prometteva flag senza payload → domanda esplicita; `tony-service.js` stesso routing da blocco \`\`\`json. `main.js` — ignora `INJECT attivita-form` se `modal-trattamento` attivo. Deploy functions.
+
+## ✅ Tony — trattamento: troppi messaggi / troppo veloce (2026-04-11)
+
+- **Problema**: dopo l’inject sul modal concimazioni/trattamenti, il timer proattivo «Form completo, confermi salvataggio?» (~2,8s + 7s) mandava un **secondo** messaggio alla CF mentre l’utente doveva ancora rispondere alla domanda su anagrafe/scarico → risposte duplicate, inject ripetuti, a volte `INJECT` su **attivita-form**.
+- **Intervento**: `core/js/tony/main.js` — **disattivato** il post-inject proattivo solo per `form-trattamento` (il testo della CF già invita a «ok salva»). `functions/index.js` — sanitizzazione testo: «Confermo il salvataggio» anche senza «del trattamento»; deduplica del paragrafo hint ripetuto. Deploy functions per la parte testo.
+
+## ✅ Tony — trattamento: SAVE_ACTIVITY bloccato «Pulsante Salva non disponibile» (2026-04-11)
+
+- **Problema**: con `modal-trattamento` aperto, `SmartFormFiller.validateBeforeSave` usava un selettore con **`.btn-primary`**: il primo match era **«Traccia»** (prima del vero **Salva** `type="submit"`); se quel pulsante non passava `_isVisible`, `submitAvailable` era false.
+- **Intervento**: `core/js/tony-smart-filler.js` — `_resolveSubmitControl`: prima `button[type="submit"]` nel form, poi selettore schema o `.btn-primary`; `core/js/tony/main.js` — con `modal-trattamento` attivo, validazione solo `tonyCheckFormCompletenessSafe` e click su `#form-trattamento button[type="submit"]`. Solo asset JS (niente deploy functions).
+
+## ✅ Tony — trattamento: «ok salva» non emetteva SAVE_ACTIVITY (2026-04-11)
+
+- **Problema**: dopo la domanda su anagrafe/scarico, messaggi come **«ok salva»** facevano match su `\bok\b` in `resolveTrattamentoFlagsFromFollowUp` → `trattamentoUserConfirmsFlagsFromPreviousTonyQuestion` true → la CF **annullava** `SAVE_ACTIVITY` pensando fosse solo conferma flag.
+- **Intervento**: `functions/index.js` — all’inizio di `resolveTrattamentoFlagsFromFollowUp`, intento esplicito di salvataggio (`ok salva`, `sì salva`, `salva`, `conferma salvataggio`, …) → `{ anagrafe: null, scarico: null }`; prompt trattamento: riga su `action: "save"` quando `requiredEmpty` è vuoto. **Deploy** `firebase deploy --only functions`.
+
+## ✅ Tony — trattamento: testo «salvato» senza salvataggio reale (2026-04-11)
+
+- **Problema**: dopo conferma flag (anagrafe/scarico), `replyText` diceva «Confermo il salvataggio del trattamento» pur essendo solo **INJECT** (nessun submit).
+- **Intervento**: `functions/index.js` — `sanitizeTrattamentoCampoReplyText` su ogni `INJECT_FORM_DATA` `form-trattamento`; prompt Treasure Map; blocco `action: save` se il messaggio è solo conferma flag dopo la domanda Tony; retry Treasure Map allineato (formId trattamento + sanitize). Deploy functions.
+
+## ✅ Tony — trattamento: conferma anagrafe/scarico + proattività salvataggio (2026-04-11)
+
+- **Problema**: con solo dosaggio/prodotto, il modello (o enrich) impostava **anagrafe** e **scarico magazzino** senza chiedere; il modal trattamento non aveva il **timer proattivo** post-inject come magazzino/preventivo.
+- **Intervento**: `functions/index.js` — `sanitizeTrattamentoCampoSensitiveFlags` (sostituisce l’enrich automatico su frasi); prompt `SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO_STRUCTURED` + regola **5e**: chiedere conferma prima delle checkbox sensibili; accettare i flag solo su richiesta esplicita («registra lo scarico», «usa superficie da anagrafe») o risposta al turno precedente che chiedeva conferma. `core/js/tony/main.js` — dopo inject `form-trattamento`, stesso schema **POST_INJECT_CHECK_DELAY_MS** + **IDLE_REMINDER_MS** → «Form completo, confermi salvataggio?». Deploy functions.
+
+## ✅ Tony — trattamento: checkbox «superficie da anagrafe terreni» (2026-04-11)
+
+- **Problema**: frasi tipo «abbiamo trattato tutta la superficie» non allineavano gli ha da anagrafe; il client non riallineava dopo l’injection.
+- **Intervento**: `tony-form-injector.js` — dopo inject, `syncSuperficieAnagrafeAfterTonyInject` (vigneto + frutteto); la parte «quando impostare il flag» è ora governata da **sanitize + conferma** (voce sopra), non più da enrich automatico su frasi.
+
+## ✅ Tony — form trattamento/concimazione: checkbox non si spuntavano (2026-04-11)
+
+- **Causa**: merge `INJECT_FORM_DATA` con `form.fields` del contesto copiava le checkbox dal DOM (`false`) anche quando la Cloud Function non le inviava, reiniettando sempre false.
+- **Fix**: `core/js/tony/main.js` — per `trattamento-superficie-anagrafe`, `trattamento-prosegue-precedente`, `trattamento-registra-scarico-magazzino` non si mergea dal DOM se la chiave non è nel comando; prompt CF rafforzato su boolean JSON. Nessun deploy functions obbligatorio (solo asset JS).
+
+## ✅ Tony — concimazioni/trattamenti campo: dose per ettaro vs totale (2026-04-11)
+
+- **Problema**: «2 qli per ettaro» veniva interpretato come quantità totale sul campo → dosaggio = (2×100)/ha (es. 222 kg/ha su 0,90 ha) invece di **200 kg/ha**.
+- **Intervento**: `functions/index.js` — prompt Treasure Map trattamento (`SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO_STRUCTURED` + regola 5e), esempi JSON corretti; `enrichTrattamentoCampoProdottiFromUserMessage` con **history**: distinzione dose/ha (testo «per ettaro» o ultima domanda Tony «dosaggio … per ettaro») vs totale; correzione se il modello emette ancora il dosaggio sbagliato. `core/config/tony-form-mapping.js` allineato. **Deploy** `firebase deploy --only functions` per attivare la CF.
+
+## ✅ Tony TTS — unità parlate (ERP: quintali, litri, ettari, kg, mq…) (2026-04-11)
+
+- **Problema**: in voce, sigle («q.li», «L», «ha»…) suonano male; i riepiloghi movimenti usavano il codice unità dal prodotto.
+- **Intervento**: `core/js/tony/voice.js` — `expandSpokenUnitsForItalianTTS` in `pulisciTestoPerVoce` (**copre tutte le risposte Tony lette in TTS**, qualunque pagina): q.li/ql → quintali; numero+L/l → litri; **numero + spazio + `ha` → ettari**; hl, kg, g, mq/m2/m², m3/mc, ml. `functions/index.js` — `formatUnitaMisuraPerVoce` allineato (movimenti + stesso lessico); prompt ADVANCED (VOCE E LETTURA); vendemmia summary aggregati in «quintali». **Non** è uno sweep di ogni cella HTML: le tabelle restano come sono; la voce normalizza il testo del messaggio Tony. Deploy functions se si aggiornano i prompt.
+
+## ✅ Tony — gestione vendemmia: currentTableData + CF (2026-04-11)
+
+- **Problema**: sulla pagina vendemmia Tony rispondeva "non ho informazioni sui movimenti di vendemmia" perché la lista non entrava nel contesto pagina (solo moduli attivi su dashboard).
+- **Intervento**: `vendemmia-standalone.html` — `window.currentTableData` (`pageType: vendemmia`), **vendemmiaAggregates** (totale q.li per varietà) + summary arricchito; merge `setContext('page')`, evento `table-data-ready`; `tony-service.js` — sanitizer dedicato vendemmia; `main.js` — `FILTER_TABLE` per vigneto/varieta/anno; `functions/index.js` — eccezione vendemmia, somma obbligatoria q.li su domande quantitative, FILTRO TABELLA VENDEMMIA. **Deploy** `firebase deploy --only functions` dopo ogni aggiornamento prompt.
+
+## ✅ UI date: formato lungo italiano ovunque (2026-04-11)
+
+- **Obiettivo**: stesso stile “10 aprile 2026” (e “sabato 10 aprile 2026” dove serviva il giorno) al posto di DD/MM/YYYY o `toLocaleDateString` corto, allineato a Tony/TTS.
+- **Modulo**: `core/js/date-format-it.js` — aggiunti `dateLikeToLocalCalendarIso`, `formatDateLikeToItalianLongLocal`, `formatDateLikeToItalianLongWeekday`, `formatDateTimeItalianReadable`.
+- **Aggiornati** (estratto): dashboard (`dashboard-data.js`, `dashboard-utils-extended.js`, `dashboard-standalone.html` guasti), terreni utils, gestione macchine/lavori/attività/maps, liste parco macchine (scadenze, guasti), magazzino (movimenti, tracciabilità), vigneto/frutteto (concimazioni, trattamenti, potatura, raccolta, dashboard frutteto), report, preventivi, conto terzi.
+- **Completamento sweep**: `gestione-operai`, `statistiche-manodopera`, `lavori-caposquadra`, `abbonamento`, `vendemmia-standalone`, `vigneto-dashboard-standalone`, `calcolo-materiali-standalone` (anche PDF), `impostazioni` (lista comunicazioni con `formatDateLikeToItalianLongWeekday`), `gestisci-utenti`, `gestione-guasti`, `segnalazione-guasti`. Restano `toLocaleString('it-IT')` solo per **numeri** (kg, €, ore, unità), non per date.
+
+## ✅ Tony — date leggibili ovunque (liste client + Context Builder) (2026-04-11)
+
+- **Problema**: ISO `YYYY-MM-DD` in contesto pagina (attività, terreni affitto, lavori) e in `summaryScadenze` / elenco mezzi risultava poco adatto a voce/TTS.
+- **Intervento**: modulo **`core/js/date-format-it.js`** (`formatIsoDateToItalianLong`, `dateLikeToIsoDateString`); **`attivita-controller.js`** e **`gestione-lavori-controller.js`** aggiungono `dataItaliana` / `dataInizioItaliana`; **`terreni-standalone`** e **`terreni-test-bootstrap`**: `scadenzaItaliana`; **`tony-service.js`**: sanitizzazione `attivita`, **`lavori`** dedicato, `terreni` preferisce `scadenzaItaliana`; **`functions/index.js`**: `formatScadenzaItaliana`, `buildSummaryScadenze` con testi umani per affitti e dettaglio mezzi (revisione/assicurazione). Deploy functions se si usa il riepilogo scadenze lato server.
+
+## ✅ Tony — movimenti magazzino: date in italiano nel riepilogo server (2026-04-11)
+
+- **Problema**: `summaryMovimentiRecenti` usava date ISO (`2026-04-10`) e quantità con artefatti float; in voce/TTS suona innaturale (“duezeroduesei…”).
+- **Intervento**: `functions/index.js` — `formatDataItaliana` (es. "10 aprile 2026"), `formatQuantitaMovimento`; ogni voce in `movimentiRecenti` include **`dataItaliana`**; testo riassuntivo e istruzione ELENCO DATI: date leggibili in italiano in risposta. Deploy functions.
+
+## ✅ Tony Context Builder — sotto scorta magazzino + campo prodotti Firestore (2026-04-11)
+
+- **Problema**: dalla home magazzino (senza `currentTableData`) le domande su «sotto scorta» ricevevano «non ho dati». In `buildContextAzienda` i prodotti venivano letti con campo **`sogliaMinima`** mentre in Firestore/ERP il campo è **`scortaMinima`** → soglie e giacenze non arrivavano al modello.
+- **Intervento**: `functions/index.js` — `getCollectionLight` prodotti con `scortaMinima`, `sogliaMinima`, `codice`, `attivo`; **`buildSummarySottoScorta`** → `azienda.summarySottoScorta` + `azienda.prodottiSottoScorta`; istruzioni Gemini e **reminder** su domande scorte; eccezione navigazione «già in home magazzino»; **prompt user** con reminder obbligatorio su scorte.
+- **`magazzino-home-standalone.html`**: `Tony.setContext('page', { pagePath, pageTitle })` così la Cloud Function riconosce il path (home vs sottopagine).
+- **Deploy**: `firebase deploy --only functions` (o almeno `tonyAsk`).
+
+## ✅ Documentazione — allineamento verificato con il codice (2026-04-11)
+
+- **`TONY_DECISIONI_E_REQUISITI.md` §8.3**: elenco `currentTableData` aggiornato rispetto a `tony/STATO_ATTUALE.md` (include Conto terzi, concimazioni vigneto/frutteto, tracciabilità consumi, ecc.).
+- **`DOBBIAMO_ANCORA_FARE.md` §1.1**: corretto — le regole `inviti` in `firestore.rules` non sono più `allow create: if true` (già fix 2026-04-04; riallineamento testuale).
+- **`docs-sviluppo/tony/README.md`**: data ultimo aggiornamento.
+- **Codice verificato**: `buildContextAzienda` (`functions/index.js`) senza `summarySottoScorta` (solo `prodotti` con giacenza/soglia); nessun handler `MOSTRA_GRAFICO` in `core/js/tony/`; `main.js` con `console.log` non condizionati da `__TONY_DEBUG` (come da backlog snellimento).
+
+## ✅ Gestione utenti — link inviti email: base URL allineato a dove l’app è ospitata (2026-04-10)
+
+- **Situazione**: su `globalfarmview.net` per ora solo landing; ERP di test su **GitHub Pages**. I link nelle mail di invito devono puntare a GitHub finché l’app non è deployata sul dominio.
+- **Intervento**: `core/admin/gestisci-utenti-standalone.html` — `APP_BASE_URL` esplicito `https://vitaradragon.github.io/gfv-platform` + commento per passare a `https://globalfarmview.net` quando l’ERP sarà su quel dominio.
+
+## ✅ Login standalone — rimosso EmailJS inutilizzato (reset password resta Firebase Auth) (2026-04-10)
+
+- **Contesto**: script EmailJS caricato ma mai usato; reset già tramite `sendPasswordResetEmail`.
+- **Intervento**: `core/auth/login-standalone.html` — rimossi script EmailJS; commenti aggiornati (template reset da Firebase Console; eventuale parità mittente Resend solo con Callable + Admin SDK).
+
+## ✅ Email transazionali — Resend da Cloud Function (inviti + preventivi), fine EmailJS su quelle pagine (2026-04-10)
+
+- **Obiettivo**: invio professionale con mittente `Global Farm View <no-reply@globalfarmview.net>`; API key solo server-side.
+- **Intervento**: `functions/email-resend.js` (HTML + escape, verifica manager/admin sul tenant); `functions/index.js` — callable **`sendTransactionalEmail`** (`type`: `invite` | `preventivo`), secret **`RESEND_API_KEY`**; `functions/.env.example`. Client: `getHttpsCallable('sendTransactionalEmail')` in `core/services/firebase-service.js`; `preventivi-standalone.html` e `gestisci-utenti-standalone.html` — rimosso EmailJS, chiamata alla callable. **Deploy**: `firebase functions:secrets:set RESEND_API_KEY` poi deploy functions; **ruotare** qualsiasi chiave mai esposta in chat/issue.
+
+## ✅ Tony — form-trattamento: checkbox (scarico magazzino, anagrafe, prosegue precedente) (2026-04-09)
+
+- **Problema**: l’injector impostava `el.value` su tutti gli `INPUT`; per le **checkbox** serve `checked` + eventi `change`, quindi non si spuntavano (funzionavano number/select/textarea). In mappa mancavano le chiavi `trattamento-superficie-anagrafe`, `trattamento-prosegue-precedente`, `trattamento-registra-scarico-magazzino`.
+- **Intervento**: `core/js/tony-form-injector.js` — ramo checkbox in `setInputValue`; `core/config/tony-form-mapping.js` — campi + `injectionOrder`; `core/js/tony/main.js` — `buildTonyFormContext` usa `true`/`false` per valore checkbox; `functions/index.js` — regola **5e** e `SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO_STRUCTURED` con le tre chiavi booleane opzionali.
+
+## ✅ Tony — concimazioni/trattamenti campo: stesso canone dei trattamenti (dosaggio kg/ha primario) (2026-04-09)
+
+- **Scelta prodotto**: dato **primario** in righe prodotto = **dosaggio ad ettaro (kg/ha)**; quantità totale e costi = derivati nel form (come trattamenti). Se l’utente dice solo ql/kg totali, si **converte in dosaggio** e si inietta **dosaggio** (non più `quantitaTotaleKg` sulla riga come flusso principale).
+- **Intervento**: `functions/index.js` — regola **5e** + `SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO_STRUCTURED`; **`enrichTrattamentoCampoProdottiFromUserMessage`** imposta **dosaggio** da messaggio + ha (contesto/form). `tony-form-injector.js` — se **dosaggio** valido nella riga, **non** lo sovrascrive con derivazione da ql; fallback ql/kg→dosaggio solo se dosaggio assente. `tony-form-mapping.js` — testi allineati. (Race INJECT modal: voci precedenti in questo file.)
+
+## ✅ Tony — registro campo: niente diario su «ql/concime» con modal Completa; Treasure Map senza formId fragile (2026-04-09)
+
+- **Problema**: con modal «Completa» aperto, frasi tipo «abbiamo usato 2 ql di nitrophoska» facevano ancora scattare la regola diario → `OPEN_MODAL` `attivita-modal` e navigazione verso attività; in console anche `value "NaN"` sugli input dosaggio riga prodotto.
+- **Intervento**: `functions/index.js` — eccezione esplicita alla regola DIARIO se `form-trattamento` / `modal-trattamento`; Treasure Map trattamento anche su pagina registro (concimazioni/trattamenti vigneto o frutteto) con messaggio prodotti/quantità, esclusi intenti filtro lista; istruzione structured: fill_form se path registro anche senza `form.formId` nel contesto. `core/js/tony/main.js` — contesto form da `#modal-trattamento` se il generico `.modal.active` non basta; prefisso `trattamento-` in `isRelevant`; **ignora** `OPEN_MODAL` `attivita-modal` se `#modal-trattamento` è attivo. Quattro HTML `concimazioni-standalone` / `trattamenti-standalone` (vigneto + frutteto) — dosaggio in `<input type="number">` solo se `Number.isFinite`.
+
+## ✅ Tony — form `form-trattamento` (concimazioni / trattamenti campo): prodotti + dosaggio (2026-04-09)
+
+- **Obiettivo**: INJECT da chat quando il modal «Completa» è aperto, con righe prodotto risolte da magazzino (`ctx.azienda.prodotti` o anagrafica pagina).
+- **Intervento**: `core/config/tony-form-mapping.js` — `TRATTAMENTO_CAMPO_FORM_MAP` (chiavi `trattamento-prodotti`, note, superficie, copertura). `core/js/tony-form-injector.js` — `injectTrattamentoCampoForm`. `core/js/tony/main.js` — `INJECT_FORM_DATA` per `form-trattamento` / `trattamento-concimazione-form` se `#modal-trattamento` attivo. `functions/index.js` — regola **5e**, Treasure Map `SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO_STRUCTURED`, inferenza `formId` su `fill_form` con chiavi trattamento-*. Pagine `concimazioni-standalone.html` e `trattamenti-standalone.html` (vigneto + frutteto) — `window.__tonyTrattamentoCampoApi` (`renderProdotti`, `getProdottiAnagrafica`).
+
+## ✅ Registro concimazioni — prefill costi manodopera/macchina e testo giorni di carenza (2026-04-09)
+
+- **Problema**: in modal «Completa concimazione» i costi potevano restare a 0 se le ore erano solo `da_validare` (non ancora validate), pur essendo già visibili altrove; mancava chiarimento sul campo giorni di carenza per interventi solo concime.
+- **Intervento**: `calcolaCostiLavoro` in `lavori-vigneto-service.js` e `lavori-frutteto-service.js` — opzione `includeDaValidarePerPrefill` (secondo passaggio se il primo calcolo dà entrambi i costi a 0). `getDatiPrecompilazioneTrattamento` (trattamenti vigneto/frutteto) — uso di quella opzione, fallback `lavoro.costi` se presente su documento, tabella macchine da ore `validate` + `da_validare`. Modello `Lavoro` — campo opzionale `costi` letto da Firestore. Pagine `concimazioni-standalone.html` (vigneto/frutteto) — testo esplicativo sotto «Giorni di carenza».
+
+## ✅ Tony Gestione Lavori — «A chi assegni?», verbi al futuro per macchine, timer proattivo (2026-04-08)
+
+- **Problema**: con «per Luca nel pinot» la chat chiedeva comunque «A chi assegni?»; per lavori pianificati il testo usava «hai usato» (adatto al diario); il timer proattivo poteva ridondare su assegnazione o macchine.
+- **Intervento**: `functions/index.js` — regole **VIETATO** «A chi assegni?» se nella frase c’è già assegnazione o se operaio/caposquadra hanno ✓; blocco **LAVORI PIANIFICATI** (futuro/intenzione per trattore/attrezzo, mai «hai usato» in **lavoro-form**). `core/js/tony/main.js` — `tonyUserMentionedLavoroAssignee`, `tonySanitizeLavoroOperaioQuestionInReply` sulla risposta; timer proattivo lavoro: skip se l’utente ha già nominato assegnatario o macchine; messaggio macchine con «attrezzo» invece di «erpice» generico; `buildForcedLavoroPrompt` allineato. `core/js/tony-form-injector.js` — messaggi disambiguazione **lavoro-form** con «vuoi usare» / voice coerente (diario attività resta al passato dove serve).
+
+## ✅ Tony Gestione Lavori — meno domande ridondanti su data/durata e su «Configuro le macchine» (2026-04-08)
+
+- **Problema**: con "inizio domani durata un giorno" nel primo messaggio Tony chiedeva comunque quando iniziare / quanti giorni; ripeteva "Configuro le macchine" anche a form già coerente.
+- **Intervento**: `functions/index.js` — `SYSTEM_INSTRUCTION_LAVORO_STRUCTURED` + OPEN_MODAL checklist: estrazione esplicita di **lavoro-data-inizio** / **lavoro-durata** da linguaggio naturale (domani, durata un giorno, ecc.), divieto di domande su data/durata se inferibili; blocco **ANTI-RIPETIZIONE** su replyText fissi. `core/js/tony/main.js` — `tonySanitizeLavoroDataDurataQuestionInReply` + hint in `buildForcedLavoroPrompt`.
+
+## ✅ Gestione Lavori — dropdown attrezzo visibile e compatibile con Tony inject (2026-04-08)
+
+- **Problema**: con trattore selezionato il gruppo **attrezzo** poteva restare nascosto (`!trattore.cavalli`), oppure l’elenco escludeva attrezzi senza `cavalliMinimiRichiesti`; le opzioni `in_uso` erano `disabled` e il browser non applicava `value` (log: `lavoro-attrezzo` iniettato ma `DOM value=""`).
+- **Intervento**: `core/admin/js/gestione-lavori-controller.js` — `populateAttrezziDropdown`: mostra sempre il blocco attrezzo con trattore valido; filtro CV allineato al diario (min mancante → 0); senza CV sul trattore si elencano tutti gli attrezzi non dismessi; niente `disabled` sulle opzioni (come attività). `core/js/tony-form-injector.js` — prima di `lavoro-attrezzo` ridispatch `change` sul trattore, attesa `waitForSelectOptionsWithValue`, delay trattore 450 ms.
+
+## ✅ Tony — disambiguazione trattore/attrezzo in chat (2026-04-08)
+
+- **Problema**: con più trincia (o più trattori) compatibili l’injector non sceglieva e non guidava l’utente; sul diario l’attività usava `find` e poteva selezionare il primo attrezzo a caso.
+- **Intervento**: `core/js/tony-form-injector.js` — evento `tony-macchine-disambiguation` con elenco opzioni e istruzioni; **un solo** trattore/attrezzo compatibile → impostazione automatica (e refresh attrezzi dopo trattore); più opzioni → messaggio. `core/js/tony/main.js` — listener: messaggio in chat + TTS breve. `tony-form-mapping.js` — istruzione structured: dopo l’elenco l’utente risponde col nome per INJECT/SET_FIELD.
+- **Agg. stesso giorno — trattore + CV**: se **`lavoro-attrezzo`** / **`attivita-attrezzo`** è risolvibile in anagrafica con `cavalliMinimiRichiesti`, la scelta trattore usa solo trattori con `cavalli` sufficienti; più candidati → disambiguazione con soglia CV nel testo; zero candidati → messaggio esplicito (potenza insufficiente o nessun trattore attivo).
+
+## ✅ Tony — trattori compatibili per CV quando l’attrezzo è già noto (2026-04-08)
+
+- **Obiettivo**: non proporre tutto il parco quando l’attrezzo è già noto; allineare la scelta a `cavalli` ≥ `cavalliMinimiRichiesti` come in anagrafica macchine.
+- **Intervento**: `core/js/tony-form-injector.js` — `resolveAttrezzoFromState`, `trattoriCompatibiliCv`, integrati in `injectLavoroForm` e `injectAttivitaForm` (trattore vuoto, attrezzo risolto senza ambiguità); senza attrezzo risolto resta il fallback sul select DOM.
+
+## ✅ Tony — default lavorazioni meccaniche + copertura da terreno (2026-04-08)
+
+- **Obiettivo**: rendere più stabile l’iniezione su attività/lavori quando l’utente non esplicita manuale/meccanico e quando la copertura (Generale / Tra le File / Sulla Fila) va dedotta dal tipo terreno.
+- **Intervento config**: `core/config/tony-form-mapping.js` — nuova policy centralizzata `LAVORAZIONI_DEFAULTS_TONY` (keyword default meccanico, keyword lavorazioni che richiedono macchine, regole copertura per terreni a filari vs seminativi), esposta in `window.TONY_FORM_MAPPING`.
+- **Intervento injector**: `core/js/tony-form-injector.js` — applicazione policy in `injectAttivitaForm` e `injectLavoroForm`: forzatura copertura coerente col terreno, preferenza meccanica per lavorazioni tipiche (trinciatura/erpicatura/fresatura/diserbo/concimazione/trattamenti) se non esplicitato dall’utente, e auto-selezione trattore/attrezzo solo quando disponibile un unico candidato.
+
+## ✅ Tracciabilità consumi — totali in risposta (consumiAggregates + CF) (2026-04-07)
+
+- **Problema**: dopo FILTER_TABLE corretto, Tony rispondeva con «sommo le quantità, un attimo…» senza cifre: istruzioni «text breve con command» + ordine «filtra poi somma» come se il secondo passo avvenisse dopo l’esecuzione client (non così).
+- **Intervento**: `tracciabilita-consumi-standalone.html` — `consumiAggregates` (totali per terreno+prodotto+unità, categorie fertilizzanti/fitofarmaci) su ogni render; `functions/index.js` — eccezione obbligo numeri nel `text` per domande quantità; somma nello stesso turno da contesto inviato; reminder + FILTRO TABELLA allineati a `consumiAggregates`.
+
+## ✅ Tracciabilità consumi — filtro terreno + items per totali (Tony) (2026-04-07)
+
+- **UI**: `modules/magazzino/views/tracciabilita-consumi-standalone.html` — select `filter-terreno` (anagrafica terreni), `resolveTerrenoForMovimento` da trattamento (vigneto/frutteto → `terrenoId`) o da lavoro/attività; `filterRows` per categoria + terreno; `currentTableData.items` arricchiti con `terreno`, `terrenoId`, `prodottoId`, `unitaMisura`, `contestoColtura` opzionale; summary con terreno filtrato.
+- **Client Tony**: `core/js/tony/main.js` — `FILTER_KEY_MAP.tracciabilita_consumi.terreno`, matchByText su nome terreno.
+- **Cloud Function**: `functions/index.js` — istruzioni FILTER_TABLE / LISTA / reminder per terreno e somme su `items` (stessa unità di misura).
+
+## ✅ Tony — Concimazioni Vigneto/Frutteto: currentTableData + FILTER_TABLE + tracciabilità (2026-04-07)
+
+- **Problema**: le pagine standalone Concimazioni (vigneto e frutteto) non esponevano agli “occhi” di Tony la lista visibile (`window.currentTableData`, merge `setContext('page')`, evento `table-data-ready`) come le altre liste; sulla Tracciabilità consumi mancava simmetria lato modello/client per `FILTER_TABLE`.
+- **Intervento**: `modules/vigneto/views/concimazioni-standalone.html` e `modules/frutteto/views/concimazioni-standalone.html` — placeholder iniziale (`concimazioni_vigneto` / `concimazioni_frutteto`), fallback nel modulo, `pushTonyListContext` dopo ogni `loadTrattamenti` (anche elenco vuoto) con `items` allineati alle colonne (data, vigneto/frutteto, lavoroAttivita, terreno, prodotto, superficieHa, costoEuro, ids, completato, avvisoDosaggio). `core/js/tony/main.js` — `FILTER_KEY_MAP` + fallback `pageType` da path per concimazioni e `tracciabilita_consumi`, reset filtri, match testuale vigneto/frutteto, categoria tracciabilità con `normalizeTonyProdottiCategoriaValue`. `functions/index.js` — eccezioni navigazione, blocchi FILTRO TABELLA, reminder filtro per CF. `tracciabilita-consumi-standalone.html` — testo placeholder summary allineato al canone.
+- **Rotte**: non modificate (già mappate altrove).
+- **Agg.**: Istruzioni CF + reminder runtime su **Tracciabilità consumi**: «concimazioni» sulla stessa pagina = filtro **fertilizzanti**, non invito ad aprire il registro Concimazioni; «trattamenti» (fitosanitari) = **fitofarmaci** con testo allineato; `isTracciabilitaFilterLikeRequest` esteso (concimazioni/trattamenti).
 
 ## ✅ Tony Gestione Lavori — niente domanda ridondante su trattore/attrezzo (2026-04-07)
 
 - **Problema**: il modello poteva ancora chiedere «Quale trattore e attrezzo…» nel testo della risposta anche quando l’utente aveva già indicato mezzi (es. «con Agrifull e nebulizzatore»); il check post-iniettivo `isMeccanico` non considerava i tipi lavoro con «meccanico» nel nome (es. trattamento anticrittogamico meccanico).
 - **Intervento** (`core/js/tony/main.js`): helper `tonyUserMentionedLavoroMacchine` + `tonySanitizeLavoroMacchineQuestionInReply` sul testo mostrato dopo la risposta; istruzioni extra nel prompt forzato Gestione Lavori per valorizzare subito `lavoro-trattore` / `lavoro-attrezzo`; `isMeccanico` esteso con `\bmeccanic[oa]\b` sul nome tipo; reminder proattivo «mancano macchine» non inviato se `tony_last_user_message` contiene già riferimenti a trattore/attrezzo (evita doppio messaggio prima di una seconda `INJECT_FORM_DATA`).
+- **Ambito**: la logica di **default categoria/sottocategoria/tipo** per «solo trattamento» resta in `trattamenti-lavoro-defaults.js` + injector; l’**iniezione strutturata** nel `lavoro-form` (ordine campi, attese sui select, merge contesto, second pass dopo terreno) e il **prompt forzato** su Gestione Lavori valgono per **qualunque lavorazione** compilata tramite quel modal, non solo trattamenti fitosanitari.
+
+## ✅ Tony — augment Gestione Lavori non in chatHistory / UI modello (2026-04-08)
+
+- **Problema**: il blocco `[ISTRUZIONE CLIENT OBBLIGATORIA]` aggiunto lato widget al prompt finiva in `Tony.chatHistory`, `tony_last_user_message` e poteva essere **ripetuto dal modello** o confondere navigazione (es. «portami a concimazioni» attivava i keyword `concimaz`).
+- **Intervento**: `core/services/tony-service.js` — opzione `historyUserMessage`: cronologia e sessionStorage usano il testo utente reale; al Cloud Function resta `message` con augment. `core/js/tony/main.js` — invio `historyUserMessage` solo quando il prompt inviato differisce dal messaggio mostrato; `shouldForceLavoroStructuredReply` esclude frasi di **navigazione** (`portami`, `vai a`, …) e sostituisce il keyword troppo largo `concimaz` con `\bconcimazione\b` / `\bconcima\b` / `\bconcimiamo\b`.
 
 ## ✅ Magazzino – Tracciabilità consumi: catene sospeso/ripresa + doc (2026-04-05)
 

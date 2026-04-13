@@ -4,6 +4,8 @@
  * @module core/js/dashboard-maps
  */
 
+import { formatDateLikeToItalianLongLocal } from './date-format-it.js';
+
 // ============================================
 // IMPORTS
 // ============================================
@@ -655,7 +657,7 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                                     <div class="mappa-info-window">
                                         <h3>${escapeHtml(lavoro.nome)}</h3>
                                         ${lavoro.tipoLavoro ? `<p><strong>Tipo Lavoro:</strong> ${escapeHtml(lavoro.tipoLavoro)}</p>` : ''}
-                                        ${zonaData.data ? `<p><strong>Data:</strong> ${zonaData.data.toDate ? zonaData.data.toDate().toLocaleDateString('it-IT') : new Date(zonaData.data).toLocaleDateString('it-IT')}</p>` : ''}
+                                        ${zonaData.data ? `<p><strong>Data:</strong> ${formatDateLikeToItalianLongLocal(zonaData.data.toDate ? zonaData.data.toDate() : zonaData.data)}</p>` : ''}
                                         ${zonaData.superficieHa ? `<p><strong>Superficie:</strong> ${zonaData.superficieHa.toFixed(2)} ha</p>` : ''}
                                         ${lavoro.percentualeCompletamento ? `<p><strong>Completamento:</strong> ${lavoro.percentualeCompletamento.toFixed(1)}%</p>` : ''}
                                         ${zonaData.note ? `<p><strong>Note:</strong> ${escapeHtml(zonaData.note)}</p>` : ''}
@@ -851,7 +853,7 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                                 <p><strong>Progresso:</strong> ${statoProgressoFormattato}</p>
                                 ${lavoro.percentualeCompletamento ? `<p><strong>Completamento:</strong> ${lavoro.percentualeCompletamento.toFixed(1)}%</p>` : ''}
                                 ${lavoro.superficieTotaleLavorata ? `<p><strong>Superficie Lavorata:</strong> ${lavoro.superficieTotaleLavorata.toFixed(2)} ha</p>` : ''}
-                                ${lavoro.dataInizio ? `<p><strong>Data Inizio:</strong> ${lavoro.dataInizio.toLocaleDateString('it-IT')}</p>` : ''}
+                                ${lavoro.dataInizio ? `<p><strong>Data Inizio:</strong> ${formatDateLikeToItalianLongLocal(lavoro.dataInizio)}</p>` : ''}
                                 ${lavoro.durataPrevista ? `<p><strong>Durata Prevista:</strong> ${lavoro.durataPrevista} giorni</p>` : ''}
                                 ${lavoro.giorniEffettivi ? `<p><strong>Giorni Trascorsi:</strong> ${lavoro.giorniEffettivi}</p>` : ''}
                                 <p style="margin-top: 10px;">

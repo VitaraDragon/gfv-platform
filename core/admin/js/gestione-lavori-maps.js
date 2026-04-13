@@ -4,6 +4,8 @@
  * @module core/admin/js/gestione-lavori-maps
  */
 
+import { formatDateLikeToItalianLongWeekday } from '../../js/date-format-it.js';
+
 // ============================================
 // CONSTANTS
 // ============================================
@@ -166,13 +168,7 @@ export async function loadDettaglioMap(
         if (filtroDataSelect) {
             filtroDataSelect.innerHTML = '<option value="tutte">📅 Tutte le date</option>';
             dateDisponibili.forEach((dataKey) => {
-                const dataObj = new Date(dataKey);
-                const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
-                    weekday: 'short', 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric' 
-                });
+                const dataFormatted = formatDateLikeToItalianLongWeekday(dataKey);
                 const numZone = zonePerData[dataKey].length;
                 const superficieTotale = zonePerData[dataKey].reduce((sum, z) => sum + (z.superficieHa || 0), 0);
                 
@@ -313,13 +309,7 @@ export function aggiornaListaZone(zone, state) {
 
     zoneListContainer.innerHTML = dateOrdinate.map(dataKey => {
         const zoneGiorno = zonePerDataLista[dataKey];
-        const dataObj = new Date(dataKey);
-        const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
+        const dataFormatted = formatDateLikeToItalianLongWeekday(dataKey);
         const superficieTotale = zoneGiorno.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
         const colorIndex = state.dateDisponibili ? state.dateDisponibili.indexOf(dataKey) : 0;
         const colore = COLORI_GIORNI[colorIndex % COLORI_GIORNI.length];
@@ -333,7 +323,6 @@ export function aggiornaListaZone(zone, state) {
                     </span>
                 </div>
                 ${zoneGiorno.map(zona => {
-                    const dataZonaFormatted = zona.dataNormalizzata.toLocaleDateString('it-IT');
                     return `
                         <div class="zone-item" style="margin-left: 10px; margin-bottom: 5px;">
                             <div class="zone-info">
@@ -368,13 +357,7 @@ export function aggiornaInfoZone(dataSelezionata, zoneFiltrate, state) {
     } else {
         const zone = zoneFiltrate || (state.zonePerData && state.zonePerData[dataSelezionata]) || [];
         const superficie = zone.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
-        const dataObj = new Date(dataSelezionata);
-        const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
+        const dataFormatted = formatDateLikeToItalianLongWeekday(dataSelezionata);
         infoZoneFiltrate.innerHTML = `
             <span style="color: #1976D2;">🔍 Visualizzate <strong>${zone.length}</strong> ${zone.length === 1 ? 'zona' : 'zone'} del <strong>${dataFormatted}</strong> 
             (totale: <strong>${superficie.toFixed(2)} ha</strong>)</span>

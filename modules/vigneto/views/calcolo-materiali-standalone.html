@@ -545,6 +545,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         // Calcola base path per GitHub Pages
         function getBasePath() {
             if (window.location.protocol === 'file:') {
@@ -856,7 +857,7 @@
                 const terreno = terreni.find(t => t.id === p.terrenoId);
                 const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
                 
-                const dataCreazione = p.createdAt ? (p.createdAt.toDate ? p.createdAt.toDate().toLocaleDateString('it-IT') : new Date(p.createdAt).toLocaleDateString('it-IT')) : '-';
+                const dataCreazione = p.createdAt ? (formatDateLikeToItalianLongLocal(p.createdAt) || '-') : '-';
                 const statoBadge = getStatoBadge(p.stato);
                 
                 // Verifica se la pianificazione ha dati completi
@@ -1556,7 +1557,7 @@
 
                 // Data e firma
                 yPos += lineHeight;
-                const dataOggi = new Date().toLocaleDateString('it-IT');
+                const dataOggi = formatDateLikeToItalianLongLocal(new Date()) || '';
                 doc.text(`Documento generato il: ${dataOggi}`, margin, yPos);
                 yPos += lineHeight;
                 doc.text('GFV Platform - Calcolo Materiali Impianto', pageWidth / 2, yPos, { align: 'center' });
@@ -1663,8 +1664,9 @@
 
             const terreno = terreni.find(t => t.id === pianificazione.terrenoId);
             const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
-            const dataCreazione = pianificazione.createdAt ? 
-                (pianificazione.createdAt.toDate ? pianificazione.createdAt.toDate().toLocaleDateString('it-IT') : new Date(pianificazione.createdAt).toLocaleDateString('it-IT')) : '-';
+            const dataCreazione = pianificazione.createdAt
+                ? (formatDateLikeToItalianLongLocal(pianificazione.createdAt) || '-')
+                : '-';
 
             const messaggio = `Sei sicuro di voler eliminare questa pianificazione?\n\n` +
                             `Terreno: ${terrenoNome}\n` +

@@ -109,6 +109,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateTimeItalianReadable } from '../../../core/js/date-format-it.js';
         (async function() {
             if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
                 window.currentTableData = { pageType: 'guasti', summary: 'Caricamento dati in corso...', items: [] };
@@ -139,9 +140,7 @@
                 setTimeout(() => c.innerHTML = '', 4000);
             }
             function formatDate(val) {
-                if (!val) return '—';
-                const d = val.toDate ? val.toDate() : new Date(val);
-                return isNaN(d.getTime()) ? '—' : d.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                return formatDateTimeItalianReadable(val);
             }
             function getMacchinaNome(macchinaId) {
                 const m = macchineList.find(x => x.id === macchinaId);

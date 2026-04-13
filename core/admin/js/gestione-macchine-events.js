@@ -8,6 +8,7 @@
 // IMPORTS
 // ============================================
 import { showAlert, escapeHtml } from './gestione-macchine-utils.js';
+import { formatDateTimeItalianReadable } from '../../js/date-format-it.js';
 
 // ============================================
 // FUNZIONI SETUP HANDLERS
@@ -36,7 +37,7 @@ export function setupFormDinamico(populateSottocategorieCallback, filterMacchine
         
         // Aggiorna required
         const cavalliInput = document.getElementById('macchina-cavalli');
-        const categoriaSelect = document.getElementById('macchina-categoria');
+        const categoriaSelect = document.getElementById('macchina-categoria-principale');
         const cavalliMinimiInput = document.getElementById('macchina-cavalli-minimi');
         
         if (cavalliInput) {
@@ -55,6 +56,7 @@ export function setupFormDinamico(populateSottocategorieCallback, filterMacchine
     
     if (tipoTrattore) tipoTrattore.addEventListener('change', updateFormFields);
     if (tipoAttrezzo) tipoAttrezzo.addEventListener('change', updateFormFields);
+    updateFormFields();
     
     // Event listener per cambio categoria principale (mostra sottocategorie)
     const categoriaPrincipaleSelect = document.getElementById('macchina-categoria-principale');
@@ -151,11 +153,10 @@ export function resetFilters(filterMacchineCallback) {
  * Apri modal macchina
  * @param {string|null} macchinaId - ID macchina (null per nuova)
  * @param {Object} state - State object con macchine, categoriePrincipali, sottocategorieMap
- * @param {Function} setupFormDinamicoCallback - Callback per setup form dinamico
  * @param {Function} populateSottocategorieCallback - Callback per popolare sottocategorie
  * @param {Function} loadStoricoGuastiCallback - Callback per caricare storico guasti
  */
-export async function openMacchinaModal(macchinaId, state, setupFormDinamicoCallback, populateSottocategorieCallback, loadStoricoGuastiCallback) {
+export async function openMacchinaModal(macchinaId, state, populateSottocategorieCallback, loadStoricoGuastiCallback) {
     const { macchine, categoriePrincipali, sottocategorieMap } = state;
     const form = document.getElementById('macchina-form');
     const modalTitle = document.getElementById('modal-title');
@@ -178,25 +179,14 @@ export async function openMacchinaModal(macchinaId, state, setupFormDinamicoCall
         
         const tipoMacchina = macchina.tipoMacchina || macchina.tipo || '';
         
-        // Imposta tipo macchina
+        // Imposta tipo macchina e sincronizza visibilità + required (stesso handler del change manuale)
         if (tipoMacchina === 'trattore' && tipoTrattore) {
             tipoTrattore.checked = true;
+            tipoTrattore.dispatchEvent(new Event('change', { bubbles: true }));
         } else if (tipoMacchina === 'attrezzo' && tipoAttrezzo) {
             tipoAttrezzo.checked = true;
+            tipoAttrezzo.dispatchEvent(new Event('change', { bubbles: true }));
         }
-        
-        // Aggiorna campi dinamici
-        if (setupFormDinamicoCallback) setupFormDinamicoCallback();
-        const updateFields = () => {
-            const campoCavalli = document.getElementById('campo-cavalli-group');
-            const campoCategoria = document.getElementById('campo-categoria-group');
-            const campoCavalliMinimi = document.getElementById('campo-cavalli-minimi-group');
-            
-            if (campoCavalli) campoCavalli.style.display = tipoTrattore?.checked ? 'block' : 'none';
-            if (campoCategoria) campoCategoria.style.display = tipoAttrezzo?.checked ? 'block' : 'none';
-            if (campoCavalliMinimi) campoCavalliMinimi.style.display = tipoAttrezzo?.checked ? 'block' : 'none';
-        };
-        updateFields();
         
         // Popola campi form
         const nomeInput = document.getElementById('macchina-nome');
@@ -763,13 +753,9 @@ export async function loadStoricoGuasti(macchinaId, tenantId, dependencies, stat
             const risoltoDa = guasto.risoltoDa ? updatedUsersMap.get(guasto.risoltoDa) : null;
             const risoltoDaNome = risoltoDa ? `${risoltoDa.nome || ''} ${risoltoDa.cognome || ''}`.trim() || risoltoDa.email : null;
 
-            const dataSegnalazione = guasto.segnalatoIl?.toDate 
-                ? guasto.segnalatoIl.toDate().toLocaleString('it-IT')
-                : new Date(guasto.segnalatoIl).toLocaleString('it-IT');
+            const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
 
-            const dataRisoluzione = guasto.risoltoIl?.toDate 
-                ? guasto.risoltoIl.toDate().toLocaleString('it-IT')
-                : guasto.risoltoIl ? new Date(guasto.risoltoIl).toLocaleString('it-IT') : null;
+            const dataRisoluzione = guasto.risoltoIl ? formatDateTimeItalianReadable(guasto.risoltoIl) : null;
 
             const componenteGuasto = guasto.componenteGuasto || 'trattore'; // Default per retrocompatibilità
             const componenteBadge = componenteGuasto === 'trattore' 

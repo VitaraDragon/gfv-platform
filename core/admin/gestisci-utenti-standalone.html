@@ -498,14 +498,6 @@
         </div>
     </div>
 
-    <!-- EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function(){
-            emailjs.init("AnLLhJOew6d6sCIOG");
-        })();
-    </script>
-
     <!-- Load Firebase config from external file -->
     <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
     <script>
@@ -521,6 +513,7 @@
     
     <!-- Firebase SDK -->
     <script type="module">
+        import { formatDateLikeToItalianLongLocal, formatDateTimeItalianReadable } from '../js/date-format-it.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -547,7 +540,7 @@
 
         const firebaseConfig = await waitForConfig();
 
-        import { initializeFirebase, getDb, getAuthInstance } from '../services/firebase-service.js';
+        import { initializeFirebase, getDb, getAuthInstance, getHttpsCallable } from '../services/firebase-service.js';
         import { onAuthStateChanged, signOut } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, addDoc } from '../services/firebase-service.js';
         import { signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
@@ -561,32 +554,26 @@
         // Ottieni istanze Firebase dal service
         const auth = getAuthInstance();
         const db = getDb();
+        const sendTransactionalEmail = getHttpsCallable('sendTransactionalEmail');
 
         let currentUserData = null;
         let currentTenantId = null;
         let hasManodoperaModule = false;
         let user = null; // Utente autenticato corrente
 
-        // Configurazione URL base dell'applicazione
-        // IMPORTANTE: Imposta qui l'URL pubblico della tua app quando è online
-        // Se l'app è su GitHub Pages, usa: 'https://vitaradragon.github.io/gfv-platform'
-        // Se l'app è su Firebase Hosting, usa il tuo dominio Firebase
-        // Per sviluppo locale, lascia null per usare automaticamente l'URL corrente
-        const APP_BASE_URL = 'https://vitaradragon.github.io/gfv-platform'; // URL pubblico GitHub Pages
-        
+        // Link nelle email di invito (registrazione). Devono puntare dove l’app è DAVVERO ospitata.
+        // Finché l’ERP è solo su GitHub Pages per i test, usa quell’URL. Quando pubblicherete tutta l’app su globalfarmview.net, sostituire con 'https://globalfarmview.net' (senza slash finale).
+        const APP_BASE_URL = 'https://vitaradragon.github.io/gfv-platform';
+
         const getBaseUrl = () => {
-            // Se è configurato un URL base esplicito, usalo
             if (APP_BASE_URL) {
-                return APP_BASE_URL;
+                return APP_BASE_URL.replace(/\/$/, '');
             }
-            // Altrimenti rileva automaticamente
-            // Se siamo su GitHub Pages o dominio pubblico, usa quello
-            if (window.location.hostname.includes('github.io') || 
+            if (window.location.hostname.includes('github.io') ||
                 window.location.hostname.includes('firebaseapp.com') ||
                 window.location.hostname.includes('web.app')) {
                 return window.location.origin;
             }
-            // Per sviluppo locale, usa l'URL corrente
             return window.location.origin;
         };
 
@@ -913,13 +900,7 @@
                                     } else if (diffDays < 7) {
                                         ultimoAccesso = `${diffDays} giorni fa`;
                                     } else {
-                                        ultimoAccesso = accessoDate.toLocaleDateString('it-IT', { 
-                                            day: '2-digit', 
-                                            month: '2-digit', 
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        });
+                                        ultimoAccesso = formatDateTimeItalianReadable(accessoDate);
                                     }
                                 } catch (error) {
                                     console.error('Errore formattazione data ultimo accesso:', error);
@@ -937,7 +918,7 @@
                             
                             const isInvite = user.id.startsWith('invite-');
                             const scadeIl = user.scadeIl ? (user.scadeIl.toDate ? user.scadeIl.toDate() : new Date(user.scadeIl)) : null;
-                            const scadeIlText = scadeIl ? scadeIl.toLocaleDateString('it-IT') : '';
+                            const scadeIlText = scadeIl ? (formatDateLikeToItalianLongLocal(user.scadeIl) || '') : '';
                             
                             return `
                                 <tr>
@@ -1465,11 +1446,7 @@
                 }).join(', ');
                 
                 // Formatta data scadenza
-                const scadeIlFormattata = scadeIl.toLocaleDateString('it-IT', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                });
+                const scadeIlFormattata = formatDateLikeToItalianLongLocal(scadeIl) || '';
                 
                 // Carica dati azienda per branding email (ESATTAMENTE come nei preventivi)
                 let datiAzienda = {
@@ -1506,14 +1483,14 @@
                     // Continua con dati vuoti
                 }
 
-                // Prepara variabili azienda per template email (ESATTAMENTE come nei preventivi)
-                // Logo URL (solo URL, non HTML - il template EmailJS userà l'URL per creare l'immagine)
+                // Prepara variabili azienda per template email (HTML lato server / Resend, come preventivi)
+                // Logo URL (solo URL https)
                 let logoUrl = '';
                 if (datiAzienda.logoUrl && datiAzienda.logoUrl.startsWith('http')) {
                     logoUrl = datiAzienda.logoUrl; // Solo URL, non HTML
                 }
                 
-                // Nome azienda nell'header: solo testo semplice, il template EmailJS lo formatterà
+                // Nome azienda nell'header: testo semplice
                 let nomeAziendaHeader = datiAzienda.nome || '';
                 
                 // Nome azienda nel footer: testo semplice
@@ -1531,36 +1508,26 @@
                     }
                 }
                 
-                // Invia email tramite EmailJS
+                // Invio email tramite Resend (Cloud Function sendTransactionalEmail)
                 let emailInviata = false;
                 try {
-                    if (typeof emailjs === 'undefined') {
-                        throw new Error('EmailJS non caricato');
-                    }
-
-                    // Prepara oggetto variabili per EmailJS (ESATTAMENTE come nei preventivi)
-                    const emailParams = {
+                    await sendTransactionalEmail({
+                        type: 'invite',
+                        tenantId: currentTenantId,
+                        to: email.trim(),
                         nome: nome,
                         cognome: cognome,
-                        email: email,
                         ruoli: ruoliFormattati,
                         linkRegistrazione: registrationUrl,
                         scadeIl: scadeIlFormattata,
-                        // Dati azienda per branding (ESATTAMENTE come nei preventivi)
-                        logo_url: logoUrl || '', // Solo URL del logo (non HTML)
-                        nome_azienda: nomeAziendaHeader || '', // Solo testo, il template lo formatterà
+                        logo_url: logoUrl || '',
+                        nome_azienda: nomeAziendaHeader || '',
                         nome_azienda_footer: nomeAziendaFooter || '',
                         indirizzo_azienda: indirizzoCompleto || '',
                         telefono_azienda: datiAzienda.telefono || '',
                         email_azienda: datiAzienda.email || '',
                         piva_azienda: datiAzienda.piva || ''
-                    };
-                    
-                    await emailjs.send(
-                        'service_f4to9qr',  // Service ID
-                        'template_9917fde',  // Template ID
-                        emailParams
-                    );
+                    });
 
                     emailInviata = true;
                     showAlert('✅ Invito creato e email inviata con successo!', 'success');

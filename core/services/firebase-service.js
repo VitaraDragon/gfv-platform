@@ -29,6 +29,7 @@ import {
   Timestamp,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
 
 // Re-export per moduli che importano da firebase-service (stesso SDK, niente "different Firestore SDK")
 export { signOut, onAuthStateChanged };
@@ -132,6 +133,18 @@ export function getAppInstance() {
  */
 export function getAppInstanceIfReady() {
   return app || null;
+}
+
+/** Regione Cloud Functions (allineata a functions/index.js). */
+const FUNCTIONS_REGION = "europe-west1";
+
+/**
+ * Restituisce una callable HTTPS Firebase (v2) per nome funzione.
+ * @param {string} functionName - es. 'sendTransactionalEmail'
+ */
+export function getHttpsCallable(functionName) {
+  const functions = getFunctions(getAppInstance(), FUNCTIONS_REGION);
+  return httpsCallable(functions, functionName);
 }
 
 /**
@@ -459,6 +472,7 @@ export default {
   getAuthInstance,
   getAppInstance,
   getAppInstanceIfReady,
+  getHttpsCallable,
   getCollection,
   getDocument,
   createDocument,

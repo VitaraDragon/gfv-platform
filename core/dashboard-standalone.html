@@ -91,6 +91,7 @@
     
     <!-- Firebase SDK da CDN -->
     <script type="module">
+        import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         // Usa funzioni dai moduli caricati
         const { waitForConfig, loadGoogleMapsAPI } = window.GFVConfigLoader;
         const { 
@@ -346,9 +347,7 @@
                     titolo = guasto.macchinaId ? 'Macchina' : 'Attrezzo';
                 }
 
-                const dataSegnalazione = guasto.segnalatoIl?.toDate 
-                    ? guasto.segnalatoIl.toDate().toLocaleDateString('it-IT')
-                    : new Date(guasto.segnalatoIl).toLocaleDateString('it-IT');
+                const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
 
                 const gravitaBadge = gravita === 'grave' 
                     ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">🔴 Grave</span>'

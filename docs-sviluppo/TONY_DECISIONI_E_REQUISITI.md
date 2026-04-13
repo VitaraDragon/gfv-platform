@@ -79,9 +79,9 @@
 |---|-----------|-------|-------|------|
 | 6.1 | ctx.azienda: terreni, terreniClienti, clienti, poderi, colture, categorie, tipiLavoro, macchine, trattori, attrezzi, prodotti, guastiAperti, summaryScadenze | CONTEXT_BUILDER, functions | implementato | |
 | 6.2 | ctx.attivita: terreni (coltura_categoria), colture_con_filari | CONTEXT_BUILDER | implementato | |
-| 6.3 | summarySottoScorta in ctx.azienda | CONTEXT_BUILDER | pianificato | Opzionale, prodotti raw già presenti |
+| 6.3 | summarySottoScorta in ctx.azienda | CONTEXT_BUILDER | implementato | `summarySottoScorta` + `prodottiSottoScorta`; prodotti con `scortaMinima`/`giacenza` (2026-04-11) |
 | 6.4 | tenantId dal client obbligatorio per Context Builder | CONTEXT_BUILDER | implementato | |
-| 6.5 | Prodotti con giacenza, sogliaMinima per sotto scorta | CONTEXT_BUILDER | implementato | prodotti in ctx, summarySottoScorta mancante |
+| 6.5 | Prodotti con giacenza, scortaMinima/sogliaMinima per sotto scorta | CONTEXT_BUILDER | implementato | prodotti in ctx + summarySottoScorta / prodottiSottoScorta |
 
 ---
 
@@ -105,8 +105,8 @@
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
 | 8.1 | Tony non genera grafici; descrive dati o naviga alla pagina | MASTER_PLAN | — | |
-| 8.2 | currentTableData: pageType, summary, items – pattern per domande informative | RIEPILOGO_CURRENTTABLEDATA | implementato | Terreni, Attività, Macchine, Magazzino |
-| 8.3 | Pagine con currentTableData: terreni, attivita, gestione lavori, prodotti, movimenti, trattori, attrezzi, guasti | DOBBIAMO_ANCORA_FARE | implementato | attivita-controller.js 1345-1356; gestione-lavori-controller.js renderLavori |
+| 8.2 | currentTableData: pageType, summary, items – pattern per domande informative | RIEPILOGO_CURRENTTABLEDATA | implementato | Vedi §8.3 per elenco pagine (allineato a `tony/STATO_ATTUALE.md`) |
+| 8.3 | Pagine con currentTableData (pageType) | STATO_ATTUALE | implementato | terreni, attivita, lavori, macchine, prodotti, movimenti, trattori, attrezzi, flotta, scadenze, guasti, clienti, preventivi, tariffe, terreniClienti, concimazioni_vigneto, concimazioni_frutteto, tracciabilita_consumi — altre liste admin/moduli da estendere con lo stesso canone |
 
 ---
 
@@ -149,7 +149,7 @@
 |------|---------------|-------|
 | 1 | Tony aggiunge terreno senza guidare passo-passo | parziale | Terreno usa OPEN_MODAL+fields |
 | 2 | "Ho trinciato 6 ore" da Dashboard → Tony apre modal, compila | completata | |
-| 3 | Tony risponde "Quali scadenze?" / "Come stanno i prodotti?" | in corso | summaryScadenze ok, summarySottoScorta opzionale |
+| 3 | Tony risponde "Quali scadenze?" / "Come stanno i prodotti?" / sotto scorta | in corso | summaryScadenze ok; summarySottoScorta ok (2026-04-11) |
 | 4 | Aggiungere prodotto/cliente richiede solo aggiornare mapping | in corso | Attività e Lavori ok |
 | 5 | "Mostrami statistiche vigneto" → apre e/o riassume | parziale | |
 | 6 | Tony segnala proattivamente scadenze e sotto scorta | da fare | |

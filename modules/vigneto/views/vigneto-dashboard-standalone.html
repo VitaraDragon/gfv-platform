@@ -467,6 +467,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
         const firebaseConfig = await waitForConfig();
         
@@ -669,14 +670,7 @@
                 
                 // Ultima vendemmia
                 if (statistiche.dataUltimaVendemmia) {
-                    const dataUltima = statistiche.dataUltimaVendemmia instanceof Date 
-                        ? statistiche.dataUltimaVendemmia 
-                        : new Date(statistiche.dataUltimaVendemmia);
-                    const dataFormattata = dataUltima.toLocaleDateString('it-IT', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
-                        year: 'numeric' 
-                    });
+                    const dataFormattata = formatDateLikeToItalianLongLocal(statistiche.dataUltimaVendemmia) || '';
                     document.getElementById('stat-ultima-vendemmia').textContent = dataFormattata;
                     
                     // Link alla vendemmia (se disponibile)
@@ -752,14 +746,7 @@
                 }
                 
                 vendemmie.forEach(vendemmia => {
-                    const dataVendemmia = vendemmia.data instanceof Date 
-                        ? vendemmia.data 
-                        : (vendemmia.data?.toDate ? vendemmia.data.toDate() : new Date(vendemmia.data));
-                    const dataFormattata = dataVendemmia.toLocaleDateString('it-IT', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
-                        year: 'numeric' 
-                    });
+                    const dataFormattata = formatDateLikeToItalianLongLocal(vendemmia.data) || '-';
                     
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -816,7 +803,7 @@
                         ? dataVal 
                         : new Date(dataVal || 0);
                     const dataFormattata = !isNaN(dataInizio.getTime()) 
-                        ? dataInizio.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        ? (formatDateLikeToItalianLongLocal(dataVal) || '-')
                         : (lavoro.data || '-');
                     const statoFormattato = lavoro.stato === 'completato' ? '✅ Completato' : lavoro.stato;
                     const isDiario = lavoro.source === 'diario';

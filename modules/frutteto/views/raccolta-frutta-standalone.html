@@ -636,6 +636,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
 
         function getBasePath() {
@@ -1159,11 +1160,8 @@
 
         function formatDate(d) {
             if (!d) return '-';
-            const date = d instanceof Date ? d : (d.toDate ? d.toDate() : new Date(d));
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${day}/${m}/${y}`;
+            const s = formatDateLikeToItalianLongLocal(d);
+            return s || '-';
         }
 
         function renderRaccolte() {

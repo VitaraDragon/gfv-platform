@@ -522,6 +522,7 @@
     </script>
 
     <script type="module">
+        import { formatDateTimeItalianReadable } from '../js/date-format-it.js';
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
@@ -1607,9 +1608,7 @@
                         ? '<span class="guasto-badge badge-risolto">✅ Risolto</span>'
                         : '<span class="guasto-badge badge-in-attesa">⏳ In attesa</span>';
 
-                    const dataSegnalazione = guasto.segnalatoIl?.toDate 
-                        ? guasto.segnalatoIl.toDate().toLocaleString('it-IT')
-                        : new Date(guasto.segnalatoIl).toLocaleString('it-IT');
+                    const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
 
                     html += `
                         <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'in-attesa' : ''}">
@@ -1629,7 +1628,7 @@
                                 <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
                                 <div><strong>Segnalato il:</strong> ${dataSegnalazione}</div>
                                 ${guasto.stato === 'risolto' ? `
-                                    <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? guasto.risoltoIl.toDate().toLocaleString('it-IT') : '-'}</div>
+                                    <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? formatDateTimeItalianReadable(guasto.risoltoIl) : '—'}</div>
                                     <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
                                     ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
                                 ` : ''}

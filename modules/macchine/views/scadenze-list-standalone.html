@@ -115,6 +115,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         (async function() {
             if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
                 window.currentTableData = { pageType: 'scadenze', summary: 'Caricamento dati in corso...', items: [] };
@@ -229,7 +230,7 @@
                 if (s == null) return '—';
                 if (typeof s === 'number') return Number(s).toLocaleString('it-IT') + ' ore';
                 const d = toDate(s);
-                return d ? d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+                return d ? formatDateLikeToItalianLongLocal(d) : '—';
             }
 
             function filterList() {

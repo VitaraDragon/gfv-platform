@@ -16,6 +16,12 @@ import {
     isCategoriaTrattamentiFitosanitari
 } from '../../config/trattamenti-lavoro-defaults.js';
 
+import {
+    dateLikeToIsoDateString,
+    formatIsoDateToItalianLong,
+    formatDateLikeToItalianLongLocal
+} from '../../js/date-format-it.js';
+
 // ============================================
 // FUNZIONI HELPER
 // ============================================
@@ -1654,6 +1660,7 @@ export async function renderLavori(
         const caposquadra = caposquadraListToUse.find(c => c.id === lav.caposquadraId);
         const operaio = operaiListToUse.find(o => o.id === lav.operaioId);
         const tipoLavoroNome = lav.tipoLavoro || lav.tipoLavoroNome || lav.categoriaLavoroNome || '-';
+        const diIso = dateLikeToIsoDateString(lav.dataInizio);
         return {
             id: lav.id,
             nome: lav.nome || '-',
@@ -1661,6 +1668,8 @@ export async function renderLavori(
             stato: lav.stato || '-',
             tipo: lav.clienteId ? 'conto_terzi' : 'interno',
             tipoLavoro: tipoLavoroNome,
+            dataInizio: diIso || '-',
+            dataInizioItaliana: diIso ? formatIsoDateToItalianLong(diIso) : '-',
             caposquadra: caposquadra ? `${(caposquadra.nome || '').trim()} ${(caposquadra.cognome || '').trim()}`.trim() || '-' : '-',
             operaio: operaio ? `${(operaio.nome || '').trim()} ${(operaio.cognome || '').trim()}`.trim() || '-' : '-'
         };
@@ -1926,8 +1935,8 @@ export async function renderLavori(
             responsabileHtml = `👤 ${escapeHtml(operaioNome)}`;
         }
         
-        const dataInizioFormatted = lavoro.dataInizio 
-            ? new Date(lavoro.dataInizio).toLocaleDateString('it-IT')
+        const dataInizioFormatted = lavoro.dataInizio
+            ? formatDateLikeToItalianLongLocal(lavoro.dataInizio)
             : 'N/A';
         const durata = lavoro.durataPrevista ? `${lavoro.durataPrevista} giorni` : 'N/A';
         const statoBadge = `<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>`;
@@ -2064,14 +2073,11 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         attrezzoGroup.style.display = 'none';
         return;
     }
-    
-    if (!trattore.cavalli) {
-        attrezzoGroup.style.display = 'none';
-        return;
-    }
+
+    // Sempre visibile con trattore valido (anche senza CV in anagrafica): altrimenti l’utente/Tony non può scegliere l’attrezzo.
+    attrezzoGroup.style.display = 'block';
     
     if (!attrezziList || attrezziList.length === 0) {
-        attrezzoGroup.style.display = 'block';
         const option = document.createElement('option');
         option.value = '';
         option.textContent = '-- Caricamento attrezzi... --';
@@ -2080,14 +2086,20 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         return;
     }
     
-    attrezzoGroup.style.display = 'block';
-    
-    // Filtra attrezzi compatibili
+    const cvTrattore = Number(trattore.cavalli);
+    const hasPotenzaTrattore = Number.isFinite(cvTrattore) && cvTrattore > 0;
+
+    // Come attività: CV minimo mancante → 0; senza potenza trattore non filtriamo per CV (mostriamo tutti gli attrezzi non dismessi).
     const attrezziCompatibili = attrezziList.filter(attrezzo => {
-        if (!attrezzo.cavalliMinimiRichiesti) {
+        if (!attrezzo || attrezzo.stato === 'dismesso') {
             return false;
         }
-        return trattore.cavalli >= attrezzo.cavalliMinimiRichiesti;
+        if (!hasPotenzaTrattore) {
+            return true;
+        }
+        const minRaw = attrezzo.cavalliMinimiRichiesti;
+        const minN = minRaw != null && minRaw !== '' && Number.isFinite(Number(minRaw)) ? Number(minRaw) : 0;
+        return cvTrattore >= minN;
     });
     
     if (attrezziCompatibili.length === 0) {
@@ -2107,7 +2119,8 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         const cvMin = attrezzo.cavalliMinimiRichiesti ? ` (min ${attrezzo.cavalliMinimiRichiesti} CV)` : '';
         const stato = attrezzo.stato === 'disponibile' ? '✅' : attrezzo.stato === 'in_uso' ? '🔄' : '⚠️';
         option.textContent = `${stato} ${nome} - ${categoriaNome}${cvMin}`;
-        option.disabled = attrezzo.stato === 'in_uso' || attrezzo.stato === 'in_manutenzione' || attrezzo.stato === 'guasto';
+        // Come diario attività: non disabilitare — altrimenti select.value / iniezione Tony non possono selezionare; il salvataggio gestisce conflitti.
+        option.disabled = false;
         select.appendChild(option);
     });
 }
@@ -2331,7 +2344,7 @@ export async function loadDettaglioOverview(
                     <strong>Caposquadra:</strong> ${caposquadra ? `${caposquadra.nome || ''} ${caposquadra.cognome || ''}`.trim() : 'N/A'}
                 </div>
                 <div>
-                    <strong>Data Inizio:</strong> ${lavoro.dataInizio ? new Date(lavoro.dataInizio).toLocaleDateString('it-IT') : 'N/A'}
+                    <strong>Data Inizio:</strong> ${lavoro.dataInizio ? formatDateLikeToItalianLongLocal(lavoro.dataInizio) : 'N/A'}
                 </div>
                 <div>
                     <strong>Durata Prevista:</strong> ${lavoro.durataPrevista || 0} giorni

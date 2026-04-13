@@ -10,6 +10,13 @@
 // Le importazioni Firebase verranno fatte nel file HTML principale
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
+import {
+    dateLikeToIsoDateString,
+    formatIsoDateToItalianLong,
+    formatDateLikeToItalianLongLocal,
+    formatDateLikeToItalianLongWeekday
+} from './date-format-it.js';
+
 // ============================================
 // FUNZIONI HELPER
 // ============================================
@@ -1332,9 +1339,11 @@ export async function renderAttivita(params) {
     const itemsForTony = filteredAttivita.map((att) => {
         const terreno = (terreni || []).find((t) => t.id === att.terrenoId);
         const terrenoNome = terreno ? (terreno.nome || '-') : (att.terrenoNome || '-');
+        const dataIso = att.data ? dateLikeToIsoDateString(att.data) : '';
         return {
             id: att.id,
-            data: att.data ? String(att.data).slice(0, 10) : '-',
+            data: dataIso || '-',
+            dataItaliana: dataIso ? formatIsoDateToItalianLong(dataIso) : '-',
             terreno: terrenoNome,
             tipoLavoro: att.tipoLavoro || '-',
             oreNette: att.oreNette != null ? att.oreNette : '-',
@@ -1658,7 +1667,7 @@ export async function renderAttivita(params) {
                 <div class="col-azioni">Azioni</div>
             </div>
             ${filteredAttivita.map(att => {
-                const dataFormatted = att.data ? new Date(att.data + 'T00:00:00').toLocaleDateString('it-IT') : '';
+                const dataFormatted = att.data ? formatDateLikeToItalianLongLocal(att.data) : '';
                 const pauseFormatted = `${att.pauseMinuti} min`;
                 const oreFormatted = formatOreNette(att.oreNette || 0);
                 
@@ -2053,13 +2062,7 @@ export async function caricaDettagliLavoriCompletati(params) {
                             ${dateZone.map(dataKey => {
                                 const zoneGiorno = zonePerData[dataKey] || [];
                                 const oreGiorno = orePerData[dataKey] || { validate: 0, daValidare: 0, totale: 0 };
-                                const dataObj = new Date(dataKey);
-                                const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                });
+                                const dataFormatted = formatDateLikeToItalianLongWeekday(dataKey);
                                 const superficieGiorno = zoneGiorno.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
                                 
                                 return `
@@ -2101,13 +2104,7 @@ export async function caricaDettagliLavoriCompletati(params) {
                             
                             ${Object.keys(orePerData).filter(dataKey => !dateZone.includes(dataKey)).map(dataKey => {
                                 const oreGiorno = orePerData[dataKey];
-                                const dataObj = new Date(dataKey);
-                                const dataFormatted = dataObj.toLocaleDateString('it-IT', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                });
+                                const dataFormatted = formatDateLikeToItalianLongWeekday(dataKey);
                                 
                                 return `
                                     <div style="background: #E3F2FD; padding: 12px; border-radius: 6px; border-left: 4px solid #1976D2;">
@@ -2146,7 +2143,7 @@ export async function caricaDettagliLavoriCompletati(params) {
                                     return true;
                                 })
                                 .map(att => {
-                                    const dataFormatted = att.data ? new Date(att.data + 'T00:00:00').toLocaleDateString('it-IT') : '';
+                                    const dataFormatted = att.data ? formatDateLikeToItalianLongLocal(att.data) : '';
                                     const oreFormatted = formatOreNette(att.oreNette || 0);
                                     return `
                                         <div style="background: #F5F5F5; padding: 10px; border-radius: 6px; border-left: 3px solid #1976D2;">

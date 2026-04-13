@@ -7,7 +7,13 @@
   "functions": {"source": "functions"},
   "hosting": {
     "target": "default",
-    "public": ".",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/functions/**", "**/docs-sviluppo/**", "**/documentazione-utente/**"]
+    "public": "landing/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/functions/**", "**/docs-sviluppo/**", "**/documentazione-utente/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

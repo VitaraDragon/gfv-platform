@@ -5,6 +5,10 @@
  */
 
 import { query, where } from '../services/firebase-service.js';
+import {
+    formatDateLikeToItalianLongLocal,
+    formatDateLikeToItalianLongWeekday
+} from './date-format-it.js';
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -49,8 +53,7 @@ export function calcolaAlertAffitto(dataScadenza) {
  */
 export function formattaDataScadenza(data) {
     if (!data) return '';
-    const d = data.toDate ? data.toDate() : new Date(data);
-    return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDateLikeToItalianLongLocal(data);
 }
 
 /**
@@ -1158,11 +1161,7 @@ export async function loadDiarioDaLavori(userData, dependencies) {
         `;
         
         attivitaMostrate.forEach(att => {
-            const dataFormatted = att.data.toLocaleDateString('it-IT', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric' 
-            });
+            const dataFormatted = formatDateLikeToItalianLongLocal(att.data);
             const oreFormatted = formattaOre(att.oreNette);
             const isContoTerzi = !!att.clienteId;
             const rowClass = isContoTerzi ? 'lavoro-conto-terzi-dashboard' : '';
@@ -1442,12 +1441,7 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
         }
         
         container.innerHTML = comunicazioniAttive.map(comm => {
-            const dataFormatted = comm.dataCom.toLocaleDateString('it-IT', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
+            const dataFormatted = formatDateLikeToItalianLongWeekday(comm.dataCom);
             const oraFormatted = comm.orario || '07:00';
             
             const confermaButton = comm.haConfermato ? 
@@ -1628,11 +1622,7 @@ export async function loadLavoriOggiOperaio(userData, dependencies) {
         }
         
         container.innerHTML = lavoriOggi.slice(0, 5).map(lavoro => {
-            const dataFormatted = lavoro.dataInizio.toLocaleDateString('it-IT', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric' 
-            });
+            const dataFormatted = formatDateLikeToItalianLongLocal(lavoro.dataInizio);
             const statoLabel = {
                 'assegnato': 'Assegnato',
                 'in_corso': 'In Corso',
@@ -1806,11 +1796,7 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
         `;
         
         oreRecenti.slice(0, 5).forEach(ora => {
-            const dataFormatted = ora.data.toLocaleDateString('it-IT', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric' 
-            });
+            const dataFormatted = formatDateLikeToItalianLongLocal(ora.data);
             const oreFormatted = Math.floor(ora.oreNette) + 'h ' + Math.round((ora.oreNette % 1) * 60) + 'min';
             const statoBadge = {
                 'validate': '<span style="background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">✅ Validate</span>',
@@ -2017,10 +2003,7 @@ export async function loadComunicazioniInviateCaposquadra(userData, dependencies
         // Mostra solo l'ultima comunicazione
         const comm = comunicazioniArray[0];
         const dataCom = comm.data?.toDate ? comm.data.toDate() : new Date(comm.data);
-        const dataFormatted = dataCom.toLocaleDateString('it-IT', { 
-            day: 'numeric',
-            month: 'short'
-        });
+        const dataFormatted = formatDateLikeToItalianLongLocal(dataCom);
         const oraFormatted = comm.orario || '07:00';
         
         const numDestinatari = comm.destinatari?.length || 0;

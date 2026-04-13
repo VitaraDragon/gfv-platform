@@ -677,34 +677,13 @@
                 // Genera link di reset password usando Firebase Auth
                 // Firebase Auth verifica automaticamente che l'email esista
                 // Se l'email non esiste, Firebase restituirà errore 'auth/user-not-found'
+                // L'email di reset è inviata da Firebase Auth (template e mittente: Firebase Console → Authentication → Templates).
+                // Per usare lo stesso mittente Resend servirebbe Callable + Admin SDK (generatePasswordResetLink) + invio custom: solo se serve parità assoluta col resto della posta.
                 await sendPasswordResetEmail(auth, email, actionCodeSettings);
-                
-                // NOTA: Firebase invia automaticamente l'email, ma noi vogliamo usare EmailJS
-                // Quindi dobbiamo intercettare il link generato da Firebase
-                // Purtroppo sendPasswordResetEmail non ritorna il link, lo invia direttamente
-                // 
-                // Soluzione alternativa: usiamo Firebase per generare il link programmaticamente
-                // ma questo richiede Firebase Admin SDK...
-                //
-                // Per ora, usiamo un approccio diverso:
-                // 1. Firebase genera e invia email automaticamente (fallback)
-                // 2. Oppure generiamo link manualmente usando la stessa logica di Firebase
-                
-                // Per la soluzione ibrida completa, dobbiamo:
-                // - Usare Firebase per validare l'email e generare il codice
-                // - Intercettare il link generato
-                // - Inviarlo con EmailJS
-                
-                // Soluzione temporanea: Firebase invia email automaticamente
-                // In futuro possiamo migliorare usando Admin SDK per generare link programmaticamente
-                
+
                 hideLoading();
-                showSuccess(`Email di reset password inviata a ${email} da Firebase. Controlla la tua casella di posta e segui le istruzioni.`);
-                
-                // TODO: Per usare EmailJS invece di Firebase email, serve:
-                // 1. Endpoint server con Admin SDK che genera link
-                // 2. Oppure configurare Firebase per non inviare email e generare link manualmente
-                
+                showSuccess(`Email di reset inviata a ${email}. Controlla la casella di posta (anche spam) e segui il link.`);
+
             } catch (error) {
                 hideLoading();
                 console.error('Errore invio email reset:', error);
@@ -731,14 +710,6 @@
             }
         }
 
-    </script>
-    
-    <!-- EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function(){
-            emailjs.init("AnLLhJOew6d6sCIOG");
-        })();
     </script>
     
     <!-- Service Worker Registration for PWA -->

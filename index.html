@@ -1,36 +1,94 @@
 <!DOCTYPE html>
-<!-- Updated: trigger GitHub Pages deploy -->
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GFV Platform - Redirecting...</title>
+    <meta name="description" content="GFVagri — Piattaforma per l'agricoltura. Stiamo arrivando.">
+    <title>GFVagri — Stiamo arrivando</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2E8B57">
-    <meta http-equiv="refresh" content="0; url=core/auth/login-standalone.html">
-    <script>
-        // Redirect immediato alla pagina di login
-        window.location.href = 'core/auth/login-standalone.html';
-    </script>
+    <link rel="icon" type="image/png" href="core/images/icon-192x192.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: radial-gradient(ellipse 120% 80% at 50% 0%, #e8f2eb 0%, #cfd9d3 45%, #b8c4bc 100%);
+            color: #1a2e22;
+        }
+        .card {
+            width: 100%;
+            max-width: 520px;
+            text-align: center;
+            padding: 2.5rem 2rem 2.75rem;
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 20px;
+            box-shadow:
+                0 4px 24px rgba(26, 46, 34, 0.08),
+                0 1px 3px rgba(26, 46, 34, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .logo-wrap { display: flex; justify-content: center; margin-bottom: 1.25rem; }
+        .logo-mark {
+            width: 112px;
+            height: 112px;
+            object-fit: contain;
+            display: block;
+        }
+        .brand {
+            margin: 0 0 1rem;
+            font-size: clamp(1.75rem, 5vw, 2.125rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #143828;
+        }
+        .tagline {
+            margin: 0 0 1.75rem;
+            font-size: 1.05rem;
+            line-height: 1.55;
+            color: #3d5347;
+        }
+        .cta {
+            margin: 0 0 0.75rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #1f6f4a;
+        }
+        .hint { margin: 0; font-size: 0.9rem; color: #5c6f63; }
+    </style>
 </head>
 <body>
-    <p>Reindirizzamento in corso... <a href="core/auth/login-standalone.html">Clicca qui se non vieni reindirizzato automaticamente</a></p>
-    
-    <!-- Service Worker Registration for PWA -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/gfv-platform/service-worker.js')
-                    .then((registration) => {
-                        console.log('Service Worker registrato con successo:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Registrazione Service Worker fallita:', error);
-                    });
-            });
-        }
-    </script>
+    <main class="card" aria-labelledby="brand-title">
+        <div class="logo-wrap">
+            <img
+                class="logo-mark"
+                src="core/images/icon-512x512.png"
+                srcset="
+                    core/images/icon-192x192.png 192w,
+                    core/images/icon-256x256.png 256w,
+                    core/images/icon-512x512.png 512w"
+                sizes="112px"
+                width="112"
+                height="112"
+                alt="GFVagri"
+                decoding="async"
+            >
+        </div>
+        <h1 id="brand-title" class="brand">GFVagri</h1>
+        <p class="tagline">
+            La piattaforma digitale per gestire vigneti, frutteti, magazzino e lavoro in campo —
+            pensata per le aziende agricole che vogliono ordine, tracciabilità e meno carta.
+        </p>
+        <p class="cta">Stiamo arrivando</p>
+        <p class="hint">Resta aggiornato: a breve apriremo gli accessi.</p>
+    </main>
 </body>
 </html>
-
-

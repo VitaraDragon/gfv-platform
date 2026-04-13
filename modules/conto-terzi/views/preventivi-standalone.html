@@ -281,8 +281,6 @@
 
         /* Responsive: ../../../core/styles/responsive-standalone.css */
     </style>
-    <!-- EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -380,7 +378,8 @@
     
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { initializeFirebase, getAuthInstance, getDb, getHttpsCallable } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
 
@@ -412,22 +411,11 @@
         initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
+        const sendTransactionalEmail = getHttpsCallable('sendTransactionalEmail');
 
         if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
             window.currentTableData = { pageType: 'preventivi', summary: 'Caricamento dati in corso...', items: [] };
         }
-
-        // Inizializza EmailJS quando disponibile
-        function initEmailJS() {
-            if (typeof emailjs !== 'undefined') {
-                emailjs.init("AnLLhJOew6d6sCIOG");
-                console.log('✅ EmailJS inizializzato');
-            } else {
-                // Riprova dopo un breve delay
-                setTimeout(initEmailJS, 100);
-            }
-        }
-        initEmailJS();
 
         let currentUser = null;
         let currentTenantId = null;
@@ -881,8 +869,11 @@
                     'annullato': { text: '🚫 Annullato', class: 'badge-secondary' }
                 }[preventivo.stato] || { text: preventivo.stato, class: 'badge-secondary' };
                 
-                const scadenzaFormattata = preventivo.dataScadenza ? 
-                    preventivo.dataScadenza.toLocaleDateString('it-IT') : '-';
+                const scadenzaFormattata = preventivo.dataScadenza
+                    ? (formatDateLikeToItalianLongLocal(
+                        preventivo.dataScadenza.toDate ? preventivo.dataScadenza.toDate() : preventivo.dataScadenza
+                      ) || '-')
+                    : '-';
                 
                 html += '<tr>';
                 html += `<td><strong>${escapeHtml(preventivo.numero || '')}</strong></td>`;
@@ -960,9 +951,11 @@
                 const accettazioneUrl = `${baseUrl}/accetta-preventivo-standalone.html?token=${preventivo.tokenAccettazione}`;
 
                 // Formatta dati per email
-                const scadenzaFormattata = preventivo.dataScadenza?.toDate ? 
-                    preventivo.dataScadenza.toDate().toLocaleDateString('it-IT') : 
-                    (preventivo.dataScadenza ? new Date(preventivo.dataScadenza).toLocaleDateString('it-IT') : '-');
+                const scadenzaFormattata = preventivo.dataScadenza
+                    ? (formatDateLikeToItalianLongLocal(
+                        preventivo.dataScadenza.toDate ? preventivo.dataScadenza.toDate() : preventivo.dataScadenza
+                      ) || '-')
+                    : '-';
                 
                 const totaleImponibile = `€ ${(preventivo.totale || 0).toFixed(2)}`;
                 const totaleIva = `€ ${((preventivo.totaleConIva || 0) - (preventivo.totale || 0)).toFixed(2)}`;
@@ -1022,14 +1015,14 @@
                     // Continua con dati vuoti
                 }
 
-                // Prepara variabili azienda per template email
-                // Logo URL (solo URL, non HTML - il template EmailJS userà l'URL per creare l'immagine)
+                // Prepara variabili azienda per template email (HTML generato lato server / Resend)
+                // Logo URL (solo URL https — il template server costruisce <img>)
                 let logoUrl = '';
                 if (datiAzienda.logoUrl && datiAzienda.logoUrl.startsWith('http')) {
                     logoUrl = datiAzienda.logoUrl; // Solo URL, non HTML
                 }
                 
-                // Nome azienda nell'header: solo testo semplice, il template EmailJS lo formatterà
+                // Nome azienda nell'header: testo semplice
                 let nomeAziendaHeader = datiAzienda.nome || ''; // Assicurati che sia sempre una stringa
                 
                 // Nome azienda nel footer: testo semplice
@@ -1074,24 +1067,17 @@
                     pivaAziendaHtml = `<p style="margin: 0 0 10px 0; color: #666; font-size: 12px;">P.IVA: ${datiAzienda.piva}</p>`;
                 }
 
-                // Invia email tramite EmailJS
+                // Invio email tramite Resend (Cloud Function sendTransactionalEmail)
                 let emailInviata = false;
                 try {
-                    if (typeof emailjs === 'undefined') {
-                        throw new Error('EmailJS non caricato');
-                    }
-
-                    // Prepara oggetto variabili per EmailJS
-                    // Includiamo tutte le variabili azienda (anche se vuote) per compatibilità con template completo
                     const emailParams = {
-                        email: cliente.email,  // Indirizzo email destinatario (richiesto da EmailJS)
                         ragione_sociale: cliente.ragioneSociale || 'Cliente',
                         numero_preventivo: preventivo.numero || '',
                         tipo_lavoro: preventivo.tipoLavoro || '',
                         coltura: preventivo.coltura || '',
-                        tipo_campo: preventivo.tipoCampo === 'pianura' ? 'Pianura' : 
-                                   preventivo.tipoCampo === 'collina' ? 'Collina' : 
-                                   preventivo.tipoCampo === 'montagna' ? 'Montagna' : preventivo.tipoCampo || '',
+                        tipo_campo: preventivo.tipoCampo === 'pianura' ? 'Pianura' :
+                            preventivo.tipoCampo === 'collina' ? 'Collina' :
+                            preventivo.tipoCampo === 'montagna' ? 'Montagna' : preventivo.tipoCampo || '',
                         superficie: superficieFormattata,
                         terreno_nome: terrenoNome,
                         totale_imponibile: totaleImponibile,
@@ -1102,9 +1088,8 @@
                         link_accettazione: accettazioneUrl,
                         link_rifiuto: rifiutoUrl,
                         note: preventivo.note || '',
-                        // Dati azienda per branding
-                        logo_url: logoUrl || '', // Solo URL del logo (non HTML)
-                        nome_azienda: nomeAziendaHeader || '', // Solo testo, il template lo formatterà
+                        logo_url: logoUrl || '',
+                        nome_azienda: nomeAziendaHeader || '',
                         nome_azienda_footer: nomeAziendaFooter || '',
                         indirizzo_azienda: datiAzienda.indirizzo || '',
                         citta_azienda: datiAzienda.citta || '',
@@ -1114,17 +1099,16 @@
                         piva_azienda: datiAzienda.piva || ''
                     };
 
-                    // Template EmailJS per preventivi
-                    await emailjs.send(
-                        'service_f4to9qr',  // Service ID
-                        'template_l29wzy8',  // Template ID - Template preventivo
-                        emailParams
-                    );
-                    console.log('✅ Email inviata con successo');
+                    await sendTransactionalEmail({
+                        type: 'preventivo',
+                        tenantId: currentTenantId,
+                        to: cliente.email.trim(),
+                        ...emailParams
+                    });
+                    console.log('✅ Email inviata con successo (Resend)');
                     emailInviata = true;
                 } catch (emailError) {
                     console.error('Errore invio email:', emailError);
-                    // Mostra modal con link come fallback
                     showLinkModal(accettazioneUrl, cliente.email, preventivo.numero);
                 }
 

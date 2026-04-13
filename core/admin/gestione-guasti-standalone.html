@@ -546,6 +546,7 @@
     </div>
 
     <script type="module">
+        import { formatDateTimeItalianReadable } from '../js/date-format-it.js';
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
@@ -956,9 +957,7 @@
                     const operaio = usersMap.get(guasto.segnalatoDa);
                     const operaioNome = operaio ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email : 'Operaio sconosciuto';
 
-                    const dataSegnalazione = guasto.segnalatoIl?.toDate 
-                        ? guasto.segnalatoIl.toDate().toLocaleString('it-IT')
-                        : new Date(guasto.segnalatoIl).toLocaleString('it-IT');
+                    const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
 
                     const stato = guasto.stato || 'in-attesa';
                     const gravitaBadge = guasto.gravita === 'grave' 
@@ -1034,7 +1033,7 @@
                                 <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
                                 ${lavoroNome ? `<div><strong>Lavoro associato:</strong> ${lavoroNome}</div>` : ''}
                                 ${guasto.stato === 'risolto' ? `
-                                    <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? guasto.risoltoIl.toDate().toLocaleString('it-IT') : '-'}</div>
+                                    <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? formatDateTimeItalianReadable(guasto.risoltoIl) : '—'}</div>
                                     <div><strong>Risolto da:</strong> ${guasto.risoltoDa ? (usersMap.get(guasto.risoltoDa)?.nome || usersMap.get(guasto.risoltoDa)?.email || 'Sconosciuto') : 'Sconosciuto'}</div>
                                     <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
                                     ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}

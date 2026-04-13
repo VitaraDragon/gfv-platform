@@ -328,6 +328,7 @@
     <script src="../../../core/js/config-loader.js"></script>
     <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
     <script type="module">
+        import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         function getBasePath() {
             if (window.location.protocol === 'file:') return '';
             const pathname = window.location.pathname;
@@ -348,8 +349,8 @@
 
         function formatDate(d) {
             if (!d) return '-';
-            const date = d instanceof Date ? d : (d?.toDate ? d.toDate() : new Date(d));
-            return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('it-IT');
+            const s = formatDateLikeToItalianLongLocal(d);
+            return s || '-';
         }
 
         function showAlert(msg, type) {

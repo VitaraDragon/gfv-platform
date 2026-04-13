@@ -1,3 +1,5 @@
+import { formatDateLikeToItalianLongLocal } from './date-format-it.js';
+
 /**
  * Terreni Utils - Funzioni utility per gestione terreni
  * 
@@ -89,12 +91,11 @@ export function calcolaAlertAffitto(dataScadenza) {
 /**
  * Formatta data scadenza per visualizzazione
  * @param {Date|Timestamp|string} data - Data da formattare
- * @returns {string} Data formattata (es: "01/01/2025")
+ * @returns {string} Data formattata (es: "10 aprile 2026")
  */
 export function formattaDataScadenza(data) {
     if (!data) return '';
-    const d = data.toDate ? data.toDate() : new Date(data);
-    return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDateLikeToItalianLongLocal(data);
 }
 
 // ============================================

@@ -4,6 +4,8 @@
  * @module core/admin/js/gestione-macchine-utils
  */
 
+import { formatDateLikeToItalianLongLocal } from '../../js/date-format-it.js';
+
 // ============================================
 // FUNZIONI UTILITY GENERICHE
 // ============================================
@@ -54,8 +56,8 @@ export function escapeHtml(text) {
  */
 export function formattaData(data) {
     if (!data) return '-';
-    const d = data.toDate ? data.toDate() : new Date(data);
-    return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const s = formatDateLikeToItalianLongLocal(data);
+    return s || '-';
 }
 
 // ============================================

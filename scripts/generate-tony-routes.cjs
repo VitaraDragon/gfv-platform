@@ -138,7 +138,10 @@ function main() {
           else if (rel.includes('nuovo-preventivo')) targetKey = 'nuovo preventivo';
           else if (rel.includes('accetta-preventivo')) targetKey = 'accetta preventivo';
         } else if (mod === 'report') {
-          targetKey = 'report';
+          if (rel.includes('report-dashboard')) targetKey = 'report';
+          else if (rel.includes('report-terreni')) targetKey = 'report terreni';
+          else if (rel.includes('report-standalone')) targetKey = 'report vigneto';
+          else targetKey = 'report';
         } else if (mod === 'macchine') {
           if (rel.includes('macchine-dashboard')) targetKey = 'macchine';
           else if (rel.includes('trattori-list')) targetKey = 'elenco trattori';

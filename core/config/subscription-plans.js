@@ -132,11 +132,10 @@ export const AVAILABLE_MODULES = [
     id: 'report',
     name: 'Report/Bilancio',
     icon: '📑',
-    description: 'Report unificati e export avanzato',
+    description: 'Dashboard report per area (Terreni, Vigneto, …), sintesi ed export dove disponibile',
     price: 5,
-    available: false, // Da sviluppare
-    category: 'utility',
-    badge: 'Prossimamente'
+    available: true,
+    category: 'utility'
   }
 ];
 
