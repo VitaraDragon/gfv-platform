@@ -514,6 +514,23 @@
             color: #333;
         }
 
+        .map-gps-hint {
+            width: 100%;
+            flex-basis: 100%;
+            margin: 0;
+            padding: 0 2px 4px;
+            font-size: 0.82rem;
+            color: #555;
+            line-height: 1.35;
+        }
+
+        .map-gps-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
         .alert {
             padding: 12px 16px;
             border-radius: 6px;
@@ -693,6 +710,13 @@
                             </div>
                             <button type="button" class="btn btn-success" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Confini</button>
                             <button type="button" class="btn btn-danger" onclick="clearPolygon()">🗑️ Cancella</button>
+                            <div class="map-gps-buttons">
+                                <button type="button" class="btn btn-secondary" onclick="centerMapOnMyLocation()" title="Centra la mappa sulla tua posizione">📍 Centra sulla mia posizione</button>
+                                <button type="button" class="btn btn-secondary" onclick="addGpsVertexToPolygon()" title="Aggiunge un vertice del poligono nella posizione GPS corrente">➕ Punto da GPS</button>
+                            </div>
+                            <p class="map-gps-hint" id="map-gps-hint">
+                                <strong>GPS:</strong> la posizione è approssimativa (spesso ± diversi metri, peggio sotto copertura). Usa la vista satellite e regola i vertici a mano per i confini reali.
+                            </p>
                         </div>
                         <div id="map"></div>
                         <div class="map-info" id="map-info">
@@ -774,7 +798,9 @@
             searchLocation as searchLocationModule,
             toggleDrawing as toggleDrawingModule,
             clearPolygon as clearPolygonModule,
-            loadExistingPolygon as loadExistingPolygonModule
+            loadExistingPolygon as loadExistingPolygonModule,
+            centerMapOnMyLocation as centerMapOnMyLocationModule,
+            addGpsVertexToPolygon as addGpsVertexToPolygonModule
         } from './js/terreni-maps.js';
 
         import {
@@ -793,6 +819,8 @@
             maybeAutoStartTerreniTour as maybeAutoStartTerreniTourModule,
             startTerreniTour as startTerreniTourModule
         } from './js/terreni-tour.js';
+
+        import { formatIsoDateToItalianLong } from './js/date-format-it.js';
 
         // Attendi che le configurazioni siano caricate
         await waitForConfigModule();
@@ -1027,6 +1055,8 @@
                 ? terreno.dataScadenzaAffitto.toDate().toISOString()
                 : (terreno.dataScadenzaAffitto ? String(terreno.dataScadenzaAffitto).slice(0, 19).replace('Z', '') : null);
             out.scadenza = calcolaScadenzaUtil(terreno);
+            var scIso = (out.scadenza && out.scadenza !== 'N/A') ? String(out.scadenza).slice(0, 10) : '';
+            out.scadenzaItaliana = /^\d{4}-\d{2}-\d{2}$/.test(scIso) ? formatIsoDateToItalianLong(scIso) : '';
             out.statoContratto = calcolaStatoUtil(terreno);
             return out;
         }
@@ -1292,6 +1322,14 @@
             clearPolygonModule(terreniState, updateState);
         }
 
+        function centerMapOnMyLocationWrapper() {
+            return centerMapOnMyLocationModule(terreniState);
+        }
+
+        function addGpsVertexToPolygonWrapper() {
+            return addGpsVertexToPolygonModule(terreniState, updateState, () => terreniState);
+        }
+
         // Wrapper per loadExistingPolygon
         function loadExistingPolygonWrapper(polygonCoords) {
             loadExistingPolygonModule(polygonCoords, terreniState, updateState);
@@ -1384,6 +1422,8 @@
         window.toggleDrawing = toggleDrawingWrapper;
         window.clearPolygon = clearPolygonWrapper;
         window.loadExistingPolygon = loadExistingPolygonWrapper;
+        window.centerMapOnMyLocation = centerMapOnMyLocationWrapper;
+        window.addGpsVertexToPolygon = addGpsVertexToPolygonWrapper;
 
         // Setup tour button
         setupTerreniTourButtonWrapper();

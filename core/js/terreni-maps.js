@@ -9,11 +9,198 @@
 // ============================================
 import { getColturaColor, showAlert } from './terreni-utils.js';
 
+/** Overlay ultima posizione GPS (non persistito in Firestore) */
+let userLocationMarker = null;
+let userLocationAccuracyCircle = null;
+
+const GEOLOCATION_OPTIONS = {
+    enableHighAccuracy: true,
+    timeout: 25000,
+    maximumAge: 0
+};
+
 // ============================================
 // STATE MANAGEMENT
 // ============================================
 // Le variabili globali (map, polygon, isDrawing, currentPolygonCoords) 
 // verranno gestite tramite un state object o variabili globali nel file HTML principale
+
+// ============================================
+// GEOLOCALIZZAZIONE
+// ============================================
+
+/**
+ * Richiede posizione corrente (Promise).
+ * @returns {Promise<{ lat: number, lng: number, accuracyMeters: number|null }>}
+ */
+function getCurrentPositionGeo() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('GEO_NOT_SUPPORTED'));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                resolve({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracyMeters: typeof pos.coords.accuracy === 'number' && !Number.isNaN(pos.coords.accuracy)
+                        ? pos.coords.accuracy
+                        : null
+                });
+            },
+            (err) => reject(err),
+            GEOLOCATION_OPTIONS
+        );
+    });
+}
+
+function clearUserLocationOverlays() {
+    if (userLocationMarker) {
+        userLocationMarker.setMap(null);
+        userLocationMarker = null;
+    }
+    if (userLocationAccuracyCircle) {
+        userLocationAccuracyCircle.setMap(null);
+        userLocationAccuracyCircle = null;
+    }
+}
+
+/**
+ * Aggiunge un vertice al poligono (stesso comportamento di un click sulla mappa).
+ */
+function appendVertexFromLatLng(map, latLng, getState, updateState) {
+    const currentState = getState();
+    if (!currentState.isDrawing) {
+        return false;
+    }
+    if (!currentState.polygon) {
+        const colors = getColturaColor();
+        const polygon = new google.maps.Polygon({
+            paths: [latLng],
+            fillColor: colors.fill + '80',
+            fillOpacity: 0.35,
+            strokeColor: colors.stroke,
+            strokeWeight: 3,
+            strokeOpacity: 1.0,
+            clickable: false,
+            editable: true,
+            draggable: true
+        });
+        polygon.setMap(map);
+        const currentPolygonCoords = [latLng];
+        updateState({ polygon, currentPolygonCoords });
+    } else {
+        const path = currentState.polygon.getPath();
+        path.push(latLng);
+        const currentPolygonCoords = path.getArray();
+        updateState({ currentPolygonCoords });
+    }
+    setTimeout(() => {
+        const updatedState = getState();
+        if (updatedState.currentPolygonCoords && updatedState.currentPolygonCoords.length >= 3) {
+            const mapInfo = document.getElementById('map-info');
+            if (mapInfo) mapInfo.classList.add('active');
+            updateAreaInfo(updatedState);
+        }
+    }, 0);
+    return true;
+}
+
+/**
+ * Centra la mappa sulla posizione GPS corrente e mostra indicatore + cerchio di incertezza (approssimativo).
+ * @param {Object} state - { map }
+ */
+export async function centerMapOnMyLocation(state) {
+    if (!state.map || !google || !google.maps) {
+        showAlert('Mappa non disponibile.', 'warning');
+        return;
+    }
+    try {
+        const { lat, lng, accuracyMeters } = await getCurrentPositionGeo();
+        const pos = new google.maps.LatLng(lat, lng);
+        clearUserLocationOverlays();
+        state.map.setCenter(pos);
+        state.map.setZoom(18);
+
+        userLocationMarker = new google.maps.Marker({
+            map: state.map,
+            position: pos,
+            title: 'La tua posizione (approssimativa)'
+        });
+
+        if (accuracyMeters != null && accuracyMeters > 0 && accuracyMeters < 5000) {
+            userLocationAccuracyCircle = new google.maps.Circle({
+                map: state.map,
+                center: pos,
+                radius: accuracyMeters,
+                strokeColor: '#1a73e8',
+                strokeOpacity: 0.55,
+                strokeWeight: 1,
+                fillColor: '#1a73e8',
+                fillOpacity: 0.08,
+                clickable: false
+            });
+        }
+
+        const accText = accuracyMeters != null && accuracyMeters > 0
+            ? ` Precisione stimata dal dispositivo: circa ±${Math.round(accuracyMeters)} m (non è un confine certificato).`
+            : ' La precisione dipende dal dispositivo e dal contesto (boschi, edifici, meteo).';
+        showAlert(
+            'Posizione aggiornata.' + accText + ' Allinea sempre i vertici del poligono a ciò che vedi in satellite.',
+            'success'
+        );
+    } catch (err) {
+        if (err && err.code === 1) {
+            showAlert('Posizione negata: abilita i permessi di localizzazione per il sito nelle impostazioni del browser.', 'error');
+        } else if (err && err.code === 2) {
+            showAlert('Posizione non disponibile al momento. Riprova all\'aperto o verifica il GPS.', 'warning');
+        } else if (err && err.code === 3) {
+            showAlert('Timeout lettura posizione. Riprova.', 'warning');
+        } else if (err && err.message === 'GEO_NOT_SUPPORTED') {
+            showAlert('Il browser non supporta la geolocalizzazione.', 'error');
+        } else {
+            showAlert('Impossibile ottenere la posizione. Riprova.', 'error');
+        }
+    }
+}
+
+/**
+ * Aggiunge un vertice del poligono usando la posizione GPS attuale (in campo, camminando il perimetro).
+ * @param {Object} state
+ * @param {Function} updateState
+ * @param {Function} getState
+ */
+export async function addGpsVertexToPolygon(state, updateState, getState = () => state) {
+    if (!state.map || !google || !google.maps) {
+        showAlert('Mappa non disponibile.', 'warning');
+        return;
+    }
+    const currentState = getState();
+    if (!currentState.isDrawing) {
+        showAlert('Attiva prima «Traccia Confini», poi aggiungi i punti da GPS o toccando la mappa.', 'warning');
+        return;
+    }
+    try {
+        const { lat, lng, accuracyMeters } = await getCurrentPositionGeo();
+        const latLng = new google.maps.LatLng(lat, lng);
+        appendVertexFromLatLng(state.map, latLng, getState, updateState);
+        const accText = accuracyMeters != null && accuracyMeters > 0
+            ? ` (± circa ${Math.round(accuracyMeters)} m)`
+            : '';
+        showAlert('Vertice aggiunto dalla posizione GPS' + accText + '. Verifica e regola i vertici sulla mappa se serve.', 'success');
+    } catch (err) {
+        if (err && err.code === 1) {
+            showAlert('Posizione negata: abilita i permessi di localizzazione.', 'error');
+        } else if (err && err.code === 3) {
+            showAlert('Timeout lettura posizione. Riprova.', 'warning');
+        } else if (err && err.message === 'GEO_NOT_SUPPORTED') {
+            showAlert('Geolocalizzazione non supportata da questo browser.', 'error');
+        } else {
+            showAlert('Impossibile leggere la posizione. Riprova all\'aperto.', 'error');
+        }
+    }
+}
 
 // ============================================
 // FUNZIONI PRINCIPALI
@@ -61,47 +248,7 @@ export function initMap(state, updateState, getState = () => state) {
         // Click listener per tracciamento poligono
         // IMPORTANTE: usa getState() per leggere sempre lo state corrente invece della closure
         map.addListener('click', function(event) {
-            // Leggi sempre lo state corrente usando getState()
-            const currentState = getState();
-            
-            if (currentState.isDrawing) {
-                if (!currentState.polygon) {
-                    const colors = getColturaColor();
-                    const polygon = new google.maps.Polygon({
-                        paths: [event.latLng],
-                        fillColor: colors.fill + '80', // Aggiungi trasparenza
-                        fillOpacity: 0.35,
-                        strokeColor: colors.stroke,    // Usa versione scura per perimetro
-                        strokeWeight: 3,               // Aumentato per maggiore visibilità
-                        strokeOpacity: 1.0,            // Massima visibilità
-                        clickable: false,
-                        editable: true,
-                        draggable: true
-                    });
-                    polygon.setMap(map);
-                    const currentPolygonCoords = [event.latLng];
-                    
-                    // Aggiorna state
-                    updateState({ polygon, currentPolygonCoords });
-                } else {
-                    const path = currentState.polygon.getPath();
-                    path.push(event.latLng);
-                    const currentPolygonCoords = path.getArray();
-                    
-                    // Aggiorna state
-                    updateState({ currentPolygonCoords });
-                }
-                
-                // Usa lo state aggiornato dopo updateState
-                setTimeout(() => {
-                    const updatedState = getState();
-                    if (updatedState.currentPolygonCoords && updatedState.currentPolygonCoords.length >= 3) {
-                        const mapInfo = document.getElementById('map-info');
-                        if (mapInfo) mapInfo.classList.add('active');
-                        updateAreaInfo(updatedState);
-                    }
-                }, 0);
-            }
+            appendVertexFromLatLng(map, event.latLng, getState, updateState);
         });
 
         // Listener per modifiche poligono
