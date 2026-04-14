@@ -42,6 +42,14 @@ L'idea e` semplice: partire da una richiesta cliente e arrivare a un lavoro pian
 - Dopo accettazione, pianifica subito il lavoro per non perdere continuita.
 - Segui esecuzione e ore dal modulo lavori.
 
+## 3.2 Se fai questo, cosa succede
+
+- **Crei un nuovo preventivo** -> hai una proposta pronta da inviare al cliente.
+- **Invii il preventivo** -> il cliente puo valutarlo e rispondere.
+- **Il cliente accetta** -> puoi passare subito alla pianificazione lavoro.
+- **Pianifichi il lavoro** -> il flusso entra nell'operativita quotidiana (ore, avanzamento, controllo).
+- **Aggiorni tariffe** -> i prossimi preventivi saranno piu coerenti con i tuoi costi reali.
+
 ---
 
 ## 4. Limitazioni e regole
@@ -57,9 +65,9 @@ Nota pratica: la mappa clienti e` ottima per orientamento operativo, ma non sost
 
 ## 5. Relazioni con altri moduli
 
-- `lavori-attivita.md`: preventivo -> lavoro -> ore/diario.
-- `terreni.md`: distinzione tra terreni aziendali e terreni clienti.
-- `intersezioni-moduli.md`: flusso end-to-end commerciale-operativo.
+- Sezione Lavori e attivita: preventivo -> lavoro -> ore/diario.
+- Sezione Terreni: distinzione tra terreni aziendali e terreni clienti.
+- Sezione Intersezioni tra moduli: flusso completo commerciale-operativo.
 
 ---
 
@@ -70,3 +78,41 @@ Nota pratica: la mappa clienti e` ottima per orientamento operativo, ma non sost
 - **Devi aggiornare prezzi per lavorazione:** vai in `Tariffe`.
 - **Devi controllare accettazioni e pianificare lavoro:** usa `Preventivi`.
 - **Devi orientarti sui terreni cliente:** consulta `Terreni clienti` e `Mappa clienti`.
+
+## 7. Esempio pratico rapido
+
+Esempio: "nuovo cliente chiede preventivo potatura"
+
+1. Inserisci cliente e terreno cliente.
+2. Crea `Nuovo preventivo`.
+3. Invia al cliente.
+4. Dopo accettazione, pianifica il lavoro e passa al modulo lavori.
+
+---
+
+## 8. Procedura passo-passo: da preventivo a lavoro
+
+**Percorso schermata**  
+Dashboard -> `Conto Terzi` -> `Nuovo preventivo` / `Preventivi`.
+
+**Dove cliccare**
+- `Nuovo preventivo` (alto);
+- sezione cliente/terreno/tariffe (centro);
+- `Invia preventivo` (basso);
+- in elenco preventivi: azione `Pianifica lavoro` (colonna destra).
+
+**Passi operativi**
+1. Crea preventivo completo.
+2. Invia al cliente.
+3. Quando accettato, apri elenco preventivi.
+4. Clicca `Pianifica lavoro`.
+5. Completa assegnazione nel modulo lavori.
+
+**Controllo finale**
+- preventivo marcato accettato;
+- lavoro creato in `Lavori e attivita`.
+
+## 9. Uso con Tony
+
+- Esempio richiesta: "Ho un preventivo accettato, come lo trasformo in lavoro?"
+- Tony guida: indica il pulsante `Pianifica lavoro` e dove verificare il risultato.

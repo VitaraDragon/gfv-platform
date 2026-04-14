@@ -11,7 +11,7 @@ Troverai spiegazioni pratiche, percorsi chiari e una visione completa di come ca
 
 - Una sezione Core per capire subito come e` organizzata l'app.
 - Una guida dedicata per ogni modulo principale.
-- Le connessioni tra moduli, spiegate con flussi reali end-to-end.
+- Le connessioni tra moduli, spiegate con flussi pratici completi.
 - Regole semplici per capire cosa cambia tra Free/Freemium, Base e moduli attivi.
 
 ---
@@ -28,16 +28,19 @@ Troverai spiegazioni pratiche, percorsi chiari e una visione completa di come ca
 
 ## Indice sezioni
 
-| Sezione | File | Stato |
-|--------|------|-------|
-| Core (accesso, ruoli, navigazione, piani, Tony, regole) | [core.md](core.md) | aggiornato |
-| Terreni | [moduli/terreni.md](moduli/terreni.md) | aggiornato |
-| Lavori e attivita | [moduli/lavori-attivita.md](moduli/lavori-attivita.md) | aggiornato |
-| Modulo Vigneto | [moduli/vigneto.md](moduli/vigneto.md) | aggiornato |
-| Modulo Frutteto | [moduli/frutteto.md](moduli/frutteto.md) | aggiornato |
-| Modulo Magazzino | [moduli/magazzino.md](moduli/magazzino.md) | aggiornato |
-| Modulo Conto terzi | [moduli/conto-terzi.md](moduli/conto-terzi.md) | aggiornato |
-| Intersezioni tra moduli | [intersezioni-moduli.md](intersezioni-moduli.md) | aggiornato |
+| Sezione | Cosa trovi | Stato |
+|--------|------------|-------|
+| Core | accesso, ruoli, navigazione, piani, Tony, regole pratiche | aggiornato |
+| Amministrazione | utenti, inviti, impostazioni, abbonamento | aggiornato |
+| Terreni | anagrafiche terreni, mappa, affitti, scadenze | aggiornato |
+| Lavori e attivita | pianificazione, assegnazioni, avanzamento, ore | aggiornato |
+| Modulo Vigneto | trattamenti, concimazioni, potatura, vendemmia | aggiornato |
+| Modulo Frutteto | trattamenti, concimazioni, potatura, raccolta | aggiornato |
+| Modulo Magazzino | prodotti, movimenti, sotto-scorta, tracciabilita | aggiornato |
+| Parco Macchine e Guasti | mezzi, attrezzi, scadenze, guasti | aggiornato |
+| Statistiche e Report | indicatori, confronti, controllo criticita | aggiornato |
+| Modulo Conto terzi | clienti, preventivi, tariffe, lavori esterni | aggiornato |
+| Intersezioni tra moduli | passaggi completi tra aree dell'app | aggiornato |
 
 ---
 
@@ -54,8 +57,18 @@ Per rendere la consultazione semplice e coerente, ogni modulo segue sempre lo st
 
 ---
 
-## Manutenzione guida
+## Formato operativo (sempre uguale)
 
-- Aggiorna la guida solo dopo verifica reale su codice e interfaccia.
-- Se cambia un flusso tra moduli, aggiorna anche `intersezioni-moduli.md`.
-- Se cambia il comportamento di piani/moduli/Tony, aggiorna prima `core.md`.
+In ogni sezione trovi procedure complete con lo stesso schema:
+
+1. Quando usarla
+2. Cosa ti serve prima di iniziare
+3. Percorso schermata
+4. Dove cliccare (posizione pulsante)
+5. Passi operativi numerati
+6. Cosa succede dopo ogni passo
+7. Controllo finale riuscita
+8. Errori frequenti e soluzione
+9. Differenze per ruolo
+10. Esempio con Tony + alternativa manuale
+

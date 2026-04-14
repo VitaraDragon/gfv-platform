@@ -29,7 +29,7 @@ In pratica: avere un quadro chiaro delle operazioni di campo e dei risultati, se
 - Anagrafica frutteti su terreni aziendali.
 - Registro trattamenti e registro concimazioni separati.
 - Potatura e raccolta con metriche produttive.
-- Collegamento eventi a `lavoroId` e, dove previsto, `attivitaId`.
+- Collegamento dell'evento al lavoro o all'attivita collegata.
 - Gestione superficie intervento e continuita interventi.
 - Integrazione con magazzino per prodotti e consumi.
 
@@ -56,10 +56,10 @@ Suggerimento pratico: se lavori su piu appezzamenti, usa naming coerente per evi
 
 ## 5. Relazioni con altri moduli
 
-- `terreni.md`: riferimento area e anagrafiche.
-- `lavori-attivita.md`: assegnazioni, ore, avanzamento.
-- `magazzino.md`: prodotti, scarichi, tracciabilita.
-- `intersezioni-moduli.md`: visione completa dei flussi.
+- Sezione Terreni: riferimento area e anagrafiche.
+- Sezione Lavori e attivita: assegnazioni, ore, avanzamento.
+- Sezione Magazzino: prodotti, scarichi, tracciabilita.
+- Sezione Intersezioni tra moduli: visione completa dei flussi.
 
 ---
 
@@ -70,3 +70,18 @@ Suggerimento pratico: se lavori su piu appezzamenti, usa naming coerente per evi
 - **Devi gestire potatura o raccolta frutta:** entra nella sezione dedicata.
 - **Devi tracciare consumi prodotti:** collega interventi al magazzino.
 - **Devi controllare andamento stagione:** consulta `Statistiche` del frutteto.
+
+---
+
+## 7. Procedura passo-passo: registrare una raccolta
+
+1. Apri `Raccolta frutta`.
+2. Clicca `Nuova raccolta`.
+3. Inserisci appezzamento, data e quantita.
+4. Salva.
+5. Verifica il dato in `Statistiche`.
+
+## 8. Uso con Tony
+
+- Esempio richiesta: "Come registro la raccolta mele nel frutteto Nord?"
+- Tony guida: indica i click e la verifica finale.

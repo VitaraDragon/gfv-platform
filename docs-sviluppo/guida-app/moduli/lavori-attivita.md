@@ -61,10 +61,10 @@ Nota pratica: se un caposquadra non riesce ad agire su un campo, spesso e` un li
 
 ## 6. Relazioni con altri moduli
 
-- `terreni.md`: base geografica e anagrafica di ogni lavoro.
-- `vigneto.md` / `frutteto.md`: operazioni tecniche di campo collegate ai lavori.
-- `conto-terzi.md`: lavori che nascono dal ciclo preventivo-cliente.
-- `magazzino.md`: consumi e movimenti legati al lavoro/intervento.
+- Sezione Terreni: base geografica e anagrafica di ogni lavoro.
+- Sezioni Vigneto e Frutteto: operazioni tecniche di campo collegate ai lavori.
+- Sezione Conto terzi: lavori che nascono dal ciclo preventivo-cliente.
+- Sezione Magazzino: consumi e movimenti legati al lavoro/intervento.
 
 ---
 
@@ -75,3 +75,26 @@ Nota pratica: se un caposquadra non riesce ad agire su un campo, spesso e` un li
 - **Devi approvare o rifiutare ore:** usa `Validazione ore`.
 - **Devi vedere attivita operative consolidate:** consulta `Diario Attivita`.
 - **Devi far avanzare il lavoro in campo:** aggiorna stato e note nel lavoro assegnato.
+
+---
+
+## 8. Procedura passo-passo: da pianificazione a completamento
+
+1. Apri `Gestione Lavori`.
+2. Clicca `Nuovo lavoro`.
+3. Inserisci terreno, squadra e obiettivo.
+4. Salva e imposta stato `In corso`.
+5. Aggiorna stato/note durante il lavoro.
+6. Imposta `Completato` a fine attivita.
+
+## 9. Procedura passo-passo: segnatura e validazione ore
+
+1. Operaio/caposquadra apre `Segnatura ore` e salva le ore.
+2. Manager apre `Validazione ore`.
+3. Approva o rifiuta le righe ore.
+4. Verifica riepilogo in diario/statistiche.
+
+## 10. Uso con Tony
+
+- Esempio richiesta: "Come faccio a chiudere un lavoro e validare le ore?"
+- Tony guida: indica il percorso completo e i controlli finali.

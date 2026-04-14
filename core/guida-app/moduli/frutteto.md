@@ -29,7 +29,7 @@ In pratica: avere un quadro chiaro delle operazioni di campo e dei risultati, se
 - Anagrafica frutteti su terreni aziendali.
 - Registro trattamenti e registro concimazioni separati.
 - Potatura e raccolta con metriche produttive.
-- Collegamento eventi a `lavoroId` e, dove previsto, `attivitaId`.
+- Collegamento degli eventi ai lavori e alle attivita operative.
 - Gestione superficie intervento e continuita interventi.
 - Integrazione con magazzino per prodotti e consumi.
 
@@ -40,6 +40,14 @@ In pratica: avere un quadro chiaro delle operazioni di campo e dei risultati, se
 - Collega gli eventi a lavoro/attivita quando disponibile.
 - Usa raccolta e potatura come base per statistiche affidabili.
 - Verifica periodicamente numeri e costi per specie/appezzamento.
+
+## 3.2 Se fai questo, cosa succede
+
+- **Registri un trattamento** -> aggiorni subito lo storico sanitario del frutteto.
+- **Registri una concimazione** -> tieni traccia del piano nutrizionale.
+- **Colleghi intervento a un lavoro** -> stato, ore e interventi restano allineati.
+- **Registi raccolta frutta** -> aggiorni dati di produzione e confronto stagionale.
+- **Usi prodotti da magazzino** -> migliori controllo consumi e costi.
 
 ---
 
@@ -56,10 +64,10 @@ Suggerimento pratico: se lavori su piu appezzamenti, usa naming coerente per evi
 
 ## 5. Relazioni con altri moduli
 
-- `terreni.md`: riferimento area e anagrafiche.
-- `lavori-attivita.md`: assegnazioni, ore, avanzamento.
-- `magazzino.md`: prodotti, scarichi, tracciabilita.
-- `intersezioni-moduli.md`: visione completa dei flussi.
+- Sezione Terreni: riferimento area e anagrafiche.
+- Sezione Lavori e attivita: assegnazioni, ore, avanzamento.
+- Sezione Magazzino: prodotti, scarichi, tracciabilita.
+- Sezione Intersezioni tra moduli: visione completa dei flussi.
 
 ---
 
@@ -70,3 +78,39 @@ Suggerimento pratico: se lavori su piu appezzamenti, usa naming coerente per evi
 - **Devi gestire potatura o raccolta frutta:** entra nella sezione dedicata.
 - **Devi tracciare consumi prodotti:** collega interventi al magazzino.
 - **Devi controllare andamento stagione:** consulta `Statistiche` del frutteto.
+
+## 7. Esempio pratico rapido
+
+Esempio: "raccolta mele nel frutteto Nord"
+
+1. Apri `Raccolta frutta`.
+2. Inserisci data e quantita raccolta.
+3. Salva e controlla aggiornamento nelle statistiche.
+
+---
+
+## 8. Procedura passo-passo: raccolta frutta completa
+
+**Percorso schermata**  
+Dashboard -> `Frutteto` -> `Raccolta frutta`.
+
+**Dove cliccare**
+- `Nuova raccolta` (alto);
+- campi data/appezzamento/quantita (centro);
+- `Salva` (basso form).
+
+**Passi operativi**
+1. Apri nuova raccolta.
+2. Seleziona appezzamento.
+3. Inserisci quantita raccolta.
+4. Salva.
+5. Apri statistiche frutteto per verifica.
+
+**Controllo finale**
+- evento raccolta in elenco;
+- dato visibile nei riepiloghi stagione.
+
+## 9. Uso con Tony
+
+- Esempio richiesta: "Come registro la raccolta mele nel frutteto Nord?"
+- Tony guida: ti indica tasti e controlli finali.

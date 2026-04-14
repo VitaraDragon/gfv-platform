@@ -29,7 +29,7 @@ Questo modulo ti aiuta a non perdere passaggi tra intervento in campo, ore e ris
 - Anagrafica vigneti collegata ai terreni.
 - Registro trattamenti e registro concimazioni separati.
 - Potatura e vendemmia con dati operativi.
-- Collegamento eventi a `lavoroId` e, dove previsto, `attivitaId`.
+- Collegamento dell'evento al lavoro o all'attivita collegata.
 - Gestione area/superficie trattata e avanzamento campo.
 - Integrazione prodotti con magazzino (quando modulo attivo).
 
@@ -56,10 +56,10 @@ Suggerimento pratico: se usi anche Magazzino, conviene registrare sempre i prodo
 
 ## 5. Relazioni con altri moduli
 
-- `terreni.md`: base anagrafica e geospaziale.
-- `lavori-attivita.md`: esecuzione operativa con assegnazioni e ore.
-- `magazzino.md`: prodotti, scarichi e tracciabilita consumi.
-- `intersezioni-moduli.md`: flussi end-to-end.
+- Sezione Terreni: base anagrafica e geospaziale.
+- Sezione Lavori e attivita: esecuzione operativa con assegnazioni e ore.
+- Sezione Magazzino: prodotti, scarichi e tracciabilita consumi.
+- Sezione Intersezioni tra moduli: flussi completi tra aree operative.
 
 ---
 
@@ -70,3 +70,18 @@ Suggerimento pratico: se usi anche Magazzino, conviene registrare sempre i prodo
 - **Devi registrare potatura o vendemmia:** usa la sezione dedicata in dashboard vigneto.
 - **Devi collegare consumo prodotto a magazzino:** compila il prodotto in intervento e verifica scarico.
 - **Devi analizzare risultati stagionali:** apri `Statistiche` del modulo.
+
+---
+
+## 7. Procedura passo-passo: trattamento con tracciabilita consumi
+
+1. Apri `Trattamenti`.
+2. Clicca `Nuovo trattamento`.
+3. Inserisci terreno, data, superficie e prodotti.
+4. Salva.
+5. Se usi Magazzino, verifica la tracciabilita consumi.
+
+## 8. Uso con Tony
+
+- Esempio richiesta: "Aiutami a registrare un trattamento nel vigneto Collina Alta".
+- Tony guida: indica campi e controlli finali da eseguire.

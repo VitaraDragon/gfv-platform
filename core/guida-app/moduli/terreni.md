@@ -27,6 +27,13 @@ In parole semplici: se il terreno non e` gestito bene, tutto il resto diventa me
 - Gestione affitto/scadenza e dati contrattuali.
 - Vista mappa aziendale con filtri.
 
+## 3.2 Se fai questo, cosa succede
+
+- **Aggiungi un terreno nuovo** -> lo trovi subito nei flussi lavori e moduli collegati.
+- **Aggiorni affitto e scadenza** -> migliorano alert e pianificazione scadenze.
+- **Aggiorni confini** -> superficie e controllo avanzamento diventano piu affidabili.
+- **Filtri la mappa** -> controlli piu facilmente aree e priorita operative.
+
 ## 3.1 Come usarlo in pratica
 
 - Primo passo: inserisci i terreni principali con nome chiaro e podere corretto.
@@ -58,10 +65,10 @@ Consiglio operativo: evita di cancellare un terreno se e` gia in uso; di solito 
 
 ## 6. Relazioni con altri moduli
 
-- `lavori-attivita.md`: ogni lavoro parte da un terreno.
-- `vigneto.md` / `frutteto.md`: anagrafiche coltura legate a terreno.
-- `conto-terzi.md`: terreni clienti e terreni aziendali in percorsi distinti.
-- `intersezioni-moduli.md`: flussi completi cross-modulo.
+- Sezione Lavori e attivita: ogni lavoro parte da un terreno.
+- Sezioni Vigneto e Frutteto: anagrafiche coltura legate a terreno.
+- Sezione Conto terzi: terreni clienti e terreni aziendali in percorsi distinti.
+- Sezione Intersezioni tra moduli: flussi completi cross-modulo.
 
 ---
 
@@ -71,3 +78,53 @@ Consiglio operativo: evita di cancellare un terreno se e` gia in uso; di solito 
 - **Devi aggiornare confini o superficie:** modifica il terreno e usa la mappa.
 - **Devi controllare terreni in affitto/scadenza:** filtra e verifica campi contrattuali.
 - **Devi collegare un lavoro a un terreno corretto:** verifica prima qui i dati base.
+
+## 8. Esempio pratico rapido
+
+Esempio: "nuovo appezzamento preso in affitto"
+
+1. Crea il terreno.
+2. Inserisci dati affitto e scadenza.
+3. Traccia i confini.
+4. Salva e usa il terreno nei lavori successivi.
+
+---
+
+## 9. Procedura passo-passo: creare un terreno completo
+
+**Quando usarla**  
+Quando devi inserire un nuovo terreno da usare in lavori o moduli coltura.
+
+**Percorso schermata**  
+Dashboard -> `Terreni`.
+
+**Dove cliccare**
+- `Nuovo terreno` (in alto);
+- campi anagrafici nella parte centrale;
+- sezione mappa nella parte bassa;
+- `Salva` in fondo al form.
+
+**Passi operativi**
+1. Apri `Nuovo terreno`.
+2. Inserisci nome, podere, tipo possesso.
+3. Inserisci eventuale affitto/scadenza.
+4. Traccia i confini in mappa.
+5. Salva.
+
+**Cosa succede dopo**
+- il terreno entra in elenco;
+- diventa selezionabile in lavori, vigneto e frutteto.
+
+**Controllo finale**
+- terreno visibile in lista;
+- superficie valorizzata;
+- presenza nei menu di selezione lavoro/intervento.
+
+**Errori frequenti**
+- superficie assente: confine non chiuso correttamente;
+- terreno non selezionabile: filtri attivi o azienda non corretta.
+
+## 10. Uso con Tony
+
+- Esempio richiesta: "Come inserisco un terreno nuovo con affitto?"
+- Tony guida: indica percorso e campi da compilare in ordine.

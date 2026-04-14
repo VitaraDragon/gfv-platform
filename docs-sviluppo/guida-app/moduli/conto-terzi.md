@@ -57,9 +57,9 @@ Nota pratica: la mappa clienti e` ottima per orientamento operativo, ma non sost
 
 ## 5. Relazioni con altri moduli
 
-- `lavori-attivita.md`: preventivo -> lavoro -> ore/diario.
-- `terreni.md`: distinzione tra terreni aziendali e terreni clienti.
-- `intersezioni-moduli.md`: flusso end-to-end commerciale-operativo.
+- Sezione Lavori e attivita: preventivo -> lavoro -> ore/diario.
+- Sezione Terreni: distinzione tra terreni aziendali e terreni clienti.
+- Sezione Intersezioni tra moduli: flusso completo commerciale-operativo.
 
 ---
 
@@ -70,3 +70,19 @@ Nota pratica: la mappa clienti e` ottima per orientamento operativo, ma non sost
 - **Devi aggiornare prezzi per lavorazione:** vai in `Tariffe`.
 - **Devi controllare accettazioni e pianificare lavoro:** usa `Preventivi`.
 - **Devi orientarti sui terreni cliente:** consulta `Terreni clienti` e `Mappa clienti`.
+
+---
+
+## 7. Procedura passo-passo: da preventivo a lavoro
+
+1. Apri `Nuovo preventivo`.
+2. Compila cliente, terreno e tariffe.
+3. Invia preventivo.
+4. Quando accettato, apri `Preventivi`.
+5. Clicca `Pianifica lavoro`.
+6. Completa assegnazione in `Lavori e attivita`.
+
+## 8. Uso con Tony
+
+- Esempio richiesta: "Ho preventivo accettato: come pianifico il lavoro?"
+- Tony guida: indica dove cliccare e cosa verificare a fine flusso.

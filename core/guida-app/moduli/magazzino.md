@@ -38,6 +38,23 @@ Il vantaggio principale: sapere sempre cosa hai disponibile, cosa stai consumand
 - Usa la tracciabilita per controllare consumi reali per terreno/intervento.
 - Allinea sempre movimenti e interventi in campo quando usi i moduli coltura.
 
+## 3.2 Se fai questo, cosa succede
+
+- **Aggiungi un prodotto** -> compare subito nell'anagrafica e diventa disponibile nei flussi.
+- **Registri un'entrata** -> la disponibilita aumenta.
+- **Registri un'uscita** -> la disponibilita diminuisce.
+- **Filtri la tracciabilita** -> capisci dove sono andati davvero i prodotti.
+- **Colleghi interventi campo** -> confronti meglio costi e consumi per zona/lavoro.
+
+## 3.3 Sotto-scorta: cosa fare
+
+Quando un prodotto scende sotto il livello minimo:
+
+1. controlla quanto ne resta;
+2. verifica dove lo stai consumando di piu;
+3. pianifica un reintegro;
+4. registra l'entrata appena arriva il materiale.
+
 ---
 
 ## 4. Limitazioni e regole
@@ -53,9 +70,9 @@ Nota pratica: se mancano movimenti, le giacenze diventano poco affidabili anche 
 
 ## 5. Relazioni con altri moduli
 
-- `vigneto.md` / `frutteto.md`: consumo prodotti in trattamenti/concimazioni.
-- `lavori-attivita.md`: movimenti legati a contesto operativo.
-- `intersezioni-moduli.md`: ciclo trattamento -> scarico -> tracciabilita.
+- Sezioni Vigneto e Frutteto: consumo prodotti in trattamenti/concimazioni.
+- Sezione Lavori e attivita: movimenti legati a contesto operativo.
+- Sezione Intersezioni tra moduli: ciclo trattamento -> scarico -> tracciabilita.
 
 ---
 
@@ -65,3 +82,46 @@ Nota pratica: se mancano movimenti, le giacenze diventano poco affidabili anche 
 - **Devi registrare acquisto o uso:** inserisci un movimento in `Movimenti`.
 - **Devi capire dove e` stato consumato un prodotto:** consulta `Tracciabilita consumi`.
 - **Devi verificare sotto-scorta:** controlla dashboard magazzino e filtri per categoria.
+
+## 7. Esempio pratico rapido
+
+Esempio: "ho comprato 10 sacchi di concime"
+
+1. Apri `Movimenti`.
+2. Inserisci un'entrata del prodotto corretto.
+3. Salva.
+4. Verifica la disponibilita aggiornata.
+
+---
+
+## 8. Procedura passo-passo: carico prodotto e controllo sotto-scorta
+
+**Percorso schermata**  
+Dashboard -> `Prodotti e Magazzino` -> `Movimenti`.
+
+**Dove cliccare**
+- `Nuovo movimento` (alto a destra);
+- tipo movimento `Entrata`/`Uscita` (centro form);
+- `Salva` (basso form);
+- `Tracciabilita consumi` tab in alto pagina magazzino.
+
+**Passi operativi**
+1. Clicca `Nuovo movimento`.
+2. Seleziona prodotto e tipo movimento.
+3. Inserisci quantita.
+4. Salva.
+5. Controlla disponibilita e alert sotto-scorta.
+
+**Controllo finale**
+- movimento presente in elenco;
+- giacenza aggiornata;
+- alert sotto-scorta coerente.
+
+**Errori frequenti**
+- giacenza non cambia: movimento salvato su prodotto errato;
+- tracciabilita vuota: mancano filtri corretti per periodo/prodotto.
+
+## 9. Uso con Tony
+
+- Esempio richiesta: "Registriamo l'entrata di 10 sacchi di concime".
+- Tony guida: elenca i campi da compilare e la verifica finale.

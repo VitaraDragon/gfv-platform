@@ -8,7 +8,7 @@ Se ti chiedi "da dove nasce questo dato?" oppure "cosa succede dopo questo passa
 
 ## 1. Mappa connessioni principali
 
-- **Core <-> tutti i moduli:** ruoli, tenant, abbonamento e navigazione governano tutto.
+- **Core <-> tutti i moduli:** ruoli, azienda selezionata, abbonamento e navigazione governano tutto.
 - **Terreni <-> Lavori/Attivita:** ogni lavoro nasce su un terreno; ore e attivita ereditano quel contesto.
 - **Terreni <-> Vigneto/Frutteto:** anagrafiche coltura legate al terreno con confini condivisi.
 - **Lavori/Attivita <-> Vigneto/Frutteto:** interventi tecnici collegati a lavoro o attivita.
@@ -19,7 +19,7 @@ Se ti chiedi "da dove nasce questo dato?" oppure "cosa succede dopo questo passa
 
 ---
 
-## 2. Flussi end-to-end
+## 2. Flussi completi tra moduli
 
 ## 2.1 Preventivo conto terzi -> lavoro -> ore -> diario
 
@@ -49,6 +49,59 @@ Ruoli coinvolti: principalmente manager/amministratore.
 4. Tracciamento area lavorata nei moduli specialistici.
 5. Chiusura lavoro e consolidamento ore/attivita.
 
+## 2.4 Flusso ore tra ruoli (da campo a controllo)
+
+1. Operaio esegue il lavoro e registra ore.
+2. Caposquadra controlla avanzamento squadra.
+3. Manager verifica andamento complessivo e priorita.
+4. I dati confluiscono in riepiloghi e controllo operativo.
+
+### Procedura guidata: da preventivo a lavoro chiuso
+
+**Quando usarla**  
+Quando un cliente conto terzi accetta un preventivo e vuoi arrivare a chiusura lavoro senza passaggi persi.
+
+**Percorso schermata**  
+`Conto terzi` -> `Preventivi` -> `Lavori e attivita` -> `Validazione ore`.
+
+**Dove cliccare**
+- in `Preventivi`: riga preventivo, azione `Pianifica lavoro` (colonna azioni a destra);
+- in `Lavori`: pulsante stato nella scheda lavoro;
+- in `Validazione ore`: pulsante `Approva`/`Rifiuta` sulla singola riga ore.
+
+**Passi operativi**
+1. Apri il preventivo accettato e pianifica il lavoro.
+2. Assegna caposquadra/operaio.
+3. Fai registrare le ore giornaliere.
+4. Valida le ore.
+5. Chiudi il lavoro.
+
+**Controllo finale riuscita**
+- lavoro presente nello storico;
+- ore validate;
+- attività visibile nei riepiloghi.
+
+### Procedura guidata: intervento coltura con scarico magazzino
+
+**Percorso schermata**  
+`Vigneto` o `Frutteto` -> `Trattamenti`/`Concimazioni` -> `Magazzino`.
+
+**Dove cliccare**
+- pulsante `Nuovo trattamento` o `Nuova concimazione` in alto;
+- campo prodotti nella parte centrale del form;
+- opzione scarico magazzino vicino a conferma intervento;
+- in `Magazzino`, scheda `Tracciabilita consumi` (filtro in alto).
+
+**Passi operativi**
+1. Inserisci intervento con terreno e data.
+2. Aggiungi prodotti e quantita.
+3. Conferma scarico magazzino.
+4. Apri tracciabilita e filtra per prodotto o terreno.
+
+**Controllo finale riuscita**
+- movimento di uscita visibile in magazzino;
+- intervento visibile nel registro coltura.
+
 ---
 
 ## 3. Ruoli nelle intersezioni
@@ -75,12 +128,8 @@ Punto chiave: la stessa funzione puo comportarsi in modo diverso in base al ruol
 - Tony Avanzato puo accompagnare anche l'esecuzione operativa quando attivo.
 - In freemium senza Tony, la guida documentale copre gli stessi percorsi in modo manuale.
 
----
+### Esempi pratici con Tony
 
-## 6. Manutenzione
+- "Portami dal preventivo accettato al lavoro operativo": Tony guida ti elenca il percorso completo; Tony operativo puo aprire i passaggi consentiti.
+- "Ho registrato trattamento, controlla se ha scaricato magazzino": Tony guida ti indica dove verificare tracciabilita e filtri.
 
-Quando cambia un modulo, aggiorna subito:
-
-1. file del modulo;
-2. questa pagina intersezioni;
-3. eventuali riferimenti in `core.md`.

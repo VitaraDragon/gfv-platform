@@ -58,10 +58,10 @@ Consiglio operativo: evita di cancellare un terreno se e` gia in uso; di solito 
 
 ## 6. Relazioni con altri moduli
 
-- `lavori-attivita.md`: ogni lavoro parte da un terreno.
-- `vigneto.md` / `frutteto.md`: anagrafiche coltura legate a terreno.
-- `conto-terzi.md`: terreni clienti e terreni aziendali in percorsi distinti.
-- `intersezioni-moduli.md`: flussi completi cross-modulo.
+- Sezione Lavori e attivita: ogni lavoro parte da un terreno.
+- Sezioni Vigneto e Frutteto: anagrafiche coltura legate a terreno.
+- Sezione Conto terzi: terreni clienti e terreni aziendali in percorsi distinti.
+- Sezione Intersezioni tra moduli: flussi completi cross-modulo.
 
 ---
 
@@ -71,3 +71,18 @@ Consiglio operativo: evita di cancellare un terreno se e` gia in uso; di solito 
 - **Devi aggiornare confini o superficie:** modifica il terreno e usa la mappa.
 - **Devi controllare terreni in affitto/scadenza:** filtra e verifica campi contrattuali.
 - **Devi collegare un lavoro a un terreno corretto:** verifica prima qui i dati base.
+
+---
+
+## 8. Procedura passo-passo: creare un terreno completo
+
+1. Apri `Terreni`.
+2. Clicca `Nuovo terreno`.
+3. Inserisci anagrafica e dati affitto/scadenza.
+4. Traccia i confini in mappa.
+5. Salva e controlla che il terreno sia in elenco.
+
+## 9. Uso con Tony
+
+- Esempio richiesta: "Come inserisco un terreno nuovo con affitto?"
+- Tony guida: descrive i passaggi in ordine e i controlli finali.

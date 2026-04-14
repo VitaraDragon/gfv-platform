@@ -8,7 +8,7 @@ Se ti chiedi "da dove nasce questo dato?" oppure "cosa succede dopo questo passa
 
 ## 1. Mappa connessioni principali
 
-- **Core <-> tutti i moduli:** ruoli, tenant, abbonamento e navigazione governano tutto.
+- **Core <-> tutti i moduli:** ruoli, azienda selezionata, abbonamento e navigazione governano tutto.
 - **Terreni <-> Lavori/Attivita:** ogni lavoro nasce su un terreno; ore e attivita ereditano quel contesto.
 - **Terreni <-> Vigneto/Frutteto:** anagrafiche coltura legate al terreno con confini condivisi.
 - **Lavori/Attivita <-> Vigneto/Frutteto:** interventi tecnici collegati a lavoro o attivita.
@@ -19,7 +19,7 @@ Se ti chiedi "da dove nasce questo dato?" oppure "cosa succede dopo questo passa
 
 ---
 
-## 2. Flussi end-to-end
+## 2. Flussi completi tra moduli
 
 ## 2.1 Preventivo conto terzi -> lavoro -> ore -> diario
 
@@ -75,12 +75,8 @@ Punto chiave: la stessa funzione puo comportarsi in modo diverso in base al ruol
 - Tony Avanzato puo accompagnare anche l'esecuzione operativa quando attivo.
 - In freemium senza Tony, la guida documentale copre gli stessi percorsi in modo manuale.
 
----
+### Esempi pratici con Tony
 
-## 6. Manutenzione
+- "Portami dal preventivo accettato al lavoro operativo": Tony guida descrive il percorso completo.
+- "Ho registrato trattamento, come verifico lo scarico?": Tony guida indica dove filtrare la tracciabilita.
 
-Quando cambia un modulo, aggiorna subito:
-
-1. file del modulo;
-2. questa pagina intersezioni;
-3. eventuali riferimenti in `core.md`.

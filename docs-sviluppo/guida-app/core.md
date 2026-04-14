@@ -17,14 +17,14 @@ Spiegare in modo chiaro:
 
 ---
 
-## 2. Accesso e multi-tenant
+## 2. Accesso e azienda selezionata
 
 - Accesso con email e password.
-- Ogni sessione lavora sempre su un **tenant corrente** (azienda corrente).
+- Ogni sessione lavora sempre su una **azienda selezionata**.
 - Se appartieni a piu aziende, puoi passare da una all'altra con **Cambia Azienda**.
-- Tutti i dati sono isolati per tenant: terreni, lavori, attivita, utenti, moduli e abbonamento.
+- Tutti i dati sono separati per azienda selezionata: terreni, lavori, attivita, utenti, moduli e abbonamento.
 
-Suggerimento pratico: se non trovi un dato che eri sicuro di aver inserito, controlla per prima cosa il tenant selezionato.
+Suggerimento pratico: se non trovi un dato che eri sicuro di aver inserito, controlla per prima cosa l'azienda selezionata.
 
 ---
 
@@ -42,7 +42,7 @@ Nota pratica: dashboard e azioni cambiano in modo netto tra manager, caposquadra
 ## 4. Dashboard e navigazione
 
 - La dashboard e` il punto di ingresso dopo il login.
-- Nell'header trovi in genere: `Impostazioni`, `Guide`, `Cambia Azienda` (se multi-tenant) e `Logout`.
+- Nell'header trovi in genere: `Impostazioni`, `Guide`, `Cambia Azienda` (se lavori su piu aziende) e `Logout`.
 - Il pulsante `Guide` e` il riferimento utente principale, soprattutto quando Tony non e` disponibile.
 - Le card che vedi dipendono sempre da ruolo e moduli attivi.
 - La navigazione e` per card/pagine dedicate, non con un menu laterale unico.
@@ -101,7 +101,7 @@ Modello pratico:
 
 ## 7. Regole comuni
 
-- Le autorizzazioni dipendono sempre da ruolo + tenant + moduli attivi.
+- Le autorizzazioni dipendono sempre da ruolo + azienda selezionata + moduli attivi.
 - Una pagina puo esistere ma non essere realmente utilizzabile se il modulo non e attivo.
 - I campi calcolati (ore nette, superfici, aggregati) dipendono dai dati operativi inseriti.
 - Le scelte in abbonamento cambiano direttamente dashboard e percorsi disponibili.
@@ -135,3 +135,31 @@ Il Core non sostituisce i moduli: li coordina e li rende leggibili.
 - **Manager:** pianifica lavori, controlla moduli attivi, verifica dashboard e numeri operativi.
 - **Caposquadra:** segue i lavori assegnati, aggiorna avanzamento e ore della squadra.
 - **Operaio:** entra nella dashboard personale, esegue compiti assegnati e registra ore.
+
+---
+
+## 11. Procedure complete per ruolo (inizio-fine giornata)
+
+### 11.1 Operaio - segnare ore correttamente
+
+1. Apri dashboard operaio.
+2. Entra nel lavoro assegnato.
+3. Clicca `Segna ore`.
+4. Inserisci ore e nota breve.
+5. Salva.
+
+### 11.2 Caposquadra - gestire avanzamento squadra
+
+1. Apri dashboard caposquadra.
+2. Seleziona lavoro assegnato.
+3. Aggiorna stato (`In corso`, `Sospeso`, `Completato`).
+4. Inserisci nota operativa.
+5. Controlla ore squadra.
+
+### 11.3 Manager - controllo e chiusura operativa
+
+1. Apri `Gestione Lavori`.
+2. Filtra lavori in corso.
+3. Verifica ritardi/sospesi.
+4. Apri `Validazione ore`.
+5. Verifica `Statistiche` e criticita.

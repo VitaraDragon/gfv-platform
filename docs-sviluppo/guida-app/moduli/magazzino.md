@@ -53,9 +53,9 @@ Nota pratica: se mancano movimenti, le giacenze diventano poco affidabili anche 
 
 ## 5. Relazioni con altri moduli
 
-- `vigneto.md` / `frutteto.md`: consumo prodotti in trattamenti/concimazioni.
-- `lavori-attivita.md`: movimenti legati a contesto operativo.
-- `intersezioni-moduli.md`: ciclo trattamento -> scarico -> tracciabilita.
+- Sezioni Vigneto e Frutteto: consumo prodotti in trattamenti/concimazioni.
+- Sezione Lavori e attivita: movimenti legati a contesto operativo.
+- Sezione Intersezioni tra moduli: ciclo trattamento -> scarico -> tracciabilita.
 
 ---
 
@@ -65,3 +65,19 @@ Nota pratica: se mancano movimenti, le giacenze diventano poco affidabili anche 
 - **Devi registrare acquisto o uso:** inserisci un movimento in `Movimenti`.
 - **Devi capire dove e` stato consumato un prodotto:** consulta `Tracciabilita consumi`.
 - **Devi verificare sotto-scorta:** controlla dashboard magazzino e filtri per categoria.
+
+---
+
+## 7. Procedura passo-passo: carico e controllo sotto-scorta
+
+1. Apri `Movimenti`.
+2. Clicca `Nuovo movimento`.
+3. Seleziona prodotto e tipo `Entrata` o `Uscita`.
+4. Inserisci quantita.
+5. Salva.
+6. Controlla giacenza e alert sotto-scorta.
+
+## 8. Uso con Tony
+
+- Esempio richiesta: "Registriamo l'entrata di concime e controlliamo la giacenza".
+- Tony guida: indica campi da compilare e verifica finale.

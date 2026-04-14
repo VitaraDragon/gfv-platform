@@ -339,7 +339,7 @@
     <header class="doc-header">
         <div>
             <h1>📘 Documentazione GFV Platform</h1>
-            <p>Guide rapide, FAQ e procedure per ogni ruolo.</p>
+            <p>Guida completa, pratica e aggiornata per usare GFV Platform al meglio.</p>
         </div>
         <div class="header-actions">
             <a class="btn" href="../core/dashboard-standalone.html">
@@ -352,33 +352,28 @@
         <nav>
             <h2>Sezioni</h2>
             <ul class="doc-nav-list">
-                <li><button data-doc="primi-passi" class="active">🚀 Primi Passi</button></li>
-                <li><button data-doc="faq">❓ Domande Frequenti</button></li>
-                <li class="nav-group">Guide per Ruolo</li>
-                <li><button data-doc="manager">📊 Guida Manager</button></li>
-                <li><button data-doc="caposquadra">👷 Guida Caposquadra</button></li>
-                <li><button data-doc="operaio">🔧 Guida Operaio</button></li>
-                <li><button data-doc="amministratore">👑 Guida Amministratore</button></li>
-                <li class="nav-group">Funzionalità</li>
-                <li><button data-doc="fun-terreni">🌱 Gestione Terreni</button></li>
-                <li><button data-doc="fun-lavori">📋 Gestione Lavori</button></li>
-                <li><button data-doc="fun-ore">⏱️ Segnatura Ore</button></li>
-                <li><button data-doc="fun-mappa">🗺️ Mappa Aziendale</button></li>
-                <li><button data-doc="fun-macchine">🚜 Parco Macchine</button></li>
-                <li><button data-doc="fun-magazzino">📦 Prodotti e Magazzino</button></li>
-                <li><button data-doc="fun-trattamenti">🌿 Trattamenti Vigneto e Frutteto</button></li>
-                <li><button data-doc="fun-statistiche">📈 Statistiche & Report</button></li>
-                <li class="nav-group">Supporto</li>
-                <li><button data-doc="troubleshoot-problemi">🛠️ Problemi Comuni</button></li>
-                <li><button data-doc="troubleshoot-errori">⚠️ Errori Frequenti</button></li>
+                <li><button data-doc="intro" class="active">📘 Introduzione</button></li>
+                <li><button data-doc="core">🧭 Core: ruoli, piani, Tony</button></li>
+                <li class="nav-group">Moduli principali</li>
+                <li><button data-doc="mod-amministrazione">👑 Amministrazione</button></li>
+                <li><button data-doc="mod-terreni">🌱 Terreni</button></li>
+                <li><button data-doc="mod-lavori">📋 Lavori e Attivita</button></li>
+                <li><button data-doc="mod-vigneto">🍇 Vigneto</button></li>
+                <li><button data-doc="mod-frutteto">🍎 Frutteto</button></li>
+                <li><button data-doc="mod-magazzino">📦 Magazzino</button></li>
+                <li><button data-doc="mod-parco-macchine">🚜 Parco Macchine e Guasti</button></li>
+                <li><button data-doc="mod-statistiche-report">📈 Statistiche e Report</button></li>
+                <li><button data-doc="mod-conto-terzi">🤝 Conto Terzi</button></li>
+                <li class="nav-group">Visione completa</li>
+                <li><button data-doc="intersezioni">🔗 Intersezioni tra moduli</button></li>
             </ul>
 
             <div class="info-box">
                 <strong>Suggerimenti</strong>
                 <ul>
-                    <li>Usa le guide ruolo per formazione rapida.</li>
-                    <li>La FAQ contiene soluzioni ai problemi comuni.</li>
-                    <li>Condividi questo link con i nuovi utenti.</li>
+                    <li>Inizia da Core per capire ruoli e piani.</li>
+                    <li>Poi passa ai moduli che usi ogni giorno.</li>
+                    <li>Usa Intersezioni per i flussi cross-modulo.</li>
                 </ul>
             </div>
         </nav>
@@ -395,69 +390,53 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         const DOCS = {
-            'primi-passi': {
-                title: 'Primi Passi',
-                path: '01-PRIMI_PASSI.md'
+            'intro': {
+                title: 'Introduzione',
+                path: '../core/guida-app/README.md'
             },
-            'faq': {
-                title: 'Domande Frequenti',
-                path: '02-FAQ.md'
+            'core': {
+                title: 'Core: ruoli, piani, Tony',
+                path: '../core/guida-app/core.md'
             },
-            'manager': {
-                title: 'Guida Manager',
-                path: '03-GUIDE_RUOLO/GUIDA_MANAGER.md'
+            'mod-amministrazione': {
+                title: 'Amministrazione',
+                path: '../core/guida-app/moduli/amministrazione.md'
             },
-            'caposquadra': {
-                title: 'Guida Caposquadra',
-                path: '03-GUIDE_RUOLO/GUIDA_CAPOSQUADRA.md'
+            'mod-terreni': {
+                title: 'Terreni',
+                path: '../core/guida-app/moduli/terreni.md'
             },
-            'operaio': {
-                title: 'Guida Operaio',
-                path: '03-GUIDE_RUOLO/GUIDA_OPERAIO.md'
+            'mod-lavori': {
+                title: 'Lavori e Attivita',
+                path: '../core/guida-app/moduli/lavori-attivita.md'
             },
-            'amministratore': {
-                title: 'Guida Amministratore',
-                path: '03-GUIDE_RUOLO/GUIDA_AMMINISTRATORE.md'
+            'mod-vigneto': {
+                title: 'Vigneto',
+                path: '../core/guida-app/moduli/vigneto.md'
             },
-            'fun-terreni': {
-                title: 'Gestione Terreni',
-                path: '04-FUNZIONALITA/GESTIONE_TERRENI.md'
+            'mod-frutteto': {
+                title: 'Frutteto',
+                path: '../core/guida-app/moduli/frutteto.md'
             },
-            'fun-lavori': {
-                title: 'Gestione Lavori',
-                path: '04-FUNZIONALITA/GESTIONE_LAVORI.md'
+            'mod-magazzino': {
+                title: 'Magazzino',
+                path: '../core/guida-app/moduli/magazzino.md'
             },
-            'fun-ore': {
-                title: 'Segnatura Ore',
-                path: '04-FUNZIONALITA/SEGNATURA_ORE.md'
+            'mod-parco-macchine': {
+                title: 'Parco Macchine e Guasti',
+                path: '../core/guida-app/moduli/parco-macchine.md'
             },
-            'fun-mappa': {
-                title: 'Mappa Aziendale',
-                path: '04-FUNZIONALITA/MAPPA_AZIENDALE.md'
+            'mod-statistiche-report': {
+                title: 'Statistiche e Report',
+                path: '../core/guida-app/moduli/statistiche-report.md'
             },
-            'fun-macchine': {
-                title: 'Parco Macchine',
-                path: '04-FUNZIONALITA/PARCO_MACCHINE.md'
+            'mod-conto-terzi': {
+                title: 'Conto Terzi',
+                path: '../core/guida-app/moduli/conto-terzi.md'
             },
-            'fun-magazzino': {
-                title: 'Prodotti e Magazzino',
-                path: '04-FUNZIONALITA/PRODOTTI_E_MAGAZZINO.md'
-            },
-            'fun-trattamenti': {
-                title: 'Trattamenti Vigneto e Frutteto',
-                path: '04-FUNZIONALITA/TRATTAMENTI_VIGNETO_FRUTTETO.md'
-            },
-            'fun-statistiche': {
-                title: 'Statistiche & Report',
-                path: '04-FUNZIONALITA/STATISTICHE_REPORT.md'
-            },
-            'troubleshoot-problemi': {
-                title: 'Problemi Comuni',
-                path: '05-RISOLUZIONE_PROBLEMI/PROBLEMI_COMUNI.md'
-            },
-            'troubleshoot-errori': {
-                title: 'Errori Frequenti',
-                path: '05-RISOLUZIONE_PROBLEMI/ERRORI_FREQUENTI.md'
+            'intersezioni': {
+                title: 'Intersezioni tra moduli',
+                path: '../core/guida-app/intersezioni-moduli.md'
             }
         };
 
@@ -519,7 +498,7 @@
             button.addEventListener('click', () => loadDocument(button.dataset.doc));
         });
 
-        loadDocument('primi-passi');
+        loadDocument('intro');
     </script>
 </body>
 </html>
