@@ -118,3 +118,20 @@ Il Core non sostituisce i moduli: li coordina e li rende leggibili.
 - `magazzino.md`: consumi, giacenze, tracciabilita.
 - `conto-terzi.md`: ciclo cliente-preventivo-lavoro.
 - `intersezioni-moduli.md`: visione completa dei flussi cross-modulo.
+
+---
+
+## 9. Se devi fare X, vai qui
+
+- **Devi creare o correggere un terreno:** vai in `Terreni`.
+- **Devi assegnare lavoro e controllare ore:** vai in `Lavori e Attivita`.
+- **Devi registrare interventi vigneto/frutteto:** entra nel modulo coltura dedicato.
+- **Devi controllare prodotti e consumi:** vai in `Magazzino`.
+- **Devi gestire cliente e preventivo:** vai in `Conto Terzi`.
+- **Devi capire come i pezzi si collegano:** apri `Intersezioni tra moduli`.
+
+## 10. Esempi rapidi per ruolo
+
+- **Manager:** pianifica lavori, controlla moduli attivi, verifica dashboard e numeri operativi.
+- **Caposquadra:** segue i lavori assegnati, aggiorna avanzamento e ore della squadra.
+- **Operaio:** entra nella dashboard personale, esegue compiti assegnati e registra ore.

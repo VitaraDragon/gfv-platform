@@ -60,3 +60,13 @@ Suggerimento pratico: se lavori su piu appezzamenti, usa naming coerente per evi
 - `lavori-attivita.md`: assegnazioni, ore, avanzamento.
 - `magazzino.md`: prodotti, scarichi, tracciabilita.
 - `intersezioni-moduli.md`: visione completa dei flussi.
+
+---
+
+## 6. Se devi fare X, vai qui
+
+- **Devi registrare un trattamento:** usa il registro `Trattamenti`.
+- **Devi segnare concimazioni:** usa il registro `Concimazioni`.
+- **Devi gestire potatura o raccolta frutta:** entra nella sezione dedicata.
+- **Devi tracciare consumi prodotti:** collega interventi al magazzino.
+- **Devi controllare andamento stagione:** consulta `Statistiche` del frutteto.

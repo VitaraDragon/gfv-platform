@@ -8,6 +8,9 @@
 - Nuova impostazione centrata su: piani e moduli attivi, ruolo utente, differenza Tony Guida/Tony Avanzato, connessioni cross-modulo e flussi end-to-end.
 - Mantenuto il pulsante `Guide` come canale documentale primario anche in ottica freemium (assenza Tony), con guida orientata a consultazione pratica.
 - Rifinito il tono editoriale in chiave dettagliata ma amichevole, con sezioni operative "flusso consigliato" per modulo e linguaggio piu user friendly.
+- Aggiunte sezioni pratiche "Se devi fare X, vai qui" e esempi rapidi per ruolo per rendere la guida ancora piu consultabile dagli utenti finali.
+- Uniformata la struttura finale di tutti i file guida (Core, Intersezioni e moduli) con pattern coerente per consultazione rapida da utenti e operatori.
+- Sincronizzata anche la copia runtime `core/guida-app/` con la versione user-friendly, rimuovendo riferimenti tecnici non utili all'utente finale (API/librerie/configurazioni).
 
 ## ✅ Tony Guida - piano operativo aggiornamento completo documentazione (2026-04-14)
 

@@ -60,3 +60,13 @@ Nota pratica: la mappa clienti e` ottima per orientamento operativo, ma non sost
 - `lavori-attivita.md`: preventivo -> lavoro -> ore/diario.
 - `terreni.md`: distinzione tra terreni aziendali e terreni clienti.
 - `intersezioni-moduli.md`: flusso end-to-end commerciale-operativo.
+
+---
+
+## 6. Se devi fare X, vai qui
+
+- **Devi inserire un nuovo cliente:** entra in `Clienti`.
+- **Devi preparare un'offerta:** usa `Nuovo preventivo`.
+- **Devi aggiornare prezzi per lavorazione:** vai in `Tariffe`.
+- **Devi controllare accettazioni e pianificare lavoro:** usa `Preventivi`.
+- **Devi orientarti sui terreni cliente:** consulta `Terreni clienti` e `Mappa clienti`.

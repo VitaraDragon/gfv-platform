@@ -14,11 +14,7 @@ Gestire il ciclo completo del lavoro: creazione, assegnazione, avanzamento, sosp
 
 - Dashboard manager: `Gestione Lavori`, `Validazione ore`, `Diario Attivita`
 - Dashboard caposquadra/operaio: aree operative dedicate
-- Pagine principali:
-  - `admin/gestione-lavori-standalone.html`
-  - `segnatura-ore-standalone.html`
-  - `admin/validazione-ore-standalone.html`
-  - `attivita-standalone.html`
+- Aree principali: Gestione Lavori, Segnatura ore, Validazione ore, Diario Attivita
 
 ---
 
@@ -69,3 +65,13 @@ Nota pratica: se un caposquadra non riesce ad agire su un campo, spesso e` un li
 - `vigneto.md` / `frutteto.md`: operazioni tecniche di campo collegate ai lavori.
 - `conto-terzi.md`: lavori che nascono dal ciclo preventivo-cliente.
 - `magazzino.md`: consumi e movimenti legati al lavoro/intervento.
+
+---
+
+## 7. Se devi fare X, vai qui
+
+- **Devi creare e assegnare un lavoro:** apri `Gestione Lavori`.
+- **Devi registrare ore giornaliere:** apri `Segnatura ore`.
+- **Devi approvare o rifiutare ore:** usa `Validazione ore`.
+- **Devi vedere attivita operative consolidate:** consulta `Diario Attivita`.
+- **Devi far avanzare il lavoro in campo:** aggiorna stato e note nel lavoro assegnato.

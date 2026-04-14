@@ -56,3 +56,12 @@ Nota pratica: se mancano movimenti, le giacenze diventano poco affidabili anche 
 - `vigneto.md` / `frutteto.md`: consumo prodotti in trattamenti/concimazioni.
 - `lavori-attivita.md`: movimenti legati a contesto operativo.
 - `intersezioni-moduli.md`: ciclo trattamento -> scarico -> tracciabilita.
+
+---
+
+## 6. Se devi fare X, vai qui
+
+- **Devi aggiungere un prodotto:** usa `Anagrafica prodotti`.
+- **Devi registrare acquisto o uso:** inserisci un movimento in `Movimenti`.
+- **Devi capire dove e` stato consumato un prodotto:** consulta `Tracciabilita consumi`.
+- **Devi verificare sotto-scorta:** controlla dashboard magazzino e filtri per categoria.

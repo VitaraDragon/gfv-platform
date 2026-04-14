@@ -15,7 +15,7 @@ In parole semplici: se il terreno non e` gestito bene, tutto il resto diventa me
 ## 2. Dove si trova
 
 - Dashboard -> `Terreni`
-- Pagina: `terreni-standalone.html`
+- Pagina: area Terreni
 
 ---
 
@@ -62,3 +62,12 @@ Consiglio operativo: evita di cancellare un terreno se e` gia in uso; di solito 
 - `vigneto.md` / `frutteto.md`: anagrafiche coltura legate a terreno.
 - `conto-terzi.md`: terreni clienti e terreni aziendali in percorsi distinti.
 - `intersezioni-moduli.md`: flussi completi cross-modulo.
+
+---
+
+## 7. Se devi fare X, vai qui
+
+- **Devi inserire un nuovo appezzamento:** apri `Terreni` e crea anagrafica completa.
+- **Devi aggiornare confini o superficie:** modifica il terreno e usa la mappa.
+- **Devi controllare terreni in affitto/scadenza:** filtra e verifica campi contrattuali.
+- **Devi collegare un lavoro a un terreno corretto:** verifica prima qui i dati base.

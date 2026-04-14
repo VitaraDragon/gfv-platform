@@ -60,3 +60,13 @@ Suggerimento pratico: se usi anche Magazzino, conviene registrare sempre i prodo
 - `lavori-attivita.md`: esecuzione operativa con assegnazioni e ore.
 - `magazzino.md`: prodotti, scarichi e tracciabilita consumi.
 - `intersezioni-moduli.md`: flussi end-to-end.
+
+---
+
+## 6. Se devi fare X, vai qui
+
+- **Devi registrare un trattamento:** entra nel registro `Trattamenti`.
+- **Devi segnare concimazioni:** usa il registro `Concimazioni`.
+- **Devi registrare potatura o vendemmia:** usa la sezione dedicata in dashboard vigneto.
+- **Devi collegare consumo prodotto a magazzino:** compila il prodotto in intervento e verifica scarico.
+- **Devi analizzare risultati stagionali:** apri `Statistiche` del modulo.
