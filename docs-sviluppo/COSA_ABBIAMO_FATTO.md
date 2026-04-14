@@ -11,6 +11,14 @@
 - Aggiunte sezioni pratiche "Se devi fare X, vai qui" e esempi rapidi per ruolo per rendere la guida ancora piu consultabile dagli utenti finali.
 - Uniformata la struttura finale di tutti i file guida (Core, Intersezioni e moduli) con pattern coerente per consultazione rapida da utenti e operatori.
 - Sincronizzata anche la copia runtime `core/guida-app/` con la versione user-friendly, rimuovendo riferimenti tecnici non utili all'utente finale (API/librerie/configurazioni).
+- Ripristinato il pulsante `Guide` della dashboard verso la guida HTML user-facing (`documentazione-utente/index.html`) per evitare apertura del markdown grezzo non adatto all'utente finale.
+- Cambio temporaneo: pulsante `Guide` riportato a `core/guida-app/README.md` per revisione contenuti della nuova guida; `documentazione-utente/` mantenuta come riferimento impaginazione da riallineare.
+- `documentazione-utente/index.html` riallineata: mantiene l'impaginazione HTML user-friendly ma carica i contenuti aggiornati da `core/guida-app/*.md` (Core, moduli, intersezioni). Pulsante `Guide` riportato al percorso HTML user-facing.
+- Revisione contenuti guida in chiave utente finale: aggiunti dettagli operativi su attivazione moduli/abbonamento, inviti e gestione ruoli operativi, sezioni "se fai questo, cosa succede", esempi pratici per flusso. Rimossi termini tecnici (ID/API/path interni).
+- Ulteriore pulizia lessicale nella guida utente runtime: sostituiti ultimi termini tecnici residui con linguaggio operativo comprensibile (es. "tenant" -> "azienda selezionata").
+- Estensione copertura guida user-facing: aggiunte sezioni complete su Amministrazione, Parco Macchine e Guasti, Statistiche e Report; ampliati i flussi tra ruoli (operaio -> caposquadra -> manager), scadenze/sotto-scorta e passaggi operativi con esempi pratici.
+- Pulizia ulteriore guida utente: rimossi blocchi di manutenzione interna ("come aggiornare la guida") dalle pagine visibili agli utenti finali.
+- Pulizia lessicale finale cross-modulo: sostituiti riferimenti a nomi file tecnici (es. `intersezioni-moduli.md`) con riferimenti leggibili per utenti finali (es. "Sezione Intersezioni tra moduli"), sia in `core/guida-app` sia nelle sorgenti `docs-sviluppo/guida-app`.
 
 ## ✅ Tony Guida - piano operativo aggiornamento completo documentazione (2026-04-14)
 
@@ -4485,4 +4493,34 @@ Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono app
 
 ### Risultato
 - Backlog GPS campioni ora esplicito e pronto all'esecuzione senza ambiguità su scope tecnico e criteri di implementazione.
+
+## 2026-04-14 - Guida utente: passaggio a manuale operativo completo
+
+### Problema
+- La guida risultava ancora troppo sintetica in alcune sezioni: utile come riepilogo, ma non sufficiente per guidare un utente inesperto passo-passo su attività delicate.
+
+### Soluzione
+- Estesa la guida runtime in `core/guida-app` con struttura operativa uniforme:
+  - procedure complete con percorso schermata, posizione pulsanti, passi numerati, controllo finale e errori frequenti;
+  - flussi completi per ruoli (operaio, caposquadra, manager);
+  - esempi pratici di utilizzo Tony (guida/operativo dove disponibile).
+- Rafforzate sezioni chiave:
+  - `README.md`, `core.md`, `intersezioni-moduli.md`;
+  - moduli: amministrazione, terreni, lavori-attivita, vigneto, frutteto, magazzino, conto-terzi, parco-macchine, statistiche-report.
+- Allineata la sorgente editoriale `docs-sviluppo/guida-app` con:
+  - stessa impostazione operativa;
+  - rimozione lessico tecnico non utente;
+  - aggiunta moduli mancanti (`amministrazione.md`, `parco-macchine.md`, `statistiche-report.md`).
+
+### Risultato
+- La guida ora e` impostata come manuale operativo completo (non rapido), con focus su "dove cliccare, cosa succede dopo e come verificare il risultato" in ogni area principale dell'app.
+
+## 2026-04-14 - Trigger deploy documentazione guida
+
+### Contesto
+- Eseguito aggiornamento minimo di tracciamento per innescare un nuovo deploy della guida dopo il completamento della riscrittura operativa.
+
+### Risultato
+- Nuovo commit documentale pronto per pubblicazione e verifica online.
+- Trigger manuale deploy confermato alle 18:22 (ora locale) con aggiornamento tracciato in changelog.
 
