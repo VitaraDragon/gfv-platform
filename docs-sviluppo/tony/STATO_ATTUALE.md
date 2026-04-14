@@ -109,6 +109,7 @@
 | MOSTRA_GRAFICO | Bassa | |
 | Proattività "Ho notato X, vuoi che...?" | Media | Fase 6 |
 | Memoria storica (confronti anno/anno) | Bassa | |
+| Flusso campioni GPS (mappa multipunto raccolta/profilazione) | Media | Mini-spec definita in `TONY_DECISIONI_E_REQUISITI.md` §18; implementazione rimandata a fase 2 dedicata |
 
 ---
 
@@ -125,3 +126,134 @@
 
 Lo stato delle **fasi e dei componenti Tony** in questo file non è cambiato rispetto alla verifica precedente. Per modifiche di codice su **trattamenti Vigneto/Frutteto** (ottimizzazione caricamento liste, flag **superficie da anagrafe terreno**, documentazione utente/sviluppo aggiornata) vedi **`docs-sviluppo/COSA_ABBIAMO_FATTO.md`** (voce **2026-04-05**).
 
+---
+
+## 10. Piano operativo aggiornamento guida app (Tony Guida + guide utente)
+
+### 10.1 Contesto e obiettivo
+
+- La guida app e la base conoscenza Tony sono state create mesi fa; il codice ha introdotto nuove sezioni, modalita operative e opzioni UI.
+- Obiettivo: riallineare in modo accurato la guida utente e la conoscenza Tony, riducendo al minimo omissioni e incoerenze.
+- Vincolo: evitare aggiornamenti a memoria; ogni modifica guida deve essere tracciata su differenze reali tra documentazione esistente e codice attuale.
+
+### 10.2 Decisione architetturale del processo
+
+Approccio ibrido obbligatorio:
+
+1. Analisi in parallelo per modulo (subagent dedicati per trovare differenze guida vs codice).
+2. Consolidamento editoriale unico (un solo agente/step centrale che unifica stile, lessico e coerenza cross-modulo).
+3. Verifica finale rapida umana su punti critici UI/UX prima del completamento.
+
+Motivazione:
+
+- Solo subagent per modulo in scrittura diretta rischiano duplicazioni, contraddizioni tra file e stili diversi.
+- Solo revisione manuale globale senza analisi parallela rischia di non coprire tutto in tempi accettabili.
+
+### 10.3 Fonti da aggiornare
+
+#### A) Fonte principale guida modulare
+
+- `docs-sviluppo/guida-app/README.md`
+- `docs-sviluppo/guida-app/core.md`
+- `docs-sviluppo/guida-app/intersezioni-moduli.md`
+- `docs-sviluppo/guida-app/moduli/*.md`
+
+#### B) Fonte conoscenza Tony (fallback runtime)
+
+- `core/services/tony-guida-app.js` (`GUIDA_APP_PER_TONY`)
+
+Nota operativa:
+
+- Se si aggiorna solo la guida `.md` ma non il fallback condensato, Tony puo rispondere con informazioni non allineate in scenari dove il caricamento completo guida non e disponibile.
+
+### 10.4 Pipeline standard (riusabile)
+
+#### Fase 1 - Scope
+
+- Definire cosa e cambiato (moduli/pagine/flussi) usando:
+  - differenze recenti nel codice;
+  - nuove pagine standalone/modal/form;
+  - nuove opzioni filtro, nuovi stati, nuove regole ruolo/abbonamento.
+- Output: elenco moduli da revisionare con priorita (Alta/Media/Bassa).
+
+#### Fase 2 - Audit parallelo per modulo (subagent)
+
+Per ogni modulo:
+
+- leggere guida attuale del modulo;
+- leggere pagine JS/HTML/service/config del modulo;
+- produrre report differenze con formato fisso:
+  - `Nuovo` (feature presenti nel codice ma assenti in guida),
+  - `Modificato` (comportamento cambiato),
+  - `Rimosso` (testo guida non piu valido),
+  - `Da verificare in UI` (non conclusivo dal solo codice).
+
+Output obbligatorio del report modulo:
+
+- elenco file guida da toccare;
+- motivazione tecnica sintetica per ogni cambio;
+- livello confidenza (`alto`, `medio`, `basso`);
+- rischi se non aggiornato.
+
+#### Fase 3 - Consolidamento centrale guida
+
+- Unificare tutti i report modulo in una sola bozza coerente.
+- Aggiornare prima i contenuti trasversali (`core.md`, intersezioni), poi i moduli.
+- Applicare lessico e struttura uniformi (schema guida esistente).
+- Evitare doppioni: i flussi cross-modulo restano in `intersezioni-moduli.md`, non copiati integralmente in ogni modulo.
+
+#### Fase 4 - Allineamento Tony fallback
+
+- Aggiornare `GUIDA_APP_PER_TONY` con i cambiamenti realmente rilevanti per domande utente.
+- Mantenere testo condensato pratico (non copia integrale della guida modulare), ma semanticamente coerente con le regole correnti dell'app.
+
+#### Fase 5 - Gate qualita finale
+
+Checklist minima:
+
+- percorsi di navigazione corretti;
+- nomi sezioni/pulsanti coerenti con UI reale;
+- ruoli e limiti piano coerenti;
+- intersezioni aggiornate;
+- nessuna contraddizione tra guida modulare e fallback Tony.
+
+### 10.5 Ruoli nel team (2 persone)
+
+- Utente: validazione rapida dei passaggi UI critici e delle scelte di wording lato operatore.
+- Agente: analisi codice completa, redazione e consolidamento guida, gestione coerenza globale.
+
+### 10.6 Regole anti-omissione
+
+- Nessuna sezione guida viene marcata aggiornata senza evidenza da codice.
+- I punti incerti non si inventano: vanno in `Da verificare in UI`.
+- Dopo aggiornamenti modulo, passaggio obbligatorio su `intersezioni-moduli.md`.
+- Ogni run deve lasciare traccia di:
+  - cosa e stato analizzato,
+  - cosa e stato aggiornato,
+  - cosa resta da verificare.
+
+### 10.7 Strategia di esecuzione consigliata per backlog ampio
+
+Ordine suggerito:
+
+1. Core + navigazione globale + ruoli
+2. Lavori/Attivita
+3. Terreni
+4. Vigneto
+5. Frutteto
+6. Magazzino
+7. Conto terzi
+8. Intersezioni finali
+9. Allineamento fallback `tony-guida-app.js`
+
+Ragione:
+
+- si stabilizza prima il vocabolario comune e i flussi base;
+- poi si consolidano i moduli specialistici;
+- infine si chiude coerenza cross-modulo e fallback Tony.
+
+### 10.8 Modalita automatico con controllo
+
+- Automazione raccomandata: analisi differenze + bozza aggiornamenti.
+- Controllo umano indispensabile: pubblicazione finale delle guide utente (soprattutto microcopy e sequenza operativa UI).
+- Principio: "90 percento automatico, 10 percento verifica mirata" per massimizzare velocita senza perdere accuratezza.

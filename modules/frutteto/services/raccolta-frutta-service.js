@@ -448,6 +448,7 @@ export async function createRaccoltaFromAttivita(attivitaId) {
       operai: [],
       macchine: [],
       oreImpiegate: attivita.oreNette || null,
+      posizioneRilevamento: attivita.posizioneRilevamento || null,
       note: `Raccolta creata automaticamente dall'attività diario`
     };
 

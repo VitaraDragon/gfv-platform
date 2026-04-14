@@ -420,6 +420,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
+        import { formatPosizioneRilevamentoCompactHtml } from '../js/geo-capture.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -796,7 +797,7 @@
                         <td>${escapeHtml(ora.lavoroNome)}</td>
                         <td>${ora.orarioInizio || ''} - ${ora.orarioFine || ''}</td>
                         <td><strong>${oreFormattate}</strong></td>
-                        <td>${escapeHtml(ora.note || '-')}</td>
+                        <td>${escapeHtml(ora.note || '-')}${formatPosizioneRilevamentoCompactHtml(ora.posizioneRilevamento) || ''}</td>
                         <td>
                             <div class="action-buttons">
                                 <button class="btn btn-success btn-sm" onclick="validaOra('${ora.lavoroId}', '${ora.id}')">✅ Valida</button>
@@ -952,6 +953,7 @@
                 <p><strong>Orario:</strong> ${ora.orarioInizio || ''} - ${ora.orarioFine || ''}</p>
                 <p><strong>Ore Nette:</strong> ${oreFormattate}</p>
                 ${ora.note ? `<p><strong>Note:</strong> ${escapeHtml(ora.note)}</p>` : ''}
+                ${formatPosizioneRilevamentoCompactHtml(ora.posizioneRilevamento) ? `<p style="margin-top:8px;"><strong>Posizione (al salvataggio):</strong></p>${formatPosizioneRilevamentoCompactHtml(ora.posizioneRilevamento)}` : ''}
             `;
             
             document.getElementById('rifiuta-modal').classList.add('active');

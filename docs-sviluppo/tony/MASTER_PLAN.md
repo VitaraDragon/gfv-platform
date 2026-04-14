@@ -239,6 +239,7 @@ Tony non "compila" grafici. Può:
 ### Fase 6 – Proattività e memoria ⏳ Parziale
 - Parziale: briefing/dashboard, modulo Guasti, avvisi sotto scorta in pagina prodotti (TTS), form magazzino con domande/intervista e promemoria conferma salvataggio (senza salvataggio automatico da solo testo modello)
 - Da fare: frasi tipo "Ho notato X, vuoi che...?" cross-modulo; confronti temporali strutturati dove i dati sono disponibili
+- Backlog operativo concordato: flusso "campioni" con mappa punti georeferenziati (raccolta/profilazione maturazione), su pattern GPS opzionale riusabile e non bloccante
 - **Criterio done (obiettivo)**: Tony segnala proattivamente scadenze e sotto scorta in modo uniforme sui moduli + memoria/confronti ove previsto
 
 ---

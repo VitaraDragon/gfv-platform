@@ -8,16 +8,11 @@
 // IMPORTS
 // ============================================
 import { getColturaColor, showAlert } from './terreni-utils.js';
+import { getCurrentPositionGeo } from './geo-capture.js';
 
 /** Overlay ultima posizione GPS (non persistito in Firestore) */
 let userLocationMarker = null;
 let userLocationAccuracyCircle = null;
-
-const GEOLOCATION_OPTIONS = {
-    enableHighAccuracy: true,
-    timeout: 25000,
-    maximumAge: 0
-};
 
 // ============================================
 // STATE MANAGEMENT
@@ -26,34 +21,8 @@ const GEOLOCATION_OPTIONS = {
 // verranno gestite tramite un state object o variabili globali nel file HTML principale
 
 // ============================================
-// GEOLOCALIZZAZIONE
+// GEOLOCALIZZAZIONE (lettura GPS da geo-capture.js)
 // ============================================
-
-/**
- * Richiede posizione corrente (Promise).
- * @returns {Promise<{ lat: number, lng: number, accuracyMeters: number|null }>}
- */
-function getCurrentPositionGeo() {
-    return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-            reject(new Error('GEO_NOT_SUPPORTED'));
-            return;
-        }
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                resolve({
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    accuracyMeters: typeof pos.coords.accuracy === 'number' && !Number.isNaN(pos.coords.accuracy)
-                        ? pos.coords.accuracy
-                        : null
-                });
-            },
-            (err) => reject(err),
-            GEOLOCATION_OPTIONS
-        );
-    });
-}
 
 function clearUserLocationOverlays() {
     if (userLocationMarker) {

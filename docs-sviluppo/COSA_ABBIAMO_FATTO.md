@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-11.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-14.**
+
+## ✅ Guida app - riscrittura completa struttura modulare (2026-04-14)
+
+- Riscritta la guida utente in `docs-sviluppo/guida-app/` per allinearla alle evoluzioni recenti dell'app: `README.md`, `core.md`, `intersezioni-moduli.md`, `moduli/terreni.md`, `moduli/lavori-attivita.md`, `moduli/vigneto.md`, `moduli/frutteto.md`, `moduli/magazzino.md`, `moduli/conto-terzi.md`.
+- Nuova impostazione centrata su: piani e moduli attivi, ruolo utente, differenza Tony Guida/Tony Avanzato, connessioni cross-modulo e flussi end-to-end.
+- Mantenuto il pulsante `Guide` come canale documentale primario anche in ottica freemium (assenza Tony), con guida orientata a consultazione pratica.
+- Rifinito il tono editoriale in chiave dettagliata ma amichevole, con sezioni operative "flusso consigliato" per modulo e linguaggio piu user friendly.
+
+## ✅ Tony Guida - piano operativo aggiornamento completo documentazione (2026-04-14)
+
+- Definito e documentato in `docs-sviluppo/tony/STATO_ATTUALE.md` (sezione 10) il piano strutturato per riallineare guida utente e conoscenza Tony dopo mesi di evoluzioni app.
+- Scelta architetturale formalizzata: audit parallelo per modulo (subagent), consolidamento editoriale unico, gate qualitativo finale con verifica mirata UI.
+- Chiarite le fonti da mantenere allineate: guida modulare `docs-sviluppo/guida-app/*.md` e fallback runtime Tony `core/services/tony-guida-app.js` (`GUIDA_APP_PER_TONY`).
+- Introdotte regole anti-omissione, output standard dei report modulo (`Nuovo/Modificato/Rimosso/Da verificare in UI`) e ordine consigliato di esecuzione per backlog ampio.
 
 ## ✅ Concimazioni vigneto / frutteto: prefisso log console Tony (2026-04-11)
 
@@ -4439,4 +4453,33 @@ Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono app
 
 ### Risultato
 - Cross-page più robusto: niente auto-selezione terreno in ambiguità, ma iniezione comunque parziale dei campi sicuri (cliente/lavorazione) invece di “nessuna compilazione”.
+
+## 2026-04-14 - Vendemmia: metadato posizione GPS opzionale
+
+### Problema
+- Nel flusso `modules/vigneto/views/vendemmia-standalone.html` mancava la possibilità di salvare e visualizzare una posizione approssimativa per la registrazione vendemmia, mentre lo stesso pattern era già disponibile in altri flussi agricoli.
+
+### Soluzione
+- Aggiunta UI in modal vendemmia con checkbox `vendemmia-includi-posizione`, pulsante `btn-vendemmia-posizione-gps` e stato acquisizione.
+- Integrato `core/js/geo-capture.js` per acquisizione GPS e gestione errori geolocalizzazione.
+- Esteso salvataggio form per includere `posizioneRilevamento` solo se richiesto.
+- Aggiornato rendering tabella vendemmie con nuova colonna `Posizione` (coordinate, accuratezza ±m e badge sorgente GPS/MAPPA).
+- Allineato modello `modules/vigneto/models/Vendemmia.js` con la proprietà `posizioneRilevamento`.
+- Allineata propagazione dati automatica da attività in `modules/vigneto/services/vendemmia-service.js` (`createVendemmiaFromAttivita`).
+
+### Risultato
+- La vendemmia ora supporta tracciabilità GPS leggera opzionale end-to-end (acquisizione, persistenza, visualizzazione), coerente con gli altri flussi già aggiornati.
+- Nota evolutiva concordata: il flusso "campioni" non esiste ancora; in seconda fase verrà valutata una mappa dedicata per punti campione (raccolta/profilazione maturazione) riusando il medesimo pattern GPS opzionale.
+
+## 2026-04-14 - Mini-spec tecnica futura: GPS campioni
+
+### Contesto
+- Confermato con l'utente che il flusso "campioni" non è ancora presente in applicazione e non richiede implementazione runtime immediata.
+
+### Decisione
+- Definita mini-spec tecnica documentale per fase successiva: modello dati standard `posizioneRilevamento`, UI opzionale non bloccante, mappa multipunto campioni, rendering con accuratezza e integrazione futura in `currentTableData`/`FILTER_TABLE`.
+- Aggiunta checklist "pronta sprint" (10 step) con ordine implementativo, output atteso e verifica per ogni step.
+
+### Risultato
+- Backlog GPS campioni ora esplicito e pronto all'esecuzione senza ambiguità su scope tecnico e criteri di implementazione.
 

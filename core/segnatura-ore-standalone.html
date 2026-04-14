@@ -452,6 +452,16 @@
                     <p style="margin-top: 5px; font-size: 14px; color: #666;">Ore nette lavorate</p>
                 </div>
 
+                <div class="form-group">
+                    <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="ora-includi-posizione" style="margin-top: 4px;">
+                        <span>Includi posizione approssimativa (GPS) con questa segnatura</span>
+                    </label>
+                    <small style="color: #666; font-size: 12px; display: block; margin-top: 6px;">
+                        Opzionale. Tracciabilità in campo; precisione indicativa (± metri), non certificata.
+                    </small>
+                </div>
+
                 <!-- Sezione Macchine (solo se lavoro ha macchina assegnata) -->
                 <div id="macchine-sezione" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                     <h4 style="margin-bottom: 15px; color: #2E8B57; font-size: 16px;">🚜 Macchine Utilizzate</h4>
@@ -513,6 +523,12 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from './js/date-format-it.js';
+        import {
+            getCurrentPositionGeo,
+            buildPosizioneRilevamentoFirestore,
+            geolocationErrorMessage,
+            formatPosizioneRilevamentoCompactHtml
+        } from './js/geo-capture.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -1023,7 +1039,7 @@
                         <td><strong>${oreFormattate}</strong></td>
                         ${hasParcoMacchineModule ? `<td style="font-size: 12px;">${macchinaInfo}</td>` : ''}
                         <td><span class="stato-badge ${statoBadge}">${statoLabel}</span></td>
-                        <td>${escapeHtml(ora.note || '-')}</td>
+                        <td>${escapeHtml(ora.note || '-')}${formatPosizioneRilevamentoCompactHtml(ora.posizioneRilevamento) || ''}</td>
                     </tr>
                 `;
             });
@@ -1293,6 +1309,18 @@
                 const attrezzoId = hasParcoMacchineModule ? document.getElementById('ora-attrezzo').value || null : null;
                 const oreMacchinaInput = hasParcoMacchineModule ? document.getElementById('ora-ore-macchina').value : null;
                 const oreMacchina = oreMacchinaInput ? parseFloat(oreMacchinaInput) : (oreNette || null); // Default = ore nette se non specificato
+
+                let posizioneRilevamento = null;
+                const inclGps = document.getElementById('ora-includi-posizione');
+                if (inclGps && inclGps.checked) {
+                    try {
+                        const pos = await getCurrentPositionGeo();
+                        posizioneRilevamento = buildPosizioneRilevamentoFirestore(pos, Timestamp);
+                    } catch (geoErr) {
+                        showAlert(geolocationErrorMessage(geoErr), 'error');
+                        return;
+                    }
+                }
                 
                 const oraData = {
                     operaioId: userId, // Per i caposquadra, usiamo lo stesso campo operaioId
@@ -1307,6 +1335,10 @@
                     stato: 'da_validare',
                     creatoIl: serverTimestamp()
                 };
+
+                if (posizioneRilevamento) {
+                    oraData.posizioneRilevamento = posizioneRilevamento;
+                }
                 
                 // Aggiungi campi macchina solo se modulo attivo e se presenti
                 if (hasParcoMacchineModule) {

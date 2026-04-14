@@ -10,6 +10,13 @@
 // Le importazioni Firebase verranno fatte nel file HTML principale
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
+import { Timestamp } from '../services/firebase-service.js';
+import {
+    getCurrentPositionGeo,
+    buildPosizioneRilevamentoFirestore,
+    geolocationErrorMessage
+} from './geo-capture.js';
+
 // ============================================
 // FUNZIONI FILTRI
 // ============================================
@@ -1068,6 +1075,17 @@ export async function handleSaveAttivita(params) {
         if (macchinaId) attivitaData.macchinaId = macchinaId;
         if (attrezzoId) attivitaData.attrezzoId = attrezzoId;
         if (oreMacchina !== null) attivitaData.oreMacchina = oreMacchina;
+    }
+
+    const inclPosEl = document.getElementById('attivita-includi-posizione');
+    if (inclPosEl && inclPosEl.checked) {
+        try {
+            const pos = await getCurrentPositionGeo();
+            attivitaData.posizioneRilevamento = buildPosizioneRilevamentoFirestore(pos, Timestamp);
+        } catch (geoErr) {
+            showAlert(geolocationErrorMessage(geoErr), 'error');
+            return;
+        }
     }
     
     try {

@@ -16,6 +16,7 @@ import {
     formatDateLikeToItalianLongLocal,
     formatDateLikeToItalianLongWeekday
 } from './date-format-it.js';
+import { formatPosizioneRilevamentoCompactHtml } from './geo-capture.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -1340,6 +1341,15 @@ export async function renderAttivita(params) {
         const terreno = (terreni || []).find((t) => t.id === att.terrenoId);
         const terrenoNome = terreno ? (terreno.nome || '-') : (att.terrenoNome || '-');
         const dataIso = att.data ? dateLikeToIsoDateString(att.data) : '';
+        const p = att.posizioneRilevamento;
+        const posizioneGpsTony =
+            p && typeof p.lat === 'number' && typeof p.lng === 'number'
+                ? `Sì (${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}${
+                      p.accuracyMeters != null && p.accuracyMeters > 0
+                          ? `, ±${Math.round(p.accuracyMeters)} m`
+                          : ''
+                  })`
+                : 'No';
         return {
             id: att.id,
             data: dataIso || '-',
@@ -1347,7 +1357,8 @@ export async function renderAttivita(params) {
             terreno: terrenoNome,
             tipoLavoro: att.tipoLavoro || '-',
             oreNette: att.oreNette != null ? att.oreNette : '-',
-            coltura: att.coltura || '-'
+            coltura: att.coltura || '-',
+            posizioneGps: posizioneGpsTony
         };
     });
     if (typeof window !== 'undefined') {
@@ -1688,6 +1699,7 @@ export async function renderAttivita(params) {
                     ` : ''}
                     <div class="col-terreno" data-label="Terreno">
                         ${escapeHtml(att.terrenoNome || '-')}
+                        ${formatPosizioneRilevamentoCompactHtml(att.posizioneRilevamento) || ''}
                     </div>
                     <div class="col-tipo-lavoro" data-label="Tipo Lavoro">
                         ${escapeHtml(att.tipoLavoro || '-')}${contoTerziBadge}

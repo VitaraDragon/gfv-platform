@@ -802,6 +802,7 @@ export async function createVendemmiaFromAttivita(attivitaId) {
       macchine: macchine,
       oreImpiegate: oreImpiegate,
       parcella: null,
+      posizioneRilevamento: attivita.posizioneRilevamento || null,
       note: '' // Note vuote per vendemmia creata automaticamente
     };
     

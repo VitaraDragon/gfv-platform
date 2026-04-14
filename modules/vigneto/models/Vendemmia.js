@@ -33,6 +33,7 @@ export class Vendemmia extends Base {
    * @param {string} data.parcella - Parcella/blocco vendemmiato (opzionale)
    * @param {Array<Object>} data.poligonoVendemmiato - Coordinate poligono area vendemmiata (opzionale)
    *   Array di oggetti {lat: number, lng: number} per tracciare l'area vendemmiata sulla mappa
+   * @param {Object} data.posizioneRilevamento - Posizione GPS approssimativa {lat, lng, accuracyMeters, source} (opzionale)
    * @param {string} data.note - Note (opzionale)
    */
   constructor(data = {}) {
@@ -79,6 +80,7 @@ export class Vendemmia extends Base {
     // Poligono area vendemmiata (opzionale)
     // Array di coordinate {lat, lng} per tracciare l'area vendemmiata sulla mappa
     this.poligonoVendemmiato = Array.isArray(data.poligonoVendemmiato) ? data.poligonoVendemmiato : null;
+    this.posizioneRilevamento = data.posizioneRilevamento || null;
   }
   
   /**

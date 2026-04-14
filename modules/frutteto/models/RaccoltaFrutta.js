@@ -34,6 +34,7 @@ export class RaccoltaFrutta extends Base {
    * @param {number} data.prezzoVendita - Prezzo vendita €/kg (opzionale, non mostrato in UI)
    * @param {number} data.ricavo - Ricavo totale in € (calcolato, non mostrato in UI)
    * @param {Array<Object>} data.poligonoRaccolta - Coordinate poligono area raccolta (opzionale), come Vendemmia
+   * @param {Object} data.posizioneRilevamento - Posizione approssimativa acquisita in campo {lat,lng,accuracyMeters,source} (opzionale)
    * @param {string} data.note - Note (opzionale)
    */
   constructor(data = {}) {
@@ -83,6 +84,9 @@ export class RaccoltaFrutta extends Base {
 
     // Poligono area raccolta (opzionale), come poligonoVendemmiato in Vendemmia
     this.poligonoRaccolta = Array.isArray(data.poligonoRaccolta) ? data.poligonoRaccolta : null;
+    this.posizioneRilevamento = data.posizioneRilevamento && typeof data.posizioneRilevamento === 'object'
+      ? { ...data.posizioneRilevamento }
+      : null;
   }
   
   /**

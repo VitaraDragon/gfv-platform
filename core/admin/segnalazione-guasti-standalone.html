@@ -320,6 +320,14 @@
         .close-modal:hover {
             color: #333;
         }
+
+        .gps-capture-box {
+            background: #f8f9fa;
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -463,6 +471,27 @@
                     <small>Se stai lavorando su un lavoro specifico, selezionalo</small>
                 </div>
 
+                <div class="form-group">
+                    <label>Posizione (opzionale)</label>
+                    <div class="gps-capture-box">
+                        <label style="display: flex; align-items: flex-start; gap: 8px; font-weight: 500;">
+                            <input type="checkbox" id="guasto-includi-posizione" style="width: auto; margin-top: 3px;">
+                            <span>Includi posizione approssimativa con questa segnalazione</span>
+                        </label>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                            <button type="button" id="btn-gps-posizione" class="btn btn-secondary" style="padding: 8px 12px;">
+                                📍 Segnala qui (GPS)
+                            </button>
+                        </div>
+                        <small id="gps-status" style="margin-top: 8px;">
+                            Nessuna posizione acquisita.
+                        </small>
+                        <small>
+                            Precisione GPS indicativa (± metri), non certificata.
+                        </small>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-danger">🚨 Segnala</button>
             </form>
         </div>
@@ -523,6 +552,7 @@
 
     <script type="module">
         import { formatDateTimeItalianReadable } from '../js/date-format-it.js';
+        import { getCurrentPositionGeo, geolocationErrorMessage } from '../js/geo-capture.js';
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
@@ -566,6 +596,7 @@
             let problemaMarker = null;
             let terrenoPolygon = null;
             let coordinateProblema = null; // {lat, lng}
+            let posizioneRilevamento = null; // {lat, lng, accuracyMeters, source}
 
             // Verifica autenticazione
             onAuthStateChanged(auth, async (user) => {
@@ -652,6 +683,7 @@
                         setupTipoGuastoToggle();
                         setupLavoroChangeHandler();
                         setupMapsButton();
+                        setupGpsCaptureButton();
                         await setupGuastiRealtime();
                     }
                 } else {
@@ -995,6 +1027,109 @@
                 }
             }
 
+            function updateGpsStatus() {
+                const gpsStatus = document.getElementById('gps-status');
+                if (!gpsStatus) return;
+                if (!posizioneRilevamento || typeof posizioneRilevamento.lat !== 'number' || typeof posizioneRilevamento.lng !== 'number') {
+                    gpsStatus.textContent = 'Nessuna posizione acquisita.';
+                    gpsStatus.style.color = '#666';
+                    return;
+                }
+                const acc = posizioneRilevamento.accuracyMeters != null
+                    ? ` (±${Math.round(posizioneRilevamento.accuracyMeters)} m)`
+                    : '';
+                const source = posizioneRilevamento.source === 'map' ? 'mappa' : 'GPS';
+                gpsStatus.textContent = `Posizione pronta (${source}): ${posizioneRilevamento.lat.toFixed(6)}, ${posizioneRilevamento.lng.toFixed(6)}${acc}`;
+                gpsStatus.style.color = '#2e7d32';
+            }
+
+            function setProblemaPosition(lat, lng, options = {}) {
+                const { accuracyMeters = null, source = 'map' } = options;
+                coordinateProblema = { lat, lng };
+                posizioneRilevamento = { lat, lng, accuracyMeters, source };
+                updateGpsStatus();
+
+                if (!problemaMap || typeof google === 'undefined' || !google.maps || !google.maps.Marker) return;
+
+                if (problemaMarker) {
+                    problemaMarker.setMap(null);
+                    problemaMarker = null;
+                }
+
+                problemaMarker = new google.maps.Marker({
+                    position: { lat, lng },
+                    map: problemaMap,
+                    draggable: true,
+                    title: 'Posizione del problema - Trascina per spostare',
+                    animation: google.maps.Animation.DROP,
+                    icon: {
+                        url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                        scaledSize: new google.maps.Size(40, 40)
+                    },
+                    zIndex: 1000
+                });
+
+                const markerStatus = document.getElementById('marker-status');
+                if (markerStatus) {
+                    markerStatus.innerHTML = `✅ Marker posizionato! Coordinate: ${lat.toFixed(6)}, ${lng.toFixed(6)} - <strong>Trascina il marker per precisione</strong>`;
+                    markerStatus.style.color = '#28a745';
+                }
+
+                problemaMarker.addListener('dragstart', () => {
+                    const markerStatusEl = document.getElementById('marker-status');
+                    if (markerStatusEl) {
+                        markerStatusEl.innerHTML = '🔄 Trascinando marker...';
+                        markerStatusEl.style.color = '#ffc107';
+                    }
+                });
+
+                problemaMarker.addListener('dragend', (event) => {
+                    const newLat = event.latLng.lat();
+                    const newLng = event.latLng.lng();
+                    setProblemaPosition(newLat, newLng, { accuracyMeters: null, source: 'map' });
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div style="padding: 5px;">
+                            <strong>📍 Posizione problema</strong><br>
+                            Lat: ${lat.toFixed(6)}<br>
+                            Lng: ${lng.toFixed(6)}<br>
+                            <small>Trascina per spostare</small>
+                        </div>
+                    `
+                });
+
+                problemaMarker.addListener('click', () => {
+                    infoWindow.open(problemaMap, problemaMarker);
+                });
+            }
+
+            function setupGpsCaptureButton() {
+                const btn = document.getElementById('btn-gps-posizione');
+                if (!btn) return;
+                btn.addEventListener('click', async () => {
+                    try {
+                        btn.disabled = true;
+                        btn.textContent = '⌛ Rilevamento...';
+                        const pos = await getCurrentPositionGeo();
+                        setProblemaPosition(pos.lat, pos.lng, {
+                            accuracyMeters: pos.accuracyMeters,
+                            source: 'gps'
+                        });
+                        if (problemaMap) {
+                            problemaMap.setCenter({ lat: pos.lat, lng: pos.lng });
+                            problemaMap.setZoom(18);
+                        }
+                    } catch (err) {
+                        showAlert(geolocationErrorMessage(err), 'error');
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = '📍 Segnala qui (GPS)';
+                    }
+                });
+            }
+
             // Gestione toggle tipo guasto (macchina/generico)
             function setupTipoGuastoToggle() {
                 const tipoMacchina = document.getElementById('tipo-macchina');
@@ -1089,6 +1224,8 @@
                         // Reinizializza mappa quando cambia il lavoro (se tipo generico)
                         // Reset marker
                         coordinateProblema = null;
+                        posizioneRilevamento = null;
+                        updateGpsStatus();
                         if (problemaMarker) {
                             problemaMarker.setMap(null);
                             problemaMarker = null;
@@ -1270,78 +1407,7 @@
                     console.log('🗺️ Click sulla mappa ricevuto!', event.latLng);
                     const lat = event.latLng.lat();
                     const lng = event.latLng.lng();
-                    coordinateProblema = { lat, lng };
-
-                    // Rimuovi marker precedente se esiste
-                    if (problemaMarker) {
-                        problemaMarker.setMap(null);
-                        problemaMarker = null;
-                    }
-
-                    // Crea nuovo marker
-                    try {
-                        problemaMarker = new google.maps.Marker({
-                            position: { lat, lng },
-                            map: problemaMap,
-                            draggable: true,
-                            title: 'Posizione del problema - Trascina per spostare',
-                            animation: google.maps.Animation.DROP,
-                            icon: {
-                                url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                                scaledSize: new google.maps.Size(40, 40)
-                            },
-                            zIndex: 1000 // Sopra il poligono
-                        });
-                        console.log('✅ Marker creato con successo!');
-                    } catch (error) {
-                        console.error('❌ Errore creazione marker:', error);
-                        showAlert('Errore posizionamento marker: ' + error.message, 'error');
-                        return;
-                    }
-
-                    // Aggiorna status
-                    const markerStatus = document.getElementById('marker-status');
-                    if (markerStatus) {
-                        markerStatus.innerHTML = `✅ Marker posizionato! Coordinate: ${lat.toFixed(6)}, ${lng.toFixed(6)} - <strong>Trascina il marker per precisione</strong>`;
-                        markerStatus.style.color = '#28a745';
-                    }
-
-                    // Listener per drag marker
-                    problemaMarker.addListener('dragstart', () => {
-                        const markerStatus = document.getElementById('marker-status');
-                        if (markerStatus) {
-                            markerStatus.innerHTML = '🔄 Trascinando marker...';
-                            markerStatus.style.color = '#ffc107';
-                        }
-                    });
-
-                    problemaMarker.addListener('dragend', (event) => {
-                        coordinateProblema = {
-                            lat: event.latLng.lat(),
-                            lng: event.latLng.lng()
-                        };
-                        const markerStatus = document.getElementById('marker-status');
-                        if (markerStatus) {
-                            markerStatus.innerHTML = `✅ Marker aggiornato! Coordinate: ${coordinateProblema.lat.toFixed(6)}, ${coordinateProblema.lng.toFixed(6)}`;
-                            markerStatus.style.color = '#28a745';
-                        }
-                    });
-
-                    // Info window sul marker
-                    const infoWindow = new google.maps.InfoWindow({
-                        content: `
-                            <div style="padding: 5px;">
-                                <strong>📍 Posizione problema</strong><br>
-                                Lat: ${lat.toFixed(6)}<br>
-                                Lng: ${lng.toFixed(6)}<br>
-                                <small>Trascina per spostare</small>
-                            </div>
-                        `
-                    });
-
-                    problemaMarker.addListener('click', () => {
-                        infoWindow.open(problemaMap, problemaMarker);
-                    });
+                    setProblemaPosition(lat, lng, { accuracyMeters: null, source: 'map' });
                 });
 
                 // Assicura che il cursore sia sempre crosshair sulla mappa
@@ -1609,6 +1675,13 @@
                         : '<span class="guasto-badge badge-in-attesa">⏳ In attesa</span>';
 
                     const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
+                    // Mostra posizione solo se esplicitamente inclusa dall'utente (checkbox)
+                    const pos = guasto.posizioneRilevamento || null;
+                    const posSource = (pos && pos.source === 'map') ? 'MAPPA' : 'GPS';
+                    const posSourceColor = posSource === 'MAPPA' ? '#1976D2' : '#2E7D32';
+                    const posHtml = (pos && typeof pos.lat === 'number' && typeof pos.lng === 'number')
+                        ? `<div><strong>Posizione:</strong> <a href="https://www.google.com/maps?q=${pos.lat},${pos.lng}" target="_blank" rel="noopener">${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}</a>${pos.accuracyMeters ? ` (±${Math.round(pos.accuracyMeters)} m)` : ''} <span style="display:inline-block;margin-left:6px;padding:2px 6px;border-radius:10px;font-size:11px;background:${posSourceColor};color:#fff;font-weight:600;">${posSource}</span></div>`
+                        : '';
 
                     html += `
                         <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'in-attesa' : ''}">
@@ -1625,6 +1698,7 @@
                                     <div><strong>Ubicazione:</strong> ${guasto.ubicazione || '-'}</div>
                                     <div><strong>Tipo problema:</strong> ${guasto.tipoProblema || '-'}</div>
                                 ` : ''}
+                                ${posHtml}
                                 <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
                                 <div><strong>Segnalato il:</strong> ${dataSegnalazione}</div>
                                 ${guasto.stato === 'risolto' ? `
@@ -1670,6 +1744,7 @@
                 const lavoroId = document.getElementById('guasto-lavoro').value || null;
                 const ubicazione = document.getElementById('guasto-ubicazione')?.value.trim() || null;
                 const tipoProblema = document.getElementById('guasto-tipo-problema')?.value || null;
+                const includePosizione = !!document.getElementById('guasto-includi-posizione')?.checked;
 
                 // Validazione base
                 if (!tipoGuasto || !gravita || !dettagli) {
@@ -1733,10 +1808,39 @@
                         guastoData.componenteGuasto = null;
                         guastoData.ubicazione = ubicazione;
                         guastoData.tipoProblema = tipoProblema;
-                        // Aggiungi coordinate problema se marker posizionato
-                        if (coordinateProblema) {
-                            guastoData.coordinateProblema = coordinateProblema;
+                    }
+
+                    if (includePosizione) {
+                        if (!posizioneRilevamento) {
+                            try {
+                                const pos = await getCurrentPositionGeo();
+                                posizioneRilevamento = {
+                                    lat: pos.lat,
+                                    lng: pos.lng,
+                                    accuracyMeters: pos.accuracyMeters,
+                                    source: 'gps'
+                                };
+                                coordinateProblema = { lat: pos.lat, lng: pos.lng };
+                            } catch (geoErr) {
+                                showAlert(geolocationErrorMessage(geoErr), 'error');
+                                return;
+                            }
                         }
+                        if (posizioneRilevamento && typeof posizioneRilevamento.lat === 'number' && typeof posizioneRilevamento.lng === 'number') {
+                            guastoData.posizioneRilevamento = {
+                                lat: posizioneRilevamento.lat,
+                                lng: posizioneRilevamento.lng,
+                                accuracyMeters: posizioneRilevamento.accuracyMeters || null,
+                                source: posizioneRilevamento.source || 'gps'
+                            };
+                            guastoData.coordinateProblema = {
+                                lat: posizioneRilevamento.lat,
+                                lng: posizioneRilevamento.lng
+                            };
+                        }
+                    } else if (coordinateProblema) {
+                        // Retro-compatibilità: se c'è marker mappa, salva comunque coordinate problema
+                        guastoData.coordinateProblema = coordinateProblema;
                     }
 
                     await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
@@ -1792,6 +1896,8 @@
                     document.getElementById('tipo-macchina').checked = true;
                     // Reset mappa
                     coordinateProblema = null;
+                    posizioneRilevamento = null;
+                    updateGpsStatus();
                     if (problemaMarker) {
                         problemaMarker.setMap(null);
                         problemaMarker = null;

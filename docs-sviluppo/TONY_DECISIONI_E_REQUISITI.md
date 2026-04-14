@@ -217,4 +217,41 @@
 
 ---
 
+## 18. Evoluzione GPS campioni (futuro)
+
+| # | Decisione/Requisito | Fonte | Stato | Note |
+|---|----------------------|-------|-------|------|
+| 18.1 | Non esiste ancora un flusso dedicato "campioni" (raccolta/profilazione maturazione) | richiesta utente 2026-04-14 | confermato | Nessuna pagina specifica da estendere ora |
+| 18.2 | In seconda fase introdurre mappa per registrare punti campione georeferenziati | richiesta utente 2026-04-14 | da fare | Riutilizzare pattern GPS opzionale già adottato (`posizioneRilevamento` + accuratezza ±m + link mappa) |
+| 18.3 | Implementazione da mantenere opzionale e non bloccante | continuità UX flussi GPS esistenti | da fare | Checkbox esplicita e fallback senza posizione |
+
+### Mini-spec tecnica (fase 2 futura)
+
+| # | Ambito | Requisito tecnico | Stato |
+|---|--------|-------------------|-------|
+| 18.4 | **Modello dati** | Ogni punto campione deve usare struttura `posizioneRilevamento: { lat, lng, accuracyMeters, source, rilevataIl? }` con compatibilità al pattern già in `core/js/geo-capture.js` | da fare |
+| 18.5 | **UI form** | Aggiungere blocco opzionale uniforme: checkbox "Includi posizione approssimativa", bottone acquisizione GPS, testo stato posizione, nota accuratezza | da fare |
+| 18.6 | **Mappa campioni** | Mappa con inserimento multipunto (marker numerati), metadati per punto (`tipoCampione`, `nota`, `timestamp`) e possibilità di rimozione punto | da fare |
+| 18.7 | **Persistenza** | Salvataggio non bloccante: se GPS non disponibile, consentire conferma senza posizione; se disponibile, salvare coordinate + accuratezza | da fare |
+| 18.8 | **Lista/Dettaglio** | Visualizzare per ogni campione: link Maps, coordinate arrotondate, accuratezza ±m, badge sorgente (`GPS`/`MAPPA`) | da fare |
+| 18.9 | **Tony/contesto** | Quando esisterà la tabella campioni: esporre `currentTableData` (`pageType` dedicato) e supportare `FILTER_TABLE` coerente | da fare |
+| 18.10 | **Rollout** | Prima implementazione su vendemmia/profilazione maturazione; estensione successiva ai flussi raccolta affini senza duplicare logica | da fare |
+
+### Checklist implementazione (pronta sprint)
+
+| Step | Obiettivo | Output atteso | Verifica |
+|------|-----------|---------------|----------|
+| 1 | Definizione schema Firestore campioni | Struttura documento con `puntiCampione[]`, `posizioneRilevamento`, metadati campione (`tipo`, `nota`, `rilevataIl`) | Salvataggio/lettura manuale su tenant test |
+| 2 | Model + service modulo campioni | Model JS + service CRUD coerenti con pattern moduli esistenti | Create/Get/Update/Delete da console senza errori |
+| 3 | UI base form campione | Modal/form con campi campione + blocco GPS opzionale | Apertura form, compilazione e reset corretti |
+| 4 | Acquisizione GPS riusabile | Riutilizzo `getCurrentPositionGeo` + stato UI + gestione errori | Test permessi negati/timeout + test acquisizione riuscita |
+| 5 | Mappa multipunto campioni | Inserimento marker numerati, rimozione marker, editing metadati punto | Coerenza numero punti e ordine marker in UI |
+| 6 | Persistenza punti mappa | Salvataggio `puntiCampione[]` con coordinate + accuratezza/sorgente | Reload pagina: punti ricostruiti correttamente |
+| 7 | Tabella/lista campioni | Colonne posizione (link Maps, ±m, badge), tipo campione, timestamp | Rendering corretto su record con/senza GPS |
+| 8 | currentTableData + FILTER_TABLE | `pageType` dedicato campioni + summary/items aggiornati a ogni render | Tony legge lista campioni e filtro funziona |
+| 9 | Compatibilità cross-flussi | Collegamento opzionale da vendemmia/profilazione maturazione | Creazione campione da entrambi i flussi target |
+| 10 | QA manuale finale | Smoke test mobile/desktop + fallback senza posizione | Checklist QA firmata prima del rilascio |
+
+---
+
 *Inventario creato per la Fase 1 del consolidamento documentazione Tony. Da revisionare prima di procedere con il consolidamento.*
