@@ -259,6 +259,56 @@
                 margin-top: 15px;
             }
         }
+
+        /* Incorporamento workspace mobile campo (iframe stretto): grafici leggibili */
+        body.stat-embed-field {
+            padding: 6px;
+            min-height: auto;
+        }
+        body.stat-embed-field .container {
+            border-radius: 10px;
+            box-shadow: none;
+        }
+        body.stat-embed-field .header {
+            padding: 14px 12px;
+        }
+        body.stat-embed-field .header h1 {
+            font-size: 1.15rem;
+            margin-bottom: 4px;
+        }
+        body.stat-embed-field .header p {
+            font-size: 0.85rem;
+        }
+        body.stat-embed-field .user-info {
+            position: static;
+            margin-top: 8px;
+            justify-content: center;
+        }
+        body.stat-embed-field .content {
+            padding: 10px 8px 16px;
+        }
+        body.stat-embed-field .filters {
+            padding: 12px;
+            margin-bottom: 16px;
+            gap: 10px;
+        }
+        body.stat-embed-field .charts-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        body.stat-embed-field .chart-card {
+            padding: 12px;
+        }
+        body.stat-embed-field .chart-container {
+            height: 220px;
+        }
+        body.stat-embed-field .chart-container.tall {
+            height: 260px;
+        }
+        body.stat-embed-field .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -1060,6 +1110,28 @@
 
             // Inizializza app
             await initAppWrapper();
+
+            const embedParam = new URLSearchParams(window.location.search || '').get('embed');
+            if (embedParam === 'field') {
+                document.body.classList.add('stat-embed-field');
+                const resizeAllCharts = () => {
+                    if (typeof Chart === 'undefined') return;
+                    document.querySelectorAll('canvas').forEach((canvas) => {
+                        const ch = Chart.getChart(canvas);
+                        if (ch) {
+                            try {
+                                ch.resize();
+                            } catch (e) {
+                                /* ignore */
+                            }
+                        }
+                    });
+                };
+                requestAnimationFrame(resizeAllCharts);
+                setTimeout(resizeAllCharts, 400);
+                setTimeout(resizeAllCharts, 1200);
+                window.addEventListener('resize', resizeAllCharts);
+            }
         });
 
         // Funzioni statistiche sono ora nei moduli

@@ -594,6 +594,9 @@
         /** Eccezione lavori di ripresa: il resto era sul lavoro sospeso, qui basta poco tracciato */
         const SOGLIA_SEGNA_COMPLETATO_PERCENT_RIPRESA = 2;
 
+        const urlSearchParams = new URLSearchParams(typeof window !== 'undefined' ? (window.location.search || '') : '');
+        const focusLavoroId = urlSearchParams.get('focusLavoroId');
+
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -763,6 +766,24 @@
                     return b.dataInizio.getTime() - a.dataInizio.getTime();
                 });
 
+                if (focusLavoroId) {
+                    const focused = lavoriList.filter((l) => l.id === focusLavoroId);
+                    if (focused.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🔍</div>
+                                <p>Lavoro non trovato o non assegnato a te</p>
+                                <p style="font-size: 14px; margin-top: 10px;">Verifica la selezione nel workspace mobile o apri l'elenco completo.</p>
+                                <p style="margin-top: 16px;">
+                                    <a class="btn btn-primary" href="lavori-caposquadra-standalone.html?ws=classic">Vedi tutti i lavori</a>
+                                </p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    lavoriList = focused;
+                }
+
                 renderLavori();
             } catch (error) {
                 console.error('Errore caricamento lavori:', error);
@@ -844,6 +865,14 @@
             );
 
             let html = '';
+            if (focusLavoroId && lavoriConZone.length === 1) {
+                html += `
+                    <div class="focus-lavoro-banner" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 1px solid #a5d6a7; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+                        <div style="font-size: 14px; color: #1b5e20;"><strong>Vista lavoro attivo</strong> — dettaglio del solo incarico selezionato.</div>
+                        <a class="btn btn-secondary" href="lavori-caposquadra-standalone.html?ws=classic" style="font-size: 13px;">Mostra tutti i lavori</a>
+                    </div>
+                `;
+            }
             lavoriConZone.forEach(lavoro => {
                 const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
                 const dataInizioFormatted = lavoro.dataInizio 

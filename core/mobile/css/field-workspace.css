@@ -1,6 +1,6 @@
 .field-mobile-shell {
     min-height: 100vh;
-    background: #f4f7f6;
+    background: linear-gradient(180deg, #e8f5e9 0%, #f4f7f6 28%, #f4f7f6 100%);
     color: #1f2937;
     margin: 0;
 }
@@ -9,21 +9,24 @@
     position: sticky;
     top: 0;
     z-index: 30;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 10px 12px 8px;
+    background: linear-gradient(135deg, #2e8b57 0%, #256e4a 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 12px 14px 10px;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(37, 110, 74, 0.25);
 }
 
 .field-mobile-title {
     margin: 0 0 4px;
     font-size: 18px;
-    color: #2e8b57;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .field-mobile-subtitle {
     margin: 0 0 8px;
     font-size: 13px;
-    color: #4b5563;
+    color: rgba(255, 255, 255, 0.92);
 }
 
 .field-mobile-toolbar {
@@ -32,14 +35,20 @@
 }
 
 .field-mobile-btn {
-    border: 1px solid #d1d5db;
-    background: #fff;
-    color: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
     padding: 8px 10px;
     border-radius: 8px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+}
+
+.field-mobile-header .field-mobile-btn {
+    background: rgba(255, 255, 255, 0.95);
+    color: #166534;
+    border-color: rgba(255, 255, 255, 0.6);
 }
 
 .field-mobile-btn.primary {
@@ -48,10 +57,22 @@
     color: #fff;
 }
 
+.field-mobile-main .field-mobile-btn.primary {
+    background: #2e8b57;
+    border-color: #2e8b57;
+    color: #fff;
+}
+
+.field-mobile-main .field-mobile-btn:not(.primary) {
+    background: #fff;
+    color: #111827;
+    border-color: #d1d5db;
+}
+
 .field-mobile-note {
     margin: 6px 0 0;
     font-size: 12px;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .field-mobile-main {
@@ -87,6 +108,25 @@
     margin-bottom: 8px;
 }
 
+.slide-head-brand {
+    background: linear-gradient(135deg, #2e8b57 0%, #228b22 100%);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(46, 139, 87, 0.22);
+}
+
+.slide-head-text h2 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    color: inherit;
+}
+
+.slide-head-text p {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
 .slide-head h2 {
     margin: 0 0 4px;
     font-size: 16px;
@@ -106,6 +146,36 @@
     padding: 10px;
 }
 
+.slide-body-brand {
+    border: 1px solid #d1fae5;
+    box-shadow: 0 2px 8px rgba(15, 118, 110, 0.06);
+}
+
+.slide-body-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: visible;
+}
+
+.slide-body-iframe-tall {
+    padding: 0;
+    overflow: hidden;
+    min-height: 74vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.slide-body-iframe-tall .slide-frame {
+    flex: 1;
+    min-height: 68vh;
+    height: auto;
+}
+
+.gfv-card-inner {
+    padding: 2px 0;
+}
+
 .slide-frame {
     width: 100%;
     border: 0;
@@ -115,7 +185,19 @@
 }
 
 .frame-ore { min-height: 620px; }
-.frame-summary { min-height: 620px; }
+.frame-summary {
+    width: 100%;
+    border: 0;
+    flex: 1;
+    min-height: 68vh;
+}
+.frame-lavori-detail {
+    min-height: 58vh;
+    height: 58vh;
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
 .frame-team { min-height: 680px; }
 
 .work-select-card,
@@ -240,6 +322,138 @@
 .slide-dot.active {
     width: 20px;
     background: #2e8b57;
+}
+
+/* Squadra: lista compatta, niente tabella larga */
+.squad-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.squad-member-row {
+    width: 100%;
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    color: #166534;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.squad-member-row:hover,
+.squad-member-row:focus-visible {
+    background: #ecfdf3;
+    border-color: #86efac;
+    outline: none;
+}
+
+.squad-squadra-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+/* Modal contatti operaio */
+.field-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.field-modal[hidden] {
+    display: none !important;
+}
+
+.field-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.field-modal-panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px;
+    background: #fff;
+    border-radius: 16px 16px 12px 12px;
+    padding: 18px 16px 16px;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.field-modal-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    border: none;
+    background: transparent;
+    font-size: 26px;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.field-modal-title {
+    margin: 0 32px 6px 0;
+    font-size: 18px;
+    color: #14532d;
+}
+
+.field-modal-sub {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.field-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: stretch;
+}
+
+.field-icon-action {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 12px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid #d1d5db;
+    color: #0f172a;
+    background: #f8fafc;
+}
+
+.field-icon-action.phone {
+    border-color: #86efac;
+    background: #ecfdf3;
+    color: #14532d;
+}
+
+.field-icon-action.mail {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #1e3a8a;
+}
+
+.field-icon-action.is-disabled {
+    pointer-events: none;
+    opacity: 0.45;
 }
 
 @media (max-width: 480px) {

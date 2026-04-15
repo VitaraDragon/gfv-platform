@@ -23,32 +23,36 @@
     <main class="field-mobile-main">
         <section class="field-swiper" id="field-swiper">
             <article class="field-slide" data-slide-title="Lavoro">
-                <div class="slide-head">
-                    <h2>1. Seleziona lavoro</h2>
-                    <p>Inizia scegliendo il lavoro corrente, poi scorri a sinistra.</p>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>Seleziona lavoro</h2>
+                        <p>Scegli il lavoro corrente, poi scorri a sinistra per il flusso operativo.</p>
+                    </div>
                 </div>
-                <div class="slide-body">
-                    <div class="work-select-card">
-                        <label for="selected-work" class="label-inline">Lavori assegnati oggi</label>
+                <div class="slide-body slide-body-brand">
+                    <div class="work-select-card gfv-card-inner">
+                        <label for="selected-work" class="label-inline">Lavori assegnati</label>
                         <select id="selected-work" class="field-input">
                             <option value="">Caricamento lavori...</option>
                         </select>
                         <small id="gps-suggestion" class="hint-text"></small>
                         <div class="work-actions">
                             <button type="button" id="btn-refresh-works" class="field-mobile-btn">Aggiorna elenco</button>
-                            <a href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn">Apri elenco completo</a>
+                            <a href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn">Elenco completo</a>
                         </div>
                     </div>
                 </div>
             </article>
 
             <article class="field-slide" data-slide-title="Ore">
-                <div class="slide-head">
-                    <h2>2. Segna ore</h2>
-                    <p>Le ore vengono calcolate automaticamente dagli orari impostati.</p>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>Segna ore</h2>
+                        <p>Le ore vengono calcolate automaticamente dagli orari impostati.</p>
+                    </div>
                 </div>
-                <div class="slide-body">
-                    <form id="quick-hours-form" class="quick-comm-form">
+                <div class="slide-body slide-body-brand">
+                    <form id="quick-hours-form" class="quick-comm-form gfv-card-inner">
                         <label for="ora-start" class="label-inline">Orario inizio</label>
                         <input id="ora-start" class="field-input" type="time" required>
                         <label for="ora-end" class="label-inline">Orario fine</label>
@@ -68,47 +72,58 @@
             </article>
 
             <article class="field-slide" data-slide-title="Lavoro selezionato">
-                <div class="slide-head">
-                    <h2>3. Lavoro selezionato</h2>
-                    <p>Focus completo sul lavoro attivo, senza altri lavori in lista.</p>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>Lavoro selezionato</h2>
+                        <p>Dettaglio operativo sul solo incarico scelto nella prima schermata.</p>
+                    </div>
                 </div>
-                <div class="slide-body">
-                    <div id="selected-work-card" class="selected-work-card">
+                <div class="slide-body slide-body-brand slide-body-stack">
+                    <div id="selected-work-card" class="selected-work-card gfv-card-inner">
                         <div class="empty-state-inline">Seleziona un lavoro nella prima schermata.</div>
                     </div>
+                    <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
                     <div class="work-actions">
-                        <a href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn">Apri dettaglio completo</a>
+                        <a id="lavori-full-detail-link" href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn" target="_blank" rel="noopener">Apri in finestra intera</a>
                     </div>
                 </div>
             </article>
 
             <article class="field-slide" data-slide-title="Statistiche">
-                <div class="slide-head">
-                    <h2>4. Statistiche rapide</h2>
-                    <p>Controlla rapidamente stato e andamento giornata.</p>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>Statistiche</h2>
+                        <p>Andamento e grafici (vista compatta per mobile).</p>
+                    </div>
                 </div>
-                <div class="slide-body">
-                    <iframe class="slide-frame frame-summary" src="../statistiche-standalone.html" title="Statistiche" loading="lazy"></iframe>
+                <div class="slide-body slide-body-brand slide-body-iframe-tall">
+                    <iframe id="stats-embed-frame" class="slide-frame frame-summary" src="../statistiche-standalone.html?embed=field" title="Statistiche" loading="lazy"></iframe>
                 </div>
             </article>
 
             <article class="field-slide capo-only" data-slide-title="Squadra" hidden>
-                <div class="slide-head">
-                    <h2>5. La mia squadra</h2>
-                    <p>Vista dedicata caposquadra.</p>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>La mia squadra</h2>
+                        <p>Tocca un nome per chiamare o inviare email.</p>
+                    </div>
                 </div>
-                <div class="slide-body">
-                    <iframe class="slide-frame frame-team" src="../admin/gestione-squadre-standalone.html" title="Squadra" loading="lazy"></iframe>
+                <div class="slide-body slide-body-brand">
+                    <div id="squad-members-list" class="squad-members-list">
+                        <div class="empty-state-inline" id="squad-members-placeholder">Caricamento squadra...</div>
+                    </div>
                 </div>
             </article>
 
             <article class="field-slide capo-only" data-slide-title="Comunicazioni" hidden>
-                <div class="slide-head">
-                    <h2>6. Comunicazioni squadra</h2>
-                    <p>Invia un messaggio operativo rapido alla squadra.</p>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>Comunicazioni squadra</h2>
+                        <p>Messaggio operativo rapido alla squadra.</p>
+                    </div>
                 </div>
-                <div class="slide-body">
-                    <form id="quick-communication-form" class="quick-comm-form">
+                <div class="slide-body slide-body-brand">
+                    <form id="quick-communication-form" class="quick-comm-form gfv-card-inner">
                         <label for="quick-work-select" class="label-inline">Lavoro</label>
                         <select id="quick-work-select" class="field-input"></select>
                         <label for="quick-comm-date" class="label-inline">Data</label>
@@ -130,6 +145,19 @@
             <button id="btn-next-slide" class="field-mobile-btn primary" type="button">Avanti</button>
         </nav>
     </main>
+
+    <div id="operaio-contact-modal" class="field-modal" hidden aria-hidden="true">
+        <div class="field-modal-backdrop" data-close-modal tabindex="-1"></div>
+        <div class="field-modal-panel" role="dialog" aria-modal="true" aria-labelledby="operaio-contact-name">
+            <button type="button" class="field-modal-close" data-close-modal aria-label="Chiudi">&times;</button>
+            <h3 id="operaio-contact-name" class="field-modal-title"></h3>
+            <p id="operaio-contact-sub" class="field-modal-sub"></p>
+            <div class="field-modal-actions">
+                <a id="operaio-contact-call" class="field-icon-action phone" href="#" title="Chiama" aria-label="Chiama">📞 Chiama</a>
+                <a id="operaio-contact-mail" class="field-icon-action mail" href="#" title="Email" aria-label="Invia email">✉️ Email</a>
+            </div>
+        </div>
+    </div>
 
     <script src="../js/config-loader.js"></script>
     <script src="../js/dashboard-utils.js"></script>

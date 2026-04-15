@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-14.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-15.**
+
+## ✅ Workspace mobile campo (caposquadra): UI, dettaglio lavoro, squadra, statistiche embed (2026-04-15)
+
+- Allineati header e schede swipe a palette GFV (verde, card coerenti con resto app) in `core/mobile/css/field-workspace.css` e `core/mobile/field-workspace-standalone.html`.
+- Dettaglio lavoro: `lavori-caposquadra-standalone.html` supporta `focusLavoroId` in query (solo incarico selezionato + banner “mostra tutti”); iframe su slide “Lavoro selezionato” punta a quell’URL; link “Apri in finestra intera”.
+- Squadra: rimossa dipendenza da iframe `gestione-squadre`; elenco operai da Firestore (`squadre` + `users`), righe cliccabili e modal contatti (tel / mailto).
+- Statistiche in iframe: `statistiche-standalone.html?embed=field` con CSS compatto e `resize` Chart.js post-carico; contenitore slide più alto per leggibilità grafici.
 
 ## ✅ Guida app - riscrittura completa struttura modulare (2026-04-14)
 

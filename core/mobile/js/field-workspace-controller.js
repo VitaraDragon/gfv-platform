@@ -8,6 +8,8 @@ import {
     collection,
     getDocs,
     addDoc,
+    query,
+    where,
     serverTimestamp,
     Timestamp
 } from '../../services/firebase-service.js';
@@ -37,6 +39,14 @@ const oraStartEl = document.getElementById('ora-start');
 const oraEndEl = document.getElementById('ora-end');
 const oraBreakEl = document.getElementById('ora-break');
 const oraNoteEl = document.getElementById('ora-note');
+const lavoriDetailFrameEl = document.getElementById('lavori-detail-frame');
+const lavoriFullDetailLinkEl = document.getElementById('lavori-full-detail-link');
+const squadListEl = document.getElementById('squad-members-list');
+const operaioModalEl = document.getElementById('operaio-contact-modal');
+const operaioContactNameEl = document.getElementById('operaio-contact-name');
+const operaioContactSubEl = document.getElementById('operaio-contact-sub');
+const operaioContactCallEl = document.getElementById('operaio-contact-call');
+const operaioContactMailEl = document.getElementById('operaio-contact-mail');
 
 let currentUserData = null;
 let currentUser = null;
@@ -45,11 +55,12 @@ let activeSlides = [];
 let currentSlideIndex = 0;
 let cachedWorks = [];
 let selectedWork = null;
+let userIsCaposquadra = false;
 
 function setStatus(text, isError = false) {
     if (!statusEl) return;
     statusEl.textContent = text;
-    statusEl.style.color = isError ? '#b91c1c' : '#4b5563';
+    statusEl.style.color = isError ? '#fecaca' : 'rgba(255, 255, 255, 0.92)';
 }
 
 function getWorkspacePreferenceFromUrl() {
@@ -273,6 +284,11 @@ async function loadWorksForSelection() {
         cachedWorks = works;
         populateWorkSelectors(works);
         pickGpsSuggestion(works);
+        const chosenFromUi = (selectedWorkEl && selectedWorkEl.value) || '';
+        if (chosenFromUi) {
+            const match = cachedWorks.find((w) => w.id === chosenFromUi);
+            if (match) selectedWork = match;
+        }
         if (works.length > 0 && !selectedWork) {
             selectedWork = works[0];
             if (selectedWorkEl) selectedWorkEl.value = selectedWork.id;
@@ -290,10 +306,131 @@ async function loadWorksForSelection() {
     }
 }
 
+function updateLavoriDetailEmbed() {
+    if (!lavoriDetailFrameEl || !lavoriFullDetailLinkEl) return;
+    const base = '../admin/lavori-caposquadra-standalone.html?ws=classic';
+    if (!selectedWork) {
+        lavoriDetailFrameEl.removeAttribute('src');
+        lavoriFullDetailLinkEl.href = base;
+        return;
+    }
+    const url = `${base}&focusLavoroId=${encodeURIComponent(selectedWork.id)}`;
+    lavoriDetailFrameEl.src = url;
+    lavoriFullDetailLinkEl.href = url;
+}
+
+function renderSquadList(squadLabel, members) {
+    if (!squadListEl) return;
+    squadListEl.innerHTML = '';
+    const sub = document.createElement('div');
+    sub.className = 'squad-squadra-name';
+    sub.textContent = squadLabel;
+    squadListEl.appendChild(sub);
+    members.forEach((m) => {
+        const fullName = `${m.nome || ''} ${m.cognome || ''}`.trim() || m.email || m.id;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'squad-member-row';
+        btn.textContent = fullName;
+        btn.addEventListener('click', () => openOperaioContactModal(m, fullName));
+        squadListEl.appendChild(btn);
+    });
+}
+
+function openOperaioContactModal(userRow, displayName) {
+    if (!operaioModalEl || !operaioContactNameEl || !operaioContactSubEl) return;
+    const email = String(userRow.email || '').trim();
+    const cell = String(userRow.cellulare || userRow.telefono || userRow.cell || '').trim();
+    operaioContactNameEl.textContent = displayName;
+    const subParts = [email, cell].filter(Boolean);
+    operaioContactSubEl.textContent = subParts.length ? subParts.join(' · ') : 'Contatti non disponibili in anagrafica.';
+
+    const telCompact = cell.replace(/[\s()-]/g, '');
+    if (operaioContactCallEl) {
+        if (telCompact) {
+            operaioContactCallEl.href = `tel:${telCompact}`;
+            operaioContactCallEl.classList.remove('is-disabled');
+        } else {
+            operaioContactCallEl.href = '#';
+            operaioContactCallEl.classList.add('is-disabled');
+        }
+    }
+    if (operaioContactMailEl) {
+        if (email) {
+            operaioContactMailEl.href = `mailto:${email}`;
+            operaioContactMailEl.classList.remove('is-disabled');
+        } else {
+            operaioContactMailEl.href = '#';
+            operaioContactMailEl.classList.add('is-disabled');
+        }
+    }
+
+    operaioModalEl.hidden = false;
+    operaioModalEl.setAttribute('aria-hidden', 'false');
+}
+
+function closeOperaioContactModal() {
+    if (!operaioModalEl) return;
+    operaioModalEl.hidden = true;
+    operaioModalEl.setAttribute('aria-hidden', 'true');
+}
+
+async function loadSquadMembersForCapo() {
+    if (!squadListEl || !currentTenantId || !currentUser) return;
+    squadListEl.innerHTML = '<div class="empty-state-inline">Caricamento squadra...</div>';
+    try {
+        const squadreRef = collection(getDb(), `tenants/${currentTenantId}/squadre`);
+        let snapshot = await getDocs(query(squadreRef, where('caposquadraId', '==', currentUser.uid)));
+        const altId = currentUserData && (currentUserData.id || currentUserData.uid);
+        if (snapshot.empty && altId && altId !== currentUser.uid) {
+            snapshot = await getDocs(query(squadreRef, where('caposquadraId', '==', altId)));
+        }
+        if (snapshot.empty) {
+            squadListEl.innerHTML = '<div class="empty-state-inline">Nessuna squadra assegnata.</div>';
+            return;
+        }
+        const squadDocs = [];
+        snapshot.forEach((d) => {
+            squadDocs.push({ id: d.id, ...d.data() });
+        });
+        squadDocs.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'));
+        const operaioIdSet = new Set();
+        squadDocs.forEach((s) => {
+            (s.operai || []).forEach((oid) => {
+                if (oid) operaioIdSet.add(oid);
+            });
+        });
+        const squadLabel = squadDocs.length === 1
+            ? (squadDocs[0].nome || 'Squadra')
+            : `${squadDocs.length} squadre · membri unici`;
+        if (operaioIdSet.size === 0) {
+            squadListEl.innerHTML = '<div class="empty-state-inline">Nessun operaio in squadra.</div>';
+            return;
+        }
+        const members = [];
+        for (const oid of operaioIdSet) {
+            const udoc = await getDoc(doc(getDb(), 'users', oid));
+            if (udoc.exists()) {
+                members.push({ id: udoc.id, ...udoc.data() });
+            }
+        }
+        members.sort((a, b) => {
+            const na = `${a.nome || ''} ${a.cognome || ''}`.trim() || a.email || '';
+            const nb = `${b.nome || ''} ${b.cognome || ''}`.trim() || b.email || '';
+            return na.localeCompare(nb, 'it');
+        });
+        renderSquadList(squadLabel, members);
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore caricamento squadra:', error);
+        squadListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento squadra.</div>';
+    }
+}
+
 function renderSelectedWorkCard() {
     if (!selectedWorkCardEl) return;
     if (!selectedWork) {
         selectedWorkCardEl.innerHTML = '<div class="empty-state-inline">Seleziona un lavoro nella prima schermata.</div>';
+        updateLavoriDetailEmbed();
         return;
     }
     const raw = selectedWork.raw || {};
@@ -310,6 +447,7 @@ function renderSelectedWorkCard() {
         <div class="selected-work-line"><strong>Data:</strong> ${dataText}</div>
         <div class="selected-work-line"><strong>Stato:</strong> ${stato}</div>
     `;
+    updateLavoriDetailEmbed();
 }
 
 function calculateNetHours() {
@@ -394,6 +532,7 @@ function bindWorkSelection() {
         if (found) {
             selectedWork = found;
             renderSelectedWorkCard();
+            updateLavoriDetailEmbed();
         }
         if (selectedWorkEl && selectedWorkEl.value !== value) selectedWorkEl.value = value;
         if (quickWorkSelectEl && quickWorkSelectEl.value !== value) quickWorkSelectEl.value = value;
@@ -412,6 +551,9 @@ function bindWorkSelection() {
     if (refreshWorksBtnEl) {
         refreshWorksBtnEl.addEventListener('click', async () => {
             await loadWorksForSelection();
+            if (userIsCaposquadra) {
+                await loadSquadMembersForCapo();
+            }
             setStatus('Elenco lavori aggiornato.');
         });
     }
@@ -464,6 +606,24 @@ async function sendQuickCommunication(event) {
     }
 }
 
+function bindOperaioModal() {
+    if (!operaioModalEl) return;
+    operaioModalEl.addEventListener('click', (event) => {
+        const t = event.target;
+        if (t instanceof HTMLElement && t.getAttribute('data-close-modal') != null) {
+            closeOperaioContactModal();
+        }
+    });
+    const blockDisabled = (event) => {
+        const a = event.currentTarget;
+        if (a instanceof HTMLAnchorElement && a.classList.contains('is-disabled')) {
+            event.preventDefault();
+        }
+    };
+    if (operaioContactCallEl) operaioContactCallEl.addEventListener('click', blockDisabled);
+    if (operaioContactMailEl) operaioContactMailEl.addEventListener('click', blockDisabled);
+}
+
 function bindToolbar() {
     const btnClassic = document.getElementById('btn-switch-classic');
     const btnAuto = document.getElementById('btn-switch-auto');
@@ -503,6 +663,7 @@ async function initFieldWorkspace() {
     setStatus('Caricamento workspace mobile...');
     applyUrlPreference();
     bindToolbar();
+    bindOperaioModal();
 
     try {
         const firebaseConfig = await window.GFVConfigLoader.waitForConfig();
@@ -567,6 +728,7 @@ async function initFieldWorkspace() {
                 const isCaposquadra = hasAnyRole
                     ? hasAnyRole({ ruoli: normalizedRoles }, ['caposquadra'])
                     : false;
+                userIsCaposquadra = isCaposquadra;
                 setupSlidesForRole(isCaposquadra);
                 // Ordine caposquadra richiesto:
                 // Seleziona lavoro -> Segna ore -> Lavoro selezionato -> Squadra -> Comunicazioni -> Statistiche
@@ -581,6 +743,9 @@ async function initFieldWorkspace() {
                 goToSlide(0);
                 bindWorkSelection();
                 await loadWorksForSelection();
+                if (isCaposquadra) {
+                    await loadSquadMembersForCapo();
+                }
                 const dateInput = document.getElementById('quick-comm-date');
                 if (dateInput) dateInput.value = getTodayIsoDate();
 
