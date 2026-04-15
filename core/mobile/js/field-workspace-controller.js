@@ -29,6 +29,14 @@ const gpsSuggestionEl = document.getElementById('gps-suggestion');
 const quickFormEl = document.getElementById('quick-communication-form');
 const quickStatusEl = document.getElementById('quick-comm-status');
 const refreshWorksBtnEl = document.getElementById('btn-refresh-works');
+const selectedWorkCardEl = document.getElementById('selected-work-card');
+const quickHoursFormEl = document.getElementById('quick-hours-form');
+const hoursStatusEl = document.getElementById('hours-save-status');
+const hoursValueEl = document.getElementById('ora-net-hours');
+const oraStartEl = document.getElementById('ora-start');
+const oraEndEl = document.getElementById('ora-end');
+const oraBreakEl = document.getElementById('ora-break');
+const oraNoteEl = document.getElementById('ora-note');
 
 let currentUserData = null;
 let currentUser = null;
@@ -36,6 +44,7 @@ let currentTenantId = null;
 let activeSlides = [];
 let currentSlideIndex = 0;
 let cachedWorks = [];
+let selectedWork = null;
 
 function setStatus(text, isError = false) {
     if (!statusEl) return;
@@ -207,9 +216,8 @@ function pickGpsSuggestion(works) {
 
 function normalizeWorkLabel(work) {
     const nome = work.nome || work.tipoLavoro || work.titolo || 'Lavoro';
-    const terreno = work.terrenoNome || work.terreno || work.terrenoId || '';
-    const stato = work.stato || '';
-    return `${nome}${terreno ? ` - ${terreno}` : ''}${stato ? ` [${stato}]` : ''}`;
+    const terreno = work.terrenoNome || work.terreno || '';
+    return `${nome}${terreno ? ` - ${terreno}` : ''}`;
 }
 
 function isWorkRelevantForFieldRole(work) {
@@ -265,6 +273,12 @@ async function loadWorksForSelection() {
         cachedWorks = works;
         populateWorkSelectors(works);
         pickGpsSuggestion(works);
+        if (works.length > 0 && !selectedWork) {
+            selectedWork = works[0];
+            if (selectedWorkEl) selectedWorkEl.value = selectedWork.id;
+            if (quickWorkSelectEl) quickWorkSelectEl.value = selectedWork.id;
+        }
+        renderSelectedWorkCard();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore caricamento lavori:', error);
         if (selectedWorkEl) {
@@ -276,9 +290,111 @@ async function loadWorksForSelection() {
     }
 }
 
+function renderSelectedWorkCard() {
+    if (!selectedWorkCardEl) return;
+    if (!selectedWork) {
+        selectedWorkCardEl.innerHTML = '<div class="empty-state-inline">Seleziona un lavoro nella prima schermata.</div>';
+        return;
+    }
+    const raw = selectedWork.raw || {};
+    const tipo = raw.tipoLavoro || raw.nome || '-';
+    const terreno = raw.terrenoNome || raw.terreno || 'Non specificato';
+    const data = raw.dataInizio && raw.dataInizio.toDate ? raw.dataInizio.toDate() : (raw.dataInizio ? new Date(raw.dataInizio) : null);
+    const dataText = data && !Number.isNaN(data.getTime()) ? data.toLocaleDateString('it-IT') : 'Non specificata';
+    const stato = raw.stato || 'in lavorazione';
+
+    selectedWorkCardEl.innerHTML = `
+        <div class="selected-work-title">${selectedWork.label}</div>
+        <div class="selected-work-line"><strong>Tipo lavoro:</strong> ${tipo}</div>
+        <div class="selected-work-line"><strong>Terreno:</strong> ${terreno}</div>
+        <div class="selected-work-line"><strong>Data:</strong> ${dataText}</div>
+        <div class="selected-work-line"><strong>Stato:</strong> ${stato}</div>
+    `;
+}
+
+function calculateNetHours() {
+    if (!hoursValueEl || !oraStartEl || !oraEndEl || !oraBreakEl) return 0;
+    const start = oraStartEl.value;
+    const end = oraEndEl.value;
+    const breakMin = Math.max(0, parseInt(oraBreakEl.value || '0', 10) || 0);
+
+    if (!start || !end) {
+        hoursValueEl.textContent = '0.00';
+        return 0;
+    }
+
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const startMinutes = (sh * 60) + sm;
+    const endMinutes = (eh * 60) + em;
+    if (endMinutes <= startMinutes) {
+        hoursValueEl.textContent = '0.00';
+        return 0;
+    }
+    const netMinutes = Math.max(0, endMinutes - startMinutes - breakMin);
+    const netHours = netMinutes / 60;
+    hoursValueEl.textContent = netHours.toFixed(2);
+    return netHours;
+}
+
+async function saveQuickHours(event) {
+    event.preventDefault();
+    if (!hoursStatusEl) return;
+    if (!selectedWork || !currentTenantId || !currentUser) {
+        hoursStatusEl.textContent = 'Seleziona prima un lavoro.';
+        hoursStatusEl.style.color = '#b91c1c';
+        return;
+    }
+    const start = oraStartEl ? oraStartEl.value : '';
+    const end = oraEndEl ? oraEndEl.value : '';
+    if (!start || !end) {
+        hoursStatusEl.textContent = 'Inserisci orario inizio e fine.';
+        hoursStatusEl.style.color = '#b91c1c';
+        return;
+    }
+    const netHours = calculateNetHours();
+    if (netHours <= 0) {
+        hoursStatusEl.textContent = 'Le ore nette devono essere maggiori di 0.';
+        hoursStatusEl.style.color = '#b91c1c';
+        return;
+    }
+
+    try {
+        const [y, m, d] = getTodayIsoDate().split('-').map(Number);
+        const nowDate = new Date(y, m - 1, d);
+        const pauseMin = Math.max(0, parseInt((oraBreakEl && oraBreakEl.value) || '0', 10) || 0);
+        const oraData = {
+            operaioId: currentUser.uid,
+            lavoroId: selectedWork.id,
+            terrenoId: selectedWork.raw?.terrenoId || null,
+            data: Timestamp.fromDate(nowDate),
+            orarioInizio: start,
+            orarioFine: end,
+            pauseMinuti: pauseMin,
+            oreNette: netHours,
+            note: (oraNoteEl && oraNoteEl.value) ? oraNoteEl.value.trim() : '',
+            stato: 'da_validare',
+            creatoIl: serverTimestamp()
+        };
+        const oraRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`);
+        await addDoc(oraRef, oraData);
+        hoursStatusEl.textContent = `Ore salvate: ${netHours.toFixed(2)} h`;
+        hoursStatusEl.style.color = '#166534';
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore salvataggio ore:', error);
+        hoursStatusEl.textContent = `Errore salvataggio: ${error.message}`;
+        hoursStatusEl.style.color = '#b91c1c';
+    }
+}
+
 function bindWorkSelection() {
     const onChange = (value) => {
         if (!value) return;
+        const found = cachedWorks.find((w) => w.id === value);
+        if (found) {
+            selectedWork = found;
+            renderSelectedWorkCard();
+        }
         if (selectedWorkEl && selectedWorkEl.value !== value) selectedWorkEl.value = value;
         if (quickWorkSelectEl && quickWorkSelectEl.value !== value) quickWorkSelectEl.value = value;
         try {
@@ -369,6 +485,12 @@ function bindToolbar() {
     if (quickFormEl) {
         quickFormEl.addEventListener('submit', sendQuickCommunication);
     }
+    if (quickHoursFormEl) {
+        quickHoursFormEl.addEventListener('submit', saveQuickHours);
+    }
+    if (oraStartEl) oraStartEl.addEventListener('input', calculateNetHours);
+    if (oraEndEl) oraEndEl.addEventListener('input', calculateNetHours);
+    if (oraBreakEl) oraBreakEl.addEventListener('input', calculateNetHours);
 }
 
 function applyUrlPreference() {
@@ -446,6 +568,13 @@ async function initFieldWorkspace() {
                     ? hasAnyRole({ ruoli: normalizedRoles }, ['caposquadra'])
                     : false;
                 setupSlidesForRole(isCaposquadra);
+                // Ordine caposquadra richiesto:
+                // Seleziona lavoro -> Segna ore -> Lavoro selezionato -> Squadra -> Comunicazioni -> Statistiche
+                if (isCaposquadra) {
+                    const order = ['Lavoro', 'Ore', 'Lavoro selezionato', 'Squadra', 'Comunicazioni', 'Statistiche'];
+                    activeSlides.sort((a, b) => order.indexOf(a.dataset.slideTitle) - order.indexOf(b.dataset.slideTitle));
+                    activeSlides.forEach((slide) => swiperEl.appendChild(slide));
+                }
                 bindSwiperNavigation();
                 renderDots();
                 updateNavButtons();

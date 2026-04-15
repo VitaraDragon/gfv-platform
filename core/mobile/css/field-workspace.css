@@ -115,7 +115,6 @@
 }
 
 .frame-ore { min-height: 620px; }
-.frame-zone { min-height: 700px; }
 .frame-summary { min-height: 620px; }
 .frame-team { min-height: 680px; }
 
@@ -144,6 +143,53 @@
     font-size: 12px;
     color: #6b7280;
     min-height: 18px;
+}
+
+.hours-highlight {
+    border: 1px solid #2e8b57;
+    background: #ecfdf3;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hours-highlight span {
+    font-size: 13px;
+    color: #166534;
+}
+
+.hours-highlight strong {
+    font-size: 28px;
+    color: #166534;
+    line-height: 1;
+}
+
+.selected-work-card {
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.selected-work-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.selected-work-line {
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.empty-state-inline {
+    font-size: 13px;
+    color: #6b7280;
 }
 
 .work-actions {

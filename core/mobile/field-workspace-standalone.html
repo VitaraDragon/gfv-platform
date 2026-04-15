@@ -48,17 +48,37 @@
                     <p>Le ore vengono calcolate automaticamente dagli orari impostati.</p>
                 </div>
                 <div class="slide-body">
-                    <iframe class="slide-frame frame-ore" src="../segnatura-ore-standalone.html" title="Segna ore" loading="lazy"></iframe>
+                    <form id="quick-hours-form" class="quick-comm-form">
+                        <label for="ora-start" class="label-inline">Orario inizio</label>
+                        <input id="ora-start" class="field-input" type="time" required>
+                        <label for="ora-end" class="label-inline">Orario fine</label>
+                        <input id="ora-end" class="field-input" type="time" required>
+                        <label for="ora-break" class="label-inline">Pausa (minuti)</label>
+                        <input id="ora-break" class="field-input" type="number" min="0" step="1" value="0">
+                        <div class="hours-highlight">
+                            <span>Ore nette calcolate</span>
+                            <strong id="ora-net-hours">0.00</strong>
+                        </div>
+                        <label for="ora-note" class="label-inline">Note (opzionale)</label>
+                        <textarea id="ora-note" class="field-input" rows="3" placeholder="Note turno"></textarea>
+                        <button type="submit" class="field-mobile-btn primary">Salva ore lavorate</button>
+                        <small id="hours-save-status" class="hint-text"></small>
+                    </form>
                 </div>
             </article>
 
-            <article class="field-slide" data-slide-title="Zone">
+            <article class="field-slide" data-slide-title="Lavoro selezionato">
                 <div class="slide-head">
-                    <h2>3. Traccia zone</h2>
-                    <p>Usa la mappa per il lavoro autonomo e le zone lavorate.</p>
+                    <h2>3. Lavoro selezionato</h2>
+                    <p>Focus completo sul lavoro attivo, senza altri lavori in lista.</p>
                 </div>
                 <div class="slide-body">
-                    <iframe class="slide-frame frame-zone" src="../admin/lavori-caposquadra-standalone.html" title="Traccia zone" loading="lazy"></iframe>
+                    <div id="selected-work-card" class="selected-work-card">
+                        <div class="empty-state-inline">Seleziona un lavoro nella prima schermata.</div>
+                    </div>
+                    <div class="work-actions">
+                        <a href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn">Apri dettaglio completo</a>
+                    </div>
                 </div>
             </article>
 
