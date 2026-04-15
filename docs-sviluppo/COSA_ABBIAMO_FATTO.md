@@ -4531,10 +4531,19 @@ Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono app
 
 ### Soluzione
 - Introdotto routing condizionale in dashboard con preferenza utente (`auto` / `classic` / `mobile`) e decisione centralizzata ruolo+device.
-- Aggiunta nuova shell mobile dedicata in `core/mobile/field-workspace-standalone.html` con navigazione sticky a sezioni scrollabili:
+- Rifatta la shell mobile in modalità wizard a **swipe orizzontale** (destra→sinistra) con navigazione `C`:
+  - swipe touch
+  - indicatori a pallini
+  - bottoni fissi `Indietro/Avanti`
+- Impostata la prima schermata su **selezione lavoro** con proposta rapida e selezione esplicita utente.
+- Sequenza base:
+  - `Seleziona lavoro`
   - `Segna Ore` (iframe su `core/segnatura-ore-standalone.html`)
   - `Traccia Zone` (iframe su `core/admin/lavori-caposquadra-standalone.html`)
-  - `Riepilogo` (iframe su `core/statistiche-standalone.html`)
+  - `Statistiche rapide` (iframe su `core/statistiche-standalone.html`)
+- Per `caposquadra` aggiunte slide extra:
+  - `Squadra` (iframe su `core/admin/gestione-squadre-standalone.html`)
+  - `Comunicazioni` con form rapido di invio su collection `comunicazioni` tenant.
 - Inseriti toggle espliciti:
   - passaggio a versione classica
   - ritorno a comportamento automatico mobile

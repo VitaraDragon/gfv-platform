@@ -12,62 +12,103 @@
 <body class="field-mobile-shell">
     <header class="field-mobile-header">
         <h1 class="field-mobile-title">Workspace Campo</h1>
-        <p class="field-mobile-subtitle">Flusso rapido per operaio e caposquadra: ore, zone e riepilogo.</p>
+        <p class="field-mobile-subtitle">Swipe da destra a sinistra per avanzare nel flusso operativo.</p>
         <div class="field-mobile-toolbar">
-            <button class="field-mobile-btn" id="btn-switch-classic" type="button">Passa a versione classica</button>
-            <button class="field-mobile-btn" id="btn-switch-auto" type="button">Usa ingresso automatico</button>
-            <button class="field-mobile-btn primary" id="btn-refresh-frames" type="button">Ricarica contenuti</button>
+            <button class="field-mobile-btn" id="btn-switch-classic" type="button">Versione classica</button>
+            <button class="field-mobile-btn" id="btn-switch-auto" type="button">Auto mobile</button>
         </div>
         <p class="field-mobile-note" id="field-mobile-status">Inizializzazione...</p>
     </header>
 
-    <nav class="field-mobile-nav">
-        <div class="field-mobile-nav-list">
-            <a href="#sezione-ore">Segna Ore</a>
-            <a href="#sezione-zone">Zone</a>
-            <a href="#sezione-riepilogo">Riepilogo</a>
-        </div>
-    </nav>
-
     <main class="field-mobile-main">
-        <section class="field-section" id="sezione-ore">
-            <div class="field-section-header">
-                <h2 class="field-section-title">1. Segna Ore</h2>
-                <a class="field-section-link" href="../segnatura-ore-standalone.html?ws=classic">Apri completa</a>
-            </div>
-            <iframe
-                class="frame-ore"
-                src="../segnatura-ore-standalone.html"
-                title="Sezione Segna Ore"
-                loading="lazy"
-                data-refreshable="1"></iframe>
+        <section class="field-swiper" id="field-swiper">
+            <article class="field-slide" data-slide-title="Lavoro">
+                <div class="slide-head">
+                    <h2>1. Seleziona lavoro</h2>
+                    <p>Inizia scegliendo il lavoro corrente, poi scorri a sinistra.</p>
+                </div>
+                <div class="slide-body">
+                    <div class="work-select-card">
+                        <label for="selected-work" class="label-inline">Lavori assegnati oggi</label>
+                        <select id="selected-work" class="field-input">
+                            <option value="">Caricamento lavori...</option>
+                        </select>
+                        <small id="gps-suggestion" class="hint-text"></small>
+                        <div class="work-actions">
+                            <button type="button" id="btn-refresh-works" class="field-mobile-btn">Aggiorna elenco</button>
+                            <a href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn">Apri elenco completo</a>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="field-slide" data-slide-title="Ore">
+                <div class="slide-head">
+                    <h2>2. Segna ore</h2>
+                    <p>Le ore vengono calcolate automaticamente dagli orari impostati.</p>
+                </div>
+                <div class="slide-body">
+                    <iframe class="slide-frame frame-ore" src="../segnatura-ore-standalone.html" title="Segna ore" loading="lazy"></iframe>
+                </div>
+            </article>
+
+            <article class="field-slide" data-slide-title="Zone">
+                <div class="slide-head">
+                    <h2>3. Traccia zone</h2>
+                    <p>Usa la mappa per il lavoro autonomo e le zone lavorate.</p>
+                </div>
+                <div class="slide-body">
+                    <iframe class="slide-frame frame-zone" src="../admin/lavori-caposquadra-standalone.html" title="Traccia zone" loading="lazy"></iframe>
+                </div>
+            </article>
+
+            <article class="field-slide" data-slide-title="Statistiche">
+                <div class="slide-head">
+                    <h2>4. Statistiche rapide</h2>
+                    <p>Controlla rapidamente stato e andamento giornata.</p>
+                </div>
+                <div class="slide-body">
+                    <iframe class="slide-frame frame-summary" src="../statistiche-standalone.html" title="Statistiche" loading="lazy"></iframe>
+                </div>
+            </article>
+
+            <article class="field-slide capo-only" data-slide-title="Squadra" hidden>
+                <div class="slide-head">
+                    <h2>5. La mia squadra</h2>
+                    <p>Vista dedicata caposquadra.</p>
+                </div>
+                <div class="slide-body">
+                    <iframe class="slide-frame frame-team" src="../admin/gestione-squadre-standalone.html" title="Squadra" loading="lazy"></iframe>
+                </div>
+            </article>
+
+            <article class="field-slide capo-only" data-slide-title="Comunicazioni" hidden>
+                <div class="slide-head">
+                    <h2>6. Comunicazioni squadra</h2>
+                    <p>Invia un messaggio operativo rapido alla squadra.</p>
+                </div>
+                <div class="slide-body">
+                    <form id="quick-communication-form" class="quick-comm-form">
+                        <label for="quick-work-select" class="label-inline">Lavoro</label>
+                        <select id="quick-work-select" class="field-input"></select>
+                        <label for="quick-comm-date" class="label-inline">Data</label>
+                        <input id="quick-comm-date" class="field-input" type="date">
+                        <label for="quick-comm-time" class="label-inline">Orario</label>
+                        <input id="quick-comm-time" class="field-input" type="time" value="07:00">
+                        <label for="quick-comm-message" class="label-inline">Messaggio</label>
+                        <textarea id="quick-comm-message" class="field-input" rows="4" placeholder="Es. iniziamo dal lato nord, priorità al filare 4"></textarea>
+                        <button type="submit" class="field-mobile-btn primary">Invia comunicazione</button>
+                        <small id="quick-comm-status" class="hint-text"></small>
+                    </form>
+                </div>
+            </article>
         </section>
 
-        <section class="field-section" id="sezione-zone">
-            <div class="field-section-header">
-                <h2 class="field-section-title">2. Traccia Zone</h2>
-                <a class="field-section-link" href="../admin/lavori-caposquadra-standalone.html?ws=classic">Apri completa</a>
-            </div>
-            <iframe
-                class="frame-zone"
-                src="../admin/lavori-caposquadra-standalone.html"
-                title="Sezione Traccia Zone"
-                loading="lazy"
-                data-refreshable="1"></iframe>
-        </section>
-
-        <section class="field-section" id="sezione-riepilogo">
-            <div class="field-section-header">
-                <h2 class="field-section-title">3. Riepilogo Rapido</h2>
-                <a class="field-section-link" href="../statistiche-standalone.html?ws=classic">Apri completa</a>
-            </div>
-            <iframe
-                class="frame-summary"
-                src="../statistiche-standalone.html"
-                title="Sezione Riepilogo"
-                loading="lazy"
-                data-refreshable="1"></iframe>
-        </section>
+        <nav class="field-bottom-nav">
+            <button id="btn-prev-slide" class="field-mobile-btn" type="button">Indietro</button>
+            <div id="slide-dots" class="slide-dots"></div>
+            <button id="btn-next-slide" class="field-mobile-btn primary" type="button">Avanti</button>
+        </nav>
     </main>
 
     <script src="../js/config-loader.js"></script>
