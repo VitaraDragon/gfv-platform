@@ -107,3 +107,85 @@ window.GFVDashboardUtils.hasManodoperaModule = function hasManodoperaModule(avai
     return availableModules && availableModules.includes('manodopera');
 }
 
+// ============================================
+// WORKSPACE MOBILE RUOLI CAMPO
+// ============================================
+
+window.GFVDashboardUtils.FIELD_WORKSPACE_PREF_KEY = 'gfv_field_workspace_pref';
+
+/**
+ * Device check pragmatico per UX mobile.
+ * Usa combinazione viewport, pointer coarse e user-agent per evitare falsi positivi.
+ * @returns {boolean}
+ */
+window.GFVDashboardUtils.isLikelyMobileDevice = function isLikelyMobileDevice() {
+    try {
+        const isSmallViewport = window.matchMedia('(max-width: 900px)').matches;
+        const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+        const ua = (navigator.userAgent || '').toLowerCase();
+        const isMobileUA = /android|iphone|ipad|ipod|mobile/.test(ua);
+        return (isSmallViewport && isCoarsePointer) || isMobileUA;
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * Ritorna preferenza utente:
+ * - auto (default): redirect automatico su mobile per ruoli campo
+ * - classic: forza dashboard classica
+ * - mobile: forza workspace mobile
+ * @returns {'auto'|'classic'|'mobile'}
+ */
+window.GFVDashboardUtils.getFieldWorkspacePreference = function getFieldWorkspacePreference() {
+    try {
+        const raw = localStorage.getItem(window.GFVDashboardUtils.FIELD_WORKSPACE_PREF_KEY);
+        if (raw === 'classic' || raw === 'mobile' || raw === 'auto') {
+            return raw;
+        }
+        return 'auto';
+    } catch (error) {
+        return 'auto';
+    }
+}
+
+/**
+ * Salva preferenza utente per workspace mobile.
+ * @param {'auto'|'classic'|'mobile'} value
+ */
+window.GFVDashboardUtils.setFieldWorkspacePreference = function setFieldWorkspacePreference(value) {
+    if (value !== 'classic' && value !== 'mobile' && value !== 'auto') {
+        return;
+    }
+    try {
+        localStorage.setItem(window.GFVDashboardUtils.FIELD_WORKSPACE_PREF_KEY, value);
+    } catch (error) {
+        // ignore storage errors
+    }
+}
+
+/**
+ * Decide se mostrare workspace mobile ruoli campo.
+ * Non devia mai manager/amministratore per mantenere UX invariata.
+ * @param {Object} userData
+ * @param {Array<string>} availableModules
+ * @returns {boolean}
+ */
+window.GFVDashboardUtils.shouldUseFieldMobileWorkspace = function shouldUseFieldMobileWorkspace(userData, availableModules = []) {
+    if (!userData) return false;
+    const hasManodopera = window.GFVDashboardUtils.hasManodoperaModule(availableModules);
+    if (!hasManodopera) return false;
+
+    const hasManagerRole = window.GFVDashboardUtils.hasAnyRole(userData, ['manager', 'amministratore']);
+    if (hasManagerRole) return false;
+
+    const hasFieldRole = window.GFVDashboardUtils.hasAnyRole(userData, ['operaio', 'caposquadra']);
+    if (!hasFieldRole) return false;
+
+    const pref = window.GFVDashboardUtils.getFieldWorkspacePreference();
+    if (pref === 'classic') return false;
+    if (pref === 'mobile') return true;
+
+    return window.GFVDashboardUtils.isLikelyMobileDevice();
+}
+

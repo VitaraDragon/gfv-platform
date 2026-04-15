@@ -4524,3 +4524,22 @@ Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono app
 - Nuovo commit documentale pronto per pubblicazione e verifica online.
 - Trigger manuale deploy confermato alle 18:22 (ora locale) con aggiornamento tracciato in changelog.
 
+## 2026-04-15 - Workspace mobile dedicato operaio/caposquadra (fase iniziale)
+
+### Contesto
+- Richiesta UX mobile-first per ruoli campo (`operaio`, `caposquadra`) mantenendo invariata l'interfaccia manager/admin.
+
+### Soluzione
+- Introdotto routing condizionale in dashboard con preferenza utente (`auto` / `classic` / `mobile`) e decisione centralizzata ruolo+device.
+- Aggiunta nuova shell mobile dedicata in `core/mobile/field-workspace-standalone.html` con navigazione sticky a sezioni scrollabili:
+  - `Segna Ore` (iframe su `core/segnatura-ore-standalone.html`)
+  - `Traccia Zone` (iframe su `core/admin/lavori-caposquadra-standalone.html`)
+  - `Riepilogo` (iframe su `core/statistiche-standalone.html`)
+- Inseriti toggle espliciti:
+  - passaggio a versione classica
+  - ritorno a comportamento automatico mobile
+  - card di accesso "Workspace Mobile" nelle aree dashboard di operaio/caposquadra.
+
+### Risultato
+- Primo rilascio operativo del workspace mobile campo con ingresso automatico su smartphone per ruoli target e fallback sicuro alla dashboard classica.
+

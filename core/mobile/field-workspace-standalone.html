@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace Mobile Campo - GFV</title>
+    <link rel="manifest" href="../../manifest.json">
+    <meta name="theme-color" content="#2E8B57">
+    <link rel="stylesheet" href="../styles/responsive-standalone.css">
+    <link rel="stylesheet" href="./css/field-workspace.css">
+</head>
+<body class="field-mobile-shell">
+    <header class="field-mobile-header">
+        <h1 class="field-mobile-title">Workspace Campo</h1>
+        <p class="field-mobile-subtitle">Flusso rapido per operaio e caposquadra: ore, zone e riepilogo.</p>
+        <div class="field-mobile-toolbar">
+            <button class="field-mobile-btn" id="btn-switch-classic" type="button">Passa a versione classica</button>
+            <button class="field-mobile-btn" id="btn-switch-auto" type="button">Usa ingresso automatico</button>
+            <button class="field-mobile-btn primary" id="btn-refresh-frames" type="button">Ricarica contenuti</button>
+        </div>
+        <p class="field-mobile-note" id="field-mobile-status">Inizializzazione...</p>
+    </header>
+
+    <nav class="field-mobile-nav">
+        <div class="field-mobile-nav-list">
+            <a href="#sezione-ore">Segna Ore</a>
+            <a href="#sezione-zone">Zone</a>
+            <a href="#sezione-riepilogo">Riepilogo</a>
+        </div>
+    </nav>
+
+    <main class="field-mobile-main">
+        <section class="field-section" id="sezione-ore">
+            <div class="field-section-header">
+                <h2 class="field-section-title">1. Segna Ore</h2>
+                <a class="field-section-link" href="../segnatura-ore-standalone.html?ws=classic">Apri completa</a>
+            </div>
+            <iframe
+                class="frame-ore"
+                src="../segnatura-ore-standalone.html"
+                title="Sezione Segna Ore"
+                loading="lazy"
+                data-refreshable="1"></iframe>
+        </section>
+
+        <section class="field-section" id="sezione-zone">
+            <div class="field-section-header">
+                <h2 class="field-section-title">2. Traccia Zone</h2>
+                <a class="field-section-link" href="../admin/lavori-caposquadra-standalone.html?ws=classic">Apri completa</a>
+            </div>
+            <iframe
+                class="frame-zone"
+                src="../admin/lavori-caposquadra-standalone.html"
+                title="Sezione Traccia Zone"
+                loading="lazy"
+                data-refreshable="1"></iframe>
+        </section>
+
+        <section class="field-section" id="sezione-riepilogo">
+            <div class="field-section-header">
+                <h2 class="field-section-title">3. Riepilogo Rapido</h2>
+                <a class="field-section-link" href="../statistiche-standalone.html?ws=classic">Apri completa</a>
+            </div>
+            <iframe
+                class="frame-summary"
+                src="../statistiche-standalone.html"
+                title="Sezione Riepilogo"
+                loading="lazy"
+                data-refreshable="1"></iframe>
+        </section>
+    </main>
+
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/dashboard-utils.js"></script>
+    <script>
+        window.GFVConfigLoader.loadConfigAndMaps().catch((error) => {
+            console.error('Errore caricamento configurazione:', error);
+            const status = document.getElementById('field-mobile-status');
+            if (status) {
+                status.textContent = `Errore configurazione: ${error.message}`;
+                status.style.color = '#b91c1c';
+            }
+        });
+    </script>
+    <script type="module" src="./js/field-workspace-controller.js"></script>
+</body>
+</html>

@@ -848,6 +848,11 @@ window.GFVDashboardSections.createCaposquadraSection = function createCaposquadr
         </div>
         <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
         <div class="quick-actions">
+            <a href="mobile/field-workspace-standalone.html?ws=mobile" class="action-card">
+                <span class="action-icon">📱</span>
+                <span class="action-title">Workspace Mobile</span>
+                <span class="action-description">Interfaccia rapida a scorrimento per campo</span>
+            </a>
             <a href="admin/lavori-caposquadra-standalone.html" class="action-card">
                 <span class="action-icon">📋</span>
                 <span class="action-title">I Miei Lavori</span>
@@ -916,6 +921,11 @@ window.GFVDashboardSections.createOperaioSection = function createOperaioSection
         </div>
         <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
         <div class="quick-actions">
+            <a href="mobile/field-workspace-standalone.html?ws=mobile" class="action-card">
+                <span class="action-icon">📱</span>
+                <span class="action-title">Workspace Mobile</span>
+                <span class="action-description">Apri il flusso mobile rapido giornaliero</span>
+            </a>
             <a href="segnatura-ore-standalone.html" class="action-card">
                 <span class="action-icon">⏱️</span>
                 <span class="action-title">Segna Ore</span>

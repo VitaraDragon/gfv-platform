@@ -1,0 +1,152 @@
+.field-mobile-shell {
+    min-height: 100vh;
+    background: #f4f7f6;
+    color: #1f2937;
+}
+
+.field-mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 12px 8px;
+}
+
+.field-mobile-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: #2e8b57;
+}
+
+.field-mobile-subtitle {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.field-mobile-toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.field-mobile-btn {
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #111827;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.field-mobile-btn.primary {
+    background: #2e8b57;
+    border-color: #2e8b57;
+    color: #ffffff;
+}
+
+.field-mobile-nav {
+    position: sticky;
+    top: 102px;
+    z-index: 40;
+    background: #f4f7f6;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 12px;
+}
+
+.field-mobile-nav-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.field-mobile-nav a {
+    text-decoration: none;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 8px 6px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #1f2937;
+}
+
+.field-mobile-main {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.field-section {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.field-section-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.field-section-title {
+    margin: 0;
+    font-size: 15px;
+    color: #111827;
+}
+
+.field-section-link {
+    text-decoration: none;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.field-section iframe {
+    width: 100%;
+    border: 0;
+    display: block;
+    background: #fff;
+}
+
+.frame-ore {
+    min-height: 620px;
+}
+
+.frame-zone {
+    min-height: 720px;
+}
+
+.frame-summary {
+    min-height: 620px;
+}
+
+.field-mobile-note {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 4px 2px 0;
+}
+
+@media (max-width: 480px) {
+    .field-mobile-title {
+        font-size: 16px;
+    }
+
+    .field-mobile-nav {
+        top: 112px;
+    }
+
+    .field-mobile-nav a {
+        font-size: 12px;
+        padding: 8px 4px;
+    }
+}

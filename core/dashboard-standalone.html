@@ -102,7 +102,10 @@
             hasRole, 
             hasAnyRole, 
             hasOnlyCoreModules, 
-            hasManodoperaModule 
+            hasManodoperaModule,
+            shouldUseFieldMobileWorkspace,
+            getFieldWorkspacePreference,
+            setFieldWorkspacePreference
         } = window.GFVDashboardUtils;
         const {
             createCoreBaseSection,
@@ -218,6 +221,33 @@
         // Variabili per cleanup listener real-time
         let manutenzioniUnsubscribe = null;
         let guastiUnsubscribe = null;
+
+        function applyWorkspacePreferenceFromUrl() {
+            try {
+                const params = new URLSearchParams(window.location.search || '');
+                const pref = params.get('ws');
+                if (pref === 'classic' || pref === 'mobile' || pref === 'auto') {
+                    setFieldWorkspacePreference(pref);
+                    params.delete('ws');
+                    const next = params.toString();
+                    const cleanUrl = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash || ''}`;
+                    window.history.replaceState({}, '', cleanUrl);
+                }
+            } catch (error) {
+                console.warn('Impossibile applicare preferenza workspace da URL:', error);
+            }
+        }
+
+        function redirectToFieldWorkspaceIfNeeded(userData, availableModules) {
+            if (!shouldUseFieldMobileWorkspace(userData, availableModules)) {
+                return false;
+            }
+            const target = './mobile/field-workspace-standalone.html';
+            window.location.href = target;
+            return true;
+        }
+
+        applyWorkspacePreferenceFromUrl();
 
         // ============================================
         // FUNZIONI SETUP REAL-TIME
@@ -883,6 +913,11 @@
                                 }
                             }
                             
+                            // Routing mobile per ruoli campo (operaio/caposquadra)
+                            if (redirectToFieldWorkspaceIfNeeded(userDataNormalized, availableModules)) {
+                                return;
+                            }
+
                             // Renderizza dashboard
                             await renderDashboard(userDataNormalized, availableModules);
                             // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
@@ -990,6 +1025,11 @@
                     // Gestione switch tenant (multi-tenant)
                     await setupTenantSwitch(user.uid, userDataNormalized);
                     
+                    // Routing mobile per ruoli campo (operaio/caposquadra)
+                    if (redirectToFieldWorkspaceIfNeeded(userDataNormalized, availableModules)) {
+                        return;
+                    }
+
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
                     // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
