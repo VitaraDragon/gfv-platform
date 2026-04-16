@@ -8,6 +8,7 @@ import {
     collection,
     getDocs,
     addDoc,
+    updateDoc,
     query,
     where,
     serverTimestamp,
@@ -31,7 +32,6 @@ const gpsSuggestionEl = document.getElementById('gps-suggestion');
 const quickFormEl = document.getElementById('quick-communication-form');
 const quickStatusEl = document.getElementById('quick-comm-status');
 const refreshWorksBtnEl = document.getElementById('btn-refresh-works');
-const selectedWorkCardEl = document.getElementById('selected-work-card');
 const quickHoursFormEl = document.getElementById('quick-hours-form');
 const hoursStatusEl = document.getElementById('hours-save-status');
 const hoursValueEl = document.getElementById('ora-net-hours');
@@ -42,11 +42,19 @@ const oraNoteEl = document.getElementById('ora-note');
 const lavoriDetailFrameEl = document.getElementById('lavori-detail-frame');
 const lavoriFullDetailLinkEl = document.getElementById('lavori-full-detail-link');
 const squadListEl = document.getElementById('squad-members-list');
+const inlineTeamSectionEl = document.getElementById('inline-team-section');
+const inlineValidateHoursSectionEl = document.getElementById('inline-validate-hours-section');
+const pendingHoursListEl = document.getElementById('pending-hours-list');
+const sentCommunicationsListEl = document.getElementById('sent-communications-list');
 const operaioModalEl = document.getElementById('operaio-contact-modal');
 const operaioContactNameEl = document.getElementById('operaio-contact-name');
 const operaioContactSubEl = document.getElementById('operaio-contact-sub');
 const operaioContactCallEl = document.getElementById('operaio-contact-call');
 const operaioContactMailEl = document.getElementById('operaio-contact-mail');
+const btnModeMobileEl = document.getElementById('btn-mode-mobile');
+const btnModeDesktopEl = document.getElementById('btn-mode-desktop');
+const btnOpenOptionsEl = document.getElementById('btn-open-options');
+const optionsMenuEl = document.getElementById('field-options-menu');
 
 let currentUserData = null;
 let currentUser = null;
@@ -56,6 +64,11 @@ let currentSlideIndex = 0;
 let cachedWorks = [];
 let selectedWork = null;
 let userIsCaposquadra = false;
+let currentPendingHours = [];
+let pullTouchStartY = 0;
+let pullTouchStartX = 0;
+let pendingFocusLavoroIdFromUrl = null;
+let pendingOpenSlideFromUrl = null;
 
 function setStatus(text, isError = false) {
     if (!statusEl) return;
@@ -76,12 +89,28 @@ function getWorkspacePreferenceFromUrl() {
     return null;
 }
 
+function readBootParamsFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        pendingFocusLavoroIdFromUrl = params.get('focusLavoroId') || null;
+        pendingOpenSlideFromUrl = params.get('openSlide') || null;
+    } catch (error) {
+        pendingFocusLavoroIdFromUrl = null;
+        pendingOpenSlideFromUrl = null;
+    }
+}
+
 function getTodayIsoDate() {
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
+}
+
+function setModeButtonsState(mode) {
+    if (btnModeMobileEl) btnModeMobileEl.classList.toggle('active', mode === 'mobile' || mode === 'auto');
+    if (btnModeDesktopEl) btnModeDesktopEl.classList.toggle('active', mode === 'classic');
 }
 
 async function resolveCurrentTenantId(userData) {
@@ -147,6 +176,27 @@ function goToSlide(index) {
     updateNavButtons();
 }
 
+function findSlideIndexByToken(token) {
+    if (!token || activeSlides.length === 0) return -1;
+    const normalized = String(token).trim().toLowerCase();
+    return activeSlides.findIndex((slide) => {
+        const title = String(slide.dataset.slideTitle || '').trim().toLowerCase();
+        if (normalized === 'dettaglio-lavoro' || normalized === 'lavoro-selezionato') {
+            return title === 'ore';
+        }
+        if (normalized === 'ore' || normalized === 'segna-ore') {
+            return title === 'ore';
+        }
+        if (normalized === 'lavoro') {
+            return title === 'lavoro';
+        }
+        if (normalized === 'comunicazioni') {
+            return title === 'comunicazioni';
+        }
+        return title === normalized;
+    });
+}
+
 function syncSlideFromScroll() {
     if (!swiperEl || activeSlides.length === 0) return;
     const center = swiperEl.scrollLeft + (swiperEl.clientWidth / 2);
@@ -208,6 +258,10 @@ function populateWorkSelectors(works) {
         if (saved) {
             if (selectedWorkEl) selectedWorkEl.value = saved;
             if (quickWorkSelectEl) quickWorkSelectEl.value = saved;
+        }
+        if (pendingFocusLavoroIdFromUrl) {
+            if (selectedWorkEl) selectedWorkEl.value = pendingFocusLavoroIdFromUrl;
+            if (quickWorkSelectEl) quickWorkSelectEl.value = pendingFocusLavoroIdFromUrl;
         }
     } catch (error) {
         // ignore
@@ -294,7 +348,7 @@ async function loadWorksForSelection() {
             if (selectedWorkEl) selectedWorkEl.value = selectedWork.id;
             if (quickWorkSelectEl) quickWorkSelectEl.value = selectedWork.id;
         }
-        renderSelectedWorkCard();
+        syncLavoroOperativoEmbeds();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore caricamento lavori:', error);
         if (selectedWorkEl) {
@@ -314,9 +368,33 @@ function updateLavoriDetailEmbed() {
         lavoriFullDetailLinkEl.href = base;
         return;
     }
-    const url = `${base}&focusLavoroId=${encodeURIComponent(selectedWork.id)}`;
-    lavoriDetailFrameEl.src = url;
-    lavoriFullDetailLinkEl.href = url;
+    const fullUrl = `${base}&focusLavoroId=${encodeURIComponent(selectedWork.id)}`;
+    const compactUrl = `${fullUrl}&embed=mobile`;
+    lavoriDetailFrameEl.src = compactUrl;
+    lavoriFullDetailLinkEl.href = fullUrl;
+}
+
+function syncLavoroOperativoEmbeds() {
+    updateLavoriDetailEmbed();
+    if (userIsCaposquadra) {
+        loadPendingHoursForSelectedWork().catch(() => {});
+    }
+}
+
+function formatDateShort(dateLike) {
+    if (!dateLike) return '';
+    const d = dateLike.toDate ? dateLike.toDate() : new Date(dateLike);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('it-IT');
+}
+
+function escapeHtmlUnsafe(raw) {
+    return String(raw || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function renderSquadList(squadLabel, members) {
@@ -426,28 +504,135 @@ async function loadSquadMembersForCapo() {
     }
 }
 
-function renderSelectedWorkCard() {
-    if (!selectedWorkCardEl) return;
+function renderPendingHours() {
+    if (!pendingHoursListEl) return;
     if (!selectedWork) {
-        selectedWorkCardEl.innerHTML = '<div class="empty-state-inline">Seleziona un lavoro nella prima schermata.</div>';
-        updateLavoriDetailEmbed();
+        pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Seleziona un lavoro per vedere le ore da validare.</div>';
         return;
     }
-    const raw = selectedWork.raw || {};
-    const tipo = raw.tipoLavoro || raw.nome || '-';
-    const terreno = raw.terrenoNome || raw.terreno || 'Non specificato';
-    const data = raw.dataInizio && raw.dataInizio.toDate ? raw.dataInizio.toDate() : (raw.dataInizio ? new Date(raw.dataInizio) : null);
-    const dataText = data && !Number.isNaN(data.getTime()) ? data.toLocaleDateString('it-IT') : 'Non specificata';
-    const stato = raw.stato || 'in lavorazione';
+    if (!currentPendingHours.length) {
+        pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Nessuna ora in attesa di validazione.</div>';
+        return;
+    }
+    pendingHoursListEl.innerHTML = currentPendingHours.map((row) => {
+        const who = escapeHtmlUnsafe(row.operaioNome || row.operaioId || 'Operaio');
+        const ore = Number(row.oreNette || 0).toFixed(2);
+        const time = `${escapeHtmlUnsafe(row.orarioInizio || '--:--')} - ${escapeHtmlUnsafe(row.orarioFine || '--:--')}`;
+        return `
+            <div class="inline-item">
+                <div class="inline-item-head">
+                    <div class="inline-item-title">${who}</div>
+                    <div class="inline-item-sub">${formatDateShort(row.data) || 'Data non indicata'}</div>
+                </div>
+                <div class="inline-item-sub">${time} • ${ore} h</div>
+                <div class="inline-item-actions">
+                    <button type="button" class="mini-btn approve" data-approve-hour-id="${row.id}">✅ Approva</button>
+                    <button type="button" class="mini-btn reject" data-reject-hour-id="${row.id}">❌ Rifiuta</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
-    selectedWorkCardEl.innerHTML = `
-        <div class="selected-work-title">${selectedWork.label}</div>
-        <div class="selected-work-line"><strong>Tipo lavoro:</strong> ${tipo}</div>
-        <div class="selected-work-line"><strong>Terreno:</strong> ${terreno}</div>
-        <div class="selected-work-line"><strong>Data:</strong> ${dataText}</div>
-        <div class="selected-work-line"><strong>Stato:</strong> ${stato}</div>
-    `;
-    updateLavoriDetailEmbed();
+async function loadPendingHoursForSelectedWork() {
+    if (!pendingHoursListEl) return;
+    if (!selectedWork || !currentTenantId) {
+        renderPendingHours();
+        return;
+    }
+    pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Caricamento ore da validare...</div>';
+    try {
+        const oreRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`);
+        const snap = await getDocs(query(oreRef, where('stato', '==', 'da_validare')));
+        const rows = [];
+        for (const docSnap of snap.docs) {
+            const data = docSnap.data();
+            let operaioNome = '';
+            if (data.operaioId) {
+                const userDoc = await getDoc(doc(getDb(), 'users', data.operaioId));
+                if (userDoc.exists()) {
+                    const u = userDoc.data();
+                    operaioNome = `${u.nome || ''} ${u.cognome || ''}`.trim() || u.email || '';
+                }
+            }
+            rows.push({ id: docSnap.id, ...data, operaioNome });
+        }
+        rows.sort((a, b) => {
+            const ad = (a.creatoIl && a.creatoIl.toDate) ? a.creatoIl.toDate().getTime() : 0;
+            const bd = (b.creatoIl && b.creatoIl.toDate) ? b.creatoIl.toDate().getTime() : 0;
+            return bd - ad;
+        });
+        currentPendingHours = rows;
+        renderPendingHours();
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore ore da validare:', error);
+        pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento ore da validare.</div>';
+    }
+}
+
+async function updateHourValidationStatus(hourId, status) {
+    if (!selectedWork || !currentTenantId || !currentUser || !hourId) return;
+    const hourRef = doc(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`, hourId);
+    if (status === 'validate') {
+        await updateDoc(hourRef, {
+            stato: 'validate',
+            validatoDa: currentUser.uid,
+            validatoIl: serverTimestamp(),
+            rifiutatoDa: null
+        });
+    } else {
+        await updateDoc(hourRef, {
+            stato: 'rifiutate',
+            rifiutatoDa: currentUser.uid,
+            rifiutatoIl: serverTimestamp()
+        });
+    }
+}
+
+async function loadSentCommunications() {
+    if (!sentCommunicationsListEl || !currentTenantId || !currentUser) return;
+    sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni inviate...</div>';
+    try {
+        const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
+        const snap = await getDocs(query(commRef, where('caposquadraId', '==', currentUser.uid)));
+        const rows = [];
+        snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
+        rows.sort((a, b) => {
+            const ad = (a.createdAt && a.createdAt.toDate) ? a.createdAt.toDate().getTime() : 0;
+            const bd = (b.createdAt && b.createdAt.toDate) ? b.createdAt.toDate().getTime() : 0;
+            return bd - ad;
+        });
+        const top = rows.slice(0, 5);
+        if (!top.length) {
+            sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione inviata.</div>';
+            return;
+        }
+        sentCommunicationsListEl.innerHTML = top.map((row) => `
+            <div class="inline-item">
+                <div class="inline-item-head">
+                    <div class="inline-item-title">${escapeHtmlUnsafe(row.lavoroNome || 'Lavoro')}</div>
+                    <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${formatDateShort(row.data) || '-'}</div>
+                </div>
+                <div class="inline-item-sub">${escapeHtmlUnsafe((row.messaggio || '').slice(0, 120))}</div>
+                <div class="inline-item-head" style="margin-top: 6px; margin-bottom: 0;">
+                    <div class="inline-item-sub">Conferme ricezione</div>
+                    <span class="inline-item-badge">👍 ${(Array.isArray(row.conferme) ? row.conferme.length : 0)}/${(Array.isArray(row.destinatari) && row.destinatari.length > 0) ? row.destinatari.length : '?'}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore comunicazioni inviate:', error);
+        sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento comunicazioni.</div>';
+    }
+}
+
+async function refreshWorkspaceData() {
+    await loadWorksForSelection();
+    if (userIsCaposquadra) {
+        await loadSquadMembersForCapo();
+        await loadPendingHoursForSelectedWork();
+        await loadSentCommunications();
+    }
 }
 
 function calculateNetHours() {
@@ -531,8 +716,7 @@ function bindWorkSelection() {
         const found = cachedWorks.find((w) => w.id === value);
         if (found) {
             selectedWork = found;
-            renderSelectedWorkCard();
-            updateLavoriDetailEmbed();
+            syncLavoroOperativoEmbeds();
         }
         if (selectedWorkEl && selectedWorkEl.value !== value) selectedWorkEl.value = value;
         if (quickWorkSelectEl && quickWorkSelectEl.value !== value) quickWorkSelectEl.value = value;
@@ -550,10 +734,7 @@ function bindWorkSelection() {
     }
     if (refreshWorksBtnEl) {
         refreshWorksBtnEl.addEventListener('click', async () => {
-            await loadWorksForSelection();
-            if (userIsCaposquadra) {
-                await loadSquadMembersForCapo();
-            }
+            await refreshWorkspaceData();
             setStatus('Elenco lavori aggiornato.');
         });
     }
@@ -580,6 +761,14 @@ async function sendQuickCommunication(event) {
     }
 
     const selected = cachedWorks.find((w) => w.id === workId);
+    const destinatari = (() => {
+        const raw = selected?.raw || {};
+        const all = []
+            .concat(Array.isArray(raw.operai) ? raw.operai : [])
+            .concat(Array.isArray(raw.operaiIds) ? raw.operaiIds : [])
+            .concat(Array.isArray(raw.utentiAssegnati) ? raw.utentiAssegnati : []);
+        return Array.from(new Set(all.filter((id) => id && id !== currentUser.uid)));
+    })();
     try {
         const [y, m, d] = dateIso.split('-').map(Number);
         const dataDate = new Date(y, (m || 1) - 1, d || 1);
@@ -592,6 +781,7 @@ async function sendQuickCommunication(event) {
             orario: timeValue,
             stato: 'attiva',
             conferme: [],
+            destinatari,
             createdAt: serverTimestamp(),
             source: 'mobile_field_workspace'
         });
@@ -599,6 +789,7 @@ async function sendQuickCommunication(event) {
         quickStatusEl.style.color = '#166534';
         const msgInput = document.getElementById('quick-comm-message');
         if (msgInput) msgInput.value = '';
+        await loadSentCommunications();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore invio comunicazione:', error);
         quickStatusEl.textContent = `Errore invio: ${error.message}`;
@@ -624,21 +815,87 @@ function bindOperaioModal() {
     if (operaioContactMailEl) operaioContactMailEl.addEventListener('click', blockDisabled);
 }
 
-function bindToolbar() {
-    const btnClassic = document.getElementById('btn-switch-classic');
-    const btnAuto = document.getElementById('btn-switch-auto');
+function bindInlineSectionsActions() {
+    if (!pendingHoursListEl) return;
+    pendingHoursListEl.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const approveId = target.getAttribute('data-approve-hour-id');
+        const rejectId = target.getAttribute('data-reject-hour-id');
+        if (!approveId && !rejectId) return;
+        try {
+            if (approveId) {
+                await updateHourValidationStatus(approveId, 'validate');
+            } else if (rejectId) {
+                await updateHourValidationStatus(rejectId, 'rifiutate');
+            }
+            await loadPendingHoursForSelectedWork();
+        } catch (error) {
+            console.error('[FIELD-WORKSPACE] Errore aggiornamento validazione ore:', error);
+        }
+    });
+}
 
-    if (btnClassic) {
-        btnClassic.addEventListener('click', () => {
+function bindPullToRefresh() {
+    if (!swiperEl) return;
+    swiperEl.addEventListener('touchstart', (event) => {
+        const t = event.touches && event.touches[0];
+        if (!t) return;
+        pullTouchStartY = t.clientY;
+        pullTouchStartX = t.clientX;
+    }, { passive: true });
+
+    swiperEl.addEventListener('touchend', async (event) => {
+        const t = event.changedTouches && event.changedTouches[0];
+        if (!t) return;
+        const deltaY = t.clientY - pullTouchStartY;
+        const deltaX = Math.abs(t.clientX - pullTouchStartX);
+        const onFirstSlide = currentSlideIndex === 0;
+        const pageOnTop = (window.scrollY || document.documentElement.scrollTop || 0) <= 4;
+        if (onFirstSlide && pageOnTop && deltaY > 80 && deltaX < 45) {
+            setStatus('Aggiornamento dati...');
+            try {
+                await refreshWorkspaceData();
+                setStatus('Dati aggiornati.');
+            } catch (error) {
+                console.error('[FIELD-WORKSPACE] Errore pull-to-refresh:', error);
+                setStatus('Errore aggiornamento dati.', true);
+            }
+        }
+    }, { passive: true });
+}
+
+function bindToolbar() {
+    if (btnModeDesktopEl) {
+        btnModeDesktopEl.addEventListener('click', () => {
             setFieldWorkspacePreference('classic');
+            setModeButtonsState('classic');
             window.location.href = '../dashboard-standalone.html?ws=classic';
         });
     }
 
-    if (btnAuto) {
-        btnAuto.addEventListener('click', () => {
+    if (btnModeMobileEl) {
+        btnModeMobileEl.addEventListener('click', () => {
             setFieldWorkspacePreference('auto');
-            setStatus('Preferenza impostata su automatico (mobile).');
+            setModeButtonsState('mobile');
+            setStatus('Versione mobile attiva.');
+        });
+    }
+
+    if (btnOpenOptionsEl && optionsMenuEl) {
+        btnOpenOptionsEl.addEventListener('click', (event) => {
+            event.stopPropagation();
+            optionsMenuEl.hidden = !optionsMenuEl.hidden;
+        });
+        document.addEventListener('click', (event) => {
+            if (!optionsMenuEl.hidden) {
+                const target = event.target;
+                if (!(target instanceof Node)) return;
+                const wrap = btnOpenOptionsEl.closest('.field-options-wrap');
+                if (wrap && !wrap.contains(target)) {
+                    optionsMenuEl.hidden = true;
+                }
+            }
         });
     }
 
@@ -655,15 +912,22 @@ function bindToolbar() {
 
 function applyUrlPreference() {
     const pref = getWorkspacePreferenceFromUrl();
-    if (!pref) return;
-    setFieldWorkspacePreference(pref);
+    if (pref) {
+        setFieldWorkspacePreference(pref);
+        setModeButtonsState(pref);
+        return;
+    }
+    setModeButtonsState('mobile');
 }
 
 async function initFieldWorkspace() {
     setStatus('Caricamento workspace mobile...');
+    readBootParamsFromUrl();
     applyUrlPreference();
     bindToolbar();
     bindOperaioModal();
+    bindInlineSectionsActions();
+    bindPullToRefresh();
 
     try {
         const firebaseConfig = await window.GFVConfigLoader.waitForConfig();
@@ -729,23 +993,27 @@ async function initFieldWorkspace() {
                     ? hasAnyRole({ ruoli: normalizedRoles }, ['caposquadra'])
                     : false;
                 userIsCaposquadra = isCaposquadra;
+                if (inlineTeamSectionEl) {
+                    inlineTeamSectionEl.hidden = !isCaposquadra;
+                }
+                if (inlineValidateHoursSectionEl) {
+                    inlineValidateHoursSectionEl.hidden = !isCaposquadra;
+                }
                 setupSlidesForRole(isCaposquadra);
                 // Ordine caposquadra richiesto:
-                // Seleziona lavoro -> Segna ore -> Lavoro selezionato -> Squadra -> Comunicazioni -> Statistiche
+                // Seleziona lavoro (+ squadra inline) -> Comunicazioni -> Segna ore -> I miei lavori -> Statistiche
                 if (isCaposquadra) {
-                    const order = ['Lavoro', 'Ore', 'Lavoro selezionato', 'Squadra', 'Comunicazioni', 'Statistiche'];
+                    const order = ['Lavoro', 'Comunicazioni', 'Ore', 'Statistiche'];
                     activeSlides.sort((a, b) => order.indexOf(a.dataset.slideTitle) - order.indexOf(b.dataset.slideTitle));
                     activeSlides.forEach((slide) => swiperEl.appendChild(slide));
                 }
                 bindSwiperNavigation();
                 renderDots();
                 updateNavButtons();
-                goToSlide(0);
+                const requestedSlideIdx = findSlideIndexByToken(pendingOpenSlideFromUrl);
+                goToSlide(requestedSlideIdx >= 0 ? requestedSlideIdx : 0);
                 bindWorkSelection();
-                await loadWorksForSelection();
-                if (isCaposquadra) {
-                    await loadSquadMembersForCapo();
-                }
+                await refreshWorkspaceData();
                 const dateInput = document.getElementById('quick-comm-date');
                 if (dateInput) dateInput.value = getTodayIsoDate();
 

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le tue statistiche - GFV</title>
+    <link rel="stylesheet" href="../styles/responsive-standalone.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            padding: 8px;
+            font-size: 14px;
+        }
+        .wrap {
+            max-width: 720px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .head {
+            background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+            color: #fff;
+            padding: 14px 16px;
+            text-align: center;
+        }
+        .head h1 { margin: 0 0 4px; font-size: 1.15rem; }
+        .head p { margin: 0; font-size: 0.82rem; opacity: 0.95; }
+        .body { padding: 12px 14px 18px; }
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 14px;
+        }
+        .filters label { display: block; font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 4px; }
+        .filters input[type="date"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; }
+        .btn-apply {
+            background: #2E8B57;
+            color: #fff;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-apply:hover { filter: brightness(1.05); }
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .metric {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .metric strong { display: block; font-size: 1.5rem; color: #166534; }
+        .metric span { font-size: 0.75rem; color: #4b5563; }
+        .note {
+            font-size: 11px;
+            color: #6b7280;
+            margin: 0 0 12px;
+            line-height: 1.45;
+        }
+        .chart-box {
+            background: #fafafa;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+        .chart-box h3 { margin: 0 0 8px; font-size: 0.9rem; color: #1f2937; }
+        .chart-canvas { position: relative; height: 220px; }
+        .chart-canvas.tall { height: 240px; }
+        .empty, .err { text-align: center; padding: 24px 12px; color: #6b7280; font-size: 13px; }
+        .err { color: #b91c1c; }
+        .loading { text-align: center; padding: 28px; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="head">
+            <h1>📊 Le tue statistiche</h1>
+            <p>Solo ore e lavori collegati al tuo account (manodopera)</p>
+        </div>
+        <div class="body" id="main-body">
+            <div class="loading" id="loading-el">Caricamento…</div>
+        </div>
+    </div>
+
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/dashboard-utils.js"></script>
+    <script>
+        window.GFVConfigLoader.loadConfigAndMaps().catch(function (e) { console.error(e); });
+    </script>
+    <script type="module">
+        import { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc, collection, getDocs } from '../services/firebase-service.js';
+        import { setCurrentTenantId, getCurrentTenantId, getUserRolesForTenant } from '../services/tenant-service.js';
+        import { getOreOperaio } from '../services/ore-service.js';
+
+        const { normalizeRoles, hasAnyRole } = window.GFVDashboardUtils || {};
+
+        let chartMese = null;
+        let chartTipo = null;
+        let chartMezzo = null;
+
+        function isAssignedToCurrentUser(work, uid) {
+            if (!work || !uid) return false;
+            const directIds = [work.operaioId, work.caposquadraId, work.assegnatoA];
+            if (directIds.includes(uid)) return true;
+            const arrays = [work.operai, work.operaiIds, work.utentiAssegnati];
+            return arrays.some((list) => Array.isArray(list) && list.includes(uid));
+        }
+
+        function lavoroHaMezzo(lav) {
+            return !!(lav && (lav.macchinaId || lav.attrezzoId));
+        }
+
+        async function resolveCurrentTenantId(userData) {
+            if (!userData) return null;
+            let tenantId = getCurrentTenantId();
+            if (tenantId) return tenantId;
+            if (userData.tenantId) {
+                setCurrentTenantId(userData.tenantId);
+                return userData.tenantId;
+            }
+            const memberships = userData.tenantMemberships && typeof userData.tenantMemberships === 'object'
+                ? Object.entries(userData.tenantMemberships) : [];
+            if (memberships.length === 0) return null;
+            const active = memberships.find(([, item]) => item && item.stato === 'attivo');
+            const fallback = active || memberships[0];
+            if (fallback && fallback[0]) {
+                setCurrentTenantId(fallback[0]);
+                return fallback[0];
+            }
+            return null;
+        }
+
+        function isoDate(d) {
+            const x = d instanceof Date ? d : new Date(d);
+            if (Number.isNaN(x.getTime())) return '';
+            const y = x.getFullYear();
+            const m = String(x.getMonth() + 1).padStart(2, '0');
+            const day = String(x.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function oraDataToDate(ora) {
+            if (!ora || !ora.data) return null;
+            const raw = ora.data;
+            if (raw && typeof raw.toDate === 'function') return raw.toDate();
+            if (raw instanceof Date) return raw;
+            return new Date(raw);
+        }
+
+        function defaultRange() {
+            const end = new Date();
+            end.setHours(23, 59, 59, 999);
+            const start = new Date();
+            start.setMonth(start.getMonth() - 11);
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+            return { start, end };
+        }
+
+        function monthLabel(ym) {
+            const [y, m] = ym.split('-').map(Number);
+            const names = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+            return `${names[m - 1] || ''} ${y}`;
+        }
+
+        function renderMain(uid, displayName) {
+            const r = defaultRange();
+            document.getElementById('main-body').innerHTML = `
+                <p class="note">Sono incluse solo le ore che hai registrato da <strong>Segna ore</strong> (gestione lavori), con il tuo utente. Le ore <strong>rifiutate</strong> non sono contate. Non include il diario. Gli incarichi sono quelli a te assegnati in <strong>gestione lavori</strong>; le ore su mezzi si riferiscono a incarichi con trattore/attrezzo indicati sul lavoro.</p>
+                <div class="filters">
+                    <div>
+                        <label for="f-da">Da</label>
+                        <input type="date" id="f-da" value="${isoDate(r.start)}">
+                    </div>
+                    <div>
+                        <label for="f-a">A</label>
+                        <input type="date" id="f-a" value="${isoDate(r.end)}">
+                    </div>
+                    <button type="button" class="btn-apply" id="f-apply">Aggiorna</button>
+                </div>
+                <div class="metrics">
+                    <div class="metric"><strong id="m-ore">—</strong><span>Ore nel periodo (tue)</span></div>
+                    <div class="metric"><strong id="m-n">—</strong><span>Registrazioni ore</span></div>
+                    <div class="metric"><strong id="m-ore-mezzo">—</strong><span>Ore su incarichi con mezzo</span></div>
+                    <div class="metric"><strong id="m-lav-mezzo">—</strong><span>Incarichi con mezzo (nel periodo)</span></div>
+                </div>
+                <p class="empty" id="stat-empty" style="display: none; margin-bottom: 10px;">Nessuna ora nel periodo selezionato.</p>
+                <div class="chart-box" id="box-mese">
+                    <h3>Ore per mese</h3>
+                    <div class="chart-canvas"><canvas id="c-mese"></canvas></div>
+                </div>
+                <div class="chart-box" id="box-tipo">
+                    <h3>Ore per tipo di lavoro (incarichi)</h3>
+                    <div class="chart-canvas tall"><canvas id="c-tipo"></canvas></div>
+                </div>
+                <div class="chart-box" id="box-mezzo" style="display: none;">
+                    <h3>Ore su incarichi con trattore o attrezzo</h3>
+                    <p class="note" style="margin-bottom: 8px;">Solo ore legate a incarichi a te assegnati che in gestione lavori hanno un trattore o un attrezzo. Nomi da anagrafica parco macchine.</p>
+                    <div class="chart-canvas tall"><canvas id="c-mezzo"></canvas></div>
+                </div>
+            `;
+            document.getElementById('f-apply').addEventListener('click', () => loadAndDraw(uid));
+            loadAndDraw(uid);
+        }
+
+        async function loadLavoriDetailMap(db, tenantId) {
+            const tipoMap = new Map();
+            const lavMap = new Map();
+            const snap = await getDocs(collection(db, 'tenants', tenantId, 'lavori'));
+            snap.forEach((d) => {
+                const x = d.data();
+                const tipo = (x.tipoLavoro || x.nome || 'Lavoro').trim() || 'Lavoro';
+                tipoMap.set(d.id, tipo);
+                lavMap.set(d.id, { id: d.id, ...x });
+            });
+            return { tipoMap, lavMap };
+        }
+
+        async function resolveMezzoNames(db, tenantId, ids) {
+            const names = new Map();
+            const uniq = [...new Set(ids.filter(Boolean))];
+            await Promise.all(uniq.map(async (mid) => {
+                try {
+                    const d = await getDoc(doc(db, 'tenants', tenantId, 'macchine', mid));
+                    if (d.exists()) {
+                        const x = d.data();
+                        names.set(mid, (x.nome || x.modello || x.marca || mid).toString());
+                    } else {
+                        names.set(mid, mid);
+                    }
+                } catch (e) {
+                    names.set(mid, mid);
+                }
+            }));
+            return names;
+        }
+
+        function labelMezzoPerLavoro(lav, nameMap) {
+            if (!lav || !lavoroHaMezzo(lav)) return null;
+            if (lav.macchinaId) {
+                const n = nameMap.get(lav.macchinaId) || lav.macchinaId;
+                return `Trattore · ${n}`;
+            }
+            if (lav.attrezzoId) {
+                const n = nameMap.get(lav.attrezzoId) || lav.attrezzoId;
+                return `Attrezzo · ${n}`;
+            }
+            return null;
+        }
+
+        async function loadAndDraw(uid) {
+            const da = document.getElementById('f-da')?.value;
+            const a = document.getElementById('f-a')?.value;
+            if (!da || !a) return;
+
+            const t0 = new Date(da + 'T00:00:00');
+            const t1 = new Date(a + 'T23:59:59.999');
+            if (t0 > t1) {
+                alert('Intervallo date non valido.');
+                return;
+            }
+
+            const db = getDb();
+            const tenantId = getCurrentTenantId();
+            if (!tenantId) return;
+
+            let rows = [];
+            try {
+                rows = await getOreOperaio(uid, {});
+            } catch (e) {
+                console.error(e);
+                document.getElementById('main-body').innerHTML = `<div class="err">Errore caricamento ore: ${e.message || e}</div>`;
+                return;
+            }
+
+            const { tipoMap, lavMap } = await loadLavoriDetailMap(db, tenantId);
+
+            const filtered = rows.filter((ora) => {
+                if (ora.stato === 'rifiutate') return false;
+                const dt = oraDataToDate(ora);
+                if (!dt) return false;
+                return dt >= t0 && dt <= t1;
+            });
+
+            const totOre = filtered.reduce((s, o) => s + (parseFloat(o.oreNette) || 0), 0);
+            document.getElementById('m-ore').textContent = totOre.toFixed(2).replace('.', ',');
+            document.getElementById('m-n').textContent = String(filtered.length);
+            const emptyEl = document.getElementById('stat-empty');
+            if (emptyEl) emptyEl.style.display = filtered.length ? 'none' : 'block';
+
+            const oreConMezzo = filtered.filter((ora) => {
+                const lav = lavMap.get(ora.lavoroId);
+                return lav && isAssignedToCurrentUser(lav, uid) && lavoroHaMezzo(lav);
+            });
+            const totOreMezzo = oreConMezzo.reduce((s, o) => s + (parseFloat(o.oreNette) || 0), 0);
+            const distinctLavoriMezzo = new Set(oreConMezzo.map((o) => o.lavoroId)).size;
+            const elOreM = document.getElementById('m-ore-mezzo');
+            const elLavM = document.getElementById('m-lav-mezzo');
+            if (elOreM) elOreM.textContent = totOreMezzo.toFixed(2).replace('.', ',');
+            if (elLavM) elLavM.textContent = String(distinctLavoriMezzo);
+
+            const perMese = {};
+            const perTipo = {};
+            filtered.forEach((ora) => {
+                const dt = oraDataToDate(ora);
+                const ym = isoDate(dt).slice(0, 7);
+                const ore = parseFloat(ora.oreNette) || 0;
+                perMese[ym] = (perMese[ym] || 0) + ore;
+                const tipo = tipoMap.get(ora.lavoroId) || 'Altro';
+                perTipo[tipo] = (perTipo[tipo] || 0) + ore;
+            });
+
+            const months = [];
+            const cursor = new Date(t0);
+            cursor.setDate(1);
+            while (cursor <= t1) {
+                const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+                months.push(key);
+                cursor.setMonth(cursor.getMonth() + 1);
+            }
+            const labelsM = months.map(monthLabel);
+            const dataM = months.map((k) => parseFloat((perMese[k] || 0).toFixed(2)));
+
+            if (chartMese) chartMese.destroy();
+            if (chartTipo) chartTipo.destroy();
+            if (chartMezzo) chartMezzo.destroy();
+            chartMese = null;
+            chartTipo = null;
+            chartMezzo = null;
+
+            const ctxM = document.getElementById('c-mese');
+            const ctxT = document.getElementById('c-tipo');
+            const ctxMez = document.getElementById('c-mezzo');
+            const boxM = document.getElementById('box-mese');
+            const boxT = document.getElementById('box-tipo');
+            const boxMez = document.getElementById('box-mezzo');
+            if (boxM) boxM.style.display = filtered.length ? 'block' : 'none';
+            if (boxT) boxT.style.display = filtered.length ? 'block' : 'none';
+            if (boxMez) boxMez.style.display = oreConMezzo.length ? 'block' : 'none';
+
+            if (filtered.length) {
+                chartMese = new Chart(ctxM, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsM,
+                        datasets: [{
+                            label: 'Ore',
+                            data: dataM,
+                            backgroundColor: 'rgba(46, 139, 87, 0.75)',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        }
+                    }
+                });
+
+                const tipoEntries = Object.entries(perTipo).sort((a, b) => b[1] - a[1]);
+                const labelsT = tipoEntries.map(([k]) => k);
+                const dataT = tipoEntries.map(([, v]) => parseFloat(v.toFixed(2)));
+                const colors = ['#2E8B57', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'];
+
+                chartTipo = new Chart(ctxT, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labelsT,
+                        datasets: [{
+                            data: dataT,
+                            backgroundColor: labelsT.map((_, i) => colors[i % colors.length])
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label(ctx) {
+                                        const total = dataT.reduce((a, b) => a + b, 0) || 1;
+                                        const v = ctx.parsed || 0;
+                                        const pct = ((v / total) * 100).toFixed(1);
+                                        return `${ctx.label}: ${v} h (${pct}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (oreConMezzo.length && ctxMez) {
+                const ids = [];
+                oreConMezzo.forEach((ora) => {
+                    const lav = lavMap.get(ora.lavoroId);
+                    if (!lav) return;
+                    if (lav.macchinaId) ids.push(lav.macchinaId);
+                    if (lav.attrezzoId) ids.push(lav.attrezzoId);
+                });
+                const nameMap = await resolveMezzoNames(db, tenantId, ids);
+                const perMezzo = {};
+                oreConMezzo.forEach((ora) => {
+                    const lav = lavMap.get(ora.lavoroId);
+                    const key = labelMezzoPerLavoro(lav, nameMap);
+                    if (!key) return;
+                    const ore = parseFloat(ora.oreNette) || 0;
+                    perMezzo[key] = (perMezzo[key] || 0) + ore;
+                });
+                const mezzoEntries = Object.entries(perMezzo).sort((a, b) => b[1] - a[1]);
+                const labelsMz = mezzoEntries.map(([k]) => k);
+                const dataMz = mezzoEntries.map(([, v]) => parseFloat(v.toFixed(2)));
+                const colorsMz = ['#0d9488', '#7c3aed', '#ea580c', '#db2777', '#4f46e5', '#15803d', '#64748b'];
+                chartMezzo = new Chart(ctxMez, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labelsMz,
+                        datasets: [{
+                            data: dataMz,
+                            backgroundColor: labelsMz.map((_, i) => colorsMz[i % colorsMz.length])
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label(ctx) {
+                                        const total = dataMz.reduce((a, b) => a + b, 0) || 1;
+                                        const v = ctx.parsed || 0;
+                                        const pct = ((v / total) * 100).toFixed(1);
+                                        return `${ctx.label}: ${v} h (${pct}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        async function boot() {
+            const firebaseConfig = await window.GFVConfigLoader.waitForConfig();
+            initializeFirebase(firebaseConfig);
+            const auth = getAuthInstance();
+            const db = getDb();
+
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    window.location.href = '../auth/login-standalone.html';
+                    return;
+                }
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (!userDoc.exists()) {
+                        window.location.href = '../dashboard-standalone.html?ws=classic';
+                        return;
+                    }
+                    const userData = userDoc.data();
+                    const tenantId = await resolveCurrentTenantId(userData);
+                    if (tenantId) setCurrentTenantId(tenantId);
+
+                    let availableModules = [];
+                    if (tenantId) {
+                        const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                        if (tenantDoc.exists()) {
+                            const td = tenantDoc.data();
+                            availableModules = Array.isArray(td.modules) ? td.modules : [];
+                        }
+                    }
+
+                    let roles = tenantId ? await getUserRolesForTenant(tenantId, user.uid) : [];
+                    if (!Array.isArray(roles) || roles.length === 0) {
+                        roles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
+                    }
+                    const normalizedRoles = normalizeRoles ? normalizeRoles(roles) : roles;
+
+                    const isManagerOrAdmin = hasAnyRole
+                        ? hasAnyRole({ ruoli: normalizedRoles }, ['manager', 'amministratore'])
+                        : false;
+                    const isFieldRole = hasAnyRole
+                        ? hasAnyRole({ ruoli: normalizedRoles }, ['operaio', 'caposquadra'])
+                        : false;
+
+                    if (isManagerOrAdmin || !isFieldRole) {
+                        window.location.href = '../dashboard-standalone.html?ws=classic';
+                        return;
+                    }
+                    if (!availableModules.includes('manodopera')) {
+                        window.location.href = '../dashboard-standalone.html?ws=classic';
+                        return;
+                    }
+
+                    document.getElementById('loading-el')?.remove();
+                    const name = (userData.nome && userData.cognome)
+                        ? `${userData.nome} ${userData.cognome}`.trim()
+                        : (userData.email || user.uid);
+                    renderMain(user.uid, name);
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById('main-body').innerHTML = `<div class="err">${e.message || e}</div>`;
+                }
+            });
+        }
+
+        boot();
+    </script>
+</body>
+</html>

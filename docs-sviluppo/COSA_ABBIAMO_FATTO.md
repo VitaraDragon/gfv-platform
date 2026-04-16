@@ -1,13 +1,76 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-15.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-16.**
+
+## ✅ Statistiche campo manodopera: solo «le tue» ore (2026-04-16)
+
+- Nuova pagina `core/mobile/statistiche-lavoratore-standalone.html`: grafici basati esclusivamente su `oreOperai` con `operaioId ===` utente corrente (nessuna aggregazione tra operai), escluso stato `rifiutate`; tipi lavoro da anagrafica incarichi. Stessi gate del workspace mobile (ruolo campo + modulo `manodopera`). La slide Statistiche del workspace punta a questa pagina invece della dashboard/diario `statistiche-standalone.html?embed=field`.
+- Stessa pagina: metriche e grafico «ore su incarichi con trattore/attrezzo» incrociando incarichi **assegnati all’utente** (come in gestione lavori) con `macchinaId` / `attrezzoId` sul documento lavoro; nomi mezzi da `tenants/.../macchine`. Se sul lavoro c’è sia trattore sia attrezzo, le ore sono attribuite al trattore per il grafico per mezzo.
+
+## ✅ Workspace mobile: rimossa slide «Lavoro selezionato» (2026-04-16)
+
+- Eliminata la schermata duplicata tra «Segna ore» e «Statistiche»; dopo le ore lo swipe porta direttamente alle statistiche.
+- Il link «Apri in finestra intera» (lavori caposquadra) è spostato sotto l’iframe nella slide «Segna ore».
+- Ordine slide caposquadra aggiornato: Lavoro → Comunicazioni → Ore → Statistiche; `openSlide=dettaglio-lavoro` / `lavoro-selezionato` in URL continua a mappare sulla slide Ore (compatibilità).
+
+## ✅ Mappa mobile: ritorno su dettaglio lavoro + salvataggio robusto (2026-04-16)
+
+- In uscita da `mapOnly` il rientro salva e ripristina `focusLavoroId` + `openSlide=segna-ore` (slide «Segna ore» con iframe dettaglio/traccia), così dopo `Annulla` o salvataggio si torna alla schermata ore invece della prima slide o del solo dettaglio card.
+- In mappa full-screen aggiunto pulsante `🔒 Chiudi segmento` per chiudere manualmente la traccia senza dover centrare il primo punto.
+- `Salva Zona` ora usa anche un handler click esplicito (`handleSalvaZonaClick`) con log `[GFV-MAP-TRACE]` su click/start/addDoc/success/error per diagnosticare subito eventuali blocchi.
+
+## ✅ Mappa `mapOnly`: ritorno al workspace mobile e fix schermata bloccata (2026-04-16)
+
+- Chiusura modale tracciamento in modalità `mapOnly=1`: redirect a `field-workspace-standalone.html` (URL salvato dal parent iframe prima del salto su `window.top`, altrimenti fallback `../mobile/...?ws=mobile` + `focusLavoroId` se presente), così lo swipe del wizard torna disponibile invece di restare sulla pagina lavori top-level.
+- Rimosso guard `sessionStorage` sull’auto-apertura traccia: in combinazione con `map-only` poteva saltare l’apertura del modal lasciando pagina vuota fino a “clear site data”.
+- Log diagnostici prefisso `[GFV-MAP-TRACE]` su apertura fullscreen, auto-open e chiusura `mapOnly`.
+
+## ✅ Workspace mobile caposquadra: conferme 1/N e dettaglio lavoro compatto embed (2026-04-16)
+
+- `Comunicazioni inviate` ora mostra conferme in formato desktop `👍 conferme/destinatari` (es. `1/4`) invece del solo numero assoluto.
+- In invio comunicazione da mobile viene salvato anche `destinatari` (lista operai assegnati al lavoro) per rendere stabile il calcolo `conferme/target`.
+- Iframe dettaglio lavoro sotto `Segna ore` passa in modalità compatta (`embed=mobile`) con header/badge di focus nascosti e layout info ordini manager più denso (2 colonne), così si recupera spazio verticale.
+
+## ✅ Workspace mobile caposquadra: pull-to-refresh, lista squadra compatta, mappa full-screen (2026-04-16)
+
+- Prima schermata senza pulsanti `Aggiorna elenco`/`Elenco completo`; aggiornamento dati con gesto pull-to-refresh (swipe dall'alto verso il basso) sulla prima slide.
+- Lista operai squadra resa più compatta con griglia multi-colonna per ridurre lo spazio verticale occupato.
+- Nel dettaglio lavori in embed mobile nascosti i link di rientro dashboard e apertura `Traccia Segmento Lavorato` in modal full-screen, con indicazioni mappa sempre visibili.
+
+## ✅ Workspace mobile caposquadra: fix 2-colonne squadra e mappa truly full-screen (2026-04-16)
+
+- Griglia operai prima schermata forzata a 2 colonne (rimosso fallback automatico 1-colonna sotto 420px) per massimizzare il risparmio verticale.
+- Modal `Traccia Segmento Lavorato` in embed mobile portata a modalità `map-fullscreen`: viene mostrata solo la mappa a schermo intero con header/chiusura e controlli in overlay.
+- Azioni `Salva Zona` / `Annulla` spostate in overlay inferiore sulla mappa per utilizzo comodo su smartphone.
+
+## ✅ Traccia segmento da iframe: apertura top-level full-screen (2026-04-16)
+
+- Risolto il limite tecnico dell'iframe: in modalità mobile embed il bottone `Traccia Segmento Lavorato` ora porta la pagina lavori in `window.top` con query `traceLavoroId`.
+- All'arrivo su pagina top-level, la modale di tracciamento viene aperta automaticamente in full-screen reale e il parametro `traceLavoroId` viene rimosso dall'URL con `history.replaceState`.
+- Aggiunto fail-safe anti-loop su `traceLavoroId` con guard in `sessionStorage` e pulizia URL in chiusura modale, per evitare blocchi dopo refresh o aperture ripetute.
+- Fix definitivo loop: `traceLavoroId` non viene più riutilizzato dopo il primo auto-avvio (`pendingTraceLavoroId` azzerato) e resta azzerato anche su `Annulla`.
+- Introdotta modalità dedicata `mapOnly=1`: la tracciatura full-screen viene avviata solo in questa modalità, con uscita pulita su `Annulla` verso URL senza `traceLavoroId`/`mapOnly`.
 
 ## ✅ Workspace mobile campo (caposquadra): UI, dettaglio lavoro, squadra, statistiche embed (2026-04-15)
 
 - Allineati header e schede swipe a palette GFV (verde, card coerenti con resto app) in `core/mobile/css/field-workspace.css` e `core/mobile/field-workspace-standalone.html`.
-- Dettaglio lavoro: `lavori-caposquadra-standalone.html` supporta `focusLavoroId` in query (solo incarico selezionato + banner “mostra tutti”); iframe su slide “Lavoro selezionato” punta a quell’URL; link “Apri in finestra intera”.
+- Dettaglio lavoro: `lavori-caposquadra-standalone.html` supporta `focusLavoroId` in query (solo incarico selezionato + banner “mostra tutti”); iframe nella slide «Segna ore» punta a quell’URL; link “Apri in finestra intera”.
 - Squadra: rimossa dipendenza da iframe `gestione-squadre`; elenco operai da Firestore (`squadre` + `users`), righe cliccabili e modal contatti (tel / mailto).
 - Statistiche in iframe: `statistiche-standalone.html?embed=field` con CSS compatto e `resize` Chart.js post-carico; contenitore slide più alto per leggibilità grafici.
+
+## ✅ Workspace mobile caposquadra: squadra+valida ore inline e comunicazioni inviate (2026-04-16)
+
+- Prima schermata aggiornata con blocchi inline `La mia squadra` e `Valida ore` sotto la selezione lavoro, mantenendo il flusso swipe richiesto (senza slide squadra separata).
+- Aggiunta validazione rapida ore (`da_validare`) direttamente da mobile workspace con azioni `Approva` / `Rifiuta` e update stato su `oreOperai`.
+- Slide comunicazioni estesa con sezione `Comunicazioni inviate` (ultimi invii del caposquadra) per feedback immediato.
+- Reintrodotte icone stile desktop (emoji operative nei titoli/CTA principali) su squadra, comunicazioni, ore, lavori e statistiche.
+
+## ✅ Workspace mobile caposquadra: header compatto a icone + dettaglio lavoro sotto segna ore (2026-04-16)
+
+- Header ridotto in altezza con sola toolbar icone (`mobile`, `desktop`, `opzioni`) e menu impostazioni account su icona ingranaggio.
+- Stato versione attiva reso visibile graficamente (tasto mobile/desktop in stato `active`).
+- Slide `Segna ore` estesa con blocco `Dettaglio lavoro operativo` (iframe focus lavoro) per avere subito ordini manager/tracciamento/sospensione nella stessa schermata.
+- Sezione `Comunicazioni inviate` aggiornata con contatore conferme di ricezione (`conferme.length`) per ogni invio.
 
 ## ✅ Guida app - riscrittura completa struttura modulare (2026-04-14)
 

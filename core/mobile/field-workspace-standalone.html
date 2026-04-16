@@ -11,11 +11,15 @@
 </head>
 <body class="field-mobile-shell">
     <header class="field-mobile-header">
-        <h1 class="field-mobile-title">Workspace Campo</h1>
-        <p class="field-mobile-subtitle">Swipe da destra a sinistra per avanzare nel flusso operativo.</p>
-        <div class="field-mobile-toolbar">
-            <button class="field-mobile-btn" id="btn-switch-classic" type="button">Versione classica</button>
-            <button class="field-mobile-btn" id="btn-switch-auto" type="button">Auto mobile</button>
+        <div class="field-mobile-toolbar compact">
+            <button class="field-icon-toggle active" id="btn-mode-mobile" type="button" aria-label="Versione mobile" title="Versione mobile">📱</button>
+            <button class="field-icon-toggle" id="btn-mode-desktop" type="button" aria-label="Versione desktop" title="Versione desktop">🖥️</button>
+            <div class="field-options-wrap">
+                <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni">⚙️</button>
+                <div class="field-options-menu" id="field-options-menu" hidden>
+                    <a href="../admin/impostazioni-standalone.html" class="field-options-link">Impostazioni account</a>
+                </div>
+            </div>
         </div>
         <p class="field-mobile-note" id="field-mobile-status">Inizializzazione...</p>
     </header>
@@ -36,18 +40,58 @@
                             <option value="">Caricamento lavori...</option>
                         </select>
                         <small id="gps-suggestion" class="hint-text"></small>
-                        <div class="work-actions">
-                            <button type="button" id="btn-refresh-works" class="field-mobile-btn">Aggiorna elenco</button>
-                            <a href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn">Elenco completo</a>
-                        </div>
                     </div>
+                    <section id="inline-team-section" class="inline-team-section" hidden>
+                        <h3 class="inline-team-title">👥 La mia squadra</h3>
+                        <p class="inline-team-subtitle">Tocca un nome per chiamare o inviare email.</p>
+                        <div id="squad-members-list" class="squad-members-list">
+                            <div class="empty-state-inline" id="squad-members-placeholder">Caricamento squadra...</div>
+                        </div>
+                    </section>
+                    <section id="inline-validate-hours-section" class="inline-team-section" hidden>
+                        <h3 class="inline-team-title">🕒 Valida ore</h3>
+                        <p class="inline-team-subtitle">Conferma o rifiuta le ore in attesa per il lavoro selezionato.</p>
+                        <div id="pending-hours-list" class="inline-list-card">
+                            <div class="empty-state-inline">Seleziona un lavoro per vedere le ore da validare.</div>
+                        </div>
+                    </section>
+                </div>
+            </article>
+
+            <article class="field-slide capo-only" data-slide-title="Comunicazioni" hidden>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>📣 Comunicazioni squadra</h2>
+                        <p>Messaggio operativo rapido alla squadra.</p>
+                    </div>
+                </div>
+                <div class="slide-body slide-body-brand">
+                    <form id="quick-communication-form" class="quick-comm-form gfv-card-inner">
+                        <label for="quick-work-select" class="label-inline">Lavoro</label>
+                        <select id="quick-work-select" class="field-input"></select>
+                        <label for="quick-comm-date" class="label-inline">Data</label>
+                        <input id="quick-comm-date" class="field-input" type="date">
+                        <label for="quick-comm-time" class="label-inline">Orario</label>
+                        <input id="quick-comm-time" class="field-input" type="time" value="07:00">
+                        <label for="quick-comm-message" class="label-inline">Messaggio</label>
+                        <textarea id="quick-comm-message" class="field-input" rows="4" placeholder="Es. iniziamo dal lato nord, priorità al filare 4"></textarea>
+                        <button type="submit" class="field-mobile-btn primary">Invia comunicazione</button>
+                        <small id="quick-comm-status" class="hint-text"></small>
+                    </form>
+                    <section class="inline-team-section">
+                        <h3 class="inline-team-title">📨 Comunicazioni inviate</h3>
+                        <p class="inline-team-subtitle">Ultimi invii effettuati da questa schermata.</p>
+                        <div id="sent-communications-list" class="inline-list-card">
+                            <div class="empty-state-inline">Nessuna comunicazione inviata.</div>
+                        </div>
+                    </section>
                 </div>
             </article>
 
             <article class="field-slide" data-slide-title="Ore">
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>Segna ore</h2>
+                        <h2>⏱️ Segna ore</h2>
                         <p>Le ore vengono calcolate automaticamente dagli orari impostati.</p>
                     </div>
                 </div>
@@ -68,73 +112,26 @@
                         <button type="submit" class="field-mobile-btn primary">Salva ore lavorate</button>
                         <small id="hours-save-status" class="hint-text"></small>
                     </form>
-                </div>
-            </article>
-
-            <article class="field-slide" data-slide-title="Lavoro selezionato">
-                <div class="slide-head slide-head-brand">
-                    <div class="slide-head-text">
-                        <h2>Lavoro selezionato</h2>
-                        <p>Dettaglio operativo sul solo incarico scelto nella prima schermata.</p>
-                    </div>
-                </div>
-                <div class="slide-body slide-body-brand slide-body-stack">
-                    <div id="selected-work-card" class="selected-work-card gfv-card-inner">
-                        <div class="empty-state-inline">Seleziona un lavoro nella prima schermata.</div>
-                    </div>
-                    <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
-                    <div class="work-actions">
-                        <a id="lavori-full-detail-link" href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn" target="_blank" rel="noopener">Apri in finestra intera</a>
-                    </div>
+                    <section class="inline-team-section">
+                        <h3 class="inline-team-title">📌 Dettaglio lavoro operativo</h3>
+                        <p class="inline-team-subtitle">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>
+                        <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
+                        <div class="work-actions">
+                            <a id="lavori-full-detail-link" href="../admin/lavori-caposquadra-standalone.html?ws=classic" class="field-link-btn" target="_blank" rel="noopener">Apri in finestra intera</a>
+                        </div>
+                    </section>
                 </div>
             </article>
 
             <article class="field-slide" data-slide-title="Statistiche">
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>Statistiche</h2>
-                        <p>Andamento e grafici (vista compatta per mobile).</p>
+                        <h2>📊 Statistiche</h2>
+                        <p>Le tue ore e la ripartizione sui tipi di lavoro (solo account manodopera).</p>
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand slide-body-iframe-tall">
-                    <iframe id="stats-embed-frame" class="slide-frame frame-summary" src="../statistiche-standalone.html?embed=field" title="Statistiche" loading="lazy"></iframe>
-                </div>
-            </article>
-
-            <article class="field-slide capo-only" data-slide-title="Squadra" hidden>
-                <div class="slide-head slide-head-brand">
-                    <div class="slide-head-text">
-                        <h2>La mia squadra</h2>
-                        <p>Tocca un nome per chiamare o inviare email.</p>
-                    </div>
-                </div>
-                <div class="slide-body slide-body-brand">
-                    <div id="squad-members-list" class="squad-members-list">
-                        <div class="empty-state-inline" id="squad-members-placeholder">Caricamento squadra...</div>
-                    </div>
-                </div>
-            </article>
-
-            <article class="field-slide capo-only" data-slide-title="Comunicazioni" hidden>
-                <div class="slide-head slide-head-brand">
-                    <div class="slide-head-text">
-                        <h2>Comunicazioni squadra</h2>
-                        <p>Messaggio operativo rapido alla squadra.</p>
-                    </div>
-                </div>
-                <div class="slide-body slide-body-brand">
-                    <form id="quick-communication-form" class="quick-comm-form gfv-card-inner">
-                        <label for="quick-work-select" class="label-inline">Lavoro</label>
-                        <select id="quick-work-select" class="field-input"></select>
-                        <label for="quick-comm-date" class="label-inline">Data</label>
-                        <input id="quick-comm-date" class="field-input" type="date">
-                        <label for="quick-comm-time" class="label-inline">Orario</label>
-                        <input id="quick-comm-time" class="field-input" type="time" value="07:00">
-                        <label for="quick-comm-message" class="label-inline">Messaggio</label>
-                        <textarea id="quick-comm-message" class="field-input" rows="4" placeholder="Es. iniziamo dal lato nord, priorità al filare 4"></textarea>
-                        <button type="submit" class="field-mobile-btn primary">Invia comunicazione</button>
-                        <small id="quick-comm-status" class="hint-text"></small>
-                    </form>
+                    <iframe id="stats-embed-frame" class="slide-frame frame-summary" src="statistiche-lavoratore-standalone.html" title="Le tue statistiche" loading="lazy"></iframe>
                 </div>
             </article>
         </section>
