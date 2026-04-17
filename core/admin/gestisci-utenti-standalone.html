@@ -1433,6 +1433,8 @@
                 // Usa sempre il percorso relativo dalla root del repository
                 const registrationPath = '/core/auth/registrazione-invito-standalone.html';
                 const registrationUrl = baseUrl + registrationPath + `?token=${token}`;
+                const loginPath = '/core/auth/login-standalone.html';
+                const linkLogin = baseUrl + loginPath;
 
 // Formatta ruoli per l'email
                 const ruoliFormattati = ruoli.map(r => {
@@ -1519,6 +1521,7 @@
                         cognome: cognome,
                         ruoli: ruoliFormattati,
                         linkRegistrazione: registrationUrl,
+                        linkLogin: linkLogin,
                         scadeIl: scadeIlFormattata,
                         logo_url: logoUrl || '',
                         nome_azienda: nomeAziendaHeader || '',

@@ -1,6 +1,28 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-16.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-17.**
+
+## ✅ Profilo campo: blocco navigazione senza alert nativo (2026-04-17)
+
+- `core/js/tony/main.js`: se APRI_PAGINA / OPEN_MODAL è bloccato per profilo campo, messaggio in chat (`showMessageInChat`) + TTS breve tramite `tonyNotifyFieldProfileBlocked`, al posto di `window.alert`.
+- Stesso file: niente doppio messaggio (onComplete non richiama `triggerAction` per APRI_PAGINA se la CF ha già restituito `command`); niente terza bolla con testo modello tipo «ti porto al magazzino» (`suppressAssistantTextFieldGuard` + `finalSpeech` vuoto).
+
+## ✅ Profilo campo: `initContextWithModules` con ruoli + guard APRI_PAGINA (2026-04-17)
+
+- **Problema:** su pagine manodopera (es. lavori caposquadra) Tony inizializzava solo `moduli_attivi` senza `utente_corrente.ruoli` → `getTonyFieldProfileFromContext()` era sempre `null` → nessun blocco client su `APRI_PAGINA` (es. terreni) e la Cloud Function non applicava `SYSTEM_INSTRUCTION_TONY_FIELD`.
+- `core/services/tony-service.js`: `initContextWithModules(modules, { tenantId, utente_corrente, maxRetries })` (secondo argomento numerico = solo retry, retrocompatibile); salvataggio opzionale di `gfv_tony_utente_ruoli` in sessionStorage.
+- `core/js/tony/field-role-guard.js`: se mancano i ruoli nel context Tony, fallback lettura `sessionStorage` (dopo dashboard o init con ruoli).
+- `core/js/tony/main.js`: `setTonyContext` persiste `gfv_tony_utente_ruoli` quando arriva `utente_corrente.ruoli`.
+- Pagine aggiornate: `lavori-caposquadra-standalone.html`, `segnatura-ore-standalone.html`, `validazione-ore-standalone.html`, `impostazioni-standalone.html` (anche ramo non-manager) — passano `tenantId` e `utente_corrente` a Tony.
+
+## ✅ Workspace campo: Tony widget + contesto ruoli (2026-04-17)
+
+- `core/mobile/field-workspace-standalone.html`: caricamento `tony-widget-standalone.js` + CSS (stesso pattern della dashboard, base `../` fuori da GitHub Pages).
+- `core/mobile/js/field-workspace-controller.js`: dopo login e `refreshWorkspaceData`, `setTonyContext` / `Tony.setContext('dashboard', …)` con `tenantId`, `moduli_attivi`, `utente_corrente.ruoli` e nome; retry a intervalli se il widget non è ancora inizializzato; `syncTonyModules(availableModules)` come sulle altre standalone. Così `tonyAsk` riceve il profilo campo anche senza passare dalla dashboard.
+
+## ✅ Impostazioni: rimosse comunicazioni squadra per caposquadra (2026-04-17)
+
+- `core/admin/impostazioni-standalone.html`: eliminate la card «Comunicazioni Squadra» / «Comunicazioni inviate» e il relativo JavaScript. Le comunicazioni restano solo nel workspace mobile dedicato (slide previste dal flusso caposquadra), coerente con il confine «schermate consentite per ruolo»; la pagina Impostazioni resta per account, password e (per i manager) sezioni azienda.
 
 ## ✅ Statistiche campo manodopera: solo «le tue» ore (2026-04-16)
 

@@ -637,18 +637,20 @@
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 
-                                // Inizializza context Tony con i moduli attivi usando helper
+                                // Inizializza context Tony: moduli + ruoli (profilo campo / guard APRI_PAGINA)
+                                var nomeTonySeg = (`${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim() || (user && user.email) || '');
+                                var ruoliTonySeg = Array.isArray(currentUserData.ruoli) ? currentUserData.ruoli : [];
+                                var tonyCampoOptsSeg = { tenantId: currentTenantId, utente_corrente: { nome: nomeTonySeg, ruoli: ruoliTonySeg } };
                                 if (window.Tony && window.Tony.initContextWithModules) {
-                                    window.Tony.initContextWithModules(modules);
+                                    window.Tony.initContextWithModules(modules, tonyCampoOptsSeg);
                                 } else {
-                                    // Fallback se helper non disponibile (retry manuale)
                                     var initTonyContext = function(retries) {
                                         retries = retries || 0;
                                         if (window.Tony && typeof window.Tony.setContext === 'function') {
-                                            window.Tony.setContext('dashboard', {
+                                            window.Tony.setContext('dashboard', Object.assign({
                                                 info_azienda: { moduli_attivi: modules },
                                                 moduli_attivi: modules
-                                            });
+                                            }, tonyCampoOptsSeg));
                                             console.log('[Segnatura Ore] Context Tony inizializzato con moduli:', modules);
                                         } else if (retries < 10) {
                                             setTimeout(function() {

@@ -156,6 +156,19 @@ function buildInviteHtml(p) {
     ? `<p style="color:white;font-size:22px;font-weight:bold;margin:0;">${nomeHeader}</p>`
     : "";
 
+  const linkLoginSafe = safeHttpsUrl(p.linkLogin);
+  const loginSection = linkLoginSafe
+    ? `<div style="border-top:1px solid #dee2e6;margin:28px 0 0 0;padding-top:22px;">
+    <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 12px 0;">
+      <strong>Hai già completato la registrazione?</strong> Accedi con email e password. Per accettare l’invito e unirti al team usa il pulsante verde <strong>Completa registrazione</strong> sopra — questo link è solo per il login.
+    </p>
+    <div style="text-align:center;margin:18px 0;">
+      <a href="${escapeHtml(linkLoginSafe)}" style="display:inline-block;background:#ffffff;color:#1976D2;border:2px solid #1976D2;padding:12px 28px;text-decoration:none;border-radius:8px;font-weight:bold;">Accedi alla piattaforma</a>
+    </div>
+    <p style="font-size:12px;color:#888;line-height:1.5;margin:0;">Dopo l’accesso puoi aggiungere l’app alla schermata home dal browser (menu ⋮ → Installa app). Su iPhone/iPad: Condividi → Aggiungi alla schermata Home.</p>
+  </div>`
+    : "";
+
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;">
 <div style="font-family:'Segoe UI',Tahoma,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
   <div style="background:linear-gradient(135deg,#1976D2 0%,#1565C0 100%);padding:30px;text-align:center;">
@@ -172,6 +185,7 @@ function buildInviteHtml(p) {
       <a href="${escapeHtml(p.linkRegistrazione || "#")}" style="display:inline-block;background:#28a745;color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Completa registrazione</a>
     </div>
     <p style="font-size:12px;color:#999;word-break:break-all;">${escapeHtml(p.linkRegistrazione || "")}</p>
+    ${loginSection}
   </div>
   <div style="background:#f8f9fa;padding:20px;text-align:center;border-top:1px solid #dee2e6;font-size:12px;color:#666;">
     <p style="margin:0 0 8px 0;font-weight:bold;">${nomeFooter}</p>

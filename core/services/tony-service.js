@@ -207,21 +207,43 @@ class TonyService {
    * Helper: Inizializza il context di Tony con i moduli attivi dal tenant.
    * Da chiamare nelle pagine standalone dopo aver caricato i dati del tenant.
    * @param {Array<string>} modules - Array di moduli attivi (es. ['vigneto', 'tony', ...])
-   * @param {number} maxRetries - Numero massimo di tentativi se Tony non è ancora disponibile (default: 10)
+   * @param {number|{ maxRetries?: number, tenantId?: string, utente_corrente?: { nome?: string, ruoli?: string[] } }} [optionsOrMaxRetries]
+   *        — numero = maxRetries (retrocompatibile); oggetto = opzioni con ruoli utente per profilo campo / guard APRI_PAGINA
    */
-  static async initContextWithModules(modules, maxRetries = 10) {
+  static async initContextWithModules(modules, optionsOrMaxRetries = 10) {
     if (!Array.isArray(modules)) {
       console.warn('[Tony] initContextWithModules: modules deve essere un array');
       return;
     }
-    
+
+    let maxRetries = 10;
+    let tenantId = null;
+    let utente_corrente = null;
+    if (typeof optionsOrMaxRetries === 'number') {
+      maxRetries = optionsOrMaxRetries;
+    } else if (optionsOrMaxRetries && typeof optionsOrMaxRetries === 'object') {
+      maxRetries = optionsOrMaxRetries.maxRetries != null ? optionsOrMaxRetries.maxRetries : 10;
+      tenantId = optionsOrMaxRetries.tenantId || null;
+      utente_corrente = optionsOrMaxRetries.utente_corrente || null;
+    }
+
     const initContext = (retries = 0) => {
       if (window.Tony && typeof window.Tony.setContext === 'function') {
-        window.Tony.setContext('dashboard', {
+        const payload = {
           info_azienda: { moduli_attivi: modules },
           moduli_attivi: modules
-        });
-        console.log('[Tony] Context inizializzato con moduli:', modules);
+        };
+        if (tenantId) payload.tenantId = tenantId;
+        if (utente_corrente && typeof utente_corrente === 'object') {
+          payload.utente_corrente = utente_corrente;
+          try {
+            if (Array.isArray(utente_corrente.ruoli)) {
+              sessionStorage.setItem('gfv_tony_utente_ruoli', JSON.stringify(utente_corrente.ruoli));
+            }
+          } catch (e) { /* ignore */ }
+        }
+        window.Tony.setContext('dashboard', payload);
+        console.log('[Tony] Context inizializzato con moduli:', modules, utente_corrente ? '(+ utente_corrente)' : '');
         return true;
       } else if (retries < maxRetries) {
         setTimeout(() => {
@@ -233,7 +255,7 @@ class TonyService {
         return false;
       }
     };
-    
+
     return initContext();
   }
 

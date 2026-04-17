@@ -13,6 +13,10 @@ export var TONY_PAGE_MAP = {
     'attivita': 'core/attivita-standalone.html', 'attività': 'core/attivita-standalone.html',
     'lavori': 'core/admin/gestione-lavori-standalone.html', 'gestione lavori': 'core/admin/gestione-lavori-standalone.html',
     'segnatura ore': 'core/segnatura-ore-standalone.html', 'segnare ore': 'core/segnatura-ore-standalone.html',
+    'workspace campo': 'core/mobile/field-workspace-standalone.html',
+    'field workspace': 'core/mobile/field-workspace-standalone.html',
+    'statistiche lavoratore': 'core/mobile/statistiche-lavoratore-standalone.html',
+    'statistiche campo': 'core/mobile/statistiche-lavoratore-standalone.html',
     'validazione ore': 'core/admin/validazione-ore-standalone.html', 'validare ore': 'core/admin/validazione-ore-standalone.html',
     'lavori caposquadra': 'core/admin/lavori-caposquadra-standalone.html', 'i miei lavori': 'core/admin/lavori-caposquadra-standalone.html',
     'statistiche': 'core/statistiche-standalone.html',
@@ -107,6 +111,8 @@ export var TONY_LABEL_MAP = {
     'attivita': 'Diario Attività', 'attività': 'Diario Attività',
     'lavori': 'Gestione Lavori', 'gestione lavori': 'Gestione Lavori',
     'segnatura ore': 'Segnatura Ore', 'segnare ore': 'Segnatura Ore',
+    'workspace campo': 'Workspace campo', 'field workspace': 'Workspace campo',
+    'statistiche lavoratore': 'Le tue statistiche', 'statistiche campo': 'Le tue statistiche',
     'validazione ore': 'Validazione Ore', 'validare ore': 'Validazione Ore',
     'lavori caposquadra': 'I miei Lavori', 'i miei lavori': 'I miei Lavori',
     'statistiche': 'Statistiche', 'statistiche manodopera': 'Statistiche Manodopera', 'statistiche ore': 'Statistiche Manodopera',
@@ -161,7 +167,9 @@ export function resolveTarget(raw) {
         'home vigneto': 'vigneto', 'home frutteto': 'frutteto', 'home magazzino': 'magazzino',
         'home conto terzi': 'conto terzi', 'contoterzi': 'conto terzi',
         'dashboard frutteto': 'frutteto', 'dashboard vigneto': 'vigneto', 'cosa devo fare': 'lavori',
-        'gestione lavori': 'lavori', 'parco macchine': 'parcoMacchine', 'operai': 'manodopera'
+        'gestione lavori': 'lavori', 'parco macchine': 'parcoMacchine',         'operai': 'manodopera',
+        'field-workspace': 'workspace campo', 'workspace mobile': 'workspace campo',
+        'home campo': 'workspace campo', 'flusso campo': 'workspace campo'
     };
     if (aliases[t]) return aliases[t];
     var normalized = t.replace(/\b(del|della|dei|delle|pagina|modulo|sezione|anagrafica)\b/g, ' ').replace(/\s+/g, ' ').trim();

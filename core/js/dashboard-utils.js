@@ -182,10 +182,9 @@ window.GFVDashboardUtils.shouldUseFieldMobileWorkspace = function shouldUseField
     const hasFieldRole = window.GFVDashboardUtils.hasAnyRole(userData, ['operaio', 'caposquadra']);
     if (!hasFieldRole) return false;
 
+    // Operaio / caposquadra: stesso ingresso su mobile e desktop (workspace campo), salvo opt-out esplicito.
     const pref = window.GFVDashboardUtils.getFieldWorkspacePreference();
     if (pref === 'classic') return false;
-    if (pref === 'mobile') return true;
-
-    return window.GFVDashboardUtils.isLikelyMobileDevice();
+    return true;
 }
 

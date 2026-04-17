@@ -28,6 +28,7 @@ EmailJS riconoscerà automaticamente le variabili nel template. Assicurati che q
 - `{{email}}` - Email del destinatario
 - `{{ruoli}}` - Ruoli assegnati (formattati con emoji)
 - `{{linkRegistrazione}}` - Link per completare la registrazione
+- `{{linkLogin}}` - Link alla pagina di **login** (HTTPS), per chi ha già completato la registrazione; non attiva l’invito e non crea account nuovi
 - `{{scadeIl}}` - Data scadenza invito (formattata)
 
 **Variabili Azienda (Branding):**
@@ -50,6 +51,7 @@ EmailJS riconoscerà automaticamente le variabili nel template. Assicurati che q
 2. Oppure testa dall'applicazione creando un nuovo invito e verificando che l'email mostri logo e nome azienda
 
 ## Note Importanti
+- **Invio da app (Resend)**: Gli inviti creati da *Gestisci utenti* usano la Cloud Function `sendTransactionalEmail` e HTML generato in `functions/email-resend.js` (`buildInviteHtml`). Lì `linkLogin` viene passato automaticamente dal client insieme a `linkRegistrazione`.
 - **Service ID**: Usa lo stesso Service ID già configurato: `service_f4to9qr`
 - **Public Key**: Usa la stessa Public Key già configurata: `AnLLhJOew6d6sCIOG`
 - **Branding Aziendale**: Il template ora usa il logo e i dati dell'azienda invece del logo GFV Platform. Configura i dati azienda nelle Impostazioni.

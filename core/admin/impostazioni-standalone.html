@@ -392,62 +392,6 @@
                 </form>
             </div>
 
-            <!-- Comunicazioni Squadra (solo Caposquadra) -->
-            <div class="card" id="comunicazioni-section" style="display: none;">
-                <h2>📢 Comunicazioni Squadra</h2>
-                <p class="info-text" style="margin-bottom: 20px;">Invia comunicazioni di ritrovo alla tua squadra. Gli operai riceveranno la notifica nella loro dashboard.</p>
-                
-                <form id="comunicazione-form" onsubmit="handleSendComunicazione(event)">
-                    <div class="form-group">
-                        <label for="comunicazione-lavoro">Seleziona Lavoro (opzionale)</label>
-                        <select id="comunicazione-lavoro" onchange="handleLavoroChange()">
-                            <option value="">-- Seleziona lavoro per pre-compilare --</option>
-                        </select>
-                        <div class="info-text" style="margin-top: 5px;">Seleziona un lavoro per pre-compilare automaticamente podere e terreno</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="comunicazione-podere">Podere *</label>
-                        <select id="comunicazione-podere" required>
-                            <option value="">-- Seleziona podere --</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="comunicazione-terreno">Campo/Terreno *</label>
-                        <select id="comunicazione-terreno" required>
-                            <option value="">-- Seleziona terreno --</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="comunicazione-data">Data Ritrovo *</label>
-                            <input type="date" id="comunicazione-data" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="comunicazione-orario">Orario Ritrovo *</label>
-                            <input type="time" id="comunicazione-orario" required value="07:00">
-                            <div class="info-text">Orario di default: 7:00</div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="comunicazione-note">Note Aggiuntive</label>
-                        <textarea id="comunicazione-note" placeholder="Eventuali note o istruzioni particolari per la squadra..." rows="3"></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">📤 Invia alla Squadra</button>
-                </form>
-                
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e9ecef;">
-                    <h3 style="color: #2E8B57; font-size: 18px; margin-bottom: 15px;">Comunicazioni Inviate</h3>
-                    <div id="comunicazioni-list" class="list-container">
-                        <!-- Lista verrà popolata dinamicamente -->
-                    </div>
-                </div>
-            </div>
-
             <!-- Impostazioni Account (tutti i ruoli) -->
             <div class="card" id="account-section">
                 <h2>Impostazioni Account Personale</h2>
@@ -895,7 +839,6 @@
                     // Controlla ruoli e mostra/nascondi sezioni
                     const ruoli = currentUserData.ruoli || [];
                     const isManager = ruoli.includes('manager') || ruoli.includes('amministratore');
-                    const isCaposquadra = ruoli.includes('caposquadra');
                     
                     // Mostra/nascondi sezioni in base al ruolo
                     if (isManager) {
@@ -930,17 +873,19 @@
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasContoTerziModule = modules.includes('contoTerzi');
                                 
-                                // Inizializza context Tony con i moduli attivi usando helper
+                                // Inizializza context Tony: moduli + ruoli (guard profilo campo / manager)
+                                var nomeTonyImp = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim() || (user && user.email) || '';
+                                var tonyOptsImp = { tenantId: currentTenantId, utente_corrente: { nome: nomeTonyImp, ruoli: ruoli } };
                                 if (window.Tony && window.Tony.initContextWithModules) {
-                                    window.Tony.initContextWithModules(modules);
+                                    window.Tony.initContextWithModules(modules, tonyOptsImp);
                                 } else {
                                     var initTonyContext = function(retries) {
                                         retries = retries || 0;
                                         if (window.Tony && typeof window.Tony.setContext === 'function') {
-                                            window.Tony.setContext('dashboard', {
+                                            window.Tony.setContext('dashboard', Object.assign({
                                                 info_azienda: { moduli_attivi: modules },
                                                 moduli_attivi: modules
-                                            });
+                                            }, tonyOptsImp));
                                             console.log('[Impostazioni] Context Tony inizializzato con moduli:', modules);
                                         } else if (retries < 10) {
                                             setTimeout(function() { initTonyContext(retries + 1); }, 500);
@@ -998,24 +943,36 @@
                         document.getElementById('liste-section').style.display = 'none';
                         document.getElementById('tariffe-section').style.display = 'none';
                         document.getElementById('coefficienti-morfologia-section').style.display = 'none';
-                    }
-                    
-                    if (isCaposquadra) {
-                        // Caposquadra: mostra sezione comunicazioni
-                        document.getElementById('comunicazioni-section').style.display = 'block';
-                        
-                        // Carica poderi, terreni e lavori per dropdown comunicazioni
+                        // Tony: moduli + ruoli anche senza blocco tenant manager (operaio/caposquadra in Impostazioni)
                         if (currentTenantId) {
-                            await loadPoderiForComunicazioni();
-                            await loadTerreniForComunicazioni();
-                            await loadLavoriAttiviForComunicazioni();
-                            await loadComunicazioniInviate();
-                            
-                            // Pre-compila con il primo lavoro attivo se disponibile
-                            await precompilaDaPrimoLavoro();
+                            try {
+                                const tenantDocImp = await getDoc(doc(db, 'tenants', currentTenantId));
+                                if (tenantDocImp.exists()) {
+                                    const td = tenantDocImp.data();
+                                    const modulesImp = Array.isArray(td?.modules) ? td.modules : [];
+                                    const nomeTonyImpNm = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim() || (user && user.email) || '';
+                                    const tonyOptsImpNm = { tenantId: currentTenantId, utente_corrente: { nome: nomeTonyImpNm, ruoli: ruoli } };
+                                    if (window.Tony && window.Tony.initContextWithModules) {
+                                        window.Tony.initContextWithModules(modulesImp, tonyOptsImpNm);
+                                    } else {
+                                        var initTonyImpNm = function(retries) {
+                                            retries = retries || 0;
+                                            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                                window.Tony.setContext('dashboard', Object.assign({
+                                                    info_azienda: { moduli_attivi: modulesImp },
+                                                    moduli_attivi: modulesImp
+                                                }, tonyOptsImpNm));
+                                            } else if (retries < 10) {
+                                                setTimeout(function() { initTonyImpNm(retries + 1); }, 500);
+                                            }
+                                        };
+                                        initTonyImpNm();
+                                    }
+                                }
+                            } catch (impErr) {
+                                console.warn('[Impostazioni] Tony context (non-manager):', impErr);
+                            }
                         }
-                    } else {
-                        document.getElementById('comunicazioni-section').style.display = 'none';
                     }
                     
                     // Account e Password sempre visibili per tutti
@@ -4149,364 +4106,6 @@
         window.searchPodereAddress = searchPodereAddress;
         window.openDirections = openDirections;
         
-        // ========== Gestione Comunicazioni Squadra (Caposquadra) ==========
-        
-        let terreniList = [];
-        let lavoriAttiviList = [];
-        
-        // Carica poderi per dropdown comunicazioni
-        async function loadPoderiForComunicazioni() {
-            if (!currentTenantId) return;
-            
-            try {
-                const poderiCollection = collection(db, `tenants/${currentTenantId}/poderi`);
-                const q = query(poderiCollection, orderBy('nome', 'asc'));
-                const querySnapshot = await getDocs(q);
-                
-                const podereSelect = document.getElementById('comunicazione-podere');
-                podereSelect.innerHTML = '<option value="">-- Seleziona podere --</option>';
-                
-                querySnapshot.forEach((docSnap) => {
-                    const podere = docSnap.data();
-                    const option = document.createElement('option');
-                    option.value = podere.nome;
-                    option.textContent = podere.nome;
-                    option.dataset.podereId = docSnap.id;
-                    option.dataset.coordinate = podere.coordinate ? JSON.stringify(podere.coordinate) : '';
-                    podereSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Errore caricamento poderi per comunicazioni:', error);
-            }
-        }
-        
-        // Carica terreni per dropdown comunicazioni
-        async function loadTerreniForComunicazioni() {
-            if (!currentTenantId) return;
-            
-            try {
-                const terreniCollection = collection(db, `tenants/${currentTenantId}/terreni`);
-                const q = query(terreniCollection, orderBy('nome', 'asc'));
-                const querySnapshot = await getDocs(q);
-                
-                terreniList = [];
-                const terrenoSelect = document.getElementById('comunicazione-terreno');
-                terrenoSelect.innerHTML = '<option value="">-- Seleziona terreno --</option>';
-                
-                querySnapshot.forEach((docSnap) => {
-                    const terreno = docSnap.data();
-                    terreniList.push({
-                        id: docSnap.id,
-                        ...terreno
-                    });
-                    
-                    const option = document.createElement('option');
-                    option.value = terreno.nome || '';
-                    option.textContent = terreno.nome || 'Senza nome';
-                    option.dataset.terrenoId = docSnap.id;
-                    option.dataset.podere = terreno.podere || '';
-                    terrenoSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Errore caricamento terreni per comunicazioni:', error);
-            }
-        }
-        
-        // Carica lavori attivi del caposquadra
-        async function loadLavoriAttiviForComunicazioni() {
-            if (!currentTenantId || !currentUserData) return;
-            
-            try {
-                const lavoriCollection = collection(db, `tenants/${currentTenantId}/lavori`);
-                const caposquadraId = currentUserData.id || auth.currentUser.uid;
-                const q = query(
-                    lavoriCollection,
-                    where('caposquadraId', '==', caposquadraId)
-                );
-                const querySnapshot = await getDocs(q);
-                
-                lavoriAttiviList = [];
-                const lavoroSelect = document.getElementById('comunicazione-lavoro');
-                lavoroSelect.innerHTML = '<option value="">-- Seleziona lavoro per pre-compilare --</option>';
-                
-                querySnapshot.forEach((docSnap) => {
-                    const lavoro = docSnap.data();
-                    const stato = lavoro.stato || 'assegnato';
-                    
-                    // Solo lavori attivi (non completati e non annullati)
-                    if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
-                        lavoriAttiviList.push({
-                            id: docSnap.id,
-                            ...lavoro
-                        });
-                        
-                        const option = document.createElement('option');
-                        option.value = docSnap.id;
-                        option.textContent = lavoro.nome || 'Lavoro senza nome';
-                        option.dataset.terrenoId = lavoro.terrenoId || '';
-                        lavoroSelect.appendChild(option);
-                    }
-                });
-            } catch (error) {
-                console.error('Errore caricamento lavori per comunicazioni:', error);
-            }
-        }
-        
-        // Gestisce cambio selezione lavoro
-        async function handleLavoroChange() {
-            const lavoroSelect = document.getElementById('comunicazione-lavoro');
-            const lavoroId = lavoroSelect.value;
-            
-            if (!lavoroId) return;
-            
-            const lavoro = lavoriAttiviList.find(l => l.id === lavoroId);
-            if (!lavoro || !lavoro.terrenoId) return;
-            
-            try {
-                // Carica terreno per ottenere podere
-                const terrenoRef = doc(db, `tenants/${currentTenantId}/terreni`, lavoro.terrenoId);
-                const terrenoDoc = await getDoc(terrenoRef);
-                
-                if (terrenoDoc.exists()) {
-                    const terreno = terrenoDoc.data();
-                    const podereNome = terreno.podere || '';
-                    const terrenoNome = terreno.nome || '';
-                    
-                    // Pre-compila podere
-                    const podereSelect = document.getElementById('comunicazione-podere');
-                    if (podereNome) {
-                        // Cerca l'opzione corrispondente
-                        for (let i = 0; i < podereSelect.options.length; i++) {
-                            if (podereSelect.options[i].value === podereNome) {
-                                podereSelect.value = podereNome;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    // Pre-compila terreno
-                    const terrenoSelect = document.getElementById('comunicazione-terreno');
-                    if (terrenoNome) {
-                        terrenoSelect.value = terrenoNome;
-                    }
-                }
-            } catch (error) {
-                console.error('Errore caricamento terreno:', error);
-            }
-        }
-        
-        // Pre-compila form con il primo lavoro attivo
-        async function precompilaDaPrimoLavoro() {
-            if (lavoriAttiviList.length === 0) return;
-            
-            // Seleziona automaticamente il primo lavoro
-            const lavoroSelect = document.getElementById('comunicazione-lavoro');
-            if (lavoroSelect.options.length > 1) {
-                lavoroSelect.value = lavoriAttiviList[0].id;
-                await handleLavoroChange();
-            }
-        }
-        
-        window.handleLavoroChange = handleLavoroChange;
-        
-        // Ottieni squadra del caposquadra
-        async function getSquadraCaposquadra() {
-            if (!currentTenantId || !currentUserData) {
-                console.warn('getSquadraCaposquadra: tenantId o userData mancanti');
-                return [];
-            }
-            
-            try {
-                const caposquadraId = currentUserData.id || auth.currentUser.uid;
-
-                const squadreCollection = collection(db, `tenants/${currentTenantId}/squadre`);
-                const q = query(squadreCollection, where('caposquadraId', '==', caposquadraId));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    console.warn('Nessuna squadra trovata per caposquadraId:', caposquadraId);
-                    return [];
-                }
-                
-                // Prendi la prima squadra trovata
-                const squadraDoc = querySnapshot.docs[0];
-                const squadraData = squadraDoc.data();
-
-                // Il campo corretto è "operai", non "membri"
-                return squadraData.operai || [];
-            } catch (error) {
-                console.error('Errore recupero squadra:', error);
-                return [];
-            }
-        }
-        
-        // Invia comunicazione alla squadra
-        async function handleSendComunicazione(e) {
-            e.preventDefault();
-            
-            if (!currentUserData || !currentTenantId) {
-                showAlert('Errore: dati utente non disponibili', 'error');
-                return;
-            }
-            
-            const podereSelect = document.getElementById('comunicazione-podere');
-            const terrenoSelect = document.getElementById('comunicazione-terreno');
-            const dataInput = document.getElementById('comunicazione-data');
-            const orarioInput = document.getElementById('comunicazione-orario');
-            const noteInput = document.getElementById('comunicazione-note');
-            
-            const podere = podereSelect.value.trim();
-            const terreno = terrenoSelect.value.trim();
-            const data = dataInput.value;
-            const orario = orarioInput.value;
-            const note = noteInput.value.trim();
-            
-            if (!podere || !terreno || !data || !orario) {
-                showAlert('Compila tutti i campi obbligatori', 'error');
-                return;
-            }
-            
-            // Ottieni coordinate podere
-            const podereOption = podereSelect.options[podereSelect.selectedIndex];
-            const coordinatePodere = podereOption.dataset.coordinate ? JSON.parse(podereOption.dataset.coordinate) : null;
-            
-            try {
-                // Ottieni membri squadra
-                const membriSquadra = await getSquadraCaposquadra();
-                
-                if (membriSquadra.length === 0) {
-                    showAlert('Nessun membro nella tua squadra', 'error');
-                    return;
-                }
-                
-                // Crea comunicazione
-                const comunicazioneData = {
-                    caposquadraId: currentUserData.id || auth.currentUser.uid,
-                    caposquadraNome: `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim(),
-                    podere: podere,
-                    terreno: terreno,
-                    data: new Date(data + 'T' + orario),
-                    orario: orario,
-                    note: note || null,
-                    coordinatePodere: coordinatePodere,
-                    destinatari: membriSquadra,
-                    conferme: [],
-                    stato: 'attiva',
-                    createdAt: serverTimestamp()
-                };
-                
-                const comunicazioniCollection = collection(db, `tenants/${currentTenantId}/comunicazioni`);
-                await addDoc(comunicazioniCollection, comunicazioneData);
-                
-                showAlert('Comunicazione inviata alla squadra con successo!', 'success');
-                
-                // Reset form
-                document.getElementById('comunicazione-form').reset();
-                document.getElementById('comunicazione-orario').value = '07:00';
-                
-                // Ricarica lista comunicazioni
-                await loadComunicazioniInviate();
-            } catch (error) {
-                console.error('Errore invio comunicazione:', error);
-                showAlert('Errore durante l\'invio: ' + error.message, 'error');
-            }
-        }
-        
-        // Carica comunicazioni inviate
-        async function loadComunicazioniInviate() {
-            if (!currentTenantId || !currentUserData) return;
-            
-            try {
-                const comunicazioniCollection = collection(db, `tenants/${currentTenantId}/comunicazioni`);
-                // Usa solo where senza orderBy per evitare bisogno di indice composito
-                // Ordineremo in memoria
-                const q = query(
-                    comunicazioniCollection,
-                    where('caposquadraId', '==', currentUserData.id || auth.currentUser.uid)
-                );
-                const querySnapshot = await getDocs(q);
-                
-                // Converti in array e ordina per createdAt in memoria
-                const comunicazioniArray = [];
-                querySnapshot.forEach((docSnap) => {
-                    const comm = docSnap.data();
-                    comunicazioniArray.push({
-                        id: docSnap.id,
-                        ...comm,
-                        createdAtValue: comm.createdAt?.toDate ? comm.createdAt.toDate() : new Date(comm.createdAt || 0)
-                    });
-                });
-                
-                // Ordina per data creazione (più recenti prima)
-                comunicazioniArray.sort((a, b) => {
-                    const dateA = a.createdAtValue || new Date(0);
-                    const dateB = b.createdAtValue || new Date(0);
-                    return dateB - dateA; // Ordine decrescente
-                });
-                
-                const container = document.getElementById('comunicazioni-list');
-                
-                if (comunicazioniArray.length === 0) {
-                    container.innerHTML = '<p class="info-text">Nessuna comunicazione inviata.</p>';
-                    return;
-                }
-                
-                container.innerHTML = comunicazioniArray.map(comm => {
-                    const dataFormatted = formatDateLikeToItalianLongWeekday(comm.data) || '';
-                    const oraFormatted = comm.orario || '07:00';
-                    
-                    const numDestinatari = comm.destinatari?.length || 0;
-                    const numConferme = comm.conferme?.length || 0;
-                    const percentualeConferme = numDestinatari > 0 ? Math.round((numConferme / numDestinatari) * 100) : 0;
-                    
-                    const statoBadge = comm.stato === 'attiva' ? 
-                        '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">Attiva</span>' :
-                        '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">Completata</span>';
-                    
-                    return `
-                        <div class="list-item" style="margin-bottom: 15px; padding: 15px; border: 1px solid #e9ecef; border-radius: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                                <div>
-                                    <div style="font-weight: 600; color: #2E8B57; margin-bottom: 5px;">${escapeHtml(comm.podere)} - ${escapeHtml(comm.terreno)}</div>
-                                    <div style="font-size: 14px; color: #666;">📅 ${dataFormatted} alle ${oraFormatted}</div>
-                                    ${comm.note ? `<div style="font-size: 13px; color: #999; margin-top: 5px;">${escapeHtml(comm.note)}</div>` : ''}
-                                </div>
-                                ${statoBadge}
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">
-                                <div style="font-size: 12px; color: #666;">
-                                    Conferme: ${numConferme}/${numDestinatari} (${percentualeConferme}%)
-                                </div>
-                                ${comm.coordinatePodere ? `<a href="https://www.google.com/maps/dir/?api=1&destination=${comm.coordinatePodere.lat},${comm.coordinatePodere.lng}" target="_blank" style="color: #2E8B57; text-decoration: none; font-size: 14px;">📍 Indicazioni</a>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (error) {
-                console.error('Errore caricamento comunicazioni:', error);
-                const container = document.getElementById('comunicazioni-list');
-                container.innerHTML = '<p class="info-text">Errore caricamento comunicazioni.</p>';
-            }
-        }
-        
-        // Imposta data di default a domani
-        function setDefaultDate() {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const dateString = tomorrow.toISOString().split('T')[0];
-            const dataInput = document.getElementById('comunicazione-data');
-            if (dataInput) {
-                dataInput.value = dateString;
-                dataInput.min = dateString; // Non permettere date passate
-            }
-        }
-        
-        // Chiama setDefaultDate quando la pagina è caricata
-        if (document.getElementById('comunicazione-data')) {
-            setDefaultDate();
-        }
-        
-        window.handleSendComunicazione = handleSendComunicazione;
     </script>
     <!-- Tony widget (assistente su tutte le pagine) -->
     <!-- Tony widget (assistente su tutte le pagine) -->

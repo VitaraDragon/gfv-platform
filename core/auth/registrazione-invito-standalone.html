@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrazione - GFV Platform</title>
+    <link rel="manifest" href="../../manifest.json">
+    <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
@@ -190,6 +192,66 @@
             margin-bottom: 20px;
             border: 1px solid #f5c6cb;
         }
+
+        .pwa-install-banner {
+            display: none;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #1b5e20;
+            line-height: 1.45;
+        }
+
+        .pwa-install-banner strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .pwa-install-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        #pwa-install-btn {
+            display: none;
+        }
+
+        .pwa-install-btn {
+            padding: 8px 14px;
+            background: #2E8B57;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .pwa-install-btn:hover {
+            background: #228B22;
+        }
+
+        .pwa-install-dismiss {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 0;
+        }
+
+        #pwa-ios-hint {
+            margin: 0;
+            font-size: 12px;
+            color: #2e7d32;
+        }
     </style>
 </head>
 <body>
@@ -197,6 +259,16 @@
         <div class="register-header">
             <h1>🌾 GFV Platform</h1>
             <p>Completa la tua registrazione</p>
+        </div>
+
+        <div id="pwa-install-banner" class="pwa-install-banner" role="region" aria-label="Installazione app">
+            <strong>Installa l'app</strong>
+            <span>Apri GFV come app sulla schermata home: più comodo dal campo o in ufficio.</span>
+            <p id="pwa-ios-hint" style="display:none;">Su iPhone/iPad: tocca <strong>Condividi</strong> → <strong>Aggiungi alla schermata Home</strong>.</p>
+            <div class="pwa-install-actions">
+                <button type="button" id="pwa-install-btn" class="pwa-install-btn">Installa GFV Platform</button>
+                <button type="button" id="pwa-install-dismiss" class="pwa-install-dismiss">Non ora</button>
+            </div>
         </div>
 
         <div id="error-container"></div>
@@ -1007,6 +1079,25 @@
         }
 
     </script>
+
+    <!-- Service Worker Registration for PWA (stesso schema di login-standalone) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                var swPath = window.location.pathname.indexOf('/gfv-platform/') !== -1
+                    ? '/gfv-platform/service-worker.js'
+                    : '../../../service-worker.js';
+                navigator.serviceWorker.register(swPath)
+                    .then(function (registration) {
+                        console.log('Service Worker registrato con successo:', registration.scope);
+                    })
+                    .catch(function (error) {
+                        console.warn('Registrazione Service Worker fallita (non critico):', error);
+                    });
+            });
+        }
+    </script>
+    <script src="../js/pwa-install-banner.js" defer></script>
 </body>
 </html>
 

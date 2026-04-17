@@ -6,6 +6,11 @@
 import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
 import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, extractTonyResponseFromString } from './engine.js';
+import {
+    getTonyFieldProfileFromContext,
+    isRawTonyApriPaginaAllowed,
+    isTonyOpenModalBlockedForFieldProfile
+} from './field-role-guard.js';
 
 (function() {
     'use strict';
@@ -1490,6 +1495,12 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     var modalId = data.id || data.target;
                     console.log('[DEBUG CURSOR] processTonyCommand: modalId originale:', modalId);
                     
+                    if (modalId && isTonyOpenModalBlockedForFieldProfile(modalId)) {
+                        console.warn('[Tony] OPEN_MODAL bloccato per profilo campo:', modalId);
+                        tonyNotifyFieldProfileBlocked('modal', modalId);
+                        break;
+                    }
+                    
                     if (modalId) {
                         var resolvedId = modalId;
                         var modalKey = (modalId || '').toString().toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
@@ -1519,10 +1530,11 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                 break;
                             }
                             if (window.Tony && typeof window.Tony.triggerAction === 'function') {
-                                console.log('[Tony] Modal attività non presente in questa pagina, apro Diario Attività');
+                                var _attNavTarget = getTonyFieldProfileFromContext() ? 'workspace campo' : 'attivita';
+                                console.log('[Tony] Modal attività non presente in questa pagina, apro', _attNavTarget);
                                 window.Tony.triggerAction('APRI_PAGINA', {
-                                    target: 'attivita',
-                                    _tonyPendingModal: 'attivita-modal',
+                                    target: _attNavTarget,
+                                    _tonyPendingModal: getTonyFieldProfileFromContext() ? null : 'attivita-modal',
                                     _tonyPendingFields: (data.fields && typeof data.fields === 'object') ? data.fields : null
                                 });
                                 break;
@@ -1826,10 +1838,11 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                             if (!modal && targetModalId === 'attivita-modal' && window.Tony && typeof window.Tony.triggerAction === 'function') {
                                 var pendingFields = {};
                                 if (fieldId && value != null) pendingFields[fieldId] = value;
-                                console.log('[Tony] SET_FIELD su modal assente, navigo a Diario Attività con campi pendenti');
+                                var _attNavTarget2 = getTonyFieldProfileFromContext() ? 'workspace campo' : 'attivita';
+                                console.log('[Tony] SET_FIELD su modal assente, navigo a', _attNavTarget2, 'con campi pendenti');
                                 window.Tony.triggerAction('APRI_PAGINA', {
-                                    target: 'attivita',
-                                    _tonyPendingModal: 'attivita-modal',
+                                    target: _attNavTarget2,
+                                    _tonyPendingModal: getTonyFieldProfileFromContext() ? null : 'attivita-modal',
                                     _tonyPendingFields: Object.keys(pendingFields).length > 0 ? pendingFields : null
                                 });
                                 return;
@@ -2297,6 +2310,11 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                     console.log('[DEBUG CURSOR] processTonyCommand: Caso APRI_PAGINA');
                     var target = (data.target || (data.params && data.params.target) || '').toString().trim();
                     console.log('[DEBUG CURSOR] processTonyCommand: Target per APRI_PAGINA:', target);
+                    if (target && !isRawTonyApriPaginaAllowed(target)) {
+                        console.warn('[Tony] APRI_PAGINA bloccato per profilo campo:', target);
+                        tonyNotifyFieldProfileBlocked('page', target);
+                        break;
+                    }
                     if (target) {
                         var resolved = resolveTarget(target) || target;
                         var url = getUrlForTarget(target);
@@ -2676,6 +2694,41 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
 
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
+
+    /**
+     * Profilo campo: blocco APRI_PAGINA / OPEN_MODAL — messaggio in chat (e TTS), senza alert nativo.
+     * @param {'page'|'modal'} kind
+     * @param {string} [rawTarget] - target grezzo per etichetta (solo kind page)
+     */
+    function tonyNotifyFieldProfileBlocked(kind, rawTarget) {
+        var label = '';
+        try {
+            if (rawTarget) {
+                var r = resolveTarget(String(rawTarget).trim());
+                label = (r && TONY_LABEL_MAP[r]) ? String(TONY_LABEL_MAP[r]) : '';
+            }
+        } catch (e) { /* ignore */ }
+        var msg;
+        if (kind === 'modal') {
+            msg = 'Dal tuo profilo campo non posso aprire questa scheda o il modulo richiesto. Per anagrafiche generali e magazzino serve un account manager.';
+        } else if (label) {
+            msg = 'Non posso aprire «' + label + '» con il tuo profilo. Ti aiuto con workspace campo, ore, lavori assegnati o impostazioni account; per il resto chiedi a un manager.';
+        } else {
+            msg = 'Non posso aprire questa pagina con il tuo profilo. Usa il workspace campo e le sezioni manodopera, oppure chiedi a un manager.';
+        }
+        try { if (typeof removeTyping === 'function') removeTyping(); } catch (e0) {}
+        try {
+            if (typeof showMessageInChat === 'function') showMessageInChat(msg, 'tony');
+            else if (typeof appendMessage === 'function') appendMessage(msg, 'tony');
+        } catch (e) {}
+        try {
+            if (window.Tony && typeof window.Tony.speak === 'function') {
+                var v = msg.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+                if (v.length > 420) v = v.slice(0, 420) + '…';
+                window.Tony.speak(v);
+            }
+        } catch (e2) {}
+    }
 
     window.addEventListener('tony-macchine-disambiguation', function(ev) {
         try {
@@ -3713,12 +3766,16 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                                         commandToExecute.target || 
                                         commandToExecute.modulo || 
                                         '';
+                            // Il service (ask/CF) ha già chiamato triggerAction → onAction: non ripetere (evita doppio messaggio guard profilo campo)
+                            var apriPaginaAlreadyHandledByService = (typeof rawData === 'object' && rawData !== null && rawData.command);
                             // Evita doppia esecuzione: se siamo già su terreni e target è terreni, il service ha già gestito (guard -> FILTER_TABLE)
                             var _isOnTerreni = (typeof window !== 'undefined' && (
                                 (window.location.pathname || '').indexOf('terreni') >= 0 ||
                                 (window.currentTableData && window.currentTableData.pageType === 'terreni')
                             ));
-                            if (_isOnTerreni && (target === 'terreni' || target === 'terreni-test-bootstrap')) {
+                            if (apriPaginaAlreadyHandledByService) {
+                                console.log('[Tony] onComplete: APRI_PAGINA già eseguito via triggerAction nel service, skip seconda invocazione');
+                            } else if (_isOnTerreni && (target === 'terreni' || target === 'terreni-test-bootstrap')) {
                                 console.log('[Tony] onComplete: APRI_PAGINA terreni già gestito dalla guard, skip');
                             } else if (window.Tony && typeof window.Tony.triggerAction === 'function') {
                                 console.log('[DEBUG CURSOR] onComplete: Gestione APRI_PAGINA tramite onAction, target:', target);
@@ -3816,6 +3873,24 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         finalSpeech = tonySanitizeLavoroMacchineQuestionInReply(finalSpeech, text);
                     }
                 }
+                // Profilo campo: APRI_PAGINA / OPEN_MODAL bloccati — un solo messaggio da tonyNotifyFieldProfileBlocked; no testo modello ("ti porto a…")
+                var suppressAssistantTextFieldGuard = false;
+                if (commandToExecute && commandToExecute.type) {
+                    var ctNav = String(commandToExecute.type).toUpperCase();
+                    if (ctNav === 'APRI_PAGINA' || ctNav === 'APRI_MODULO') {
+                        var navTg = (commandToExecute.params && commandToExecute.params.target) || commandToExecute.target || commandToExecute.modulo || '';
+                        if (navTg && typeof isRawTonyApriPaginaAllowed === 'function' && !isRawTonyApriPaginaAllowed(navTg)) {
+                            suppressAssistantTextFieldGuard = true;
+                            finalSpeech = '';
+                        }
+                    } else if (ctNav === 'OPEN_MODAL') {
+                        var modalTg = commandToExecute.id || commandToExecute.target || '';
+                        if (modalTg && typeof isTonyOpenModalBlockedForFieldProfile === 'function' && isTonyOpenModalBlockedForFieldProfile(modalTg)) {
+                            suppressAssistantTextFieldGuard = true;
+                            finalSpeech = '';
+                        }
+                    }
+                }
                 function doDisplay(txt) {
                     var out = (txt != null && String(txt).trim()) ? String(txt).trim() : finalSpeech;
                     appendMessage(out, 'tony');
@@ -3823,6 +3898,8 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                 }
                 // SUM_COLUMN: silenzia testo intermedio; il risultato viene mostrato da processTonyCommand
                 if (isSumColumnCmd) {
+                } else if (suppressAssistantTextFieldGuard) {
+                    // Messaggio utente già mostrato da tonyNotifyFieldProfileBlocked al primo triggerAction
                 } else {
                     var formCtxForInject = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                     var isAttivitaForm = formCtxForInject && (formCtxForInject.formId === 'attivita-form' || formCtxForInject.modalId === 'attivita-modal');
@@ -4275,6 +4352,11 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTex
                         if (!window.Tony || typeof window.Tony.setContext !== 'function') return;
                         var d = (window.Tony.context && window.Tony.context.dashboard) || {};
                         window.Tony.setContext('dashboard', Object.assign({}, d, payload));
+                        try {
+                            if (payload && payload.utente_corrente && Array.isArray(payload.utente_corrente.ruoli) && payload.utente_corrente.ruoli.length > 0) {
+                                sessionStorage.setItem('gfv_tony_utente_ruoli', JSON.stringify(payload.utente_corrente.ruoli));
+                            }
+                        } catch (e) { /* ignore */ }
                         if (payload && payload.moduli_attivi) {
                             saveModuliToStorage(payload.moduli_attivi);
                             try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: payload.moduli_attivi } })); } catch (err) {}
@@ -4410,6 +4492,12 @@ window.addEventListener('tony-module-updated', function(e) {
                             if (!rawTarget) {
                                 console.warn('[DEBUG CURSOR] onAction callback: Target non trovato nei params');
                                 console.warn('[Tony] Target non trovato. Params ricevuti:', params);
+                                return;
+                            }
+                            
+                            if (!isRawTonyApriPaginaAllowed(rawTarget)) {
+                                console.warn('[Tony] onAction APRI_PAGINA bloccato per profilo campo:', rawTarget);
+                                tonyNotifyFieldProfileBlocked('page', rawTarget);
                                 return;
                             }
                             

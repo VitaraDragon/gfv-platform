@@ -1014,6 +1014,45 @@ async function initFieldWorkspace() {
                 goToSlide(requestedSlideIdx >= 0 ? requestedSlideIdx : 0);
                 bindWorkSelection();
                 await refreshWorkspaceData();
+                try {
+                    const displayName = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim()
+                        || (user && user.email) || '';
+                    const fieldDashboardPayload = {
+                        tenantId: tenantId,
+                        moduli_attivi: availableModules,
+                        utente_corrente: {
+                            nome: displayName,
+                            ruoli: normalizedRoles
+                        },
+                        info_azienda: { moduli_attivi: availableModules }
+                    };
+                    function applyFieldTonyDashboard() {
+                        if (typeof window.setTonyContext === 'function') {
+                            window.setTonyContext(fieldDashboardPayload);
+                            return true;
+                        }
+                        if (window.Tony && typeof window.Tony.setContext === 'function') {
+                            const d = (window.Tony.context && window.Tony.context.dashboard) || {};
+                            window.Tony.setContext('dashboard', Object.assign({}, d, fieldDashboardPayload));
+                            return true;
+                        }
+                        return false;
+                    }
+                    if (!applyFieldTonyDashboard()) {
+                        let tonyAttempts = 0;
+                        const tonyIv = setInterval(function() {
+                            tonyAttempts += 1;
+                            if (applyFieldTonyDashboard() || tonyAttempts >= 30) {
+                                clearInterval(tonyIv);
+                            }
+                        }, 400);
+                    }
+                    if (typeof window.syncTonyModules === 'function') {
+                        window.syncTonyModules(availableModules);
+                    }
+                } catch (tonyErr) {
+                    console.warn('[Field workspace] Tony context:', tonyErr);
+                }
                 const dateInput = document.getElementById('quick-comm-date');
                 if (dateInput) dateInput.value = getTodayIsoDate();
 

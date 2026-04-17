@@ -169,5 +169,22 @@
         });
     </script>
     <script type="module" src="./js/field-workspace-controller.js"></script>
+    <!-- Tony widget: contesto ruoli per profilo campo + guard navigazione -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : '../';
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
+    </script>
 </body>
 </html>

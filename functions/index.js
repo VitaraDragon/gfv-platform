@@ -931,6 +931,20 @@ function applyPreventivoListActionResolution(result, message, ctxFinal) {
 }
 
 /**
+ * Ruoli da contesto client: profilo "campo" (senza dati aziendali completi nel prompt).
+ * @param {unknown} ruoli
+ * @returns {'operaio'|'caposquadra'|null}
+ */
+function getTonyFieldProfileFromRoles(ruoli) {
+  if (!Array.isArray(ruoli) || ruoli.length === 0) return null;
+  const n = ruoli.map((r) => String(r).toLowerCase().trim());
+  if (n.includes("manager") || n.includes("amministratore")) return null;
+  if (n.includes("caposquadra")) return "caposquadra";
+  if (n.includes("operaio")) return "operaio";
+  return null;
+}
+
+/**
  * SYSTEM_INSTRUCTION_BASE - Tony Base (solo guida, no azioni operative)
  * Usata quando il modulo 'tony' NON è attivo nel tenant
  */
@@ -1278,6 +1292,33 @@ SOMMA ETTARI (SUM_COLUMN) – quando page.currentTableData?.pageType === 'terren
 - SUPERFICIE OPERATIVA: per default il calcolo ESCLUDE i terreni con contratto scaduto (Nero/grey). La superficie "operativa" è solo Rossi+Gialli+Verdi. Se l'utente chiede "quanti ettari in affitto", somma solo affitti attivi (rosso, giallo, verde) e usa messageTemplate: "Il totale degli affitti attivi è di __TOTAL__ ettari (esclusi i terreni con contratto scaduto).".
 - INCLUSIONE NERI: se l'utente dice esplicitamente "anche i neri", "tutto lo storico", "inclusi gli scaduti", imposta params.includeNeri = true. In quel caso includi anche i contratti scaduti e usa un messageTemplate neutro senza la frase "esclusi...".
 - Esempi: "Quanti ettari in totale?" / "Totale aziendale" → params: { resetFilters: true }, messageTemplate: "Il totale complessivo aziendale è di __TOTAL__ ettari.". "Quanti ettari in affitto?" → params: { possesso: "affitto" }, messageTemplate: "Il totale degli affitti attivi è di __TOTAL__ ettari (esclusi i terreni con contratto scaduto).". "Quanti ettari in affitto anche gli scaduti?" → params: { possesso: "affitto", includeNeri: true }, messageTemplate: "Il totale in affitto è di __TOTAL__ ettari.".
+
+**[CONTESTO_AZIENDALE]**
+{CONTESTO_PLACEHOLDER}
+**[/CONTESTO_AZIENDALE]**`;
+
+/**
+ * Tony profilo campo (operaio / caposquadra): niente navigazione né risposte su dati aziendali globali.
+ */
+const SYSTEM_INSTRUCTION_TONY_FIELD = `Ruolo: Tony, assistente operativo GFV per account CAMPO (operaio o caposquadra).
+
+AMBITO (OBBLIGATORIO):
+- Rispondi SOLO in base a ciò che riguarda lavori assegnati, ore, segnatura, comunicazioni di squadra (se caposquadra), statistiche personali su ore, impostazioni account.
+- NON usare e NON menzionare elenchi completi di terreni aziendali, clienti, preventivi, tariffe, magazzino, vigneto, frutteto, report, gestione utenti, economia d'azienda.
+- Se context.azienda._profiloCampo è true, non hai dataset aziendali completi: non inventare dati. Se l'utente chiede terreni/clienti/magazzino/moduli, rispondi brevemente che non sono disponibili per il suo profilo e che può rivolgersi a un manager.
+
+NAVIGAZIONE (APRI_PAGINA) — SOLO questi target:
+- workspace campo (o field workspace)
+- segnatura ore
+- statistiche lavoratore (statistiche personali sulle ore)
+- impostazioni
+- (solo caposquadra) lavori caposquadra, validazione ore
+
+NON usare APRI_PAGINA verso: dashboard, terreni, attività/diario aziendale completo, lavori (gestione manager), magazzino, macchine, vigneto, frutteto, conto terzi, clienti, preventivi, report, manodopera gestione, gestione operai, utenti.
+
+FORMATO RISPOSTA: come per Tony Avanzato (JSON con text e command quando serve). Per domande fuori ambito: {"text": "Non ho accesso a queste informazioni dal tuo account. Chiedi al manager.", "command": null}
+
+Tono colloquiale, frasi brevi per TTS.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -2007,17 +2048,30 @@ exports.tonyAsk = onCall(
     const ctx = reqData.context != null ? reqData.context : {};
     const dashboard = ctx.dashboard != null ? ctx.dashboard : {};
 
-    // Context Builder: arricchisci con dati aziendali da Firestore (docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md)
+    const ruoliUtente =
+      (dashboard.utente_corrente && Array.isArray(dashboard.utente_corrente.ruoli) && dashboard.utente_corrente.ruoli) ||
+      (ctx.utente_corrente && Array.isArray(ctx.utente_corrente.ruoli) && ctx.utente_corrente.ruoli) ||
+      [];
+    const tonyFieldProfile = getTonyFieldProfileFromRoles(ruoliUtente);
+
+    // Context Builder: arricchisci con dati aziendali da Firestore (solo per manager / non profilo campo)
     const tenantId = dashboard.tenantId ?? ctx.tenantId ?? null;
     let azienda = {};
-    try {
-      azienda = await buildContextAzienda(tenantId);
-    } catch (err) {
-      console.error("[Tony Context Builder] Errore fetch:", err);
-      azienda = { _error: "Dati aziendali temporaneamente non disponibili." };
+    if (tonyFieldProfile) {
+      azienda = {
+        _profiloCampo: true,
+        messaggio: "Contesto aziendale completo non disponibile per operaio/caposquadra.",
+      };
+    } else {
+      try {
+        azienda = await buildContextAzienda(tenantId);
+      } catch (err) {
+        console.error("[Tony Context Builder] Errore fetch:", err);
+        azienda = { _error: "Dati aziendali temporaneamente non disponibili." };
+      }
     }
     const ctxFinal = { ...ctx, azienda };
-    if (azienda.terreni && Array.isArray(azienda.terreni)) {
+    if (!tonyFieldProfile && azienda.terreni && Array.isArray(azienda.terreni)) {
       ctxFinal.attivita = ctxFinal.attivita || {};
       ctxFinal.attivita.terreni = azienda.terreni;
       ctxFinal.attivita.colture_con_filari = ["Vite", "Frutteto", "Olivo"];
@@ -2035,7 +2089,9 @@ exports.tonyAsk = onCall(
     let isTonyAdvanced = Array.isArray(moduliAttivi) && moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
     // Fallback: se il messaggio è chiaramente una richiesta di navigazione e moduli sono vuoti, usa comunque ADVANCED (navigazione sempre permessa)
     const msgLower = String(message).toLowerCase();
-    const isNavigationIntent = /\b(portami|apri|voglio andare|vai a|dashboard|home|terreni|vigneto|frutteto|magazzino|macchine|manodopera|lavori)\b/.test(msgLower);
+    const isNavigationIntent =
+      !tonyFieldProfile &&
+      /\b(portami|apri|voglio andare|vai a|dashboard|home|terreni|vigneto|frutteto|magazzino|macchine|manodopera|lavori)\b/.test(msgLower);
     if (!isTonyAdvanced && isNavigationIntent) {
       console.log("[Tony Cloud Function] Fallback: richiesta navigazione rilevata, forzo SYSTEM_INSTRUCTION_ADVANCED");
       isTonyAdvanced = true;
@@ -2047,9 +2103,11 @@ exports.tonyAsk = onCall(
     console.log("[Tony Cloud Function] DEBUG - moduli_attivi:", moduliAttivi);
     console.log("[Tony Cloud Function] DEBUG - isTonyAdvanced:", isTonyAdvanced);
 
-    const systemInstructionTemplate = isTonyAdvanced
-      ? SYSTEM_INSTRUCTION_ADVANCED
-      : SYSTEM_INSTRUCTION_BASE;
+    const systemInstructionTemplate = tonyFieldProfile
+      ? SYSTEM_INSTRUCTION_TONY_FIELD
+      : isTonyAdvanced
+        ? SYSTEM_INSTRUCTION_ADVANCED
+        : SYSTEM_INSTRUCTION_BASE;
 
     const contextJson = JSON.stringify(ctxFinal, null, 2);
     let systemInstruction = systemInstructionTemplate.replace(
@@ -2063,7 +2121,7 @@ exports.tonyAsk = onCall(
     const isMacchineContext = pagePath.includes("/macchine/") || pagePath.includes("macchine") || pagePath.includes("mezzi")
       || (pageTitle && /mezzi|macchine|parco\s*macchine|gestione\s*mezzi/i.test(pageTitle));
     let extraBlocks = "";
-    if (isTonyAdvanced) {
+    if (isTonyAdvanced && !tonyFieldProfile) {
       extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, movimenti magazzino recenti, tipi lavoro, colture, poderi, summaryScadenze, **summarySottoScorta**, **prodottiSottoScorta**, guastiAperti) sono in [CONTESTO].azienda. Per **sotto scorta** / **scorte basse**: usa sempre azienda.summarySottoScorta (testo riepilogativo) e azienda.prodottiSottoScorta (dettaglio con giacenza e soglia). I prodotti in azienda.prodotti hanno giacenza e scortaMinima (o legacy sogliaMinima). azienda.movimentiRecenti (ultimi fino a 50, ordinati per data) e azienda.summaryMovimentiRecenti servono per domande su carichi/scarichi da qualsiasi pagina; la lista filtrabile completa resta sulla pagina Movimenti (page.currentTableData). azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
       extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"ultimi movimenti magazzino\", \"quali carichi/scarichi\", \"cosa c'è sotto scorta\", \"quanti prodotti sotto scorta\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, **azienda.summarySottoScorta**, **azienda.prodottiSottoScorta**, azienda.movimentiRecenti, azienda.summaryMovimentiRecenti, azienda.macchine. Per **movimenti magazzino** nel testo della risposta (e per voce/TTS): usa **date in italiano** (es. \"10 aprile 2026\"), mai solo ISO \"2026-04-10\" né leggere le cifre anno per anno; in azienda.movimentiRecenti ogni voce ha **dataItaliana** oltre a **data**. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
       extraBlocks += SMARTFORMVALIDATOR_RULE;
@@ -2093,9 +2151,13 @@ exports.tonyAsk = onCall(
             .join("\n")
         : "";
     // Iniezione esplicita nel prompt: quando Tony Avanzato è attivo, informa il modello all'inizio
-    const statoUtenteLine = isTonyAdvanced
-      ? `STATO UTENTE: Tony Avanzato ATTIVO. Moduli disponibili: ${JSON.stringify(moduliAttivi)}. Hai il permesso totale di usare APRI_PAGINA e tutte le altre funzioni JSON.\n\n`
-      : "";
+    const statoUtenteLine = tonyFieldProfile
+      ? `STATO UTENTE: profilo CAMPO (${tonyFieldProfile}). Navigazione e dati limitati all'account manodopera. NON usare dati aziendali globali.\n\n`
+      : isTonyAdvanced
+        ? `STATO UTENTE: Tony Avanzato ATTIVO. Moduli disponibili: ${JSON.stringify(moduliAttivi)}. Hai il permesso totale di usare APRI_PAGINA e tutte le altre funzioni JSON.\n\n`
+        : "";
+    /** Promemoria su clienti/tariffe/magazzino ecc.: solo manager (non profilo campo). */
+    const remindBiz = isTonyAdvanced && !tonyFieldProfile;
     const isTerreniPage = (ctxFinal.page && (ctxFinal.page.pageType === "terreni" || (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "terreni"))) || pagePath.includes("terreni");
     const isAttivitaPage = (ctxFinal.page && (ctxFinal.page.pageType === "attivita" || (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "attivita"))) || pagePath.includes("attivita");
     const isLavoriPage = (ctxFinal.page && (ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "lavori")) || pagePath.includes("gestione-lavori") || pagePath.includes("lavori");
@@ -2103,7 +2165,7 @@ exports.tonyAsk = onCall(
     const isClientiQuestion = /\b(quanti|quante|quale|quali|numero|elenco|lista|clienti|attivi|sospesi|archiviati|lavori\s+per|per\s+(luca|stefano|marco|giuseppe))\b/i.test(message);
     const hasClientiTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "clienti";
     let clientiReminder = "";
-    if (isTonyAdvanced && isClientiQuestion) {
+    if (remindBiz && isClientiQuestion) {
       if (isClientiPage && hasClientiTableData) {
         clientiReminder = "\n\n[OBBLIGATORIO: L'utente è sulla pagina CLIENTI. Rispondi usando i dati in context.page.tableDataSummary e context.page.currentTableData.items. Ogni item ha ragioneSociale, stato, totaleLavori.]";
       } else if (ctxFinal.azienda && Array.isArray(ctxFinal.azienda.clienti) && ctxFinal.azienda.clienti.length > 0) {
@@ -2114,7 +2176,7 @@ exports.tonyAsk = onCall(
     const isPreventiviQuestion = /\b(quanti|quante|numero|elenco|lista|preventivi|bozza|bozze|inviato|accettat|rifiutat|scadut|pianificat)\b/i.test(message);
     const hasPreventiviTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "preventivi";
     let preventiviReminder = "";
-    if (isTonyAdvanced && isPreventiviQuestion) {
+    if (remindBiz && isPreventiviQuestion) {
       if (isPreventiviPage && hasPreventiviTableData) {
         preventiviReminder = "\n\n[OBBLIGATORIO: L'utente è sulla pagina PREVENTIVI. Rispondi usando context.page.tableDataSummary e context.page.currentTableData.items (id, numero, cliente, tipoLavoro, coltura, stato, totale). Per inviare per email o accettare (manager) usa command type PREVENTIVO_LIST_ACTION con params.action invia o accetta_manager e preventivoId.]";
       } else if (ctxFinal.azienda && Array.isArray(ctxFinal.azienda.preventivi)) {
@@ -2126,7 +2188,7 @@ exports.tonyAsk = onCall(
     const isTariffeCostQuestion = /\b(quanto\s+costa|costo\s+di|prezzo\s+(di|per)|quanto\s+è|costa\s+(aratura|erpicatur|diserb|potatur|vendemmi|semina|trinciatur)|tariffa\s+per)\b.*\b(seminativ|vignet|fruttet|pianura|collina|montagna)\b|\b(aratura|erpicatur|diserb|potatur|vendemmi|semina|trinciatur)\b.*\b(quanto\s+costa|nel\s+seminativ|nel\s+vignet|nel\s+fruttet|in\s+pianura|in\s+collina|in\s+montagna)\b/i.test(message);
     const hasTariffeTableData = ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "tariffe";
     let tariffeReminder = "";
-    if (isTonyAdvanced && (isTariffeQuestion || isTariffeCostQuestion)) {
+    if (remindBiz && (isTariffeQuestion || isTariffeCostQuestion)) {
       if (isTariffeCostQuestion && ctxFinal.azienda && Array.isArray(ctxFinal.azienda.tariffe) && ctxFinal.azienda.tariffe.length > 0) {
         tariffeReminder = "\n\n[OBBLIGATORIO: L'utente chiede il COSTO di una tariffa. Usa DOMANDE SUI COSTI: (1) Se dice CATEGORIA (seminativo/vigneto/frutteto): categoriaId da azienda.categorie. Se dice COLTURA (mais/grano/albicocche): cerca in azienda.colture per nome, prendi categoriaId, nome categoria da azienda.categorie. (2) tipoCampo: pianura/collina/montagna. (3) tipoLavoro: match flessibile su azienda.tipiLavoro. (4) Cerca tariffa: prima SPECIFICA (coltura match se utente ha detto coltura); se non trovi, FALLBACK OBBLIGATORIO sulla GENERICA (coltura vuota, categoriaColturaId, tipoCampo, tipoLavoro). (5) Se trovi solo generica e utente aveva chiesto coltura: \"Non è presente una tariffa specifica per il [Mais], ma la tariffa generica per il [Seminativo] costa X €/ettaro.\" Altrimenti \"Costa X €/ettaro\".]";
       } else if (isTariffePage && hasTariffeTableData) {
@@ -2170,7 +2232,7 @@ exports.tonyAsk = onCall(
     const hasTracciabilitaTableData =
       ctxFinal.page && ctxFinal.page.currentTableData && ctxFinal.page.currentTableData.pageType === "tracciabilita_consumi";
     const isTracciabilitaSemanticHelp =
-      isTonyAdvanced &&
+      remindBiz &&
       isTracciabilitaConsumiPage &&
       hasTracciabilitaTableData &&
       /\b(concimaz|concime|fertilizz|trattament|fitosanit|fitofarm|diserbo|pestic|erbicid|nutrizion|dettaglio|raggrupp|elenco\s+per\s+mov|terreno|appezz|campo|quanto|quanti|totale|somma|utilizzat|consumat|kg|litri)\b/i.test(
@@ -2186,7 +2248,7 @@ exports.tonyAsk = onCall(
       /\b(quali|ultimi|elenco|lista|storico|dimmi|fammi\s+vedere|hai\s+registrato)\s+(i\s+|gli\s+|le\s+)?(movimenti|carichi|scarichi)\b|\bmovimenti\s+(recenti|ultimi|del\s+magazzino|in\s+magazzino|registrati)\b|\bultimi\s+(movimenti|carichi|scarichi)\b|\bcarichi\s+e\s+scarichi\b|\b(entrate|uscite)\s+(del\s+|in\s+)?magazzino\b|\bcosa\s+è\s+(entrato|uscito)\b/i.test(message);
     const isMovimentiNavOnly = /^\s*(apri|vai|portami|mandami)\s+(a\s+|alla\s+|al\s+)?(pagina\s+)?movimenti\b/i.test(String(message).trim());
     let movimentiReminder = "";
-    if (isTonyAdvanced && !isMovimentiNavOnly && (isMovimentiInfoQuestion || isMovimentiFilterLikeRequest)) {
+    if (remindBiz && !isMovimentiNavOnly && (isMovimentiInfoQuestion || isMovimentiFilterLikeRequest)) {
       if (isMovimentiPage && hasMovimentiTableData) {
         movimentiReminder =
           "\n\n[OBBLIGATORIO: L'utente è sulla pagina MOVIMENTI. Usa context.page.currentTableData (summary + items) e FILTER_TABLE con params tipo, prodotto, reset per filtrare.]";
@@ -2207,7 +2269,7 @@ exports.tonyAsk = onCall(
       /magazzino-home/i.test(pagePath) ||
       (pagePath.includes("/magazzino/") && !/prodotti|movimenti|tracciabilita/i.test(pagePath));
     let magazzinoScorteReminder = "";
-    if (isTonyAdvanced && isMagazzinoStockQuestion && ctxFinal.azienda && typeof ctxFinal.azienda.summarySottoScorta === "string") {
+    if (remindBiz && isMagazzinoStockQuestion && ctxFinal.azienda && typeof ctxFinal.azienda.summarySottoScorta === "string") {
       magazzinoScorteReminder =
         "\n\n[OBBLIGATORIO MAGAZZINO / SCORTE: Usa context.azienda.summarySottoScorta e context.azienda.prodottiSottoScorta (nome, giacenza, sogliaMinima, unitaMisura). Per \"quanti prodotti sotto scorta\" il numero è prodottiSottoScorta.length (coerente col summary). Se prodottiSottoScorta è vuoto ma il summary indica zero sotto scorta, spiega che non risultano prodotti sotto soglia tra quelli con soglia impostata. NON dire \"non ho dati\" se summarySottoScorta è nel contesto JSON.]";
     }
@@ -2215,11 +2277,11 @@ exports.tonyAsk = onCall(
       /\b(portami|vai|mandami|apri)\b\s+(al|alla|nel|in)\s+magazzino\b/i.test(String(message)) &&
       !/\b(prodotti|movimenti|anagrafica|tracciabilit|uscite|entrate)\b/i.test(String(message).toLowerCase());
     let magazzinoNavReminder = "";
-    if (isTonyAdvanced && isMagazzinoNavDup && isMagazzinoHomePath) {
+    if (remindBiz && isMagazzinoNavDup && isMagazzinoHomePath) {
       magazzinoNavReminder =
         "\n\n[OBBLIGATORIO: Path = home magazzino (magazzino-home o /magazzino/ senza prodotti/movimenti/tracciabilità). L'utente è già nella home del modulo. NON emettere APRI_PAGINA target magazzino. Rispondi: \"Sei già nella home del magazzino.\" e command null.]";
     }
-    const filterReminder = isTonyAdvanced && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest) || (isClientiPage && isClientiFilterLikeRequest) || (isPreventiviPage && isPreventiviFilterLikeRequest) || (isTariffePage && isTariffeFilterLikeRequest) || (isTerreniClientiPage && isTerreniClientiFilterLikeRequest) || (isProdottiPage && isProdottiFilterLikeRequest) || (isMovimentiPage && isMovimentiFilterLikeRequest) || isConcimazioniVignetoFilterLikeRequest || isConcimazioniFruttetoFilterLikeRequest || isTracciabilitaFilterLikeRequest)
+    const filterReminder = remindBiz && ((isTerreniPage && isFilterLikeRequest) || (isAttivitaPage && isAttivitaFilterLikeRequest) || (isLavoriPage && isLavoriFilterLikeRequest) || (isClientiPage && isClientiFilterLikeRequest) || (isPreventiviPage && isPreventiviFilterLikeRequest) || (isTariffePage && isTariffeFilterLikeRequest) || (isTerreniClientiPage && isTerreniClientiFilterLikeRequest) || (isProdottiPage && isProdottiFilterLikeRequest) || (isMovimentiPage && isMovimentiFilterLikeRequest) || isConcimazioniVignetoFilterLikeRequest || isConcimazioniFruttetoFilterLikeRequest || isTracciabilitaFilterLikeRequest)
       ? "\n\n[IMPORTANTE: L'utente chiede di filtrare o vedere dati. Rispondi SEMPRE con JSON completo: {\"text\": \"...\", \"command\": {\"type\": \"FILTER_TABLE\", \"params\": {...}}}]"
       : "";
 
