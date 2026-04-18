@@ -803,6 +803,7 @@
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -966,53 +967,30 @@
                 const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
                 const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
                 const userId = currentUserData.id || currentUserData.uid;
-                
-                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-                
-                // Carica tutti i lavori e filtra in memoria
-                const snapshot = await getDocs(lavoriRef);
-                
-                lavoriList = [];
 
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    
-                    let includeLavoro = false;
-                    
-                    if (isCaposquadra) {
-                        // CAPOSQUADRA: mostra solo lavori di squadra assegnati a lui
-                        if (data.caposquadraId === userId && !data.operaioId) {
-                            includeLavoro = true;
-                        } else {
-                            // Debug: log lavori esclusi
-                            if (data.caposquadraId === userId && data.operaioId) {
-                                console.warn('⚠️ [LOAD LAVORI] Lavoro escluso (ha operaioId):', {
-                                    id: doc.id,
-                                    nome: data.nome,
-                                    caposquadraId: data.caposquadraId,
-                                    operaioId: data.operaioId,
-                                    motivo: 'Lavoro autonomo, non di squadra'
-                                });
-                            } else if (data.caposquadraId !== userId) {
-
-                            }
-                        }
-                    } else if (isOperaio) {
-                        // OPERAIO: mostra solo lavori autonomi assegnati a lui
-                        if (data.operaioId === userId && !data.caposquadraId) {
-                            includeLavoro = true;
-                        }
-                    }
-                    
-                    if (includeLavoro) {
-                        const dataInizio = data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null);
-                        lavoriList.push({ 
-                            id: doc.id, 
-                            ...data,
-                            dataInizio: dataInizio
-                        });
-                    }
+                const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, {
+                    isCaposquadra: !!isCaposquadra,
+                    isOperaio: !!isOperaio,
+                    operaioIncludeSquadJobs: false
                 });
+
+                lavoriList = fetched.map((row) => {
+                    const data = row;
+                    const dataInizio = data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null);
+                    return {
+                        id: data.id,
+                        ...data,
+                        dataInizio: dataInizio
+                    };
+                });
+
+                if (isOperaio && !isCaposquadra && lavoriList.length > 3) {
+                    const focusParam = (typeof focusLavoroId !== 'undefined' && focusLavoroId) ? focusLavoroId : null;
+                    lavoriList = sliceOperaioLavoriWindow(lavoriList, { focusLavoroId: focusParam, maxNeighbors: 1 }).map((w) => {
+                        const dataInizio = w.dataInizio?.toDate ? w.dataInizio.toDate() : (w.dataInizio ? new Date(w.dataInizio) : null);
+                        return Object.assign({}, w, { dataInizio: dataInizio });
+                    });
+                }
 
                 // Ordina: lavori attivi (assegnato/in_corso/…) prima dei sospesi, così la ripresa compare sopra al vecchio sospeso con data più “alta”
                 const ordineStato = (s) => {

@@ -12,8 +12,14 @@
 <body class="field-mobile-shell">
     <header class="field-mobile-header">
         <div class="field-mobile-toolbar compact">
-            <button class="field-icon-toggle active" id="btn-mode-mobile" type="button" aria-label="Versione mobile" title="Versione mobile">📱</button>
-            <button class="field-icon-toggle" id="btn-mode-desktop" type="button" aria-label="Versione desktop" title="Versione desktop">🖥️</button>
+            <div class="field-toolbar-left" aria-hidden="true">
+                <button class="field-icon-toggle active" id="btn-mode-mobile" type="button" aria-label="Versione mobile" title="Versione mobile">📱</button>
+                <button class="field-icon-toggle" id="btn-mode-desktop" type="button" aria-label="Versione desktop" title="Versione desktop">🖥️</button>
+            </div>
+            <div class="field-toolbar-user" id="field-toolbar-user" hidden>
+                <span class="field-toolbar-user-name" id="field-toolbar-user-name"></span>
+                <span class="field-toolbar-user-roles" id="field-toolbar-user-roles"></span>
+            </div>
             <div class="field-options-wrap">
                 <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni">⚙️</button>
                 <div class="field-options-menu" id="field-options-menu" hidden>

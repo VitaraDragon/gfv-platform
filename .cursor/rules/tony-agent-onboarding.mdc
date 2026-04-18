@@ -11,6 +11,8 @@ alwaysApply: true
 2. **Leggi** `docs-sviluppo/tony/MASTER_PLAN.md` – visione, architettura, principi di scalabilità
 3. **Leggi** `docs-sviluppo/tony/STATO_ATTUALE.md` – stato verificato sul codice
 
+**Manodopera / squadre / sostituzioni operai / equipaggio su lavori** (anche senza toccare Tony): leggi **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`** prima di proporre implementazione — è il piano di design versionato in repo (shortlist, disponibilità automatica, policy tenant).
+
 ## Regole obbligatorie
 
 - **Nuove pagine** (liste/tab + form Tony): seguire **`.cursor/rules/tony-pagina-lista-e-form.mdc`** (canone `currentTableData`, merge `setContext`, evento `table-data-ready`, file golden) prima di proporre modifiche.

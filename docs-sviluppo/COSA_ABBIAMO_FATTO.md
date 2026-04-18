@@ -1,6 +1,23 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-17.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-18.**
+
+## ✅ Manodopera: piano design sostituzioni / equipaggio in repo (2026-04-18)
+
+- Aggiunto **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`**: design per shortlist sostituti, disponibilità automatica da lavori, competenze in anagrafica, policy tenant, integrazione Tony; riferimento in **`docs-sviluppo/tony/README.md`** e in **`.cursor/rules/tony-agent-onboarding.mdc`** (dopo i tre punti di lettura iniziale), così ogni nuovo agente vede il file da leggere prima di implementare su manodopera/squadre.
+
+## ✅ PWA: bump cache a ogni commit (hook Git) (2026-04-18)
+
+- `scripts/bump-pwa-cache-version.mjs` aggiorna **`SW_CACHE_BUILD_ID`** (`t` + timestamp ms) in `service-worker.js`; `CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID`.
+- **`.githooks/pre-commit`**: esegue lo script e `git add service-worker.js`. Attivazione una tantum: **`npm run setup:hooks`** (`git config core.hooksPath .githooks`). Manuale: **`npm run bump:pwa-cache`**; saltare hook: `git commit --no-verify`.
+- Dettaglio: **`docs-sviluppo/GUIDA_PWA.md`**, **`.githooks/README.md`**.
+
+## ✅ Tony profilo campo: server (`tonyAsk`) — niente leak tariffe/terreni/clienti (2026-04-17)
+
+- `functions/index.js`: se i ruoli non arrivano dal client, **fallback ruoli da Firestore** `users/{uid}`; **`buildContextAzienda` non viene chiamato** per operaio/caposquadra (già così); **`sanitizeContextForTonyField`** riduce il JSON inviato a Gemini (no tabellari completi; solo `lavori` sintetici se `pageType` lavori).
+- Risposta **deterministica** (senza Gemini) per domande classificate come dati aziendali (`isTonyFieldBizDataQuestion`: tariffe, elenco terreni/campi, clienti/preventivi/magazzino in elenco).
+- **Treasure Map / structured** disattivata se `tonyFieldProfile` (`useStructuredFormOutput` richiede `!tonyFieldProfile`).
+- `SYSTEM_INSTRUCTION_TONY_FIELD` rafforzata (vietato elencare cataloghi anche se compaiono nel contesto).
 
 ## ✅ Profilo campo: blocco navigazione senza alert nativo (2026-04-17)
 

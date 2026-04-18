@@ -1,7 +1,7 @@
 # Tony – Documentazione consolidata
 
 **Cartella**: `docs-sviluppo/tony/`  
-**Ultimo aggiornamento**: 2026-04-11
+**Ultimo aggiornamento**: 2026-04-18
 
 Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la documentazione consolidata per riferimento rapido e sviluppo.
 
@@ -13,6 +13,7 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 |------|-----------|
 | **MASTER_PLAN.md** | Visione, architettura, roadmap, principi di scalabilità. Ogni modifica Tony deve allinearsi a questo piano. |
 | **STATO_ATTUALE.md** | Stato verificato sul codice: cosa funziona, cosa manca, prossimi passi. |
+| **PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md** | Design (non ancora implementato): sostituzioni operai, equipaggio minimo, shortlist, policy tenant, Tony. Da leggere prima di lavorare su manodopera/squadre/lavori. |
 | **README.md** | Questo file – panoramica e link. |
 
 ---
@@ -28,6 +29,7 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | **Changelog** | `docs-sviluppo/COSA_ABBIAMO_FATTO.md` – modifiche con date |
 | **Trattamenti Vigneto/Frutteto** (performance lista, superficie da anagrafe terreno; non Tony) | `COSA_ABBIAMO_FATTO.md` §2026-04-05; guide `docs-sviluppo/guida-app/moduli/vigneto.md` e `frutteto.md` |
 | **Magazzino – roadmap ipotesi (Gemini/fotocamera, DDT/fattura)** | `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` |
+| **Manodopera – sostituzioni / equipaggio / shortlist** (design) | `docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md` |
 | **Archivio** | `docs-sviluppo/archivio/` – doc obsoleti (MASTER_PLAN_TONY_UNIVERSAL, STATO_TONY) |
 
 ---

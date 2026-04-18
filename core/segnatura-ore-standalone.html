@@ -558,6 +558,7 @@
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from './services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, query, where, addDoc, Timestamp, serverTimestamp } from './services/firebase-service.js';
         import { onAuthStateChanged } from './services/firebase-service.js';
+        import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from './services/manodopera-lavori-scope.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -699,96 +700,44 @@
             container.innerHTML = '<div class="loading">Caricamento lavori...</div>';
 
             try {
-                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-                
-                // Carica tutti i lavori e filtra/ordina in memoria per evitare bisogno di indice composito
-                const snapshot = await getDocs(lavoriRef);
-                
                 const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
                 const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
                 const userId = currentUserData.id || currentUserData.uid;
-                
-                lavoriList = [];
-                const lavoriIdsSet = new Set(); // Per evitare duplicati
-                
-                // Se è operaio, trova il caposquadra della sua squadra
-                let caposquadraId = null;
-                if (isOperaio) {
-                    try {
-                        const squadreRef = collection(db, 'tenants', currentTenantId, 'squadre');
-                        const squadreSnapshot = await getDocs(squadreRef);
-                        
-                        squadreSnapshot.forEach(doc => {
-                            const squadra = doc.data();
-                            if (squadra.operai && squadra.operai.includes(userId)) {
-                                caposquadraId = squadra.caposquadraId;
-                            }
-                        });
-                    } catch (error) {
-                        console.warn('Errore caricamento squadre:', error);
-                    }
-                }
-                
-                // Calcola data limite per lavori completati recenti (7 giorni fa)
+
+                const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, {
+                    isCaposquadra: !!isCaposquadra,
+                    isOperaio: !!isOperaio
+                });
+
                 const dataLimite = new Date();
                 dataLimite.setDate(dataLimite.getDate() - 7);
-                
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    // Include lavori attivi (assegnato o in_corso) O lavori completati recenti (ultimi 7 giorni)
+
+                lavoriList = [];
+                fetched.forEach((lav) => {
+                    const data = lav;
                     const isAttivo = data.stato === 'assegnato' || data.stato === 'in_corso' || data.stato === 'sospeso';
-                    const isCompletatoRecente = (data.stato === 'completato' || data.stato === 'completato_da_approvare') && 
-                                                data.completatoIl && 
-                                                data.completatoIl.toDate && 
-                                                data.completatoIl.toDate() >= dataLimite;
-                    
-                    if (isAttivo || isCompletatoRecente) {
-                        let includeLavoro = false;
-                        
-                        if (isOperaio) {
-                            // OPERAIO: mostra lavori diretti O lavori di squadra
-                            
-                            // 1. Lavori diretti (assegnati direttamente all'operaio)
-                            if (data.operaioId === userId && !data.caposquadraId) {
-                                includeLavoro = true;
-                            }
-                            
-                            // 2. Lavori di squadra (tramite caposquadra)
-                            if (!includeLavoro && caposquadraId && data.caposquadraId === caposquadraId && !data.operaioId) {
-                                includeLavoro = true;
-                            }
-                            
-                        } else if (isCaposquadra) {
-                            // CAPOSQUADRA: mostra solo lavori assegnati a lui come caposquadra
-                            if (data.caposquadraId === userId && !data.operaioId) {
-                                includeLavoro = true;
-                            }
-                        } else {
-                            // MANAGER/AMMINISTRATORE: mostra tutti i lavori
-                            includeLavoro = true;
-                        }
-                        
-                        if (includeLavoro && !lavoriIdsSet.has(doc.id)) {
-                            // Converti Timestamp in Date
-                            if (data.dataInizio && data.dataInizio.toDate) {
-                                data.dataInizio = data.dataInizio.toDate();
-                            }
-                            // Aggiungi flag per indicare se è completato recente
-                            lavoriList.push({ 
-                                id: doc.id, 
-                                ...data,
-                                isCompletatoRecente: isCompletatoRecente
-                            });
-                            lavoriIdsSet.add(doc.id);
-                        }
+                    const isCompletatoRecente = (data.stato === 'completato' || data.stato === 'completato_da_approvare') &&
+                        data.completatoIl &&
+                        data.completatoIl.toDate &&
+                        data.completatoIl.toDate() >= dataLimite;
+                    if (!isAttivo && !isCompletatoRecente) return;
+
+                    const row = { ...data };
+                    if (row.dataInizio && row.dataInizio.toDate) {
+                        row.dataInizio = row.dataInizio.toDate();
                     }
+                    row.isCompletatoRecente = isCompletatoRecente;
+                    lavoriList.push(row);
                 });
-                
-                // Ordina per dataInizio (più recenti prima)
+
+                if (isOperaio && !isCaposquadra && lavoriList.length > 3) {
+                    lavoriList = sliceOperaioLavoriWindow(lavoriList, { focusLavoroId: null, maxNeighbors: 1 });
+                }
+
                 lavoriList.sort((a, b) => {
                     const dateA = a.dataInizio instanceof Date ? a.dataInizio : new Date(a.dataInizio);
                     const dateB = b.dataInizio instanceof Date ? b.dataInizio : new Date(b.dataInizio);
-                    return dateB - dateA; // Più recenti prima
+                    return dateB - dateA;
                 });
 
                 renderLavori();
@@ -914,16 +863,18 @@
             container.innerHTML = '<div class="loading">Caricamento ore...</div>';
 
             try {
-                // Carica tutte le ore dell'utente (operaio o caposquadra) da tutti i lavori
-                const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
-                const lavoriSnapshot = await getDocs(lavoriRef);
-                
                 oreList = [];
                 const userId = currentUserData.id || currentUserData.uid;
-                
-                for (const lavoroDoc of lavoriSnapshot.docs) {
-                    const lavoroId = lavoroDoc.id;
-                    const lavoroData = lavoroDoc.data();
+                const isOperaioOre = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
+                const isCaposquadraOre = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
+                const lavoriVisibili = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, {
+                    isCaposquadra: !!isCaposquadraOre,
+                    isOperaio: !!isOperaioOre
+                });
+
+                for (const lav of lavoriVisibili) {
+                    const lavoroId = lav.id;
+                    const lavoroData = lav;
                     const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
                     // Carica ore dell'utente corrente (operaio o caposquadra)
                     const oreQuery = query(oreRef, where('operaioId', '==', userId));

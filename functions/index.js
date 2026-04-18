@@ -944,6 +944,66 @@ function getTonyFieldProfileFromRoles(ruoli) {
   return null;
 }
 
+/** Domande su dati aziendali globali: risposta server-side senza Gemini (profilo campo). */
+const TONY_FIELD_BIZ_REFUSAL_TEXT =
+  "Dal profilo campo non ho accesso a tariffe, elenco terreni o clienti dell'azienda. Chiedi a un manager. Posso aiutarti con ore, lavori assegnati e il workspace campo.";
+
+function isTonyFieldBizDataQuestion(message) {
+  const m = String(message || "").toLowerCase();
+  if (/\b(tariffe|tariffa|listino)\b/i.test(m)) return true;
+  if (/\bquanto\s+costa\b/i.test(m) && /\b(trinciatur|erpicatur|aratur|potatur|semina|diserb|vendemm|ettaro|ettari|lavoraz|meccanico)\b/i.test(m)) return true;
+  if (/\b(elenc[ao]|lista|quali|dimmi)\b/i.test(m) && /\b(terreni|i\s+campi|campi\s+aziend|tutti\s+i\s+campi|appezzament)\b/i.test(m)) return true;
+  if (/\b(quanti|quali)\b/i.test(m) && /\b(clienti|preventivi)\b/i.test(m)) return true;
+  if (/\b(elenc[ao]|lista)\b/i.test(m) && /\b(movimenti|prodotti|in\s+magazzino|magazzino)\b/i.test(m)) return true;
+  if (/\b(sotto\s*scorta|movimenti\s+recenti|giacenz)\b/i.test(m) && /\b(quali|quanti|elenc|dimmi)\b/i.test(m)) return true;
+  return false;
+}
+
+/**
+ * Contesto inviato a Gemini per operaio/caposquadra: niente tabellari completi né payload client che replicano l'anagrafica.
+ */
+function sanitizeContextForTonyField(ctx) {
+  const c = ctx && typeof ctx === "object" ? ctx : {};
+  const d = c.dashboard && typeof c.dashboard === "object" ? c.dashboard : {};
+  const page = c.page && typeof c.page === "object" ? c.page : {};
+  const pPath = page.pagePath || "";
+  const pType = page.pageType || (page.currentTableData && page.currentTableData.pageType) || "";
+  const out = {
+    dashboard: {
+      tenantId: d.tenantId ?? c.tenantId ?? null,
+      moduli_attivi: Array.isArray(d.moduli_attivi) ? d.moduli_attivi : [],
+      utente_corrente: d.utente_corrente || c.utente_corrente || {},
+      info_azienda: { moduli_attivi: Array.isArray(d.moduli_attivi) ? d.moduli_attivi : [] },
+    },
+    session: c.session || {},
+    page: {
+      pagePath: pPath,
+      pageTitle: page.pageTitle || "",
+      pageType: pType,
+      tableDataSummary:
+        page.tableDataSummary || (page.currentTableData && page.currentTableData.summary) || "",
+    },
+    form: c.form || null,
+    _contestoCampo: "Solo lavori assegnati e operatività manodopera. Nessun dato anagrafica terreni/clienti/tariffe/magazzino.",
+  };
+  if (pType === "lavori" && page.currentTableData && typeof page.currentTableData === "object") {
+    const ct = page.currentTableData;
+    const items = Array.isArray(ct.items) ? ct.items : [];
+    out.page.currentTableData = {
+      pageType: "lavori",
+      summary: ct.summary || "",
+      items: items.slice(0, 50).map((it) => ({
+        id: it.id,
+        stato: it.stato,
+        nome: it.nome || it.titolo,
+        terreno: it.terreno,
+        tipoLavoro: it.tipoLavoro,
+      })),
+    };
+  }
+  return out;
+}
+
 /**
  * SYSTEM_INSTRUCTION_BASE - Tony Base (solo guida, no azioni operative)
  * Usata quando il modulo 'tony' NON è attivo nel tenant
@@ -1304,8 +1364,9 @@ const SYSTEM_INSTRUCTION_TONY_FIELD = `Ruolo: Tony, assistente operativo GFV per
 
 AMBITO (OBBLIGATORIO):
 - Rispondi SOLO in base a ciò che riguarda lavori assegnati, ore, segnatura, comunicazioni di squadra (se caposquadra), statistiche personali su ore, impostazioni account.
-- NON usare e NON menzionare elenchi completi di terreni aziendali, clienti, preventivi, tariffe, magazzino, vigneto, frutteto, report, gestione utenti, economia d'azienda.
-- Se context.azienda._profiloCampo è true, non hai dataset aziendali completi: non inventare dati. Se l'utente chiede terreni/clienti/magazzino/moduli, rispondi brevemente che non sono disponibili per il suo profilo e che può rivolgersi a un manager.
+- VIETATO: elencare o nominare terreni aziendali come catalogo, clienti, preventivi, tariffe, prezzi al ettaro, prodotti magazzino, movimenti, listini, conti economici — anche se comparissero nel JSON del contesto (IGNORA qualsiasi riga fuori ambito; il contesto è già filtrato lato server).
+- VIETATO: rispondere a "tariffe", "quanto costa [lavoro]", "elenco terreni/campi aziendali", "clienti", "preventivi", "magazzino" con dati numerici o nomi: usa sempre il rifiuto breve sotto.
+- Se l'utente chiede dati aziendali globali, rispondi SOLO con una frase tipo: "Dal tuo profilo non ho accesso a questi dati; chiedi a un manager." e command null.
 
 NAVIGAZIONE (APRI_PAGINA) — SOLO questi target:
 - workspace campo (o field workspace)
@@ -2048,14 +2109,34 @@ exports.tonyAsk = onCall(
     const ctx = reqData.context != null ? reqData.context : {};
     const dashboard = ctx.dashboard != null ? ctx.dashboard : {};
 
-    const ruoliUtente =
+    let ruoliUtente =
       (dashboard.utente_corrente && Array.isArray(dashboard.utente_corrente.ruoli) && dashboard.utente_corrente.ruoli) ||
       (ctx.utente_corrente && Array.isArray(ctx.utente_corrente.ruoli) && ctx.utente_corrente.ruoli) ||
       [];
+    if ((!ruoliUtente || ruoliUtente.length === 0) && request.auth.uid) {
+      try {
+        const userSnap = await db.collection("users").doc(request.auth.uid).get();
+        if (userSnap.exists) {
+          const ud = userSnap.data();
+          if (Array.isArray(ud.ruoli) && ud.ruoli.length > 0) {
+            ruoliUtente = ud.ruoli;
+            console.log("[Tony Cloud Function] Ruoli utente da Firestore (fallback client vuoto)");
+          }
+        }
+      } catch (ruoliErr) {
+        console.warn("[Tony Cloud Function] Fallback ruoli Firestore:", ruoliErr.message);
+      }
+    }
     const tonyFieldProfile = getTonyFieldProfileFromRoles(ruoliUtente);
 
     // Context Builder: arricchisci con dati aziendali da Firestore (solo per manager / non profilo campo)
     const tenantId = dashboard.tenantId ?? ctx.tenantId ?? null;
+
+    if (tonyFieldProfile && isTonyFieldBizDataQuestion(message)) {
+      console.log("[Tony Cloud Function] Profilo campo: domanda su dati aziendali — risposta deterministica (no Gemini)");
+      return { text: TONY_FIELD_BIZ_REFUSAL_TEXT, command: null };
+    }
+
     let azienda = {};
     if (tonyFieldProfile) {
       azienda = {
@@ -2070,7 +2151,10 @@ exports.tonyAsk = onCall(
         azienda = { _error: "Dati aziendali temporaneamente non disponibili." };
       }
     }
-    const ctxFinal = { ...ctx, azienda };
+    const ctxStripped = ctx && typeof ctx === "object" ? { ...ctx } : {};
+    delete ctxStripped.azienda;
+    const ctxBase = tonyFieldProfile ? sanitizeContextForTonyField(ctxStripped) : ctxStripped;
+    const ctxFinal = { ...ctxBase, azienda };
     if (!tonyFieldProfile && azienda.terreni && Array.isArray(azienda.terreni)) {
       ctxFinal.attivita = ctxFinal.attivita || {};
       ctxFinal.attivita.terreni = azienda.terreni;
@@ -2326,6 +2410,7 @@ exports.tonyAsk = onCall(
       || (isLavoriPage && !isLavoriFilterLikeRequest && /\b(potatur|erpicatur|trinciatur|vendemmi|fresatur|vangatur|diserbo)\b/i.test(message) && !/\b(mostrami|mostra|filtra|solo|soltanto|vedi)\b/i.test(message));
     const isFormApertoTrigger = /form\s*aperto/i.test(message);
     const useStructuredFormOutput =
+      !tonyFieldProfile &&
       isTonyAdvancedActive &&
       (isAttivitaForm ||
         isLavoroForm ||

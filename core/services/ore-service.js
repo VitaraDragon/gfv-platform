@@ -180,20 +180,35 @@ export async function getOreOperaio(operaioId, options = {}) {
     }
 
     // Import dinamico
-    const { getDb, collection, getDocs, query, where } = await import('./firebase-service.js');
+    const { getDb, collection, getDocs, query, where, doc, getDoc } = await import('./firebase-service.js');
+    const { fetchLavoriDocumentsForFieldUser } = await import('./manodopera-lavori-scope.js');
     const db = getDb();
     if (!db) throw new Error('Firebase non inizializzato');
-    
-    // Ottieni tutti i lavori del tenant
-    const lavoriRef = collection(db, 'tenants', tenantId, 'lavori');
-    const lavoriSnapshot = await getDocs(lavoriRef);
-    
+
+    let isCaposquadra = false;
+    let isOperaio = true;
+    try {
+      const userSnap = await getDoc(doc(db, 'users', operaioId));
+      if (userSnap.exists()) {
+        const ruoli = userSnap.data().ruoli || [];
+        isCaposquadra = Array.isArray(ruoli) && ruoli.includes('caposquadra');
+        isOperaio = Array.isArray(ruoli) && ruoli.includes('operaio');
+      }
+    } catch (e) {
+      console.warn('getOreOperaio: impossibile leggere ruoli utente, uso solo filtro operaio', e);
+    }
+
+    const lavoriVisibili = await fetchLavoriDocumentsForFieldUser(db, tenantId, operaioId, {
+      isCaposquadra,
+      isOperaio: isOperaio || !isCaposquadra
+    });
+
     const oreOperaio = [];
     const { stato = null } = options;
-    
-    // Per ogni lavoro, ottieni le ore dell'operaio
-    for (const lavoroDoc of lavoriSnapshot.docs) {
-      const lavoroId = lavoroDoc.id;
+
+    for (const lav of lavoriVisibili) {
+      const lavoroId = lav.id;
+      const lavoroDocData = lav;
       const oreRef = collection(db, 'tenants', tenantId, 'lavori', lavoroId, 'oreOperai');
       
       let oreQuery = query(oreRef, where('operaioId', '==', operaioId));
@@ -218,7 +233,7 @@ export async function getOreOperaio(operaioId, options = {}) {
         oreOperaio.push({
           id: oraDoc.id,
           lavoroId: lavoroId,
-          lavoroNome: lavoroDoc.data().nome || 'N/A',
+          lavoroNome: lavoroDocData.nome || 'N/A',
           ...data
         });
       });

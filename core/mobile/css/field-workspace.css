@@ -36,7 +36,48 @@
 
 .field-mobile-toolbar.compact {
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 0;
+}
+
+.field-toolbar-left {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.field-toolbar-user {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    text-align: center;
+}
+
+.field-toolbar-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.field-toolbar-user-roles {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .field-icon-toggle {
@@ -63,6 +104,7 @@
 
 .field-options-wrap {
     position: relative;
+    flex-shrink: 0;
     margin-left: auto;
 }
 

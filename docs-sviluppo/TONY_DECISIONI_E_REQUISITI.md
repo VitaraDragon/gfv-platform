@@ -43,6 +43,7 @@
 | 3.5 | **Struttura `modules/tony/`** (tony-dashboard, tony-advanced-service) | TONY_MODULO_SEPARATO | abbandonato | Tony resta in core/ |
 | 3.6 | Separazione NLU / Form Engine / UI Layer – Tony non pilota DOM opportunisticamente | GUIDA_OPERATIVO | implementato | tony-form-schemas, injector |
 | 3.7 | Form Schema: modalId, submitSelector, fields (visibleWhen, dependsOn, resolver), saveGuard | GUIDA_OPERATIVO | implementato | tony-form-schemas.js |
+| 3.8 | **PWA / Service Worker**: ogni **commit** (con hook `.githooks`) o **`npm run bump:pwa-cache`** aggiorna **`SW_CACHE_BUILD_ID`** in `service-worker.js` (`CACHE_NAME` = `gfv-platform-` + id); le cache con nome diverso vengono eliminate in `activate` | GUIDA_PWA, COSA_ABBIAMO_FATTO | implementato | Evita client con HTML/JS obsoleti in Cache Storage; setup `npm run setup:hooks` in `docs-sviluppo/GUIDA_PWA.md` |
 
 ---
 

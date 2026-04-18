@@ -68,35 +68,34 @@ L'app GFV Platform è ora installabile come **Progressive Web App (PWA)** sia su
 
 ## 🔄 Aggiornare la cache quando modifichi file
 
-Quando modifichi file importanti (HTML, CSS, JS), devi aggiornare la cache del service worker:
+Strategia attuale: **network-first** con cache on-demand (non c’è lista statica `urlsToCache` nello SW). Per evitare che client restino con asset vecchi nel **Cache Storage**, il nome cache include `SW_CACHE_BUILD_ID`.
 
-### Passo 1: Modifica `service-worker.js`
+### Bump automatico a ogni commit (consigliato)
 
-Cambia il nome della cache:
+1. **Una tantum** (dopo ogni clone), dalla root del repo:
+
+   ```bash
+   npm run setup:hooks
+   ```
+
+   (equivale a `git config core.hooksPath .githooks`)
+
+2. L’hook **`pre-commit`** rilancia `scripts/bump-pwa-cache-version.mjs`, che imposta un nuovo `SW_CACHE_BUILD_ID` (timestamp) e fa `git add` su `service-worker.js`. Così **ogni commit** (e quindi ogni push che include quel commit) pubblica uno SW con cache nuova.
+
+3. Per un commit senza bump: `git commit --no-verify`
+
+4. Manuale: `npm run bump:pwa-cache`
+
+### Contenuto atteso in `service-worker.js`
 
 ```javascript
-// Da:
-const CACHE_NAME = 'gfv-platform-v1';
-
-// A:
-const CACHE_NAME = 'gfv-platform-v2';
+const SW_CACHE_BUILD_ID = 't1739...'; // aggiornato dallo script
+const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 ```
 
-### Passo 2: Aggiorna l'elenco file da cachare (se necessario)
+Il nuovo service worker, in `activate`, **cancella** le cache il cui nome non coincide con `CACHE_NAME`.
 
-Se hai aggiunto nuove pagine importanti, aggiungile a `urlsToCache`:
-
-```javascript
-const urlsToCache = [
-  './',
-  './index.html',
-  './core/auth/login-standalone.html',
-  // ... altre pagine
-  './core/nuova-pagina-standalone.html', // ← Aggiungi qui
-];
-```
-
-### Passo 3: Testa l'aggiornamento
+### Testa l'aggiornamento
 
 1. **Ricarica la pagina** (Ctrl+F5 o Cmd+Shift+R)
 2. **Apri DevTools** → Tab "Application" → "Service Workers"

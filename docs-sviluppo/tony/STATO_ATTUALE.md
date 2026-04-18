@@ -120,6 +120,7 @@
 - Non toccare Tony Guida durante lavori su Operativo
 - Non introdurre logica hardcoded per singolo modal
 - Nuovo form = voce in TONY_FORM_MAPPING, non if/else
+- **Deploy PWA (produzione)**: con hook Git attivo (`npm run setup:hooks`), ogni **commit** rigenera **`SW_CACHE_BUILD_ID`** in `service-worker.js` (nome cache `gfv-platform-{id}`); altrimenti `npm run bump:pwa-cache` prima del deploy. Dettaglio in **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8
 
 ---
 

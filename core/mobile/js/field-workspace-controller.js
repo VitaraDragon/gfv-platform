@@ -15,6 +15,11 @@ import {
     Timestamp
 } from '../../services/firebase-service.js';
 
+import {
+    fetchLavoriDocumentsForFieldUser,
+    sliceOperaioLavoriWindow
+} from '../../services/manodopera-lavori-scope.js';
+
 const {
     normalizeRoles,
     hasAnyRole,
@@ -55,6 +60,9 @@ const btnModeMobileEl = document.getElementById('btn-mode-mobile');
 const btnModeDesktopEl = document.getElementById('btn-mode-desktop');
 const btnOpenOptionsEl = document.getElementById('btn-open-options');
 const optionsMenuEl = document.getElementById('field-options-menu');
+const fieldToolbarUserEl = document.getElementById('field-toolbar-user');
+const fieldToolbarUserNameEl = document.getElementById('field-toolbar-user-name');
+const fieldToolbarUserRolesEl = document.getElementById('field-toolbar-user-roles');
 
 let currentUserData = null;
 let currentUser = null;
@@ -64,6 +72,7 @@ let currentSlideIndex = 0;
 let cachedWorks = [];
 let selectedWork = null;
 let userIsCaposquadra = false;
+let userIsOperaio = false;
 let currentPendingHours = [];
 let pullTouchStartY = 0;
 let pullTouchStartX = 0;
@@ -74,6 +83,32 @@ function setStatus(text, isError = false) {
     if (!statusEl) return;
     statusEl.textContent = text;
     statusEl.style.color = isError ? '#fecaca' : 'rgba(255, 255, 255, 0.92)';
+}
+
+function formatRoleLabelsItalian(roles) {
+    if (!Array.isArray(roles) || roles.length === 0) return '';
+    const map = {
+        operaio: 'Operaio',
+        caposquadra: 'Caposquadra',
+        manager: 'Manager',
+        amministratore: 'Amministratore'
+    };
+    return roles.map((r) => {
+        const key = String(r || '').toLowerCase();
+        if (map[key]) return map[key];
+        const s = String(r || '').trim();
+        if (!s) return '';
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }).filter(Boolean).join(' · ');
+}
+
+function updateFieldHeaderUser(displayName, roles) {
+    if (!fieldToolbarUserEl || !fieldToolbarUserNameEl || !fieldToolbarUserRolesEl) return;
+    const name = (displayName || '').trim() || 'Account';
+    fieldToolbarUserNameEl.textContent = name;
+    const rolesText = formatRoleLabelsItalian(roles);
+    fieldToolbarUserRolesEl.textContent = rolesText || 'Utente campo';
+    fieldToolbarUserEl.hidden = false;
 }
 
 function getWorkspacePreferenceFromUrl() {
@@ -292,47 +327,35 @@ function isWorkRelevantForFieldRole(work) {
     return allowedStates.includes(stato);
 }
 
-function isAssignedToCurrentUser(work) {
-    if (!currentUser) return false;
-    const uid = currentUser.uid;
-    const directIds = [work.operaioId, work.caposquadraId, work.assegnatoA];
-    if (directIds.includes(uid)) return true;
-    const arrays = [work.operai, work.operaiIds, work.utentiAssegnati];
-    return arrays.some((list) => Array.isArray(list) && list.includes(uid));
-}
-
 async function loadWorksForSelection() {
     if (!currentTenantId || !currentUser) return;
     if (selectedWorkEl) {
         selectedWorkEl.innerHTML = '<option value="">Caricamento lavori...</option>';
     }
     try {
-        const lavoriRef = collection(getDb(), `tenants/${currentTenantId}/lavori`);
-        const snapshot = await getDocs(lavoriRef);
-        const works = [];
-        snapshot.forEach((docSnap) => {
-            const work = { id: docSnap.id, ...docSnap.data() };
-            if (!isWorkRelevantForFieldRole(work)) return;
-            if (!isAssignedToCurrentUser(work)) return;
-            works.push({
-                id: work.id,
-                label: normalizeWorkLabel(work),
-                raw: work
-            });
+        const userId = (currentUserData && (currentUserData.id || currentUserData.uid)) || currentUser.uid;
+        const rawList = await fetchLavoriDocumentsForFieldUser(getDb(), currentTenantId, userId, {
+            isCaposquadra: userIsCaposquadra,
+            isOperaio: userIsOperaio
         });
 
-        if (works.length === 0) {
-            // Fallback: mostra almeno i lavori "rilevanti" se non è disponibile l'assegnazione esplicita.
-            snapshot.forEach((docSnap) => {
-                const work = { id: docSnap.id, ...docSnap.data() };
-                if (!isWorkRelevantForFieldRole(work)) return;
-                works.push({
-                    id: work.id,
-                    label: normalizeWorkLabel(work),
-                    raw: work
-                });
-            });
+        let eligible = rawList.filter((w) => isWorkRelevantForFieldRole(w));
+
+        if (userIsOperaio && !userIsCaposquadra && eligible.length > 3) {
+            let focus = pendingFocusLavoroIdFromUrl;
+            try {
+                if (!focus) focus = localStorage.getItem('gfv_mobile_selected_work_id');
+            } catch (error) {
+                // ignore
+            }
+            eligible = sliceOperaioLavoriWindow(eligible, { focusLavoroId: focus || null, maxNeighbors: 1 });
         }
+
+        const works = eligible.map((work) => ({
+            id: work.id,
+            label: normalizeWorkLabel(work),
+            raw: work
+        }));
 
         works.sort((a, b) => a.label.localeCompare(b.label, 'it'));
         cachedWorks = works;
@@ -992,7 +1015,11 @@ async function initFieldWorkspace() {
                 const isCaposquadra = hasAnyRole
                     ? hasAnyRole({ ruoli: normalizedRoles }, ['caposquadra'])
                     : false;
+                const isOperaio = hasAnyRole
+                    ? hasAnyRole({ ruoli: normalizedRoles }, ['operaio'])
+                    : false;
                 userIsCaposquadra = isCaposquadra;
+                userIsOperaio = isOperaio;
                 if (inlineTeamSectionEl) {
                     inlineTeamSectionEl.hidden = !isCaposquadra;
                 }
@@ -1014,9 +1041,12 @@ async function initFieldWorkspace() {
                 goToSlide(requestedSlideIdx >= 0 ? requestedSlideIdx : 0);
                 bindWorkSelection();
                 await refreshWorkspaceData();
+
+                const displayName = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim()
+                    || (user && user.email) || '';
+                updateFieldHeaderUser(displayName, normalizedRoles);
+
                 try {
-                    const displayName = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim()
-                        || (user && user.email) || '';
                     const fieldDashboardPayload = {
                         tenantId: tenantId,
                         moduli_attivi: availableModules,
@@ -1056,8 +1086,7 @@ async function initFieldWorkspace() {
                 const dateInput = document.getElementById('quick-comm-date');
                 if (dateInput) dateInput.value = getTodayIsoDate();
 
-                const roleLabel = normalizedRoles.join(', ') || 'utente campo';
-                setStatus(`Workspace mobile attivo (${roleLabel}).`);
+                setStatus('Workspace mobile attivo.');
             } catch (error) {
                 console.error('[FIELD-WORKSPACE] Errore inizializzazione utente:', error);
                 setStatus(`Errore caricamento: ${error.message}`, true);

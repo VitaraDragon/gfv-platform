@@ -10,7 +10,9 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "start": "http-server -p 8000 -c-1",
-    "generate:tony-routes": "node scripts/generate-tony-routes.cjs"
+    "generate:tony-routes": "node scripts/generate-tony-routes.cjs",
+    "bump:pwa-cache": "node scripts/bump-pwa-cache-version.mjs",
+    "setup:hooks": "git config core.hooksPath .githooks"
   },
   "keywords": [
     "agriculture",

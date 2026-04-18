@@ -1,5 +1,11 @@
 // Service Worker per PWA - GFV Platform
-const CACHE_NAME = 'gfv-platform-v1';
+//
+// SW_CACHE_BUILD_ID: aggiornato da scripts/bump-pwa-cache-version.mjs (hook pre-commit
+// in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
+// così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
+// Setup hook (una tantum): git config core.hooksPath .githooks
+const SW_CACHE_BUILD_ID = 't1776523128601';
+const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 // Installazione Service Worker
 // Non cachiamo file all'installazione - verranno cachati on-demand durante il fetch

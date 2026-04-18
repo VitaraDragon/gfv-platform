@@ -105,7 +105,7 @@
         window.GFVConfigLoader.loadConfigAndMaps().catch(function (e) { console.error(e); });
     </script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc, collection, getDocs } from '../services/firebase-service.js';
+        import { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } from '../services/firebase-service.js';
         import { setCurrentTenantId, getCurrentTenantId, getUserRolesForTenant } from '../services/tenant-service.js';
         import { getOreOperaio } from '../services/ore-service.js';
 
@@ -220,16 +220,23 @@
             loadAndDraw(uid);
         }
 
-        async function loadLavoriDetailMap(db, tenantId) {
+        async function loadLavoriDetailMap(db, tenantId, lavoroIds) {
             const tipoMap = new Map();
             const lavMap = new Map();
-            const snap = await getDocs(collection(db, 'tenants', tenantId, 'lavori'));
-            snap.forEach((d) => {
-                const x = d.data();
-                const tipo = (x.tipoLavoro || x.nome || 'Lavoro').trim() || 'Lavoro';
-                tipoMap.set(d.id, tipo);
-                lavMap.set(d.id, { id: d.id, ...x });
-            });
+            const ids = [...new Set((lavoroIds || []).filter(Boolean))];
+            await Promise.all(ids.map(async (lid) => {
+                try {
+                    const d = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lid));
+                    if (d.exists()) {
+                        const x = d.data();
+                        const tipo = (x.tipoLavoro || x.nome || 'Lavoro').trim() || 'Lavoro';
+                        tipoMap.set(lid, tipo);
+                        lavMap.set(lid, { id: lid, ...x });
+                    }
+                } catch (e) {
+                    console.warn('[statistiche-lavoratore] lavoro', lid, e);
+                }
+            }));
             return { tipoMap, lavMap };
         }
 
@@ -290,14 +297,14 @@
                 return;
             }
 
-            const { tipoMap, lavMap } = await loadLavoriDetailMap(db, tenantId);
-
             const filtered = rows.filter((ora) => {
                 if (ora.stato === 'rifiutate') return false;
                 const dt = oraDataToDate(ora);
                 if (!dt) return false;
                 return dt >= t0 && dt <= t1;
             });
+
+            const { tipoMap, lavMap } = await loadLavoriDetailMap(db, tenantId, filtered.map((o) => o.lavoroId));
 
             const totOre = filtered.reduce((s, o) => s + (parseFloat(o.oreNette) || 0), 0);
             document.getElementById('m-ore').textContent = totOre.toFixed(2).replace('.', ',');

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Bump cache PWA prima di ogni commit (richiede: git config core.hooksPath .githooks)
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+node scripts/bump-pwa-cache-version.mjs
+git add service-worker.js
