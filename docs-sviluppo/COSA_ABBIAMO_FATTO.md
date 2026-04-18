@@ -2,6 +2,11 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-18.**
 
+## ✅ Tony / Gemini: retry 429 e messaggio utente (2026-04-18)
+
+- `functions/index.js` **`callGeminiWithRetry`**: fino a **6** tentativi; su **429** attesa più lunga (header `Retry-After` se presente, altrimenti backoff 2s→4s→…); errore finale **`HttpsError` `resource-exhausted`** con testo in italiano invece di generico `internal`.
+- `core/js/tony/main.js`: **`tonyFormatCallableError`** in chat per `resource-exhausted` / 429 (invito a riprovare dopo 30–60 s). **Deploy `functions`** necessario per la parte Cloud.
+
 ## ✅ Manodopera: piano design sostituzioni / equipaggio in repo (2026-04-18)
 
 - Aggiunto **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`**: design per shortlist sostituti, disponibilità automatica da lavori, competenze in anagrafica, policy tenant, integrazione Tony; riferimento in **`docs-sviluppo/tony/README.md`** e in **`.cursor/rules/tony-agent-onboarding.mdc`** (dopo i tre punti di lettura iniziale), così ogni nuovo agente vede il file da leggere prima di implementare su manodopera/squadre.

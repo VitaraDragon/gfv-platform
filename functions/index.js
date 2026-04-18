@@ -1975,8 +1975,8 @@ function neutralPreventivoReplyWhenTerrenoStripped() {
 }
 
 async function callGeminiWithRetry(url, body, label) {
-  const maxAttempts = 3;
-  const baseDelay = 900;
+  const maxAttempts = 6;
+  const baseDelayOther = 900;
   let lastStatus = 0;
   let lastText = "";
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -1986,14 +1986,33 @@ async function callGeminiWithRetry(url, body, label) {
       body: JSON.stringify(body),
     });
     if (res.ok) return res;
+    const retryAfterHeader = res.headers.get("retry-after");
     lastStatus = res.status;
     lastText = await res.text();
     console.error("Gemini API error:", res.status, lastText);
     const retriable = res.status === 429 || res.status === 500 || res.status === 503;
     if (!retriable || attempt === maxAttempts) break;
-    const waitMs = baseDelay * attempt;
-    console.warn(`[Tony Cloud Function] ${label} retry ${attempt}/${maxAttempts - 1} dopo ${waitMs}ms (status ${res.status})`);
+    let waitMs;
+    if (res.status === 429) {
+      let sec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
+      if (!Number.isFinite(sec) || sec < 1) {
+        sec = Math.min(90, Math.pow(2, attempt) * 2);
+      }
+      waitMs = Math.min(120000, sec * 1000);
+      waitMs = Math.max(2000, waitMs);
+    } else {
+      waitMs = baseDelayOther * attempt;
+    }
+    console.warn(
+      `[Tony Cloud Function] ${label} retry ${attempt}/${maxAttempts - 1} dopo ${waitMs}ms (status ${res.status})`
+    );
     await sleep(waitMs);
+  }
+  if (lastStatus === 429) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "Servizio AI temporaneamente al limite di richieste. Riprova tra qualche decina di secondi."
+    );
   }
   throw new HttpsError("internal", "Errore chiamata Gemini: " + (lastStatus || "unknown"));
 }

@@ -3935,11 +3935,27 @@ import {
                 }
             }
 
+            function tonyFormatCallableError(err) {
+                var code = err && err.code ? String(err.code) : '';
+                var msg = err && err.message ? String(err.message) : '';
+                if (code.indexOf('resource-exhausted') >= 0 ||
+                    /429|RESOURCE_EXHAUSTED|limite di richieste|sovraccarico|Troppe richieste/i.test(msg)) {
+                    return 'Servizio AI al momento sovraccarico (limite richieste). Attendi 30–60 secondi e riprova.';
+                }
+                if (code.indexOf('unauthenticated') >= 0) {
+                    return 'Sessione scaduta. Effettua di nuovo l\'accesso.';
+                }
+                if (code.indexOf('failed-precondition') >= 0 && /Gemini|chiave/i.test(msg)) {
+                    return 'Configurazione servizio AI non disponibile. Contatta l\'amministratore.';
+                }
+                return msg || 'Riprova più tardi.';
+            }
+
             function onError(err) {
                 _isSendingMessage = false;
                 removeTyping();
                 if (streamingMsgEl) streamingMsgEl.remove();
-                appendMessage('Errore: ' + (err && err.message ? err.message : 'Riprova più tardi.'), 'error');
+                appendMessage('Errore: ' + tonyFormatCallableError(err), 'error');
                 reopenMicIfAutoMode();
             }
 
