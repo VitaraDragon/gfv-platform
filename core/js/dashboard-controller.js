@@ -28,29 +28,20 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         createCoreBaseSection,
         createAdminSection,
         createManagerSection,
-        createAmministrazioneCard,
-        createStatisticheCard,
-        createTerreniCard,
-        createDiarioAttivitaCard,
-        createAbbonamentoCard,
-        createAffittiScadenzaCard,
+        createDashboardQuickBarSection,
+        createDashboardDeadlinesRow,
+        createDashboardModuleSidebar,
+        createDashboardPanoramaHubSection,
         createContoTerziCard,
         createVignetoCard,
         createFruttetoCard,
         createMagazzinoCard,
         createMacchineCard,
         createReportCard,
-        createManagerManodoperaSection,
-        createDiarioDaLavoriSection,
         createCaposquadraSection,
         createOperaioSection,
-        createMappaAziendaleSection,
         // Load functions
-        loadAffittiInScadenza,
         loadCoreStatsForManager,
-        loadManagerManodoperaStats,
-        loadRecentLavoriManagerManodopera,
-        loadDiarioDaLavori,
         loadCaposquadraStats,
         loadRecentLavoriCaposquadra,
         loadComunicazioneRapida,
@@ -88,6 +79,15 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         }
     }
 
+    const mappaHeaderLink = document.getElementById('mappa-aziendale-header-link');
+    if (mappaHeaderLink) {
+        if (hasRole(userData, 'manager') || hasRole(userData, 'amministratore')) {
+            mappaHeaderLink.style.display = 'inline-flex';
+        } else {
+            mappaHeaderLink.style.display = 'none';
+        }
+    }
+
     // CORE BASE: Mostra solo se l'utente NON è solo Operaio o solo Caposquadra
     // ECCEZIONE: Se Manager o Amministratore ha modulo Manodopera attivo, nascondi Core Base
     const isOnlyOperaio = ruoli.length === 1 && hasRole(userData, 'operaio');
@@ -96,79 +96,35 @@ export async function renderDashboard(userData, availableModules = [], callbacks
     const shouldShowCoreBase = !isOnlyOperaio && !isOnlyCaposquadra && !isManagerOrAdminWithManodopera;
     
     if (shouldShowCoreBase) {
-        // Per Manager/Amministratore senza Manodopera: layout con card sopra mappa
+        // Per Manager/Amministratore senza Manodopera: colonna card (mappa su pagina dedicata)
         if ((hasRole(userData, 'manager') || hasRole(userData, 'amministratore')) && !hasManodopera) {
-            const topRow = document.createElement('div');
-            topRow.className = 'dashboard-top-row';
-            topRow.setAttribute('data-tour-section', 'panoramica');
-            
-            const topLeft = document.createElement('div');
-            topLeft.className = 'dashboard-top-left';
-            
-            topLeft.appendChild(createTerreniCard());
-            topLeft.appendChild(createDiarioAttivitaCard());
-            
-            const affittiCardCore = createAffittiScadenzaCard();
-            topLeft.appendChild(affittiCardCore);
-            
-            topLeft.appendChild(createStatisticheCard(false)); // false = Core Base
-            
-            topLeft.appendChild(createAbbonamentoCard());
-            
-            const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
-            if (hasContoTerzi) {
-                topLeft.appendChild(createContoTerziCard());
-            }
-            
-            const hasVigneto = availableModules && availableModules.includes('vigneto');
-            if (hasVigneto) {
-                topLeft.appendChild(createVignetoCard());
-            }
-            
-            const hasFrutteto = availableModules && availableModules.includes('frutteto');
-            if (hasFrutteto) {
-                topLeft.appendChild(createFruttetoCard());
+            const layout = document.createElement('div');
+            layout.className = 'dashboard-panorama-layout';
+            layout.setAttribute('data-tour-section', 'panoramica');
+
+            let sottoScortaCount = 0;
+            if (availableModules && availableModules.includes('magazzino')) {
+                sottoScortaCount =
+                    (callbacks.loadMagazzinoSottoScortaCount &&
+                        (await callbacks.loadMagazzinoSottoScortaCount(dependencies))) ||
+                    0;
             }
 
-            const hasMagazzino = availableModules && availableModules.includes('magazzino');
-            if (hasMagazzino) {
-                const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
-                topLeft.appendChild(createMagazzinoCard(sottoScortaCount));
-            }
-
-            const hasMacchine = availableModules && availableModules.includes('parcoMacchine');
-            if (hasMacchine) {
-                topLeft.appendChild(createMacchineCard());
-            }
-            
-            const hasReport = availableModules && availableModules.includes('report');
-            if (hasReport) {
-                topLeft.appendChild(createReportCard());
-            }
-            
-            // Carica dati affitti in scadenza
-            setTimeout(() => {
-                loadAffittiInScadenza(dependencies);
-            }, 100);
-            
-            // Mappa a destra (versione semplificata senza Manodopera)
-            const topRight = document.createElement('div');
-            topRight.className = 'dashboard-top-right';
-            const mappaSection = createMappaAziendaleSection(userData, hasManodopera, (userData, hasManodopera) => {
-                // Callback per caricare la mappa
-                const { loadMappaAziendale } = callbacks;
-                if (loadMappaAziendale) {
-                    loadMappaAziendale(userData, hasManodopera, dependencies);
-                }
+            const sidebar = createDashboardModuleSidebar({
+                variant: 'core',
+                availableModules,
+                sottoScortaMagazzino: sottoScortaCount
             });
-            if (mappaSection) {
-                mappaSection.setAttribute('data-tour-section', 'mappa');
-                topRight.appendChild(mappaSection);
-            }
-            
-            topRow.appendChild(topLeft);
-            topRow.appendChild(topRight);
-            container.appendChild(topRow);
+
+            const main = document.createElement('div');
+            main.className = 'dashboard-panorama-main';
+            main.appendChild(createDashboardPanoramaHubSection());
+            main.appendChild(createDashboardQuickBarSection());
+            main.appendChild(createDashboardDeadlinesRow());
+
+            layout.appendChild(sidebar);
+            layout.appendChild(main);
+            container.appendChild(layout);
         } else {
             // Per altri utenti: layout normale con sezione Core Base
             const coreSection = createCoreBaseSection(userData, isCoreOnly, availableModules);
@@ -181,102 +137,40 @@ export async function renderDashboard(userData, availableModules = [], callbacks
 
     // Card Amministrazione (per Manager e Amministratore con Manodopera attivo)
     if (hasManodopera && (hasRole(userData, 'manager') || hasRole(userData, 'amministratore'))) {
-        const topRow = document.createElement('div');
-        topRow.className = 'dashboard-top-row';
-        topRow.setAttribute('data-tour-section', 'panoramica');
-        
-        const topLeft = document.createElement('div');
-        topLeft.className = 'dashboard-top-left';
-        
-        topLeft.appendChild(createAmministrazioneCard());
-        topLeft.appendChild(createStatisticheCard(true)); // true = ha Manodopera
-        topLeft.appendChild(createTerreniCard());
-        
-        const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
-        if (hasContoTerzi) {
-            topLeft.appendChild(createContoTerziCard());
-        }
-        
-        const hasVigneto = availableModules && availableModules.includes('vigneto');
-        if (hasVigneto) {
-            topLeft.appendChild(createVignetoCard());
-        }
-        
-        const hasFrutteto = availableModules && availableModules.includes('frutteto');
-        if (hasFrutteto) {
-            topLeft.appendChild(createFruttetoCard());
+        const layout = document.createElement('div');
+        layout.className = 'dashboard-panorama-layout';
+        layout.setAttribute('data-tour-section', 'panoramica');
+
+        let sottoScortaCount = 0;
+        if (availableModules && availableModules.includes('magazzino')) {
+            sottoScortaCount =
+                (callbacks.loadMagazzinoSottoScortaCount &&
+                    (await callbacks.loadMagazzinoSottoScortaCount(dependencies))) ||
+                0;
         }
 
-        const hasMagazzino = availableModules && availableModules.includes('magazzino');
-        if (hasMagazzino) {
-            const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
-            topLeft.appendChild(createMagazzinoCard(sottoScortaCount));
-        }
-
-        const hasMacchine = availableModules && availableModules.includes('parcoMacchine');
-        if (hasMacchine) {
-            topLeft.appendChild(createMacchineCard());
-        }
-        
-        const hasReport = availableModules && availableModules.includes('report');
-        if (hasReport) {
-            topLeft.appendChild(createReportCard());
-        }
-        
-        const affittiCard = createAffittiScadenzaCard();
-        topLeft.appendChild(affittiCard);
-        
-        // Carica dati affitti in scadenza
-        setTimeout(() => {
-            loadAffittiInScadenza(dependencies);
-        }, 100);
-        
-        // Mappa a destra (versione completa con Manodopera)
-        const topRight = document.createElement('div');
-        topRight.className = 'dashboard-top-right';
-        const mappaSection = createMappaAziendaleSection(userData, hasManodopera, (userData, hasManodopera) => {
-            const { loadMappaAziendale } = callbacks;
-            if (loadMappaAziendale) {
-                loadMappaAziendale(userData, hasManodopera, dependencies);
-            }
+        const sidebar = createDashboardModuleSidebar({
+            variant: 'manodopera',
+            availableModules,
+            sottoScortaMagazzino: sottoScortaCount
         });
-        if (mappaSection) {
-            mappaSection.setAttribute('data-tour-section', 'mappa');
-            topRight.appendChild(mappaSection);
-        }
-        
-        topRow.appendChild(topLeft);
-        topRow.appendChild(topRight);
-        container.appendChild(topRow);
+
+        const main = document.createElement('div');
+        main.className = 'dashboard-panorama-main';
+        main.appendChild(createDashboardPanoramaHubSection());
+        main.appendChild(createDashboardQuickBarSection());
+        main.appendChild(createDashboardDeadlinesRow());
+
+        layout.appendChild(sidebar);
+        layout.appendChild(main);
+        container.appendChild(layout);
     }
 
     // Ruoli avanzati: solo se ci sono moduli avanzati attivi
     if (hasAdvancedModules) {
-        // Sezione Manager: layout diverso se ha Manodopera attivo
+        // Sezione Manager: con Manodopera la panoramica (hub + barra + scadenze) è già sopra; qui solo variant senza Manodopera
         if (hasRole(userData, 'manager')) {
-            if (hasManodopera) {
-                // Gestione Manodopera (dopo la riga superiore)
-                const managerManodoperaSection = createManagerManodoperaSection(
-                    userData, 
-                    availableModules, 
-                    () => loadManagerManodoperaStats(dependencies),
-                    () => loadRecentLavoriManagerManodopera(dependencies)
-                );
-                if (managerManodoperaSection) {
-                    managerManodoperaSection.setAttribute('data-tour-section', 'gestione-manodopera');
-                    container.appendChild(managerManodoperaSection);
-                }
-                
-                // Diario da Lavori (sezione principale per Manager con Manodopera)
-                const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
-                if (diarioSection) {
-                    diarioSection.setAttribute('data-tour-section', 'diario');
-                    container.appendChild(diarioSection);
-                }
-                setTimeout(() => {
-                    loadDiarioDaLavori(userData, dependencies);
-                }, 50);
-            } else {
+            if (!hasManodopera) {
                 // Layout normale per Manager senza Manodopera
                 const managerSection = createManagerSection(
                     userData, 
@@ -317,37 +211,7 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 if (hasMacchine) {
                     container.appendChild(createMacchineCard());
                 }
-                
-                // Card Affitti in Scadenza anche per Manager senza Manodopera
-                const affittiCardCore = createAffittiScadenzaCard();
-                container.appendChild(affittiCardCore);
-                setTimeout(() => {
-                    loadAffittiInScadenza(dependencies);
-                }, 100);
             }
-        }
-        
-        // Sezione per Amministratore che non è Manager (solo se modulo Manodopera attivo)
-        if (hasManodopera && hasRole(userData, 'amministratore') && !hasRole(userData, 'manager')) {
-            const adminManodoperaSection = createManagerManodoperaSection(
-                userData, 
-                availableModules, 
-                () => loadManagerManodoperaStats(dependencies),
-                () => loadRecentLavoriManagerManodopera(dependencies)
-            );
-            if (adminManodoperaSection) {
-                adminManodoperaSection.setAttribute('data-tour-section', 'gestione-manodopera');
-                container.appendChild(adminManodoperaSection);
-            }
-            
-            const diarioSection = createDiarioDaLavoriSection(userData, availableModules);
-            if (diarioSection) {
-                diarioSection.setAttribute('data-tour-section', 'diario');
-                container.appendChild(diarioSection);
-            }
-            setTimeout(() => {
-                loadDiarioDaLavori(userData, dependencies);
-            }, 50);
         }
 
         // Sezione Caposquadra (solo con modulo Manodopera attivo)

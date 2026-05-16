@@ -315,6 +315,75 @@ export async function loadAffittiInScadenza(dependencies) {
     }
 }
 
+/**
+ * Conta affitti in scadenza con alert urgente (rosso/giallo), stessa logica della card Affitti.
+ * @param {Object} dependencies - db, auth, getDoc, doc, collection, getDocs
+ * @param {string} [tenantIdOverride] - se assente, usa tenantId dal documento utente
+ * @returns {Promise<{ urgentCount: number, totalAffitti: number }>}
+ */
+export async function loadAffittiUrgentiCount(dependencies, tenantIdOverride) {
+    const { db, auth, getDoc, doc, collection, getDocs } = dependencies;
+    try {
+        const user = auth.currentUser;
+        if (!user) return { urgentCount: 0, totalAffitti: 0 };
+
+        let tenantId = tenantIdOverride;
+        if (!tenantId) {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (!userDoc.exists()) return { urgentCount: 0, totalAffitti: 0 };
+            const userData = userDoc.data();
+            tenantId = userData.tenantId;
+        }
+        if (!tenantId) return { urgentCount: 0, totalAffitti: 0 };
+
+        const terreniCollection = collection(db, `tenants/${tenantId}/terreni`);
+        const terreniSnapshot = await getDocs(terreniCollection);
+
+        let totalAffitti = 0;
+        let urgentCount = 0;
+
+        terreniSnapshot.forEach((docSnap) => {
+            const terreno = docSnap.data();
+            if (terreno.clienteId && terreno.clienteId !== '') return;
+            if (terreno.tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
+                totalAffitti++;
+                const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
+                if (alert.colore === 'red' || alert.colore === 'yellow') {
+                    urgentCount++;
+                }
+            }
+        });
+
+        return { urgentCount, totalAffitti };
+    } catch (err) {
+        console.warn('loadAffittiUrgentiCount:', err);
+        return { urgentCount: 0, totalAffitti: 0 };
+    }
+}
+
+/**
+ * Conta lavori in stato da_pianificare (Conto Terzi / pianificazione).
+ * @param {string} tenantId
+ * @param {Object} dependencies - db, collection, getDocs
+ * @returns {Promise<number>}
+ */
+export async function loadLavoriDaPianificareCount(tenantId, dependencies) {
+    const { db, collection, getDocs } = dependencies;
+    try {
+        if (!tenantId) return 0;
+        const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
+        const snap = await getDocs(lavoriCollection);
+        let n = 0;
+        snap.forEach((d) => {
+            if ((d.data().stato || '') === 'da_pianificare') n++;
+        });
+        return n;
+    } catch (err) {
+        console.warn('loadLavoriDaPianificareCount:', err);
+        return 0;
+    }
+}
+
 // ============================================
 // MANAGER
 // ============================================
@@ -383,10 +452,10 @@ export async function loadCoreStatsForManager(dependencies) {
 
 /**
  * Carica statistiche Manodopera complete per Manager
- * @param {Object} dependencies - Dipendenze { db, auth, getDoc, doc, collection, getDocs, setupManutenzioniRealtime, setupGuastiRealtime }
+ * @param {Object} dependencies - Dipendenze { db, auth, getDoc, doc, collection, getDocs, setupManutenzioniRealtime }
  */
 export async function loadManagerManodoperaStats(dependencies) {
-    const { db, auth, getDoc, doc, collection, getDocs, setupManutenzioniRealtime, setupGuastiRealtime } = dependencies;
+    const { db, auth, getDoc, doc, collection, getDocs, setupManutenzioniRealtime } = dependencies;
     
     try {
         const user = auth.currentUser;
@@ -541,17 +610,16 @@ export async function loadManagerManodoperaStats(dependencies) {
         const statSquadre = document.getElementById('stat-squadre-attive-manodopera');
         const statOperai = document.getElementById('stat-operai-online-manodopera');
         
-        // Carica manutenzioni in scadenza e guasti segnalati con listener real-time (solo se modulo Parco Macchine attivo)
+        // Stub manutenzioni real-time dashboard (solo se modulo Parco Macchine attivo)
         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
         let hasContoTerzi = false;
         if (tenantDoc.exists()) {
             const tenantData = tenantDoc.data();
             hasContoTerzi = tenantData.modules && tenantData.modules.includes('contoTerzi');
             const hasParcoMacchine = tenantData.modules && tenantData.modules.includes('parcoMacchine');
-            if (hasParcoMacchine && setupManutenzioniRealtime && setupGuastiRealtime) {
+            if (hasParcoMacchine && setupManutenzioniRealtime) {
                 setTimeout(() => {
                     setupManutenzioniRealtime(tenantId);
-                    setupGuastiRealtime(tenantId);
                 }, 100);
             }
         }
@@ -585,53 +653,52 @@ export async function loadManagerManodoperaStats(dependencies) {
  * @param {Object} dependencies - Dipendenze Firebase
  */
 async function loadOreDaValidareManager(tenantId, dependencies) {
-    const { db, collection, getDocs } = dependencies;
-    
+    const count = await countOreDaValidareManager(tenantId, dependencies);
+    const badge = document.getElementById('ore-da-validare-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = String(count);
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Conta record ore con stato da_validare su lavori autonomi (manager).
+ * @param {string} tenantId
+ * @param {Object} dependencies
+ * @returns {Promise<number>}
+ */
+export async function countOreDaValidareManager(tenantId, dependencies) {
+    const { db, collection, getDocs, query, where } = dependencies;
+
     try {
-        // Carica tutti i lavori del tenant
         const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
         const lavoriSnapshot = await getDocs(lavoriCollection);
-        
+
         let conteggioOreDaValidare = 0;
-        
-        // Per ogni lavoro, verifica se è autonomo e conta ore da validare
+
         for (const lavoroDoc of lavoriSnapshot.docs) {
             const lavoroData = lavoroDoc.data();
             const lavoroId = lavoroDoc.id;
-            
-            // Manager può validare solo lavori autonomi (operaioId presente, caposquadraId null)
+
             if (lavoroData.operaioId && !lavoroData.caposquadraId) {
                 try {
                     const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
                     const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
                     const oreSnapshot = await getDocs(oreQuery);
-                    
-                    // Conta il numero di record (non le ore effettive, ma il numero di "ore da validare")
                     conteggioOreDaValidare += oreSnapshot.size;
                 } catch (error) {
-                    // Se la sub-collection non esiste o c'è un errore, continua
                     console.warn(`Errore caricamento ore da validare per lavoro ${lavoroId}:`, error);
                 }
             }
         }
-        
-        // Aggiorna badge
-        const badge = document.getElementById('ore-da-validare-badge');
-        if (badge) {
-            if (conteggioOreDaValidare > 0) {
-                badge.textContent = conteggioOreDaValidare;
-                badge.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
+        return conteggioOreDaValidare;
     } catch (error) {
         console.error('Errore caricamento ore da validare:', error);
-        // In caso di errore, nascondi il badge
-        const badge = document.getElementById('ore-da-validare-badge');
-        if (badge) {
-            badge.style.display = 'none';
-        }
+        return 0;
     }
 }
 
@@ -980,220 +1047,6 @@ export async function loadRecentLavori(dependencies) {
                 </li>
             `;
         }
-    }
-}
-
-// ============================================
-// MANAGER - DIARIO DA LAVORI
-// ============================================
-
-/**
- * Carica attività generate automaticamente dalle ore validate
- * @param {Object} userData - Dati utente
- * @param {Object} dependencies - Dipendenze { db, auth, collection, getDocs, escapeHtml }
- */
-export async function loadDiarioDaLavori(userData, dependencies) {
-    const { db, auth, collection, getDocs, escapeHtml } = dependencies;
-    
-    const container = document.getElementById('diario-lavori-container');
-    if (!container) {
-        console.error('Container diario-lavori-container non trovato');
-        return;
-    }
-    
-    try {
-        const user = auth.currentUser;
-        if (!user || !userData || !userData.tenantId) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #dc3545;">
-                    <div style="font-size: 18px; margin-bottom: 10px;">Errore: dati utente non disponibili</div>
-                </div>
-            `;
-            return;
-        }
-        
-        const tenantId = userData.tenantId;
-        
-        const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
-        const lavoriSnapshot = await getDocs(lavoriRef);
-        
-        const attivitaMap = new Map();
-        
-        const terreniRef = collection(db, `tenants/${tenantId}/terreni`);
-        const terreniSnapshot = await getDocs(terreniRef);
-        const terreniMap = new Map();
-        terreniSnapshot.forEach(doc => {
-            terreniMap.set(doc.id, doc.data());
-        });
-        
-        for (const lavoroDoc of lavoriSnapshot.docs) {
-            const lavoro = lavoroDoc.data();
-            const lavoroId = lavoroDoc.id;
-            
-            try {
-                const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
-                const oreSnapshot = await getDocs(oreRef);
-                
-                const orePerData = new Map();
-                
-                oreSnapshot.forEach(oraDoc => {
-                    const ora = oraDoc.data();
-                    if (ora.stato !== 'validate') return;
-                    if (!ora.data) return;
-                    
-                    try {
-                        const dataOra = ora.data.toDate ? ora.data.toDate() : new Date(ora.data);
-                        if (isNaN(dataOra.getTime())) return;
-                        
-                        const dataKey = dataOra.toISOString().split('T')[0];
-                        
-                        if (!orePerData.has(dataKey)) {
-                            orePerData.set(dataKey, []);
-                        }
-                        orePerData.get(dataKey).push(ora);
-                    } catch (error) {
-                        console.warn('Errore processamento ora:', oraDoc.id, error);
-                    }
-                });
-                
-                orePerData.forEach((oreGiorno, dataKey) => {
-                    let orarioInizio = null;
-                    let orarioFine = null;
-                    let pauseTotali = 0;
-                    let oreNetteTotali = 0;
-                    const operaiSet = new Set();
-                    
-                    oreGiorno.forEach(ora => {
-                        if (ora.orarioInizio) {
-                            if (!orarioInizio || ora.orarioInizio < orarioInizio) {
-                                orarioInizio = ora.orarioInizio;
-                            }
-                        }
-                        if (ora.orarioFine) {
-                            if (!orarioFine || ora.orarioFine > orarioFine) {
-                                orarioFine = ora.orarioFine;
-                            }
-                        }
-                        pauseTotali += ora.pauseMinuti || 0;
-                        oreNetteTotali += ora.oreNette || 0;
-                        if (ora.operaioId) {
-                            operaiSet.add(ora.operaioId);
-                        }
-                    });
-                    
-                    if (!orarioInizio || !orarioFine) return;
-                    
-                    const terreno = terreniMap.get(lavoro.terrenoId);
-                    const terrenoNome = terreno ? terreno.nome : 'Terreno non trovato';
-                    const coltura = terreno ? terreno.coltura : '';
-                    
-                    const attivitaKey = `${dataKey}-${lavoroId}`;
-                    
-                    attivitaMap.set(attivitaKey, {
-                        data: new Date(dataKey),
-                        dataKey: dataKey,
-                        lavoroId: lavoroId,
-                        lavoroNome: lavoro.nome || 'Lavoro senza nome',
-                        terrenoId: lavoro.terrenoId,
-                        terrenoNome: terrenoNome,
-                        tipoLavoro: lavoro.tipoLavoro || 'Non specificato',
-                        coltura: coltura,
-                        orarioInizio: orarioInizio,
-                        orarioFine: orarioFine,
-                        pauseMinuti: pauseTotali,
-                        oreNette: oreNetteTotali,
-                        numOperai: operaiSet.size,
-                        clienteId: lavoro.clienteId || null,
-                        note: `Lavoro: ${lavoro.nome || 'Senza nome'} - ${operaiSet.size} operaio${operaiSet.size !== 1 ? 'i' : ''}`
-                    });
-                });
-            } catch (error) {
-                console.warn(`Errore caricamento ore per lavoro ${lavoroId}:`, error);
-            }
-        }
-        
-        const attivitaArray = Array.from(attivitaMap.values());
-        attivitaArray.sort((a, b) => {
-            if (!a.data || !b.data) return 0;
-            return b.data.getTime() - a.data.getTime();
-        });
-        
-        if (attivitaArray.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
-                    <div style="font-size: 18px; margin-bottom: 10px;">Nessuna attività generata</div>
-                    <div style="font-size: 14px; color: #999;">
-                        Le attività verranno generate automaticamente quando ci saranno ore validate dai caposquadra.
-                    </div>
-                </div>
-            `;
-            return;
-        }
-        
-        const attivitaMostrate = attivitaArray.slice(0, 20);
-        
-        let html = `
-            <style>
-                .lavoro-conto-terzi-dashboard {
-                    background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%) !important;
-                    border-left: 4px solid #1976D2;
-                }
-                .lavoro-conto-terzi-dashboard:hover {
-                    background: linear-gradient(135deg, #BBDEFB 0%, #90CAF9 100%) !important;
-                }
-            </style>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Data</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Terreno</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Tipo Lavoro</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Coltura</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Orario</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Ore</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Operai</th>
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: #495057;">Lavoro</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        attivitaMostrate.forEach(att => {
-            const dataFormatted = formatDateLikeToItalianLongLocal(att.data);
-            const oreFormatted = formattaOre(att.oreNette);
-            const isContoTerzi = !!att.clienteId;
-            const rowClass = isContoTerzi ? 'lavoro-conto-terzi-dashboard' : '';
-            
-            html += `
-                <tr class="${rowClass}" style="border-bottom: 1px solid #e9ecef;">
-                    <td style="padding: 12px;">${dataFormatted}</td>
-                    <td style="padding: 12px;">${escapeHtml(att.terrenoNome)}</td>
-                    <td style="padding: 12px;">${escapeHtml(att.tipoLavoro)}</td>
-                    <td style="padding: 12px;">${escapeHtml(att.coltura)}</td>
-                    <td style="padding: 12px;">${att.orarioInizio} - ${att.orarioFine}</td>
-                    <td style="padding: 12px;">${oreFormatted}</td>
-                    <td style="padding: 12px;">${att.numOperai}</td>
-                    <td style="padding: 12px;">${escapeHtml(att.lavoroNome)}</td>
-                </tr>
-            `;
-        });
-        
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Errore caricamento diario da lavori:', error);
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #dc3545;">
-                <div style="font-size: 18px; margin-bottom: 10px;">Errore caricamento attività</div>
-            </div>
-        `;
     }
 }
 

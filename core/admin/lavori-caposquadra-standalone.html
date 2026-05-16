@@ -669,6 +669,9 @@
     </style>
 </head>
 <body>
+    <script>
+        window.currentTableData = window.currentTableData || { pageType: 'lavori_caposquadra', summary: 'Caricamento dati in corso...', items: [] };
+    </script>
     <div class="container">
         <div class="header">
             <h1>👷 I Miei Lavori</h1>
@@ -813,6 +816,9 @@
         let currentUserData = null;
         let currentTenantId = null;
         let lavoriList = [];
+        /** Snapshot post-caricamento (stesso ordine della lista completa) per filtri Tony senza ricaricare da Firestore */
+        let lavoriListBaseForTony = [];
+        let tonyLavoriCaposquadraFilter = { stato: '', terreno: '', tipoLavoro: '', progresso: '', ricerca: '' };
         let terreniMap = new Map();
         let currentLavoroId = null;
         let currentTerreno = null;
@@ -860,6 +866,128 @@
                 else console.log('[GFV-MAP-TRACE]', msg);
             } catch (e) { /* ignore */ }
         }
+
+        function tonyNorm(s) {
+            if (s == null || s === '') return '';
+            return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        }
+
+        function applyTonyFiltersToLavoriList(list) {
+            if (!list || !list.length) return [];
+            var f = tonyLavoriCaposquadraFilter || {};
+            var has = ['stato', 'terreno', 'tipoLavoro', 'progresso', 'ricerca'].some(function (k) {
+                return f[k] != null && String(f[k]).trim() !== '';
+            });
+            if (!has) return list.slice();
+            return list.filter(function (l) {
+                if (f.stato != null && String(f.stato).trim() !== '') {
+                    if (String(l.stato || '').trim() !== String(f.stato).trim()) return false;
+                }
+                if (f.terreno != null && String(f.terreno).trim() !== '') {
+                    var t = terreniMap.get(l.terrenoId);
+                    var tn = t ? (t.nome || '') : '';
+                    var nt = tonyNorm(tn);
+                    var ft = tonyNorm(f.terreno);
+                    if (ft && nt.indexOf(ft) < 0 && nt !== ft) return false;
+                }
+                if (f.tipoLavoro != null && String(f.tipoLavoro).trim() !== '') {
+                    var tl = tonyNorm(l.tipoLavoro || '');
+                    if (tl.indexOf(tonyNorm(f.tipoLavoro)) < 0) return false;
+                }
+                if (f.progresso != null && String(f.progresso).trim() !== '') {
+                    var sp = String(l.statoProgresso || '').trim();
+                    var fp = String(f.progresso).trim();
+                    if (tonyNorm(sp).indexOf(tonyNorm(fp)) < 0 && sp !== fp) return false;
+                }
+                if (f.ricerca != null && String(f.ricerca).trim() !== '') {
+                    var r = tonyNorm(f.ricerca);
+                    var t2 = terreniMap.get(l.terrenoId);
+                    var blob = tonyNorm([l.nome, l.tipoLavoro, t2 ? t2.nome : ''].join(' '));
+                    if (blob.indexOf(r) < 0) return false;
+                }
+                return true;
+            });
+        }
+
+        function computeLavoriListForDisplay() {
+            var list = lavoriListBaseForTony.slice();
+            if (focusLavoroId) {
+                var focused = list.filter(function (l) { return l.id === focusLavoroId; });
+                if (focused.length === 0) return { list: [], notFound: true };
+                list = focused;
+            }
+            list = applyTonyFiltersToLavoriList(list);
+            return { list: list, notFound: false };
+        }
+
+        function syncTonyTableDataLavoriCaposquadra(lavoriConZone) {
+            var items = (lavoriConZone || []).map(function (l) {
+                var t = l.terreno || terreniMap.get(l.terrenoId);
+                var di = l.dataInizio;
+                var diStr = '';
+                if (di instanceof Date) diStr = di.toISOString().slice(0, 10);
+                else if (di && typeof di.toDate === 'function') {
+                    try { diStr = di.toDate().toISOString().slice(0, 10); } catch (e) { diStr = ''; }
+                }
+                return {
+                    id: l.id,
+                    nome: l.nome || '',
+                    stato: l.stato || '',
+                    tipoLavoro: l.tipoLavoro || '',
+                    terrenoId: l.terrenoId || '',
+                    terrenoNome: t ? (t.nome || '') : '',
+                    dataInizio: diStr,
+                    statoProgresso: l.statoProgresso || '',
+                    percentualeSuperficie: l.percentuale != null ? String(l.percentuale) : ''
+                };
+            });
+            var ruolo = (currentUserData && currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra')) ? 'caposquadra' : 'operaio';
+            var summary = 'Lavori assegnati (vista campo): ' + items.length + ' in elenco';
+            if (focusLavoroId) summary += '; vista focalizzata su un incarico';
+            summary += '. Ruolo: ' + ruolo + '.';
+            if (!window.currentTableData) window.currentTableData = { pageType: 'lavori_caposquadra', summary: '', items: [] };
+            window.currentTableData.pageType = 'lavori_caposquadra';
+            window.currentTableData.summary = summary;
+            window.currentTableData.items = items;
+            window.currentTableData.fieldRole = ruolo;
+            window.currentTableData.focusLavoroId = focusLavoroId || null;
+            var page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, page, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+        }
+
+        window.applyTonyLavoriCaposquadraFilter = function (params) {
+            params = params || {};
+            if (params.reset === true || params.filterType === 'reset') {
+                tonyLavoriCaposquadraFilter = { stato: '', terreno: '', tipoLavoro: '', progresso: '', ricerca: '' };
+            } else {
+                ['stato', 'terreno', 'tipoLavoro', 'progresso', 'ricerca'].forEach(function (k) {
+                    if (params[k] != null && String(params[k]).trim() !== '') {
+                        tonyLavoriCaposquadraFilter[k] = String(params[k]).trim();
+                    }
+                });
+            }
+            if (!lavoriListBaseForTony || lavoriListBaseForTony.length === 0) {
+                syncTonyTableDataLavoriCaposquadra([]);
+                return;
+            }
+            var disp = computeLavoriListForDisplay();
+            if (disp.notFound) {
+                var container = document.getElementById('lavori-container');
+                if (container) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><p>Lavoro non trovato o non assegnato a te</p></div>';
+                }
+                syncTonyTableDataLavoriCaposquadra([]);
+                return;
+            }
+            lavoriList = disp.list;
+            renderLavori().catch(function (e) { console.error('[Lavori campo] renderLavori', e); });
+        };
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
@@ -1010,10 +1138,10 @@
                     return b.dataInizio.getTime() - a.dataInizio.getTime();
                 });
 
-                if (focusLavoroId) {
-                    const focused = lavoriList.filter((l) => l.id === focusLavoroId);
-                    if (focused.length === 0) {
-                        container.innerHTML = `
+                lavoriListBaseForTony = lavoriList.slice();
+                const disp = computeLavoriListForDisplay();
+                if (disp.notFound) {
+                    container.innerHTML = `
                             <div class="empty-state">
                                 <div class="empty-state-icon">🔍</div>
                                 <p>Lavoro non trovato o non assegnato a te</p>
@@ -1023,16 +1151,17 @@
                                 </p>
                             </div>
                         `;
-                        return;
-                    }
-                    lavoriList = focused;
+                    syncTonyTableDataLavoriCaposquadra([]);
+                    return;
                 }
+                lavoriList = disp.list;
 
-                renderLavori();
+                renderLavori().catch(function (e) { console.error('[Lavori campo] renderLavori', e); });
             } catch (error) {
                 console.error('Errore caricamento lavori:', error);
                 container.innerHTML = '<div class="empty-state">Errore caricamento lavori</div>';
                 showAlert('Errore caricamento lavori', 'error');
+                syncTonyTableDataLavoriCaposquadra([]);
             }
         }
 
@@ -1048,6 +1177,7 @@
                         <p style="font-size: 14px; margin-top: 10px;">I lavori assegnati dal manager appariranno qui</p>
                     </div>
                 `;
+                syncTonyTableDataLavoriCaposquadra([]);
                 return;
             }
 
@@ -1229,6 +1359,7 @@
             });
 
             container.innerHTML = html;
+            syncTonyTableDataLavoriCaposquadra(lavoriConZone);
             if (isEmbedMobile && mapOnlyMode && pendingTraceLavoroId && !skipAutoTrace && !autoTraceHandled) {
                 const canTrace = lavoriConZone.some((l) => l.id === pendingTraceLavoroId);
                 if (canTrace) {
@@ -2968,10 +3099,13 @@
             return div.innerHTML;
         }
     </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- Tony widget: non in embed=mobile (iframe nel workspace campo — il parent ha già Tony; doppio widget blocca/duplica chat) -->
     <script>
     (function() {
+      try {
+        var _sp = new URLSearchParams(window.location.search || '');
+        if (_sp.get('embed') === 'mobile') return;
+      } catch (e) { /* ignore */ }
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
       var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));

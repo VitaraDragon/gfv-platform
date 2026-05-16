@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentazione Utente - GFV Platform</title>
+    <title>Documentazione utente — GFV Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -15,7 +15,6 @@
             --border-color: #e5e7eb;
             --text-color: #1f2933;
             --accent-color: #2E8B57;
-            --accent-hover: #267447;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -27,9 +26,7 @@
             }
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -58,7 +55,9 @@
 
         .doc-header p {
             margin: 0;
-            opacity: 0.9;
+            opacity: 0.92;
+            max-width: 560px;
+            line-height: 1.45;
         }
 
         .header-actions {
@@ -79,7 +78,7 @@
             color: #fff;
             text-decoration: none;
             font-weight: 500;
-            transition: background 0.2s ease, color 0.2s ease;
+            transition: background 0.2s ease;
         }
 
         .btn:hover {
@@ -89,7 +88,7 @@
         .doc-layout {
             flex: 1;
             display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 300px 1fr;
             gap: 24px;
             padding: 24px;
         }
@@ -99,15 +98,19 @@
             border-radius: 16px;
             padding: 24px;
             border: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
             height: fit-content;
         }
 
         nav h2 {
-            margin: 0;
+            margin: 0 0 6px;
             font-size: 18px;
+        }
+
+        nav .nav-sub {
+            margin: 0 0 16px;
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.4;
         }
 
         .doc-nav-list {
@@ -119,7 +122,11 @@
             gap: 8px;
         }
 
-        .doc-nav-list button {
+        .doc-nav-list a.doc-nav-link {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
             width: 100%;
             border: 1px solid var(--border-color);
             background: transparent;
@@ -127,31 +134,31 @@
             border-radius: 10px;
             text-align: left;
             font-size: 14px;
-            cursor: pointer;
             color: inherit;
+            text-decoration: none;
             transition: border-color 0.2s ease, background 0.2s ease;
         }
 
-        .doc-nav-list button:hover {
+        .doc-nav-list a.doc-nav-link:hover {
             border-color: var(--accent-color);
+            background: rgba(46, 139, 87, 0.06);
         }
 
-        .doc-nav-list button.active {
-            border-color: var(--accent-color);
-            background: rgba(46, 139, 87, 0.08);
-            color: var(--accent-color);
+        .doc-nav-list .guide-label {
+            flex-shrink: 0;
+            font-size: 11px;
             font-weight: 600;
-        }
-
-        .doc-nav-list .nav-group {
-            font-size: 13px;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #6b7280;
-            margin: 10px 0 4px;
+            color: var(--accent-color);
+            background: rgba(46, 139, 87, 0.12);
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-top: 1px;
         }
 
         .info-box {
+            margin-top: 20px;
             background: rgba(46, 139, 87, 0.08);
             border-radius: 12px;
             padding: 16px;
@@ -163,7 +170,7 @@
         main {
             background: var(--card-bg);
             border-radius: 16px;
-            padding: 24px;
+            padding: 28px 32px;
             border: 1px solid var(--border-color);
             box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
             min-height: 70vh;
@@ -171,166 +178,52 @@
 
         #doc-content {
             line-height: 1.65;
-            color: inherit;
-            max-width: 920px;
+            max-width: 720px;
             margin: 0 auto;
             font-size: 16px;
         }
 
-        #doc-content h1,
-        #doc-content h2,
-        #doc-content h3,
-        #doc-content h4 {
-            color: inherit;
-            font-weight: 600;
-            line-height: 1.3;
-        }
-
         #doc-content h1 {
-            font-size: clamp(26px, 3vw, 30px);
-            margin: 0 0 16px;
-        }
-
-        #doc-content h2 {
-            font-size: 22px;
-            margin: 32px 0 12px;
-        }
-
-        #doc-content h3 {
-            font-size: 18px;
-            margin: 24px 0 10px;
+            font-size: clamp(24px, 3vw, 28px);
+            margin: 0 0 12px;
+            font-weight: 600;
         }
 
         #doc-content p {
             margin: 0 0 14px;
         }
 
-        #doc-content ul,
-        #doc-content ol {
-            padding-left: 22px;
-            margin: 12px 0 16px;
+        #doc-content .doc-filter-hint {
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(46, 139, 87, 0.25);
+            background: rgba(46, 139, 87, 0.09);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        #doc-content ul {
+            padding-left: 20px;
+            margin: 12px 0 0;
         }
 
         #doc-content li {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
-        #doc-content hr {
-            border: none;
-            border-top: 1px solid var(--border-color);
-            margin: 28px 0;
-        }
-
-        #doc-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 18px 0;
-        }
-
-        #doc-content th,
-        #doc-content td {
-            border: 1px solid var(--border-color);
-            padding: 10px 12px;
-            text-align: left;
-        }
-
-        #doc-content th {
-            background: rgba(46, 139, 87, 0.08);
-            font-weight: 600;
-        }
-
-        #doc-content blockquote {
-            border-left: 4px solid var(--accent-color);
-            padding-left: 16px;
-            margin: 18px 0;
-            color: #4b5563;
-        }
-
-        #doc-content code {
-            background: rgba(15, 23, 42, 0.08);
-            padding: 3px 6px;
-            border-radius: 6px;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-        }
-
-        #doc-content pre {
-            background: rgba(15, 23, 42, 0.08);
-            padding: 16px;
-            border-radius: 12px;
-            overflow-x: auto;
-        }
-
-        .placeholder {
-            text-align: center;
-            padding: 40px 20px;
-            color: #6c757d;
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #6c757d;
-        }
-
-        .loading span {
-            width: 18px;
-            height: 18px;
-            border-radius: 999px;
-            border: 3px solid rgba(46, 139, 87, 0.4);
-            border-top-color: var(--accent-color);
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .error-state {
-            background: rgba(220, 53, 69, 0.1);
-            border: 1px solid rgba(220, 53, 69, 0.3);
-            padding: 20px;
-            border-radius: 12px;
-            color: #8c1f2c;
-        }
-
-        .error-state p {
-            margin: 0 0 8px;
-        }
-
-        .error-state a {
+        #doc-content a {
             color: var(--accent-color);
+            font-weight: 500;
         }
 
         @media (max-width: 960px) {
             .doc-layout {
                 grid-template-columns: 1fr;
             }
-
             nav {
                 position: sticky;
                 top: 0;
                 z-index: 2;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .doc-header {
-                padding: 24px 20px;
-            }
-
-            .doc-layout {
-                padding: 16px;
-            }
-
-            nav {
-                padding: 16px;
-            }
-
-            main {
-                padding: 18px;
             }
         }
     </style>
@@ -338,168 +231,145 @@
 <body>
     <header class="doc-header">
         <div>
-            <h1>📘 Documentazione GFV Platform</h1>
-            <p>Guida completa, pratica e aggiornata per usare GFV Platform al meglio.</p>
+            <h1>Documentazione utente</h1>
         </div>
         <div class="header-actions">
-            <a class="btn" href="../core/dashboard-standalone.html">
-                ← Torna alla Dashboard
-            </a>
+            <a class="btn" href="../core/dashboard-standalone.html">← Torna alla dashboard</a>
         </div>
     </header>
 
     <div class="doc-layout">
         <nav>
-            <h2>Sezioni</h2>
+            <h2>Guide utente (GUIDA)</h2>
+            <p class="nav-sub">Ogni voce apre la versione dedicata (testo caricato dai file guida in markdown).</p>
             <ul class="doc-nav-list">
-                <li><button data-doc="intro" class="active">📘 Introduzione</button></li>
-                <li><button data-doc="core">🧭 Core: ruoli, piani, Tony</button></li>
-                <li class="nav-group">Moduli principali</li>
-                <li><button data-doc="mod-amministrazione">👑 Amministrazione</button></li>
-                <li><button data-doc="mod-terreni">🌱 Terreni</button></li>
-                <li><button data-doc="mod-lavori">📋 Lavori e Attivita</button></li>
-                <li><button data-doc="mod-vigneto">🍇 Vigneto</button></li>
-                <li><button data-doc="mod-frutteto">🍎 Frutteto</button></li>
-                <li><button data-doc="mod-magazzino">📦 Magazzino</button></li>
-                <li><button data-doc="mod-parco-macchine">🚜 Parco Macchine e Guasti</button></li>
-                <li><button data-doc="mod-statistiche-report">📈 Statistiche e Report</button></li>
-                <li><button data-doc="mod-conto-terzi">🤝 Conto Terzi</button></li>
-                <li class="nav-group">Visione completa</li>
-                <li><button data-doc="intersezioni">🔗 Intersezioni tra moduli</button></li>
+                <li data-doc-module="core">
+                    <a href="guida-core-utente.html" class="doc-nav-link">
+                        <span>📗 Core — dati azienda, terreni, diario, ruoli</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
+                <li data-doc-module="parcoMacchine">
+                    <a href="guida-parco-macchine-utente.html" class="doc-nav-link">
+                        <span>🚜 Parco Macchine</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
+                <li data-doc-module="vigneto">
+                    <a href="guida-vigneto-utente.html" class="doc-nav-link">
+                        <span>🍇 Vigneto</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
+                <li data-doc-module="frutteto">
+                    <a href="guida-frutteto-utente.html" class="doc-nav-link">
+                        <span>🍎 Frutteto</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
+                <li data-doc-module="magazzino">
+                    <a href="guida-magazzino-utente.html" class="doc-nav-link">
+                        <span>📦 Magazzino</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
+                <li data-doc-module="contoTerzi">
+                    <a href="guida-conto-terzi-utente.html" class="doc-nav-link">
+                        <span>🤝 Conto Terzi</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
+                <li data-doc-module="manodopera">
+                    <a href="guida-manodopera-utente.html" class="doc-nav-link">
+                        <span>👷 Manodopera</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
+                <li data-doc-module="tony">
+                    <a href="guida-tony-utente.html" class="doc-nav-link">
+                        <span>🤖 Tony (modulo assistente)</span>
+                        <span class="guide-label" title="Guida utente da GUIDA/…/utente">GUIDA</span>
+                    </a>
+                </li>
             </ul>
 
-            <div class="info-box">
-                <strong>Suggerimenti</strong>
-                <ul>
-                    <li>Inizia da Core per capire ruoli e piani.</li>
-                    <li>Poi passa ai moduli che usi ogni giorno.</li>
-                    <li>Usa Intersezioni per i flussi cross-modulo.</li>
+            <div class="info-box" id="doc-nav-info-box">
+                <strong>Da dove iniziare</strong>
+                <ul style="margin:8px 0 0; padding-left:18px;">
+                    <li><strong>Core</strong> se devi capire ruoli, piani e voci comuni.</li>
+                    <li>Poi il <strong>modulo</strong> che usi ogni giorno.</li>
+                    <li><strong>Tony</strong> se ti serve capire chat, voce e piano.</li>
                 </ul>
             </div>
         </nav>
 
         <main>
             <div id="doc-content">
-                <div class="placeholder">
-                    Seleziona una sezione dal menu per visualizzare la guida corrispondente.
+                <h1 id="doc-main-h1">Benvenuto</h1>
+                <p id="doc-filter-hint" class="doc-filter-hint" hidden>Qui vedi solo le guide dei <strong>moduli attivi</strong> sul tuo abbonamento (apertura dalla dashboard). <strong>Core</strong> resta sempre disponibile.</p>
+                <p id="doc-filter-hint-field" class="doc-filter-hint" hidden>Sei in <strong>vista campo</strong> (operaio o caposquadra): è disponibile solo la <strong>guida Manodopera</strong> per il tuo ruolo.</p>
+                <div id="doc-welcome-field" hidden>
+                    <p>Usa la voce <strong>Manodopera</strong> nel menu a sinistra per aprire la guida del tuo ruolo.</p>
+                </div>
+                <div id="doc-welcome-default">
+                    <p>Scegli una guida dal menu a sinistra: si apre una pagina dedicata, comoda da leggere e da stampare.</p>
+                    <p>Le guide sono allineate al materiale <strong>GUIDA</strong> del progetto (stesso testo che l’assistente Tony può usare come riferimento).</p>
+                    <p><strong>Suggerimento:</strong> in locale usa un piccolo server (es. dalla cartella del progetto <code>npx serve</code>) così il browser può caricare i file markdown; con doppio clic sui file HTML alcuni browser bloccano il caricamento.</p>
                 </div>
             </div>
         </main>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
-        const DOCS = {
-            'intro': {
-                title: 'Introduzione',
-                path: '../core/guida-app/README.md'
-            },
-            'core': {
-                title: 'Core: ruoli, piani, Tony',
-                path: '../core/guida-app/core.md'
-            },
-            'mod-amministrazione': {
-                title: 'Amministrazione',
-                path: '../core/guida-app/moduli/amministrazione.md'
-            },
-            'mod-terreni': {
-                title: 'Terreni',
-                path: '../core/guida-app/moduli/terreni.md'
-            },
-            'mod-lavori': {
-                title: 'Lavori e Attivita',
-                path: '../core/guida-app/moduli/lavori-attivita.md'
-            },
-            'mod-vigneto': {
-                title: 'Vigneto',
-                path: '../core/guida-app/moduli/vigneto.md'
-            },
-            'mod-frutteto': {
-                title: 'Frutteto',
-                path: '../core/guida-app/moduli/frutteto.md'
-            },
-            'mod-magazzino': {
-                title: 'Magazzino',
-                path: '../core/guida-app/moduli/magazzino.md'
-            },
-            'mod-parco-macchine': {
-                title: 'Parco Macchine e Guasti',
-                path: '../core/guida-app/moduli/parco-macchine.md'
-            },
-            'mod-statistiche-report': {
-                title: 'Statistiche e Report',
-                path: '../core/guida-app/moduli/statistiche-report.md'
-            },
-            'mod-conto-terzi': {
-                title: 'Conto Terzi',
-                path: '../core/guida-app/moduli/conto-terzi.md'
-            },
-            'intersezioni': {
-                title: 'Intersezioni tra moduli',
-                path: '../core/guida-app/intersezioni-moduli.md'
-            }
-        };
+    (function () {
+        try {
+            var params = new URLSearchParams(window.location.search || '');
+            var fieldRoleRaw = (params.get('fieldRole') || '').trim().toLowerCase();
+            var fieldRole = (fieldRoleRaw === 'operaio' || fieldRoleRaw === 'caposquadra') ? fieldRoleRaw : '';
 
-        const contentEl = document.getElementById('doc-content');
-        const buttons = document.querySelectorAll('[data-doc]');
+            var rawMods = params.get('mods');
+            var modules = rawMods
+                ? rawMods.split(',').map(function (s) { return String(s || '').trim(); }).filter(Boolean)
+                : [];
+            var lower = modules.map(function (m) { return m.toLowerCase(); });
 
-        function setActiveButton(docId) {
-            buttons.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.doc === docId);
-            });
-        }
-
-        async function loadDocument(docId) {
-            const doc = DOCS[docId];
-            if (!doc) return;
-
-            setActiveButton(docId);
-            contentEl.innerHTML = `
-                <div class="loading">
-                    <span aria-hidden="true"></span>
-                    <div>Caricamento "${doc.title}"...</div>
-                </div>
-            `;
-
-            try {
-                const response = await fetch(doc.path);
-                if (!response.ok) {
-                    throw new Error(`Impossibile caricare ${doc.path}`);
+            if (fieldRole) {
+                document.querySelectorAll('[data-doc-module]').forEach(function (el) {
+                    var mod = el.getAttribute('data-doc-module');
+                    if (!mod) return;
+                    el.style.display = (mod === 'manodopera') ? '' : 'none';
+                });
+                var manA = document.querySelector('li[data-doc-module="manodopera"] a.doc-nav-link');
+                if (manA) {
+                    var qm = new URLSearchParams();
+                    qm.set('ruolo', fieldRole);
+                    qm.set('soloRuolo', '1');
+                    manA.href = 'guida-manodopera-utente.html?' + qm.toString();
                 }
-
-                const markdown = await response.text();
-                const html = marked.parse(markdown, { mangle: false, headerIds: true });
-
-                contentEl.innerHTML = html;
-                contentEl.scrollTop = 0;
-            } catch (error) {
-                console.error('Errore caricamento documentazione:', error);
-                const isFileProtocol = window.location.protocol === 'file:';
-                contentEl.innerHTML = `
-                    <div class="error-state">
-                        <p><strong>Impossibile caricare "${doc.title}".</strong></p>
-                        <p>Errore: ${error.message}</p>
-                        ${isFileProtocol ? `
-                            <p>Stai aprendo il file direttamente dal computer (protocollo file://). Per visualizzare le guide:</p>
-                            <ol>
-                                <li>Apri la cartella <code>documentazione-utente</code>.</li>
-                                <li>Apri manualmente il file <code>${doc.path}</code>.</li>
-                                <li>Oppure avvia un piccolo server locale (es. <code>npx serve</code>).</li>
-                            </ol>
-                        ` : `
-                            <p>Riprova più tardi o apri il file direttamente da <code>${doc.path}</code>.</p>
-                        `}
-                    </div>
-                `;
+                var infoBox = document.getElementById('doc-nav-info-box');
+                if (infoBox) infoBox.style.display = 'none';
+                var mh = document.getElementById('doc-main-h1');
+                if (mh) mh.textContent = 'Guida Manodopera';
+                var wf = document.getElementById('doc-welcome-field');
+                if (wf) wf.hidden = false;
+                var wd = document.getElementById('doc-welcome-default');
+                if (wd) wd.hidden = true;
+                var hf = document.getElementById('doc-filter-hint-field');
+                if (hf) hf.hidden = false;
+                return;
             }
-        }
 
-        buttons.forEach(button => {
-            button.addEventListener('click', () => loadDocument(button.dataset.doc));
-        });
-
-        loadDocument('intro');
+            if (rawMods && modules.length) {
+                document.querySelectorAll('[data-doc-module]').forEach(function (el) {
+                    var mod = el.getAttribute('data-doc-module');
+                    if (!mod || mod === 'core') return;
+                    var show = lower.indexOf(mod.toLowerCase()) !== -1;
+                    el.style.display = show ? '' : 'none';
+                });
+                var hm = document.getElementById('doc-filter-hint');
+                if (hm) hm.hidden = false;
+            }
+        } catch (e) { /* ignore */ }
+    })();
     </script>
 </body>
 </html>
-

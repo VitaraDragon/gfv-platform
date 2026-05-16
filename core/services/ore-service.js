@@ -500,6 +500,8 @@ export async function validaOra(lavoroId, oraId) {
     }
     
     // Aggiorna stato
+    const operaioId = oraData.operaioId;
+
     await updateDoc(oraDoc.ref, {
       stato: 'validate',
       validatoDa: user.id,
@@ -507,6 +509,11 @@ export async function validaOra(lavoroId, oraId) {
       rifiutatoDa: null,
       motivoRifiuto: null
     });
+
+    if (operaioId) {
+      const { requestSkillCalcolateRefresh } = await import('./profilo-manodopera-skill-auto-refresh.js');
+      requestSkillCalcolateRefresh(tenantId, operaioId, user.id);
+    }
   } catch (error) {
     console.error('Errore validazione ora:', error);
     throw new Error(`Errore validazione ora: ${error.message}`);

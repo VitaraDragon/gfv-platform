@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guida Vigneto — GFV Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light dark;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --text-color: #1f2933;
+            --accent-color: #6A1B9A;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111827;
+                --card-bg: #1f2937;
+                --border-color: #374151;
+                --text-color: #f9fafb;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .doc-header {
+            background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+            color: #fff;
+            padding: 28px 32px;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .doc-header h1 { margin: 0 0 6px; font-size: clamp(22px, 4vw, 30px); }
+        .doc-header .sub { margin: 0; opacity: 0.92; font-size: 15px; max-width: 520px; line-height: 1.45; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            background: transparent;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.15); }
+        .doc-shell {
+            flex: 1;
+            padding: 24px;
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        main {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 28px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+            min-height: 60vh;
+        }
+        #doc-content {
+            line-height: 1.65;
+            max-width: 920px;
+            margin: 0 auto;
+            font-size: 16px;
+        }
+        #doc-content h1, #doc-content h2, #doc-content h3, #doc-content h4 {
+            font-weight: 600;
+            line-height: 1.3;
+            color: inherit;
+        }
+        #doc-content h1 { font-size: clamp(26px, 3vw, 30px); margin: 0 0 16px; scroll-margin-top: 24px; }
+        #doc-content h2 { font-size: 22px; margin: 32px 0 12px; scroll-margin-top: 24px; }
+        #doc-content h3 { font-size: 18px; margin: 24px 0 10px; scroll-margin-top: 20px; }
+        #doc-content p { margin: 0 0 14px; }
+        #doc-content ul, #doc-content ol { padding-left: 22px; margin: 12px 0 16px; }
+        #doc-content li { margin-bottom: 6px; }
+        #doc-content hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 28px 0;
+        }
+        #doc-content strong { font-weight: 600; }
+        #doc-content table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; }
+        #doc-content th, #doc-content td { border: 1px solid var(--border-color); padding: 10px 12px; text-align: left; }
+        #doc-content th { background: rgba(106, 27, 154, 0.08); }
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #6c757d;
+        }
+        .loading span {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            border: 3px solid rgba(106, 27, 154, 0.35);
+            border-top-color: var(--accent-color);
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-state {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            color: #8c1f2c;
+        }
+        .error-state code { background: rgba(0,0,0,.08); padding: 2px 6px; border-radius: 4px; }
+        .hint-local {
+            margin-top: 20px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            background: rgba(106, 27, 154, 0.08);
+            border: 1px solid rgba(106, 27, 154, 0.22);
+            color: inherit;
+        }
+        @media (max-width: 600px) {
+            .doc-shell { padding: 16px; }
+            main { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="doc-header">
+        <div>
+            <h1>🍇 Guida Vigneto</h1>
+            <p class="sub">Versione per l’utente finale (modulo Vigneto attivo). Stesso schema della guida Core e Parco Macchine.</p>
+        </div>
+        <div class="header-actions">
+            <a class="btn" href="index.html">← Tutte le guide</a>
+            <a class="btn" href="../modules/vigneto/views/vigneto-dashboard-standalone.html">Dashboard Vigneto</a>
+        </div>
+    </header>
+
+    <div class="doc-shell">
+        <main>
+            <div id="doc-content">
+                <div class="loading">
+                    <span aria-hidden="true"></span>
+                    <div>Caricamento guida…</div>
+                </div>
+            </div>
+            <p class="hint-local" id="local-hint" hidden>
+                <strong>Anteprima locale:</strong> avvia un server HTTP dalla cartella del progetto (es. dalla root <code>gfv-platform</code> esegui <code>npx serve</code>), poi apri questa pagina dall’indirizzo che mostra il terminale (non aprire il file con doppio clic: il browser blocca il caricamento del <code>.md</code>).
+            </p>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+(function () {
+    var contentEl = document.getElementById('doc-content');
+    var hintEl = document.getElementById('local-hint');
+    var CANDIDATE_MD = [
+        '../docs-sviluppo/GUIDA/VIGNETO/utente/guida.md'
+    ];
+
+    function stripDiacritics(s) {
+        return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function slugifyHeadingText(text) {
+        var t = stripDiacritics(text.trim().toLowerCase());
+        t = t.replace(/[^a-z0-9\s-]+/g, '');
+        t = t.replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        return t;
+    }
+
+    function assignHeadingIds(root) {
+        var seen = {};
+        var nodes = root.querySelectorAll('h1, h2, h3, h4');
+        for (var i = 0; i < nodes.length; i++) {
+            var h = nodes[i];
+            var base = slugifyHeadingText(h.textContent || '');
+            if (!base) continue;
+            var id = base;
+            var n = 2;
+            while (seen[id] || document.getElementById(id)) {
+                id = base + '-' + n;
+                n += 1;
+            }
+            seen[id] = true;
+            h.id = id;
+        }
+    }
+
+    function scrollToHeadingId(rawHash, updateHistory) {
+        if (!rawHash) return false;
+        var id = decodeURIComponent(String(rawHash).replace(/^#/, ''));
+        if (!id) return false;
+        var el = document.getElementById(id);
+        if (!el) return false;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (updateHistory) {
+            try {
+                history.pushState(null, '', '#' + id);
+            } catch (e) { /* ignore */ }
+        }
+        return true;
+    }
+
+    function bindInternalAnchors(root) {
+        root.addEventListener('click', function (ev) {
+            var a = ev.target && ev.target.closest ? ev.target.closest('a[href^="#"]') : null;
+            if (!a || !root.contains(a)) return;
+            var href = a.getAttribute('href');
+            if (!href || href === '#') return;
+            if (scrollToHeadingId(href, true)) ev.preventDefault();
+        });
+    }
+
+    window.addEventListener('hashchange', function () {
+        if (contentEl.querySelector('h1')) scrollToHeadingId(location.hash, false);
+    });
+
+    async function tryLoad() {
+        var lastErr = null;
+        for (var i = 0; i < CANDIDATE_MD.length; i++) {
+            try {
+                var res = await fetch(CANDIDATE_MD[i], { cache: 'no-store' });
+                if (res.ok) {
+                    var md = await res.text();
+                    contentEl.innerHTML = marked.parse(md, { mangle: false, headerIds: true });
+                    assignHeadingIds(contentEl);
+                    bindInternalAnchors(contentEl);
+                    if (location.hash) {
+                        requestAnimationFrame(function () {
+                            scrollToHeadingId(location.hash, false);
+                        });
+                    } else {
+                        contentEl.scrollTop = 0;
+                    }
+                    return;
+                }
+                lastErr = new Error(res.status + ' ' + res.statusText);
+            } catch (e) {
+                lastErr = e;
+            }
+        }
+        var fileProto = window.location.protocol === 'file:';
+        hintEl.hidden = false;
+        contentEl.innerHTML =
+            '<div class="error-state">' +
+            '<p><strong>Impossibile caricare la guida.</strong></p>' +
+            '<p>' + (lastErr ? String(lastErr.message) : 'Errore sconosciuto') + '</p>' +
+            (fileProto
+                ? '<p>Stai usando <code>file://</code>: usa un server locale dalla root del repo.</p>'
+                : '<p>Verifica che il file esista: <code>docs-sviluppo/GUIDA/VIGNETO/utente/guida.md</code>.</p>') +
+            '</div>';
+    }
+
+    tryLoad();
+})();
+    </script>
+</body>
+</html>

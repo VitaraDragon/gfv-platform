@@ -1414,6 +1414,19 @@
         });
         if (partialMov) resolved = partialMov.value;
       }
+    } else if ((fieldId === 'ora-lavoro' || fieldId === 'ora-macchina' || fieldId === 'ora-attrezzo') && valStr) {
+      var searchOra = valStr.toLowerCase().trim();
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(valStr) && opts.some(function (o) { return (o.value || '') === valStr; })) {
+        resolved = valStr;
+      } else {
+        var partialOra = opts.find(function (o) {
+          if (!o.value) return false;
+          var t = (o.text || '').toLowerCase();
+          var fw = (t.split(/\s+/)[0] || '').trim();
+          return t === searchOra || t.indexOf(searchOra) >= 0 || searchOra.indexOf(fw) >= 0 || (fw && searchOra.indexOf(fw) >= 0);
+        });
+        if (partialOra) resolved = partialOra.value;
+      }
     } else if ((fieldId === 'lavoro-operaio' || fieldId === 'lavoro-caposquadra') && valStr && window.lavoriState) {
       var searchStr = valStr.toLowerCase();
       var list = fieldId === 'lavoro-operaio' ? (window.lavoriState.operaiList || []) : (window.lavoriState.caposquadraList || []);
@@ -2547,6 +2560,180 @@
   /**
    * Form movimento magazzino.
    */
+  /**
+   * Form traccia segmento / zona lavorata (operaio / caposquadra, `lavori-caposquadra-standalone.html`).
+   */
+  async function injectZonaSegmentoForm(formData, context) {
+    if (!formData || typeof formData !== 'object') return false;
+    context = context || (window.Tony && window.Tony.context) || {};
+    var tonyMapping = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING && window.TONY_FORM_MAPPING.getFormMap)
+      ? window.TONY_FORM_MAPPING.getFormMap('zona-form')
+      : null;
+    if (!tonyMapping || !Array.isArray(tonyMapping.injectionOrder)) {
+      log('injectZonaSegmentoForm: mapping mancante');
+      return false;
+    }
+    var zonaModal = document.getElementById('zona-modal');
+    if (!zonaModal || !zonaModal.classList.contains('active')) {
+      log('injectZonaSegmentoForm: aprire prima il modal Traccia segmento (zona-modal)');
+      return false;
+    }
+    function resolveZona(fieldId, value) {
+      return value;
+    }
+    var mapConfig = {
+      formId: 'zona-form',
+      modalId: 'zona-modal',
+      injectionOrder: tonyMapping.injectionOrder,
+      fields: tonyMapping.fields || {},
+      resolver: resolveZona
+    };
+    return injectForm(formData, mapConfig, context);
+  }
+
+  /**
+   * Finestra che contiene `#quick-hours-form` (documento corrente o parent, es. iframe lavori-caposquadra dentro field-workspace).
+   * @param {{ targetWindow?: Window }} [injectOpts]
+   * @returns {Window|null}
+   */
+  function resolveQuickHoursTargetWindow(injectOpts) {
+    if (injectOpts && injectOpts.targetWindow) return injectOpts.targetWindow;
+    if (document.getElementById('quick-hours-form')) return window;
+    try {
+      if (window.parent && window.parent !== window && window.parent.document.getElementById('quick-hours-form')) {
+        return window.parent;
+      }
+    } catch (e) { /* cross-origin */ }
+    return null;
+  }
+
+  /**
+   * Form ore inline workspace mobile (`field-workspace-standalone.html`, `#quick-hours-form`).
+   * Stesse chiavi logiche ora-* della pagina segnatura ore (senza modal / senza macchine qui).
+   * @param {{ targetWindow?: Window }} [injectOpts] — se il widget è in iframe, passa la finestra del workspace (parent).
+   */
+  async function injectFieldWorkspaceQuickHoursForm(formData, context, injectOpts) {
+    if (!formData || typeof formData !== 'object') return false;
+    context = context || (window.Tony && window.Tony.context) || {};
+    injectOpts = injectOpts || {};
+    var tw = resolveQuickHoursTargetWindow(injectOpts);
+    if (!tw || !tw.document || !tw.document.getElementById('quick-hours-form')) {
+      log('injectFieldWorkspaceQuickHoursForm: quick-hours-form assente (né qui né nel parent)');
+      return false;
+    }
+    var doc = tw.document;
+    var fd = Object.assign({}, formData);
+    if (fd['attivita-orario-inizio'] && !fd['ora-inizio']) fd['ora-inizio'] = fd['attivita-orario-inizio'];
+    if (fd['attivita-orario-fine'] && !fd['ora-fine']) fd['ora-fine'] = fd['attivita-orario-fine'];
+    if (fd['attivita-pause'] != null && fd['ora-pause'] == null) fd['ora-pause'] = fd['attivita-pause'];
+    if (fd['attivita-data'] && !fd['ora-data']) fd['ora-data'] = fd['attivita-data'];
+    if (fd['attivita-note'] != null && String(fd['attivita-note']).trim() !== '' && (!fd['ora-note'] || String(fd['ora-note']).trim() === '')) {
+      fd['ora-note'] = fd['attivita-note'];
+    }
+    if ((!fd['ora-lavoro'] || String(fd['ora-lavoro']).trim() === '') && typeof tw.gfvFieldWorkspaceGetSelectedLavoroId === 'function') {
+      try {
+        var selId = tw.gfvFieldWorkspaceGetSelectedLavoroId();
+        if (selId && String(selId).trim()) fd['ora-lavoro'] = String(selId).trim();
+      } catch (eSel) { /* ignore */ }
+    }
+    if (fd['ora-lavoro'] != null && String(fd['ora-lavoro']).trim() !== '' && typeof tw.gfvFieldWorkspaceSelectLavoroById === 'function') {
+      var okSel = await tw.gfvFieldWorkspaceSelectLavoroById(String(fd['ora-lavoro']).trim());
+      if (!okSel) log('injectFieldWorkspaceQuickHoursForm: lavoro non trovato nel select');
+      await delay(350);
+    }
+    if (typeof tw.gfvFieldWorkspaceGoToHoursSlide === 'function') {
+      tw.gfvFieldWorkspaceGoToHoursSlide();
+      await delay(550);
+    }
+    var domMap = {
+      'ora-data': 'ora-data',
+      'ora-inizio': 'ora-start',
+      'ora-fine': 'ora-end',
+      'ora-pause': 'ora-break',
+      'ora-note': 'ora-note'
+    };
+    var order = ['ora-data', 'ora-inizio', 'ora-fine', 'ora-pause', 'ora-note'];
+    for (var i = 0; i < order.length; i++) {
+      var k = order[i];
+      if (fd[k] == null || String(fd[k]).trim() === '') continue;
+      var el = doc.getElementById(domMap[k]);
+      if (!el) continue;
+      setInputValue(el, fd[k], k);
+      await delay(120);
+    }
+    try {
+      if (typeof tw.gfvFieldWorkspaceRecalcHours === 'function') tw.gfvFieldWorkspaceRecalcHours();
+    } catch (eR) { /* ignore */ }
+    return true;
+  }
+
+  /**
+   * Form Segna ora (`segnatura-ore-standalone.html`): due passi — dopo lavoro si aggiornano i select macchina (pagina).
+   */
+  async function injectSegnaOraForm(formData, context) {
+    if (!formData || typeof formData !== 'object') return false;
+    context = context || (window.Tony && window.Tony.context) || {};
+    var qhTw = resolveQuickHoursTargetWindow({});
+    if (qhTw) {
+      log('injectSegnaOraForm: uso form inline workspace mobile (quick-hours-form)');
+      return injectFieldWorkspaceQuickHoursForm(formData, context, { targetWindow: qhTw });
+    }
+    var tonyMapping = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING && window.TONY_FORM_MAPPING.getFormMap)
+      ? window.TONY_FORM_MAPPING.getFormMap('ora-form')
+      : null;
+    if (!tonyMapping || !Array.isArray(tonyMapping.injectionOrder)) {
+      log('injectSegnaOraForm: mapping mancante');
+      return false;
+    }
+    var oraModal = document.getElementById('ora-modal');
+    if (!oraModal || !oraModal.classList.contains('active')) {
+      log('injectSegnaOraForm: aprire prima il modal Segna ora (ora-modal)');
+      return false;
+    }
+    var sel0 = document.getElementById('ora-lavoro');
+    if (sel0 && sel0.options.length <= 1 && typeof window.openSegnaOraModal === 'function') {
+      log('injectSegnaOraForm: popolo dropdown lavori via openSegnaOraModal');
+      await window.openSegnaOraModal(null);
+      await delay(500);
+    }
+    function resolveOra(fieldId, value) {
+      return value;
+    }
+    var baseConfig = {
+      formId: 'ora-form',
+      modalId: 'ora-modal',
+      fields: tonyMapping.fields || {},
+      resolver: resolveOra,
+      delays: { 'ora-lavoro': 400, 'ora-macchina': 450, 'ora-attrezzo': 400 }
+    };
+    var orderFirst = ['ora-lavoro', 'ora-data', 'ora-inizio', 'ora-fine', 'ora-pause', 'ora-note', 'ora-includi-posizione'];
+    var orderMac = ['ora-macchina', 'ora-attrezzo', 'ora-ore-macchina'];
+    var fd = Object.assign({}, formData);
+    var ok1 = await injectForm(fd, Object.assign({}, baseConfig, { injectionOrder: orderFirst }), context);
+    if (!ok1) return false;
+    if (typeof window.gfvSegnaturaOreRefreshMacchineFromSelect === 'function') {
+      await delay(450);
+      try {
+        window.gfvSegnaturaOreRefreshMacchineFromSelect();
+      } catch (eMac) {
+        log('injectSegnaOraForm: refresh macchine: ' + (eMac && eMac.message));
+      }
+      await delay(500);
+      var hasMac = fd['ora-macchina'] != null && String(fd['ora-macchina']).trim() !== '';
+      var hasAtt = fd['ora-attrezzo'] != null && String(fd['ora-attrezzo']).trim() !== '';
+      var hasOreM = fd['ora-ore-macchina'] != null && String(fd['ora-ore-macchina']).trim() !== '';
+      if (hasMac || hasAtt || hasOreM) {
+        await injectForm(fd, Object.assign({}, baseConfig, { injectionOrder: orderMac }), context);
+      }
+    }
+    try {
+      if (typeof window.gfvCalcolaOreNetteSegnatura === 'function') {
+        window.gfvCalcolaOreNetteSegnatura();
+      }
+    } catch (eCalc) { /* ignore */ }
+    return true;
+  }
+
   async function injectMovimentoForm(formData, context) {
     if (!formData || typeof formData !== 'object') return false;
     context = context || (window.Tony && window.Tony.context) || {};
@@ -2767,11 +2954,20 @@
         });
       }
     }
+    var useOraForm = false;
+    if (fd && Object.keys(fd).some(function (k) { return k.indexOf('ora-') === 0; })) {
+      if (formCtx && formCtx.formId === 'ora-form') useOraForm = true;
+      else if (!usePreventivoForm && !useLavoroForm) {
+        useOraForm = true;
+      }
+    }
     try {
       if (usePreventivoForm) {
         out.injected = await injectPreventivoForm(extracted.formData, context);
       } else if (useLavoroForm) {
         out.injected = await injectLavoroForm(extracted.formData, context);
+      } else if (useOraForm) {
+        out.injected = await injectSegnaOraForm(extracted.formData, context);
       } else {
         out.injected = await injectAttivitaForm(extracted.formData, context);
       }
@@ -2790,6 +2986,12 @@
     injectProdottoForm: injectProdottoForm,
     injectTrattamentoCampoForm: injectTrattamentoCampoForm,
     injectMovimentoForm: injectMovimentoForm,
+    injectZonaSegmentoForm: injectZonaSegmentoForm,
+    injectSegnaOraForm: injectSegnaOraForm,
+    injectFieldWorkspaceQuickHoursForm: injectFieldWorkspaceQuickHoursForm,
+    resolveQuickHoursTargetWindow: function (injectOpts) {
+      return resolveQuickHoursTargetWindow(injectOpts || {});
+    },
     resolveValueMagazzino: resolveValueMagazzino,
     applyBusinessRules: applyBusinessRules,
     extractFormDataFromText: extractFormDataFromText,

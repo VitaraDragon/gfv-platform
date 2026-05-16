@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace Mobile Campo - GFV</title>
+    <title>Versione mobile — GFV</title>
     <link rel="manifest" href="../../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <link rel="stylesheet" href="./css/field-workspace.css">
 </head>
 <body class="field-mobile-shell">
+    <script>
+        window.currentTableData = window.currentTableData || { pageType: 'field_workspace', summary: 'Caricamento workspace...', items: [] };
+    </script>
     <header class="field-mobile-header">
         <div class="field-mobile-toolbar compact">
             <div class="field-toolbar-left" aria-hidden="true">
@@ -23,6 +26,7 @@
             <div class="field-options-wrap">
                 <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni">⚙️</button>
                 <div class="field-options-menu" id="field-options-menu" hidden>
+                    <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener">Guida Manodopera</a>
                     <a href="../admin/impostazioni-standalone.html" class="field-options-link">Impostazioni account</a>
                 </div>
             </div>
@@ -103,6 +107,8 @@
                 </div>
                 <div class="slide-body slide-body-brand">
                     <form id="quick-hours-form" class="quick-comm-form gfv-card-inner">
+                        <label for="ora-data" class="label-inline">Data lavoro</label>
+                        <input id="ora-data" class="field-input" type="date" required>
                         <label for="ora-start" class="label-inline">Orario inizio</label>
                         <input id="ora-start" class="field-input" type="time" required>
                         <label for="ora-end" class="label-inline">Orario fine</label>

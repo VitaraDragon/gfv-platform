@@ -370,6 +370,9 @@
     </style>
 </head>
 <body>
+    <script>
+        window.currentTableData = window.currentTableData || { pageType: 'segnatura_ore', summary: 'Caricamento dati in corso...', items: [] };
+    </script>
     <div class="container">
         <div class="header">
             <div>
@@ -569,8 +572,129 @@
         let currentTenantId = null;
         let lavoriList = [];
         let oreList = [];
+        /** Snapshot post-caricamento per filtri Tony senza ricaricare da Firestore */
+        let lavoriListRawForTony = [];
+        let oreListRawForTony = [];
+        let tonySegnaturaOreFilter = { statoValidazione: '', statoLavoro: '', lavoro: '', ricerca: '' };
         let macchineList = [];
         let hasParcoMacchineModule = false;
+
+        function tonyNormSeg(s) {
+            if (s == null || s === '') return '';
+            return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        }
+
+        function applyTonyFilterLavoriSegnatura(list) {
+            if (!list || !list.length) return [];
+            var f = tonySegnaturaOreFilter || {};
+            return list.filter(function (l) {
+                if (f.statoLavoro != null && String(f.statoLavoro).trim() !== '') {
+                    if (String(l.stato || '').trim() !== String(f.statoLavoro).trim()) return false;
+                }
+                if (f.lavoro != null && String(f.lavoro).trim() !== '') {
+                    var nl = tonyNormSeg(l.nome || '');
+                    var fl = tonyNormSeg(f.lavoro);
+                    if (fl && nl.indexOf(fl) < 0) return false;
+                }
+                if (f.ricerca != null && String(f.ricerca).trim() !== '') {
+                    var r = tonyNormSeg(f.ricerca);
+                    var blob = tonyNormSeg([l.nome, l.tipoLavoro, l.stato].join(' '));
+                    if (blob.indexOf(r) < 0) return false;
+                }
+                return true;
+            });
+        }
+
+        function applyTonyFilterOreSegnatura(list) {
+            if (!list || !list.length) return [];
+            var f = tonySegnaturaOreFilter || {};
+            return list.filter(function (o) {
+                if (f.statoValidazione != null && String(f.statoValidazione).trim() !== '') {
+                    if (String(o.stato || '').trim() !== String(f.statoValidazione).trim()) return false;
+                }
+                if (f.lavoro != null && String(f.lavoro).trim() !== '') {
+                    var nl = tonyNormSeg(o.lavoroNome || '');
+                    var fl = tonyNormSeg(f.lavoro);
+                    if (fl && nl.indexOf(fl) < 0) return false;
+                }
+                if (f.ricerca != null && String(f.ricerca).trim() !== '') {
+                    var r = tonyNormSeg(f.ricerca);
+                    var blob = tonyNormSeg([o.lavoroNome, o.note || '', o.orarioInizio || '', o.orarioFine || '', String(o.oreNette || '')].join(' '));
+                    if (blob.indexOf(r) < 0) return false;
+                }
+                return true;
+            });
+        }
+
+        function syncTonyTableDataSegnaturaOre() {
+            var ruolo = (currentUserData && currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra')) ? 'caposquadra' : 'operaio';
+            var oreItems = (oreList || []).map(function (o) {
+                var d = o.data instanceof Date ? o.data.toISOString().slice(0, 10) : '';
+                return {
+                    id: o.id,
+                    lavoroId: o.lavoroId || '',
+                    lavoroNome: o.lavoroNome || '',
+                    data: d,
+                    orarioInizio: o.orarioInizio || '',
+                    orarioFine: o.orarioFine || '',
+                    oreNette: o.oreNette != null ? Number(o.oreNette) : null,
+                    stato: o.stato || '',
+                    note: (o.note || '').slice(0, 200)
+                };
+            });
+            var lavoriItems = (lavoriList || []).map(function (l) {
+                var di = l.dataInizio;
+                var diStr = '';
+                if (di instanceof Date) diStr = di.toISOString().slice(0, 10);
+                return {
+                    id: l.id,
+                    nome: l.nome || '',
+                    stato: l.stato || '',
+                    tipoLavoro: l.tipoLavoro || '',
+                    completatoRecente: !!l.isCompletatoRecente
+                };
+            });
+            var summary = 'Segnatura ore: ' + oreItems.length + ' righe ore; ' + lavoriItems.length + ' lavori selezionabili. Ruolo: ' + ruolo + '.';
+            if (!window.currentTableData) window.currentTableData = { pageType: 'segnatura_ore', summary: '', items: [] };
+            window.currentTableData.pageType = 'segnatura_ore';
+            window.currentTableData.summary = summary;
+            window.currentTableData.items = oreItems;
+            window.currentTableData.lavoriItems = lavoriItems;
+            window.currentTableData.fieldRole = ruolo;
+            var page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, page, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+        }
+
+        window.applyTonySegnaturaOreFilter = function (params) {
+            params = params || {};
+            if (params.reset === true || params.filterType === 'reset') {
+                tonySegnaturaOreFilter = { statoValidazione: '', statoLavoro: '', lavoro: '', ricerca: '' };
+            } else {
+                ['statoValidazione', 'statoLavoro', 'lavoro', 'ricerca'].forEach(function (k) {
+                    if (params[k] != null && String(params[k]).trim() !== '') {
+                        tonySegnaturaOreFilter[k] = String(params[k]).trim();
+                    }
+                });
+                if (params.stato != null && String(params.stato).trim() !== '' && !params.statoValidazione && !params.statoLavoro) {
+                    var sv = String(params.stato).trim();
+                    if (['da_validare', 'validate', 'rifiutate'].indexOf(sv) >= 0) {
+                        tonySegnaturaOreFilter.statoValidazione = sv;
+                    } else {
+                        tonySegnaturaOreFilter.statoLavoro = sv;
+                    }
+                }
+            }
+            lavoriList = applyTonyFilterLavoriSegnatura(lavoriListRawForTony.length ? lavoriListRawForTony : lavoriList);
+            oreList = applyTonyFilterOreSegnatura(oreListRawForTony.length ? oreListRawForTony : oreList);
+            renderLavori();
+            renderOre();
+        };
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
@@ -740,11 +864,16 @@
                     return dateB - dateA;
                 });
 
+                lavoriListRawForTony = lavoriList.slice();
+                lavoriList = applyTonyFilterLavoriSegnatura(lavoriListRawForTony);
                 renderLavori();
             } catch (error) {
                 console.error('Errore caricamento lavori:', error);
                 container.innerHTML = '<div class="empty-state">Errore caricamento lavori</div>';
                 showAlert('Errore caricamento lavori', 'error');
+                lavoriListRawForTony = [];
+                lavoriList = [];
+                syncTonyTableDataSegnaturaOre();
             }
         }
 
@@ -760,6 +889,7 @@
                         <p style="font-size: 14px; margin-top: 10px;">Non ci sono lavori attivi al momento</p>
                     </div>
                 `;
+                syncTonyTableDataSegnaturaOre();
                 return;
             }
 
@@ -838,6 +968,7 @@
             html += '</div>';
 
             container.innerHTML = html;
+            syncTonyTableDataSegnaturaOre();
         }
 
         // Seleziona lavoro
@@ -908,11 +1039,16 @@
                     return dateB - dateA;
                 });
 
+                oreListRawForTony = oreList.slice();
+                oreList = applyTonyFilterOreSegnatura(oreListRawForTony);
                 renderOre();
             } catch (error) {
                 console.error('Errore caricamento ore:', error);
                 container.innerHTML = '<div class="empty-state">Errore caricamento ore</div>';
                 showAlert('Errore caricamento ore', 'error');
+                oreListRawForTony = [];
+                oreList = [];
+                syncTonyTableDataSegnaturaOre();
             }
         }
 
@@ -928,6 +1064,7 @@
                         <p style="font-size: 14px; margin-top: 10px;">Clicca su "Segna Nuova Ora" per iniziare</p>
                     </div>
                 `;
+                syncTonyTableDataSegnaturaOre();
                 return;
             }
 
@@ -1003,6 +1140,7 @@
             `;
 
             container.innerHTML = html;
+            syncTonyTableDataSegnaturaOre();
         }
 
         // Formatta ore
@@ -1124,6 +1262,22 @@
             }
         }
 
+        /** Tony: dopo INJECT su ora-lavoro, ripopola macchina/attrezzo come al cambio lavoro */
+        window.gfvSegnaturaOreRefreshMacchineFromSelect = function() {
+            const sel = document.getElementById('ora-lavoro');
+            if (!sel) return;
+            const lid = sel.value;
+            const listPerSelect = (lavoriListRawForTony && lavoriListRawForTony.length) ? lavoriListRawForTony : lavoriList;
+            const lavoro = lid && listPerSelect ? listPerSelect.find(function (l) { return l.id === lid; }) : null;
+            if (lavoro && (lavoro.macchinaId || lavoro.attrezzoId)) {
+                populateMacchineDropdown(lavoro.macchinaId || null, lavoro.attrezzoId || null);
+            } else {
+                populateMacchineDropdown();
+            }
+        };
+
+        window.gfvCalcolaOreNetteSegnatura = calcolaOreNette;
+
         // Apri modal segna ora
         window.openSegnaOraModal = async function(lavoroId = null) {
             // Popola dropdown lavori
@@ -1131,7 +1285,8 @@
             select.innerHTML = '<option value="">Seleziona lavoro...</option>';
             
             let lavoroSelezionato = null;
-            lavoriList.forEach(lavoro => {
+            const listPerSelect = (lavoriListRawForTony && lavoriListRawForTony.length) ? lavoriListRawForTony : lavoriList;
+            listPerSelect.forEach(lavoro => {
                 const option = document.createElement('option');
                 option.value = lavoro.id;
                 option.textContent = lavoro.nome || 'N/A';

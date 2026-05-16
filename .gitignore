@@ -63,3 +63,6 @@ firebase-service-account.json
 
 # Vecchia app - repository separato, non tracciare come submodule
 vecchia app/
+
+# Prompt generati (npm run guida:suggest)
+scripts/guida-suggest-output/

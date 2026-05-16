@@ -168,8 +168,14 @@ export function initTonyVoice(options) {
                     var firebaseFunctions = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
                     var functions = firebaseFunctions.getFunctions(app, 'europe-west1');
                     var getTonyAudio = firebaseFunctions.httpsCallable(functions, 'getTonyAudio');
+                    var ctxPayload = null;
+                    try {
+                        if (window.Tony && window.Tony.context) {
+                            ctxPayload = JSON.parse(JSON.stringify(window.Tony.context));
+                        }
+                    } catch (eCtx) {}
                     var result = await Promise.race([
-                        getTonyAudio({ text: testoPulito }),
+                        getTonyAudio({ text: testoPulito, context: ctxPayload }),
                         new Promise(function(_, reject) {
                             setTimeout(function() { reject(new Error('getTonyAudio timeout ' + TTS_TIMEOUT_MS + 'ms')); }, TTS_TIMEOUT_MS);
                         })

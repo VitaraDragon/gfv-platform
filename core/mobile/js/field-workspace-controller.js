@@ -40,6 +40,7 @@ const refreshWorksBtnEl = document.getElementById('btn-refresh-works');
 const quickHoursFormEl = document.getElementById('quick-hours-form');
 const hoursStatusEl = document.getElementById('hours-save-status');
 const hoursValueEl = document.getElementById('ora-net-hours');
+const oraDataEl = document.getElementById('ora-data');
 const oraStartEl = document.getElementById('ora-start');
 const oraEndEl = document.getElementById('ora-end');
 const oraBreakEl = document.getElementById('ora-break');
@@ -83,6 +84,17 @@ function setStatus(text, isError = false) {
     if (!statusEl) return;
     statusEl.textContent = text;
     statusEl.style.color = isError ? '#fecaca' : 'rgba(255, 255, 255, 0.92)';
+}
+
+/** Link guida: solo capitolo Operaio o Caposquadra (nessun tab Manager / intro condivisa). */
+function updateFieldDocumentationGuideLink() {
+    const a = document.getElementById('field-documentation-guide-link');
+    if (!a) return;
+    const ruolo = userIsCaposquadra ? 'caposquadra' : 'operaio';
+    const qs = new URLSearchParams();
+    qs.set('ruolo', ruolo);
+    qs.set('soloRuolo', '1');
+    a.href = `../../documentazione-utente/guida-manodopera-utente.html?${qs.toString()}`;
 }
 
 function formatRoleLabelsItalian(roles) {
@@ -252,6 +264,61 @@ function syncSlideFromScroll() {
     }
 }
 
+/** Tony / automazione: vai alla slide «Segna ore» (form inline quick-hours-form). */
+function goToHoursSlideForTony() {
+    const idx = findSlideIndexByToken('ore');
+    if (idx >= 0) goToSlide(idx);
+}
+
+/**
+ * Tony: seleziona lavoro per id opzione o match sul testo visibile.
+ * @param {string} rawId
+ * @returns {Promise<boolean>}
+ */
+function selectLavoroByIdOrLabelForTony(rawId) {
+    return (async () => {
+        const raw = String(rawId || '').trim();
+        if (!raw || !selectedWorkEl) return false;
+
+        function attempt() {
+            const opts = Array.from(selectedWorkEl.options || []).filter((o) => o.value && String(o.value).trim());
+            const hitVal = opts.find((o) => o.value === raw);
+            if (hitVal) {
+                selectedWorkEl.value = raw;
+                if (quickWorkSelectEl) quickWorkSelectEl.value = raw;
+                selectedWorkEl.dispatchEvent(new Event('change', { bubbles: true }));
+                return true;
+            }
+            const low = raw.toLowerCase();
+            const byLabel = opts.find((o) => (o.textContent || '').toLowerCase().includes(low));
+            if (byLabel && byLabel.value) {
+                selectedWorkEl.value = byLabel.value;
+                if (quickWorkSelectEl) quickWorkSelectEl.value = byLabel.value;
+                selectedWorkEl.dispatchEvent(new Event('change', { bubbles: true }));
+                return true;
+            }
+            return false;
+        }
+
+        if (attempt()) return true;
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem('gfv_tony_expand_lavoro_for_select', raw);
+            }
+            await loadWorksForSelection();
+        } catch (eReload) {
+            console.warn('[FIELD-WORKSPACE] selectLavoroByIdOrLabelForTony reload:', eReload);
+        } finally {
+            try {
+                if (typeof sessionStorage !== 'undefined') {
+                    sessionStorage.removeItem('gfv_tony_expand_lavoro_for_select');
+                }
+            } catch (eRm) { /* ignore */ }
+        }
+        return attempt();
+    })();
+}
+
 function bindSwiperNavigation() {
     if (btnPrevEl) {
         btnPrevEl.addEventListener('click', () => goToSlide(currentSlideIndex - 1));
@@ -303,6 +370,46 @@ function populateWorkSelectors(works) {
     }
 }
 
+function syncTonyFieldWorkspaceTableData() {
+    try {
+        var ruolo = userIsCaposquadra ? 'caposquadra' : 'operaio';
+        var list = Array.isArray(cachedWorks) ? cachedWorks : [];
+        var items = list.map(function (w) {
+            var raw = w.raw || {};
+            return {
+                id: w.id,
+                label: w.label,
+                nome: raw.nome || '',
+                stato: raw.stato || '',
+                tipoLavoro: raw.tipoLavoro || ''
+            };
+        });
+        var summary = 'Workspace mobile campo: ' + items.length + ' lavori in elenco. Ruolo: ' + ruolo + '.';
+        if (!window.currentTableData) window.currentTableData = { pageType: 'field_workspace', summary: '', items: [] };
+        window.currentTableData.pageType = 'field_workspace';
+        window.currentTableData.summary = summary;
+        window.currentTableData.items = items;
+        window.currentTableData.fieldRole = ruolo;
+        var selLavoroId = '';
+        try {
+            if (selectedWorkEl && selectedWorkEl.value) selLavoroId = selectedWorkEl.value;
+            else if (selectedWork && selectedWork.id) selLavoroId = selectedWork.id;
+        } catch (eSel) { /* ignore */ }
+        var page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+        if (window.Tony && typeof window.Tony.setContext === 'function') {
+            window.Tony.setContext('page', Object.assign({}, page, {
+                tableDataSummary: window.currentTableData.summary,
+                currentTableData: window.currentTableData,
+                /** Lavoro scelto nella prima schermata — Tony usa come ora-lavoro in inject */
+                selectedLavoroId: selLavoroId || null
+            }));
+        }
+        window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+    } catch (e) {
+        console.warn('[FIELD-WORKSPACE] syncTonyFieldWorkspaceTableData', e);
+    }
+}
+
 function pickGpsSuggestion(works) {
     if (!gpsSuggestionEl) return;
     if (!works.length) {
@@ -348,6 +455,16 @@ async function loadWorksForSelection() {
             } catch (error) {
                 // ignore
             }
+            let expandTonyId = null;
+            try {
+                const ex = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('gfv_tony_expand_lavoro_for_select') : '';
+                if (ex && String(ex).trim()) expandTonyId = String(ex).trim();
+            } catch (eEx) { /* ignore */ }
+            if (expandTonyId) focus = expandTonyId;
+            if (expandTonyId && !eligible.some((w) => w.id === expandTonyId)) {
+                const extra = rawList.find((w) => w.id === expandTonyId);
+                if (extra && isWorkRelevantForFieldRole(extra)) eligible.push(extra);
+            }
             eligible = sliceOperaioLavoriWindow(eligible, { focusLavoroId: focus || null, maxNeighbors: 1 });
         }
 
@@ -372,6 +489,7 @@ async function loadWorksForSelection() {
             if (quickWorkSelectEl) quickWorkSelectEl.value = selectedWork.id;
         }
         syncLavoroOperativoEmbeds();
+        syncTonyFieldWorkspaceTableData();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore caricamento lavori:', error);
         if (selectedWorkEl) {
@@ -380,6 +498,13 @@ async function loadWorksForSelection() {
         if (gpsSuggestionEl) {
             gpsSuggestionEl.textContent = 'Errore nel recupero lavori.';
         }
+        try {
+            if (!window.currentTableData) window.currentTableData = { pageType: 'field_workspace', summary: '', items: [] };
+            window.currentTableData.pageType = 'field_workspace';
+            window.currentTableData.summary = 'Workspace campo: errore caricamento lavori.';
+            window.currentTableData.items = [];
+            window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+        } catch (e2) { /* ignore */ }
     }
 }
 
@@ -595,6 +720,7 @@ async function loadPendingHoursForSelectedWork() {
 
 async function updateHourValidationStatus(hourId, status) {
     if (!selectedWork || !currentTenantId || !currentUser || !hourId) return;
+    const pendingRow = currentPendingHours.find((r) => r.id === hourId);
     const hourRef = doc(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`, hourId);
     if (status === 'validate') {
         await updateDoc(hourRef, {
@@ -603,6 +729,11 @@ async function updateHourValidationStatus(hourId, status) {
             validatoIl: serverTimestamp(),
             rifiutatoDa: null
         });
+        const operaioId = pendingRow?.operaioId;
+        if (operaioId) {
+            const { requestSkillCalcolateRefresh } = await import('../../services/profilo-manodopera-skill-auto-refresh.js');
+            requestSkillCalcolateRefresh(currentTenantId, operaioId, currentUser.uid);
+        }
     } else {
         await updateDoc(hourRef, {
             stato: 'rifiutate',
@@ -658,6 +789,17 @@ async function refreshWorkspaceData() {
     }
 }
 
+/** Dopo salvataggio riuscito: svuota orari/note così Tony e l’utente possono segnare un’altra giornata senza valori “bloccati”. */
+function resetQuickHoursFormFieldsForNextEntry() {
+    const today = getTodayIsoDate();
+    if (oraDataEl) oraDataEl.value = today;
+    if (oraStartEl) oraStartEl.value = '';
+    if (oraEndEl) oraEndEl.value = '';
+    if (oraBreakEl) oraBreakEl.value = '0';
+    if (oraNoteEl) oraNoteEl.value = '';
+    calculateNetHours();
+}
+
 function calculateNetHours() {
     if (!hoursValueEl || !oraStartEl || !oraEndEl || !oraBreakEl) return 0;
     const start = oraStartEl.value;
@@ -683,6 +825,19 @@ function calculateNetHours() {
     return netHours;
 }
 
+window.gfvFieldWorkspaceGoToHoursSlide = goToHoursSlideForTony;
+window.gfvFieldWorkspaceRecalcHours = calculateNetHours;
+window.gfvFieldWorkspaceSelectLavoroById = selectLavoroByIdOrLabelForTony;
+window.gfvFieldWorkspaceGetSelectedLavoroId = function () {
+    try {
+        if (selectedWorkEl && selectedWorkEl.value) return selectedWorkEl.value;
+        if (selectedWork && selectedWork.id) return selectedWork.id;
+        return localStorage.getItem('gfv_mobile_selected_work_id') || '';
+    } catch (e) {
+        return '';
+    }
+};
+
 async function saveQuickHours(event) {
     event.preventDefault();
     if (!hoursStatusEl) return;
@@ -691,8 +846,14 @@ async function saveQuickHours(event) {
         hoursStatusEl.style.color = '#b91c1c';
         return;
     }
+    const dateIso = (oraDataEl && oraDataEl.value) ? oraDataEl.value.trim() : '';
     const start = oraStartEl ? oraStartEl.value : '';
     const end = oraEndEl ? oraEndEl.value : '';
+    if (!dateIso) {
+        hoursStatusEl.textContent = 'Inserisci la data del lavoro.';
+        hoursStatusEl.style.color = '#b91c1c';
+        return;
+    }
     if (!start || !end) {
         hoursStatusEl.textContent = 'Inserisci orario inizio e fine.';
         hoursStatusEl.style.color = '#b91c1c';
@@ -706,7 +867,12 @@ async function saveQuickHours(event) {
     }
 
     try {
-        const [y, m, d] = getTodayIsoDate().split('-').map(Number);
+        const [y, m, d] = dateIso.split('-').map(Number);
+        if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+            hoursStatusEl.textContent = 'Data non valida.';
+            hoursStatusEl.style.color = '#b91c1c';
+            return;
+        }
         const nowDate = new Date(y, m - 1, d);
         const pauseMin = Math.max(0, parseInt((oraBreakEl && oraBreakEl.value) || '0', 10) || 0);
         const oraData = {
@@ -724,8 +890,9 @@ async function saveQuickHours(event) {
         };
         const oraRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`);
         await addDoc(oraRef, oraData);
-        hoursStatusEl.textContent = `Ore salvate: ${netHours.toFixed(2)} h`;
+        hoursStatusEl.textContent = `Ore salvate: ${netHours.toFixed(2)} h. Puoi registrare un altro turno.`;
         hoursStatusEl.style.color = '#166534';
+        resetQuickHoursFormFieldsForNextEntry();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore salvataggio ore:', error);
         hoursStatusEl.textContent = `Errore salvataggio: ${error.message}`;
@@ -748,6 +915,7 @@ function bindWorkSelection() {
         } catch (error) {
             // ignore
         }
+        syncTonyFieldWorkspaceTableData();
     };
     if (selectedWorkEl) {
         selectedWorkEl.addEventListener('change', (e) => onChange(e.target.value));
@@ -1045,6 +1213,7 @@ async function initFieldWorkspace() {
                 const displayName = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim()
                     || (user && user.email) || '';
                 updateFieldHeaderUser(displayName, normalizedRoles);
+                updateFieldDocumentationGuideLink();
 
                 try {
                     const fieldDashboardPayload = {
@@ -1085,6 +1254,7 @@ async function initFieldWorkspace() {
                 }
                 const dateInput = document.getElementById('quick-comm-date');
                 if (dateInput) dateInput.value = getTodayIsoDate();
+                if (oraDataEl) oraDataEl.value = getTodayIsoDate();
 
                 setStatus('Workspace mobile attivo.');
             } catch (error) {

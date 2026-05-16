@@ -451,6 +451,67 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     return null;
   }
 
+  /** Traccia segmento / zona lavorata (`lavori-caposquadra-standalone.html`, `#zona-form` in `#zona-modal`) — mappa manuale a cura dell'utente */
+  const ZONA_SEGMENTO_FORM_MAP = {
+    formId: 'zona-form',
+    modalId: 'zona-modal',
+    injectionOrder: ['zona-data', 'zona-larghezza', 'zona-note'],
+    fields: {
+      'zona-data': { type: 'date', resolve: 'as_is', description: 'Data lavorazione YYYY-MM-DD' },
+      'zona-larghezza': { type: 'number', resolve: 'as_is', description: 'Larghezza operazione in metri (opzionale)' },
+      'zona-note': { type: 'text', resolve: 'as_is', description: 'Note sulla zona lavorata' }
+    }
+  };
+
+  const SYSTEM_INSTRUCTION_ZONA_SEGMENTO = `Ruolo: assistente per il form «Traccia segmento» (campo). Chiavi JSON: zona-data (YYYY-MM-DD), zona-larghezza (metri, opzionale), zona-note. Il disegno del percorso sulla mappa resta manuale; non simulare click in mappa. Apri il modal Traccia segmento dall'elenco lavori prima di INJECT_FORM_DATA se il form non è visibile.`;
+
+  /** Segna ore (`segnatura-ore-standalone.html`, `#ora-form` in `#ora-modal`) */
+  const SEGNA_ORE_FORM_MAP = {
+    formId: 'ora-form',
+    modalId: 'ora-modal',
+    injectionOrder: [
+      'ora-lavoro',
+      'ora-data',
+      'ora-inizio',
+      'ora-fine',
+      'ora-pause',
+      'ora-note',
+      'ora-includi-posizione',
+      'ora-macchina',
+      'ora-attrezzo',
+      'ora-ore-macchina'
+    ],
+    fields: {
+      'ora-lavoro': { type: 'select', resolve: 'by_name', description: 'Lavoro: id Firestore o nome come in elenco' },
+      'ora-data': { type: 'date', resolve: 'as_is', description: 'Data lavoro YYYY-MM-DD' },
+      'ora-inizio': { type: 'time', resolve: 'as_is', description: 'Orario inizio HH:MM' },
+      'ora-fine': { type: 'time', resolve: 'as_is', description: 'Orario fine HH:MM' },
+      'ora-pause': { type: 'number', resolve: 'as_is', description: 'Pause in minuti' },
+      'ora-note': { type: 'text', resolve: 'as_is', description: 'Note' },
+      'ora-includi-posizione': { type: 'checkbox', resolve: 'as_is', description: 'true/false: includi GPS' },
+      'ora-macchina': { type: 'select', resolve: 'by_name', description: 'Trattore (modulo Parco Macchine)' },
+      'ora-attrezzo': { type: 'select', resolve: 'by_name', description: 'Attrezzo compatibile' },
+      'ora-ore-macchina': { type: 'number', resolve: 'as_is', description: 'Ore macchina (opzionale)' }
+    }
+  };
+
+  const SYSTEM_INSTRUCTION_SEGNA_ORE = `Ruolo: compilazione «Segna nuova ora» (operaio/caposquadra). Chiavi: ora-lavoro (id o nome lavoro), ora-data (YYYY-MM-DD), ora-inizio, ora-fine (HH:MM), ora-pause (minuti), ora-note, ora-includi-posizione (bool), ora-macchina / ora-attrezzo / ora-ore-macchina se modulo Parco Macchine e sezione visibile. Apri il modal (Segna nuova ora) prima di INJECT se chiuso. GPS: solo se l'utente conferma esplicitamente la checkbox. Per la pausa chiedi sempre i minuti (es. «quanti minuti di pausa?»), non «a che ora hai fatto pausa».`;
+
+  /** Stesse chiavi ora-* del standalone, form DOM `#quick-hours-form` sul workspace mobile (niente modal). */
+  const FIELD_WORKSPACE_ORE_FORM_MAP = {
+    formId: 'field-workspace-ore-form',
+    modalId: null,
+    injectionOrder: ['ora-lavoro', 'ora-data', 'ora-inizio', 'ora-fine', 'ora-pause', 'ora-note'],
+    fields: {
+      'ora-lavoro': { type: 'select', resolve: 'by_name', description: 'Lavoro: id o nome (select workspace mobile)' },
+      'ora-data': { type: 'date', resolve: 'as_is', description: 'Data lavoro YYYY-MM-DD' },
+      'ora-inizio': { type: 'time', resolve: 'as_is', description: 'HH:MM' },
+      'ora-fine': { type: 'time', resolve: 'as_is', description: 'HH:MM' },
+      'ora-pause': { type: 'number', resolve: 'as_is', description: 'Minuti pausa' },
+      'ora-note': { type: 'text', resolve: 'as_is', description: 'Note turno' }
+    }
+  };
+
   const mapping = {
     'attivita-modal': ATTIVITA_FORM_MAP,
     attivita: ATTIVITA_FORM_MAP,
@@ -471,7 +532,12 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     movimento: MOVIMENTO_FORM_MAP,
     'form-trattamento': TRATTAMENTO_CAMPO_FORM_MAP,
     'trattamento-concimazione-form': TRATTAMENTO_CAMPO_FORM_MAP,
-    'modal-trattamento': TRATTAMENTO_CAMPO_FORM_MAP
+    'modal-trattamento': TRATTAMENTO_CAMPO_FORM_MAP,
+    'zona-form': ZONA_SEGMENTO_FORM_MAP,
+    zona: ZONA_SEGMENTO_FORM_MAP,
+    'ora-form': SEGNA_ORE_FORM_MAP,
+    'segna-ora': SEGNA_ORE_FORM_MAP,
+    'field-workspace-ore-form': FIELD_WORKSPACE_ORE_FORM_MAP
   };
 
   const schemas = {
@@ -491,7 +557,10 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     'prodotto-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS,
     'movimento-form': SYSTEM_INSTRUCTION_MAGAZZINO_FORMS,
     'form-trattamento': SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO,
-    'trattamento-concimazione-form': SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO
+    'trattamento-concimazione-form': SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO,
+    'zona-form': SYSTEM_INSTRUCTION_ZONA_SEGMENTO,
+    'ora-form': SYSTEM_INSTRUCTION_SEGNA_ORE,
+    'field-workspace-ore-form': SYSTEM_INSTRUCTION_SEGNA_ORE + ' Su workspace mobile il form è inline (schermata Segna ore), non aprire segnatura-ore-standalone.'
   };
 
   /** Allineato a core/config/trattamenti-lavoro-defaults.js */
@@ -528,6 +597,11 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     MOVIMENTO_FORM_MAP,
     TRATTAMENTO_CAMPO_FORM_MAP,
     SYSTEM_INSTRUCTION_MAGAZZINO_FORMS,
-    SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO
+    SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO,
+    ZONA_SEGMENTO_FORM_MAP,
+    SYSTEM_INSTRUCTION_ZONA_SEGMENTO,
+    SEGNA_ORE_FORM_MAP,
+    FIELD_WORKSPACE_ORE_FORM_MAP,
+    SYSTEM_INSTRUCTION_SEGNA_ORE
   };
 })(typeof window !== 'undefined' ? window : globalThis);

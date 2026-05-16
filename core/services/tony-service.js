@@ -7,45 +7,198 @@
 
 import { GUIDA_APP_PER_TONY } from './tony-guida-app.js';
 
-/** Elenco file della guida app (percorso relativo a docs-sviluppo/guida-app/) */
-const GUIDA_APP_FILES = [
-  'core.md',
-  'intersezioni-moduli.md',
-  'moduli/terreni.md',
-  'moduli/lavori-attivita.md',
-  'moduli/vigneto.md',
-  'moduli/frutteto.md',
-  'moduli/magazzino.md',
-  'moduli/conto-terzi.md'
+/**
+ * Ordine di caricamento guida markdown per Tony.
+ * Ogni voce: path relativo alla base; più candidate di base provate in ordine (deploy core vs repo dev).
+ * Strategia: prima il linguaggio e i passi **utente** (stesso tono delle risposte), poi **guida tecnica** e intersezioni.
+ * @see docs-sviluppo/GUIDA/README.md
+ */
+const GUIDA_LOAD_ENTRIES = [
+  { path: 'CORE/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'CORE/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'TONY/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'TONY/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'INTERSEZIONI/tony/intersezioni.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'PARCO_MACCHINE/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'PARCO_MACCHINE/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'VIGNETO/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'VIGNETO/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'FRUTTETO/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'FRUTTETO/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'MAGAZZINO/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'MAGAZZINO/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'MANODOPERA/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'MANODOPERA/utente/guida-manager.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'MANODOPERA/utente/guida-caposquadra.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'MANODOPERA/utente/guida-operaio.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'MANODOPERA/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'CONTO_TERZI/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'CONTO_TERZI/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'moduli/terreni.md', bases: ['../guida-app/', '../../docs-sviluppo/guida-app/'] },
+  { path: 'moduli/lavori-attivita.md', bases: ['../guida-app/', '../../docs-sviluppo/guida-app/'] }
 ];
 
 /**
- * Carica la guida app completa dai file .md.
- * Prova in ordine: 1) core/guida-app/ (sempre disponibile se deployato con core); 2) docs-sviluppo/guida-app/.
- * Se entrambi falliscono, restituisce null e si usa la guida condensata.
- * @returns {Promise<string|null>} Testo completo della guida o null
+ * @param {URL} scriptBase - import.meta.url del service
+ * @param {{ path: string, bases: string[] }} entry
+ * @returns {Promise<string>}
+ */
+async function fetchGuidaMarkdownPart(scriptBase, entry) {
+  for (let i = 0; i < entry.bases.length; i++) {
+    try {
+      const url = new URL(entry.bases[i] + entry.path, scriptBase).href;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim().length) return text;
+      }
+    } catch (_) { /* prova base successiva */ }
+  }
+  return '';
+}
+
+/**
+ * Carica la guida app completa dai file .md (cartella GUIDA + legacy guida-app/moduli).
+ * Fallback: null → versione condensata in tony-guida-app.js.
+ * @returns {Promise<string|null>}
  */
 async function loadGuidaAppFull() {
   const scriptBase = new URL(import.meta.url);
-  const basesToTry = [
-    new URL('../guida-app/', scriptBase).href,   // core/guida-app/ (copia in core)
-    new URL('../../docs-sviluppo/guida-app/', scriptBase).href
-  ];
-  for (const base of basesToTry) {
-    try {
-      const parts = await Promise.all(
-        GUIDA_APP_FILES.map(async (file) => {
-          const res = await fetch(base + file, { cache: 'no-store' });
-          if (!res.ok) return '';
-          return res.text();
-        })
-      );
-      const full = parts.filter(Boolean).join('\n\n---\n\n');
-      if (full.length > 100) return full;
-    } catch (_) { /* prova base successiva */ }
+  const parts = [];
+  for (let j = 0; j < GUIDA_LOAD_ENTRIES.length; j++) {
+    const t = await fetchGuidaMarkdownPart(scriptBase, GUIDA_LOAD_ENTRIES[j]);
+    if (t) parts.push(t);
   }
+  const full = parts.join('\n\n---\n\n');
+  if (full.length > 100) return full;
   console.warn('[Tony] Guida completa non caricabile (uso versione condensata).');
   return null;
+}
+
+/** Riassunto sempre corto (fetch da CORE/utente/guida-sintesi.md); resta nel contesto anche dopo il primo messaggio. */
+const GUIDA_SINTESI_ENTRY = {
+  path: 'CORE/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+/**
+ * Sotto questa lunghezza `guida_app` è probabilmente solo il fallback condensato:
+ * nel primo messaggio si allega anche guida_sintesi per non perdere i passi Core.
+ */
+const GUIDA_APP_FULL_THRESHOLD_CHARS = 12000;
+
+const GUIDA_SINTESI_FALLBACK = `
+GFV Core (sintesi): Impostazioni prima (azienda e poderi). Terreni con Traccia confini e Salva terreno. Diario attività per le giornate in campo. Dashboard con mappa se i confini sono già tracciati. Statistiche con filtri e Applica filtri. Menu con freccetta: rispetta l ordine delle scelte in schermata. Ruolo e moduli cambiano cosa vedi.
+`.trim();
+
+async function loadGuidaSintesi() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_ENTRY);
+}
+
+/** Riassunto modulo Parco Macchine (fetch da PARCO_MACCHINE/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_PARCO_MACCHINE_ENTRY = {
+  path: 'PARCO_MACCHINE/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK = `
+Parco Macchine (sintesi): solo se modulo parcoMacchine attivo. Dashboard → Parco Macchine → hub con azioni rapide. Trattori, attrezzi, flotta, gestione macchine, scadenze, officina e guasti. Diario: trattore/attrezzo/ore macchina opzionali.
+`.trim();
+
+async function loadGuidaSintesiParcoMacchine() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_PARCO_MACCHINE_ENTRY);
+}
+
+/** Riassunto modulo Vigneto (fetch da VIGNETO/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_VIGNETO_ENTRY = {
+  path: 'VIGNETO/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_VIGNETO_FALLBACK = `
+Vigneto (sintesi): solo se modulo vigneto attivo. Dashboard Vigneto (Manager/Admin): statistiche e azioni rapide. Anagrafica vigneti; registri trattamenti, concimazioni, potatura, vendemmia; statistiche; pianifica impianto; calcolo materiali. Tony: riepilogo da dashboard quando presente; su Gestione vendemmia e Concimazioni può leggere l elenco tabellare come in schermata.
+`.trim();
+
+async function loadGuidaSintesiVigneto() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_VIGNETO_ENTRY);
+}
+
+/** Riassunto modulo Frutteto (fetch da FRUTTETO/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_FRUTTETO_ENTRY = {
+  path: 'FRUTTETO/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_FRUTTETO_FALLBACK = `
+Frutteto (sintesi): solo se modulo frutteto attivo. Dashboard Frutteto: panoramica, raccolte recenti, lavori frutteto. Anagrafica frutteti. Trattamenti, concimazioni, potatura: righe in lista dopo lavoro o Diario sul terreno con categoria giusta, poi completamento in modulo; raccolta frutta soprattutto da Raccolta frutta. Statistiche. Pianifica/Calcolo materiali: strumento condiviso con altri moduli coltura; dal frutteto si entra dalla Dashboard Frutteto (azioni rapide), poi file e piante, sesto, orientamento, carraie; non usare checklist/dashboard vigneto per chi opera in frutteto. Tony: guida testuale; su Concimazioni frutteto spesso elenco tabellare come in schermata.
+`.trim();
+
+async function loadGuidaSintesiFrutteto() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_FRUTTETO_ENTRY);
+}
+
+/** Riassunto modulo Magazzino (fetch da MAGAZZINO/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_MAGAZZINO_ENTRY = {
+  path: 'MAGAZZINO/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_MAGAZZINO_FALLBACK = `
+Magazzino (sintesi): solo se modulo magazzino attivo. Home Prodotti e Magazzino: riepilogo e azioni rapide. Anagrafica prodotti; movimenti entrata/uscita; tracciabilità consumi (filtri e viste). Sotto scorta da soglie. Scarichi da Vigneto/Frutteto se abilitati. Tony: liste prodotti/movimenti/tracciabilità con currentTableData dove esposto.
+`.trim();
+
+async function loadGuidaSintesiMagazzino() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_MAGAZZINO_ENTRY);
+}
+
+/** Riassunto modulo Manodopera (fetch da MANODOPERA/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_MANODOPERA_ENTRY = {
+  path: 'MANODOPERA/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_MANODOPERA_FALLBACK = `
+Manodopera (sintesi): solo se modulo manodopera attivo. Manager: versione desktop, gestione squadre (solo manager), operai, compensi, validazione ore globale, statistiche manodopera, gestione lavori. Caposquadra: versione mobile con comunicazioni squadra, validazione ore operai, segna ore, dettaglio lavoro/zone; non gestisce composizione squadre. Operaio: versione mobile (schede Lavoro, Ore, Statistiche), segna ore, dettaglio lavoro/zone; non usa Diario manageriale. Tony: target segnatura/validazione/operai/squadre/compensi/statistiche manodopera; pageType field_workspace / lavori_caposquadra / lavori con currentTableData se presente.
+`.trim();
+
+async function loadGuidaSintesiManodopera() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_MANODOPERA_ENTRY);
+}
+
+/** Riassunto modulo Conto Terzi (fetch da CONTO_TERZI/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_CONTO_TERZI_ENTRY = {
+  path: 'CONTO_TERZI/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_CONTO_TERZI_FALLBACK = `
+Conto Terzi (sintesi): solo se modulo conto terzi attivo. Home Conto Terzi: panoramica clienti, preventivi, terreni clienti, lavori da pianificare e Diario filtrato. Clienti, terreni clienti, mappa consultativa; tariffe: tariffa finale = base €/ha × coefficiente; coefficienti morfologia in Impostazioni (pianura 1,0; collina/montagna da percentuali o default 1,2/1,5) per creare tre morfologie insieme o Duplica; tariffa singola con tipo campo e coefficiente manuali; allineare tipo lavoro ai preventivi. Nuovo preventivo, lista preventivi (bozza, invio, accettazione, pianifica). Tony: target conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti.
+`.trim();
+
+async function loadGuidaSintesiContoTerzi() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_CONTO_TERZI_ENTRY);
+}
+
+/** Riassunto modulo Tony (fetch da TONY/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_TONY_ENTRY = {
+  path: 'TONY/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_TONY_FALLBACK = `
+Tony (sintesi): assistente chat; widget e voce se previsto. Tony Guida vs modulo Tony (Avanzato): navigazione e automazioni solo con modulo attivo; piano free senza widget. Liste: dati visibili; profilo campo limitato. Conferme brevi dopo domande Tony. Briefing dashboard manager solo con modulo Tony.
+`.trim();
+
+async function loadGuidaSintesiTony() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_TONY_ENTRY);
 }
 
 const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico, non un software.
@@ -74,10 +227,11 @@ Regole operative:
 2. Info mancanti? Indica il modulo corretto.
 3. Domande "Come fare": Spiega passi -> Chiedi "Aprire pagina?" -> Includi { "action": "APRI_PAGINA" } SOLO dopo conferma utente ("sì", "apri").
 4. Richieste esplicite ("Vai a..."): Includi subito { "action": "APRI_PAGINA", "params": {"target": "..."} }.
-5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali impianto → calcolo materiali; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo. (g) SE segnare ore / registrare ore: esegui SUBITO OPEN_MODAL (attivita-modal o ora-modal) e poi chiedi i dati. Non chiedere prima i dati e poi aprire; apri il modal subito, poi chiedi terreno, data, ecc.
+5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, pianificazione impianto frutteto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali vigneto → calcolo materiali; calcolo materiali frutteto → calcolo materiali frutteto; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo; **pianifica nuovo impianto / calcolo materiali**: strumento condiviso tra moduli coltura; usa **page.pagePath** (o titolo pagina): se contiene vigneto → Dashboard Vigneto e target pianificazione impianto / calcolo materiali; se contiene frutteto → Dashboard Frutteto e target pianificazione impianto frutteto / calcolo materiali frutteto; se non è chiaro, una frase generica sullo strumento condiviso e chiedi vigneto o frutteto. Non applicare la checklist dell'altro modulo. (g) SE segnare ore / registrare ore: esegui SUBITO OPEN_MODAL (attivita-modal o ora-modal) e poi chiedi i dati. Non chiedere prima i dati e poi aprire; apri il modal subito, poi chiedi terreno, data, ecc.
 6. Altre azioni (SEGNA_ORE, GUASTO): Conferma + JSON azione.
 7. MEMORIA VOCALE: Se l'utente risponde con poche parole (es. "Sì", "Vai", "Ok apri"), guarda l'ultimo messaggio che hai scritto per capire a cosa si riferisce e agisci di conseguenza.
 8. DATI IN TABELLA: Se il contesto include page.currentTableData o page.tableDataSummary, usa SOLO quelli per rispondere a domande sui dati visibili (es. "Cosa scade?", "Quali trattori ci sono?", "Ci sono guasti aperti?"). Rispondi in base a summary e/o items; non inventare dati. Se tableDataSummary è "Caricamento dati in corso..." rispondi: "Sto ancora leggendo i dati della lista, dammi un attimo di pazienza." Se tableDataSummary è "Dati non disponibili" o mancano page.currentTableData e page.tableDataSummary, NON dire "Non ho le competenze": rispondi invece: "In questa pagina non vedo dati in tabella, riprova tra un secondo o controlla se la lista è vuota."
+9. Guida "come fare": nel JSON usa context.guida_sintesi per il **Core** (app base), context.guida_sintesi_parco_macchine per **Parco Macchine** (mezzi, scadenze, guasti), context.guida_sintesi_vigneto per **Vigneto**, context.guida_sintesi_frutteto per **Frutteto**, context.guida_sintesi_magazzino per **Magazzino**, context.guida_sintesi_manodopera per **Manodopera**, context.guida_sintesi_conto_terzi per **Conto Terzi** e context.guida_sintesi_tony per **come funziona Tony** (widget, piani, Tony Guida vs Avanzato, voce, profilo campo, briefing) se presenti; per **pianificazione impianto / calcolo materiali** privilegia la sintesi del modulo coerente con **page.pagePath** (vigneto vs frutteto) e non mischiare le due se il path è chiaro; su **/magazzino/** privilegia **guida_sintesi_magazzino** per anagrafica, movimenti e tracciabilità; su pagine **manodopera** (path con segnatura-ore, validazione-ore, gestione-operai, gestione-squadre, compensi-operai, statistiche-manodopera, lavori-caposquadra, field-workspace, ecc.) privilegia **guida_sintesi_manodopera** per segnatura, validazione, squadre, operai e compensi; su **/conto-terzi/** privilegia **guida_sintesi_conto_terzi** per clienti, terreni clienti, tariffe, preventivi e flusso pianifica lavoro; se l'utente chiede cos'è Tony o cosa può fare **in generale** privilegia **guida_sintesi_tony**; integra con moduli attivi nel tenant e pagina corrente; non inventare schermate assenti. La guida lunga context.guida_app è nel contesto completo soprattutto al primo messaggio quando caricata da file.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -85,6 +239,91 @@ Regole operative:
 
 /** Numero massimo di messaggi in memoria (3–4 scambi = 6–8 elementi) */
 const CHAT_HISTORY_MAX = 8;
+
+/**
+ * Preferisce una tabella lavori campo con items non vuoti: contesto serializzato a volte arriva senza righe
+ * mentre window.currentTableData (o parent field-workspace) è aggiornato.
+ */
+function _resolveFieldWorkspaceTableDataForEnumerate(safeContext) {
+  const candidates = [];
+  try {
+    if (safeContext && safeContext.page && safeContext.page.currentTableData) {
+      candidates.push(safeContext.page.currentTableData);
+    }
+  } catch (_) {}
+  if (typeof window !== 'undefined') {
+    try {
+      if (window.currentTableData) candidates.push(window.currentTableData);
+    } catch (_) {}
+    try {
+      if (window.parent && window.parent !== window && window.parent.currentTableData) {
+        candidates.push(window.parent.currentTableData);
+      }
+    } catch (_) {}
+  }
+  for (let i = 0; i < candidates.length; i++) {
+    const ct = candidates[i];
+    if (!ct) continue;
+    const pt = String(ct.pageType || '');
+    if (pt !== 'field_workspace' && pt !== 'lavori_caposquadra') continue;
+    const items = ct.items;
+    if (!Array.isArray(items) || items.length === 0) continue;
+    return ct;
+  }
+  return null;
+}
+
+/**
+ * Domande «quali lavori in lista» nel workspace campo: risposta deterministica dai dati tabella (no CF / no Gemini).
+ * Evita risposte solo con il conteggio.
+ */
+function _tryFieldWorkspaceEnumerateJobsReply(userPrompt, safeContext, askOptions) {
+  if (askOptions && askOptions.proactive) return null;
+  const p = String(userPrompt || '').trim();
+  if (!p) return null;
+  const ct = _resolveFieldWorkspaceTableDataForEnumerate(safeContext);
+  if (!ct) return null;
+  const items = ct.items;
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const lower = p.toLowerCase();
+  if (/\b(ritard|scad|filtro|solo\s+i\s|solo\s+quell|in corso|completat)\b/i.test(lower) && !/\bin elenco\b|\bin lista\b|\btutti\b/i.test(lower)) {
+    return null;
+  }
+  const looksLikeEnumerate =
+    /\bquali\b.*\blavor/i.test(lower) ||
+    /\b(elenco|lista)\b.*\blavor/i.test(lower) ||
+    /\bquanti\b.*\blavor/i.test(lower) ||
+    /\blavor\w*\b.*\b(ci sono|in elenco|in lista)\b/i.test(lower);
+  if (!looksLikeEnumerate) return null;
+
+  var lines = items.map(function (it) {
+    var title = String(it.label != null ? it.label : it.nome != null ? it.nome : it.titolo || '').trim() || 'Senza nome';
+    var st = String(it.stato || '').trim();
+    var tipo = String(it.tipoLavoro || '').trim();
+    var bits = [title];
+    if (tipo) bits.push(tipo);
+    if (st) bits.push('stato ' + st);
+    return bits.join(', ');
+  });
+
+  if (items.length === 1) {
+    return 'Nel tuo elenco c’è un lavoro: ' + lines[0] + '.';
+  }
+  if (items.length === 2) {
+    return 'Ci sono due lavori in elenco. Primo, ' + lines[0] + '. Secondo, ' + lines[1] + '.';
+  }
+  return (
+    'Nel tuo elenco ci sono ' +
+    items.length +
+    ' lavori. ' +
+    lines
+      .map(function (line, i) {
+        return 'Numero ' + (i + 1) + ', ' + line;
+      })
+      .join('. ') +
+    '.'
+  );
+}
 
 class TonyService {
   constructor() {
@@ -130,6 +369,14 @@ class TonyService {
     }
     this.app = app;
     this.context.guida_app = GUIDA_APP_PER_TONY;
+    this.context.guida_sintesi = GUIDA_SINTESI_FALLBACK;
+    this.context.guida_sintesi_parco_macchine = GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK;
+    this.context.guida_sintesi_vigneto = GUIDA_SINTESI_VIGNETO_FALLBACK;
+    this.context.guida_sintesi_frutteto = GUIDA_SINTESI_FRUTTETO_FALLBACK;
+    this.context.guida_sintesi_magazzino = GUIDA_SINTESI_MAGAZZINO_FALLBACK;
+    this.context.guida_sintesi_manodopera = GUIDA_SINTESI_MANODOPERA_FALLBACK;
+    this.context.guida_sintesi_conto_terzi = GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
+    this.context.guida_sintesi_tony = GUIDA_SINTESI_TONY_FALLBACK;
     this._initPromise = (async () => {
       try {
         const fullGuida = await loadGuidaAppFull();
@@ -138,6 +385,110 @@ class TonyService {
           console.log('[Tony] Guida app completa caricata.');
         }
       } catch (_) { /* mantieni condensata */ }
+      try {
+        const sintesiRaw = await loadGuidaSintesi();
+        const sintesi =
+          sintesiRaw && String(sintesiRaw).trim().length > 80
+            ? String(sintesiRaw).trim()
+            : GUIDA_SINTESI_FALLBACK;
+        this.context.guida_sintesi = sintesi;
+        if (sintesiRaw && String(sintesiRaw).trim().length > 80) {
+          console.log('[Tony] Guida sintesi caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi = GUIDA_SINTESI_FALLBACK;
+      }
+      try {
+        const sintesiParcoRaw = await loadGuidaSintesiParcoMacchine();
+        const sintesiParco =
+          sintesiParcoRaw && String(sintesiParcoRaw).trim().length > 60
+            ? String(sintesiParcoRaw).trim()
+            : GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK;
+        this.context.guida_sintesi_parco_macchine = sintesiParco;
+        if (sintesiParcoRaw && String(sintesiParcoRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Parco Macchine caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_parco_macchine = GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK;
+      }
+      try {
+        const sintesiVignetoRaw = await loadGuidaSintesiVigneto();
+        const sintesiVigneto =
+          sintesiVignetoRaw && String(sintesiVignetoRaw).trim().length > 60
+            ? String(sintesiVignetoRaw).trim()
+            : GUIDA_SINTESI_VIGNETO_FALLBACK;
+        this.context.guida_sintesi_vigneto = sintesiVigneto;
+        if (sintesiVignetoRaw && String(sintesiVignetoRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Vigneto caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_vigneto = GUIDA_SINTESI_VIGNETO_FALLBACK;
+      }
+      try {
+        const sintesiFruttetoRaw = await loadGuidaSintesiFrutteto();
+        const sintesiFrutteto =
+          sintesiFruttetoRaw && String(sintesiFruttetoRaw).trim().length > 60
+            ? String(sintesiFruttetoRaw).trim()
+            : GUIDA_SINTESI_FRUTTETO_FALLBACK;
+        this.context.guida_sintesi_frutteto = sintesiFrutteto;
+        if (sintesiFruttetoRaw && String(sintesiFruttetoRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Frutteto caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_frutteto = GUIDA_SINTESI_FRUTTETO_FALLBACK;
+      }
+      try {
+        const sintesiMagazzinoRaw = await loadGuidaSintesiMagazzino();
+        const sintesiMagazzino =
+          sintesiMagazzinoRaw && String(sintesiMagazzinoRaw).trim().length > 60
+            ? String(sintesiMagazzinoRaw).trim()
+            : GUIDA_SINTESI_MAGAZZINO_FALLBACK;
+        this.context.guida_sintesi_magazzino = sintesiMagazzino;
+        if (sintesiMagazzinoRaw && String(sintesiMagazzinoRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Magazzino caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_magazzino = GUIDA_SINTESI_MAGAZZINO_FALLBACK;
+      }
+      try {
+        const sintesiManodoperaRaw = await loadGuidaSintesiManodopera();
+        const sintesiManodopera =
+          sintesiManodoperaRaw && String(sintesiManodoperaRaw).trim().length > 60
+            ? String(sintesiManodoperaRaw).trim()
+            : GUIDA_SINTESI_MANODOPERA_FALLBACK;
+        this.context.guida_sintesi_manodopera = sintesiManodopera;
+        if (sintesiManodoperaRaw && String(sintesiManodoperaRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Manodopera caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_manodopera = GUIDA_SINTESI_MANODOPERA_FALLBACK;
+      }
+      try {
+        const sintesiContoTerziRaw = await loadGuidaSintesiContoTerzi();
+        const sintesiContoTerzi =
+          sintesiContoTerziRaw && String(sintesiContoTerziRaw).trim().length > 60
+            ? String(sintesiContoTerziRaw).trim()
+            : GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
+        this.context.guida_sintesi_conto_terzi = sintesiContoTerzi;
+        if (sintesiContoTerziRaw && String(sintesiContoTerziRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Conto Terzi caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_conto_terzi = GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
+      }
+      try {
+        const sintesiTonyRaw = await loadGuidaSintesiTony();
+        const sintesiTony =
+          sintesiTonyRaw && String(sintesiTonyRaw).trim().length > 60
+            ? String(sintesiTonyRaw).trim()
+            : GUIDA_SINTESI_TONY_FALLBACK;
+        this.context.guida_sintesi_tony = sintesiTony;
+        if (sintesiTonyRaw && String(sintesiTonyRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi modulo Tony caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_tony = GUIDA_SINTESI_TONY_FALLBACK;
+      }
       try {
         const { getAI, getGenerativeModel, GoogleAIBackend } = await import(
           'https://esm.sh/firebase@11/ai'
@@ -184,10 +535,40 @@ class TonyService {
     });
   }
 
+  /**
+   * Contesto per prompt/callable: la guida lunga (`guida_app`) pesa molti token,
+   * quindi dopo il primo messaggio resta fuori; i riassunti `guida_sintesi`,
+   * `guida_sintesi_parco_macchine`, `guida_sintesi_vigneto`, `guida_sintesi_frutteto`, `guida_sintesi_magazzino`, `guida_sintesi_manodopera`, `guida_sintesi_conto_terzi` e `guida_sintesi_tony` restano (tranne al primo turno quando la guida lunga
+   * è già caricata interamente da file, per evitare duplicati).
+   */
   _getContextForPrompt() {
-    if (this.chatHistory.length === 0) return this.context;
-    const { guida_app, ...rest } = this.context;
-    return rest;
+    const firstTurn = this.chatHistory.length === 0;
+    const ga = this.context.guida_app;
+    const longGuidaLoaded =
+      typeof ga === 'string' && ga.length >= GUIDA_APP_FULL_THRESHOLD_CHARS;
+    const out = {};
+    for (const key of Object.keys(this.context)) {
+      if (key === 'guida_app') {
+        if (firstTurn) out[key] = this.context[key];
+        continue;
+      }
+      if (
+        key === 'guida_sintesi' ||
+        key === 'guida_sintesi_parco_macchine' ||
+        key === 'guida_sintesi_vigneto' ||
+        key === 'guida_sintesi_frutteto' ||
+        key === 'guida_sintesi_magazzino' ||
+        key === 'guida_sintesi_manodopera' ||
+        key === 'guida_sintesi_conto_terzi' ||
+        key === 'guida_sintesi_tony'
+      ) {
+        if (firstTurn && longGuidaLoaded) continue;
+        out[key] = this.context[key];
+        continue;
+      }
+      out[key] = this.context[key];
+    }
+    return out;
   }
 
   /**
@@ -233,6 +614,13 @@ class TonyService {
           info_azienda: { moduli_attivi: modules },
           moduli_attivi: modules
         };
+        try {
+          if (typeof window !== "undefined" && window.__gfvSubscriptionPlanId != null && window.__gfvSubscriptionPlanId !== "") {
+            const pid = String(window.__gfvSubscriptionPlanId).trim().toLowerCase();
+            payload.plan = pid;
+            payload.piano = pid;
+          }
+        } catch (_) {}
         if (tenantId) payload.tenantId = tenantId;
         if (utente_corrente && typeof utente_corrente === 'object') {
           payload.utente_corrente = utente_corrente;
@@ -282,8 +670,21 @@ class TonyService {
    * @param {string} text - Risposta di Tony
    * @returns {string} Testo pulito (senza i blocchi JSON)
    */
+  /** True se il tenant ha il modulo Tony Avanzato (solo allora si eseguono azioni da JSON locale). */
+  _isTonyAdvancedFromContext() {
+    const dash = this.context && this.context.dashboard;
+    const mods =
+      (dash && dash.moduli_attivi) ||
+      (this.context && this.context.moduli_attivi) ||
+      [];
+    return Array.isArray(mods) && mods.some((m) => String(m).toLowerCase() === 'tony');
+  }
+
   _parseAndTriggerActions(text) {
     if (!text || typeof text !== 'string') return text;
+    if (!this._isTonyAdvancedFromContext()) {
+      return text;
+    }
     let cleaned = text;
     // 1. Cerca blocchi { "action": "NOME", "params": { ... } }
     const actionMarker = /\{\s*["']action["']\s*:\s*["']/;
@@ -529,6 +930,9 @@ class TonyService {
     if (!this._ready) {
       throw new Error('Tony non inizializzato. Chiama Tony.init(app) prima.');
     }
+    if (typeof window !== 'undefined' && window.__tonyFreemiumBlocked) {
+      throw new Error('Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento.');
+    }
     const historyUserText =
       askOptions && askOptions.historyUserMessage != null && String(askOptions.historyUserMessage).trim() !== ''
         ? String(askOptions.historyUserMessage).trim()
@@ -562,6 +966,12 @@ class TonyService {
     if (tenantId && safeContext) {
       if (!safeContext.dashboard) safeContext.dashboard = {};
       safeContext.dashboard.tenantId = tenantId;
+    }
+
+    const fieldWorkspaceQuickReply = _tryFieldWorkspaceEnumerateJobsReply(userPrompt, safeContext, askOptions);
+    if (fieldWorkspaceQuickReply != null && String(fieldWorkspaceQuickReply).trim()) {
+      this._pushChatTurn(historyUserText, fieldWorkspaceQuickReply, askOptions);
+      return { text: fieldWorkspaceQuickReply, command: null };
     }
 
     // IMPORTANTE: context.form.fields (stato attuale del form) deve essere impostato dal widget
@@ -705,17 +1115,34 @@ class TonyService {
       text = parsedData.text ?? 'Nessuna risposta da Tony.';
       if (parsedData.command && typeof parsedData.command === 'object' && parsedData.command.type) {
         var cmdT0 = String(parsedData.command.type).toUpperCase();
-        // Il widget invia «Form completo, confermi salvataggio?» come prompt proattivo; la CF a volte restituisce SAVE_ACTIVITY come se l'utente avesse confermato → click salvataggio prematuro e testo «Attività salvata!». Non eseguire SAVE_ACTIVITY finché l'utente non scrive davvero una conferma (gestita nei turni successivi senza proactive).
-        var blockProactiveFalseSave =
-          cmdT0 === 'SAVE_ACTIVITY' &&
+        // Il widget invia «Form completo, confermi salvataggio?» come prompt proattivo; la CF a volte restituisce SAVE_ACTIVITY / QUICK_SAVE come se l'utente avesse confermato → non eseguire finché l'utente non scrive davvero una conferma (es. «sì» / «salva», o pulsante — gestito lato main.js).
+        var proactiveSavePrompt =
           askOptions.proactive &&
           userPrompt &&
           (/confermi\s+salvataggio/i.test(String(userPrompt)) || /^form\s+completo,?\s*confermi/i.test(String(userPrompt)));
+        var blockProactiveFalseSave =
+          proactiveSavePrompt &&
+          (cmdT0 === 'SAVE_ACTIVITY' ||
+            cmdT0 === 'QUICK_SAVE' ||
+            cmdT0 === 'SUBMIT_FORM' ||
+            cmdT0 === 'SALVA' ||
+            cmdT0 === 'SAVE');
         if (blockProactiveFalseSave) {
-          console.log('[Tony Service] SAVE_ACTIVITY non eseguito: prompt proattivo di verifica modulo, non conferma utente');
+          var blockedCmd = cmdT0;
+          console.log('[Tony Service] Comando salvataggio non eseguito (', blockedCmd, '): prompt proattivo di verifica modulo, non conferma utente');
           parsedData.command = null;
           var rep = parsedData.text != null ? String(parsedData.text) : '';
-          if (!rep.trim() || /attivit[aà]\s*salvat|salvat[aoe]\s*!|^\s*ok\.?\s*$/i.test(rep.trim())) {
+          var isQuickHoursSave =
+            blockedCmd === 'QUICK_SAVE' ||
+            blockedCmd === 'SUBMIT_FORM' ||
+            blockedCmd === 'SALVA' ||
+            blockedCmd === 'SAVE';
+          if (isQuickHoursSave) {
+            if (!rep.trim() || /salvat|registrat|ore|perfetto|ok\s*salvo|procedo\s+con\s+il\s+salv/i.test(rep.trim())) {
+              parsedData.text =
+                'Il form delle ore sembra completo. Per salvare scrivi «sì» o «salva» qui in chat, oppure tocca «Salva ore lavorate» sullo schermo Segna ore.';
+            }
+          } else if (!rep.trim() || /attivit[aà]\s*salvat|salvat[aoe]\s*!|^\s*ok\.?\s*$/i.test(rep.trim())) {
             parsedData.text =
               'Il modulo sembra pronto. Per salvare in anagrafica dimmi esplicitamente «ok salva» o «sì, salva». Se vuoi cambiare ancora qualcosa (es. unità di misura), dimmelo prima.';
           }
@@ -832,6 +1259,15 @@ class TonyService {
     }
 
     const contextForPrompt = this._getContextForPrompt();
+    const lightStreamContext = this._sanitizeContextForAI(contextForPrompt);
+    const safeStreamContext = this._sanitizeForJson(lightStreamContext);
+    const fieldWorkspaceQuickStream = _tryFieldWorkspaceEnumerateJobsReply(userPrompt, safeStreamContext, opts);
+    if (fieldWorkspaceQuickStream != null && String(fieldWorkspaceQuickStream).trim()) {
+      onChunk(fieldWorkspaceQuickStream);
+      this._pushChatTurn(historyUserText, fieldWorkspaceQuickStream, opts);
+      return fieldWorkspaceQuickStream;
+    }
+
     this._buildModel(contextForPrompt);
     const historyBloc = this._formatHistoryForPrompt(this.chatHistory);
     const promptSuffix = historyBloc

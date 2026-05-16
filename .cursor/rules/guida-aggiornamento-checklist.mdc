@@ -1,0 +1,15 @@
+---
+description: Aggiornamento o allineamento delle guide GFV (docs-sviluppo/GUIDA, mirror core/GUIDA, sintesi Tony, guida tecnica). Applicare quando l'utente chiede di aggiornare, rivedere, sincronizzare o correggere le guide / documentazione utente modulo / sintesi / mirror dopo nuove funzionalità.
+alwaysApply: false
+---
+
+# Aggiornamento guide — obbligatorio per l’agente
+
+Quando l’utente chiede di **aggiornare, allineare o rivedere le guide** (o equivalente: documentazione `GUIDA/`, sintesi, mirror, testi per Tony sugli utenti):
+
+1. **Leggi subito** (per intero) il file **`scripts/GUIDA-AGGIORNAMENTO-CHECKLIST.md`** nel repo.
+2. **Esegui ogni punto applicabile** in ordine; non considerare il lavoro finito se manca uno step obbligatorio per il tipo di modifica (es. mirror dimenticato, sintesi non aggiornata, MANODOPERA senza il file ruolo giusto).
+3. Se il cambiamento riguarda **nuove liste/form o integrazione Tony sulle pagine**, applica anche **`.cursor/rules/tony-pagina-lista-e-form.mdc`** oltre alla checklist.
+4. **Non** aggiornare `COSA_ABBIAMO_FATTO`, `STATO_ATTUALE`, `MASTER_PLAN`, `TONY_DECISIONI_*` salvo **richiesta esplicita** dell’utente (vedi **`.cursor/rules/tony-agent-onboarding.mdc`**).
+
+Suggerimento operativo: se disponibile, far generare **`npm run guida:suggest`** e usare il prompt prodotto come contesto (include diff + checklist allegata).

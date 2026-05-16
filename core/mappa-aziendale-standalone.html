@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <script>window.GFV_TOUR_DISABLED = true;</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappa aziendale - GFV Platform</title>
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#2E8B57">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link rel="stylesheet" href="styles/responsive-standalone.css">
+    <style>
+        html, body {
+            height: 100%;
+        }
+        .mappa-page-shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .mappa-page-shell .dashboard-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        #mappa-page-root {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .mappa-page-map-section.dashboard-section {
+            flex: 1;
+            min-height: 0;
+            margin-bottom: 0;
+        }
+        #mappa-aziendale-container {
+            flex: 1 !important;
+            min-height: min(72vh, 800px) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container mappa-page-shell">
+        <div class="dashboard-header">
+            <div>
+                <h1>🗺️ Mappa aziendale</h1>
+                <div class="user-info" id="mappa-user-info">Caricamento…</div>
+            </div>
+            <div class="header-actions">
+                <a href="dashboard-standalone.html" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                    <span>←</span>
+                    <span>Dashboard</span>
+                </a>
+                <button type="button" class="logout-button" id="mappa-logout-button">Logout</button>
+            </div>
+        </div>
+        <div id="mappa-page-root">
+            <div class="loading" style="padding: 40px; text-align: center;">Caricamento mappa…</div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
+      document.head.appendChild(link);
+      var s = document.createElement('script');
+      s.type = 'module';
+      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      document.body.appendChild(s);
+    })();
+    </script>
+
+    <script src="js/config-loader.js"></script>
+    <script src="js/dashboard-utils.js"></script>
+    <script>
+        window.GFVConfigLoader.loadConfigAndMaps().then(function() {}).catch(function(error) {
+            console.error('Errore caricamento config:', error);
+            var root = document.getElementById('mappa-page-root');
+            if (root) {
+                root.innerHTML = '<div class="dashboard-section" style="margin:24px;"><h3 style="color:#dc3545;">⚠️ Errore configurazione</h3><p>' + (error && error.message ? error.message : 'Config non disponibile') + '</p></div>';
+            }
+        });
+    </script>
+
+    <script type="module">
+        import { bootstrapMappaAziendalePage } from './js/mappa-aziendale-page.js';
+        bootstrapMappaAziendalePage();
+    </script>
+</body>
+</html>

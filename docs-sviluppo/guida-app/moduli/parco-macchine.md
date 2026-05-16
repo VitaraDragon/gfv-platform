@@ -1,5 +1,7 @@
 # Parco Macchine e Guasti
 
+> **Nota:** la guida aggiornata è in **`docs-sviluppo/GUIDA/PARCO_MACCHINE/`** (`utente/guida.md` + `tony/guida-tecnica.md`). Questo file resta come richiamo breve.
+
 Gestione mezzi, attrezzi, scadenze e guasti.
 
 ---

@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>
+    (function () {
+      var h = location.hostname;
+      if (h !== 'localhost' && h !== '127.0.0.1') return;
+      var p = (location.pathname || '').replace(/\\/g, '/');
+      if (p.indexOf('/gfv-platform/') < 0) return;
+      location.replace(p.replace('/gfv-platform/', '/') + location.search + location.hash);
+    })();
+    </script>
     <script>window.GFV_TOUR_DISABLED = true;</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,7 +34,7 @@
                     <span>⚙️</span>
                     <span>Impostazioni</span>
                 </a>
-                <a href="../documentazione-utente/index.html" target="_blank" rel="noopener" class="btn btn-primary" data-tour="guide-link" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                <a id="dashboard-documentation-guide-link" href="../documentazione-utente/index.html" target="_blank" rel="noopener" class="btn btn-primary" data-tour="guide-link" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
                     <span>📘</span>
                     <span>Guide</span>
                 </a>
@@ -33,6 +42,10 @@
                     <span>🧭</span>
                     <span>Tour</span>
                 </button>
+                <a href="mappa-aziendale-standalone.html" id="mappa-aziendale-header-link" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" title="Mappa satellitare terreni e lavori">
+                    <span>🗺️</span>
+                    <span>Mappa</span>
+                </a>
                 <a href="admin/gestisci-utenti-standalone.html" id="invita-collaboratore-link" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px; font-size: 13px; padding: 8px 16px;">
                     <span>➕</span>
                     <span>Invita Collaboratore</span>
@@ -93,7 +106,7 @@
     <script type="module">
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         // Usa funzioni dai moduli caricati
-        const { waitForConfig, loadGoogleMapsAPI } = window.GFVConfigLoader;
+        const { waitForConfig } = window.GFVConfigLoader;
         const { 
             roleNames, 
             normalizeRole, 
@@ -111,40 +124,43 @@
             createCoreBaseSection,
             createAdminSection,
             createManagerSection,
-            createAmministrazioneCard,
-            createStatisticheCard,
-            createTerreniCard,
-            createDiarioAttivitaCard,
-            createAbbonamentoCard,
-            createAffittiScadenzaCard,
+            createDashboardDeadlinesRow,
+            createDashboardQuickBarSection,
+            createDashboardModuleSidebar,
+            createDashboardPanoramaHubSection,
             createContoTerziCard,
             createVignetoCard,
             createFruttetoCard,
             createMagazzinoCard,
             createMacchineCard,
             createReportCard,
-            createManagerManodoperaSection,
-            createManagerLavoriSection,
-            createDiarioDaLavoriSection,
             createCaposquadraSection,
             createOperaioSection
         } = window.GFVDashboardSections;
         const TOUR_STORAGE_KEY = 'gfv_dashboard_tour_v1';
 
+        /** Piano tenant per Tony (free = widget disabilitato lato UI + callable). */
+        function normalizeGfvPlanId(raw) {
+            if (raw == null || raw === '') return 'base';
+            const p = String(raw).trim().toLowerCase();
+            if (p === 'free' || p === 'freemium') return 'free';
+            if (['starter', 'professional', 'enterprise'].includes(p)) return 'base';
+            return p === 'base' ? 'base' : 'base';
+        }
+
         // ============================================
         // IMPORT MODULI ES6
         // ============================================
         import { renderDashboard as renderDashboardModule } from './js/dashboard-controller.js';
+        import { initDashboardPanoramaHub } from './js/dashboard-hub.js';
+        import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
+        import { initDashboardQuickBar } from './js/dashboard-quick-bar.js';
         import { 
             loadAmministrazioneStats as loadAmministrazioneStatsModule,
             loadAdminStats as loadAdminStatsModule,
-            loadAffittiInScadenza as loadAffittiInScadenzaModule,
             loadCoreStatsForManager as loadCoreStatsForManagerModule,
-            loadManagerManodoperaStats as loadManagerManodoperaStatsModule,
-            loadRecentLavoriManagerManodopera as loadRecentLavoriManagerManodoperaModule,
             loadManagerLavoriStats as loadManagerLavoriStatsModule,
             loadRecentLavori as loadRecentLavoriModule,
-            loadDiarioDaLavori as loadDiarioDaLavoriModule,
             loadCaposquadraStats as loadCaposquadraStatsModule,
             loadRecentLavoriCaposquadra as loadRecentLavoriCaposquadraModule,
             loadComunicazioniOperaio as loadComunicazioniOperaioModule,
@@ -161,11 +177,6 @@
             formattaDataScadenza as formattaDataScadenzaModule,
             formattaOre as formattaOreModule
         } from './js/dashboard-data.js';
-        import { 
-            createMappaAziendaleSection as createMappaAziendaleSectionModule,
-            loadMappaAziendale as loadMappaAziendaleModule,
-            getPolygonCenter as getPolygonCenterModule
-        } from './js/dashboard-maps.js';
         import {
             setupDashboardTour as setupDashboardTourModule,
             startDashboardTour as startDashboardTourModule
@@ -186,7 +197,6 @@
             initializeFirebase,
             getAuthInstance,
             getDb,
-            getAppInstance,
             signOut,
             onAuthStateChanged,
             getDoc,
@@ -209,18 +219,11 @@
         const db = getDb();
         console.log('[Tony] Firebase OK. Tony widget caricato da tony-widget-standalone.js.');
 
-        // Google Maps: caricamento in background (non blocca la prima visualizzazione)
-        let googleMapsReady = false;
-        loadGoogleMapsAPI().then(() => {
-            googleMapsReady = true;
-        });
-
         // Conta utenti del tenant
         let tenantUserCount = 1; // Default a 1 (solo utente corrente)
 
         // Variabili per cleanup listener real-time
         let manutenzioniUnsubscribe = null;
-        let guastiUnsubscribe = null;
 
         function applyWorkspacePreferenceFromUrl() {
             try {
@@ -263,171 +266,6 @@
             console.log('setupManutenzioniRealtime chiamato per tenant:', tenantId);
         }
 
-        /**
-         * Setup listener real-time per guasti segnalati (per dashboard manager)
-         * @param {string} tenantId - ID tenant
-         */
-        function setupGuastiRealtime(tenantId) {
-            try {
-                if (!tenantId) return;
-
-                // Rimuovi listener precedente
-                if (guastiUnsubscribe) {
-                    guastiUnsubscribe();
-                    guastiUnsubscribe = null;
-                }
-
-                const guastiRef = collection(db, `tenants/${tenantId}/guasti`);
-                
-                // Prova prima con orderBy, se fallisce usa senza
-                let guastiQuery;
-                try {
-                    guastiQuery = query(guastiRef, orderBy('segnalatoIl', 'desc'));
-                } catch (e) {
-                    // Se manca indice, usa collection senza query
-                    guastiQuery = guastiRef;
-                }
-
-                guastiUnsubscribe = onSnapshot(
-                    guastiQuery,
-                    (snapshot) => {
-                        const guastiList = [];
-                        snapshot.forEach(doc => {
-                            guastiList.push({ id: doc.id, ...doc.data() });
-                        });
-
-                        // Ordina se non abbiamo usato orderBy nella query
-                        if (!guastiQuery.query) {
-                            guastiList.sort((a, b) => {
-                                const dateA = a.segnalatoIl?.toDate ? a.segnalatoIl.toDate() : new Date(a.segnalatoIl || 0);
-                                const dateB = b.segnalatoIl?.toDate ? b.segnalatoIl.toDate() : new Date(b.segnalatoIl || 0);
-                                return dateB - dateA;
-                            });
-                        }
-
-                        // Filtra solo guasti aperti (non risolti)
-                        const guastiAperti = guastiList.filter(g => g.stato !== 'risolto');
-                        
-                        // Aggiorna UI
-                        updateGuastiSection(guastiAperti, tenantId);
-                    },
-                    (error) => {
-                        console.error('Errore listener guasti dashboard:', error);
-                        // Se fallisce con orderBy, prova senza
-                        if (guastiQuery.query) {
-                            const allGuastiRef = collection(db, `tenants/${tenantId}/guasti`);
-                            guastiUnsubscribe = onSnapshot(
-                                allGuastiRef,
-                                (snapshot) => {
-                                    const guastiList = [];
-                                    snapshot.forEach(doc => {
-                                        guastiList.push({ id: doc.id, ...doc.data() });
-                                    });
-                                    guastiList.sort((a, b) => {
-                                        const dateA = a.segnalatoIl?.toDate ? a.segnalatoIl.toDate() : new Date(a.segnalatoIl || 0);
-                                        const dateB = b.segnalatoIl?.toDate ? b.segnalatoIl.toDate() : new Date(b.segnalatoIl || 0);
-                                        return dateB - dateA;
-                                    });
-                                    const guastiAperti = guastiList.filter(g => g.stato !== 'risolto');
-                                    updateGuastiSection(guastiAperti, tenantId);
-                                },
-                                (error) => {
-                                    console.error('Errore listener guasti dashboard (fallback):', error);
-                                }
-                            );
-                        }
-                    }
-                );
-            } catch (error) {
-                console.error('Errore setup listener guasti dashboard:', error);
-            }
-        }
-
-        /**
-         * Aggiorna la sezione guasti nella dashboard
-         * @param {Array} guastiAperti - Array di guasti aperti
-         * @param {string} tenantId - ID tenant
-         */
-        function updateGuastiSection(guastiAperti, tenantId) {
-            const section = document.getElementById('guasti-segnalati-section');
-            const list = document.getElementById('guasti-segnalati-list');
-            
-            if (!section || !list) return;
-
-            if (guastiAperti.length === 0) {
-                section.style.display = 'none';
-                return;
-            }
-
-            section.style.display = 'block';
-            
-            let html = '';
-            guastiAperti.slice(0, 5).forEach(guasto => {
-                const tipoGuasto = guasto.tipoGuasto || 'macchina';
-                const gravita = guasto.gravita || 'non-grave';
-                const stato = guasto.stato || 'in-attesa';
-                
-                let titolo = '';
-                let tipoIcon = '🔧';
-                
-                if (tipoGuasto === 'generico') {
-                    tipoIcon = '🌍';
-                    titolo = `${guasto.tipoProblema || 'Segnalazione'} - ${guasto.ubicazione || 'Ubicazione non specificata'}`;
-                } else {
-                    titolo = guasto.macchinaId ? 'Macchina' : 'Attrezzo';
-                }
-
-                const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
-
-                const gravitaBadge = gravita === 'grave' 
-                    ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">🔴 Grave</span>'
-                    : '<span style="background: #ffc107; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">🟡 Non grave</span>';
-
-                const statoBadge = stato === 'sospeso'
-                    ? '<span style="background: #721c24; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">⛔ Sospeso</span>'
-                    : '<span style="background: #856404; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">⏳ In attesa</span>';
-
-                html += `
-                    <div style="padding: 12px; margin-bottom: 10px; background: white; border-radius: 6px; border-left: 3px solid ${gravita === 'grave' ? '#dc3545' : '#ffc107'};">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                            <div style="font-weight: 600; color: #333;">
-                                ${tipoIcon} ${escapeHtml(titolo)}
-                            </div>
-                            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                                ${gravitaBadge}
-                                ${statoBadge}
-                            </div>
-                        </div>
-                        <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
-                            ${escapeHtml(guasto.dettagli || 'Nessun dettaglio')}
-                        </div>
-                        <div style="font-size: 12px; color: #999; margin-bottom: 8px;">
-                            Segnalato il: ${dataSegnalazione}
-                        </div>
-                        <div style="margin-top: 8px;">
-                            <a href="../modules/macchine/views/guasti-list-standalone.html" 
-                               style="display: inline-block; padding: 6px 12px; background: #2E8B57; color: white; text-decoration: none; border-radius: 4px; font-size: 13px;">
-                                🔧 Gestisci Guasto
-                            </a>
-                        </div>
-                    </div>
-                `;
-            });
-
-            if (guastiAperti.length > 5) {
-                html += `
-                    <div style="text-align: center; margin-top: 10px; padding: 10px;">
-                        <a href="../modules/macchine/views/guasti-list-standalone.html" 
-                           style="color: #2E8B57; text-decoration: none; font-weight: 600;">
-                            Vedi tutti i ${guastiAperti.length} guasti →
-                        </a>
-                    </div>
-                `;
-            }
-
-            list.innerHTML = html;
-        }
-
         // ============================================
         // PREPARA DIPENDENZE E CALLBACKS PER MODULI
         // ============================================
@@ -449,16 +287,7 @@
             Timestamp,
             onSnapshot,
             escapeHtml,
-            loadGoogleMapsAPI,
-            setupManutenzioniRealtime,
-            setupGuastiRealtime
-        };
-
-        // Wrapper per createMappaAziendaleSection che usa il modulo
-        const createMappaAziendaleSectionWrapper = (userData, hasManodopera) => {
-            return createMappaAziendaleSectionModule(userData, hasManodopera, (userData, hasManodopera) => {
-                loadMappaAziendaleModule(userData, hasManodopera, dependencies);
-            });
+            setupManutenzioniRealtime
         };
 
         const callbacks = {
@@ -466,29 +295,20 @@
             createCoreBaseSection,
             createAdminSection,
             createManagerSection,
-            createAmministrazioneCard,
-            createStatisticheCard,
-            createTerreniCard,
-            createDiarioAttivitaCard,
-            createAbbonamentoCard,
-            createAffittiScadenzaCard,
+            createDashboardDeadlinesRow,
+            createDashboardQuickBarSection,
+            createDashboardModuleSidebar,
+            createDashboardPanoramaHubSection,
             createContoTerziCard,
             createVignetoCard,
             createFruttetoCard,
             createMagazzinoCard,
             createMacchineCard,
             createReportCard,
-            createManagerManodoperaSection,
-            createDiarioDaLavoriSection,
             createCaposquadraSection,
             createOperaioSection,
-            createMappaAziendaleSection: createMappaAziendaleSectionWrapper,
             // Load functions (da moduli ES6)
-            loadAffittiInScadenza: loadAffittiInScadenzaModule,
             loadCoreStatsForManager: loadCoreStatsForManagerModule,
-            loadManagerManodoperaStats: loadManagerManodoperaStatsModule,
-            loadRecentLavoriManagerManodopera: loadRecentLavoriManagerManodoperaModule,
-            loadDiarioDaLavori: loadDiarioDaLavoriModule,
             loadCaposquadraStats: loadCaposquadraStatsModule,
             loadRecentLavoriCaposquadra: loadRecentLavoriCaposquadraModule,
             loadComunicazioneRapida: loadComunicazioneRapidaModule,
@@ -496,7 +316,6 @@
             loadComunicazioniOperaio: loadComunicazioniOperaioModule,
             loadLavoriOggiOperaio: loadLavoriOggiOperaioModule,
             loadStatisticheOreOperaio: loadStatisticheOreOperaioModule,
-            loadMappaAziendale: loadMappaAziendaleModule,
             loadMagazzinoSottoScortaCount: loadMagazzinoSottoScortaCountModule,
             loadScadenzeUrgentiCount: loadScadenzeUrgentiCountModule,
             loadGuastiApertiCount: loadGuastiApertiCountModule,
@@ -646,6 +465,33 @@
             return r.some((x) => x === 'manager' || x === 'amministratore');
         }
 
+        /** Voce / briefing automatico in dashboard solo con modulo Tony Avanzato attivo sul tenant (come il widget). */
+        function tonyDashboardBriefingVoiceAllowed() {
+            try {
+                var hasTony = function(arr) {
+                    return Array.isArray(arr) && arr.some(function(m) {
+                        return String(m).toLowerCase() === 'tony';
+                    });
+                };
+                if (window.__gfvTenantData && hasTony(window.__gfvTenantData.modules)) {
+                    return true;
+                }
+                var ctx = window.Tony && window.Tony.context;
+                if (!ctx) return false;
+                var mods = [];
+                if (ctx.dashboard && Array.isArray(ctx.dashboard.moduli_attivi)) {
+                    mods = ctx.dashboard.moduli_attivi;
+                } else if (ctx.info_azienda && Array.isArray(ctx.info_azienda.moduli_attivi)) {
+                    mods = ctx.info_azienda.moduli_attivi;
+                } else if (Array.isArray(ctx.moduli_attivi)) {
+                    mods = ctx.moduli_attivi;
+                }
+                return hasTony(mods);
+            } catch (e) {
+                return false;
+            }
+        }
+
         // Carica contesto vigneto per Tony (produzione per anno) se modulo attivo
         // tenantIdExplicit: obbligatorio per evitare race con tenant-service dopo reload / membership-only
         async function loadTonyVignetoContext(availableModules, tenantIdExplicit) {
@@ -690,7 +536,7 @@
          * Scansione globale per Tony: prodotti sotto scorta, scadenze urgenti, guasti aperti.
          * Solo per manager/amministratore (promemoria operativi d'azienda).
          * Imposta window.tonyGlobalBriefing e Tony.setContext('globalStatus', ...).
-         * Se ci sono criticità, dopo 3s Tony può pronunciare un saluto (policy audio browser: può servire un click).
+         * Se ci sono criticità, dopo 3s Tony può pronunciare un saluto solo con Tony Avanzato attivo (policy audio browser: può servire un click).
          */
         async function checkGlobalStatus(tenantId, ruoliNormalizzati) {
             if (!tenantId) return;
@@ -708,11 +554,14 @@
                 const total = sottoScorta + scadenzeUrgenti + guastiAperti;
                 if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony && typeof window.Tony.speak === 'function') {
                     setTimeout(function() {
-                        if (total > 0 && !window.tonyDashboardBriefingFired) {
+                        if (total <= 0 || window.tonyDashboardBriefingFired) return;
+                        if (!tonyDashboardBriefingVoiceAllowed()) {
                             window.tonyDashboardBriefingFired = true;
-                            var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
-                            window.Tony.speak(greeting + ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione tra scorte, scadenze e guasti. Vuoi che ti faccia un riassunto o preferisci procedere tu?');
+                            return;
                         }
+                        window.tonyDashboardBriefingFired = true;
+                        var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                        window.Tony.speak(greeting + ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione tra scorte, scadenze e guasti. Vuoi che ti faccia un riassunto o preferisci procedere tu?');
                     }, 3000);
                 }
             } catch (e) {
@@ -723,6 +572,83 @@
         // Renderizza dashboard in base ai ruoli e moduli (usa modulo)
         async function renderDashboard(userData, availableModules = []) {
             await renderDashboardModule(userData, availableModules, callbacks, dependencies);
+            const hub = document.getElementById('dashboard-panorama-hub');
+            if (!hub) return;
+            try {
+                const user = auth.currentUser;
+                const uid = user && user.uid;
+                const tid = typeof resolveCurrentTenantId === 'function'
+                    ? await resolveCurrentTenantId(userData)
+                    : (userData && userData.tenantId) || null;
+                await initDashboardPanoramaHub({
+                    userId: uid,
+                    tenantId: tid,
+                    hasManodopera: hasManodoperaModule(availableModules),
+                    hasContoTerzi: Array.isArray(availableModules) && availableModules.includes('contoTerzi'),
+                    availableModules: Array.isArray(availableModules) ? availableModules : [],
+                    dependencies
+                });
+                const deadlinesRow = document.querySelector('.dashboard-deadlines-row');
+                if (deadlinesRow && tid) {
+                    await loadDashboardDeadlinesWidgets(dependencies, tid, {
+                        hasManodopera: hasManodoperaModule(availableModules),
+                        hasContoTerzi: Array.isArray(availableModules) && availableModules.includes('contoTerzi'),
+                        availableModules: Array.isArray(availableModules) ? availableModules : []
+                    });
+                }
+                await initDashboardQuickBar({
+                    userId: uid,
+                    tenantId: tid,
+                    hasManodopera: hasManodoperaModule(availableModules),
+                    availableModules: Array.isArray(availableModules) ? availableModules : [],
+                    userRoles: (userData && Array.isArray(userData.ruoli) ? userData.ruoli : [])
+                        .map((r) => String(r || '').trim().toLowerCase())
+                        .filter(Boolean),
+                    dependencies
+                });
+            } catch (e) {
+                console.warn('initDashboardPanoramaHub:', e);
+            }
+        }
+
+        /** Ruolo campo (operaio/caposquadra) senza manager/admin: indice documentazione ridotto. */
+        function getFieldDocumentationRole(userData) {
+            if (!userData || !Array.isArray(userData.ruoli)) return '';
+            const roles = userData.ruoli.map((r) => String(r || '').toLowerCase());
+            if (roles.includes('manager') || roles.includes('amministratore')) return '';
+            if (roles.includes('caposquadra')) return 'caposquadra';
+            if (roles.includes('operaio')) return 'operaio';
+            return '';
+        }
+
+        /** Link «Guide»: moduli tenant + eventuale fieldRole per operaio/caposquadra (solo Core / Manodopera / Tony). */
+        function updateDocumentationGuideLink(availableModules, userData) {
+            const a = document.getElementById('dashboard-documentation-guide-link');
+            if (!a) return;
+            const base = '../documentazione-utente/index.html';
+            try {
+                const list = Array.isArray(availableModules) ? availableModules : [];
+                const normalized = list
+                    .map((m) => (m == null ? '' : String(m).trim()))
+                    .filter(Boolean);
+                const fieldRole = getFieldDocumentationRole(userData || {});
+                const qs = new URLSearchParams();
+                if (fieldRole) {
+                    qs.set('fieldRole', fieldRole);
+                }
+                if (normalized.length) {
+                    qs.set('mods', normalized.join(','));
+                    a.href = qs.toString() ? `${base}?${qs.toString()}` : base;
+                    return;
+                }
+                if (fieldRole) {
+                    a.href = `${base}?${qs.toString()}`;
+                    return;
+                }
+                a.href = base;
+            } catch (_) {
+                a.href = base;
+            }
         }
         
         // Funzione renderDashboard originale rimossa - ora usa il modulo dashboard-controller.js
@@ -901,17 +827,22 @@
                             
                             // Carica moduli disponibili dal tenant CORRENTE (non deprecato)
                             let availableModules = [];
+                            let tenantDataSnapshot = null;
                             if (currentTenantId) {
                                 try {
                                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                                     if (tenantDoc.exists()) {
-                                        const tenantData = tenantDoc.data();
-                                        availableModules = tenantData.modules || [];
+                                        tenantDataSnapshot = tenantDoc.data();
+                                        availableModules = tenantDataSnapshot.modules || [];
                                     }
                                 } catch (e) {
                                     console.warn('Errore caricamento moduli tenant:', e);
                                 }
                             }
+                            const planNormalized = normalizeGfvPlanId(tenantDataSnapshot ? (tenantDataSnapshot.plan || tenantDataSnapshot.piano) : 'base');
+                            window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, { modules: availableModules });
+                            window.__gfvSubscriptionPlanId = planNormalized;
+                            try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
                             
                             // Routing mobile per ruoli campo (operaio/caposquadra)
                             if (redirectToFieldWorkspaceIfNeeded(userDataNormalized, availableModules)) {
@@ -920,15 +851,19 @@
 
                             // Renderizza dashboard
                             await renderDashboard(userDataNormalized, availableModules);
+                            updateDocumentationGuideLink(availableModules, userDataNormalized);
                             // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
                             if (window.Tony && Tony.isReady()) {
                                 Tony.setContext('dashboard', {
                                     info_azienda: { moduli_attivi: availableModules },
                                     utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
-                                    moduli_attivi: availableModules
+                                    moduli_attivi: availableModules,
+                                    plan: planNormalized,
+                                    piano: planNormalized,
+                                    tenantId: currentTenantId
                                 });
                                 if (typeof window.setTonyContext === 'function') {
-                                    window.setTonyContext({ moduli_attivi: availableModules });
+                                    window.setTonyContext({ moduli_attivi: availableModules, plan: planNormalized, piano: planNormalized });
                                 } else {
                                     try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                                 }
@@ -1007,17 +942,22 @@
                     
                     // Carica moduli disponibili dal tenant CORRENTE (non deprecato)
                     let availableModules = [];
+                    let tenantDataSnapshot = null;
                     if (currentTenantId) {
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
-                                const tenantData = tenantDoc.data();
-                                availableModules = tenantData.modules || [];
+                                tenantDataSnapshot = tenantDoc.data();
+                                availableModules = tenantDataSnapshot.modules || [];
                             }
                         } catch (error) {
                             console.warn('Errore caricamento moduli tenant:', error);
                         }
                     }
+                    const planNormalized = normalizeGfvPlanId(tenantDataSnapshot ? (tenantDataSnapshot.plan || tenantDataSnapshot.piano) : 'base');
+                    window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, { modules: availableModules });
+                    window.__gfvSubscriptionPlanId = planNormalized;
+                    try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
                     
                     // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
                     // in base a se Manodopera è attivo o no
@@ -1032,15 +972,19 @@
 
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
+                    updateDocumentationGuideLink(availableModules, userDataNormalized);
                     // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
                     if (window.Tony && Tony.isReady()) {
                         Tony.setContext('dashboard', {
                             info_azienda: { moduli_attivi: availableModules },
                             utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
-                            moduli_attivi: availableModules
+                            moduli_attivi: availableModules,
+                            plan: planNormalized,
+                            piano: planNormalized,
+                            tenantId: currentTenantId
                         });
                         if (typeof window.setTonyContext === 'function') {
-                            window.setTonyContext({ moduli_attivi: availableModules });
+                            window.setTonyContext({ moduli_attivi: availableModules, plan: planNormalized, piano: planNormalized });
                         } else {
                             try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                         }
@@ -1057,6 +1001,7 @@
                 
                 // Renderizza dashboard vuota
                 renderDashboard({ ruoli: [] }, []);
+                updateDocumentationGuideLink([], {});
             }
         });
 
@@ -1124,10 +1069,6 @@
                 manutenzioniUnsubscribe();
                 manutenzioniUnsubscribe = null;
             }
-            if (guastiUnsubscribe) {
-                guastiUnsubscribe();
-                guastiUnsubscribe = null;
-            }
         });
 
         // Logout
@@ -1138,14 +1079,10 @@
                     clearInterval(window.gfvOnlineInterval);
                 }
                 
-                // Pulizia listener manutenzioni e guasti
+                // Pulizia listener manutenzioni
                 if (manutenzioniUnsubscribe) {
                     manutenzioniUnsubscribe();
                     manutenzioniUnsubscribe = null;
-                }
-                if (guastiUnsubscribe) {
-                    guastiUnsubscribe();
-                    guastiUnsubscribe = null;
                 }
                 
                 // Imposta offline prima del logout
@@ -1174,13 +1111,16 @@
 
     </script>
     
-    <!-- Service Worker Registration for PWA -->
+    <!-- Service Worker Registration for PWA (solo produzione / GitHub Pages, non localhost) -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Usa percorso relativo per compatibilità con localhost e GitHub Pages
-                const swPath = window.location.pathname.includes('/gfv-platform/') 
-                    ? '/gfv-platform/service-worker.js' 
+                const host = window.location.hostname || '';
+                if (host === 'localhost' || host === '127.0.0.1') {
+                    return;
+                }
+                const swPath = window.location.pathname.includes('/gfv-platform/')
+                    ? '/gfv-platform/service-worker.js'
                     : '../service-worker.js';
                 navigator.serviceWorker.register(swPath)
                     .catch((error) => {

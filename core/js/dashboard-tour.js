@@ -758,7 +758,7 @@ function buildDashboardTourSteps(userData) {
         steps.push({
             element: panoramica,
             title: 'Panoramica aziendale',
-            intro: 'Card rapide per Amministrazione, Statistiche e Terreni. La mappa aziendale è sempre visibile sulla destra: clicca sulle card per accedere alle sezioni dedicate.'
+            intro: 'Card rapide per Amministrazione, Statistiche, Terreni e moduli attivi. La mappa satellitare con tutti i terreni è nella pagina dedicata: usa il pulsante «Mappa» in alto a destra nell\'intestazione. Clicca sulle card per aprire le sezioni.'
         });
     }
 
@@ -771,21 +771,13 @@ function buildDashboardTourSteps(userData) {
         });
     }
 
-    const manodoperaSection = document.querySelector('[data-tour-section="gestione-manodopera"]');
-    if (manodoperaSection) {
+    const mieiAccessi = document.querySelector('[data-tour-section="miei-accessi"]');
+    if (mieiAccessi) {
         steps.push({
-            element: manodoperaSection,
-            title: 'Gestione Manodopera',
-            intro: 'Sezione dedicata a Manager e Amministratori per creare lavori, monitorare squadre, validare ore e vedere statistiche operative. Da qui accedi a tutte le funzionalità del modulo Manodopera.'
-        });
-    }
-
-    const diarioSection = document.querySelector('[data-tour-section="diario"]');
-    if (diarioSection) {
-        steps.push({
-            element: diarioSection,
-            title: 'Diario da Lavori',
-            intro: 'Riepilogo automatico delle attività generate dalle ore validate dai caposquadra. Utile per controllare l\'avanzamento reale dei lavori senza dover aprire ogni singolo dettaglio.'
+            element: mieiAccessi,
+            title: 'I miei accessi',
+            intro:
+                'Scegli fino a cinque collegamenti rapidi (lavori, validazione ore, moduli attivi e altro) con «Configura». Le card qui accanto e nella barra laterale continuano a portarti a tutte le aree dell’app.'
         });
     }
 
@@ -807,12 +799,12 @@ function buildDashboardTourSteps(userData) {
         });
     }
 
-    const manutenzioniSection = document.getElementById('manutenzioni-scadenza-section');
-    if (manutenzioniSection && window.getComputedStyle(manutenzioniSection).display !== 'none') {
+    const inArrivoWidget = document.getElementById('in-arrivo-widget');
+    if (inArrivoWidget) {
         steps.push({
-            element: manutenzioniSection,
-            title: 'Modulo Parco Macchine',
-            intro: 'Con il modulo Parco Macchine attivo controlli qui manutenzioni imminenti e guasti segnalati. Ogni segnalazione aggiorna automaticamente anche i lavori collegati alle macchine interessate.'
+            element: inArrivoWidget,
+            title: 'In arrivo',
+            intro: 'Manutenzioni mezzi, lavori da pianificare e ore da validare compaiono qui. Le scadenze amministrative (affitti, revisioni, assicurazioni) sono nel riquadro accanto.'
         });
     }
 

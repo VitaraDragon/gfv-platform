@@ -1,6 +1,469 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-18.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-05-15.**
+
+## ✅ Dashboard: rimossa sezione «Gestione Manodopera» ridondante (2026-05-15)
+
+- **`core/js/dashboard-controller.js`**: niente più append di **`createManagerManodoperaSection`** per manager/admin con Manodopera (panoramica + **I miei accessi** + hub/sidebar restano).
+- **`core/js/dashboard-sections.js`**: eliminato **`createManagerManodoperaSection`**; sezione barra rapide con **`data-tour-section="miei-accessi"`**.
+- **`core/dashboard-standalone.html`**: rimossi callback/import **`loadManagerManodoperaStats`**, **`loadRecentLavoriManagerManodopera`**, **`createManagerManodoperaSection`**.
+- **`core/js/dashboard-tour.js`**: step tour su **I miei accessi** al posto del widget Gestione Manodopera.
+- *Nota:* **`loadManagerManodoperaStats`** / **`loadRecentLavoriManagerManodopera`** restano in **`dashboard-data.js`** ma non sono più invocati dalla dashboard (eventuale riuso o cleanup futuro).
+
+## ✅ Quick bar «I miei accessi»: catalogo esteso alle sottosezioni moduli (2026-05-15)
+
+- **`core/js/dashboard-quick-bar.js`**: `QUICK_BAR_CATALOG` arricchito (Conto Terzi: clienti, terreni/mappa clienti, tariffe, attività CT; Vigneto/Frutteto: vigneti/frutteti, vendemmia/raccolta, potatura/trattamenti/concimazioni, statistiche, pianifica impianto e calcolo materiali; Magazzino: prodotti, movimenti, tracciabilità; Parco: trattori, attrezzi, flotta; Report: terreni, export vigneto; Manodopera: utenti, operai, compensi, segnatura ore, lavori caposquadra; Core: impostazioni). Visibilità legata a moduli e Manodopera. Modale: **`dashboardRouteId`** in **`QUICK_BAR_SECTION_ORDER`** — titolo modulo grande, card **dashboard** sulla stessa riga, sotto le altre card del modulo (Core/Manodopera: solo titolo + griglia).
+- **`core/js/dashboard-sections.js`**: testo guida modale configurazione allineato.
+- Modale / barra: icone catalogo allineate a **tile hub**, **card modulo** (HTML) e titoli pagina dove serve.
+
+## ✅ Dashboard: barra «I miei accessi» (5 percorsi configurabili) (2026-05-15)
+
+- **`core/js/dashboard-quick-bar.js`**: catalogo **`QUICK_BAR_CATALOG`** + raggruppamento **`QUICK_BAR_SECTION_ORDER`** (per modulo); **`localStorage`** `gfv_dash_quickbar_v1_<uid>`; schermata **Configura** a elenco di **card** (stesso stile tile) raggruppate per modulo, anteprima barra, **Svuota**; badge opzionali (ore da validare, guasti, sotto scorta, da pianificare).
+- **`core/js/dashboard-sections.js`**: **`createDashboardQuickBarSection`**.
+- **`core/js/dashboard-controller.js`**: barra nella colonna panoramica tra **hub** e **scadenze**.
+- **`core/dashboard-standalone.html`**: **`initDashboardQuickBar`** dopo i widget scadenze; passaggio **`userRoles`** per filtrare voci riservate.
+- **`core/styles/dashboard.css`**: layout griglia 5 colonne, modale full-height/elenco moduli, card selezionabili, badge.
+
+## ✅ Dashboard panoramica: sidebar moduli a sinistra (2026-05-15)
+
+- **`core/js/dashboard-sections.js`**: **`createDashboardModuleSidebar`** — stesso contenuto dei tile modulari, in colonna (pin hub invariati).
+- **`core/js/dashboard-controller.js`**: layout **`dashboard-panorama-layout`** (sidebar + **`dashboard-panorama-main`** con hub e scadenze) per manager/amministratore con e senza Manodopera; rimossa griglia **`dashboard-top-left`** in quelle viste.
+- **`core/dashboard-standalone.html`**: callback **`createDashboardModuleSidebar`**.
+- **`core/styles/dashboard.css`**: stili sidebar sticky, colonna principale flessiva; sotto **960px** sidebar sopra il contenuto.
+
+## ✅ Dashboard Manodopera: rimossa sezione «Diario da Lavori» (2026-05-15)
+
+- **`core/js/dashboard-controller.js`**: niente più append della sezione né **`loadDiarioDaLavori`** per manager/admin con Manodopera.
+- **`core/dashboard-standalone.html`**: rimossi callback/import correlati.
+- **`core/js/dashboard-sections.js`**: eliminato **`createDiarioDaLavoriSection`**.
+- **`core/js/dashboard-data.js`**: rimossa **`loadDiarioDaLavori`** (tabella aggregata ore validate); il diario operativo resta da **Diario attività** / **attivita-standalone** e tile apposita in panoramica.
+- **`core/js/dashboard-tour.js`**: rimosso step tour dedicato.
+
+## ✅ Widget Scadenze amministrazione: affitti sempre visibili (2026-05-15)
+
+- **`core/js/dashboard-deadlines.js`**: ordinamento affitti allineato a **`calcolaAlertAffitto`** (come Terreni); nel widget compaiono **tutti** i terreni in affitto (non solo gli urgenti sotto 7 giorni); revisioni/assicurazioni mezzi solo se urgenti; messaggio dedicato se solo scadenze non urgenti.
+
+## ✅ Dashboard manager: widget «Scadenze amministrazione» + «In arrivo» (2026-05-15)
+
+- **`core/js/dashboard-deadlines.js`**: aggregazione e render liste (affitti terreni, revisione/assicurazione mezzi; manutenzioni data/ore, lavori da pianificare, ore da validare); **`loadDashboardDeadlinesWidgets`**.
+- **`core/js/dashboard-sections.js`**: **`createDashboardDeadlinesRow`** (sostituisce card Affitti in panoramica); rimosso blocco **Manutenzioni in scadenza** dalla sezione Gestione Manodopera (coperto da «In arrivo»).
+- **`core/js/dashboard-controller.js`**: panoramica con **sidebar moduli** + colonna hub/scadenze; rimossi **`createAffittiScadenzaCard`** / **`loadAffittiInScadenza`** dalla panoramica.
+- **`core/dashboard-standalone.html`**: caricamento widget dopo hub.
+- **`core/js/dashboard-hub.js`**: alert affitti punta a **`#scadenze-amministrazione-widget`**.
+- **`core/styles/dashboard.css`**: stili **`.dashboard-deadlines-row`**, righe scadenza.
+
+## ✅ Dashboard Manodopera: rimosso box esteso «Guasti segnalati» (2026-05-13)
+
+- **`core/js/dashboard-sections.js`**: nella sezione **Gestione Manodopera** eliminato il blocco **Guasti Segnalati** (lista real-time in dashboard); manutenzioni imminenti coperte dal widget dashboard **In arrivo** (2026-05-15). Sulla **card tile Parco Macchine** aggiunto ancoraggio invisibile **`data-tony-briefing="guasti"`** per il comando Tony **RIASSUNTO** (highlight).
+- **`core/dashboard-standalone.html`**: rimossi listener **`onSnapshot`** guasti, **`updateGuastiSection`** e dipendenza **`setupGuastiRealtime`**.
+- **`core/js/dashboard-data.js`**: **`loadManagerManodoperaStats`** non invoca più **`setupGuastiRealtime`** (solo stub manutenzioni se definito).
+- **`core/js/dashboard-tour.js`**: testo step **Manutenzioni** aggiornato (riferimento hub / elenco guasti modulo).
+- **`core/styles/dashboard.css`**: classe **`.dashboard-tony-briefing-anchor`** (screen-reader only) e **`position: relative`** sulle tile modulo.
+
+## ✅ Dashboard hub: ripristino init dopo render + pin più visibili (2026-05-13)
+
+- **`core/dashboard-standalone.html`**: dopo **`renderDashboardModule`**, di nuovo invocato **`initDashboardPanoramaHub`** (era importato ma non chiamato: niente stelle, alert bloccati su «Caricamento…»).
+- **`core/js/dashboard-hub.js`**: **`hubInit`** impostato solo a fine init riuscita; **`availableModules`** normalizzato ad array.
+- **`core/styles/dashboard.css`**: **`overflow: visible`** sulle tile; pin con contrasto più forte (sfondo bianco, bordo, colore ambra).
+
+## ✅ Service Worker PWA: bypass CDN cross-origin (2026-05-13)
+
+- **`service-worker.js`**: il listener **`fetch`** non chiama più **`respondWith`** per URL con **`origin` ≠** origine dello scope SW; così script da **jsdelivr** / altri CDN non passano dalla strategia network-first del worker (evita **`Failed to fetch`** e FetchEvent rejected quando la rete o la cache non gestiscono bene risposte non-`basic`). Restano esclusi anche Firebase/Google come prima. **`SW_CACHE_BUILD_ID`** incrementato per forzare aggiornamento SW sui client.
+
+## ✅ Dashboard panoramica manager: hub attenzione + «Per te oggi» + pin/recenti (2026-05-13)
+
+- **`core/js/dashboard-sections.js`**: sezione **`createDashboardPanoramaHubSection`** (griglia: Richiede attenzione, Per te oggi, Accessi rapidi con hint pin).
+- **`core/js/dashboard-controller.js`**: hub inserita **prima** della riga moduli per manager/amministratore (con e senza Manodopera) nella panoramica a griglia.
+- **`core/js/dashboard-hub.js`**: inizializzazione unica (`data-hub-init`): alert aggregati (magazzino sotto scorta, guasti, scadenze macchine, affitti urgenti, lavori da pianificare se Conto Terzi + Manodopera, ore da validare se Manodopera), promemoria con link fissi (mappa, diario, statistiche, lavori/terreni), **localStorage** preferiti (`gfv_dash_pins_*`) e ultimi moduli (`gfv_dash_recent_*`), chip accesso rapido; shell tile + pulsante stella senza rompere navigazione.
+- **`core/js/dashboard-data.js`**: **`loadAffittiUrgentiCount`**, **`loadLavoriDaPianificareCount`**; **`countOreDaValidareManager`** esportato, **`loadOreDaValidareManager`** lo riusa (stesso conteggio badge).
+- **`core/dashboard-standalone.html`**: dopo **`renderDashboard`**, **`initDashboardPanoramaHub`** con tenant risolto e moduli attivi.
+- **`core/styles/dashboard.css`**: stili hub, alert, chip, **`.dashboard-module-tile-shell`** e **`.dashboard-module-tile__pin`**.
+
+## ✅ Dashboard manager: tile griglia (Core + moduli, titolo + max 2 righe testo) (2026-05-13)
+
+- **`core/js/dashboard-sections.js`**: tutte le scorciatoie in griglia panoramica usano **`dashboard-section--module-tile`** + link **`dashboard-module-tile`** con **`__body`**, titolo e **`dashboard-module-tile__desc`** (testo clampato a due righe in CSS); incluse **Amministrazione**, **Statistiche** (URL diverso con/senza Manodopera), **Terreni**, **Diario attività**, **Abbonamento** e le sei card modulo (Conto Terzi, Vigneto, Frutteto, Magazzino, Parco Macchine, Report); Magazzino: classe **`dashboard-module-tile--has-badge`** quando badge sotto-scorta; **`data-tony-briefing`** invariato dove già presente.
+- **`core/styles/dashboard.css`**: tile in **riga** (icona a sinistra, blocco testo a destra); **`__desc`** con **`-webkit-line-clamp: 2`**; padding destro sul body quando badge; wrapper tile senza doppio chrome; regole «celle compatte» griglia con **`:not(.dashboard-section--module-tile)`**.
+
+## ✅ Mappa aziendale: pagina dedicata (Core) (2026-05-13)
+
+- **`core/mappa-aziendale-standalone.html`**: schermata a tutta altezza con la stessa mappa Google (terreni, filtri/overlay manodopera se attivo) già usata in dashboard; header con **Dashboard** e **Logout**; widget Tony come le altre pagine core.
+- **`core/js/mappa-aziendale-page.js`**: bootstrap Firebase/auth, tenant/ruoli, accesso **solo manager / amministratore** (stesso pubblico della mappa in dashboard); riuso di `createMappaAziendaleSection` + `loadMappaAziendale` da `dashboard-maps.js`.
+- **`core/dashboard-standalone.html`**: link **Mappa** in header (visibile solo a manager/amministratore); niente più caricamento Maps sulla sola home.
+
+## ✅ Dashboard: mappa solo su pagina dedicata (2026-05-13)
+
+- **`core/js/dashboard-controller.js`**: rimossa la mappa incorporata nella panoramica (manager/amministratore con e senza manodopera); restano le card in colonna unica con classe **`dashboard-top-row--single`**.
+- **`core/styles/dashboard.css`**: `.dashboard-top-row--single` a **tutta larghezza**; **`.dashboard-top-row--single > .dashboard-top-left`** in **griglia** (5 / 4 / 3 / 2 / 1 colonne al restringere la finestra), stile home modulo; padding e tipografia nelle card panoramica leggermente compatti.
+- **`core/js/dashboard-tour.js`**: step «Panoramica aziendale» aggiornato (mappa da **Mappa** in intestazione / pagina dedicata).
+- **`core/dashboard-standalone.html`**: rimossi import `dashboard-maps`, preload Google Maps e dipendenze **`app` / `loadGoogleMapsAPI`** usate solo dalla mappa in home.
+- **`core/js/dashboard-controller.js`**: mostra/nasconde il link **Mappa** insieme alla logica ruoli.
+- **`core/js/tony/engine.js`**: alias **`mappa aziendale`** / **`mappa azienda`** → nuova pagina (la chiave generica **`mappa`** resta su **Terreni** per anagrafica/confini).
+
+## ✅ Documentazione utente: indice filtrato sui moduli attivi del tenant (2026-05-11)
+
+- **`core/dashboard-standalone.html`**: il link **Guide** imposta `?mods=` con l’array `tenants/.../modules` (stessi slug usati in app: es. `contoTerzi`, `parcoMacchine`); senza moduli o in errore resta l’URL senza query (indice completo). Se l’utente ha solo ruoli **operaio** / **caposquadra** (senza manager/amministratore) si aggiunge **`fieldRole`**: indice con **sola** voce Manodopera (link con `soloRuolo`), senza Core/Tony; box «Da dove iniziare» nascosto; testo di benvenuto dedicato.
+- **`documentazione-utente/index.html`**: ogni voce menu ha `data-doc-module` allineato a quegli slug; script nasconde le voci non presenti in `mods`; **Core** resta sempre visibile (salvo vista campo); messaggio breve in benvenuto quando il filtro moduli è attivo; con **`fieldRole`** resta solo **Manodopera** nel menu, benvenuto dedicato, box «Da dove iniziare» nascosto. Apertura diretta dell’indice (bookmark / `npx serve`) mostra tutte le guide.
+- **`core/mobile/field-workspace-standalone.html`** + **`core/mobile/js/field-workspace-controller.js`**: nel menu **Opzioni** voce **Guida Manodopera** con URL `guida-manodopera-utente.html?ruolo=operaio|caposquadra&soloRuolo=1`.
+- **`documentazione-utente/guida-manodopera-utente.html`**: parametro **`soloRuolo=1`** nasconde i tab ruolo e carica solo il capitolo richiesto da **`ruolo`** (default operaio se mancante); con **`soloRuolo`** il pulsante **«Tutte le guide»** è nascosto; link **workspace** e **Dashboard** risolti con **`gfvCorePageHref`** (stesso criterio GitHub Pages `/gfv-platform/core/` della dashboard); vista solo-ruolo: **«Torna al workspace»** + **«Dashboard»** (`?ws=classic`); click workspace con fallback navigazione se la scheda non si chiude. **`core/mobile/field-workspace-standalone.html`**: link «Guida Manodopera» con **`rel="opener"`** (senza `noopener`) per consentire focus sulla scheda workspace.
+
+## ✅ Documentazione utente: indice solo guide GUIDA (2026-05-11)
+
+- **`documentazione-utente/index.html`**: rimossi menu e caricamento **legacy** (`core/guida-app/*.md`, Introduzione / moduli / intersezioni inline); restano **solo** i link alle pagine HTML delle guide utente (allineate a `GUIDA/…/utente`); badge **GUIDA**; benvenuto statico; niente `marked` in indice.
+
+## ✅ Guide utente / sintesi: linguaggio (no path, no tenant, no nomi tecnici superflui) (2026-05-11)
+
+- **`GUIDA/**/utente` (docs + mirror `core/GUIDA`)**: rimossi o riformulati riferimenti a **path** (`docs-sviluppo/…`, `GUIDA/…`), **tenant**, parametri URL (`terrenoId`), **identificativi modulo** in stile codice dove non servono; sintesi Tony (Magazzino, Manodopera, Tony) in italiano operativo senza nomi comandi cloud; Conto Terzi coefficiente senza backtick; sezione «approfondimento tecnico» in guida Tony senza cartelle repo.
+
+## ✅ Guida: report impatto da diff + commento PR + prompt suggest (2026-05-11)
+
+- **`scripts/guida-code-map.json`**: mappa path codice → moduli `GUIDA/<MODULO>` (include Manodopera mobile/admin, Tony, functions, moduli coltura, ecc.).
+- **`scripts/guida-impact-lib.mjs`**: logica condivisa (impatto, diff, path documentazione).
+- **`scripts/guida-impact.mjs`**: `npm run guida:impact` — markdown o `--format json`; opzione `--no-git` + stdin; checklist `utente` / `guida-sintesi` / `tony` (+ mirror).
+- **`scripts/guida-suggest-prompt.mjs`**: `npm run guida:suggest` — scrive un **prompt markdown** (default `scripts/guida-suggest-output/prompt.md`, gitignored) con istruzioni per l’agente, **checklist obbligatoria** (testo da `GUIDA-AGGIORNAMENTO-CHECKLIST.md`), elenco file guida + **diff troncato** (`--max-chars`); dopo approvazione umana si può incollare in Cursor / agente per applicare le modifiche.
+- **`.github/workflows/guida-impact-pr.yml`**: su PR apre/aggiorna commento con marker `<!-- gfv-guida-impact-bot -->`.
+- **`scripts/GUIDA-AGGIORNAMENTO-CHECKLIST.md`**: ordine e passi obbligatori (mirror, MANODOPERA multi-file, INTERSEZIONI, HTML doc, cosa non toccare); allegata anche da `guida:suggest`.
+- **`.cursor/rules/guida-aggiornamento-checklist.mdc`**: quando chiedi di aggiornare le guide, l’agente deve leggere ed applicare la checklist; riferimento aggiunto in **`tony-agent-onboarding.mdc`**.
+
+## ✅ Guida modulo Tony: pattern + sintesi + documentazione (2026-05-11)
+
+- **`GUIDA/TONY/`** (`utente/guida.md`, `utente/guida-sintesi.md`, `tony/guida-tecnica.md`) e mirror **`core/GUIDA/TONY/`**: guida utente (chi è Tony, Guida vs Avanzato, chat/voce, esempi, liste, operaio/caposquadra, briefing dashboard); guida tecnica per integrazioni.
+- **`core/services/tony-service.js`**: `GUIDA_LOAD_ENTRIES` con TONY dopo Core; **`guida_sintesi_tony`**; regola guida **9** (domande generali su Tony → sintesi modulo); apostrofo **cos'è** nella stessa regola.
+- **`functions/index.js`**: **`SUBAGENT_TONY_MODULO`** (meta-domande su Tony, piani, widget, briefing) dove già previsto.
+- **`GUIDA/README.md`**, **`core/GUIDA/README.md`**: riga tabella **`TONY/`** e paragrafo caricamento runtime aggiornati; **`GUIDA/CORE/utente/guida.md`** (e mirror core): sezione Tony con rimando alla guida modulo.
+- **`documentazione-utente/guida-tony-utente.html`**, voce in **`documentazione-utente/index.html`**.
+
+## ✅ Guida Conto Terzi: pattern percorso + indice + Tony (2026-05-11)
+
+- **`GUIDA/CONTO_TERZI/`** (`utente/guida.md`, `utente/guida-sintesi.md`, `tony/guida-tecnica.md`) e mirror **`core/GUIDA/CONTO_TERZI/`**: guida utente passo passo (home, clienti, terreni clienti, mappa, tariffe, nuovo preventivo, stati preventivi, pianifica lavoro, Diario filtrato); ruoli manager/amministratore e abbonamento; senza nomi file pagina nel testo utente.
+- **`core/services/tony-service.js`**: `GUIDA_LOAD_ENTRIES` con Conto Terzi; **`guida_sintesi_conto_terzi`** (fetch, fallback, init, dedup); regola guida **9** su **`/conto-terzi/`**; **`moduli/conto-terzi.md`** rimosso dalla catena di concat (resta stub rimando in guida-app per consultazione umana).
+- **`functions/index.js`**: **`SUBAGENT_CONTO_TERZI`** quando il path contiene `/conto-terzi/`.
+- Stub **`guida-app/moduli/conto-terzi.md`** (docs + core) con rimando a `GUIDA/CONTO_TERZI`; **`GUIDA/README.md`** e **`core/GUIDA/README.md`**.
+- **`documentazione-utente/guida-conto-terzi-utente.html`**: anteprima HTML (fetch `guida.md` da docs-sviluppo o core); voce in **`documentazione-utente/index.html`**.
+- **Guida utente Conto Terzi — tariffe**: sezione ampliata (tariffa base, coefficiente, tariffa finale; **Impostazioni** coefficienti morfologia percentuali collina/montagna; **tariffa singola** passo passo; **Crea per tutte le morfologie** tre righe; **Duplica** morfologie mancanti; allineamento preventivo).
+
+## ✅ Guida Manodopera operaio: pattern percorso + indice Impara qui (2026-05-11)
+
+- **`GUIDA/MANODOPERA/utente/guida-operaio.md`** (mirror **`core/GUIDA`**): allineata a manager/caposquadra (percorso, indice, mini-guide); linguaggio **solo su ciò che l’operaio fa** nell’app, senza confronti con altri ruoli né flussi di validazione/gestione altrui; tre schede, lavoro/ore/dettaglio/statistiche, lista ridotta e GPS, guasti, autonomo vs gruppo, desktop opzionale.
+
+## ✅ Guida Manodopera caposquadra: pattern percorso + indice Impara qui (2026-05-11)
+
+- **`GUIDA/MANODOPERA/utente/guida-caposquadra.md`** (mirror **`core/GUIDA`**): riscrittura allineata alla guida manager (percorso consigliato, tabella indice con anchor, mini-guide passo-passo); solo azioni permesse al caposquadra — workspace mobile (schede Lavoro → Comunicazioni → Ore → Statistiche), scelta lavoro e note **GPS/suggerimento**, **La mia squadra**, comunicazioni legate al lavoro, **Segna ore**, **Valida ore** sul lavoro selezionato, dettaglio **I miei lavori** (zone lavorate, completamento verso il manager), statistiche personali; sezione **guasti** ampliata (segnalazione macchina/generica, GPS/mappa, gravità, risoluzione lato campo vs manager) senza riferimenti a file pagina; rimandi alle tab Manager/Operaio della documentazione online.
+
+## ✅ Guida Manodopera manager: pattern percorso + indice Impara qui (2026-05-10)
+
+- **`GUIDA/MANODOPERA/utente/guida-manager.md`** (mirror **`core/GUIDA`**): allineata alle altre guide utente (percorso consigliato, tabella indice con anchor, mini-guide dettagliate); contenuti su inviti/collaboratori, Amministrazione, squadre, operai, lavori, validazione ore, segnatura da ufficio, statistiche e compensi, guasti/mezzi, **mappa dashboard** (filtri, zone lavorate, indicatori avanzamento), comunicazioni caposquadra; breve nota su interfacce caposquadra/operaio e tab della documentazione per ruolo.
+
+## ✅ Guida Manodopera: per ruolo (manager / caposquadra / operaio), lessico e Tony (2026-05-10)
+
+- **`GUIDA/MANODOPERA/utente/guida.md`**: introduzione solo linguaggio utente (niente riferimenti a file tecnici); rimandi alle sezioni Manager/Caposquadra/Operaio; paragrafo manager su **Invita collaboratore**, **Amministrazione** (Gestisci utenti, Squadre, Operai, Compensi, Abbonamento).
+- **`GUIDA/MANODOPERA/utente/`**: `guida-manager.md`, `guida-caposquadra.md`, `guida-operaio.md` (dettaglio per dashboard e permessi); `guida.md` come indice; linguaggio utente (**versione mobile**, **azienda**; no «tenant» / no «workspace campo» in testi guida).
+- **`tony-service.js`**: `GUIDA_LOAD_ENTRIES` concatena intro + tre guide ruolo + `tony/guida-tecnica.md`; fallback sintesi aggiornato.
+- **`guida-manodopera-utente.html`**: menu Introduzione / Manager / Caposquadra / Operaio + query `?ruolo=`; titolo pagina **field-workspace** → «Versione mobile — GFV».
+- **`functions/index.js`**: `SUBAGENT_MANODOPERA` e path `statistiche-lavoratore` affinati; distinzione caposquadra non gestisce squadre.
+- **`guida-sintesi.md`**, **`tony/guida-tecnica.md`**, stub **`guida-app/moduli/manodopera.md`**, mirror **`core/GUIDA`**, **`STATO_ATTUALE.md`**.
+
+## ✅ Tony Base (cloud): niente segnaposto né upsell su «cosa mi dici della tabella» (2026-05-10)
+
+- **`functions/index.js`** — `SYSTEM_INSTRUCTION_BASE`: rimosso il testo letterale tra parentesi che il modello ripeteva all’utente; istruzioni esplicite per domande sul **contenuto** di tabella/lista (solo dati contesto, senza Tony Avanzato); vietati segnaposti e «Nel frattempo:» vuoto; passi manuali solo in frasi complete quando serve davvero un’azione.
+
+## ✅ Guida Magazzino (pattern Vigneto/Frutteto) + sintesi Tony (2026-05-10)
+
+- **`GUIDA/MAGAZZINO/`** (`utente/guida.md`, `utente/guida-sintesi.md`, `tony/guida-tecnica.md`) e mirror **`core/GUIDA/MAGAZZINO/`**: documentazione utente e tecnica modulo magazzino.
+- **`core/services/tony-service.js`**: `GUIDA_LOAD_ENTRIES` con Magazzino; **`guida_sintesi_magazzino`** (fetch da sintesi, fallback, init, dedup primo turno); regola guida **9** e navigazione su **`/magazzino/`**.
+- **`functions/index.js`**: **`SUBAGENT_LOGISTICO`** — uso **`context.guida_sintesi_magazzino`** per procedure magazzino.
+- **`documentazione-utente/guida-magazzino-utente.html`**, voce in **`documentazione-utente/index.html`**; stub **`guida-app/moduli/magazzino.md`** (docs + core) con rimando a `GUIDA/MAGAZZINO`.
+- **`GUIDA/README.md`** e **`core/GUIDA/README.md`**: tabella e paragrafo Tony aggiornati.
+
+## ✅ Tony / guide: tono utente su pianificazione (niente «coltura in pagina») (2026-05-10)
+
+- **`functions/index.js`**: `TONY_PIANIFICAZIONE_CONTESTO_RULE` + sub-agenti: vietato ripetere «In pagina la coltura è …»; linguaggio operativo (dashboard, passi, campi).
+- **`GUIDA/VIGNETO` e `GUIDA/FRUTTETO`** (`utente/guida-sintesi.md`, `utente/guida.md`, mirror **`core/GUIDA`**): stessa sostanza senza quella formula.
+- **`core/services/tony-service.js`**: fallback sintesi frutteto allineato.
+
+## ✅ Tony: pianificazione path anche senza modulo avanzato (2026-05-10)
+
+- **`functions/index.js`**: `TONY_PIANIFICAZIONE_CONTESTO_RULE` + sub-agenti vigneto/frutteto in `extraBlocks` anche quando **Tony base** (`moduli_attivi` senza `tony`); prima erano solo con `isTonyAdvanced` → risposte frutteto sulla dashboard vigneto.
+
+## ✅ Tony: pianificazione vigneto vs frutteto (priorità path + ibrido) (2026-05-10)
+
+- **`functions/index.js`**: `TONY_PIANIFICAZIONE_CONTESTO_RULE` + **SUBAGENT_VIGNAIOLO** / **SUBAGENT_FRUTTETO** (blocchi Pianifica/Calcolo per modulo); vedi anche voce sopra per Tony base.
+- **`core/services/tony-service.js`**: regole navigazione 5 e guida 9 **neutre** (path vigneto vs frutteto, strumento condiviso); fallback sintesi frutteto senza prescrizioni valide per il vigneto.
+- **`GUIDA/VIGNETO/utente/guida-sintesi.md`**, **`GUIDA/FRUTTETO/utente/guida-sintesi.md`** (+ mirror **`core/GUIDA`**): stesso **motore condiviso**, ingresso e linguaggio per modulo.
+- **`tony-code-per-gemini.html`**: regola navigazione (f) allineata al client.
+
+## ✅ Tony Frutteto: sintesi + prompt cloud + navigazione pianifica (2026-05-10)
+
+- **`GUIDA/FRUTTETO/utente/guida-sintesi.md`** (mirror **`core/GUIDA`**): Dashboard Frutteto per **Pianifica nuovo impianto** / **Calcolo materiali** (strumento condiviso, coltura frutteto); divieto esplicito di copiare testi/dashboard vigneto e campi anagrafica vigneto; trattamenti/concim/potatura allineati al flusso lavoro/Diario → registro.
+- **`functions/index.js`**: `SUBAGENT_FRUTTETO` quando `pagePath` contiene `/frutteto/`; mappa target Frutteto estesa con **pianificazione impianto frutteto** e **calcolo materiali frutteto**.
+- **`core/services/tony-service.js`**: fallback `GUIDA_SINTESI_FRUTTETO_FALLBACK` e regole navigazione/guida (target **pianificazione impianto frutteto**).
+- **`core/js/tony/engine.js`**: URL `pianifica-impianto?coltura=frutteto` per target **pianificazione impianto frutteto**; alias **impianto frutteto** non punta più a calcolo materiali.
+- **`GUIDA/FRUTTETO/tony/guida-tecnica.md`** (mirror core): target aggiornati.
+
+## ✅ Guida Vigneto utente: allineata a schema Frutteto (2026-05-10)
+
+- **`GUIDA/VIGNETO/utente/guida.md`**: percorso con nota **lavoro/Diario prima** per trattamenti/concimazioni/potatura; indice espanso (dashboard, prima il lavoro, passi, vendemmia, statistiche, pianifica, calcolo); sezione dashboard **Vendemmie vs Lavori vigneto** corretta (non si creano trattamenti «da zero» solo dalla pagina registro); **regola pratica** + passi come Frutteto; **vendemmia** con **Nuova vendemmia** e lavoro opzionale; **pianifica/calcolo materiali** passo-passo (ceppi, filtro vigneto); «Se qualcosa non compare» + strumenti condivisi; anchor registri unificato a `#mini-guida-registri-di-campo`; mirror **`core/GUIDA/VIGNETO/utente/guida.md`**.
+
+## ✅ Guida Frutteto utente: trattamenti, concimazioni, pianificazione, calcolo materiali (2026-05-10)
+
+- **`GUIDA/FRUTTETO/utente/guida.md`**: sezioni passo-passo per **lavori/categorie**, **trattamenti**, **concimazioni**, **potatura**, **raccolta frutta**; **pianifica nuovo impianto** e **calcolo materiali** allineate alle pagine standalone condivise con il Vigneto; indice aggiornato; chiarito il flusso lavoro → registro vs raccolta diretta; **regola esplicita** (elenco vuoto finché non c’è lavoro/Diario con categoria giusta), percorso + «Se qualcosa non compare»; mirror **`core/GUIDA/FRUTTETO/utente/guida.md`**.
+
+## ✅ Guide utente moduli: testo Tony senza “da dove arriva” (2026-05-10)
+
+- **`GUIDA/VIGNETO/utente/guida.md`**, **`GUIDA/FRUTTETO/utente/guida.md`**: rimossa la sezione (e la riga d’indice) su Tony / tabelle / pacchetto — restano solo istruzioni d’uso del modulo.
+- **`GUIDA/CORE/utente/guida.md`**: sezione Tony riscritta in chiave **cosa puoi chiedere** e **cosa fai tu in app** (piano e permessi), senza elenco “non sostituisce” da manuale interno.
+- Mirror **`core/GUIDA`** (CORE, VIGNETO, FRUTTETO) allineati.
+
+## ✅ Guida Frutteto utente + Tony (pattern GUIDA/FRUTTETO, come Vigneto) (2026-05-10)
+
+- **`docs-sviluppo/GUIDA/FRUTTETO/`**: `utente/guida.md`, `utente/guida-sintesi.md`, `tony/guida-tecnica.md` (dashboard, anagrafica con stato, registri, raccolte vs lavori frutteto, strumenti impianto condivisi, Tony senza tecnicismi utente).
+- **`core/services/tony-service.js`**: `GUIDA_LOAD_ENTRIES` + **`guida_sintesi_frutteto`** + regola sistema 9 + dedup primo turno; rimosso duplicato legacy **`guida-app/moduli/frutteto.md`** dalla concat (stub con rimando).
+- **`documentazione-utente/guida-frutteto-utente.html`** + voce in **`index.html`**; **`GUIDA/README.md`**; **`tony/STATO_ATTUALE.md`**; mirror **`core/GUIDA/FRUTTETO`**.
+
+## ✅ Guida Vigneto utente: linguaggio non tecnico (Tony, Terreni, abbonamento) (2026-05-10)
+
+- **`GUIDA/VIGNETO/utente/guida.md`** / **`guida-sintesi.md`**: rimossi riferimenti tipo nomi variabili codice e URL file; Tony spiegato senza termini sviluppatore; «subscription» → abbonamento; mirror **`core/GUIDA`**.
+
+## ✅ Guida Vigneto + Core Terreni: chiarimenti Diario/Lavori, icone, dashboard (2026-05-10)
+
+- **`GUIDA/VIGNETO/utente/guida.md`**: sezione **Da Terreni (icone grappolo/mela)** — aprono anagrafica con `terrenoId`, non la dashboard modulo; **Vendemmie/trattamenti** non dipendono obbligatoriamente da Diario/Lavoro; distinzione **Vendemmie recenti** vs tabella **Lavori vigneto** (lavori terreno + Diario «Da diario»); registri con collegamento lavoro opzionale.
+- **`GUIDA/CORE/utente/guida.md`**: paragrafo **Icone Vigneto e Frutteto** nella mini-guida Terreni; mirror **`core/GUIDA`**.
+- **`GUIDA/VIGNETO/utente/guida-sintesi.md`** + **`tony/guida-tecnica.md`**: allineati; **`GUIDA/CORE/utente/guida-sintesi.md`**: accenno icone Terreni.
+
+## ✅ Guida Vigneto utente + Tony (pattern GUIDA/VIGNETO, come Parco) (2026-05-10)
+
+- **`docs-sviluppo/GUIDA/VIGNETO/`**: `utente/guida.md` (percorso, indice, mini-guide dashboard/anagrafica/registri/statistiche/pianificazione; permessi dashboard Manager–Admin; stato impianto; Tony tabella); `utente/guida-sintesi.md`; `tony/guida-tecnica.md`.
+- **`core/services/tony-service.js`**: caricamento **`VIGNETO`** in `GUIDA_LOAD_ENTRIES`; campo **`guida_sintesi_vigneto`** + fallback; dedup primo turno come Core/Parco; regola sistema 9; rimosso duplicato legacy **`guida-app/moduli/vigneto.md`** dalla concat (resta stub con rimando).
+- **`documentazione-utente/guida-vigneto-utente.html`** + voce in **`index.html`**; **`guida-app/moduli/vigneto.md`** (stub); **`GUIDA/README.md`**; mirror **`core/GUIDA/VIGNETO`**.
+
+## ✅ Guida Parco Macchine utente: dettaglio pari al Core (2026-05-10)
+
+- **`docs-sviluppo/GUIDA/PARCO_MACCHINE/utente/guida.md`**: percorso + indice allineati alla guida Core; mini-guide per **Stato**, trattori (solo creazione rapida vs **Gestione macchine** per modifica/eliminazione/stato), attrezzi con **CV minimi** e categoria, flotta, **Gestione macchine** (filtri, form, Salva/Annulla, Modifica, Elimina, storico guasti), **Scadenze** (filtri, rinnovo data/ore, significato indicatori), **Officina e guasti** (filtri, Segna risolto, nuova segnalazione), Diario.
+- **`PARCO_MACCHINE/utente/guida-sintesi.md`**: sintesi Tony aggiornata in linea; mirror **`core/GUIDA/PARCO_MACCHINE/`**.
+
+## ✅ Tony Guida: copy navigazione + loop console moduli vuoti (2026-05-10)
+
+- **`functions/index.js`**: **`SYSTEM_INSTRUCTION_BASE`** — vietato promettere aperture/navigazione («ti apro», «ti porto», ecc.) senza Tony Avanzato; tono aggiornato per non sembrare che Tony controlli l’app.
+- **`core/js/tony/main.js`**: **`checkTonyModuleStatus`** — auto-discovery dei moduli solo se **`dashboard.moduli_attivi` non è ancora valorizzato**; se è già un array (anche vuoto) non si richiama `setContext` in loop; warning solo quando il campo manca davvero nel contesto.
+
+## ✅ Dashboard: briefing vocale criticità solo con Tony Avanzato (2026-05-10)
+
+- **`core/dashboard-standalone.html`**: **`checkGlobalStatus`** — il saluto TTS su scorte/scadenze/guasti parte solo se il tenant ha il modulo **`tony`** (`__gfvTenantData.modules` o contesto Tony); con solo Tony Guida restano i dati in **`globalStatus`** per la chat ma niente voce automatica.
+
+## ✅ Tony: moduli tenant vuoti vs cache sessionStorage (2026-05-10)
+
+- **`core/js/tony/main.js`**: `getModuliFromDiscovery` dà priorità a **`window.__gfvTenantData.modules`** e accetta array **vuoti**; `saveModuliToStorage` persiste anche **`[]`** (prima la cache conservava solo liste non vuote → restava `tony` vecchio). **`syncTonyModules`** non ignora più l’array vuoto autoritativo. **`sendRequestWithContext`** (e discovery in **`checkTonyModuleStatus`** solo finché `dashboard.moduli_attivi` non è idratato) usano la lista scoperta, incluso **vuota**; una volta che `moduli_attivi` sul contesto è un array, non si ripete discovery a vuoto.
+- **`core/dashboard-standalone.html`**: `__gfvTenantData` sempre definito con **`modules`** (anche senza snapshot tenant), così il widget non ricade su sessionStorage stale.
+
+## ✅ Tony: gating piano Free / Guida vs Tony Avanzato (2026-05-10)
+
+- **Piano Free (freemium)**: `tonyAsk` / `getTonyAudio` rifiutano con `permission-denied`; widget nascosto (`applyTonyFreemiumGate`), `standalone-bootstrap` non carica il bundle Tony se `plan === free`; dashboard imposta `plan`/`piano` nel contesto e emette `gfv-subscription-plan`.
+- **Piano Base (e pagamento) senza modulo `tony`**: solo **Tony Guida** — rimosso fallback CF che forzava modalità avanzata su intent di navigazione; **SYSTEM_INSTRUCTION_BASE** senza eccezione JSON navigazione; client non esegue `APRI_PAGINA` / comandi operativi senza modulo **Tony Avanzato** (`moduli_attivi` con `tony`, case-insensitive); `tony-service` non emette `triggerAction` da JSON locale senza modulo; pending post-nav con inject solo se modulo attivo.
+
+## ✅ Parco Macchine: anteprima HTML + sintesi Tony (come Core) (2026-05-10)
+
+- **`documentazione-utente/guida-parco-macchine-utente.html`**: caricamento Markdown da `docs-sviluppo/GUIDA/PARCO_MACCHINE/utente/guida.md`, anchor interni e tema teal modulo; voce in **`documentazione-utente/index.html`**.
+- **`PARCO_MACCHINE/utente/guida.md`**: percorso consigliato, tabella indice, link «Impara qui» alle sezioni.
+- **`PARCO_MACCHINE/utente/guida-sintesi.md`** + **`core/services/tony-service.js`**: contesto `guida_sintesi_parco_macchine` (stesso schema di dedup del primo turno della guida lunga); regola di sistema 9 aggiornata; mirror **`core/GUIDA`**.
+
+## ✅ GUIDA Parco Macchine + caricamento Tony (2026-05-10)
+
+- **`docs-sviluppo/GUIDA/PARCO_MACCHINE/`**: `utente/guida.md` (linguaggio semplice: hub, trattori, attrezzi, flotta, gestione macchine, scadenze, guasti, Diario); `tony/guida-tecnica.md` (modulo `parcoMacchine`, path standalone, `pageType` liste).
+- **`core/services/tony-service.js`**: `GUIDA_LOAD_ENTRIES` esteso con Parco Macchine dopo le intersezioni.
+- **`docs-sviluppo/GUIDA/README.md`**: tabella struttura con `PARCO_MACCHINE/`; mirror **`core/GUIDA`**.
+- **`docs-sviluppo/guida-app/moduli/parco-macchine.md`**: richiamo alla nuova posizione (legacy).
+
+## ✅ Guida Core utente: Impostazioni complete (2026-05-10)
+
+- **`docs-sviluppo/GUIDA/CORE/utente/guida.md`** / **`guida-sintesi.md`**: sezione Impostazioni arricchita con **logo**, **liste personalizzate**, **tariffa proprietario** (e rimando a tariffe operai con Manodopera), P. IVA/CF, account e password; mirror **`core/GUIDA`**.
+- **Chiarimento moduli:** tariffe operai e coefficienti morfologia in Impostazioni solo con **Manodopera** / **Conto terzi** attivi; in Core solo accenno + guida modulo.
+
+## ✅ Tony: guida sintesi sempre nel contesto (riassemblaggio) (2026-05-10)
+
+- **`docs-sviluppo/GUIDA/CORE/utente/guida-sintesi.md`**: riassunto corto allineato alla guida utente; mirror in **`core/GUIDA/`**.
+- **`core/services/tony-service.js`**: carica **`guida_sintesi`** all’avvio; **`_getContextForPrompt`** lascia **`guida_app`** lunga soprattutto al primo messaggio e tiene **`guida_sintesi`** nei messaggi successivi (senza duplicare sintesi al primo turno quando la guida lunga è già caricata da file); fallback inline se il fetch fallisce; regola di sistema **n. 9** sulla guida Core.
+
+## ✅ Tony: guida Core utente nel caricamento esteso (2026-05-10)
+
+- **`core/services/tony-service.js`**: `GUIDA_LOAD_ENTRIES` include **`CORE/utente/guida.md`** prima della guida tecnica, così Tony attinge allo stesso linguaggio dei passi utente e integra con `CORE/tony/guida-tecnica.md` e il resto della catena.
+- **`docs-sviluppo/GUIDA/README.md`**: nota su ordine di concatenazione per Tony.
+
+## ✅ Guida definitiva: cartella GUIDA + Core utente/tony + caricamento Tony (2026-05-10)
+
+- **`documentazione-utente/guida-core-utente.html`**: anteprima HTML (stessi stili della doc utente) che carica **`docs-sviluppo/GUIDA/CORE/utente/guida.md`** via `fetch` — usare server locale dalla root repo (`npx serve`), non `file://`. Voce di menu in **`documentazione-utente/index.html`** («Core — guida utente (nuova)»).
+- **`docs-sviluppo/GUIDA/`**: struttura per ambito (`CORE`, `INTERSEZIONI`, …) con sottocartelle **`utente/`** (linguaggio semplice, zero tecnico) e **`tony/`** (riferimento tecnico). Prima coppia Core: **`CORE/utente/guida.md`**, **`CORE/tony/guida-tecnica.md`**; intersezioni moduli per Tony in **`INTERSEZIONI/tony/intersezioni.md`** (derivata dalla precedente `guida-app/intersezioni-moduli.md`).
+- **`core/GUIDA/`**: mirror per fetch HTTP in hosting come per la vecchia `guida-app`.
+- **`core/services/tony-service.js`**: caricamento guida estesa tramite **`GUIDA_LOAD_ENTRIES`** (prima `GUIDA`, poi moduli legacy da `guida-app/moduli/`).
+- **`core/services/tony-guida-app.js`**: commento `@see` aggiornato verso `docs-sviluppo/GUIDA/README.md`.
+- **Guida Core utente (testo)**: percorso consigliato da Impostazioni/dati azienda e poderi; mini-guide (terreni con mappa e punti, diario, mappa dashboard, statistiche, elenchi cliccabili senza lessico tecnico); link interni «Impara qui»; titolo sezione **Elenchi cliccabili** con ancore stabili; mirror **`core/GUIDA`** allineato.
+- **Anteprima `guida-core-utente.html`**: dopo il parse Markdown vengono assegnati **id agli heading** (marked sul CDN non li imposta più in modo affidabile), scroll **smooth** ai link interni e supporto **hash** all’apertura della pagina; link diario normalizzato senza accento nell’ancora (`attivita`).
+
+## ✅ Tony segna ore workspace: messaggio CF dopo recovery + meno doppie domande (2026-05-06)
+
+- **`core/js/tony/main.js`**: **`tonyQuickHoursRecoveryAfterCfReply`** (Promise) — recovery sul form **prima** di mostrare la risposta in chat sul workspace campo; **`tonySanitizeQuickHoursSpeechVsFormDom`** — se orari e pausa sono già nel DOM, non mostra la richiesta duplicata «dammi orari/pausa» / «non posso salvare finché…», ma una riga di conferma verso Salva; **`tonyMaybeScheduleQuickHoursInterviewAfterCfReply`** non parte se la recovery ha già iniettato (evita secondo round CF ridondante).
+
+## ✅ Tony proattivo «confermi salvataggio?» + QUICK_SAVE da CF (2026-05-06)
+
+- **`core/services/tony-service.js`**: stesso blocco già usato per **`SAVE_ACTIVITY`** sul prompt proattivo esteso a **`QUICK_SAVE` / `SUBMIT_FORM` / `SALVA` / `SAVE`** — niente submit prematuro; messaggio guida verso «sì»/«salva» in chat o pulsante **Salva ore lavorate**.
+- **`core/js/tony/main.js`**: in **`onComplete`**, annullamento comando salvataggio sul promemoria proattivo anche per i tipi sopra (doppio riparo se il comando arriva dal service).
+
+## ✅ Workspace campo operaio: select lavoro Tony + domanda pausa in minuti (2026-05-06)
+
+- **`core/mobile/js/field-workspace-controller.js`**: se Tony deve selezionare un lavoro per id ma l’opzione non c’è (finestra operai / race caricamento), **ricarica** l’elenco con focus su quell’id (`gfv_tony_expand_lavoro_for_select`) e riseleziona; include il lavoro nell’elenco se mancava dalla finestra ma è nei lavori dell’utente.
+- **`core/js/tony/main.js`**: messaggio proattivo su solo **`ora-break`** → chiede esplicitamente **minuti** di pausa, non l’orario della pausa.
+- **`functions/index.js`** / **`core/config/tony-form-mapping.js`**: istruzioni modello — pausa = **minuti**; vietata la domanda «a che ora hai fatto la pausa?» — **deploy CF** se tocchi la funzione.
+
+## ✅ Workspace campo: «quali lavori in elenco» con nomi (risposta locale) (2026-05-06)
+
+- **`core/services/tony-service.js`**: se `pageType` è **`field_workspace`** o **`lavori_caposquadra`** e la domanda chiede l’elenco lavori (es. «quali lavori…»), Tony risponde **subito** da **`currentTableData.items`** (label/nome, tipo, stato) **senza `tonyAsk`** — evita risposte generiche «ci sono N lavori» senza i nomi. Se il contesto ha `items` vuoti ma **`window` / `window.parent`** ha la tabella aggiornata, usa quella.
+- **`functions/index.js`**: se compariva **vuoto** in working tree (0 byte), è stato **ripristinato da git** — verificare `git status` prima del commit.
+
+## ✅ Tony «Segna ore» workspace: lavoro da messaggio utente + testo senza «Tony:» (2026-05-06)
+
+- **`core/js/tony/main.js`**: **`tonyResolveOraLavoroForQuickHours`** — su flusso segna ore, se nel blob utente compare un nome che matcha **un solo** lavoro in **`currentTableData.items`** (parent/context/window), **`ora-lavoro`** = quell’id (non solo il lavoro selezionato nel select se l’utente dice es. «in potatura»).
+- **`core/js/tony/engine.js`**: **`cleanTextFromJsonResidue`** — rimuove prefissi **«Tony:»** ripetuti nel testo mostrato.
+- **`functions/index.js`** (profilo campo): istruzioni allineate — **ora-lavoro** da nome lavoro in elenco; **replyText** senza prefisso «Tony:» — **deploy CF**.
+
+## ✅ Tony Segna ore campo: blob ultimi turni, niente 07–18 da chat vecchia, niente «non ho accesso» spurio (2026-05-06)
+
+- **`core/js/tony/main.js`**: **`tonyBuildSegnaOraUserBlobLastNUserTurns`** — ultimi **N** messaggi **utente** + prefisso come il blob legacy (**`tony_last_user_message`** / turno opzionale), così recovery / pausa / **`ora-lavoro`** / sanitize CF non riusano fascie orarie dette **molti turni prima**; **`tonyReplaceFieldSegnaOreSpuriousRefusal`** — se la CF emette il rifiuto generico su un intent lecito «segna ore», si chiedono gli orari o si sopprime il bubble in contrasto con il client.
+- **`functions/index.js`** — **`SYSTEM_INSTRUCTION_TONY_FIELD`**: «ore di ieri/oggi / registrare il turno» dichiarati **in ambito** profilo campo (no rifiuto generico su quella richiesta) — **deploy CF**.
+
+## ✅ Tony «Segna ore»: QUICK_FORM_FILL, blocco salvataggio senza pausa, CF «ieri» vs data (2026-04-18)
+
+- **`core/js/tony/main.js`**: **`QUICK_FORM_FILL`** unificato con **`SET_VALUE`** (`fieldId` + **`fieldValue`** o `value`); **`tonySalvaQuickHoursWorkspace`** / submit rapido — se **`#ora-break`** è **0** e in chat non c’è cenno a pausa (**`tonyQuickHoursUserAcknowledgedPause`**), messaggio guida e **niente submit** finché l’utente non indica minuti o «nessuna pausa».
+- **`functions/index.js`**: istruzioni **«ieri» = ora-data coerente**, domanda **pausa** prima del salvataggio, elenco comandi supportati sul quick-hours — **deploy CF**.
+
+## ✅ Tony «Segna ore»: pausa «45», comandi CF QUICK_SAVE / SET_VALUE, pulizia JSON in chat (2026-04-18)
+
+- **`core/js/tony/main.js`**: **`tonyExtractQuickHoursPauseMinutesFromBlob`** + **`tonyRecoverSegnaOraFromChatHistory`** — anche **solo pausa** (orari già nel form): ultimo messaggio numerico o «N min»; **`tonyMaybeRecoverQuickHoursAfterCfReply`** non esce più subito se inizio/fine sono pieni ma la pausa in chat differisce da **`#ora-break`**; **`processTonyCommand`**: **`QUICK_SAVE`** come **`SUBMIT_FORM`** → **`tonySalvaQuickHoursWorkspace`**; **`SET_VALUE`** con **`fieldId`** tipo **`ora-end`** / **`ora-pause`** → **`injectFieldWorkspaceQuickHoursForm`** sul parent workspace; priorità/coda allineate. **`tonyQuickHoursUserAcknowledgedPause`**: messaggio solo minuti conta come cenno pausa per **`interviewEmpty`**.
+- **`core/js/tony/engine.js`**: **`stripLeakedTonyCommandsArrayTail`** in **`cleanTextFromJsonResidue`** — taglia riepiloghi tipo `text": "…", "commands": [ … ]` mostrati crudi in chat.
+- **`tests/tony/json-clean-segna-ore.test.js`**: regressione pulizia testo.
+
+## ✅ Tony «Segna ore» workspace: fascia oraria su due messaggi + no «ore segnate» finte + domanda pausa (2026-04-18)
+
+- **`core/js/tony/main.js`**: **`tonyMatchSegnaOraTimeRangeFromBlob`** — stesso turno «iniziato alle 7» e turno successivo «alle 18» (ultimo `alle HH` dopo l’inizio); **`tonyBuildSegnaOraChatBlobForMatch`** — blob unificato (messaggio corrente + sessionStorage + cronologia) per recovery, gate **`tonyMaybeRecoverQuickHoursAfterCfReply`** e **`tonyMaybeScheduleQuickHoursInterviewAfterCfReply`**; **`tonySanitizeFieldWorkspaceSegnaOraAssistantText`** — se `#quick-hours-form` ha ancora orari vuoti o manca fascia parsabile, non mostra «ore segnate» / salvato fuorviante; **`getFieldWorkspaceQuickHoursFormContext`** — con orari compilati e pausa ancora 0, **`interviewEmpty`** include **`ora-break`** finché in chat non compare un cenno a pausa (**`tonyQuickHoursUserAcknowledgedPause`**); intento **`tonyUserMessageSuggestsSegnaOre`** esteso a «ho iniziato alle…».
+- **`functions/index.js`**: **`extractSegnaOraFormDataFromConversation`** — stessa logica multi-turno (deploy CF). **`tests/tony/segna-ora-chat-parse.test.js`**: caso due messaggi.
+
+## ✅ Tony «Segna ore» workspace: contesto form + intervista campi mancanti (come manager) (2026-04-18)
+
+- **`core/js/tony/main.js`**: **`getFieldWorkspaceQuickHoursFormContext`** — `__tonyGetCurrentFormContext` legge **`#quick-hours-form`** nella finestra workspace (anche **parent** se il widget è in iframe); **`formId`** **`field-workspace-ore-form`**; campo sintetico **`ora-lavoro`** da **`#selected-work`** (obbligatorio per coerenza con **`saveQuickHours`**); **`buildTonyFormContext(..., ownerWindow)`** usa **`getComputedStyle`** del documento giusto. Dopo inject: **`scheduleTonyQuickHoursProactiveAfterInject`** / **`runTonyQuickHoursProactiveCheck`** (stessi delay dei form magazzino) → messaggio proattivo **campi mancanti** o **«Form completo, confermi salvataggio?»**. **`tonyPromptSaveAfterQuickHoursInject`** delega allo scheduler (fallback messaggio fisso se widget non inizializzato).
+- **Fix timer assente con iframe** (2026-04-18): **`tonyResolveQuickHoursProactiveScheduleWindow`** — il timer e **`__tonyTriggerAskForMissingFields`** / conferma salvataggio girano sulla finestra che ha **`#quick-hours-form`** (es. **field-workspace** parent) se lì è caricato il widget, così da **`lavori-caposquadra` embed** non si perde il proattivo; dopo inject **`tonyPromptSaveAfterQuickHoursInject`** sempre se **`ok`**; **`tonySendProactiveWhenUnlocked`** ritenta fino a ~7s se **`_isSendingMessage`** blocca il primo invio.
+- **Fix nessun log «Form segna ora iniettato»** (2026-04-18): se la CF risponde senza **`INJECT_FORM_DATA`** il timer post-inject non partiva — **`tonyMaybeScheduleQuickHoursInterviewAfterCfReply`** in **`onComplete`** (messaggio utente che suggerisce ore + contesto campo + form inline) schedula **`__tonyScheduleQuickHoursProactiveAfterUserTurn`** (~3,8s poi stesso check); inject **fallito** → stesso schedule; recovery **`tonyMaybeRecoverQuickHoursAfterCfReply`** con **`fieldLike`** se esiste **`qhWin`** e contesto campo; intento **`tonyUserMessageSuggestsSegnaOre`** ampliato.
+- **Comando CF `SUBMIT_FORM`** (2026-04-18): **`processTonyCommand`** gestisce **`SUBMIT_FORM`** con **`formId`** **`quick-hours-form`** / **`field-workspace-ore-form`** come **`SALVA`** (**`tonySalvaQuickHoursWorkspace`**). Prima compariva «Tipo comando sconosciuto» e niente submit.
+
+## ✅ Tony workspace campo: saluto dedicato, dialogo segna ore meno ridondante, conferma salvataggio breve (2026-04-18)
+
+- **`core/js/tony/main.js`**: benvenuto alla prima apertura chat se **profilo campo** o pagina/tab **`field_workspace` / lavori caposquadra** — capacità reali + «statistiche lavoratore» e «guasti da campo» in arrivo; niente promesse su terreni/magazzino manager. Rimosso bubble chat sul **blocco APRI_PAGINA segnatura** (solo log + inject/recovery). **`tonySanitizeFieldWorkspaceSegnaOraAssistantText`**: sopprime risposte modello fuorvianti sul primo turno segna ore; **`doDisplay`** non mostra bubble vuoti. Messaggio dopo inject salvataggio e dopo **salva rapido** accorciati. **`functions/index.js`**: istruzioni **text** vuoto/minimo per inject ore su workspace — **deploy functions**.
+
+## ✅ Tony chat: nascondere JSON `{"command":...}` nel testo visibile (2026-04-18)
+
+- **`core/js/tony/engine.js`**: in **`cleanTextFromJsonResidue`**, **`stripLeakedTonyCommandJsonFromText`** rimuove blocchi bilanciati `{...}` che contengono **`"command"`** / **`"action"`** (es. eco APRI_PAGINA dalla CF) prima della pulizia margini.
+
+## ✅ Workspace mobile Segna ore: reset form dopo salvataggio (seconda giornata / Tony) (2026-04-18)
+
+- **`core/mobile/js/field-workspace-controller.js`**: dopo **`addDoc`** riuscito su **`saveQuickHours`**, **`resetQuickHoursFormFieldsForNextEntry()`** — data → **oggi** (`getTodayIsoDate()`), orari svuotati, pausa `0`, note vuote, ricalcolo ore nette — così inject/recovery non restano bloccati da campi già pieni.
+
+## ✅ Tony: saluto campo minimale + fix invio CF se moduli scoperti al volo (2026-04-18)
+
+- **`core/js/tony/main.js`**: benvenuto campo → *«Sono Tony, il tuo assistente personale per questa app.»*; **`tonyIsCampoLikeWorkspaceForTony`** usa anche **`Tony.context.page.currentTableData.pageType`** e path parent **`lavori-caposquadra-standalone`**. **`sendRequestWithContext`** (ramo *needRetry* + `setTimeout`): non lasciare **`_isSendingMessage`** a `true` prima di **`doActualSend`** (prima **`doActualSend`** usciva subito e **`tonyAsk`** non partiva).
+
+## ✅ Workspace mobile «Segna ore»: campo data lavoro (allineato alla segnatura desktop) (2026-04-18)
+
+- **`core/mobile/field-workspace-standalone.html`**: input **`#ora-data`** (type date, obbligatorio) nel form **`#quick-hours-form`**, prima degli orari.
+- **`core/mobile/js/field-workspace-controller.js`**: init a **oggi** con **`getTodayIsoDate()`**; **`saveQuickHours`** scrive su Firestore **`Timestamp`** dalla data scelta (non più sempre «oggi» fisso).
+- **`core/config/tony-form-mapping.js`**: **`FIELD_WORKSPACE_ORE_FORM_MAP`** include **`ora-data`**.
+- **`core/js/tony-form-injector.js`**: inject **`ora-data`** sul form inline.
+- **`core/js/tony/main.js`**: **`tonyGuessOraDataIsoFromBlob`** (oggi/ieri / YYYY-MM-DD) in **`tonyRecoverSegnaOraFromChatHistory`**; salvataggio rapido e **`tonySalvaQuickHoursWorkspace`** richiedono **`ora-data`** valorizzato.
+- **`functions/index.js`**: **`guessOraDataIsoFromSegnaBlob`** in **`extractSegnaOraFormDataFromConversation`**; prompt aggiornato. **Deploy functions** per la parte cloud.
+
+## ✅ Tony: conferma «si salva» / «sì» su «Segna ore» — submit locale senza tonyAsk (2026-04-18)
+
+- **Problema**: dopo l’inject, «si salva» partiva ancora la **CF** → risposte fuorvianti, **`APRI_PAGINA` segnatura** bloccato, ripetizione «Vuoi salvare?» e dubbio se il salvataggio fosse partito.
+- **`core/js/tony/main.js`**: in **`sendMessage`**, se esiste **`#quick-hours-form`** con orari già valorizzati e il messaggio è conferma breve (**`salva`**, **`si salva`**, **`sì`**, varianti **`ok salva` / `confermo salva`**) → **`tonySalvaQuickHoursWorkspace({ skipRecover: true })`** + messaggio in chat «Ho inviato il salvataggio…» **senza** round-trip cloud. **`tonySalvaQuickHoursWorkspace`** accetta **`skipRecover`** (niente doppio inject) e **`submitDelayMs`** opzionale.
+
+## ✅ Tony: fallback post-CF su workspace — ore da messaggio se modello non manda INJECT (2026-04-18)
+
+- **`core/js/tony/main.js`**: **`tonyMaybeRecoverQuickHoursAfterCfReply`** in `onComplete` (dopo risposta `ask`): se contesto **field_workspace**, form ore ancora vuoto, messaggio con fascia oraria parsabile e comando **non** è già INJECT/APRI segnatura → **`tonyRecoverSegnaOraFromChatHistory`** (ritardo 500 ms). Copre risposte solo testuali tipo «apri la segnatura e inserisci».
+
+## ✅ Tony: iframe lavori-caposquadra dentro field-workspace — inject sul parent (2026-04-18)
+
+- **Problema**: il widget poteva girare nel documento dell’iframe «I miei lavori» mentre `#quick-hours-form` è nel **parent** `field-workspace-standalone` → nessun inject / blocco segnatura assente se `pageType` era solo `lavori_caposquadra`.
+- **`core/js/tony-form-injector.js`**: **`resolveQuickHoursTargetWindow`**, **`injectFieldWorkspaceQuickHoursForm(..., { targetWindow })`**, **`injectSegnaOraForm`** delega al parent se serve; export **`resolveQuickHoursTargetWindow`**.
+- **`core/js/tony/main.js`**: **`tonyResolveQuickHoursWindow`**, blocco segnatura se il **parent** è workspace; contesto CF: da iframe caposquadra si preferisce **`currentTableData` field_workspace** del parent e **`pagePath` / `selectedLavoroId`** del parent; **`tonyTryOraLavoroFromPageContext`** legge anche parent.
+
+## ✅ Tony: dopo inject «Segna ore» workspace — invito a salvare + SALVA da CF (2026-04-18)
+
+- **`core/js/tony/main.js`**: **`tonyPromptSaveAfterQuickHoursInject`** dopo inject riuscito su `#quick-hours-form`; **`tonyRecoverSegnaOraFromChatHistory({ skipSavePrompt: true })`** nel ramo **`tonySalvaQuickHoursWorkspace`** per evitare doppio messaggio; stesso invito dopo **`INJECT_FORM_DATA`** **`field-workspace-ore-form`** quando il form inline è presente.
+- **`functions/index.js`**: prompt — niente «vado alla segnatura?»; testo pausa coerente col messaggio utente; **`replaceUnsupportedTonyCommand`**: su **field_workspace**, conferma breve (es. «sì» / «salva» senza nuovi orari nel messaggio) → **`SALVA`** invece di solo inject da cronologia; istruzione **SALVA** dopo conferma. **Deploy functions**.
+
+## ✅ Tony: parsing «iniziato alle X e finito alle Y» (recovery + CF) (2026-04-18)
+
+- **Problema**: frasi come «ho iniziato alle 7 e finito alle 18 con 60 min di pausa» non matchavano le regex esistenti → log «nessun orario ricavato» e form vuoto dopo blocco APRI_PAGINA segnatura.
+- **`core/js/tony/main.js`**: **`tonyMatchSegnaOraTimeRangeFromBlob`** (terzo pattern) usato da **`tonyRecoverSegnaOraFromChatHistory`**; messaggio console aggiornato.
+- **`functions/index.js`**: stesso pattern in **`extractSegnaOraFormDataFromConversation`**; istruzione prompt: vietato invitare a compilare a mano la segnatura se già su **field_workspace**.
+- **`tests/tony/segna-ora-chat-parse.test.js`**: caso allineato allo screenshot utente. **Deploy functions** per la parte cloud.
+
+## ✅ Tony: test Vitest parsing orari quick-hours da chat (2026-04-18)
+
+- **`tests/tony/segna-ora-chat-parse.test.js`**: 4 casi (frase tipo screenshot «dalle 7 alle 18 con 60 min», variante «7 alle 18», «un’ora di pausa», orari con minuti) — logica allineata a **`tonyRecoverSegnaOraFromChatHistory`** / **`extractSegnaOraFormDataFromConversation`**. Esecuzione: `npx vitest run tests/tony/segna-ora-chat-parse.test.js`.
+
+## ✅ Tony: regex orari «N alle M» senza «dalle» (estrazione CF) (2026-04-18)
+
+- **Problema**: frasi tipo «7 alle 18» (senza «dalle») non venivano parse in **`extractSegnaOraFormDataFromConversation`**; sul client **`tonyRecoverSegnaOraFromChatHistory`** aveva già il fallback.
+- **`functions/index.js`**: seconda regex allineata al client. **Deploy functions** per effetto in cloud.
+
+## ✅ Tony: `complete_task` (comando fantasma) → INJECT segna ore + recupero client (2026-04-18)
+
+- **Problema**: la CF a volte restituiva `command.type: "complete_task"`; il widget loggava «Tipo comando sconosciuto» e **nessun** `INJECT_FORM_DATA` → form «Segna ore» vuoto nonostante il testo «Ore registrate».
+- **`functions/index.js`**: istruzione **VIETATO complete_task**; **`replaceUnsupportedTonyCommand`** + **`extractSegnaOraFormDataFromConversation`** (regex «dalle X alle Y», pausa minuti / un’ora di pausa) → sostituisce con **INJECT_FORM_DATA** **field-workspace-ore-form** / **ora-form** quando contesto **field_workspace** (o affini) + **manodopera** e tempi ricavabili dalla chat. **Deploy functions** necessario per il cloud.
+- **`core/js/tony/main.js`**: **`COMPLETE_TASK` / `TASK_COMPLETE`** in `processTonyCommand` → **`tonyRecoverSegnaOraFromChatHistory`** (stesso parsing dalla chat) se c’è **`#quick-hours-form`**, anche senza redeploy.
+
+## ✅ Tony: niente navigazione a «segnatura ore» se già su workspace campo + `selectedLavoroId` (2026-04-18)
+
+- **Problema**: la CF portava alla pagina **segnatura desktop**; il form non si apriva da solo; il lavoro scelto sulla **prima slide** non diventava **ora-lavoro**; il widget poteva «sparire» cambiando pagina.
+- **`core/mobile/js/field-workspace-controller.js`**: contesto Tony **`page.selectedLavoroId`** + **`window.gfvFieldWorkspaceGetSelectedLavoroId`**; sync dopo cambio lavoro.
+- **`core/js/tony/main.js`**: **`tonyTryOraLavoroFromPageContext`** usa **selectedLavoroId** / helper; **`tonyBlockApriSegnaturaIfOnFieldWorkspace`** blocca **APRI_PAGINA** verso segnatura se path **field-workspace-standalone** (processTonyCommand + onAction).
+- **`functions/index.js`**: istruzione cloud **VIETATO** navigare a segnatura se già su workspace; **`extractSegnaOraFormDataFromConversation`** usa **selectedLavoroId**. Deploy functions.
+
+## ✅ Tony: comando `salva` / `save` su workspace mobile → inject + submit (2026-04-18)
+
+- **Problema**: la CF a volte restituiva `command.type: "salva"` → «Tipo comando sconosciuto», form ancora vuoto e nessun salvataggio Firestore.
+- **`functions/index.js`**: **`replaceUnsupportedTonyCommand`** esteso a **salva** / **save** (stesso fallback **INJECT_FORM_DATA** da conversazione); prompt: **VIETATO** tipo **salva** come comando.
+- **`core/js/tony/main.js`**: case **`SALVA` / `SAVE`**: se esiste **`#quick-hours-form`** → **`tonySalvaQuickHoursWorkspace`** (inject da chat + **`requestSubmit`**); altrimenti **coda `SAVE_ACTIVITY`** (comportamento desktop / modal già noto).
+
+## ✅ Tony: ore su pagina senza `#quick-hours-form` (es. lavori caposquadra embed) → workspace mobile (2026-04-18)
+
+- **`core/js/tony/main.js`**: se **profilo campo** + **manodopera** e in pagina **non** c’è né `#quick-hours-form` né `#ora-form`, allora **`OPEN_MODAL` `ora-modal`** (anche alias `modal-ora` / `ora`), **`INJECT_FORM_DATA` `ora-form` / `field-workspace-ore-form`**, **`SET_FIELD` `ora-*`**, e il **fallback** dopo «modal non trovato» usano **`APRI_PAGINA` `workspace campo`** + **`_tonyPendingModal` `quick-hours-form`** + campi (mapping **attivita-*** → **ora-*** e **`focusLavoroId`** / lista a un solo lavoro → **ora-lavoro**), invece di finire su **segnatura ore** standalone. Normalizzazione alias per il ramo inject inline su `#quick-hours-form` già presente.
+
+## ✅ Workspace mobile: Tony compila il form inline «Segna ore» (2026-04-18)
+
+- **`core/mobile/js/field-workspace-controller.js`**: API **`gfvFieldWorkspaceGoToHoursSlide`**, **`gfvFieldWorkspaceSelectLavoroById`**, **`gfvFieldWorkspaceRecalcHours`** per Tony.
+- **`core/js/tony-form-injector.js`**: **`injectFieldWorkspaceQuickHoursForm`** (`#quick-hours-form`, id DOM `ora-start` / `ora-end` / …); **`injectSegnaOraForm`** delega lì se presente il form mobile.
+- **`core/js/tony/main.js`**: profilo campo + manodopera senza diario → **APRI_PAGINA** **workspace campo** + pending **`quick-hours-form`** (non più solo segnatura standalone); **`OPEN_MODAL` `ora-modal`** con form mobile → inject inline; **`checkTonyPendingAfterNav`**: path `field-workspace` + intent **`quick-hours-form`**.
+- **`core/config/tony-form-mapping.js`**: **`field-workspace-ore-form`**.
+- **`functions/index.js`**: regole SEGNA ORE → priorità workspace mobile + **quick-hours-form**. Deploy functions.
+
+## ✅ Tony campo: «segna ore» da workspace / lavori caposquadra (2026-04-18)
+
+- **Problema**: la CF applicava ancora la regola diario (**attivita-modal**); il client reindirizzava il profilo campo a **workspace campo** senza `_tonyPendingModal`, quindi nessuna azione visibile.
+- **`core/js/tony/main.js`**: se **profilo campo** + modulo **manodopera**, assenza di **attivita-modal** nel DOM → **APRI_PAGINA** **segnatura ore** con **`_tonyPendingModal`: `ora-modal`**, mapping **attivita-*** → **ora-*** e **`focusLavoroId`** / un solo item → **ora-lavoro**; **`checkTonyPendingAfterNav`**: **`openSegnaOraModal`** + **INJECT** **ora-form**.
+- **`functions/index.js`**: entry point **SEGNA ORE MANODOPERA** (priorità sul diario) + **5f** esteso a **field_workspace** / **lavori_caposquadra**. Deploy functions consigliato.
+
+## ✅ Tony profilo campo: occhi + mani su «I miei lavori» (2026-04-18)
+
+- **`core/admin/lavori-caposquadra-standalone.html`**: placeholder + **`currentTableData`** `pageType` **`lavori_caposquadra`** (items: id, nome, stato, tipoLavoro, terreno, date, statoProgresso, percentuale); merge `setContext('page', …)` + evento **`table-data-ready`**; filtri client per **`FILTER_TABLE`** (`stato`, `terreno`, `tipoLavoro`, `progresso`, `ricerca`, `reset`) via `applyTonyLavoriCaposquadraFilter`.
+- **`core/js/tony/main.js`**: `FILTER_TABLE` delega a quella pagina quando `pageType === 'lavori_caposquadra'`; **`INJECT_FORM_DATA`** per **`zona-form`** (modal `zona-modal` aperto) → `TonyFormInjector.injectZonaSegmentoForm`.
+- **`core/config/tony-form-mapping.js`**: mappa **`ZONA_SEGMENTO_FORM_MAP`** (`zona-data`, `zona-larghezza`, `zona-note`) + istruzione structured.
+- **`core/js/tony-form-injector.js`**: **`injectZonaSegmentoForm`**.
+- **`functions/index.js`**: istruzioni CF per eccezione navigazione + blocco **FILTRO TABELLA LAVORI CAMPO** (`lavori_caposquadra`). Deploy functions per il prompt cloud.
+
+## ✅ Tony profilo campo: segnatura ore + workspace mobile (2026-04-18)
+
+- **`core/segnatura-ore-standalone.html`**: **`currentTableData`** `pageType` **`segnatura_ore`** — `items` = righe ore; **`lavoriItems`** = lavori in lista; merge `page` + **`table-data-ready`**; filtri client **`applyTonySegnaturaOreFilter`** (`statoValidazione`, `statoLavoro`, `lavoro`, `ricerca`, `reset`; alias **`stato`**); snapshot raw per non ricaricare Firestore; dropdown «Segna ora» usa sempre l’elenco completo lavori (`lavoriListRawForTony`).
+- **`core/js/tony/main.js`**: **`FILTER_TABLE`** → `applyTonySegnaturaOreFilter`; **`field_workspace`** senza handler filtri → log (contesto da items).
+- **`core/mobile/field-workspace-standalone.html`** + **`field-workspace-controller.js`**: placeholder + **`syncTonyFieldWorkspaceTableData`** (`pageType` **`field_workspace`**, items da lavori in select).
+- **`functions/index.js`**: eccezioni navigazione + blocco **FILTRO SEGNATURA ORE**; regola cloud **5f** (OPEN_MODAL **`ora-modal`** / INJECT **`ora-form`**, chiavi **`ora-*`**). Deploy functions per il prompt cloud.
+- **Modal Segna ora**: `tony-form-mapping` **`SEGNA_ORE_FORM_MAP`** / **`ora-form`**; **`injectSegnaOraForm`** in **`tony-form-injector.js`** (due passi lavoro → macchine); **`main.js`**: **`targetModalId`** → **`ora-modal`**, **`INJECT_FORM_DATA`** **`ora-form`**, **`OPEN_MODAL`** **`ora-modal`** con init **`openSegnaOraModal`** + coda inject da `fields`; pagina **`gfvSegnaturaOreRefreshMacchineFromSelect`** / **`gfvCalcolaOreNetteSegnatura`**.
 
 ## ✅ Tony / Gemini: retry 429 e messaggio utente (2026-04-18)
 

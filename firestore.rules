@@ -375,6 +375,13 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Profili manodopera (skill dichiarate / calcolate — scheda operaio)
+    match /tenants/{tenantId}/profiliManodopera/{userId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: guasti (Parco Macchine)
     // NOTA: Usa controllo diretto invece di belongsToTenant per evitare problemi con onSnapshot
     match /tenants/{tenantId}/guasti/{guastoId} {

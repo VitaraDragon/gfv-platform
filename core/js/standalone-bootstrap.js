@@ -132,10 +132,16 @@
           window.__gfvModuliAttivi = moduli;
           window.tenantConfig = { modules: moduli, moduli_attivi: moduli };
           window.tenant = window.tenant || { modules: moduli, moduli_attivi: moduli };
+          const rawPlan = tenantData.plan || tenantData.piano || 'base';
+          const p = String(rawPlan).trim().toLowerCase();
+          window.__gfvSubscriptionPlanId =
+            p === 'free' || p === 'freemium' ? 'free' : p === 'base' ? 'base' : ['starter', 'professional', 'enterprise'].includes(p) ? 'base' : 'base';
         }
 
-        // 7) Iniezione Tony come ultimo passaggio (Firebase e tenant già pronti)
-        injectTony();
+        // 7) Tony: solo piani a pagamento (non Free / freemium)
+        if (window.__gfvSubscriptionPlanId !== 'free') {
+          injectTony();
+        }
 
         resolve();
       } catch (err) {

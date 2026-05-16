@@ -120,7 +120,7 @@ window.GFVDashboardSections.createAdminSection = function createAdminSection(use
         <a href="admin/gestione-operai-standalone.html" class="action-card">
             <span class="action-icon">👷‍♂️</span>
             <span class="action-title">Gestione Operai</span>
-            <span class="action-description">Gestisci contratti e scadenze operai</span>
+            <span class="action-description">Contratti, scadenze e scheda competenze (skill)</span>
         </a>
         <a href="admin/compensi-operai-standalone.html" class="action-card">
             <span class="action-icon">💰</span>
@@ -281,24 +281,18 @@ window.GFVDashboardSections.createManagerSection = function createManagerSection
  */
 window.GFVDashboardSections.createAmministrazioneCard = function createAmministrazioneCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    
+    section.className = 'dashboard-section dashboard-section--module-tile';
+
     section.innerHTML = `
-        <h2><span class="section-icon">👑</span> Amministrazione</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Gestisci utenti, squadre e abbonamento dell'azienda
-        </p>
-        <div class="quick-actions">
-            <a href="admin/amministrazione-standalone.html" class="action-card" style="text-decoration: none;">
-                <span class="action-icon" style="font-size: 48px;">👑</span>
-                <span class="action-title" style="font-size: 18px;">Apri Amministrazione</span>
-                <span class="action-description">
-                    Accedi a tutte le funzionalità amministrative: gestisci utenti, squadre e abbonamento
-                </span>
-            </a>
-        </div>
+        <a href="admin/amministrazione-standalone.html" class="dashboard-module-tile" data-module="amministrazione" style="--module-accent:#8D6E63;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">👑</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Amministrazione</span>
+                <span class="dashboard-module-tile__desc">Utenti, ruoli e squadre aziendali. Abbonamento e impostazioni di servizio.</span>
+            </span>
+        </a>
     `;
-    
+
     return section;
 };
 
@@ -308,29 +302,23 @@ window.GFVDashboardSections.createAmministrazioneCard = function createAmministr
  */
 window.GFVDashboardSections.createStatisticheCard = function createStatisticheCard(hasManodopera = false) {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    
+    section.className = 'dashboard-section dashboard-section--module-tile';
+
     const linkUrl = hasManodopera ? 'admin/statistiche-manodopera-standalone.html' : 'statistiche-standalone.html';
-    const description = hasManodopera 
-        ? 'Accedi alle statistiche complete: lavori, ore, squadre, superficie e molto altro'
-        : 'Visualizza statistiche e analisi dettagliate su attività, ore, terreni e affitti';
-    
+    const desc = hasManodopera
+        ? 'Lavori, ore, squadre e superficie. Costi, disponibilità e andamenti nel tempo.'
+        : 'KPI su attività, ore e terreni. Affitti e trend in sintesi per l\'azienda.';
+
     section.innerHTML = `
-        <h2><span class="section-icon">📊</span> Statistiche</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            ${hasManodopera ? 'Visualizza statistiche e analisi dettagliate su lavori, ore, squadre e superficie' : 'Visualizza statistiche e analisi dettagliate su attività, ore, terreni e affitti'}
-        </p>
-        <div class="quick-actions">
-            <a href="${linkUrl}" class="action-card" style="text-decoration: none;">
-                <span class="action-icon" style="font-size: 48px;">📊</span>
-                <span class="action-title" style="font-size: 18px;">Apri Statistiche</span>
-                <span class="action-description">
-                    ${description}
-                </span>
-            </a>
-        </div>
+        <a href="${linkUrl}" class="dashboard-module-tile" data-module="statistiche" style="--module-accent:#3949AB;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">📊</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Statistiche</span>
+                <span class="dashboard-module-tile__desc">${desc}</span>
+            </span>
+        </a>
     `;
-    
+
     return section;
 };
 
@@ -339,24 +327,18 @@ window.GFVDashboardSections.createStatisticheCard = function createStatisticheCa
  */
 window.GFVDashboardSections.createTerreniCard = function createTerreniCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    
+    section.className = 'dashboard-section dashboard-section--module-tile';
+
     section.innerHTML = `
-        <h2><span class="section-icon">🗺️</span> Terreni</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Gestisci terreni, traccia confini sulla mappa e visualizza informazioni dettagliate
-        </p>
-        <div class="quick-actions">
-            <a href="terreni-standalone.html" class="action-card" style="text-decoration: none;">
-                <span class="action-icon" style="font-size: 48px;">🗺️</span>
-                <span class="action-title" style="font-size: 18px;">Apri Terreni</span>
-                <span class="action-description">
-                    Accedi alla gestione completa dei terreni: crea, modifica, traccia confini e visualizza dettagli
-                </span>
-            </a>
-        </div>
+        <a href="terreni-standalone.html" class="dashboard-module-tile" data-module="terreni" style="--module-accent:#2E7D32;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🗺️</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Terreni</span>
+                <span class="dashboard-module-tile__desc">Lotti, appezzamenti e dati di anagrafica. Confini su mappa e schede di dettaglio.</span>
+            </span>
+        </a>
     `;
-    
+
     return section;
 };
 
@@ -365,22 +347,16 @@ window.GFVDashboardSections.createTerreniCard = function createTerreniCard() {
  */
 window.GFVDashboardSections.createDiarioAttivitaCard = function createDiarioAttivitaCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    
+    section.className = 'dashboard-section dashboard-section--module-tile';
+
     section.innerHTML = `
-        <h2><span class="section-icon">📝</span> Diario Attività</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Registra le attività lavorative svolte sui terreni
-        </p>
-        <div class="quick-actions">
-            <a href="attivita-standalone.html" class="action-card" style="text-decoration: none;">
-                <span class="action-icon" style="font-size: 48px;">📝</span>
-                <span class="action-title" style="font-size: 18px;">Apri Diario</span>
-                <span class="action-description">
-                    Accedi al diario attività: registra orari, tipo lavoro, terreno e note
-                </span>
-            </a>
-        </div>
+        <a href="attivita-standalone.html" class="dashboard-module-tile" data-module="diarioAttivita" style="--module-accent:#5D4037;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">📝</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Diario attività</span>
+                <span class="dashboard-module-tile__desc">Registro delle attività in campo. Collega lavoro, terreno, orari e note operative.</span>
+            </span>
+        </a>
     `;
     
     return section;
@@ -391,24 +367,18 @@ window.GFVDashboardSections.createDiarioAttivitaCard = function createDiarioAtti
  */
 window.GFVDashboardSections.createAbbonamentoCard = function createAbbonamentoCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    
+    section.className = 'dashboard-section dashboard-section--module-tile';
+
     section.innerHTML = `
-        <h2><span class="section-icon">💳</span> Abbonamento</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Gestisci piano e moduli attivi dell'azienda
-        </p>
-        <div class="quick-actions">
-            <a href="admin/abbonamento-standalone.html" class="action-card" style="text-decoration: none;">
-                <span class="action-icon" style="font-size: 48px;">💳</span>
-                <span class="action-title" style="font-size: 18px;">Apri Abbonamento</span>
-                <span class="action-description">
-                    Visualizza piano attivo e gestisci moduli disponibili
-                </span>
-            </a>
-        </div>
+        <a href="admin/abbonamento-standalone.html" class="dashboard-module-tile" data-module="abbonamento" style="--module-accent:#00897B;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">💳</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Abbonamento</span>
+                <span class="dashboard-module-tile__desc">Piano GFV e moduli attivati per il tenant. Fatturazione e rinnovi.</span>
+            </span>
+        </a>
     `;
-    
+
     return section;
 };
 
@@ -433,293 +403,285 @@ window.GFVDashboardSections.createAffittiScadenzaCard = function createAffittiSc
 };
 
 /**
- * Card Conto Terzi (design blu distintivo)
+ * Sidebar verticale sinistra: stesse scorciatoie dei tile modulari (pin hub compatibili).
+ * @param {{ variant: 'core' | 'manodopera', availableModules?: string[], sottoScortaMagazzino?: number }} opts
  */
-window.GFVDashboardSections.createContoTerziCard = function createContoTerziCard() {
-    const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    section.style.background = 'linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)';
-    section.style.border = '2px solid #1976D2';
-    section.style.borderRadius = '12px';
-    
+window.GFVDashboardSections.createDashboardModuleSidebar = function createDashboardModuleSidebar(opts) {
+    const S = window.GFVDashboardSections;
+    const mods = Array.isArray(opts && opts.availableModules) ? opts.availableModules : [];
+    const variant = opts && opts.variant === 'manodopera' ? 'manodopera' : 'core';
+    const sotto = opts && opts.sottoScortaMagazzino != null ? opts.sottoScortaMagazzino : 0;
+
+    const aside = document.createElement('aside');
+    aside.className = 'dashboard-module-sidebar';
+    aside.setAttribute('aria-label', 'Moduli e accessi');
+
+    const title = document.createElement('h2');
+    title.className = 'dashboard-module-sidebar__title';
+    title.textContent = 'Moduli';
+    aside.appendChild(title);
+
+    const nav = document.createElement('nav');
+    nav.className = 'dashboard-module-sidebar__nav';
+    nav.setAttribute('aria-label', 'Elenco moduli attivi');
+
+    function appendCard(el) {
+        if (!el) return;
+        el.classList.add('dashboard-section--in-sidebar');
+        nav.appendChild(el);
+    }
+
+    if (variant === 'manodopera') {
+        appendCard(S.createAmministrazioneCard());
+        appendCard(S.createStatisticheCard(true));
+        appendCard(S.createTerreniCard());
+        if (mods.includes('contoTerzi')) appendCard(S.createContoTerziCard());
+        if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
+        if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
+        if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
+        if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
+        if (mods.includes('report')) appendCard(S.createReportCard());
+    } else {
+        appendCard(S.createTerreniCard());
+        appendCard(S.createDiarioAttivitaCard());
+        appendCard(S.createStatisticheCard(false));
+        appendCard(S.createAbbonamentoCard());
+        if (mods.includes('contoTerzi')) appendCard(S.createContoTerziCard());
+        if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
+        if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
+        if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
+        if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
+        if (mods.includes('report')) appendCard(S.createReportCard());
+    }
+
+    aside.appendChild(nav);
+    return aside;
+};
+
+/**
+ * Barra accessi rapidi configurabili (5 slot) + schermata configurazione (card per modulo).
+ */
+window.GFVDashboardSections.createDashboardQuickBarSection = function createDashboardQuickBarSection() {
+    const section = document.createElement('section');
+    section.className = 'dashboard-section dashboard-quick-bar-wrap';
+    section.setAttribute('aria-label', 'Accessi rapidi personalizzati');
+    section.setAttribute('data-tour-section', 'miei-accessi');
+
     section.innerHTML = `
-        <h2 style="color: #1976D2;"><span class="section-icon">🤝</span> Conto Terzi</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Gestisci clienti e lavori esterni
-        </p>
-        <div class="quick-actions">
-            <a href="../modules/conto-terzi/views/conto-terzi-home-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #1976D2;">
-                <span class="action-icon" style="font-size: 48px;">🤝</span>
-                <span class="action-title" style="font-size: 18px; color: #1976D2;">Apri Conto Terzi</span>
-                <span class="action-description" style="color: #666;">
-                    Accedi alla gestione completa clienti, terreni e lavori conto terzi
-                </span>
-            </a>
+        <div class="dashboard-quick-bar-head">
+            <h3 class="dashboard-quick-bar-heading">I miei accessi</h3>
+            <button type="button" id="dashboard-quick-bar-config-btn" class="dashboard-quick-bar-config-btn">
+                Configura
+            </button>
+        </div>
+        <p class="dashboard-quick-bar-intro">Cinque scorciatoie verso moduli e pagine consentite. Preferenze salvate solo su questo browser.</p>
+        <div class="quick-actions dashboard-quick-bar" id="dashboard-quick-bar-root"></div>
+        <div id="dashboard-quick-bar-modal" class="dashboard-quick-bar-modal" hidden>
+            <div class="dashboard-quick-bar-modal__backdrop" data-quick-bar-close tabindex="-1"></div>
+            <div class="dashboard-quick-bar-modal__panel" role="dialog" aria-modal="true" aria-labelledby="dashboard-quick-bar-modal-title">
+                <div class="dashboard-quick-bar-modal__header">
+                    <h3 id="dashboard-quick-bar-modal-title">Componi la tua barra</h3>
+                    <button type="button" class="dashboard-quick-bar-modal__x" data-quick-bar-close aria-label="Chiudi">×</button>
+                </div>
+                <p class="dashboard-quick-bar-modal__hint">Sotto trovi tutti gli accessi disponibili (anche le sottopagine: vigneto, frutteto, magazzino, conto terzi, parco macchine, report, manodopera), organizzati per modulo. Tocca una card per aggiungerla o toglierla dalla barra (massimo 5). Solo percorsi previsti dall’app; niente URL liberi.</p>
+                <form id="dashboard-quick-bar-form" class="dashboard-quick-bar-form">
+                    <div class="dashboard-quick-bar-draft-block">
+                        <h4 class="dashboard-quick-bar-draft-block__title">Anteprima — I miei accessi</h4>
+                        <div id="dashboard-quick-bar-draft-root"></div>
+                    </div>
+                    <p id="dashboard-quick-bar-limit-hint" class="dashboard-quick-bar-limit-hint" aria-live="polite"></p>
+                    <div id="dashboard-quick-bar-catalog-root" class="dashboard-quick-bar-catalog-scroll"></div>
+                    <div class="dashboard-quick-bar-modal__actions">
+                        <button type="button" id="dashboard-quick-bar-clear-draft" class="dashboard-quick-bar-btn dashboard-quick-bar-btn--ghost">Svuota barra</button>
+                        <button type="button" class="dashboard-quick-bar-btn dashboard-quick-bar-btn--ghost" data-quick-bar-close>Annulla</button>
+                        <button type="submit" class="dashboard-quick-bar-btn dashboard-quick-bar-btn--primary">Salva</button>
+                    </div>
+                </form>
+            </div>
         </div>
     `;
-    
+
     return section;
 };
 
 /**
- * Card Vigneto (design viola distintivo)
+ * Fascia doppia: Scadenze amministrazione + In arrivo (operativo).
+ */
+window.GFVDashboardSections.createDashboardDeadlinesRow = function createDashboardDeadlinesRow() {
+    const row = document.createElement('div');
+    row.className = 'dashboard-deadlines-row';
+    row.setAttribute('data-tour-section', 'scadenze');
+    row.innerHTML = `
+        <section id="scadenze-amministrazione-widget" class="dashboard-section dashboard-widget-scadenze dashboard-widget-scadenze-ammin">
+            <h2><span class="section-icon" aria-hidden="true">📋</span> Scadenze amministrazione</h2>
+            <p class="dashboard-widget-scadenze__hint">Affitti, revisioni e assicurazioni con scadenza imminente o superata.</p>
+            <div id="scadenze-amministrazione-list" class="dashboard-deadline-list"></div>
+            <p id="scadenze-amministrazione-empty" class="dashboard-deadline-empty">Caricamento scadenze…</p>
+        </section>
+        <section id="in-arrivo-widget" class="dashboard-section dashboard-widget-scadenze dashboard-widget-in-arrivo">
+            <h2><span class="section-icon" aria-hidden="true">⏳</span> In arrivo</h2>
+            <p class="dashboard-widget-scadenze__hint">Manutenzioni mezzi, lavori da pianificare e ore da validare.</p>
+            <div id="in-arrivo-list" class="dashboard-deadline-list"></div>
+            <p id="in-arrivo-empty" class="dashboard-deadline-empty">Caricamento…</p>
+        </section>
+    `;
+    return row;
+};
+
+/**
+ * Fascia panoramica sopra la griglia moduli: attenzione, promemoria, accessi rapidi (pin/recenti).
+ */
+window.GFVDashboardSections.createDashboardPanoramaHubSection = function createDashboardPanoramaHubSection() {
+    const section = document.createElement('section');
+    section.id = 'dashboard-panorama-hub';
+    section.className = 'dashboard-panorama-hub';
+    section.setAttribute('aria-label', 'Panoramica rapida');
+    section.innerHTML = `
+        <div class="dashboard-hub-grid">
+            <div class="dashboard-hub-block dashboard-hub-block--attention">
+                <h3 class="dashboard-hub-heading">Richiede attenzione</h3>
+                <ul id="dashboard-hub-attention-list" class="dashboard-hub-list" hidden></ul>
+                <p id="dashboard-hub-attention-empty" class="dashboard-hub-empty">Caricamento…</p>
+            </div>
+            <div class="dashboard-hub-block dashboard-hub-block--today">
+                <h3 class="dashboard-hub-heading">Per te oggi</h3>
+                <ul id="dashboard-hub-today-list" class="dashboard-hub-list"></ul>
+            </div>
+            <div class="dashboard-hub-block dashboard-hub-block--shortcuts">
+                <h3 class="dashboard-hub-heading">Accessi rapidi</h3>
+                <p class="dashboard-hub-hint">Preferiti e ultimi moduli usati su questo dispositivo. Clicca la stella sulla card per fissare.</p>
+                <div id="dashboard-hub-shortcuts" class="dashboard-hub-shortcuts"></div>
+                <p id="dashboard-hub-shortcuts-empty" class="dashboard-hub-empty" hidden>Nessun accesso rapido ancora: apri un modulo o aggiungi un preferito.</p>
+            </div>
+        </div>
+    `;
+    return section;
+};
+
+window.GFVDashboardSections.createContoTerziCard = function createContoTerziCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section dashboard-section--module-tile';
+    section.innerHTML = `
+        <a href="../modules/conto-terzi/views/conto-terzi-home-standalone.html" class="dashboard-module-tile" data-module="contoTerzi" style="--module-accent:#1976D2;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🤝</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Conto Terzi</span>
+                <span class="dashboard-module-tile__desc">Lavori per conto terzi e contratti. Tariffe, preventivi e consuntivi.</span>
+            </span>
+        </a>
+    `;
+    return section;
+};
+
+/**
+ * Card Vigneto — tile compatto
  */
 window.GFVDashboardSections.createVignetoCard = function createVignetoCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    section.style.background = 'linear-gradient(135deg, #E1BEE7 0%, #CE93D8 100%)';
-    section.style.border = '2px solid #6A1B9A';
-    section.style.borderRadius = '12px';
-    
+    section.className = 'dashboard-section dashboard-section--module-tile';
     section.innerHTML = `
-        <h2 style="color: #6A1B9A;"><span class="section-icon">🍇</span> Vigneto</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Gestisci vigneti, vendemmia, potatura e trattamenti
-        </p>
-        <div class="quick-actions">
-            <a href="../modules/vigneto/views/vigneto-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #6A1B9A;">
-                <span class="action-icon" style="font-size: 48px;">🍇</span>
-                <span class="action-title" style="font-size: 18px; color: #6A1B9A;">Apri Vigneto</span>
-                <span class="action-description" style="color: #666;">
-                    Accedi alla gestione completa vigneti, vendemmia e trattamenti
-                </span>
-            </a>
-        </div>
+        <a href="../modules/vigneto/views/vigneto-dashboard-standalone.html" class="dashboard-module-tile" data-module="vigneto" style="--module-accent:#6A1B9A;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🍇</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Vigneto</span>
+                <span class="dashboard-module-tile__desc">Filari, produzione e vendemmia. Interventi e registrazioni in campo.</span>
+            </span>
+        </a>
     `;
-    
     return section;
 };
 
 /**
- * Card Frutteto (design arancione, coerente con modulo frutteto)
+ * Card Frutteto — tile compatto
  */
 window.GFVDashboardSections.createFruttetoCard = function createFruttetoCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    section.style.background = 'linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%)';
-    section.style.border = '2px solid #FF6F00';
-    section.style.borderRadius = '12px';
-    
+    section.className = 'dashboard-section dashboard-section--module-tile';
     section.innerHTML = `
-        <h2 style="color: #FF6F00;"><span class="section-icon">🍎</span> Frutteto</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Gestisci frutteti, raccolta frutta e statistiche dedicate
-        </p>
-        <div class="quick-actions">
-            <a href="../modules/frutteto/views/frutteto-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #FF6F00;">
-                <span class="action-icon" style="font-size: 48px;">🍎</span>
-                <span class="action-title" style="font-size: 18px; color: #FF6F00;">Apri Dashboard Frutteto</span>
-                <span class="action-description" style="color: #666;">
-                    Panoramica frutteti, raccolte frutta e azioni rapide
-                </span>
-            </a>
-        </div>
+        <a href="../modules/frutteto/views/frutteto-dashboard-standalone.html" class="dashboard-module-tile" data-module="frutteto" style="--module-accent:#FF6F00;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🍎</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Frutteto</span>
+                <span class="dashboard-module-tile__desc">Alberi, raccolta e qualità. Pianificazione colture e interventi.</span>
+            </span>
+        </a>
     `;
-    
     return section;
 };
 
 /**
- * Card Prodotti e Magazzino (design verde distintivo)
+ * Card Magazzino — tile compatto (badge sotto-scorta se presente)
  */
 window.GFVDashboardSections.createMagazzinoCard = function createMagazzinoCard(sottoScortaCount) {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
+    section.className = 'dashboard-section dashboard-section--module-tile';
     section.setAttribute('data-tony-briefing', 'scorte');
-    section.style.background = 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)';
-    section.style.border = '2px solid #2E7D32';
-    section.style.borderRadius = '12px';
 
-    const alertBadge = (sottoScortaCount != null && sottoScortaCount > 0)
-        ? `<p style="color: #856404; background: #fff3cd; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px;"><strong>⚠️ ${sottoScortaCount} prodotto/i sotto scorta minima</strong></p>`
+    const hasBadge = (sottoScortaCount != null && sottoScortaCount > 0);
+    const alertBadge = hasBadge
+        ? `<span class="dashboard-module-tile__badge" title="Prodotti sotto scorta minima">⚠ ${sottoScortaCount}</span>`
         : '';
+    const tileMod = hasBadge ? 'dashboard-module-tile dashboard-module-tile--has-badge' : 'dashboard-module-tile';
 
     section.innerHTML = `
-        <h2 style="color: #2E7D32;"><span class="section-icon">📦</span> Prodotti e Magazzino</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Anagrafica prodotti, giacenze e movimenti (entrate/uscite)
-        </p>
-        ${alertBadge}
-        <div class="quick-actions">
-            <a href="../modules/magazzino/views/magazzino-home-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #2E7D32;">
-                <span class="action-icon" style="font-size: 48px;">📦</span>
-                <span class="action-title" style="font-size: 18px; color: #2E7D32;">Apri Prodotti e Magazzino</span>
-                <span class="action-description" style="color: #666;">
-                    Gestisci prodotti, movimenti e alert scorta minima
-                </span>
-            </a>
-        </div>
+        <a href="../modules/magazzino/views/magazzino-home-standalone.html" class="${tileMod}" data-module="magazzino" style="--module-accent:#2E7D32;">
+            ${alertBadge}
+            <span class="dashboard-module-tile__icon" aria-hidden="true">📦</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Magazzino</span>
+                <span class="dashboard-module-tile__desc">Scorte, movimenti e tracciabilità. Semi, fitosanitari e prodotti a magazzino.</span>
+            </span>
+        </a>
     `;
 
     return section;
 };
 
 /**
- * Card Macchine e Mezzi (modulo parco macchine - design teal/cyan, distinto da Frutteto)
+ * Card Parco Macchine — tile compatto
  */
 window.GFVDashboardSections.createMacchineCard = function createMacchineCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
+    section.className = 'dashboard-section dashboard-section--module-tile';
     section.setAttribute('data-tony-briefing', 'scadenze');
-    section.style.background = 'linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)';
-    section.style.border = '2px solid #0097A7';
-    section.style.borderRadius = '12px';
 
     section.innerHTML = `
-        <h2 style="color: #006064;"><span class="section-icon">🚜</span> Macchine e Mezzi</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Gestione flotta, scadenze e manutenzioni.
-        </p>
-        <div class="quick-actions">
-            <a href="../modules/macchine/views/macchine-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #0097A7;">
-                <span class="action-icon" style="font-size: 48px;">🚜</span>
-                <span class="action-title" style="font-size: 18px; color: #006064;">Apri Parco Macchine</span>
-                <span class="action-description" style="color: #666;">
-                    Dashboard trattori, attrezzature, manutenzioni e guasti
-                </span>
-            </a>
-        </div>
+        <a href="../modules/macchine/views/macchine-dashboard-standalone.html" class="dashboard-module-tile" data-module="parcoMacchine" style="--module-accent:#0097A7;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🚜</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Parco Macchine</span>
+                <span class="dashboard-module-tile__desc">Mezzi, ore e consumi. Scadenzario tagliandi e interventi di manutenzione.</span>
+            </span>
+        </a>
     `;
+
+    // Ancora per highlight Tony RIASSUNTO (guasti): prima era sul box "Guasti segnalati", rimosso in favore dell'hub panoramica.
+    const tonyGuastiAnchor = document.createElement('span');
+    tonyGuastiAnchor.setAttribute('data-tony-briefing', 'guasti');
+    tonyGuastiAnchor.setAttribute('aria-hidden', 'true');
+    tonyGuastiAnchor.className = 'dashboard-tony-briefing-anchor';
+    section.appendChild(tonyGuastiAnchor);
 
     return section;
 };
 
 /**
- * Card Report/Bilancio (design scuro distintivo)
+ * Card Report — tile compatto (accent scuro come modulo report)
  */
 window.GFVDashboardSections.createReportCard = function createReportCard() {
     const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    section.style.background = 'linear-gradient(135deg, #1F2937 0%, #374151 100%)';
-    section.style.border = '2px solid #111827';
-    section.style.borderRadius = '12px';
-    
-    section.innerHTML = `
-        <h2 style="color: white;"><span class="section-icon">📑</span> Report/Bilancio</h2>
-        <p style="color: rgba(255,255,255,0.8); margin-bottom: 20px; font-size: 14px;">
-            Report unificati ed export (PDF/Excel/CSV) cross-moduli
-        </p>
-        <div class="quick-actions">
-            <a href="../modules/report/views/report-dashboard-standalone.html" class="action-card" style="text-decoration: none; background: white; border: 1px solid #111827;">
-                <span class="action-icon" style="font-size: 48px;">📑</span>
-                <span class="action-title" style="font-size: 18px; color: #111827;">Apri Report/Bilancio</span>
-                <span class="action-description" style="color: #666;">
-                    Dashboard report per area (Terreni, Vigneto, …) ed export Excel dove disponibile
-                </span>
-            </a>
-        </div>
-    `;
-    
-    return section;
-};
+    section.className = 'dashboard-section dashboard-section--module-tile';
 
-/**
- * Sezione Manager con Modulo Manodopera attivo (layout completo)
- */
-window.GFVDashboardSections.createManagerManodoperaSection = function createManagerManodoperaSection(userData, availableModules, loadStatsCallback, loadRecentCallback) {
-    const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    section.style.width = '100%';
-    
-    // Verifica se modulo Conto Terzi è attivo
-    const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
-    
     section.innerHTML = `
-        <h2><span class="section-icon">👷</span> Gestione Manodopera</h2>
-        <div class="stats-grid" style="margin-bottom: 30px;">
-            <div class="stat-card">
-                <div class="stat-value" id="stat-lavori-totali-manodopera">-</div>
-                <div class="stat-label">Lavori Totali</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-lavori-attivi-manodopera">-</div>
-                <div class="stat-label">Lavori Attivi</div>
-            </div>
-            ${hasContoTerzi ? `
-            <a href="admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff3cd; border: 2px solid #ffc107;" title="Clicca per vedere i lavori da pianificare">
-                <div class="stat-value" id="stat-lavori-da-pianificare" style="color: #856404;">-</div>
-                <div class="stat-label" style="color: #856404;">📝 Da Pianificare</div>
-            </a>
-            ` : ''}
-            <div class="stat-card">
-                <div class="stat-value" id="stat-ore-validate-manodopera">-</div>
-                <div class="stat-label">Ore Validate (Mese)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-superficie-lavorata-manodopera">-</div>
-                <div class="stat-label">Superficie Lavorata (ha)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-squadre-attive-manodopera">-</div>
-                <div class="stat-label">Squadre Attive</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-operai-online-manodopera">-</div>
-                <div class="stat-label">Operai Online</div>
-            </div>
-        </div>
-        <h3 style="margin: 20px 0 15px 0; font-size: 16px; color: #666;">Azioni Rapide</h3>
-        <div class="quick-actions">
-            <a href="admin/gestione-lavori-standalone.html" class="action-card">
-                <span class="action-icon">📋</span>
-                <span class="action-title">Gestione Lavori</span>
-                <span class="action-description">Crea, modifica e assegna lavori</span>
-            </a>
-            <a href="admin/validazione-ore-standalone.html" class="action-card" style="position: relative;">
-                <span class="action-icon">✅</span>
-                <span class="action-title">Validazione Ore</span>
-                <span class="action-description">Valida ore lavori autonomi</span>
-                <span id="ore-da-validare-badge" style="position: absolute; top: 8px; right: 8px; background: #dc3545; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; min-width: 24px; padding: 0 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Ore da validare">0</span>
-            </a>
-            <a href="admin/statistiche-manodopera-standalone.html" class="action-card">
-                <span class="action-icon">📊</span>
-                <span class="action-title">Statistiche</span>
-                <span class="action-description">Visualizza statistiche dettagliate</span>
-            </a>
-            ${availableModules && availableModules.includes('parcoMacchine') ? `
-            <a href="admin/gestione-macchine-standalone.html" class="action-card">
-                <span class="action-icon">🚜</span>
-                <span class="action-title">Gestione Macchine</span>
-                <span class="action-description">Gestisci parco macchine e guasti</span>
-            </a>
-            ` : ''}
-            <a href="terreni-standalone.html" class="action-card">
-                <span class="action-icon">🗺️</span>
-                <span class="action-title">Terreni</span>
-                <span class="action-description">Gestisci terreni e vigneti</span>
-            </a>
-        </div>
-        ${availableModules && availableModules.includes('parcoMacchine') ? `
-        <div id="manutenzioni-scadenza-section" style="margin: 30px 0; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; display: none;">
-            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #856404; display: flex; align-items: center; gap: 8px;">
-                <span>⚠️</span> Manutenzioni in Scadenza
-            </h3>
-            <div id="manutenzioni-scadenza-list">
-                <div style="padding: 10px; text-align: center; color: #856404;">Caricamento manutenzioni...</div>
-            </div>
-        </div>
-        <div id="guasti-segnalati-section" data-tony-briefing="guasti" style="margin: 30px 0; padding: 20px; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 8px; display: none;">
-            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #721c24; display: flex; align-items: center; gap: 8px;">
-                <span>🔧</span> Guasti Segnalati
-            </h3>
-            <div id="guasti-segnalati-list">
-                <div style="padding: 10px; text-align: center; color: #721c24;">Caricamento guasti...</div>
-            </div>
-        </div>
-        ` : ''}
-        <h3 style="margin: 30px 0 15px 0; font-size: 16px; color: #666;">Lavori Recenti</h3>
-        <ul class="recent-items" id="recent-lavori-manager-manodopera">
-            <li class="recent-item">
-                <div>
-                    <div class="recent-item-title">Caricamento...</div>
-                </div>
-            </li>
-        </ul>
+        <a href="../modules/report/views/report-dashboard-standalone.html" class="dashboard-module-tile" data-module="report" style="--module-accent:#374151;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">📑</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Report</span>
+                <span class="dashboard-module-tile__desc">Report predefiniti ed esportazioni. Dati riaggregati per analisi e revisione.</span>
+            </span>
+        </a>
     `;
-    
-    if (loadStatsCallback && typeof loadStatsCallback === 'function') loadStatsCallback();
-    if (loadRecentCallback && typeof loadRecentCallback === 'function') loadRecentCallback();
-    
+
     return section;
 };
 
@@ -781,25 +743,6 @@ window.GFVDashboardSections.createManagerLavoriSection = function createManagerL
     if (loadStatsCallback && typeof loadStatsCallback === 'function') loadStatsCallback();
     if (loadRecentCallback && typeof loadRecentCallback === 'function') loadRecentCallback();
     
-    return section;
-};
-
-/**
- * Sezione Diario da Lavori
- */
-window.GFVDashboardSections.createDiarioDaLavoriSection = function createDiarioDaLavoriSection(userData, availableModules) {
-    const section = document.createElement('div');
-    section.className = 'dashboard-section';
-    section.style.width = '100%';
-    section.innerHTML = `
-        <h2><span class="section-icon">📝</span> Diario da Lavori</h2>
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Attività generate automaticamente dalle ore validate dei lavori assegnati. Queste attività vengono create aggregando le ore segnate dagli operai e validate dai caposquadra.
-        </p>
-        <div id="diario-lavori-container" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <div style="text-align: center; padding: 40px; color: #666;">Caricamento attività...</div>
-        </div>
-    `;
     return section;
 };
 

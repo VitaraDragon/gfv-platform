@@ -1,7 +1,7 @@
 /**
- * Guida app condensata per Tony – estratta da docs-sviluppo/guida-app/
- * Usata per istruire Tony su struttura, moduli, navigazione e risposte alle domande degli utenti.
- * @see docs-sviluppo/guida-app/README.md
+ * Guida app condensata per Tony – fallback se il fetch della guida markdown fallisce.
+ * La guida estesa si carica da docs-sviluppo/GUIDA/ e legacy guida-app/moduli (vedi tony-service.js).
+ * @see docs-sviluppo/GUIDA/README.md
  */
 
 export const GUIDA_APP_PER_TONY = `

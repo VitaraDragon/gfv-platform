@@ -15,6 +15,7 @@ alwaysApply: true
 
 ## Regole obbligatorie
 
+- **Solo aggiornamento guide `GUIDA/`** (testi utente / sintesi / mirror, senza toccare logica Tony nel codice): seguire **`.cursor/rules/guida-aggiornamento-checklist.mdc`** e leggere **`scripts/GUIDA-AGGIORNAMENTO-CHECKLIST.md`** (ordine e mirror).
 - **Nuove pagine** (liste/tab + form Tony): seguire **`.cursor/rules/tony-pagina-lista-e-form.mdc`** (canone `currentTableData`, merge `setContext`, evento `table-data-ready`, file golden) prima di proporre modifiche.
 - Ogni modifica Tony deve **allinearsi al Master Plan**
 - **Configurazione > codice**: nuovo form = voce in `tony-form-mapping.js`, non `if/else`

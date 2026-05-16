@@ -26,6 +26,63 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
+/** Piano tenant: Tony è assente in freemium; enforcement anche lato callable. */
+function normalizeSubscriptionPlanId(raw) {
+  if (raw == null || raw === "") return "base";
+  const p = String(raw).trim().toLowerCase();
+  if (p === "free" || p === "freemium") return "free";
+  if (["starter", "professional", "enterprise"].includes(p)) return "base";
+  if (p === "base") return "base";
+  return "base";
+}
+
+async function resolveTenantSubscriptionPlan(dashboard, ctx, tenantIdHint) {
+  let raw =
+    (dashboard && (dashboard.plan || dashboard.piano)) ||
+    (ctx && (ctx.plan || ctx.piano)) ||
+    null;
+  const tid = tenantIdHint ? String(tenantIdHint) : null;
+  if ((!raw || String(raw).trim() === "") && tid) {
+    try {
+      const snap = await db.collection("tenants").doc(tid).get();
+      if (snap.exists) {
+        const td = snap.data();
+        raw = (td && (td.plan || td.piano)) || raw;
+      }
+    } catch (e) {
+      console.warn("[Tony] resolveTenantSubscriptionPlan:", e.message);
+    }
+  }
+  return normalizeSubscriptionPlanId(raw);
+}
+
+async function resolveTenantIdForTony(authUid, dashboard, ctx) {
+  let tid =
+    (dashboard && dashboard.tenantId) ||
+    (ctx && ctx.tenantId) ||
+    null;
+  if (tid) return String(tid);
+  if (!authUid) return null;
+  try {
+    const userSnap = await db.collection("users").doc(authUid).get();
+    if (!userSnap.exists) return null;
+    const ud = userSnap.data();
+    if (ud.tenantId) return String(ud.tenantId);
+    if (ud.tenantMemberships && typeof ud.tenantMemberships === "object") {
+      const keys = Object.keys(ud.tenantMemberships);
+      const pref = keys.find((k) => {
+        const m = ud.tenantMemberships[k];
+        return m && m.tenantIdPredefinito === true;
+      });
+      if (pref) return pref;
+      if (keys.length >= 1) return keys[0];
+    }
+  } catch (e) {
+    console.warn("[Tony] resolveTenantIdForTony:", e.message);
+  }
+  return null;
+}
+
 /**
  * Preventivo pubblico (link email): ricerca per token via collection group.
  * @returns {{ tenantId: string, preventivoId: string, ref: FirebaseFirestore.DocumentReference, data: object } | null}
@@ -1015,15 +1072,20 @@ SEI UN RISPOSTORE E GUIDA DELL'APP:
 - Spiega come funziona l'app, dove trovare le cose, come fare le operazioni manualmente.
 - NON puoi eseguire azioni operative: NON aprire pagine, NON compilare form, NON eseguire comandi.
 
+VIETATO (Tony Guida, senza modulo Tony Avanzato nel tenant):
+- NON dire mai che apri/aprirà/porta la pagina o che stai eseguendo un'azione: niente "certo ti apro", "ti porto su terreni", "procedo ad aprire", "ecco fatto ti ho portato", "aperta la pagina". Tu NON puoi navigare né cliccare al posto dell'utente.
+- Per richieste tipo "portami / apri / vai a" rispondi SOLO con passi manuali dal menu (es. dal menu apri Terreni oppure usa il riquadro…) e, se serve automazione, il richiamo al modulo Tony Avanzato come già sotto.
+
 QUANDO MENZIONARE IL MODULO TONY AVANZATO (importante):
 - Se l'utente chiede una SPIEGAZIONE (come si fa X, cos'è Y, dove trovo Z, come funziona...) rispondi SOLO con la spiegazione. NON menzionare il modulo Tony Avanzato.
-- Se l'utente chiede di FARE un'azione operativa (es. "Apri la pagina terreni", "Portami ai terreni", "Segna le ore", "Compila il form"), allora sì: "Per automatizzare questa operazione, attiva il modulo Tony Avanzato dalla pagina Abbonamento. Nel frattempo, posso spiegarti come farlo manualmente: [spiegazione passi chiari e concisi]".
+- Domande sul CONTENUTO di una tabella o lista già aperta (es. "cosa mi dici di questa tabella", "cosa c'è in lista", "descrivi i movimenti che vedo", "cosa significano le colonne"): usa SOLO page.tableDataSummary e page.currentTableData nel contesto; rispondi in modo chiaro e concludi lì. NON è una richiesta di navigazione né di automazione: NON menzionare Tony Avanzato, NON aggiungere "Per automatizzare..." né frasi tipo "nel frattempo" se non servono davvero passi manuali.
+- Se l'utente chiede di FARE un'azione operativa (es. "Apri la pagina terreni", "Portami ai terreni", "Segna le ore", "Compila il form"), prima descrivi in italiano i passi concreti dal menu o dall'interfaccia (frasi complete: es. dal menu apri Magazzino, poi Movimenti…), poi aggiungi una sola frase: "Per automatizzare queste operazioni in futuro, attiva il modulo Tony Avanzato dalla pagina Abbonamento." VIETATO scrivere segnaposti, parentesi quadre, testo tra parentesi tipo istruzioni per te, o frasi incomplete tipo "Nel frattempo:" senza contenuto dopo: l'utente deve leggere solo passi veri o niente.
 - Quando l'utente conclude l'interazione (ciao, grazie, a dopo, ok basta, perfetto, arrivederci), puoi aggiungere in chiusura una frase soft: "P.S. Se vorrai automatizzare operazioni in futuro, attiva il modulo Tony Avanzato dalla pagina Abbonamento." Non obbligatorio ogni volta; usa il buonsenso.
 
 - Mantieni le spiegazioni brevi e pratiche. Non essere verboso o confuso.
 
 TONO E VOCABOLARIO:
-- Usa verbi attivi e colloquiali: invece di "È possibile visualizzare", usa "Dagli un'occhiata" o "Ti mostro".
+- Usa verbi attivi e colloquiali: invece di "È possibile visualizzare", usa "Dagli un'occhiata". Evita "ti mostro la pagina" / "ti apro" (sembra che tu controlli l'app); usa "dal menu puoi aprire…", "ti indico i passi…".
 - Invece di "Procedura completata", usa "Ecco fatto!" o "Tutto a posto".
 - Interiezioni naturali: "Bene, allora...", "Certamente!", "Dunque...".
 - Rivolgiti all'utente in modo diretto, come un capocantiere che parla con un amico.
@@ -1046,9 +1108,8 @@ Regole operative:
 2. Info mancanti? Indica il modulo corretto.
 3. Azione operativa richiesta → menziona modulo Tony Avanzato. Spiegazione richiesta → NON menzionare il modulo.
 4. Chiusura interazione (ciao, grazie, a dopo) → opzionale P.S. sul modulo.
-5. ECCEZIONE NAVIGAZIONE: Se l'utente chiede esplicitamente di andare a Home, Dashboard, Terreni, Vigneto o Frutteto (es. "portami alla home", "apri terreni", "voglio andare al vigneto"), rispondi con il JSON {"action": "APRI_PAGINA", "params": {"target": "dashboard"|"terreni"|"vigneto"|"frutteto"}} e una breve conferma. La navigazione tra queste pagine base è sempre permessa e non modifica dati.
-6. Per ogni altra azione operativa NON emettere comandi JSON; menziona il modulo Tony Avanzato.
-7. Terreni: hai accesso ai dettagli completi (canoneAffitto, scadenze, statoContratto) in page.currentTableData.items. Se l'utente chiede informazioni economiche o contrattuali sui terreni, rispondi usando questi dati senza dire che non hai le informazioni.
+5. NON emettere MAI comandi JSON (niente APRI_PAGINA, OPEN_MODAL, FILTER_TABLE, né altri): senza Tony Avanzato il sistema non esegue azioni; rispondi solo in testo e spiega i passi manuali o invita ad attivare il modulo Tony Avanzato dalla pagina Abbonamento se chiedono automazione.
+6. Terreni: hai accesso ai dettagli completi (canoneAffitto, scadenze, statoContratto) in page.currentTableData.items. Se l'utente chiede informazioni economiche o contrattuali sui terreni, rispondi usando questi dati senza dire che non hai le informazioni.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -1377,7 +1438,13 @@ NAVIGAZIONE (APRI_PAGINA) — SOLO questi target:
 
 NON usare APRI_PAGINA verso: dashboard, terreni, attività/diario aziendale completo, lavori (gestione manager), magazzino, macchine, vigneto, frutteto, conto terzi, clienti, preventivi, report, manodopera gestione, gestione operai, utenti.
 
-FORMATO RISPOSTA: come per Tony Avanzato (JSON con text e command quando serve). Per domande fuori ambito: {"text": "Non ho accesso a queste informazioni dal tuo account. Chiedi al manager.", "command": null}
+SEGNA ORE / WORKSPACE CAMPO (form inline quick-hours):
+- Se nel contesto ci sono lavori in elenco (page.currentTableData.items su field_workspace / lavori_caposquadra) e l'utente nomina un lavoro a parole (es. «potatura», «erpicatura sul trebbiano»), imposta **ora-lavoro** (o INJECT equivalente) sull'**id del lavoro che corrisponde a quel nome**, non basarti solo sul lavoro già evidenziato in interfaccia se il messaggio indica un altro elenco.
+- Frasi come «segniamo / segna le ore di ieri o oggi», «registrare il turno», «ore in [nome lavoro]» sono **sempre in ambito** profilo campo: **non** usare il rifiuto generico «non ho accesso». Se mancano orari o pausa, chiedili; se l'utente indica fascia oraria e pausa, usa INJECT su quick-hours / campo-blocco ore.
+- **Pausa sul form campo**: il campo è **minuti** di pausa, non orario. Chiedi sempre «**Quanti minuti** di pausa hai fatto?» (o «per quanti minuti ti sei fermato?»). **Vietato** chiedere «a che ora hai fatto la pausa?» — è fuorviante.
+- Nel **text** / **replyText** non prefissare mai «Tony:», «Assistente:» o simili: l'interfaccia mostra già il mittente; scrivi solo la frase o la domanda.
+
+FORMATO RISPOSTA: come per Tony Avanzato (JSON con text e command quando serve). Per domande fuori ambito (dati aziendali globali elencati sopra): {"text": "Non ho accesso a queste informazioni dal tuo account. Chiedi al manager.", "command": null}
 
 Tono colloquiale, frasi brevi per TTS.
 
@@ -2031,7 +2098,30 @@ const SUBAGENT_VIGNAIOLO = `
 SUB-AGENTE VIGNAIOLO (attivo quando [CONTESTO].page.pagePath contiene "/vigneto/"):
 - Ti comporti come esperto di viticoltura: vendemmia, grado Babo, mosto, cantina, potatura, trattamenti in vigneto, resa, qli/ha.
 - Usa termini tecnici corretti (gradazione, acidità, epoca vendemmia, ceppi, forme di allevamento) quando appropriato.
+- PIANIFICA NUOVO IMPIANTO / CALCOLO MATERIALI (contesto VIGNETO): stesso strumento condiviso con altri moduli coltura, ma qui l'ingresso è **Dashboard Vigneto** → azioni rapide. Spiega i passi in linguaggio utente (terreno con poligono, file e ceppi, varietà, annata, tipo impianto, orientamento, cantina, destinazione uve dove serve). **Non** usare frasi tipo «In pagina la coltura è Vigneto»: è tecnica e poco utile; non nominare la voce di menu coltura. Target **pianificazione impianto** e **calcolo materiali** (non le varianti suffisso frutteto). Non dire all'utente che è in vigneto di partire dalla Dashboard Frutteto.
 - Per navigazione interna al vigneto: usa i target vendemmia, potatura vigneto, trattamenti vigneto, statistiche vigneto, calcolo materiali, pianificazione impianto, vigneti.
+`;
+
+/**
+ * Regola trasversale: evita swap vigneto/frutteto quando entrambe le guide sono nel contesto JSON.
+ */
+const TONY_PIANIFICAZIONE_CONTESTO_RULE = `
+PIANIFICAZIONE NUOVO IMPIANTO / CALCOLO MATERIALI (priorità contesto):
+- È uno strumento **condiviso** tra moduli coltura (Vigneto, Frutteto; Oliveto in roadmap): stessa famiglia di pagine; passi e termini in schermata seguono il **modulo da cui si entra** (vite vs frutteto), senza spiegarlo come «coltura in pagina» all'utente.
+- **Vietato** nella risposta utente: frasi tipo «In pagina la coltura è Frutteto/Vigneto» o citare la selezione coltura come concetto; usa solo dashboard del modulo, pulsante, e cosa si imposta (mappa, distanze, materiali, ecc.).
+- Se [CONTESTO].page.pagePath contiene "/vigneto/": spiega da **Dashboard Vigneto**; non usare la procedura/dashboard del frutteto. Se contiene "/frutteto/": spiega da **Dashboard Frutteto**; non usare la procedura/dashboard del vigneto. Se il path non aiuta ma [CONTESTO].page.pageTitle suggerisce chiaramente Vigneto o Frutteto, allinea la risposta a quel modulo. Se **nessuno** dei due: una riga sullo strumento condiviso, poi chiedi se intende vigneto o frutteto oppure usa solo il modulo che l'utente ha nominato.
+- Se nel JSON compaiono sia context.guida_sintesi_vigneto sia context.guida_sintesi_frutteto, per questa domanda **non** mischiare i due: applica la priorità del path (e titolo) sopra.
+`;
+
+/**
+ * Sub-Agente Frutteto: quando l'utente è nel modulo frutteto (evita risposte copiate dal vigneto).
+ */
+const SUBAGENT_FRUTTETO = `
+SUB-AGENTE FRUTTETO (attivo quando [CONTESTO].page.pagePath contiene "/frutteto/"):
+- Ti comporti come esperto di frutticoltura: specie, impianto, potatura frutteto, trattamenti e concimazioni in frutteto, raccolta, resa kg/ha.
+- PIANIFICA NUOVO IMPIANTO / CALCOLO MATERIALI (contesto FRUTTETO): **Dashboard Frutteto** → azioni rapide; poi imposti mappa, **file** e **piante**, sesto, orientamento del reticolato, carraie, salva pianificazione e calcolo materiali come in guida. **Non** usare la frase «In pagina la coltura è Frutteto». Non dire di usare la Dashboard Vigneto per questi passi. Target **pianificazione impianto frutteto** e **calcolo materiali frutteto**.
+- NON elencare come procedura frutteto i campi tipici dell'anagrafica vigneto (varietà uva, destinazione uva, annata impianto vigneto, cantina). Per impianti in anagrafe: **Anagrafica frutteti** (specie, varietà, stato impianto, ecc. come in schermata).
+- Per navigazione interna al frutteto: target frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, calcolo materiali frutteto, pianificazione impianto frutteto.
 `;
 
 /**
@@ -2041,7 +2131,38 @@ const SUBAGENT_LOGISTICO = `
 SUB-AGENTE LOGISTICO (attivo quando [CONTESTO].page.pagePath contiene "/magazzino/"):
 - Ti comporti come esperto di gestione scorte: prodotti, movimenti, carico/scarico, quantità, unità di misura, giacenze, ordini.
 - Usa termini tecnici corretti (scarico, carico, inventario, UDM, lotto) quando appropriato.
-- Per navigazione interna al magazzino: usa i target prodotti, movimenti, magazzino (home).
+- Per domande "come fare" su anagrafica, movimenti o tracciabilità consumi: integra **context.guida_sintesi_magazzino** se presente; linguaggio pratico (dashboard, pulsanti, passi), senza gergo da sviluppatore.
+- Per navigazione interna al magazzino: usa i target prodotti, movimenti, magazzino (home); per tracciabilità consumi anche i target tracciabilità consumi / tracciabilita consumi se l'utente chiede quella pagina.
+`;
+
+/**
+ * Sub-Agente Manodopera: pagine ore, squadre, operai, compensi (path standalone core/admin o workspace campo).
+ */
+const SUBAGENT_MANODOPERA = `
+SUB-AGENTE MANODOPERA (attivo quando [CONTESTO].page.pagePath indica segnatura ore, validazione ore, gestione operai/squadre, compensi operai, statistiche manodopera, lavori caposquadra o versione mobile campo field-workspace):
+- Ti comporti come referente di organizzazione del lavoro in campo: segnatura ore, validazione, squadre (solo manager in gestione dedicata), operai, compensi, statistiche ore, versione mobile per operaio/caposquadra.
+- Per domande "come fare" su queste aree: integra **context.guida_sintesi_manodopera** se presente; linguaggio operativo (pulsanti, ordine dei passi), senza gergo da sviluppatore; non dire che il caposquadra «gestisce le squadre» (compito del manager).
+- Per navigazione: target segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche manodopera, statistiche ore, gestione operai, operai, gestione squadre, squadre, compensi operai, compensi, manodopera (hub operai) come da mappa target.
+- Distingui **operaio** (solo versione mobile semplificata, ore proprie, no Diario manageriale) da **caposquadra** (versione mobile con comunicazioni e validazione ore altrui) da **manager** (gestione squadre, anagrafiche, compensi, validazione globale).
+`;
+
+/**
+ * Sub-Agente Conto Terzi: preventivi, clienti esterni, tariffe (path modulo conto terzi).
+ */
+const SUBAGENT_CONTO_TERZI = `
+SUB-AGENTE CONTO TERZI (attivo quando [CONTESTO].page.pagePath contiene "/conto-terzi/"):
+- Ti comporti come referente commerciale-operativo per lavori per conto di clienti esterni: anagrafica clienti, terreni cliente, tariffe, preventivi (bozza, invio, accettazione cliente o manager, pianificazione lavoro), mappa consultativa.
+- Per domande "come fare" su questo flusso: integra **context.guida_sintesi_conto_terzi** se presente; linguaggio pratico (home Conto Terzi, Salva bozza, Invia, Pianifica), senza gergo da sviluppatore.
+- Per navigazione: target conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, nuovo preventivo, accetta preventivo se applicabile; per esecuzione dopo pianificazione: lavori, attività.
+`;
+
+/**
+ * Sub-Agente Modulo Tony: quando il tenant ha Tony Avanzato attivo (moduli_attivi include "tony").
+ */
+const SUBAGENT_TONY_MODULO = `
+SUB-AGENTE GUIDA UTENTE TONY (usa quando l'utente chiede cos'è Tony, cosa può fare, differenza tra guida e avanzato, piano free, widget assente, voce/microfono, profilo campo, briefing dashboard):
+- Integra **context.guida_sintesi_tony** se presente; linguaggio semplice e passi pratici, senza gergo da sviluppatore.
+- Distingui: **Tony Guida** (orientamento) vs **modulo Tony / Tony Avanzato** (navigazione e automazioni: richiede il modulo "tony" nel tenant oltre al piano che consente l'assistente).
 `;
 
 /**
@@ -2091,7 +2212,7 @@ const TONY_TARGETS_EXTENDED = `
 MAPPA TARGET COMPLETA (sottopagine incluse). Per "Portami a [X]" usa il target esatto dalla lista:
 - Core: dashboard, terreni, attivita, segnatura ore, statistiche, lavori, lavori caposquadra, validazione ore, statistiche manodopera, gestisci utenti, gestione squadre, gestione operai, compensi operai, gestione macchine, guasti, segnalazione guasti, amministrazione, abbonamento, impostazioni, report.
 - Vigneto: vigneto (dashboard), vigneti, vendemmia, potatura vigneto, trattamenti vigneto, statistiche vigneto, calcolo materiali, pianificazione impianto.
-- Frutteto: frutteto (dashboard), frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto.
+- Frutteto: frutteto (dashboard), frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, calcolo materiali frutteto, pianificazione impianto frutteto.
 - Magazzino: magazzino (home), prodotti, movimenti.
 - Conto terzi: conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, nuovo preventivo, accetta preventivo.
 - Report: report.
@@ -2127,6 +2248,15 @@ exports.tonyAsk = onCall(
     // Context: leggi esplicitamente da request.data.context (path usato dal client)
     const ctx = reqData.context != null ? reqData.context : {};
     const dashboard = ctx.dashboard != null ? ctx.dashboard : {};
+
+    const tenantIdForTonyPlan = await resolveTenantIdForTony(request.auth.uid, dashboard, ctx);
+    const subscriptionPlanId = await resolveTenantSubscriptionPlan(dashboard, ctx, tenantIdForTonyPlan);
+    if (subscriptionPlanId === "free") {
+      throw new HttpsError(
+        "permission-denied",
+        "Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento per usare Tony Guida."
+      );
+    }
 
     let ruoliUtente =
       (dashboard.utente_corrente && Array.isArray(dashboard.utente_corrente.ruoli) && dashboard.utente_corrente.ruoli) ||
@@ -2188,17 +2318,9 @@ exports.tonyAsk = onCall(
           : Array.isArray(ctx.info_azienda?.moduli_attivi)
             ? ctx.info_azienda.moduli_attivi
             : [];
-    // Forza stato avanzato: se l'array contiene 'tony' DEVI usare SYSTEM_INSTRUCTION_ADVANCED
-    let isTonyAdvanced = Array.isArray(moduliAttivi) && moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
-    // Fallback: se il messaggio è chiaramente una richiesta di navigazione e moduli sono vuoti, usa comunque ADVANCED (navigazione sempre permessa)
-    const msgLower = String(message).toLowerCase();
-    const isNavigationIntent =
-      !tonyFieldProfile &&
-      /\b(portami|apri|voglio andare|vai a|dashboard|home|terreni|vigneto|frutteto|magazzino|macchine|manodopera|lavori)\b/.test(msgLower);
-    if (!isTonyAdvanced && isNavigationIntent) {
-      console.log("[Tony Cloud Function] Fallback: richiesta navigazione rilevata, forzo SYSTEM_INSTRUCTION_ADVANCED");
-      isTonyAdvanced = true;
-    }
+    // Tony Avanzato solo se il modulo 'tony' è attivo nel tenant (nessun bypass navigazione).
+    let isTonyAdvanced =
+      Array.isArray(moduliAttivi) && moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
     const isTonyAdvancedActive = isTonyAdvanced;
 
     console.log("[Tony Cloud Function] DEBUG - request.data keys:", Object.keys(reqData));
@@ -2223,16 +2345,33 @@ exports.tonyAsk = onCall(
     const pageTitle = (ctxFinal.page && ctxFinal.page.pageTitle) ? String(ctxFinal.page.pageTitle) : "";
     const isMacchineContext = pagePath.includes("/macchine/") || pagePath.includes("macchine") || pagePath.includes("mezzi")
       || (pageTitle && /mezzi|macchine|parco\s*macchine|gestione\s*mezzi/i.test(pageTitle));
+    const isManodoperaContext = /segnatura-ore|validazione-ore|gestione-operai|gestione-squadre|compensi-operai|statistiche-manodopera|lavori-caposquadra|field-workspace|statistiche-lavoratore/i.test(pagePath);
+    const isContoTerziContext = pagePath.includes("/conto-terzi/");
     let extraBlocks = "";
+    // Pianificazione/calcolo materiali: anche Tony **base** (senza modulo "tony" avanzato nel tenant).
+    // Prima era solo dentro isTonyAdvanced → in dashboard vigneto il modello vedeva solo le sintesi nel JSON e poteva scegliere il frutteto.
+    if (!tonyFieldProfile) {
+      extraBlocks += TONY_PIANIFICAZIONE_CONTESTO_RULE;
+      if (pagePath.includes("/vigneto/")) {
+        extraBlocks += SUBAGENT_VIGNAIOLO;
+      }
+      if (pagePath.includes("/frutteto/")) {
+        extraBlocks += SUBAGENT_FRUTTETO;
+      }
+      extraBlocks += SUBAGENT_TONY_MODULO;
+    }
     if (isTonyAdvanced && !tonyFieldProfile) {
       extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, movimenti magazzino recenti, tipi lavoro, colture, poderi, summaryScadenze, **summarySottoScorta**, **prodottiSottoScorta**, guastiAperti) sono in [CONTESTO].azienda. Per **sotto scorta** / **scorte basse**: usa sempre azienda.summarySottoScorta (testo riepilogativo) e azienda.prodottiSottoScorta (dettaglio con giacenza e soglia). I prodotti in azienda.prodotti hanno giacenza e scortaMinima (o legacy sogliaMinima). azienda.movimentiRecenti (ultimi fino a 50, ordinati per data) e azienda.summaryMovimentiRecenti servono per domande su carichi/scarichi da qualsiasi pagina; la lista filtrabile completa resta sulla pagina Movimenti (page.currentTableData). azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
       extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"ultimi movimenti magazzino\", \"quali carichi/scarichi\", \"cosa c'è sotto scorta\", \"quanti prodotti sotto scorta\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, **azienda.summarySottoScorta**, **azienda.prodottiSottoScorta**, azienda.movimentiRecenti, azienda.summaryMovimentiRecenti, azienda.macchine. Per **movimenti magazzino** nel testo della risposta (e per voce/TTS): usa **date in italiano** (es. \"10 aprile 2026\"), mai solo ISO \"2026-04-10\" né leggere le cifre anno per anno; in azienda.movimentiRecenti ogni voce ha **dataItaliana** oltre a **data**. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
       extraBlocks += SMARTFORMVALIDATOR_RULE;
-      if (pagePath.includes("/vigneto/")) {
-        extraBlocks += SUBAGENT_VIGNAIOLO;
-      }
       if (pagePath.includes("/magazzino/")) {
         extraBlocks += SUBAGENT_LOGISTICO;
+      }
+      if (isManodoperaContext) {
+        extraBlocks += SUBAGENT_MANODOPERA;
+      }
+      if (isContoTerziContext) {
+        extraBlocks += SUBAGENT_CONTO_TERZI;
       }
       if (isMacchineContext) {
         extraBlocks += SUBAGENT_MECCANICO;
@@ -3204,6 +3343,17 @@ exports.getTonyAudio = onCall(
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Utente non autenticato.");
+    }
+
+    const ctxAudio = request.data?.context != null ? request.data.context : {};
+    const dashAudio = ctxAudio.dashboard != null ? ctxAudio.dashboard : {};
+    const tenantIdAudio = await resolveTenantIdForTony(request.auth.uid, dashAudio, ctxAudio);
+    const planAudio = await resolveTenantSubscriptionPlan(dashAudio, ctxAudio, tenantIdAudio);
+    if (planAudio === "free") {
+      throw new HttpsError(
+        "permission-denied",
+        "Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento per usare Tony Guida."
+      );
     }
 
     const text = request.data?.text;

@@ -9,6 +9,8 @@ export var TONY_PAGE_MAP = {
     'pagina principale': 'core/dashboard-standalone.html',
     'terreni': 'core/terreni-standalone.html',
     'mappa': 'core/terreni-standalone.html',
+    'mappa aziendale': 'core/mappa-aziendale-standalone.html',
+    'mappa azienda': 'core/mappa-aziendale-standalone.html',
     'appezzamenti': 'core/terreni-standalone.html',
     'attivita': 'core/attivita-standalone.html', 'attività': 'core/attivita-standalone.html',
     'lavori': 'core/admin/gestione-lavori-standalone.html', 'gestione lavori': 'core/admin/gestione-lavori-standalone.html',
@@ -64,6 +66,8 @@ export var TONY_PAGE_MAP = {
     'concimazione vigneto': 'modules/vigneto/views/concimazioni-standalone.html',
     'calcolo materiali': 'modules/vigneto/views/calcolo-materiali-standalone.html?coltura=vigneto',
     'calcolo materiali frutteto': 'modules/vigneto/views/calcolo-materiali-standalone.html?coltura=frutteto',
+    'pianificazione impianto frutteto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=frutteto',
+    'pianifica impianto frutteto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=frutteto',
     'pianificazione impianto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=vigneto',
     'pianifica impianto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=vigneto',
     'impianto': 'modules/vigneto/views/pianifica-impianto-standalone.html?coltura=vigneto',
@@ -107,7 +111,7 @@ export var TONY_PAGE_MAP = {
 
 export var TONY_LABEL_MAP = {
     'dashboard': 'Dashboard', 'home': 'Dashboard', 'pagina principale': 'Dashboard',
-    'terreni': 'Terreni', 'mappa': 'Terreni', 'appezzamenti': 'Terreni',
+    'terreni': 'Terreni', 'mappa': 'Terreni', 'mappa aziendale': 'Mappa aziendale', 'mappa azienda': 'Mappa aziendale', 'appezzamenti': 'Terreni',
     'attivita': 'Diario Attività', 'attività': 'Diario Attività',
     'lavori': 'Gestione Lavori', 'gestione lavori': 'Gestione Lavori',
     'segnatura ore': 'Segnatura Ore', 'segnare ore': 'Segnatura Ore',
@@ -136,6 +140,7 @@ export var TONY_LABEL_MAP = {
     'concimazioni vigneto': 'Concimazioni Vigneto', 'concimazione vigneto': 'Concimazioni Vigneto',
     'calcolo materiali': 'Calcolo Materiali', 'calcolo materiali frutteto': 'Calcolo Materiali Frutteto',
     'pianificazione impianto': 'Pianificazione Impianto', 'pianifica impianto': 'Pianificazione Impianto', 'impianto': 'Pianificazione Impianto',
+    'pianificazione impianto frutteto': 'Pianificazione impianto (Frutteto)', 'pianifica impianto frutteto': 'Pianificazione impianto (Frutteto)',
     'frutteto': 'Frutteto', 'frutteti': 'Frutteti',
     'oliveto': 'Oliveto', 'ulivi': 'Oliveto', 'olio': 'Oliveto',
     'statistiche frutteto': 'Statistiche Frutteto', 'frutteto statistiche': 'Statistiche Frutteto',
@@ -163,7 +168,7 @@ export function resolveTarget(raw) {
         'diario attività': 'attivita', 'diario attivita': 'attivita', 'modulo attività': 'attivita',
         'pagina terreni': 'terreni', 'pagina vigneti': 'vigneti', 'pagina frutteti': 'frutteti',
         'pianificazione impianto vigneto': 'pianificazione impianto', 'impianto vigneto': 'pianificazione impianto',
-        'pianificazione impianto frutteto': 'calcolo materiali frutteto', 'impianto frutteto': 'calcolo materiali frutteto',
+        'pianificazione impianto frutteto': 'pianificazione impianto frutteto', 'impianto frutteto': 'pianificazione impianto frutteto',
         'home vigneto': 'vigneto', 'home frutteto': 'frutteto', 'home magazzino': 'magazzino',
         'home conto terzi': 'conto terzi', 'contoterzi': 'conto terzi',
         'dashboard frutteto': 'frutteto', 'dashboard vigneto': 'vigneto', 'cosa devo fare': 'lavori',
@@ -192,11 +197,83 @@ export function getUrlForTarget(target, pathname) {
 }
 
 /**
+ * Rimuove dal testo discorsivo oggetti JSON che il modello a volte concatena (es. {"command":"APRI_PAGINA",...}).
+ */
+function stripLeakedTonyCommandJsonFromText(t) {
+    if (!t || typeof t !== 'string') return t;
+    var out = t;
+    var safety = 0;
+    while (safety++ < 24) {
+        var start = -1;
+        for (var k = 0; k < out.length; k++) {
+            if (out[k] !== '{') continue;
+            var head = out.slice(k, Math.min(out.length, k + 700));
+            if (!/"\s*command\s*"\s*:|'\s*command\s*'\s*:|"\s*action\s*"\s*:\s*"/i.test(head)) continue;
+            start = k;
+            break;
+        }
+        if (start < 0) break;
+        var depth = 0;
+        var j = start;
+        for (; j < out.length; j++) {
+            var c = out[j];
+            if (c === '{') depth++;
+            else if (c === '}') {
+                depth--;
+                if (depth === 0) {
+                    j++;
+                    break;
+                }
+            }
+        }
+        if (depth !== 0) break;
+        var before = out.slice(0, start).replace(/\s+$/g, '');
+        var after = out.slice(j).replace(/^\s*[.,:;]\s*/g, '');
+        out = (before + (before.length && after.length ? ' ' : '') + after).replace(/\s{2,}/g, ' ').trim();
+    }
+    return out;
+}
+
+/**
+ * Rimuove coda tipo "commands": [ { "type": "QUICK_SAVE", ... quando il modello concatena JSON malformato (senza graffa iniziale).
+ */
+function stripLeakedTonyCommandsArrayTail(t) {
+    if (!t || typeof t !== 'string') return t;
+    var idx = t.search(/"commands"\s*:\s*\[/i);
+    if (idx < 0) return t;
+    var bracket = t.indexOf('[', idx);
+    if (bracket < 0) return t;
+    var depth = 0;
+    var i = bracket;
+    for (; i < t.length; i++) {
+        var c = t[i];
+        if (c === '[') depth++;
+        else if (c === ']') {
+            depth--;
+            if (depth === 0) {
+                i++;
+                break;
+            }
+        }
+    }
+    if (depth !== 0) return t;
+    var head = t.slice(0, idx).replace(/[,\s]+$/g, '').trim();
+    head = head.replace(/^[\s\n\uFEFF\{,]*["']?text["']?\s*:\s*["']/i, '');
+    head = head.replace(/\\n/g, ' ');
+    head = head.replace(/["']\s*,?\s*$/g, '').trim();
+    var after = t.slice(i).replace(/^[\s,}\]]+/, '').trim();
+    var out = (head + (head && after ? ' ' : '') + after).replace(/\s{2,}/g, ' ').trim();
+    return out;
+}
+
+/**
  * Rimuove residui JSON dal testo (graffe, virgolette, virgole finali) per display e TTS.
  */
 export function cleanTextFromJsonResidue(s) {
     if (s == null || typeof s !== 'string') return '';
     var t = s.trim();
+    t = stripLeakedTonyCommandJsonFromText(t);
+    t = stripLeakedTonyCommandsArrayTail(t);
     t = t.replace(/\s*[}\]]+\s*$/g, '').trim();
     t = t.replace(/^\s*[{\[]+\s*/g, '').trim();
     t = t.replace(/\s*["']\s*}\s*$/g, '');
@@ -207,6 +284,10 @@ export function cleanTextFromJsonResidue(s) {
     t = t.replace(/^\s*[""]+\s*/g, '').trim();
     // Regex aggressiva: rimuove graffe, virgolette, virgole e spazi finali (residui JSON)
     t = t.replace(/[}\]"\s,]+$/, '').trim();
+    // Etichetta mittente duplicata (modello a volte scrive "Tony: ..." nel testo)
+    while (/^\s*Tony\s*:\s*/i.test(t)) {
+        t = t.replace(/^\s*Tony\s*:\s*/i, '').trim();
+    }
     return t.replace(/\s{2,}/g, ' ').trim();
 }
 

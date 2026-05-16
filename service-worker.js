@@ -4,8 +4,12 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1776523891434';
+const SW_CACHE_BUILD_ID = 't1778939098763';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
+
+function isLocalDevHost(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
 
 // Installazione Service Worker
 // Non cachiamo file all'installazione - verranno cachati on-demand durante il fetch
@@ -52,6 +56,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = new URL(event.request.url);
+
+  // Sviluppo locale: non intercettare (evita Failed to fetch su config/maps e favicon)
+  if (isLocalDevHost(url.hostname)) {
+    return;
+  }
   
   // Ignora richieste con schemi non supportati (chrome-extension, chrome, etc.)
   if (url.protocol === 'chrome-extension:' || 
@@ -71,7 +80,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Gestisci solo richieste dello stesso origin (evita problemi con CORS)
+  // Non intercettare risorse cross-origin (CDN: jsdelivr, unpkg, ecc.): il browser gestisce
+  // direttamente fetch e cache; intercettarle qui può causare "Failed to fetch" / promise
+  // rejected nel FetchEvent se la rete fallisce o la risposta non è cachabile come "basic".
+  try {
+    if (url.origin !== self.location.origin) {
+      return;
+    }
+  } catch (e) {
+    return;
+  }
+
+  // Stesso origin: Network First + cache (vedi commento sotto)
   try {
     event.respondWith(
       fetch(event.request)
