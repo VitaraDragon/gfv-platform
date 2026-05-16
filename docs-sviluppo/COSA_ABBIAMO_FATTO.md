@@ -2,6 +2,11 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-05-16.**
 
+## ✅ Manodopera: config skill (`manodopera-skills-config.js`) (2026-05-16)
+
+- **`core/config/manodopera-skills-config.js`**: catalogo 20 skill, merge `trattamenti`, mapping sottocategoria/tipo lavoro, regole carro frutta (`minPersone` 4) e vendemmia → `guida_trattore`, soglie stelline, default `tipoOperaio`, helper `resolveRequiredSkillsForLavoro` / `resolveSkillIdsForOreAggregation`.
+- **`tests/config/manodopera-skills-config.test.js`**: test Vitest su mapping principali.
+
 ## ✅ Manodopera: catalogo skill sostituzioni (decisioni tenant) (2026-05-16)
 
 - **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`**: catalogo v1 (20 skill = sottocategorie lavoro + `guida_trattore`); trattamenti unificati; carro raccolta → `raccolta_meccanica` / frutteto; vendemmia trasporto → `guida_trattore`, non carro; mapping ore e regola `minPersone` carro.

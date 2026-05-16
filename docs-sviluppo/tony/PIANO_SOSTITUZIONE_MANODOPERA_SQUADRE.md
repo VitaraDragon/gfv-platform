@@ -192,12 +192,17 @@ Bozza unica per tutte le skill (modificabile per skill in config):
 
 Shortlist sostituti: soglia indicativa **≥ ★★** sulla skill richiesta dal lavoro (da confermare in pilota).
 
-### Prossimo passo implementativo (dopo catalogo)
+### Implementazione config (codice)
 
-1. File config tenant (es. `core/config/manodopera-skills-config.js`) con tabella sopra + merge `trattamenti`.  
+- **File:** `core/config/manodopera-skills-config.js` — catalogo, mapping sottocategoria → skillId, regole carro/vendemmia, soglie stelline, helper per lavoro/ore/tipoOperaio.  
+- **Test:** `tests/config/manodopera-skills-config.test.js`
+
+### Prossimo passo implementativo
+
+1. ~~File config~~ (fatto).  
 2. Scheda operaio: checkbox skill dichiarate = sottoinsieme del catalogo.  
-3. Batch ore: aggregazione per `skillId` secondo mapping.  
-4. UI sostituzione: richiesta skill da lavoro + attrezzo.
+3. Batch ore: aggregazione per `skillId` secondo mapping (`resolveSkillIdsForOreAggregation`).  
+4. UI sostituzione: richiesta skill da lavoro + attrezzo (`resolveRequiredSkillsForLavoro`).
 
 ---
 
@@ -350,7 +355,7 @@ In assenza di priorità e impegni strutturati, il sistema può al massimo elenca
 **Scheda operaio e skill**
 
 - [x] Elenco `skillId` pilota + regole vendemmia/carro/trattamenti — **§ Catalogo skill (2026-05-16)**.  
-- [ ] File config `manodopera-skills-config.js` (o Firestore) con mapping e merge `trattamenti`.  
+- [x] File config `core/config/manodopera-skills-config.js` + test Vitest.  
 - [ ] Schema Firestore `profiliManodopera` (o alternativa) + UI scheda (lettura + edit skill dichiarate).  
 - [ ] Batch/trigger calcolo `skillCalcolate` da `oreOperai` + soglie stelle in config.  
 - [ ] Override manager con audit (opzionale MVP+).
