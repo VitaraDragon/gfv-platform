@@ -1,7 +1,7 @@
 # Piano (design): sostituzione manodopera / equipaggio squadre
 
 **Stato:** design — da implementare.  
-**Ultimo aggiornamento design:** 2026-05-16 (sessioni prodotto: scrematura candidati, scheda operaio/skill, stelline da storico).  
+**Ultimo aggiornamento design:** 2026-05-16 (catalogo skill tenant pilota: tutte le sottocategorie lavoro, carro=frutta, trattamenti unificati, vendemmia→trattorista per trasporto).  
 **Per chi:** ogni agente o sviluppatore che lavora su **manodopera, squadre, assenze, shortlist sostituti, equipaggio minimo, profilo competenze, policy tenant**, integrazione Tony sul flusso.
 
 **Percorsi:** la copia **canonica nel repository** è questo file (`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`), così resta disponibile dopo `git clone`. In Cursor può esistere anche un piano omonimo sotto la cartella piani dell’utente (es. `.cursor/plans/`); in caso di dubbio, **prevalere il contenuto in repo** se è stato aggiornato lì.
@@ -46,7 +46,8 @@ Queste voci integrano le discussioni di design; prevalgono su bozze precedenti i
 | **Obiettivo UX** | **Scremare** tutti gli operai del tenant fino a **3–4 candidati** con motivazione leggibile; il manager **sceglie sempre** (nessuna auto-sostituzione). |
 | **Contesto agricolo** | In azienda agricola **quasi nessuno è “libero”**: tutti hanno un’occupazione. La shortlist sarà spesso composta da candidati **“Spostabile con conferma”**, non da “liberi”. Il sistema deve essere onesto su questo, non simulare disponibilità inesistente. |
 | **Scheda operaio** | **Scheda dedicata per ogni operaio** come fonte di verità per le competenze: skill **dichiarate all’assunzione** (manager) + skill **evolute dallo storico** in azienda (ore). Stessa scheda per UI manager, motore shortlist e Tony. |
-| **Stelline (1–5)** | Sintesi **spiegabile** della competenza per `skillId` (es. potatura, trattorista, vendemmia), derivata principalmente dalle **ore** su lavori/attrezzi mappati; soglie configurabili per tenant. Opzionale override manager sulla scheda. |
+| **Stelline (1–5)** | Sintesi **spiegabile** della competenza per `skillId`, derivata principalmente dalle **ore** su lavori/attrezzi mappati; soglie configurabili per tenant. Opzionale override manager sulla scheda. |
+| **Catalogo skill** | **Tutte le sottocategorie lavoro** del sistema (`sottocategoriaCodice`) come `skillId`, per specializzazioni fine; eccezioni concordate sotto (trattamenti unificati, carro frutta, vendemmia). |
 | **Disponibilità** | Calcolo **automatico** da impegni del giorno + assenze formali (ferie/permesso/malattia); **nessun** toggle manuale “segna come libero”. |
 | **Lavoro sospendibile** | Candidato “spostabile” solo se **policy tenant** lo consente: priorità lavoro richiedente vs lavoro attuale, soglia minima squadra/lavoro di provenienza, flag opzionale `sospendibile`/`ritardabile` su tipo lavoro o singolo lavoro. |
 | **Prelievo da altro lavoro** | Conferma esplicita + **due movimenti** tracciati (sostituzione su destinazione + buco/riassegnazione su origine). |
@@ -102,12 +103,101 @@ Path suggerito (multi-tenant): `tenants/{tenantId}/profiliManodopera/{userId}` o
 
 ### Config tenant — skill e mapping
 
-- Elenco **`skillId`** limitato (indicazione: **5–12** voci per tenant, allineate a tipi lavoro/attrezzi reali — evitare decine di micro-skill).  
-- Mapping: `tipoLavoro` / `attrezzoId` → `skillId` richiesti per un lavoro.  
+- **`skillId` = `sottocategoriaCodice`** dove esiste (allineamento 1:1 con `core/services/categorie-service.js` e `tipi-lavoro-service.js`), più skill trasversali sotto.  
+- Mapping primario: ogni tipo lavoro / attività → `sottocategoriaCodice` del tipo → una o più skill (vedi catalogo).  
+- Regole **attrezzo** aggiuntive (es. carro raccolta frutta) oltre alla skill da tipo lavoro.  
 - Soglie stelle in ore per skill (calibrazione per azienda).  
-- Soglia minima competenza per entrare in shortlist (es. ≥ ★★ su skill richiesta, oppure `tipoOperaio` compatibile, oppure override).
+- Soglia minima shortlist: es. ≥ ★★ sulla skill richiesta, oppure skill dichiarata dal manager, oppure `tipoOperaio` compatibile, oppure override.
 
-**Allineamento codice esistente:** `tipoOperaio` (`User`) resta utile come **shortcut** e filtro grossolano nel MVP; le stelline per `skillId` sono la direzione principale per ranking fine e Tony.
+**Allineamento codice esistente:** `tipoOperaio` resta ponte per skill dichiarate in assunzione; le stelline per `skillId` sono la fonte principale nel tempo.
+
+---
+
+## Catalogo skill — decisioni tenant pilota (2026-05-16)
+
+**Principio:** mantenere **tutte le specializzazioni** per sottocategoria lavoro (non un catalogo ridotto a poche macro-skill), così la scheda operaio e la shortlist riflettono il dettaglio reale in azienda.
+
+**Eccezioni di prodotto concordate:**
+
+| # | Decisione |
+|---|-----------|
+| 1 | **Tutte le sottocategorie** lavoro del tenant sono skill attive (tabella sotto). |
+| 2 | **Carro raccolta** → quasi sempre **raccolta frutta** (`raccolta_meccanica` + regola attrezzo/equipaggio minimo). **Non** usato per vendemmia. In vendemmia: contenitori/rimorchi per uva e trasporto in cantina → basta skill **`guida_trattore`** (allineata a `tipoOperaio: trattorista` + ore con trattore), non `raccolta_meccanica` “carro”. |
+| 3 | **Trattamenti:** una sola skill **`trattamenti`** per manuale e meccanico (in campo quasi tutto a macchina; manuale raro). Ore da `trattamenti_manuale` e `trattamenti_meccanico` **sommano** sulla stessa skill. |
+
+### Elenco `skillId` (catalogo v1)
+
+*Skill da sottocategoria (19) — `skillId` = `codice` sottocategoria, salvo dove indicato:*
+
+| `skillId` | Etichetta UI | Note |
+|-----------|--------------|------|
+| `lavorazione_terreno_generale` | Lavorazione terreno — Generale | |
+| `lavorazione_terreno_tra_file` | Lavorazione terreno — Tra le file | |
+| `lavorazione_terreno_sulla_fila` | Lavorazione terreno — Sulla fila | |
+| `trattamenti` | Trattamenti | Unifica `trattamenti_manuale` + `trattamenti_meccanico` |
+| `concimazione_manuale` | Concimazione — Manuale | |
+| `concimazione_meccanico` | Concimazione — Meccanica | |
+| `potatura_manuale` | Potatura — Manuale | |
+| `potatura_meccanico` | Potatura — Meccanica | |
+| `raccolta_manuale` | Raccolta — Manuale | Include **vendemmia manuale** e raccolta a mano frutta/orto |
+| `raccolta_meccanica` | Raccolta — Meccanica / carro | **Carro raccolta frutta**; non vendemmia |
+| `gestione_verde_manuale` | Gestione verde — Manuale | |
+| `gestione_verde_meccanico` | Gestione verde — Meccanica | |
+| `semina_piantagione_manuale` | Semina e piantagione — Manuale | |
+| `semina_piantagione_meccanico` | Semina e piantagione — Meccanica | |
+| `semina_piantagione_impianto` | Semina e piantagione — Impianto | |
+| `diserbo_manuale` | Diserbo — Manuale | |
+| `diserbo_meccanico` | Diserbo — Meccanico | |
+| `manutenzione` | Manutenzione | Categoria principale `manutenzione` (lavori officina/impianti) |
+| `altro` | Altro | Fallback |
+
+*Skill trasversale (1) — non è sottocategoria tipo lavoro:*
+
+| `skillId` | Etichetta UI | Note |
+|-----------|--------------|------|
+| `guida_trattore` | Guida trattore / trasporto | Vendemmia: rimorchi/carri uva, cantina; lavori con `macchinaId`; default da `tipoOperaio: trattorista` |
+
+**Totale catalogo v1: 20 skill** (19 da sottocategorie + `guida_trattore`). Categoria piattaforma **`trasporto`** resta per catalogo **attrezzi** (rimorchi, carri); non è skill separata: il trasporto in vendemmia rientra in `guida_trattore`.
+
+### Mapping ore / tipo lavoro → `skillId`
+
+| Origine dati | Regola |
+|--------------|--------|
+| Tipo lavoro con `sottocategoriaCodice` | Mapping 1:1, **tranne** `trattamenti_*` → skill `trattamenti` |
+| Nome tipo lavoro contiene **Vendemmia** + sottocategoria `raccolta_manuale` | Skill `raccolta_manuale` (raccolta uva a mano) |
+| Nome tipo lavoro **Vendemmia Meccanica** | Non mappare a `raccolta_meccanica`/carro; ore operative → `raccolta_manuale` se raccolta; ore guida/trasporto → `guida_trattore` se presente trattore |
+| Lavoro con attrezzo **carro raccolta** (frutteto) | Richiede `raccolta_meccanica` + regola **`minPersone`** su attrezzo/tipo (es. 4 postazioni) |
+| `tipoOperaio: trattorista` | Skill dichiarata default `guida_trattore` (manager può aggiungere altre) |
+| `tipoOperaio: meccanico` / `elettricista` | Skill dichiarata default `manutenzione` |
+
+### Regola attrezzo — carro raccolta frutta (equipaggio)
+
+Separata dalla skill, ma obbligatoria per il flusso sostituzioni:
+
+- **Attrezzo:** tipo/categoria carro raccolta (config parco macchine, es. legato a categoria `trasporto` o tag dedicato `carro_raccolta`).  
+- **Skill richiesta:** `raccolta_meccanica`.  
+- **Vincolo:** `minPersone` (es. 4) per slot equipaggio giornaliero — **non** confondere con vendemmia.
+
+### Soglie stelle (da calibrare su dati reali)
+
+Bozza unica per tutte le skill (modificabile per skill in config):
+
+| Stelle | Ore ultimi 12 mesi (esempio) |
+|--------|------------------------------|
+| ★ | 0–20 |
+| ★★ | 21–80 |
+| ★★★ | 81–200 |
+| ★★★★ | 201–400 |
+| ★★★★★ | 400+ |
+
+Shortlist sostituti: soglia indicativa **≥ ★★** sulla skill richiesta dal lavoro (da confermare in pilota).
+
+### Prossimo passo implementativo (dopo catalogo)
+
+1. File config tenant (es. `core/config/manodopera-skills-config.js`) con tabella sopra + merge `trattamenti`.  
+2. Scheda operaio: checkbox skill dichiarate = sottoinsieme del catalogo.  
+3. Batch ore: aggregazione per `skillId` secondo mapping.  
+4. UI sostituzione: richiesta skill da lavoro + attrezzo.
 
 ---
 
@@ -259,7 +349,8 @@ In assenza di priorità e impegni strutturati, il sistema può al massimo elenca
 
 **Scheda operaio e skill**
 
-- [ ] Elenco `skillId` pilota per tenant + mapping `tipoLavoro` / attrezzo → skill.  
+- [x] Elenco `skillId` pilota + regole vendemmia/carro/trattamenti — **§ Catalogo skill (2026-05-16)**.  
+- [ ] File config `manodopera-skills-config.js` (o Firestore) con mapping e merge `trattamenti`.  
 - [ ] Schema Firestore `profiliManodopera` (o alternativa) + UI scheda (lettura + edit skill dichiarate).  
 - [ ] Batch/trigger calcolo `skillCalcolate` da `oreOperai` + soglie stelle in config.  
 - [ ] Override manager con audit (opzionale MVP+).
