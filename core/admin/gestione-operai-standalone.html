@@ -461,10 +461,12 @@
         <div class="header">
             <div>
                 <h1>👷 Gestione Operai</h1>
-                <!-- Percorso canonico: /core/admin/gestione-operai-standalone.html (non Compensi Operai) -->
                 <p style="opacity: 0.9; margin-top: 5px;">Contratti, tipi operai e scheda competenze (skill) <span id="gestione-operai-build-tag" style="font-size:11px;opacity:0.75"></span></p>
             </div>
             <div class="header-actions">
+                <button type="button" id="btn-batch-skill" class="btn btn-primary" title="Ricalcola stelline da ore validate (ultimi 12 mesi)">
+                    Aggiorna stelline da ore
+                </button>
                 <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
@@ -541,7 +543,7 @@
                 <div class="skill-section">
                     <h4>Skill dichiarate (manager)</h4>
                     <p class="skill-empty-hint" style="margin-bottom: 12px;">
-                        Competenze note in assunzione o da esperienza esterna. Le stelline sotto arriveranno dallo storico ore in piattaforma.
+                        Competenze note in assunzione o da esperienza esterna. Le stelline sotto si aggiornano con «Aggiorna stelline da ore» (ore validate, ultimi 12 mesi).
                     </p>
                     <button type="button" class="btn btn-secondary btn-sm" style="margin-bottom: 12px;" onclick="applySkillDefaultsFromTipoOperaio()">
                         Applica suggerimenti da tipo operaio
@@ -658,6 +660,7 @@
             saveProfiloManodoperaSkillDichiarate,
             summarizeProfiloForList
         } from '../services/profilo-manodopera-service.js';
+        import { recalculateSkillCalcolateForTenant } from '../services/profilo-manodopera-skill-batch-service.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -700,7 +703,7 @@
         const profiliManodoperaByUserId = new Map();
         let schedaOperaioCorrente = null;
 
-        const GESTIONE_OPERAI_UI_BUILD = 'scheda-skill-2026-05';
+        const GESTIONE_OPERAI_UI_BUILD = 'scheda-skill-batch-2026-05';
         const buildTagEl = document.getElementById('gestione-operai-build-tag');
         if (buildTagEl) buildTagEl.textContent = `(${GESTIONE_OPERAI_UI_BUILD})`;
         console.log('[Gestione Operai] UI build:', GESTIONE_OPERAI_UI_BUILD, '— colonna Competenze + pulsante Scheda');
@@ -793,6 +796,57 @@
             document.getElementById('filter-tipo-contratto').addEventListener('change', () => filterOperai());
             document.getElementById('filter-tipo-operaio').addEventListener('change', () => filterOperai());
             document.getElementById('filter-alert').addEventListener('change', () => filterOperai());
+            const batchBtn = document.getElementById('btn-batch-skill');
+            if (batchBtn) {
+                batchBtn.addEventListener('click', () => handleBatchSkillCalcolate());
+            }
+        }
+
+        async function handleBatchSkillCalcolate() {
+            if (!currentTenantId || !currentUser) {
+                showAlert('Sessione non valida', 'error');
+                return;
+            }
+            const ok = window.confirm(
+                'Ricalcolare le competenze da storico ore?\n\n' +
+                    '• Solo ore in stato «validate»\n' +
+                    '• Stelline basate sulle ore degli ultimi 12 mesi\n' +
+                    '• Può richiedere alcuni minuti se ci sono molti lavori'
+            );
+            if (!ok) return;
+
+            const batchBtn = document.getElementById('btn-batch-skill');
+            if (batchBtn) {
+                batchBtn.disabled = true;
+                batchBtn.textContent = 'Calcolo in corso…';
+            }
+
+            try {
+                const result = await recalculateSkillCalcolateForTenant({
+                    tenantId: currentTenantId,
+                    aggiornatoDa: currentUser.uid,
+                    onProgress: (msg) => {
+                        if (batchBtn) batchBtn.textContent = msg.length > 42 ? 'Calcolo…' : msg;
+                    }
+                });
+                await loadProfiliManodopera();
+                filterOperai();
+                showAlert(
+                    `Stelline aggiornate: ${result.operaiAggiornati} operai, ${result.oreProcessate} registrazioni ore su ${result.lavoriScansionati} lavori.`,
+                    'success'
+                );
+                if (schedaOperaioCorrente) {
+                    await openSchedaModal(schedaOperaioCorrente.id);
+                }
+            } catch (error) {
+                console.error('Batch skill calcolate:', error);
+                showAlert(error.message || 'Errore aggiornamento stelline da ore', 'error');
+            } finally {
+                if (batchBtn) {
+                    batchBtn.disabled = false;
+                    batchBtn.textContent = 'Aggiorna stelline da ore';
+                }
+            }
         }
 
         // Reset filtri

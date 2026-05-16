@@ -42,7 +42,9 @@ export function normalizeProfiloManodopera(data) {
         data.skillDichiarate.map((s) => (typeof s === 'string' ? s : s?.skillId))
       )
     : [];
-  const skillCalcolate = Array.isArray(data.skillCalcolate) ? data.skillCalcolate : [];
+  const skillCalcolate = normalizeSkillCalcolateRows(
+    Array.isArray(data.skillCalcolate) ? data.skillCalcolate : []
+  );
   return {
     userId: data.userId || data.id || null,
     skillDichiarate,
@@ -51,6 +53,33 @@ export function normalizeProfiloManodopera(data) {
     aggiornatoIl: data.aggiornatoIl || null,
     aggiornatoDa: data.aggiornatoDa || null
   };
+}
+
+/**
+ * @param {Array<unknown>} rows
+ * @returns {Array<{ skillId: string, orePeriodo: number, oreTotali: number, stelle: number, periodoDa?: string, periodoA?: string, aggiornatoIl?: string }>}
+ */
+export function normalizeSkillCalcolateRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  const out = [];
+  for (const raw of rows) {
+    if (!raw || typeof raw !== 'object') continue;
+    const skillId = typeof raw.skillId === 'string' ? raw.skillId.trim() : '';
+    if (!skillId || !isValidManodoperaSkillId(skillId)) continue;
+    const orePeriodo = Number(raw.orePeriodo);
+    const oreTotali = Number(raw.oreTotali);
+    const stelle = Math.min(5, Math.max(1, Math.round(Number(raw.stelle) || 1)));
+    out.push({
+      skillId,
+      orePeriodo: Number.isFinite(orePeriodo) ? orePeriodo : 0,
+      oreTotali: Number.isFinite(oreTotali) ? oreTotali : 0,
+      stelle,
+      periodoDa: raw.periodoDa || null,
+      periodoA: raw.periodoA || null,
+      aggiornatoIl: raw.aggiornatoIl || null
+    });
+  }
+  return out;
 }
 
 /**

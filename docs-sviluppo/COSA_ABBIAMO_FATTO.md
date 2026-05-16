@@ -2,9 +2,17 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-05-16.**
 
+## ✅ Manodopera: batch ore → skillCalcolate (stelline) (2026-05-16)
+
+- **`core/services/profilo-manodopera-batch.js`**: aggregazione pura ore validate → `skillCalcolate` (periodo 12 mesi, `oreToStelle`, mapping `resolveSkillIdsForOreAggregation`).
+- **`core/services/profilo-manodopera-skill-batch-service.js`**: scansione `lavori` + `oreOperai` (stato `validate`), salvataggio su `profiliManodopera`.
+- **`core/admin/gestione-operai-standalone.html`**: pulsante manager **Aggiorna stelline da ore**.
+- **`tests/services/profilo-manodopera-batch.test.js`**: test unitari aggregazione.
+- Export **`TIPI_LAVORO_PREDEFINITI`** da `tipi-lavoro-service.js` per risolvere `sottocategoriaCodice` da nome tipo lavoro.
+
 ## ✅ Manodopera: scheda operaio — UI e Firestore (2026-05-16)
 
-- **`core/services/profilo-manodopera-service.js`**: CRUD profilo `tenants/{tenantId}/profiliManodopera/{userId}` (skill dichiarate, nota; slot `skillCalcolate` per batch futuro).
+- **`core/services/profilo-manodopera-service.js`**: CRUD profilo `tenants/{tenantId}/profiliManodopera/{userId}` (skill dichiarate, nota; `skillCalcolate` popolate dal batch).
 - **`core/admin/gestione-operai-standalone.html`**: colonna Competenze, pulsante **Scheda**, modal con checkbox skill (gruppi da config), skill calcolate (se presenti), nota profilo; include caposquadra.
 - **`firestore.rules`**: regole `profiliManodopera` (lettura tenant; scrittura manager/admin).
 - **`tests/services/profilo-manodopera-service.test.js`**.

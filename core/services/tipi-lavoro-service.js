@@ -19,7 +19,8 @@ const COLLECTION_NAME = 'tipiLavoro';
 
 // Tipi lavoro predefiniti organizzati per sottocategoria
 // Struttura: { nome, sottocategoriaCodice, descrizione }
-const TIPI_LAVORO_PREDEFINITI = [
+/** Nomi → sottocategoriaCodice per lookup batch skill (e seed). */
+export const TIPI_LAVORO_PREDEFINITI = [
   // Lavorazione del Terreno - Generale
   { nome: 'Aratura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione profonda del terreno' },
   { nome: 'Erpicatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione superficiale del terreno' },
