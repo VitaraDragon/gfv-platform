@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-04-18.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-05-16.**
+
+## ✅ Manodopera: catalogo skill sostituzioni (decisioni tenant) (2026-05-16)
+
+- **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`**: catalogo v1 (20 skill = sottocategorie lavoro + `guida_trattore`); trattamenti unificati; carro raccolta → `raccolta_meccanica` / frutteto; vendemmia trasporto → `guida_trattore`, non carro; mapping ore e regola `minPersone` carro.
+
+## ✅ Manodopera: aggiornamento design sostituzioni e scheda skill (2026-05-16)
+
+- Ampliato **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`** con decisioni di prodotto consolidate: imbuto di scrematura fino a 3–4 candidati, contesto agricolo (pochi “liberi”, molti “spostabili”), **scheda operaio** (skill dichiarate all’assunzione + calcolate da storico ore / stelline), motore score, lavori sospendibili via policy, assenze, UX tap/conferma, bozza schema `profiliManodopera`, milestone implementative riviste.
 
 ## ✅ Tony / Gemini: retry 429 e messaggio utente (2026-04-18)
 
