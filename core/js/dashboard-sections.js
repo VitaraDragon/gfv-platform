@@ -120,7 +120,7 @@ window.GFVDashboardSections.createAdminSection = function createAdminSection(use
         <a href="admin/gestione-operai-standalone.html" class="action-card">
             <span class="action-icon">👷‍♂️</span>
             <span class="action-title">Gestione Operai</span>
-            <span class="action-description">Gestisci contratti e scadenze operai</span>
+            <span class="action-description">Contratti, scadenze e scheda competenze (skill)</span>
         </a>
         <a href="admin/compensi-operai-standalone.html" class="action-card">
             <span class="action-icon">💰</span>
