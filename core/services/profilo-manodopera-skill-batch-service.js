@@ -101,6 +101,118 @@ async function loadOreForLavoro(tenantId, lavoroId) {
 }
 
 /**
+ * @param {string} tenantId
+ */
+async function loadSkillBatchResolverContext(tenantId) {
+  const [tipiLavoro, categorie, macchineById, lavori] = await Promise.all([
+    loadTipiLavoroRaw(tenantId),
+    loadCategorieRaw(tenantId),
+    loadMacchineById(tenantId),
+    loadLavoriRaw(tenantId)
+  ]);
+  const categoriaCodiceById = buildCategoriaCodiceById(categorie);
+  const nomeToSotto = buildNomeToSottocategoriaCodiceMap(TIPI_LAVORO_PREDEFINITI);
+  const resolver = buildTipoLavoroResolver(tipiLavoro, categoriaCodiceById, nomeToSotto);
+  return { resolver, macchineById, lavori };
+}
+
+/**
+ * @param {string} tenantId
+ * @param {string} userId
+ * @param {Array<object>} skillCalcolate
+ * @param {string} aggiornatoDa
+ */
+async function persistProfiloSkillCalcolate(tenantId, userId, skillCalcolate, aggiornatoDa) {
+  const existing = await getDocumentData(PROFILI_COLLECTION, userId, tenantId);
+  const patch = {
+    userId,
+    skillCalcolate,
+    skillCalcolateAggiornatoIl: serverTimestamp(),
+    skillCalcolateAggiornatoDa: aggiornatoDa
+  };
+
+  if (existing) {
+    if (Array.isArray(existing.skillDichiarate)) {
+      patch.skillDichiarate = existing.skillDichiarate;
+    }
+    if (existing.notaProfilo != null) {
+      patch.notaProfilo = existing.notaProfilo;
+    }
+    await updateDocument(PROFILI_COLLECTION, userId, patch, tenantId);
+    return;
+  }
+
+  await setDocument(
+    PROFILI_COLLECTION,
+    userId,
+    {
+      ...patch,
+      skillDichiarate: [],
+      notaProfilo: '',
+      aggiornatoDa,
+      aggiornatoIl: serverTimestamp()
+    },
+    tenantId
+  );
+}
+
+/**
+ * Ricalcola skillCalcolate per un solo operaio (tutte le ore validate del tenant).
+ *
+ * @param {{ tenantId: string, operaioId: string, aggiornatoDa: string, periodoDa?: Date, periodoA?: Date }} options
+ * @returns {Promise<{ oreProcessate: number, skillCount: number }>}
+ */
+export async function recalculateSkillCalcolateForOperaio(options) {
+  const { tenantId, operaioId, aggiornatoDa } = options;
+  if (!tenantId || !operaioId || !aggiornatoDa) {
+    throw new Error('tenantId, operaioId e aggiornatoDa obbligatori');
+  }
+
+  const period =
+    options.periodoDa && options.periodoA
+      ? { periodoDa: options.periodoDa, periodoA: options.periodoA }
+      : getDefaultSkillBatchPeriod();
+
+  const { resolver, macchineById, lavori } = await loadSkillBatchResolverContext(tenantId);
+  const accumulator = new Map();
+  let oreProcessate = 0;
+
+  for (const lavoro of lavori) {
+    const lavoroId = lavoro.id;
+    if (!lavoroId) continue;
+
+    const oreContext = resolveLavoroOreContext(lavoro, resolver, macchineById);
+    const { validate: oreList } = await loadOreForLavoro(tenantId, lavoroId);
+
+    for (const ora of oreList) {
+      if (ora.operaioId !== operaioId) continue;
+      accumulateValidatedOreForSkills(
+        accumulator,
+        {
+          operaioId,
+          oreNette: ora.oreNette,
+          oreDate: parseOreRecordDate(ora.data),
+          oreContext,
+          ruoloOre: ora.ruoloOre || null
+        },
+        period
+      );
+      oreProcessate += 1;
+    }
+  }
+
+  const aggiornatoIl = new Date().toISOString();
+  const skillByOperaio = buildSkillCalcolateByOperaioFromAccumulator(accumulator, {
+    ...period,
+    aggiornatoIl
+  });
+  const skillCalcolate = skillByOperaio.get(operaioId) || [];
+
+  await persistProfiloSkillCalcolate(tenantId, operaioId, skillCalcolate, aggiornatoDa);
+  return { oreProcessate, skillCount: skillCalcolate.length };
+}
+
+/**
  * Ricalcola skillCalcolate per tutti gli operai con ore validate nel tenant.
  *
  * @param {{ tenantId?: string, aggiornatoDa: string, periodoDa?: Date, periodoA?: Date, onProgress?: (msg: string) => void }} options
@@ -122,16 +234,7 @@ export async function recalculateSkillCalcolateForTenant(options) {
       : getDefaultSkillBatchPeriod();
 
   progress('Caricamento anagrafiche lavoro…');
-  const [tipiLavoro, categorie, macchineById, lavori] = await Promise.all([
-    loadTipiLavoroRaw(tenantId),
-    loadCategorieRaw(tenantId),
-    loadMacchineById(tenantId),
-    loadLavoriRaw(tenantId)
-  ]);
-
-  const categoriaCodiceById = buildCategoriaCodiceById(categorie);
-  const nomeToSotto = buildNomeToSottocategoriaCodiceMap(TIPI_LAVORO_PREDEFINITI);
-  const resolver = buildTipoLavoroResolver(tipiLavoro, categoriaCodiceById, nomeToSotto);
+  const { resolver, macchineById, lavori } = await loadSkillBatchResolverContext(tenantId);
 
   /** @type {import('./profilo-manodopera-batch.js').OreSkillAccumulator} */
   const accumulator = new Map();
@@ -181,36 +284,7 @@ export async function recalculateSkillCalcolateForTenant(options) {
 
   let operaiAggiornati = 0;
   for (const [userId, skillCalcolate] of skillByOperaio.entries()) {
-    const existing = await getDocumentData(PROFILI_COLLECTION, userId, tenantId);
-    const patch = {
-      userId,
-      skillCalcolate,
-      skillCalcolateAggiornatoIl: serverTimestamp(),
-      skillCalcolateAggiornatoDa: options.aggiornatoDa
-    };
-
-    if (existing) {
-      if (Array.isArray(existing.skillDichiarate)) {
-        patch.skillDichiarate = existing.skillDichiarate;
-      }
-      if (existing.notaProfilo != null) {
-        patch.notaProfilo = existing.notaProfilo;
-      }
-      await updateDocument(PROFILI_COLLECTION, userId, patch, tenantId);
-    } else {
-      await setDocument(
-        PROFILI_COLLECTION,
-        userId,
-        {
-          ...patch,
-          skillDichiarate: [],
-          notaProfilo: '',
-          aggiornatoDa: options.aggiornatoDa,
-          aggiornatoIl: serverTimestamp()
-        },
-        tenantId
-      );
-    }
+    await persistProfiloSkillCalcolate(tenantId, userId, skillCalcolate, options.aggiornatoDa);
     operaiAggiornati += 1;
   }
 

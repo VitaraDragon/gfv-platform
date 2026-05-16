@@ -595,6 +595,7 @@ async function loadPendingHoursForSelectedWork() {
 
 async function updateHourValidationStatus(hourId, status) {
     if (!selectedWork || !currentTenantId || !currentUser || !hourId) return;
+    const pendingRow = currentPendingHours.find((r) => r.id === hourId);
     const hourRef = doc(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`, hourId);
     if (status === 'validate') {
         await updateDoc(hourRef, {
@@ -603,6 +604,11 @@ async function updateHourValidationStatus(hourId, status) {
             validatoIl: serverTimestamp(),
             rifiutatoDa: null
         });
+        const operaioId = pendingRow?.operaioId;
+        if (operaioId) {
+            const { requestSkillCalcolateRefresh } = await import('../../services/profilo-manodopera-skill-auto-refresh.js');
+            requestSkillCalcolateRefresh(currentTenantId, operaioId, currentUser.uid);
+        }
     } else {
         await updateDoc(hourRef, {
             stato: 'rifiutate',

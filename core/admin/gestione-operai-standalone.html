@@ -512,7 +512,7 @@
                 <button type="button" class="btn btn-primary btn-batch-skill-trigger" title="Ricalcola stelline da ore validate (ultimi 12 mesi)">
                     ⭐ Aggiorna stelline da ore
                 </button>
-                <p>Dopo il calcolo, riapri <strong>Scheda</strong> su ogni operaio: le stelline compaiono in «Skill da storico in azienda». Servono ore <strong>validate</strong> sui lavori.</p>
+                <p>Le stelline si aggiornano <strong>automaticamente</strong> quando un caposquadra/manager <strong>valida le ore</strong> (circa 2–3 secondi dopo). Usa questo pulsante solo per ricalcolo completo del tenant. Servono ore <strong>validate</strong> sui lavori.</p>
             </div>
             
             <div class="filters">
@@ -584,7 +584,7 @@
                 <div class="skill-section">
                     <h4>Skill dichiarate (manager)</h4>
                     <p class="skill-empty-hint" style="margin-bottom: 12px;">
-                        Competenze note in assunzione o da esperienza esterna. Le stelline sotto si aggiornano con «Aggiorna stelline da ore» (ore validate, ultimi 12 mesi).
+                        Competenze note in assunzione o da esperienza esterna. Le stelline sotto si aggiornano da sole quando le ore vengono validate (ultimi 12 mesi).
                     </p>
                     <button type="button" class="btn btn-secondary btn-sm" style="margin-bottom: 12px;" onclick="applySkillDefaultsFromTipoOperaio()">
                         Applica suggerimenti da tipo operaio
@@ -744,7 +744,7 @@
         const profiliManodoperaByUserId = new Map();
         let schedaOperaioCorrente = null;
 
-        const GESTIONE_OPERAI_UI_BUILD = 'scheda-skill-batch-2026-05';
+        const GESTIONE_OPERAI_UI_BUILD = 'scheda-skill-auto-2026-05';
         const buildTagEl = document.getElementById('gestione-operai-build-tag');
         if (buildTagEl) buildTagEl.textContent = `(${GESTIONE_OPERAI_UI_BUILD})`;
         console.log('[Gestione Operai] UI build:', GESTIONE_OPERAI_UI_BUILD, '— colonna Competenze + pulsante Scheda');

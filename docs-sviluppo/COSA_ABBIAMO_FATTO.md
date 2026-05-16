@@ -2,6 +2,12 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-05-16.**
 
+## ✅ Manodopera: aggiornamento automatico stelline alla validazione ore (2026-05-16)
+
+- **`core/services/profilo-manodopera-skill-auto-refresh.js`**: dopo validazione ore (`ore-service`, workspace caposquadra, validazione-ore standalone) ricalcolo debounced (2,5 s) di `skillCalcolate` per l’operaio interessato.
+- **`recalculateSkillCalcolateForOperaio`** in `profilo-manodopera-skill-batch-service.js`.
+- Pulsante «Aggiorna stelline da ore» resta per ricalcolo completo tenant.
+
 ## ✅ Manodopera: batch ore → skillCalcolate (stelline) (2026-05-16)
 
 - **`core/services/profilo-manodopera-batch.js`**: aggregazione pura ore validate → `skillCalcolate` (periodo 12 mesi, `oreToStelle`, mapping `resolveSkillIdsForOreAggregation`).

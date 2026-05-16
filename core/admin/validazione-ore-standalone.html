@@ -919,6 +919,11 @@
                 
                 // Aggiorna ore macchina/attrezzo automaticamente
                 await aggiornaOreMacchina(oraData);
+
+                if (oraData.operaioId) {
+                    const { requestSkillCalcolateRefresh } = await import('../services/profilo-manodopera-skill-auto-refresh.js');
+                    requestSkillCalcolateRefresh(currentTenantId, oraData.operaioId, currentUserData.id);
+                }
                 
                 showAlert('Ora validata con successo!', 'success');
                 await loadOreDaValidare();
@@ -1166,6 +1171,11 @@
                         
                         // Aggiorna ore macchina/attrezzo automaticamente
                         await aggiornaOreMacchina(oraData);
+
+                        if (oraData.operaioId) {
+                            const { requestSkillCalcolateRefresh } = await import('../services/profilo-manodopera-skill-auto-refresh.js');
+                            requestSkillCalcolateRefresh(currentTenantId, oraData.operaioId, currentUserData.id);
+                        }
                         
                         successCount++;
                         return { success: true };
