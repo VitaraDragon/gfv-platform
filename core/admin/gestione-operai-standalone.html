@@ -717,6 +717,12 @@
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         currentTenantId = userData.tenantId;
+                        try {
+                            const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                            if (currentTenantId) setCurrentTenantId(currentTenantId);
+                        } catch (e) {
+                            console.warn('[Gestione Operai] setCurrentTenantId:', e);
+                        }
 
                         // Verifica permessi (solo Manager o Amministratore)
                         const ruoli = userData.ruoli || [];
@@ -831,10 +837,26 @@
                 });
                 await loadProfiliManodopera();
                 filterOperai();
-                showAlert(
-                    `Stelline aggiornate: ${result.operaiAggiornati} operai, ${result.oreProcessate} registrazioni ore su ${result.lavoriScansionati} lavori.`,
-                    'success'
-                );
+                if (result.operaiAggiornati === 0) {
+                    let msg =
+                        `Nessuna stella calcolata. Ore validate lette: ${result.oreProcessate} su ${result.lavoriScansionati} lavori.`;
+                    if (result.oreDaValidare > 0) {
+                        msg += ` Ci sono ${result.oreDaValidare} ore ancora «da validare»: il caposquadra deve approvarle (Validazione ore).`;
+                    } else if (result.oreProcessate === 0) {
+                        msg += ' Non risultano ore validate nei lavori.';
+                    } else {
+                        msg += ' Verifica che i lavori abbiano un tipo lavoro riconosciuto in anagrafica.';
+                    }
+                    showAlert(msg, 'error');
+                } else {
+                    showAlert(
+                        `Stelline aggiornate: ${result.operaiAggiornati} operai, ${result.oreProcessate} ore validate su ${result.lavoriScansionati} lavori.` +
+                            (result.oreDaValidare > 0
+                                ? ` (${result.oreDaValidare} ore ancora da validare, non contate.)`
+                                : ''),
+                        'success'
+                    );
+                }
                 if (schedaOperaioCorrente) {
                     await openSchedaModal(schedaOperaioCorrente.id);
                 }

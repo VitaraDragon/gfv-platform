@@ -4,11 +4,9 @@
  * @module core/services/profilo-manodopera-skill-batch-service
  */
 
-import { getDb, collection, getDocs, query, where } from './firebase-service.js';
+import { getDb, collection, getDocs } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
-import { getAllTipiLavoro, TIPI_LAVORO_PREDEFINITI } from './tipi-lavoro-service.js';
-import { getAllCategorie } from './categorie-service.js';
-import { getAllLavori } from './lavori-service.js';
+import { TIPI_LAVORO_PREDEFINITI } from './tipi-lavoro-service.js';
 import { getCollectionData, getDocumentData, updateDocument, setDocument, serverTimestamp } from './firebase-service.js';
 import { COLLECTION_NAME as PROFILI_COLLECTION } from './profilo-manodopera-service.js';
 import {
@@ -24,6 +22,41 @@ import {
 
 const MACCHINE_COLLECTION = 'macchine';
 const LAVORI_COLLECTION = 'lavori';
+const TIPI_LAVORO_COLLECTION = 'tipiLavoro';
+const CATEGORIE_COLLECTION = 'categorie';
+
+/**
+ * @param {string} tenantId
+ */
+async function loadLavoriRaw(tenantId) {
+  return getCollectionData(LAVORI_COLLECTION, {
+    tenantId,
+    orderBy: 'dataInizio',
+    orderDirection: 'desc'
+  });
+}
+
+/**
+ * @param {string} tenantId
+ */
+async function loadTipiLavoroRaw(tenantId) {
+  return getCollectionData(TIPI_LAVORO_COLLECTION, {
+    tenantId,
+    orderBy: 'nome',
+    orderDirection: 'asc'
+  });
+}
+
+/**
+ * @param {string} tenantId
+ */
+async function loadCategorieRaw(tenantId) {
+  return getCollectionData(CATEGORIE_COLLECTION, {
+    tenantId,
+    orderBy: 'ordine',
+    orderDirection: 'asc'
+  });
+}
 
 /**
  * @param {string} tenantId
@@ -43,18 +76,28 @@ async function loadMacchineById(tenantId) {
  * @param {string} lavoroId
  * @returns {Promise<Array<Record<string, unknown>>>}
  */
-async function loadValidatedOreForLavoro(tenantId, lavoroId) {
+/**
+ * @param {string} tenantId
+ * @param {string} lavoroId
+ * @returns {Promise<{ validate: Array<Record<string, unknown>>, daValidare: number }>}
+ */
+async function loadOreForLavoro(tenantId, lavoroId) {
   const db = getDb();
   if (!db) throw new Error('Firebase non inizializzato');
 
   const oreRef = collection(db, 'tenants', tenantId, 'lavori', lavoroId, 'oreOperai');
-  const oreQuery = query(oreRef, where('stato', '==', 'validate'));
-  const snap = await getDocs(oreQuery);
-  const rows = [];
+  const snap = await getDocs(oreRef);
+  const validate = [];
+  let daValidare = 0;
   snap.forEach((oraDoc) => {
-    rows.push({ id: oraDoc.id, ...oraDoc.data() });
+    const data = oraDoc.data();
+    if (data.stato === 'validate') {
+      validate.push({ id: oraDoc.id, ...data });
+    } else if (data.stato === 'da_validare') {
+      daValidare += 1;
+    }
   });
-  return rows;
+  return { validate, daValidare };
 }
 
 /**
@@ -80,10 +123,10 @@ export async function recalculateSkillCalcolateForTenant(options) {
 
   progress('Caricamento anagrafiche lavoro…');
   const [tipiLavoro, categorie, macchineById, lavori] = await Promise.all([
-    getAllTipiLavoro(),
-    getAllCategorie(),
+    loadTipiLavoroRaw(tenantId),
+    loadCategorieRaw(tenantId),
     loadMacchineById(tenantId),
-    getAllLavori({ orderBy: 'dataInizio', orderDirection: 'desc' })
+    loadLavoriRaw(tenantId)
   ]);
 
   const categoriaCodiceById = buildCategoriaCodiceById(categorie);
@@ -93,6 +136,7 @@ export async function recalculateSkillCalcolateForTenant(options) {
   /** @type {import('./profilo-manodopera-batch.js').OreSkillAccumulator} */
   const accumulator = new Map();
   let oreProcessate = 0;
+  let oreDaValidare = 0;
   let lavoriScansionati = 0;
 
   progress(`Analisi ore su ${lavori.length} lavori…`);
@@ -103,7 +147,8 @@ export async function recalculateSkillCalcolateForTenant(options) {
     lavoriScansionati += 1;
 
     const oreContext = resolveLavoroOreContext(lavoro, resolver, macchineById);
-    const oreList = await loadValidatedOreForLavoro(tenantId, lavoroId);
+    const { validate: oreList, daValidare } = await loadOreForLavoro(tenantId, lavoroId);
+    oreDaValidare += daValidare;
 
     for (const ora of oreList) {
       const oreDate = parseOreRecordDate(ora.data);
@@ -170,5 +215,5 @@ export async function recalculateSkillCalcolateForTenant(options) {
   }
 
   progress('Completato.');
-  return { operaiAggiornati, oreProcessate, lavoriScansionati };
+  return { operaiAggiornati, oreProcessate, oreDaValidare, lavoriScansionati };
 }

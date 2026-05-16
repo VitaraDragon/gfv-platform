@@ -49,6 +49,7 @@ export class Lavoro extends Base {
     this.operaioId = data.operaioId || null;            // Per lavori autonomi
     
     this.tipoLavoro = data.tipoLavoro || '';
+    this.tipoLavoroId = data.tipoLavoroId || null;
     
     // Campi Conto Terzi (opzionali)
     this.clienteId = data.clienteId || null;        // Se presente → lavoro conto terzi
