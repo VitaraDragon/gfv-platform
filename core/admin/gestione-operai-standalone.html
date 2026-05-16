@@ -264,6 +264,96 @@
             overflow-y: auto;
         }
 
+        .modal-content.modal-wide {
+            max-width: 920px;
+        }
+
+        .scheda-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .scheda-summary dt {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .scheda-summary dd {
+            margin: 4px 0 0;
+            font-size: 14px;
+        }
+
+        .skill-section {
+            margin-bottom: 22px;
+        }
+
+        .skill-section h4 {
+            color: #2E8B57;
+            font-size: 15px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 6px;
+        }
+
+        .skill-checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 8px 16px;
+        }
+
+        .skill-checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .skill-checkbox-item input {
+            margin-top: 3px;
+            width: auto;
+        }
+
+        .skill-calcolate-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .skill-calcolata-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .skill-calcolata-row .stars {
+            color: #f0ad4e;
+            letter-spacing: 1px;
+            font-size: 14px;
+        }
+
+        .skill-empty-hint {
+            color: #6c757d;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .skills-badge-compact {
+            font-size: 12px;
+            color: #495057;
+        }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -371,7 +461,7 @@
         <div class="header">
             <div>
                 <h1>👷 Gestione Operai</h1>
-                <p style="opacity: 0.9; margin-top: 5px;">Gestisci contratti e tipi operai</p>
+                <p style="opacity: 0.9; margin-top: 5px;">Contratti, tipi operai e scheda competenze (skill)</p>
             </div>
             <div class="header-actions">
                 <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
@@ -435,6 +525,46 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Scheda competenze -->
+    <div id="scheda-modal" class="modal">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3>Scheda competenze</h3>
+                <button type="button" class="close-btn" onclick="closeSchedaModal()">&times;</button>
+            </div>
+            <div id="scheda-loading" class="loading">Caricamento scheda...</div>
+            <form id="scheda-form" style="display: none;" onsubmit="handleSalvaScheda(event)">
+                <input type="hidden" id="scheda-user-id">
+                <dl class="scheda-summary" id="scheda-summary"></dl>
+                <div class="skill-section">
+                    <h4>Skill dichiarate (manager)</h4>
+                    <p class="skill-empty-hint" style="margin-bottom: 12px;">
+                        Competenze note in assunzione o da esperienza esterna. Le stelline sotto arriveranno dallo storico ore in piattaforma.
+                    </p>
+                    <button type="button" class="btn btn-secondary btn-sm" style="margin-bottom: 12px;" onclick="applySkillDefaultsFromTipoOperaio()">
+                        Applica suggerimenti da tipo operaio
+                    </button>
+                    <div id="scheda-skill-dichiarate"></div>
+                </div>
+                <div class="skill-section">
+                    <h4>Skill da storico in azienda (calcolate)</h4>
+                    <div id="scheda-skill-calcolate" class="skill-calcolate-list">
+                        <p class="skill-empty-hint">Nessun dato ancora: verranno popolate dal riepilogo ore validate.</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="scheda-nota">Nota profilo</label>
+                    <textarea id="scheda-nota" placeholder="Es. esperienza pregressa, limitazioni, certificazioni..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSchedaModal()">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva scheda</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 
     <!-- Modal Modifica Contratto -->
     <div id="contratto-modal" class="modal">
@@ -516,6 +646,17 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
+        import {
+            MANODOPERA_SKILL_UI_GROUPS,
+            getManodoperaSkillLabel,
+            formatStelleDisplay,
+            getDefaultDeclaredSkillIdsForTipoOperaio
+        } from '../config/manodopera-skills-config.js';
+        import {
+            getProfiloManodoperaOrDefaults,
+            saveProfiloManodoperaSkillDichiarate,
+            summarizeProfiloForList
+        } from '../services/profilo-manodopera-service.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -554,6 +695,9 @@
         let currentUser = null;
         let currentTenantId = null;
         let operai = [];
+        /** @type {Map<string, object|null>} */
+        const profiliManodoperaByUserId = new Map();
+        let schedaOperaioCorrente = null;
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
@@ -677,18 +821,53 @@
                     const userData = { id: doc.id, ...doc.data() };
                     const ruoli = userData.ruoli || [];
                     
-                    // Filtra solo operai
-                    if (ruoli.some(r => r.toLowerCase().includes('operaio'))) {
+                    // Operai e caposquadra (scheda competenze)
+                    const ruoloLower = ruoli.map((r) => String(r).toLowerCase());
+                    if (ruoloLower.some((r) => r.includes('operaio') || r.includes('caposquadra'))) {
                         operai.push(userData);
                     }
                 });
 
+                await loadProfiliManodopera();
                 filterOperai();
             } catch (error) {
                 console.error('Errore caricamento operai:', error);
                 showAlert('Errore caricamento operai', 'error');
                 container.innerHTML = '<div class="empty-state">Errore caricamento operai</div>';
             }
+        }
+
+        async function loadProfiliManodopera() {
+            profiliManodoperaByUserId.clear();
+            if (!currentTenantId) return;
+            try {
+                const snap = await getDocs(
+                    collection(db, 'tenants', currentTenantId, 'profiliManodopera')
+                );
+                snap.forEach((d) => {
+                    profiliManodoperaByUserId.set(d.id, { userId: d.id, ...d.data() });
+                });
+            } catch (error) {
+                console.warn('[Gestione Operai] Profili manodopera:', error);
+            }
+        }
+
+        function formatSkillsListCell(userId) {
+            const profilo = profiliManodoperaByUserId.get(userId);
+            const summary = summarizeProfiloForList(profilo);
+            if (summary.dichiarateCount === 0 && !summary.topCalcolata) {
+                return '<span class="skills-badge-compact">—</span>';
+            }
+            let html = '';
+            if (summary.dichiarateCount > 0) {
+                html += `<span class="skills-badge-compact">${summary.dichiarateCount} dich.</span>`;
+            }
+            if (summary.topCalcolata) {
+                const label = getManodoperaSkillLabel(summary.topCalcolata.skillId);
+                const stars = formatStelleDisplay(summary.topCalcolata.stelle);
+                html += ` <span class="skills-badge-compact" title="${label}">${stars}</span>`;
+            }
+            return html || '<span class="skills-badge-compact">—</span>';
         }
 
         // Calcola alert semaforo
@@ -818,6 +997,7 @@
                             <th>Nome</th>
                             <th>Email</th>
                             <th>Tipo Operaio</th>
+                            <th>Competenze</th>
                             <th>Tipo Contratto</th>
                             <th>Data Inizio</th>
                             <th>Data Scadenza</th>
@@ -837,6 +1017,7 @@
                         <td>${nomeCompleto}</td>
                         <td>${operaio.email || '-'}</td>
                         <td>${operaio.tipoOperaio ? tipoOperaioNames[operaio.tipoOperaio] || operaio.tipoOperaio : '-'}</td>
+                        <td>${formatSkillsListCell(operaio.id)}</td>
                         <td>${operaio.tipoContratto ? tipoContrattoNames[operaio.tipoContratto] || operaio.tipoContratto : '-'}</td>
                         <td>${formattaData(operaio.dataInizioContratto)}</td>
                         <td>${operaio.tipoContratto === 'indeterminato' ? '-' : formattaData(operaio.dataScadenzaContratto)}</td>
@@ -846,7 +1027,8 @@
                         </td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-info btn-sm" onclick="openContrattoModal('${operaio.id}')">✏️ Modifica</button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openSchedaModal('${operaio.id}')">📋 Scheda</button>
+                                <button type="button" class="btn btn-info btn-sm" onclick="openContrattoModal('${operaio.id}')">✏️ Contratto</button>
                             </div>
                         </td>
                     </tr>
@@ -859,6 +1041,129 @@
             `;
 
             container.innerHTML = html;
+        }
+
+        function renderSchedaSkillCheckboxes(selectedIds) {
+            const container = document.getElementById('scheda-skill-dichiarate');
+            const selected = new Set(selectedIds || []);
+            let html = '';
+            MANODOPERA_SKILL_UI_GROUPS.forEach((group) => {
+                html += `<div class="skill-section" style="margin-bottom: 14px;"><h4 style="font-size: 14px;">${group.title}</h4><div class="skill-checkbox-grid">`;
+                group.skillIds.forEach((skillId) => {
+                    const checked = selected.has(skillId) ? ' checked' : '';
+                    const label = getManodoperaSkillLabel(skillId);
+                    html += `<label class="skill-checkbox-item"><input type="checkbox" name="skill-dichiarata" value="${skillId}"${checked}> <span>${label}</span></label>`;
+                });
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function renderSchedaSkillCalcolate(skillCalcolate) {
+            const container = document.getElementById('scheda-skill-calcolate');
+            const rows = Array.isArray(skillCalcolate) ? skillCalcolate.filter((r) => r && r.skillId) : [];
+            if (rows.length === 0) {
+                container.innerHTML = '<p class="skill-empty-hint">Nessun dato ancora: verranno popolate dal riepilogo ore validate.</p>';
+                return;
+            }
+            rows.sort((a, b) => (b.stelle || 0) - (a.stelle || 0));
+            container.innerHTML = rows
+                .map((row) => {
+                    const label = getManodoperaSkillLabel(row.skillId);
+                    const stars = formatStelleDisplay(row.stelle);
+                    const ore = row.orePeriodo != null ? `${row.orePeriodo} h` : '';
+                    return `<div class="skill-calcolata-row"><span>${label}${ore ? ` <span style="color:#6c757d">(${ore})</span>` : ''}</span><span class="stars">${stars}</span></div>`;
+                })
+                .join('');
+        }
+
+        function getRuoliDisplay(ruoli) {
+            if (!ruoli || !ruoli.length) return '-';
+            return ruoli.join(', ');
+        }
+
+        async function openSchedaModal(userId) {
+            const operaio = operai.find((o) => o.id === userId);
+            if (!operaio) return;
+            schedaOperaioCorrente = operaio;
+            document.getElementById('scheda-user-id').value = userId;
+            document.getElementById('scheda-loading').style.display = 'block';
+            document.getElementById('scheda-form').style.display = 'none';
+            document.getElementById('scheda-modal').classList.add('active');
+
+            try {
+                const profilo = await getProfiloManodoperaOrDefaults(
+                    userId,
+                    operaio.tipoOperaio,
+                    currentTenantId
+                );
+                profiliManodoperaByUserId.set(userId, profilo);
+
+                const nomeCompleto = `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || 'N/A';
+                document.getElementById('scheda-summary').innerHTML = `
+                    <div><dt>Nome</dt><dd>${nomeCompleto}</dd></div>
+                    <div><dt>Email</dt><dd>${operaio.email || '-'}</dd></div>
+                    <div><dt>Ruoli</dt><dd>${getRuoliDisplay(operaio.ruoli)}</dd></div>
+                    <div><dt>Tipo operaio</dt><dd>${operaio.tipoOperaio || '-'}</dd></div>
+                `;
+
+                renderSchedaSkillCheckboxes(profilo.skillDichiarate);
+                renderSchedaSkillCalcolate(profilo.skillCalcolate);
+                document.getElementById('scheda-nota').value = profilo.notaProfilo || '';
+
+                document.getElementById('scheda-loading').style.display = 'none';
+                document.getElementById('scheda-form').style.display = 'block';
+            } catch (error) {
+                console.error('Errore caricamento scheda:', error);
+                showAlert('Errore caricamento scheda competenze', 'error');
+                closeSchedaModal();
+            }
+        }
+
+        function closeSchedaModal() {
+            document.getElementById('scheda-modal').classList.remove('active');
+            document.getElementById('scheda-form').style.display = 'none';
+            schedaOperaioCorrente = null;
+        }
+
+        function applySkillDefaultsFromTipoOperaio() {
+            if (!schedaOperaioCorrente) return;
+            const defaults = getDefaultDeclaredSkillIdsForTipoOperaio(schedaOperaioCorrente.tipoOperaio);
+            document.querySelectorAll('#scheda-skill-dichiarate input[name="skill-dichiarata"]').forEach((el) => {
+                el.checked = defaults.includes(el.value);
+            });
+        }
+
+        async function handleSalvaScheda(e) {
+            e.preventDefault();
+            const userId = document.getElementById('scheda-user-id').value;
+            const skillDichiarate = Array.from(
+                document.querySelectorAll('#scheda-skill-dichiarate input[name="skill-dichiarata"]:checked')
+            ).map((el) => el.value);
+
+            try {
+                await saveProfiloManodoperaSkillDichiarate(
+                    userId,
+                    {
+                        skillDichiarate,
+                        notaProfilo: document.getElementById('scheda-nota').value,
+                        aggiornatoDa: currentUser.uid
+                    },
+                    currentTenantId
+                );
+                const refreshed = await getProfiloManodoperaOrDefaults(
+                    userId,
+                    schedaOperaioCorrente?.tipoOperaio,
+                    currentTenantId
+                );
+                profiliManodoperaByUserId.set(userId, refreshed);
+                showAlert('Scheda competenze salvata', 'success');
+                closeSchedaModal();
+                filterOperai();
+            } catch (error) {
+                console.error('Errore salvataggio scheda:', error);
+                showAlert('Errore salvataggio scheda competenze', 'error');
+            }
         }
 
         // Apri modal contratto
@@ -1008,6 +1313,10 @@
         window.openContrattoModal = openContrattoModal;
         window.closeContrattoModal = closeContrattoModal;
         window.handleSalvaContratto = handleSalvaContratto;
+        window.openSchedaModal = openSchedaModal;
+        window.closeSchedaModal = closeSchedaModal;
+        window.handleSalvaScheda = handleSalvaScheda;
+        window.applySkillDefaultsFromTipoOperaio = applySkillDefaultsFromTipoOperaio;
         window.resetFilters = resetFilters;
     </script>
     <!-- Tony widget (assistente su tutte le pagine) -->

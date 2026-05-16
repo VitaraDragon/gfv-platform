@@ -275,6 +275,58 @@ export function getManodoperaSkillsCatalog() {
   return MANODOPERA_SKILLS_CATALOG.map((s) => ({ ...s }));
 }
 
+/** Raggruppamento checkbox in scheda operaio (ordine visualizzazione). */
+export const MANODOPERA_SKILL_UI_GROUPS = Object.freeze([
+  {
+    title: 'Lavorazione del terreno',
+    skillIds: [
+      'lavorazione_terreno_generale',
+      'lavorazione_terreno_tra_file',
+      'lavorazione_terreno_sulla_fila'
+    ]
+  },
+  { title: 'Trattamenti', skillIds: [SKILL_ID_TRATTAMENTI] },
+  { title: 'Concimazione', skillIds: ['concimazione_manuale', 'concimazione_meccanico'] },
+  { title: 'Potatura', skillIds: ['potatura_manuale', 'potatura_meccanico'] },
+  {
+    title: 'Raccolta',
+    skillIds: [SKILL_ID_RACCOLTA_MANUALE, SKILL_ID_RACCOLTA_MECCANICA]
+  },
+  { title: 'Gestione del verde', skillIds: ['gestione_verde_manuale', 'gestione_verde_meccanico'] },
+  {
+    title: 'Semina e piantagione',
+    skillIds: [
+      'semina_piantagione_manuale',
+      'semina_piantagione_meccanico',
+      'semina_piantagione_impianto'
+    ]
+  },
+  { title: 'Diserbo', skillIds: ['diserbo_manuale', 'diserbo_meccanico'] },
+  { title: 'Altro', skillIds: [SKILL_ID_MANUTENZIONE, SKILL_ID_ALTRO] },
+  { title: 'Trasversale', skillIds: [SKILL_ID_GUIDA_TRATTORE] }
+]);
+
+const SKILL_LABEL_BY_ID = Object.freeze(
+  Object.fromEntries(MANODOPERA_SKILLS_CATALOG.map((s) => [s.id, s.label]))
+);
+
+/**
+ * @param {string} skillId
+ * @returns {string}
+ */
+export function getManodoperaSkillLabel(skillId) {
+  return SKILL_LABEL_BY_ID[skillId] || skillId;
+}
+
+/**
+ * @param {number} stelle 1–5
+ * @returns {string}
+ */
+export function formatStelleDisplay(stelle) {
+  const n = Math.min(5, Math.max(0, Math.round(Number(stelle) || 0)));
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
 /**
  * Mapping batch ore: contesto registrazione → skillId per aggregazione.
  * @param {{

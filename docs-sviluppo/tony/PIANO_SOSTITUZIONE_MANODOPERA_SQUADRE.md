@@ -200,7 +200,7 @@ Shortlist sostituti: soglia indicativa **≥ ★★** sulla skill richiesta dal 
 ### Prossimo passo implementativo
 
 1. ~~File config~~ (fatto).  
-2. Scheda operaio: checkbox skill dichiarate = sottoinsieme del catalogo.  
+2. ~~Scheda operaio UI~~ (fatto): `gestione-operai-standalone.html` + `profilo-manodopera-service.js` + Firestore `profiliManodopera`.  
 3. Batch ore: aggregazione per `skillId` secondo mapping (`resolveSkillIdsForOreAggregation`).  
 4. UI sostituzione: richiesta skill da lavoro + attrezzo (`resolveRequiredSkillsForLavoro`).
 
@@ -356,6 +356,7 @@ In assenza di priorità e impegni strutturati, il sistema può al massimo elenca
 
 - [x] Elenco `skillId` pilota + regole vendemmia/carro/trattamenti — **§ Catalogo skill (2026-05-16)**.  
 - [x] File config `core/config/manodopera-skills-config.js` + test Vitest.  
+- [x] Scheda operaio MVP: servizio + UI gestione operai + regole Firestore `profiliManodopera`.  
 - [ ] Schema Firestore `profiliManodopera` (o alternativa) + UI scheda (lettura + edit skill dichiarate).  
 - [ ] Batch/trigger calcolo `skillCalcolate` da `oreOperai` + soglie stelle in config.  
 - [ ] Override manager con audit (opzionale MVP+).

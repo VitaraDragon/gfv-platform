@@ -2,6 +2,13 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-05-16.**
 
+## ✅ Manodopera: scheda operaio — UI e Firestore (2026-05-16)
+
+- **`core/services/profilo-manodopera-service.js`**: CRUD profilo `tenants/{tenantId}/profiliManodopera/{userId}` (skill dichiarate, nota; slot `skillCalcolate` per batch futuro).
+- **`core/admin/gestione-operai-standalone.html`**: colonna Competenze, pulsante **Scheda**, modal con checkbox skill (gruppi da config), skill calcolate (se presenti), nota profilo; include caposquadra.
+- **`firestore.rules`**: regole `profiliManodopera` (lettura tenant; scrittura manager/admin).
+- **`tests/services/profilo-manodopera-service.test.js`**.
+
 ## ✅ Manodopera: config skill (`manodopera-skills-config.js`) (2026-05-16)
 
 - **`core/config/manodopera-skills-config.js`**: catalogo 20 skill, merge `trattamenti`, mapping sottocategoria/tipo lavoro, regole carro frutta (`minPersone` 4) e vendemmia → `guida_trattore`, soglie stelline, default `tipoOperaio`, helper `resolveRequiredSkillsForLavoro` / `resolveSkillIdsForOreAggregation`.
