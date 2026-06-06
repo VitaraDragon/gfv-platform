@@ -32,6 +32,7 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         createDashboardDeadlinesRow,
         createDashboardModuleSidebar,
         createDashboardPanoramaHubSection,
+        createDashboardMeteoSection,
         createContoTerziCard,
         createVignetoCard,
         createFruttetoCard,
@@ -118,6 +119,9 @@ export async function renderDashboard(userData, availableModules = [], callbacks
 
             const main = document.createElement('div');
             main.className = 'dashboard-panorama-main';
+            if (createDashboardMeteoSection) {
+                main.appendChild(createDashboardMeteoSection());
+            }
             main.appendChild(createDashboardPanoramaHubSection());
             main.appendChild(createDashboardQuickBarSection());
             main.appendChild(createDashboardDeadlinesRow());
@@ -157,6 +161,9 @@ export async function renderDashboard(userData, availableModules = [], callbacks
 
         const main = document.createElement('div');
         main.className = 'dashboard-panorama-main';
+        if (createDashboardMeteoSection) {
+            main.appendChild(createDashboardMeteoSection());
+        }
         main.appendChild(createDashboardPanoramaHubSection());
         main.appendChild(createDashboardQuickBarSection());
         main.appendChild(createDashboardDeadlinesRow());

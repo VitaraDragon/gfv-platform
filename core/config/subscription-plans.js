@@ -136,6 +136,15 @@ export const AVAILABLE_MODULES = [
     price: 5,
     available: true,
     category: 'utility'
+  },
+  {
+    id: 'meteo',
+    name: 'Meteo',
+    icon: '🌦️',
+    description: 'Previsioni per sede e terreni, alert meteo e pagina dedicata',
+    price: 1,
+    available: true,
+    category: 'utility'
   }
 ];
 

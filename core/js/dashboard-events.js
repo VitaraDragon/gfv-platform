@@ -17,6 +17,11 @@ import {
     addDoc,
     serverTimestamp
 } from '../services/firebase-service.js';
+import {
+    confermeIncludesUser,
+    primaryManodoperaUserId
+} from '../services/comunicazioni-squadra-utils.js';
+import { fetchOperaioIdsForCaposquadraSquadre } from '../services/comunicazioni-squadra-service.js';
 
 // ============================================
 // IMPORTS
@@ -102,15 +107,13 @@ export async function confermaComunicazione(comunicazioneId, auth, db, loadComun
         const comm = comunicazioneDoc.data();
         const conferme = comm.conferme || [];
         
-        // Verifica se già confermato
-        if (conferme.some(c => c.userId === user.uid || c === user.uid)) {
+        if (confermeIncludesUser(conferme, user, userData)) {
             alert('Hai già confermato questa comunicazione');
             return;
         }
         
-        // Aggiungi conferma (usa Timestamp.now() invece di serverTimestamp() perché non può essere usato dentro array)
         conferme.push({
-            userId: user.uid,
+            userId: primaryManodoperaUserId(user, userData),
             timestamp: Timestamp.now()
         });
         
@@ -238,27 +241,12 @@ export async function handleSendComunicazioneRapida(e, auth, db, lavoriAttiviCap
             }
         }
         
-        // Ottieni membri squadra
         const caposquadraId = userData.id || user.uid;
-        const squadreCollection = collection(db, `tenants/${userData.tenantId}/squadre`);
-        const q = query(squadreCollection, where('caposquadraId', '==', caposquadraId));
-        const squadreSnapshot = await getDocs(q);
-        
-        if (squadreSnapshot.empty) {
-            console.warn('Nessuna squadra trovata per caposquadraId:', caposquadraId);
-            if (showRapidaMessageCallback) {
-                showRapidaMessageCallback('Nessuna squadra trovata. Verifica di essere assegnato come caposquadra di una squadra.', 'error');
-            }
-            return;
-        }
-        
-        const squadraDoc = squadreSnapshot.docs[0];
-        const squadraData = squadraDoc.data();
-        const membriSquadra = squadraData.operai || [];
-        
+        const membriSquadra = await fetchOperaioIdsForCaposquadraSquadre(db, userData.tenantId, user, userData);
+
         if (membriSquadra.length === 0) {
             if (showRapidaMessageCallback) {
-                showRapidaMessageCallback('Nessun membro nella tua squadra', 'error');
+                showRapidaMessageCallback('Nessun operaio in squadra. In Gestione squadre assegna operai al tuo profilo caposquadra.', 'error');
             }
             return;
         }

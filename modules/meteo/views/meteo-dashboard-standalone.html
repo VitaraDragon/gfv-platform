@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meteo — GFV Platform</title>
+  <meta name="theme-color" content="#0288D1" />
+  <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+  <link rel="stylesheet" href="../../../core/styles/dashboard.css">
+  <link rel="stylesheet" href="../css/meteo-dashboard.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%);
+      color: #111827;
+      min-height: 100vh;
+      padding: 20px;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="meteo-page">
+    <header class="meteo-header">
+      <span>
+        <h1>🌦️ Meteo</h1>
+        <p>Scegli un campo sulla mappa satellitare (stessa vista della Mappa aziendale) per le previsioni su quel appezzamento.</p>
+      </span>
+      <a class="meteo-btn-back" href="../../../core/dashboard-standalone.html">← Dashboard</a>
+    </header>
+
+    <p id="meteo-status" class="meteo-status" aria-live="polite"></p>
+
+    <div id="gate-blocked" class="meteo-gate hidden"></div>
+
+    <div id="meteo-main" class="hidden">
+      <p id="meteo-summary" class="meteo-summary"></p>
+      <div id="meteo-sede-root"></div>
+
+      <div class="meteo-map-layout">
+        <div class="meteo-map-column">
+          <h2 class="meteo-map-heading">Campi sulla mappa</h2>
+          <p class="meteo-map-intro">Clicca un perimetro colorato o un punto per aprire il dettaglio meteo.</p>
+          <div id="meteo-mappa-container" class="mappa-container meteo-mappa-container">
+            <div class="mappa-loading">Caricamento mappa…</div>
+          </div>
+        </div>
+        <div id="meteo-detail-root" class="meteo-detail-column" aria-live="polite"></div>
+      </div>
+
+      <p class="meteo-attribution">
+        Dati meteo by <a href="https://openweathermap.org" target="_blank" rel="noopener noreferrer">OpenWeather</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const configScript = document.createElement('script');
+    configScript.src = '../../../core/config/firebase-config.js';
+    configScript.onerror = function () {
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+      document.head.appendChild(fallbackScript);
+    };
+    document.head.appendChild(configScript);
+  </script>
+
+  <script src="../../../core/js/config-loader.js"></script>
+  <script src="../../../core/js/dashboard-utils.js"></script>
+  <script>
+    window.GFVConfigLoader.loadConfigAndMaps().catch(function (err) {
+      console.error('Config/maps:', err);
+    });
+  </script>
+
+  <script type="module">
+    function waitForConfig() {
+      return new Promise((resolve, reject) => {
+        if (typeof window.firebaseConfig !== 'undefined') {
+          resolve(window.firebaseConfig);
+          return;
+        }
+        let attempts = 0;
+        const t = setInterval(() => {
+          attempts++;
+          if (typeof window.firebaseConfig !== 'undefined') {
+            clearInterval(t);
+            resolve(window.firebaseConfig);
+          } else if (attempts >= 50) {
+            clearInterval(t);
+            reject(new Error('Config Firebase non caricata'));
+          }
+        }, 100);
+      });
+    }
+
+    const {
+      initializeFirebase,
+      getAuthInstance,
+      onAuthStateChanged,
+      getDocumentData,
+      getDb,
+      getAppInstance,
+      collection,
+      getDocs
+    } = await import('../../../core/services/firebase-service.js');
+    const { initializeTenantService, getCurrentTenant, setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+    const { hasMeteoModuleAccess } = await import('../services/meteo-module-service.js');
+    const { loadMeteoDashboard, renderMapPlaceholder } = await import('../js/meteo-dashboard-controller.js');
+
+    await waitForConfig();
+    initializeFirebase(window.firebaseConfig);
+    const auth = getAuthInstance();
+    const db = getDb();
+    const app = getAppInstance();
+    initializeTenantService();
+
+    const gateBlocked = document.getElementById('gate-blocked');
+    const meteoMain = document.getElementById('meteo-main');
+    const statusEl = document.getElementById('meteo-status');
+    const detailRoot = document.getElementById('meteo-detail-root');
+
+    if (detailRoot) {
+      detailRoot.innerHTML = renderMapPlaceholder();
+    }
+
+    function normalizePlan(raw) {
+      if (raw == null || raw === '') return 'base';
+      const p = String(raw).trim().toLowerCase();
+      if (p === 'free' || p === 'freemium') return 'free';
+      return 'base';
+    }
+
+    const mapDependencies = {
+      app,
+      db,
+      auth,
+      collection,
+      getDocs,
+      escapeHtml: (t) => window.GFVDashboardUtils && window.GFVDashboardUtils.escapeHtml
+        ? window.GFVDashboardUtils.escapeHtml(t)
+        : String(t == null ? '' : t),
+      loadGoogleMapsAPI: () => window.GFVConfigLoader.loadGoogleMapsAPI()
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = '../../../core/login-standalone.html';
+        return;
+      }
+
+      let userData = null;
+      try {
+        userData = await getDocumentData('users', user.uid);
+      } catch (e) {
+        console.warn(e);
+      }
+
+      const tenantId = userData && userData.tenantId;
+      if (tenantId) setCurrentTenantId(tenantId);
+
+      let tenant = null;
+      if (tenantId) {
+        try {
+          tenant = await getDocumentData('tenants', tenantId);
+        } catch (e) {
+          tenant = await getCurrentTenant();
+        }
+      }
+
+      const plan = normalizePlan(tenant && (tenant.plan || tenant.piano));
+      if (plan === 'free') {
+        gateBlocked.textContent = 'Il meteo non è disponibile sul piano Free. Passa al piano Base per il meteo sede e attiva il modulo Meteo per le previsioni per terreno.';
+        gateBlocked.classList.remove('hidden');
+        meteoMain.classList.add('hidden');
+        return;
+      }
+
+      const hasModule = await hasMeteoModuleAccess();
+      if (!hasModule) {
+        gateBlocked.innerHTML =
+          'Il modulo <strong>Meteo</strong> non è attivo. Attivalo da <a href="../../../core/admin/abbonamento-standalone.html">Abbonamento</a> (circa €1/mese). Con il piano Base hai già il meteo compatto sulla dashboard.';
+        gateBlocked.classList.remove('hidden');
+        meteoMain.classList.add('hidden');
+        return;
+      }
+
+      gateBlocked.classList.add('hidden');
+      meteoMain.classList.remove('hidden');
+
+      const modules = Array.isArray(tenant && tenant.modules) ? tenant.modules : [];
+      if (typeof window.syncTonyModules === 'function') {
+        window.syncTonyModules(modules);
+      }
+
+      window.googleMapsReady = false;
+      try {
+        await window.GFVConfigLoader.loadGoogleMapsAPI();
+        window.googleMapsReady = true;
+      } catch (e) {
+        console.warn('Google Maps:', e);
+      }
+
+      await loadMeteoDashboard(tenantId, {
+        sedeRoot: document.getElementById('meteo-sede-root'),
+        detailRoot,
+        summaryEl: document.getElementById('meteo-summary'),
+        statusEl,
+        userData: { ...userData, tenantId },
+        mapDependencies,
+        initialTerrenoId: new URLSearchParams(window.location.search).get('terrenoId'),
+      });
+    });
+  </script>
+  <script src="../../../core/js/tony-widget-standalone.js" defer></script>
+</body>
+</html>

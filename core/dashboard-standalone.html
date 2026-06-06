@@ -128,6 +128,7 @@
             createDashboardQuickBarSection,
             createDashboardModuleSidebar,
             createDashboardPanoramaHubSection,
+            createDashboardMeteoSection,
             createContoTerziCard,
             createVignetoCard,
             createFruttetoCard,
@@ -153,6 +154,11 @@
         // ============================================
         import { renderDashboard as renderDashboardModule } from './js/dashboard-controller.js';
         import { initDashboardPanoramaHub } from './js/dashboard-hub.js';
+        import { initDashboardMeteo } from './js/dashboard-meteo.js';
+        import {
+            loadTonyMeteoBriefingData,
+            tonyMeteoBriefingAllowed,
+        } from './js/dashboard-meteo-briefing.js';
         import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
         import { initDashboardQuickBar } from './js/dashboard-quick-bar.js';
         import { 
@@ -299,6 +305,7 @@
             createDashboardQuickBarSection,
             createDashboardModuleSidebar,
             createDashboardPanoramaHubSection,
+            createDashboardMeteoSection,
             createContoTerziCard,
             createVignetoCard,
             createFruttetoCard,
@@ -534,35 +541,106 @@
 
         /**
          * Scansione globale per Tony: prodotti sotto scorta, scadenze urgenti, guasti aperti.
+         * Con modulo meteo + Tony Avanzato: consigli operativi meteo (cache CF).
          * Solo per manager/amministratore (promemoria operativi d'azienda).
          * Imposta window.tonyGlobalBriefing e Tony.setContext('globalStatus', ...).
-         * Se ci sono criticità, dopo 3s Tony può pronunciare un saluto solo con Tony Avanzato attivo (policy audio browser: può servire un click).
          */
-        async function checkGlobalStatus(tenantId, ruoliNormalizzati) {
+        async function checkGlobalStatus(tenantId, ruoliNormalizzati, availableModules) {
             if (!tenantId) return;
             if (!tonyGlobalBriefingRoles(ruoliNormalizzati)) {
                 return;
             }
             try {
-                const sottoScorta = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
-                const scadenzeUrgenti = (callbacks.loadScadenzeUrgentiCount && await callbacks.loadScadenzeUrgentiCount(tenantId, dependencies)) || 0;
-                const guastiAperti = (callbacks.loadGuastiApertiCount && await callbacks.loadGuastiApertiCount(tenantId, dependencies)) || 0;
-                window.tonyGlobalBriefing = { sottoScorta: sottoScorta, scadenzeUrgenti: scadenzeUrgenti, guastiAperti: guastiAperti };
+                const mods = Array.isArray(availableModules) ? availableModules : [];
+                const hasMagazzino = mods.includes('magazzino');
+                const hasParcoMacchine = mods.includes('parcoMacchine');
+                const meteoBriefingPromise =
+                    tonyMeteoBriefingAllowed(mods, ruoliNormalizzati)
+                        ? loadTonyMeteoBriefingData(tenantId).catch(function(e) {
+                            console.warn('[Tony] meteo briefing:', e);
+                            return null;
+                        })
+                        : Promise.resolve(null);
+
+                const sottoScorta = hasMagazzino && callbacks.loadMagazzinoSottoScortaCount
+                    ? (await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0
+                    : 0;
+                const scadenzeUrgenti = hasParcoMacchine && callbacks.loadScadenzeUrgentiCount
+                    ? (await callbacks.loadScadenzeUrgentiCount(tenantId, dependencies)) || 0
+                    : 0;
+                const guastiAperti = hasParcoMacchine && callbacks.loadGuastiApertiCount
+                    ? (await callbacks.loadGuastiApertiCount(tenantId, dependencies)) || 0
+                    : 0;
+                const meteoBriefing = await meteoBriefingPromise;
+
+                window.tonyMeteoBriefing = meteoBriefing || null;
+                window.tonyGlobalBriefing = {
+                    sottoScorta: sottoScorta,
+                    scadenzeUrgenti: scadenzeUrgenti,
+                    guastiAperti: guastiAperti,
+                    meteo: meteoBriefing,
+                    meteoConsigliCount: meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0,
+                    availableModules: mods.slice(),
+                    hasMagazzino: hasMagazzino,
+                    hasParcoMacchine: hasParcoMacchine,
+                };
                 if (window.Tony && typeof window.Tony.setContext === 'function') {
                     window.Tony.setContext('globalStatus', window.tonyGlobalBriefing);
+                    if (meteoBriefing) {
+                        window.Tony.setContext('meteoBriefing', meteoBriefing);
+                    }
                 }
-                const total = sottoScorta + scadenzeUrgenti + guastiAperti;
+                const total =
+                    sottoScorta +
+                    scadenzeUrgenti +
+                    guastiAperti +
+                    (meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0);
                 if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony && typeof window.Tony.speak === 'function') {
                     setTimeout(function() {
                         if (total <= 0 || window.tonyDashboardBriefingFired) return;
                         if (!tonyDashboardBriefingVoiceAllowed()) {
                             window.tonyDashboardBriefingFired = true;
+                            if (meteoBriefing && meteoBriefing.proactiveText && typeof window.__tonySendProactiveWhenUnlocked === 'function') {
+                                window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
+                            }
                             return;
                         }
                         window.tonyDashboardBriefingFired = true;
                         var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
-                        window.Tony.speak(greeting + ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione tra scorte, scadenze e guasti. Vuoi che ti faccia un riassunto o preferisci procedere tu?');
+                        var opsAttention = (hasMagazzino && sottoScorta > 0) || (hasParcoMacchine && (scadenzeUrgenti + guastiAperti) > 0);
+                        var speakCore =
+                            opsAttention
+                                ? ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione' +
+                                  (hasMagazzino && hasParcoMacchine ? ' tra scorte, scadenze e guasti' :
+                                   hasMagazzino ? ' sulle scorte' :
+                                   ' su scadenze e guasti') +
+                                  '. Vuoi che ti faccia un riassunto o preferisci procedere tu?'
+                                : '';
+                        var speakMeteo =
+                            meteoBriefing && meteoBriefing.proactiveText
+                                ? ' ' + meteoBriefing.proactiveText
+                                : '';
+                        window.Tony.speak(greeting + speakCore + speakMeteo);
+                        if (
+                            meteoBriefing &&
+                            meteoBriefing.proactiveText &&
+                            !tonyDashboardBriefingVoiceAllowed() &&
+                            typeof window.__tonySendProactiveWhenUnlocked === 'function'
+                        ) {
+                            window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
+                        }
                     }, 3000);
+                } else if (
+                    meteoBriefing &&
+                    meteoBriefing.proactiveText &&
+                    !window.tonyMeteoBriefingFired &&
+                    typeof window.__tonySendProactiveWhenUnlocked === 'function'
+                ) {
+                    setTimeout(function() {
+                        if (window.tonyMeteoBriefingFired) return;
+                        window.tonyMeteoBriefingFired = true;
+                        window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
+                    }, 3500);
                 }
             } catch (e) {
                 console.warn('[Tony] checkGlobalStatus:', e);
@@ -587,6 +665,11 @@
                     hasContoTerzi: Array.isArray(availableModules) && availableModules.includes('contoTerzi'),
                     availableModules: Array.isArray(availableModules) ? availableModules : [],
                     dependencies
+                });
+                await initDashboardMeteo({
+                    tenantId: tid,
+                    planId: window.__gfvSubscriptionPlanId || 'base',
+                    hasMeteoModule: Array.isArray(availableModules) && availableModules.includes('meteo')
                 });
                 const deadlinesRow = document.querySelector('.dashboard-deadlines-row');
                 if (deadlinesRow && tid) {
@@ -868,7 +951,7 @@
                                     try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                                 }
                                 loadTonyVignetoContext(availableModules, currentTenantId);
-                                checkGlobalStatus(currentTenantId, userDataNormalized.ruoli);
+                                checkGlobalStatus(currentTenantId, userDataNormalized.ruoli, availableModules);
                             }
                             return; // Esci qui per non eseguire il codice sotto
                         }
@@ -989,7 +1072,7 @@
                             try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
                         }
                         loadTonyVignetoContext(availableModules, currentTenantId);
-                        checkGlobalStatus(currentTenantId, userDataNormalized.ruoli);
+                        checkGlobalStatus(currentTenantId, userDataNormalized.ruoli, availableModules);
                     }
                 }
             } catch (error) {

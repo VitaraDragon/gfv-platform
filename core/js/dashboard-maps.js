@@ -242,11 +242,17 @@ export function getPolygonCenter(coords) {
  * @param {Object} userData - Dati utente
  * @param {boolean} hasManodopera - Se true, carica versione completa con overlay lavori, filtri avanzati, indicatori
  * @param {Object} dependencies - Dipendenze { app, db, auth, collection, getDocs, escapeHtml, loadGoogleMapsAPI }
+ * @param {Object} [mapOptions] - Opzioni: mode ('meteo'), containerId, meteoByTerrenoId (Map), onTerrenoSelect(terreno, row)
  */
-export async function loadMappaAziendale(userData, hasManodopera = false, dependencies) {
+export async function loadMappaAziendale(userData, hasManodopera = false, dependencies, mapOptions = {}) {
     const { app, db, auth, collection, getDocs, escapeHtml, loadGoogleMapsAPI } = dependencies;
+    const isMeteoMode = mapOptions.mode === 'meteo';
+    const effectiveHasManodopera = hasManodopera && !isMeteoMode;
+    const meteoByTerrenoId =
+        mapOptions.meteoByTerrenoId instanceof Map ? mapOptions.meteoByTerrenoId : new Map();
+    const containerId = mapOptions.containerId || 'mappa-aziendale-container';
     
-    const container = document.getElementById('mappa-aziendale-container');
+    const container = document.getElementById(containerId);
     if (!container) {
         console.warn('Container mappa non trovato');
         return;
@@ -314,9 +320,16 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
             }
         });
         
-        // Filtra solo terreni con mappa (polygonCoords)
+        // Filtra terreni con poligono; in modalità meteo anche punto coordinate
         const terreni = terreniList.filter(terreno => {
-            return terreno.polygonCoords && Array.isArray(terreno.polygonCoords) && terreno.polygonCoords.length >= 3;
+            const hasPoly =
+                terreno.polygonCoords &&
+                Array.isArray(terreno.polygonCoords) &&
+                terreno.polygonCoords.length >= 3;
+            if (hasPoly) return true;
+            if (!isMeteoMode) return false;
+            const c = terreno.coordinate;
+            return c && typeof c.lat === 'number' && typeof c.lng === 'number';
         }).map(terreno => ({
             id: terreno.id,
             nome: terreno.nome || 'Terreno senza nome',
@@ -334,7 +347,7 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                     <h3 style="color: #666; margin-bottom: 15px;">📋 Nessun terreno con mappa</h3>
                     <p>Non ci sono terreni con confini tracciati sulla mappa.</p>
                     <p style="margin-top: 10px;">
-                        <a href="terreni-standalone.html" style="color: #2E8B57; text-decoration: underline;">
+                        <a href="${isMeteoMode ? '../../../core/terreni-standalone.html' : 'terreni-standalone.html'}" style="color: #2E8B57; text-decoration: underline;">
                             Vai alla gestione terreni per tracciare i confini
                         </a>
                     </p>
@@ -364,10 +377,13 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
         // Calcola bounds per zoom automatico
         const bounds = new google.maps.LatLngBounds();
         terreni.forEach(terreno => {
-            terreno.polygonCoords.forEach(coord => {
-                const latLng = new google.maps.LatLng(coord.lat, coord.lng);
-                bounds.extend(latLng);
-            });
+            if (terreno.polygonCoords && terreno.polygonCoords.length >= 3) {
+                terreno.polygonCoords.forEach(coord => {
+                    bounds.extend(new google.maps.LatLng(coord.lat, coord.lng));
+                });
+            } else if (terreno.coordinate) {
+                bounds.extend(new google.maps.LatLng(terreno.coordinate.lat, terreno.coordinate.lng));
+            }
         });
 
         // Crea mappa
@@ -477,10 +493,10 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
         const coltureUniche = [...new Set(terreni.map(t => t.coltura).filter(c => c))].sort();
 
         // Popola dropdown filtri - SOLO se Manodopera è attivo
-        const filtroPodereSelect = hasManodopera ? document.getElementById('filtro-podere') : null;
-        const filtroColturaSelect = hasManodopera ? document.getElementById('filtro-coltura') : null;
+        const filtroPodereSelect = effectiveHasManodopera ? document.getElementById('filtro-podere') : null;
+        const filtroColturaSelect = effectiveHasManodopera ? document.getElementById('filtro-coltura') : null;
         
-        if (hasManodopera && filtroPodereSelect) {
+        if (effectiveHasManodopera && filtroPodereSelect) {
             poderiUnici.forEach(podere => {
                 const option = document.createElement('option');
                 option.value = podere;
@@ -489,7 +505,7 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
             });
         }
 
-        if (hasManodopera && filtroColturaSelect) {
+        if (effectiveHasManodopera && filtroColturaSelect) {
             coltureUniche.forEach(coltura => {
                 const option = document.createElement('option');
                 option.value = coltura;
@@ -501,12 +517,99 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
         // Crea poligoni per ogni terreno
         const polygons = [];
         const infoWindows = [];
-        let terrenoPolygonsMap = new Map();
+        const terrenoPolygonsMap = new Map();
+        const terrenoMarkersMap = new Map();
+        let selectedTerrenoId = mapOptions.initialTerrenoId || null;
+        let meteoClickInfoWindow = null;
+
+        function buildMeteoInfoSnippet(row) {
+            if (!row || !row.ok || !row.meteo || !row.meteo.current) {
+                if (row && row.code === 'NO_COORDS') {
+                    return '<p style="margin-top:8px;color:#c62828;">Coordinate non disponibili per il meteo.</p>';
+                }
+                return '<p style="margin-top:8px;color:#666;">Meteo non disponibile.</p>';
+            }
+            const c = row.meteo.current;
+            const alertN = Array.isArray(row.meteo.alerts) ? row.meteo.alerts.length : 0;
+            return `<p style="margin-top:8px;font-size:14px;"><strong>${c.temp != null ? Math.round(c.temp) + '°C' : '—'}</strong> · ${escapeHtml(c.description || '')}${alertN ? ` · <span style="color:#e65100;">⚠ ${alertN} alert</span>` : ''}</p>`;
+        }
+
+        function applyTerrenoSelection(terrenoId) {
+            selectedTerrenoId = terrenoId;
+            terrenoPolygonsMap.forEach((polygon, id) => {
+                const sel = id === terrenoId;
+                const def = polygon.__gfvDefaultStyle || {};
+                polygon.setOptions({
+                    strokeWeight: sel ? 5 : def.strokeWeight || 3,
+                    strokeColor: sel ? '#0288D1' : def.strokeColor,
+                    fillOpacity: sel ? 0.52 : def.fillOpacity || 0.35,
+                });
+            });
+            terrenoMarkersMap.forEach((marker, id) => {
+                const sel = id === terrenoId;
+                marker.setIcon({
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: sel ? 11 : 8,
+                    fillColor: sel ? '#0288D1' : '#ffffff',
+                    fillOpacity: 1,
+                    strokeColor: sel ? '#01579b' : '#0288D1',
+                    strokeWeight: sel ? 3 : 2,
+                });
+            });
+        }
+
+        function handleTerrenoPick(terreno, event) {
+            applyTerrenoSelection(terreno.id);
+            if (typeof mapOptions.onTerrenoSelect === 'function') {
+                mapOptions.onTerrenoSelect(terreno, meteoByTerrenoId.get(terreno.id) || null);
+            }
+            if (!isMeteoMode) return;
+            infoWindows.forEach((iw) => iw.close());
+            const row = meteoByTerrenoId.get(terreno.id);
+            const infoContent = `
+                <div class="mappa-info-window">
+                    <h3>${escapeHtml(terreno.nome)}</h3>
+                    ${terreno.podere ? `<p><strong>Podere:</strong> ${escapeHtml(terreno.podere)}</p>` : ''}
+                    ${terreno.coltura ? `<p><strong>Coltura:</strong> ${escapeHtml(terreno.coltura)}</p>` : ''}
+                    ${buildMeteoInfoSnippet(row)}
+                    <p style="margin-top:8px;font-size:12px;color:#0277bd;">Dettaglio nel pannello a destra →</p>
+                </div>`;
+            if (!meteoClickInfoWindow) {
+                meteoClickInfoWindow = new google.maps.InfoWindow();
+            }
+            meteoClickInfoWindow.setContent(infoContent);
+            meteoClickInfoWindow.setPosition(event && event.latLng ? event.latLng : bounds.getCenter());
+            meteoClickInfoWindow.open(map);
+        }
 
         terreni.forEach((terreno) => {
-            const coords = terreno.polygonCoords.map(c => 
-                new google.maps.LatLng(c.lat, c.lng)
-            );
+            const hasPoly =
+                terreno.polygonCoords &&
+                Array.isArray(terreno.polygonCoords) &&
+                terreno.polygonCoords.length >= 3;
+
+            if (!hasPoly) {
+                if (!isMeteoMode || !terreno.coordinate) return;
+                const pos = new google.maps.LatLng(terreno.coordinate.lat, terreno.coordinate.lng);
+                const marker = new google.maps.Marker({
+                    position: pos,
+                    map,
+                    title: terreno.nome,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 8,
+                        fillColor: '#ffffff',
+                        fillOpacity: 1,
+                        strokeColor: '#0288D1',
+                        strokeWeight: 2,
+                    },
+                });
+                terrenoMarkersMap.set(terreno.id, marker);
+                marker.addListener('click', (event) => handleTerrenoPick(terreno, event));
+                return;
+            }
+
+            const coords = terreno.polygonCoords.map((c) => new google.maps.LatLng(c.lat, c.lng));
 
             const colturaNome = terreno.coltura || null;
             const colturaCategoria = terreno.colturaCategoria || null;
@@ -515,7 +618,6 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
             const fillColor = colorData.fill + '80';
             const strokeColor = colorData.stroke;
 
-            // Crea poligono
             const polygon = new google.maps.Polygon({
                 paths: coords,
                 strokeColor: strokeColor,
@@ -530,15 +632,32 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                     superficie: terreno.superficie,
                     coltura: colturaNome || 'Default',
                     podere: terreno.podere,
-                    note: terreno.note
-                }
+                    note: terreno.note,
+                },
             });
+            polygon.__gfvDefaultStyle = {
+                strokeColor,
+                strokeWeight: 3,
+                fillOpacity: 0.35,
+            };
 
             polygons.push(polygon);
             terrenoPolygonsMap.set(terreno.id, polygon);
 
-            // Crea info window
-            const infoContent = `
+            const terreniHref = isMeteoMode
+                ? '../../../core/terreni-standalone.html'
+                : 'terreni-standalone.html';
+            const row = meteoByTerrenoId.get(terreno.id);
+            const infoContent = isMeteoMode
+                ? `
+                <div class="mappa-info-window">
+                    <h3>${escapeHtml(terreno.nome)}</h3>
+                    ${terreno.podere ? `<p><strong>Podere:</strong> ${escapeHtml(terreno.podere)}</p>` : ''}
+                    ${terreno.coltura ? `<p><strong>Coltura:</strong> ${escapeHtml(terreno.coltura)}</p>` : ''}
+                    ${buildMeteoInfoSnippet(row)}
+                    <p style="margin-top:8px;font-size:12px;color:#0277bd;">Clicca per il dettaglio previsioni</p>
+                </div>`
+                : `
                 <div class="mappa-info-window">
                     <h3>${escapeHtml(terreno.nome)}</h3>
                     ${terreno.podere ? `<p><strong>Podere:</strong> ${escapeHtml(terreno.podere)}</p>` : ''}
@@ -546,26 +665,30 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                     ${terreno.superficie ? `<p><strong>Superficie:</strong> ${terreno.superficie.toFixed(2)} ha</p>` : ''}
                     ${terreno.note ? `<p><strong>Note:</strong> ${escapeHtml(terreno.note)}</p>` : ''}
                     <p style="margin-top: 10px;">
-                        <a href="terreni-standalone.html" style="color: #2E8B57; text-decoration: underline; font-size: 12px;">
+                        <a href="${terreniHref}" style="color: #2E8B57; text-decoration: underline; font-size: 12px;">
                             Vedi dettagli →
                         </a>
                     </p>
-                </div>
-            `;
+                </div>`;
 
-            const infoWindow = new google.maps.InfoWindow({
-                content: infoContent
-            });
-
+            const infoWindow = new google.maps.InfoWindow({ content: infoContent });
             infoWindows.push(infoWindow);
 
-            // Click sul poligono per aprire info window
-            polygon.addListener('click', function(event) {
-                infoWindows.forEach(iw => iw.close());
-                infoWindow.setPosition(event.latLng);
-                infoWindow.open(map);
+            polygon.addListener('click', function (event) {
+                if (isMeteoMode) {
+                    handleTerrenoPick(terreno, event);
+                } else {
+                    infoWindows.forEach((iw) => iw.close());
+                    infoWindow.setPosition(event.latLng);
+                    infoWindow.open(map);
+                }
             });
         });
+
+        if (isMeteoMode && selectedTerrenoId) {
+            const t = terreni.find((x) => x.id === selectedTerrenoId);
+            if (t) handleTerrenoPick(t, null);
+        }
 
         // Carica e disegna zone lavorate (overlay lavori attivi) - SOLO se Manodopera è attivo
         let overlayLavoriVisible = false;
@@ -578,12 +701,12 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
         const lavoroMarkersInfoWindows = [];
         
         // Carica zone lavorate - SOLO se Manodopera è attivo
-        if (hasManodopera) {
+        if (effectiveHasManodopera) {
             await loadAndDrawZoneLavorate();
         }
 
         // Carica indicatori lavori - SOLO se Manodopera è attivo
-        if (hasManodopera) {
+        if (effectiveHasManodopera) {
             await loadAndDrawIndicatoriLavori();
         }
 

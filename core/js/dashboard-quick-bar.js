@@ -27,7 +27,8 @@ export const QUICK_BAR_SECTION_ORDER = [
     { id: 'vigneto', label: 'Vigneto', dashboardRouteId: 'vigneto' },
     { id: 'frutteto', label: 'Frutteto', dashboardRouteId: 'frutteto' },
     { id: 'magazzino', label: 'Magazzino', dashboardRouteId: 'magazzino' },
-    { id: 'report', label: 'Report', dashboardRouteId: 'report' }
+    { id: 'report', label: 'Report', dashboardRouteId: 'report' },
+    { id: 'meteo', label: 'Meteo', dashboardRouteId: 'meteo' }
 ];
 
 /** Catalogo voci: solo percorsi mappati qui (sicurezza). Icone come hub/tile dashboard e card dei moduli. */
@@ -534,6 +535,15 @@ export const QUICK_BAR_CATALOG = {
         modules: ['report'],
         requireManodopera: false,
         section: 'report'
+    },
+    meteo: {
+        label: 'Meteo',
+        desc: 'Previsioni sede e terreni',
+        icon: '🌦️',
+        href: '../modules/meteo/views/meteo-dashboard-standalone.html',
+        modules: ['meteo'],
+        requireManodopera: false,
+        section: 'meteo'
     },
     reportTerreni: {
         label: 'Report terreni',

@@ -23,7 +23,8 @@ const MODULE_CATALOG = {
     frutteto: { label: 'Frutteto', href: '../modules/frutteto/views/frutteto-dashboard-standalone.html', icon: '🍎' },
     magazzino: { label: 'Magazzino', href: '../modules/magazzino/views/magazzino-home-standalone.html', icon: '📦' },
     parcoMacchine: { label: 'Parco Macchine', href: '../modules/macchine/views/macchine-dashboard-standalone.html', icon: '🚜' },
-    report: { label: 'Report', href: '../modules/report/views/report-dashboard-standalone.html', icon: '📑' }
+    report: { label: 'Report', href: '../modules/report/views/report-dashboard-standalone.html', icon: '📑' },
+    meteo: { label: 'Meteo', href: '../modules/meteo/views/meteo-dashboard-standalone.html', icon: '🌦️' }
 };
 
 function pinsStorageKey(uid) {
@@ -297,7 +298,7 @@ export async function initDashboardPanoramaHub(options) {
             if (oreDaValidare > 0) {
                 items.push({
                     sev: 2,
-                    text: `${oreDaValidare} registrazioni ore da validare (lavori autonomi).`,
+                    text: `${oreDaValidare} registrazioni ore da validare (operai autonomi e caposquadra).`,
                     href: 'admin/validazione-ore-standalone.html',
                     mod: 'statistiche'
                 });

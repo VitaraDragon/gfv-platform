@@ -441,6 +441,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
         if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
         if (mods.includes('report')) appendCard(S.createReportCard());
+        if (mods.includes('meteo')) appendCard(S.createMeteoCard());
     } else {
         appendCard(S.createTerreniCard());
         appendCard(S.createDiarioAttivitaCard());
@@ -452,6 +453,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
         if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
         if (mods.includes('report')) appendCard(S.createReportCard());
+        if (mods.includes('meteo')) appendCard(S.createMeteoCard());
     }
 
     aside.appendChild(nav);
@@ -501,6 +503,25 @@ window.GFVDashboardSections.createDashboardQuickBarSection = function createDash
         </div>
     `;
 
+    return section;
+};
+
+/**
+ * Widget meteo base (sede aziendale, piano Base+).
+ */
+window.GFVDashboardSections.createDashboardMeteoSection = function createDashboardMeteoSection() {
+    const section = document.createElement('section');
+    section.id = 'dashboard-meteo-widget';
+    section.className = 'dashboard-section dashboard-meteo-widget';
+    section.setAttribute('data-tour-section', 'meteo');
+    section.setAttribute('aria-label', 'Meteo sede aziendale');
+    section.hidden = true;
+    section.innerHTML = `
+        <h2><span class="section-icon" aria-hidden="true">🌤</span> Meteo sede</h2>
+        <div class="dashboard-meteo__content">
+            <p class="dashboard-meteo__message">Caricamento meteo…</p>
+        </div>
+    `;
     return section;
 };
 
@@ -661,6 +682,26 @@ window.GFVDashboardSections.createMacchineCard = function createMacchineCard() {
     tonyGuastiAnchor.setAttribute('aria-hidden', 'true');
     tonyGuastiAnchor.className = 'dashboard-tony-briefing-anchor';
     section.appendChild(tonyGuastiAnchor);
+
+    return section;
+};
+
+/**
+ * Card Meteo — tile modulo pay-per-use
+ */
+window.GFVDashboardSections.createMeteoCard = function createMeteoCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section dashboard-section--module-tile';
+
+    section.innerHTML = `
+        <a href="../modules/meteo/views/meteo-dashboard-standalone.html" class="dashboard-module-tile" data-module="meteo" style="--module-accent:#0288D1;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🌦️</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Meteo</span>
+                <span class="dashboard-module-tile__desc">Previsioni per sede e terreni, alert e ore successive.</span>
+            </span>
+        </a>
+    `;
 
     return section;
 };

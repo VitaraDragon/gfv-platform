@@ -6,9 +6,25 @@
 
 import { query, where } from '../services/firebase-service.js';
 import {
+    confermeIncludesUser,
+    isComunicazioneAttivaPerData,
+    formatComunicazioneLuogo,
+    formatComunicazioneTesto,
+    comunicazioneVisibilePerOperaio,
+    primaryManodoperaUserId
+} from '../services/comunicazioni-squadra-utils.js';
+import {
+    fetchLavoriDocumentsForFieldUser,
+    isLavoroVisibileOperaioCampo,
+    parseLavoroDataInizio,
+    resolveCaposquadraIdsForOperaio,
+    resolveSegnaturaOreRoleFlags
+} from '../services/manodopera-lavori-scope.js';
+import {
     formatDateLikeToItalianLongLocal,
     formatDateLikeToItalianLongWeekday
 } from './date-format-it.js';
+import { contaOreManagerDaValidareSuLavoro, isOraDelCaposquadraSuLavoroSquadra } from '../services/manodopera-ore-validazione-scope.js';
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -640,7 +656,7 @@ export async function loadManagerManodoperaStats(dependencies) {
         if (statSquadre) statSquadre.textContent = squadreAttive;
         if (statOperai) statOperai.textContent = operaiOnline;
         
-        // 5. Carica ore da validare (solo lavori autonomi per manager)
+        // 5. Ore da validare manager: lavori autonomi + ore caposquadra su lavori di squadra
         await loadOreDaValidareManager(tenantId, dependencies);
     } catch (error) {
         console.error('Errore caricamento statistiche Manodopera:', error);
@@ -648,7 +664,7 @@ export async function loadManagerManodoperaStats(dependencies) {
 }
 
 /**
- * Carica e aggiorna contatore ore da validare per manager (lavori autonomi)
+ * Carica e aggiorna contatore ore da validare per manager
  * @param {string} tenantId - ID tenant
  * @param {Object} dependencies - Dipendenze Firebase
  */
@@ -666,7 +682,7 @@ async function loadOreDaValidareManager(tenantId, dependencies) {
 }
 
 /**
- * Conta record ore con stato da_validare su lavori autonomi (manager).
+ * Conta ore da_validare per manager (lavori autonomi + ore caposquadra su squadra).
  * @param {string} tenantId
  * @param {Object} dependencies
  * @returns {Promise<number>}
@@ -684,15 +700,16 @@ export async function countOreDaValidareManager(tenantId, dependencies) {
             const lavoroData = lavoroDoc.data();
             const lavoroId = lavoroDoc.id;
 
-            if (lavoroData.operaioId && !lavoroData.caposquadraId) {
-                try {
-                    const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
-                    const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
-                    const oreSnapshot = await getDocs(oreQuery);
-                    conteggioOreDaValidare += oreSnapshot.size;
-                } catch (error) {
-                    console.warn(`Errore caricamento ore da validare per lavoro ${lavoroId}:`, error);
-                }
+            try {
+                const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
+                const oreSnapshot = await getDocs(oreQuery);
+                conteggioOreDaValidare += contaOreManagerDaValidareSuLavoro(
+                    lavoroData,
+                    oreSnapshot.docs
+                );
+            } catch (error) {
+                console.warn(`Errore caricamento ore da validare per lavoro ${lavoroId}:`, error);
             }
         }
         return conteggioOreDaValidare;
@@ -1076,24 +1093,28 @@ export async function loadCaposquadraStats(userData, dependencies) {
         const lavoriSnapshot = await getDocs(lavoriQuery);
         
         let lavoriAssegnati = 0;
-        const lavoriIds = [];
+        const lavoriById = new Map();
         
-        lavoriSnapshot.forEach(doc => {
-            const lavoro = doc.data();
+        lavoriSnapshot.forEach((lavoroDoc) => {
+            const lavoro = lavoroDoc.data();
+            lavoriById.set(lavoroDoc.id, lavoro);
             const stato = lavoro.stato || 'assegnato';
             if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
                 lavoriAssegnati++;
             }
-            lavoriIds.push(doc.id);
         });
         
         let oreDaValidare = 0;
-        for (const lavoroId of lavoriIds) {
+        for (const [lavoroId, lavoroData] of lavoriById) {
             try {
                 const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
                 const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
                 const oreSnapshot = await getDocs(oreQuery);
-                oreDaValidare += oreSnapshot.size;
+                oreSnapshot.forEach((oraDoc) => {
+                    const oraData = oraDoc.data();
+                    if (isOraDelCaposquadraSuLavoroSquadra(oraData, lavoroData)) return;
+                    oreDaValidare += 1;
+                });
             } catch (error) {
                 console.warn(`Errore caricamento ore per lavoro ${lavoroId}:`, error);
             }
@@ -1251,9 +1272,12 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
         if (!user || !userData || !userData.tenantId) return;
         
         const comunicazioniCollection = collection(db, `tenants/${userData.tenantId}/comunicazioni`);
-        const oggi = new Date();
-        oggi.setHours(0, 0, 0, 0);
-        
+        const operaioUserId = primaryManodoperaUserId(user, userData);
+        const capoIdsOperaio = await resolveCaposquadraIdsForOperaio(db, userData.tenantId, operaioUserId);
+        const roleFlags = resolveSegnaturaOreRoleFlags(userData);
+        const lavoriOperaio = await fetchLavoriDocumentsForFieldUser(db, userData.tenantId, operaioUserId, roleFlags);
+        const operaioLavoroIds = lavoriOperaio.map((l) => String(l.id));
+
         const q = query(
             comunicazioniCollection,
             where('stato', '==', 'attiva')
@@ -1268,18 +1292,15 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
             const comm = docSnap.data();
             const dataCom = comm.data?.toDate ? comm.data.toDate() : new Date(comm.data);
             
-            const destinatari = comm.destinatari || [];
-            if (destinatari.includes(user.uid)) {
-                if (dataCom >= oggi) {
-                    const haConfermato = comm.conferme?.some(c => c.userId === user.uid) || false;
-                    comunicazioniAttive.push({
-                        id: docSnap.id,
-                        ...comm,
-                        dataCom: dataCom,
-                        haConfermato: haConfermato
-                    });
-                }
-            }
+            if (!comunicazioneVisibilePerOperaio(comm, user, userData, capoIdsOperaio, operaioLavoroIds)) return;
+            if (!isComunicazioneAttivaPerData(dataCom)) return;
+
+            comunicazioniAttive.push({
+                id: docSnap.id,
+                ...comm,
+                dataCom: dataCom,
+                haConfermato: confermeIncludesUser(comm.conferme, user, userData)
+            });
         });
         
         comunicazioniAttive.sort((a, b) => a.dataCom - b.dataCom);
@@ -1296,6 +1317,8 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
         container.innerHTML = comunicazioniAttive.map(comm => {
             const dataFormatted = formatDateLikeToItalianLongWeekday(comm.dataCom);
             const oraFormatted = comm.orario || '07:00';
+            const luogoLabel = formatComunicazioneLuogo(comm);
+            const testoBody = formatComunicazioneTesto(comm);
             
             const confermaButton = comm.haConfermato ? 
                 '<button class="btn btn-success" disabled style="background: #28a745; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: not-allowed;">✅ Confermato</button>' :
@@ -1309,7 +1332,7 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                         <div style="flex: 1;">
                             <div style="font-size: 18px; font-weight: 600; color: #2E8B57; margin-bottom: 8px;">
-                                📍 ${escapeHtml(comm.podere)} - ${escapeHtml(comm.terreno)}
+                                📍 ${escapeHtml(luogoLabel)}
                             </div>
                             <div style="font-size: 14px; color: #666; margin-bottom: 5px;">
                                 📅 <strong>${dataFormatted}</strong> alle <strong>${oraFormatted}</strong>
@@ -1317,7 +1340,7 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
                             <div style="font-size: 13px; color: #999; margin-top: 5px;">
                                 Da: ${escapeHtml(comm.caposquadraNome || 'Caposquadra')}
                             </div>
-                            ${comm.note ? `<div style="font-size: 13px; color: #666; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">${escapeHtml(comm.note)}</div>` : ''}
+                            ${testoBody ? `<div style="font-size: 13px; color: #666; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">${escapeHtml(testoBody)}</div>` : ''}
                         </div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid #e9ecef;">
@@ -1354,95 +1377,35 @@ export async function loadLavoriOggiOperaio(userData, dependencies) {
         
         const operaioId = userData.id || user.uid;
         const tenantId = userData.tenantId;
-        
+        const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
+
         const terreniRef = collection(db, `tenants/${tenantId}/terreni`);
         const terreniSnapshot = await getDocs(terreniRef);
         const terreniMap = new Map();
         terreniSnapshot.forEach(doc => {
             terreniMap.set(doc.id, doc.data());
         });
-        
-        const lavoriRef = collection(db, `tenants/${tenantId}/lavori`);
-        const lavoriSnapshot = await getDocs(lavoriRef);
-        
-        const oggi = new Date();
-        oggi.setHours(0, 0, 0, 0);
-        
+
+        const fetched = await fetchLavoriDocumentsForFieldUser(db, tenantId, operaioId, {
+            isCaposquadra: false,
+            isOperaio: true
+        });
+
         const lavoriOggi = [];
-        const lavoriIdsSet = new Set();
-        
-        // LAVORI DIRETTI
-        lavoriSnapshot.forEach(doc => {
-            const lavoro = doc.data();
-            if (lavoro.operaioId === operaioId && !lavoro.caposquadraId) {
-                const stato = lavoro.stato || 'assegnato';
-                if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
-                    const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
-                    const dataInizioSenzaOra = new Date(dataInizio);
-                    dataInizioSenzaOra.setHours(0, 0, 0, 0);
-                    
-                    const deveMostrare = (stato === 'assegnato') || (dataInizioSenzaOra <= oggi);
-                    
-                    if (deveMostrare) {
-                        const terreno = lavoro.terrenoId ? terreniMap.get(lavoro.terrenoId) : null;
-                        const terrenoNome = terreno ? terreno.nome : null;
-                        
-                        lavoriOggi.push({
-                            id: doc.id,
-                            ...lavoro,
-                            dataInizio: dataInizio,
-                            tipoAssegnazione: 'autonomo',
-                            terreno: terrenoNome
-                        });
-                        lavoriIdsSet.add(doc.id);
-                    }
-                }
-            }
-        });
-        
-        // LAVORI DI SQUADRA
-        const squadreRef = collection(db, `tenants/${tenantId}/squadre`);
-        const squadreSnapshot = await getDocs(squadreRef);
-        
-        let caposquadraId = null;
-        squadreSnapshot.forEach(doc => {
-            const squadra = doc.data();
-            if (squadra.operai && squadra.operai.includes(operaioId)) {
-                caposquadraId = squadra.caposquadraId;
-            }
-        });
-        
-        if (caposquadraId) {
-            lavoriSnapshot.forEach(doc => {
-                if (lavoriIdsSet.has(doc.id)) return;
-                
-                const lavoro = doc.data();
-                if (lavoro.caposquadraId === caposquadraId && !lavoro.operaioId) {
-                    const stato = lavoro.stato || 'assegnato';
-                    if (stato !== 'completato' && stato !== 'annullato' && stato !== 'completato_da_approvare') {
-                        const dataInizio = lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
-                        const dataInizioSenzaOra = new Date(dataInizio);
-                        dataInizioSenzaOra.setHours(0, 0, 0, 0);
-                        
-                        const deveMostrare = (stato === 'assegnato') || (dataInizioSenzaOra <= oggi);
-                        
-                        if (deveMostrare) {
-                            const terreno = lavoro.terrenoId ? terreniMap.get(lavoro.terrenoId) : null;
-                            const terrenoNome = terreno ? terreno.nome : null;
-                            
-                            lavoriOggi.push({
-                                id: doc.id,
-                                ...lavoro,
-                                dataInizio: dataInizio,
-                                tipoAssegnazione: 'squadra',
-                                terreno: terrenoNome
-                            });
-                            lavoriIdsSet.add(doc.id);
-                        }
-                    }
-                }
+        fetched.forEach((lav) => {
+            if (!isLavoroVisibileOperaioCampo(lav, oggi)) return;
+            const dataInizio = parseLavoroDataInizio(lav.dataInizio) || new Date();
+            const terreno = lav.terrenoId ? terreniMap.get(lav.terrenoId) : null;
+            const tipoAssegnazione = lav.caposquadraId && !lav.operaioId ? 'squadra' : 'autonomo';
+            lavoriOggi.push({
+                id: lav.id,
+                ...lav,
+                dataInizio,
+                tipoAssegnazione,
+                terreno: terreno ? terreno.nome : null
             });
-        }
+        });
         
         lavoriOggi.sort((a, b) => {
             const dateA = a.dataInizio instanceof Date ? a.dataInizio : new Date(a.dataInizio);
