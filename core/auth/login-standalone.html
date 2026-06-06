@@ -623,7 +623,7 @@
                 }
 
                 // Carica tenant disponibili per l'utente
-                const { getUserTenants } = await import('../services/tenant-service.js');
+                const { getUserTenants, getCurrentTenantId, setCurrentTenantId } = await import('../services/tenant-service.js');
                 const tenants = await getUserTenants(user.uid);
                 
                 // Se più tenant, mostra selettore
@@ -640,6 +640,9 @@
                             // Salva l'utente previsto per questa scheda
                             sessionStorage.setItem('gfv_expected_user_id', user.uid);
                             sessionStorage.removeItem('gfv_user_just_registered');
+
+                            const { startDashboardPrefetchFromLogin } = await import('../js/dashboard-login-prefetch.js');
+                            startDashboardPrefetchFromLogin(db, tenantId);
                             
                             // Redirect a dashboard
                             window.location.href = '../dashboard-standalone.html';
@@ -660,6 +663,14 @@
                     // Salva l'utente previsto per questa scheda
                     sessionStorage.setItem('gfv_expected_user_id', user.uid);
                     sessionStorage.removeItem('gfv_user_just_registered');
+
+                    const tid =
+                        getCurrentTenantId() ||
+                        (userData.tenantId ? String(userData.tenantId) : null) ||
+                        (tenants.length === 1 ? tenants[0].tenantId : null);
+                    if (tid) setCurrentTenantId(tid);
+                    const { startDashboardPrefetchFromLogin } = await import('../js/dashboard-login-prefetch.js');
+                    startDashboardPrefetchFromLogin(db, tid);
                     
                     // Redirect a dashboard dopo breve delay
                     setTimeout(() => {

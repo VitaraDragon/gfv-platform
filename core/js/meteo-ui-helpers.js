@@ -3,6 +3,8 @@
  * @module core/js/meteo-ui-helpers
  */
 
+import { localizeMeteoAlert, localizeMeteoAlerts } from '../config/meteo-alert-i18n.js';
+
 export function escapeMeteoHtml(text) {
   if (text == null) return '';
   return String(text)
@@ -39,7 +41,7 @@ export function formatMeteoDt(iso, { timeOnly = false } = {}) {
  */
 export function renderAlertsBanner(meteo, opts = {}) {
   const prefix = opts.cssPrefix || 'meteo';
-  const alerts = meteo && Array.isArray(meteo.alerts) ? meteo.alerts : [];
+  const alerts = localizeMeteoAlerts(meteo && Array.isArray(meteo.alerts) ? meteo.alerts : []);
   if (!alerts.length) return '';
 
   const esc = escapeMeteoHtml;
@@ -61,20 +63,30 @@ export function renderAlertsBanner(meteo, opts = {}) {
 }
 
 /**
+ * True se nei prossimi 60 min è prevista precipitazione (minutely One Call).
+ * @param {object|null|undefined} meteo
+ */
+export function hasMinutelyRainExpected(meteo) {
+  if (!meteo) return false;
+  const summary = meteo.minutelySummary || {};
+  if (summary.hasRainSoon) return true;
+  const minutely = Array.isArray(meteo.minutely) ? meteo.minutely : [];
+  return minutely.some((m) => (m.precipitation || 0) > 0);
+}
+
+/**
  * Strip/barra pioggia prossimi 60 min (campo minutely One Call).
+ * Restituisce stringa vuota se non è prevista pioggia nell'ora successiva.
  * @param {object|null|undefined} meteo
  * @param {{ cssPrefix?: string }} [opts]
  */
 export function renderMinutelyPrecipStrip(meteo, opts = {}) {
+  if (!hasMinutelyRainExpected(meteo)) return '';
+
   const prefix = opts.cssPrefix || 'meteo';
   const esc = escapeMeteoHtml;
   const minutely = meteo && Array.isArray(meteo.minutely) ? meteo.minutely : [];
-  if (!minutely.length) {
-    return `<section class="${prefix}-minutely" aria-label="Pioggia prossima ora">
-      <h3 class="${prefix}-sub">Pioggia prossima ora</h3>
-      <p class="${prefix}-muted">Dati minuto per minuto non disponibili.</p>
-    </section>`;
-  }
+  if (!minutely.length) return '';
 
   const summary = meteo.minutelySummary || {};
   const maxP =
@@ -99,9 +111,7 @@ export function renderMinutelyPrecipStrip(meteo, opts = {}) {
     })
     .join('');
 
-  const summaryLine = summary.hasRainSoon
-    ? `Pioggia prevista nei prossimi 60 min (max ${maxP} mm/h, ${summary.minutesWithRain || '—'} min con precipitazioni).`
-    : 'Nessuna pioggia prevista nell’ora successiva su questo punto.';
+  const summaryLine = `Pioggia prevista nei prossimi 60 min (max ${maxP} mm/h, ${summary.minutesWithRain || '—'} min con precipitazioni).`;
 
   return `<section class="${prefix}-minutely" aria-label="Pioggia prossima ora">
     <h3 class="${prefix}-sub">Pioggia prossima ora</h3>
@@ -294,6 +304,7 @@ export function compactSedeMeteoFromFetch(meteo) {
   const tomorrow = meteo.tomorrow || {};
   const alerts = Array.isArray(meteo.alerts) ? meteo.alerts : [];
   const ms = meteo.minutelySummary || {};
+  const previsioniGiornaliere = compactDailyExtendedForContext(meteo.dailyExtended, { slim: true });
   return {
     label: (meteo.location && meteo.location.label) || 'Sede aziendale',
     temp: c.temp != null ? c.temp : null,
@@ -304,18 +315,30 @@ export function compactSedeMeteoFromFetch(meteo) {
       tempMin: today.tempMin,
       tempMax: today.tempMax,
       pop: today.pop,
+      rainMm:
+        today.rainMm != null
+          ? today.rainMm
+          : previsioniGiornaliere[0] && previsioniGiornaliere[0].rainMm != null
+            ? previsioniGiornaliere[0].rainMm
+            : null,
     },
     tomorrow: {
       tempMin: tomorrow.tempMin,
       tempMax: tomorrow.tempMax,
       pop: tomorrow.pop,
       description: tomorrow.description || '',
+      rainMm:
+        tomorrow.rainMm != null
+          ? tomorrow.rainMm
+          : previsioniGiornaliere[1] && previsioniGiornaliere[1].rainMm != null
+            ? previsioniGiornaliere[1].rainMm
+            : null,
     },
     updatedAt: meteo.updatedAt || null,
     alertsCount: alerts.length,
-    alertBreve: alerts[0] ? alerts[0].event || null : null,
+    alertBreve: alerts[0] ? localizeMeteoAlert(alerts[0]).event || null : null,
     hasRainSoon: !!ms.hasRainSoon,
-    previsioniGiornaliere: compactDailyExtendedForContext(meteo.dailyExtended, { slim: true }),
+    previsioniGiornaliere,
   };
 }
 
@@ -367,7 +390,7 @@ export function showCondizioniMeteoSuggestHint(selectEl, suggestedValue) {
 export function renderAlertsList(meteo, opts = {}) {
   const prefix = opts.cssPrefix || 'meteo';
   const esc = escapeMeteoHtml;
-  const alerts = meteo && Array.isArray(meteo.alerts) ? meteo.alerts : [];
+  const alerts = localizeMeteoAlerts(meteo && Array.isArray(meteo.alerts) ? meteo.alerts : []);
   if (!alerts.length) {
     return `<p class="${prefix}-muted">Nessun alert meteo attivo per questa zona.</p>`;
   }

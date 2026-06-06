@@ -15,7 +15,8 @@
     "setup:hooks": "git config core.hooksPath .githooks",
     "guida:impact": "node scripts/guida-impact.mjs",
     "guida:suggest": "node scripts/guida-suggest-prompt.mjs",
-    "tony:perf-review": "node scripts/tony-perf-log-review.mjs"
+    "tony:perf-review": "node scripts/tony-perf-log-review.mjs",
+    "dashboard:perf-smoke": "vitest run tests/dashboard-perf-slo.test.js"
   },
   "keywords": [
     "agriculture",

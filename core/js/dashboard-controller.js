@@ -4,6 +4,8 @@
  * @module core/js/dashboard-controller
  */
 
+import { dashboardPerfAsync } from './dashboard-perf.js';
+
 // ============================================
 // IMPORTS
 // ============================================
@@ -103,22 +105,15 @@ export async function renderDashboard(userData, availableModules = [], callbacks
             layout.className = 'dashboard-panorama-layout';
             layout.setAttribute('data-tour-section', 'panoramica');
 
-            let sottoScortaCount = 0;
-            if (availableModules && availableModules.includes('magazzino')) {
-                sottoScortaCount =
-                    (callbacks.loadMagazzinoSottoScortaCount &&
-                        (await callbacks.loadMagazzinoSottoScortaCount(dependencies))) ||
-                    0;
-            }
-
-            const sidebar = createDashboardModuleSidebar({
+            const moduleMenu = createDashboardModuleSidebar({
                 variant: 'core',
                 availableModules,
-                sottoScortaMagazzino: sottoScortaCount
+                sottoScortaMagazzino: 0
             });
 
             const main = document.createElement('div');
             main.className = 'dashboard-panorama-main';
+            main.appendChild(moduleMenu);
             if (createDashboardMeteoSection) {
                 main.appendChild(createDashboardMeteoSection());
             }
@@ -126,7 +121,6 @@ export async function renderDashboard(userData, availableModules = [], callbacks
             main.appendChild(createDashboardQuickBarSection());
             main.appendChild(createDashboardDeadlinesRow());
 
-            layout.appendChild(sidebar);
             layout.appendChild(main);
             container.appendChild(layout);
         } else {
@@ -145,22 +139,15 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         layout.className = 'dashboard-panorama-layout';
         layout.setAttribute('data-tour-section', 'panoramica');
 
-        let sottoScortaCount = 0;
-        if (availableModules && availableModules.includes('magazzino')) {
-            sottoScortaCount =
-                (callbacks.loadMagazzinoSottoScortaCount &&
-                    (await callbacks.loadMagazzinoSottoScortaCount(dependencies))) ||
-                0;
-        }
-
-        const sidebar = createDashboardModuleSidebar({
+        const moduleMenu = createDashboardModuleSidebar({
             variant: 'manodopera',
             availableModules,
-            sottoScortaMagazzino: sottoScortaCount
+            sottoScortaMagazzino: 0
         });
 
         const main = document.createElement('div');
         main.className = 'dashboard-panorama-main';
+        main.appendChild(moduleMenu);
         if (createDashboardMeteoSection) {
             main.appendChild(createDashboardMeteoSection());
         }
@@ -168,7 +155,6 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         main.appendChild(createDashboardQuickBarSection());
         main.appendChild(createDashboardDeadlinesRow());
 
-        layout.appendChild(sidebar);
         layout.appendChild(main);
         container.appendChild(layout);
     }
@@ -210,8 +196,7 @@ export async function renderDashboard(userData, availableModules = [], callbacks
 
                 const hasMagazzino = availableModules && availableModules.includes('magazzino');
                 if (hasMagazzino) {
-                    const sottoScortaCount = (callbacks.loadMagazzinoSottoScortaCount && await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0;
-                    container.appendChild(createMagazzinoCard(sottoScortaCount));
+                    container.appendChild(createMagazzinoCard(0));
                 }
 
                 const hasMacchine = availableModules && availableModules.includes('parcoMacchine');

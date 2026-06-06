@@ -510,6 +510,23 @@ export async function switchTenant(tenantId) {
   
   // Pulisci cache tenant
   tenantCache = null;
+
+  try {
+    const { invalidateDashboardCountsSnapshot, clearDashboardCountsPrefetch } = await import(
+      '../js/dashboard-counts-snapshot.js'
+    );
+    invalidateDashboardCountsSnapshot();
+    clearDashboardCountsPrefetch();
+  } catch (_) {
+    /* dashboard module optional */
+  }
+
+  try {
+    const { clearMeteoSedeLocalCache } = await import('./meteo-service.js');
+    clearMeteoSedeLocalCache();
+  } catch (_) {
+    /* ignore */
+  }
   
   return true;
 }

@@ -3,17 +3,12 @@
  * @module core/js/dashboard-meteo-briefing
  */
 
-import { getCollectionData } from '../services/firebase-service.js';
 import { fetchMeteoTerreniCached } from '../services/meteo-service.js';
 import {
-  DEFAULT_TONY_METEO_RULES,
-  buildMeteoConsigli,
+  buildMeteoProactiveBriefingConsigli,
   formatMeteoConsigliProactive,
 } from '../config/tony-meteo-rules.js';
-import {
-  compactSedeMeteoFromFetch,
-  compactTerrenoMeteoRowFromFetch,
-} from './meteo-ui-helpers.js';
+import { compactSedeMeteoFromFetch } from './meteo-ui-helpers.js';
 
 const METEO_MODULE_ID = 'meteo';
 const TONY_MODULE_ID = 'tony';
@@ -35,20 +30,13 @@ function compactSedeFromTerreniResponse(sedeResult) {
 export async function loadTonyMeteoBriefingData(tenantId) {
   if (!tenantId) return null;
 
-  const [meteoRes, lavoriDocs] = await Promise.all([
-    fetchMeteoTerreniCached(tenantId),
-    getCollectionData('lavori', { tenantId, limit: 120 }).catch(() => []),
-  ]);
+  const meteoRes = await fetchMeteoTerreniCached(tenantId);
 
   if (!meteoRes || !meteoRes.ok) return null;
 
-  const terreniRows = (meteoRes.terreni || [])
-    .map(compactTerrenoMeteoRowFromFetch)
-    .filter(Boolean);
   const sede = compactSedeFromTerreniResponse(meteoRes.sede);
-  const lavori = Array.isArray(lavoriDocs) ? lavoriDocs : [];
 
-  const consigli = buildMeteoConsigli(DEFAULT_TONY_METEO_RULES, terreniRows, lavori, sede);
+  const consigli = buildMeteoProactiveBriefingConsigli(sede);
   if (!consigli.length) return null;
 
   const proactiveText = formatMeteoConsigliProactive(consigli);

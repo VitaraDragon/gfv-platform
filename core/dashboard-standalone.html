@@ -161,6 +161,16 @@
         } from './js/dashboard-meteo-briefing.js';
         import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
         import { initDashboardQuickBar } from './js/dashboard-quick-bar.js';
+        import {
+            dashboardPerfBegin,
+            dashboardPerfAsync,
+            dashboardPerfSummary
+        } from './js/dashboard-perf.js';
+        import {
+            loadDashboardCountsSnapshot,
+            applyDashboardCountsToDom,
+            getDashboardCountsSnapshot
+        } from './js/dashboard-counts-snapshot.js';
         import { 
             loadAmministrazioneStats as loadAmministrazioneStatsModule,
             loadAdminStats as loadAdminStatsModule,
@@ -545,7 +555,7 @@
          * Solo per manager/amministratore (promemoria operativi d'azienda).
          * Imposta window.tonyGlobalBriefing e Tony.setContext('globalStatus', ...).
          */
-        async function checkGlobalStatus(tenantId, ruoliNormalizzati, availableModules) {
+        async function checkGlobalStatus(tenantId, ruoliNormalizzati, availableModules, countsSnapshot) {
             if (!tenantId) return;
             if (!tonyGlobalBriefingRoles(ruoliNormalizzati)) {
                 return;
@@ -554,6 +564,7 @@
                 const mods = Array.isArray(availableModules) ? availableModules : [];
                 const hasMagazzino = mods.includes('magazzino');
                 const hasParcoMacchine = mods.includes('parcoMacchine');
+                const snap = countsSnapshot || getDashboardCountsSnapshot();
                 const meteoBriefingPromise =
                     tonyMeteoBriefingAllowed(mods, ruoliNormalizzati)
                         ? loadTonyMeteoBriefingData(tenantId).catch(function(e) {
@@ -562,15 +573,9 @@
                         })
                         : Promise.resolve(null);
 
-                const sottoScorta = hasMagazzino && callbacks.loadMagazzinoSottoScortaCount
-                    ? (await callbacks.loadMagazzinoSottoScortaCount(dependencies)) || 0
-                    : 0;
-                const scadenzeUrgenti = hasParcoMacchine && callbacks.loadScadenzeUrgentiCount
-                    ? (await callbacks.loadScadenzeUrgentiCount(tenantId, dependencies)) || 0
-                    : 0;
-                const guastiAperti = hasParcoMacchine && callbacks.loadGuastiApertiCount
-                    ? (await callbacks.loadGuastiApertiCount(tenantId, dependencies)) || 0
-                    : 0;
+                const sottoScorta = hasMagazzino && snap ? snap.sottoScorta || 0 : 0;
+                const scadenzeUrgenti = hasParcoMacchine && snap ? snap.scadenzeUrgenti || 0 : 0;
+                const guastiAperti = hasParcoMacchine && snap ? snap.guastiAperti || 0 : 0;
                 const meteoBriefing = await meteoBriefingPromise;
 
                 window.tonyMeteoBriefing = meteoBriefing || null;
@@ -649,48 +654,120 @@
 
         // Renderizza dashboard in base ai ruoli e moduli (usa modulo)
         async function renderDashboard(userData, availableModules = []) {
-            await renderDashboardModule(userData, availableModules, callbacks, dependencies);
+            const tid = (userData && userData.tenantId) || null;
+            const mods = Array.isArray(availableModules) ? availableModules : [];
+            const hasManodopera = hasManodoperaModule(mods);
+            const hasContoTerzi = mods.includes('contoTerzi');
+            const countsCtx = {
+                availableModules: mods,
+                hasManodopera,
+                hasContoTerzi,
+                hasMeteoModule: mods.includes('meteo')
+            };
+
+            const snapshotPromise = tid
+                ? dashboardPerfAsync('counts.loadSnapshot', () =>
+                    loadDashboardCountsSnapshot(tid, countsCtx, dependencies))
+                : Promise.resolve(null);
+
+            await dashboardPerfAsync('widgets.renderDashboardModule', () =>
+                renderDashboardModule(userData, availableModules, callbacks, dependencies)
+            );
+
             const hub = document.getElementById('dashboard-panorama-hub');
-            if (!hub) return;
+            if (!hub) {
+                dashboardPerfSummary('layout senza hub');
+                return;
+            }
+
+            const countsSnapshot = await snapshotPromise;
+            applyDashboardCountsToDom(countsSnapshot);
+
             try {
                 const user = auth.currentUser;
                 const uid = user && user.uid;
-                const tid = typeof resolveCurrentTenantId === 'function'
-                    ? await resolveCurrentTenantId(userData)
-                    : (userData && userData.tenantId) || null;
-                await initDashboardPanoramaHub({
-                    userId: uid,
-                    tenantId: tid,
-                    hasManodopera: hasManodoperaModule(availableModules),
-                    hasContoTerzi: Array.isArray(availableModules) && availableModules.includes('contoTerzi'),
-                    availableModules: Array.isArray(availableModules) ? availableModules : [],
-                    dependencies
-                });
-                await initDashboardMeteo({
-                    tenantId: tid,
-                    planId: window.__gfvSubscriptionPlanId || 'base',
-                    hasMeteoModule: Array.isArray(availableModules) && availableModules.includes('meteo')
-                });
                 const deadlinesRow = document.querySelector('.dashboard-deadlines-row');
-                if (deadlinesRow && tid) {
-                    await loadDashboardDeadlinesWidgets(dependencies, tid, {
-                        hasManodopera: hasManodoperaModule(availableModules),
-                        hasContoTerzi: Array.isArray(availableModules) && availableModules.includes('contoTerzi'),
-                        availableModules: Array.isArray(availableModules) ? availableModules : []
-                    });
-                }
-                await initDashboardQuickBar({
-                    userId: uid,
-                    tenantId: tid,
-                    hasManodopera: hasManodoperaModule(availableModules),
-                    availableModules: Array.isArray(availableModules) ? availableModules : [],
-                    userRoles: (userData && Array.isArray(userData.ruoli) ? userData.ruoli : [])
-                        .map((r) => String(r || '').trim().toLowerCase())
-                        .filter(Boolean),
-                    dependencies
-                });
+
+                await dashboardPerfAsync('widgets.parallelBatch', () =>
+                    Promise.all([
+                        dashboardPerfAsync('widgets.hub', () => initDashboardPanoramaHub({
+                            userId: uid,
+                            tenantId: tid,
+                            hasManodopera,
+                            hasContoTerzi,
+                            availableModules: mods,
+                            dependencies,
+                            countsSnapshot
+                        })),
+                        dashboardPerfAsync('widgets.meteo', () => initDashboardMeteo({
+                            tenantId: tid,
+                            planId: window.__gfvSubscriptionPlanId || 'base',
+                            hasMeteoModule: mods.includes('meteo'),
+                            hasManodopera,
+                            dependencies,
+                            countsSnapshot
+                        })),
+                        deadlinesRow && tid
+                            ? dashboardPerfAsync('widgets.deadlines', () =>
+                                loadDashboardDeadlinesWidgets(dependencies, tid, {
+                                    hasManodopera,
+                                    hasContoTerzi,
+                                    availableModules: mods,
+                                    countsSnapshot
+                                }))
+                            : Promise.resolve(),
+                        dashboardPerfAsync('widgets.quickBar', () => initDashboardQuickBar({
+                            userId: uid,
+                            tenantId: tid,
+                            hasManodopera,
+                            availableModules: mods,
+                            userRoles: (userData && Array.isArray(userData.ruoli) ? userData.ruoli : [])
+                                .map((r) => String(r || '').trim().toLowerCase())
+                                .filter(Boolean),
+                            dependencies,
+                            countsSnapshot
+                        }))
+                    ])
+                );
             } catch (e) {
-                console.warn('initDashboardPanoramaHub:', e);
+                console.warn('init dashboard widgets:', e);
+            }
+        }
+
+        async function finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user) {
+            updateDocumentationGuideLink(availableModules, userDataNormalized);
+            if (window.Tony && Tony.isReady()) {
+                Tony.setContext('dashboard', {
+                    info_azienda: { moduli_attivi: availableModules },
+                    utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
+                    moduli_attivi: availableModules,
+                    plan: window.__gfvSubscriptionPlanId || 'base',
+                    piano: window.__gfvSubscriptionPlanId || 'base',
+                    tenantId: currentTenantId
+                });
+                if (typeof window.setTonyContext === 'function') {
+                    window.setTonyContext({ moduli_attivi: availableModules, plan: window.__gfvSubscriptionPlanId || 'base', piano: window.__gfvSubscriptionPlanId || 'base' });
+                } else {
+                    try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
+                }
+            }
+            dashboardPerfSummary('dashboard pronta');
+            scheduleTonyDashboardDeferred(availableModules, userDataNormalized, currentTenantId);
+        }
+
+        function scheduleTonyDashboardDeferred(availableModules, userDataNormalized, currentTenantId) {
+            const run = function() {
+                if (!window.Tony || !Tony.isReady()) return;
+                Promise.all([
+                    dashboardPerfAsync('tony.vignetoContext', () => loadTonyVignetoContext(availableModules, currentTenantId)),
+                    dashboardPerfAsync('tony.checkGlobalStatus', () =>
+                        checkGlobalStatus(currentTenantId, userDataNormalized.ruoli, availableModules, getDashboardCountsSnapshot()))
+                ]).catch(function() {});
+            };
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(run, { timeout: 2500 });
+            } else {
+                setTimeout(run, 0);
             }
         }
 
@@ -805,6 +882,8 @@
                 sessionStorage.setItem('gfv_expected_user_id', user.uid);
             }
 
+            dashboardPerfBegin('dashboard');
+
             // Carica dati utente
             // Verifica se l'utente si è appena registrato
             const justRegistered = sessionStorage.getItem('gfv_user_just_registered') === 'true';
@@ -815,7 +894,7 @@
             
             try {
                 const userDocRef = doc(db, 'users', user.uid);
-                const userDoc = await getDoc(userDocRef);
+                const userDoc = await dashboardPerfAsync('auth.userDoc', () => getDoc(userDocRef));
 
                 if (!userDoc.exists()) {
                     // Il documento utente non esiste, verifica prima se esiste già un documento con la stessa email
@@ -887,12 +966,13 @@
                             
                             // Ottieni tenant corrente e ruoli filtrati per questo tenant
                             const { getUserRolesForTenant } = await import('./services/tenant-service.js');
-                            const currentTenantId = await resolveCurrentTenantId(userData);
+                            const currentTenantId = await dashboardPerfAsync('auth.resolveTenant', () => resolveCurrentTenantId(userData));
                             
                             // Ottieni ruoli per il tenant corrente (non tutti i ruoli)
                             let rolesForCurrentTenant = [];
                             if (currentTenantId) {
-                                rolesForCurrentTenant = await getUserRolesForTenant(currentTenantId, user.uid);
+                                rolesForCurrentTenant = await dashboardPerfAsync('auth.tenantRoles', () =>
+                                    getUserRolesForTenant(currentTenantId, user.uid));
                             }
                             
                             // Se non ci sono ruoli per il tenant corrente, usa ruoli deprecati come fallback
@@ -913,7 +993,8 @@
                             let tenantDataSnapshot = null;
                             if (currentTenantId) {
                                 try {
-                                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                                    const tenantDoc = await dashboardPerfAsync('auth.tenantDoc', () =>
+                                        getDoc(doc(db, 'tenants', currentTenantId)));
                                     if (tenantDoc.exists()) {
                                         tenantDataSnapshot = tenantDoc.data();
                                         availableModules = tenantDataSnapshot.modules || [];
@@ -934,25 +1015,7 @@
 
                             // Renderizza dashboard
                             await renderDashboard(userDataNormalized, availableModules);
-                            updateDocumentationGuideLink(availableModules, userDataNormalized);
-                            // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
-                            if (window.Tony && Tony.isReady()) {
-                                Tony.setContext('dashboard', {
-                                    info_azienda: { moduli_attivi: availableModules },
-                                    utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
-                                    moduli_attivi: availableModules,
-                                    plan: planNormalized,
-                                    piano: planNormalized,
-                                    tenantId: currentTenantId
-                                });
-                                if (typeof window.setTonyContext === 'function') {
-                                    window.setTonyContext({ moduli_attivi: availableModules, plan: planNormalized, piano: planNormalized });
-                                } else {
-                                    try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
-                                }
-                                loadTonyVignetoContext(availableModules, currentTenantId);
-                                checkGlobalStatus(currentTenantId, userDataNormalized.ruoli, availableModules);
-                            }
+                            await finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user);
                             return; // Esci qui per non eseguire il codice sotto
                         }
                     } catch (error) {
@@ -965,12 +1028,13 @@
                     
                     // Ottieni tenant corrente e ruoli filtrati per questo tenant
                     const { getUserRolesForTenant } = await import('./services/tenant-service.js');
-                    const currentTenantId = await resolveCurrentTenantId(userData);
+                    const currentTenantId = await dashboardPerfAsync('auth.resolveTenant', () => resolveCurrentTenantId(userData));
                     
                     // Ottieni ruoli per il tenant corrente (non tutti i ruoli)
                     let rolesForCurrentTenant = [];
                     if (currentTenantId) {
-                        rolesForCurrentTenant = await getUserRolesForTenant(currentTenantId, user.uid);
+                        rolesForCurrentTenant = await dashboardPerfAsync('auth.tenantRoles', () =>
+                            getUserRolesForTenant(currentTenantId, user.uid));
                     }
                     
                     // Se non ci sono ruoli per il tenant corrente, usa ruoli deprecati come fallback
@@ -1028,7 +1092,8 @@
                     let tenantDataSnapshot = null;
                     if (currentTenantId) {
                         try {
-                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            const tenantDoc = await dashboardPerfAsync('auth.tenantDoc', () =>
+                                getDoc(doc(db, 'tenants', currentTenantId)));
                             if (tenantDoc.exists()) {
                                 tenantDataSnapshot = tenantDoc.data();
                                 availableModules = tenantDataSnapshot.modules || [];
@@ -1046,7 +1111,7 @@
                     // in base a se Manodopera è attivo o no
                     
                     // Gestione switch tenant (multi-tenant)
-                    await setupTenantSwitch(user.uid, userDataNormalized);
+                    await dashboardPerfAsync('auth.tenantSwitch', () => setupTenantSwitch(user.uid, userDataNormalized));
                     
                     // Routing mobile per ruoli campo (operaio/caposquadra)
                     if (redirectToFieldWorkspaceIfNeeded(userDataNormalized, availableModules)) {
@@ -1055,25 +1120,7 @@
 
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
-                    updateDocumentationGuideLink(availableModules, userDataNormalized);
-                    // Nutre Tony con contesto dashboard (tenant corrente) e notifica il widget
-                    if (window.Tony && Tony.isReady()) {
-                        Tony.setContext('dashboard', {
-                            info_azienda: { moduli_attivi: availableModules },
-                            utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
-                            moduli_attivi: availableModules,
-                            plan: planNormalized,
-                            piano: planNormalized,
-                            tenantId: currentTenantId
-                        });
-                        if (typeof window.setTonyContext === 'function') {
-                            window.setTonyContext({ moduli_attivi: availableModules, plan: planNormalized, piano: planNormalized });
-                        } else {
-                            try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: availableModules } })); } catch (e) {}
-                        }
-                        loadTonyVignetoContext(availableModules, currentTenantId);
-                        checkGlobalStatus(currentTenantId, userDataNormalized.ruoli, availableModules);
-                    }
+                    await finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user);
                 }
             } catch (error) {
                 console.error('Errore caricamento dati utente:', error);

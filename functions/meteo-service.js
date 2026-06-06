@@ -22,6 +22,7 @@ const {
   isTonyOperationalCreationIntent,
   isTonyPreventivoFormFieldCorrection,
 } = require("./tony-quick-replies");
+const { localizeMeteoAlerts, translateMeteoAlertEvent } = require("./meteo-alert-i18n");
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const MAX_TERRENI_METEO = 30;
@@ -266,14 +267,16 @@ function normalizeOpenWeatherExtended(data, location) {
   if (base.tomorrow && base.tomorrow.rainMm == null && dailyExtended[1] && dailyExtended[1].rainMm != null) {
     base.tomorrow = Object.assign({}, base.tomorrow, { rainMm: dailyExtended[1].rainMm });
   }
-  const alerts = (Array.isArray(data.alerts) ? data.alerts : []).map((a) => ({
-    sender: a.sender_name || "",
-    event: a.event || "",
-    start: isoFromUnix(a.start),
-    end: isoFromUnix(a.end),
-    description: a.description || "",
-    tags: Array.isArray(a.tags) ? a.tags : [],
-  }));
+  const alerts = localizeMeteoAlerts(
+    (Array.isArray(data.alerts) ? data.alerts : []).map((a) => ({
+      sender: a.sender_name || "",
+      event: a.event || "",
+      start: isoFromUnix(a.start),
+      end: isoFromUnix(a.end),
+      description: a.description || "",
+      tags: Array.isArray(a.tags) ? a.tags : [],
+    }))
+  );
 
   const minutely = (Array.isArray(data.minutely) ? data.minutely : []).slice(0, 60).map((m) => ({
     dt: isoFromUnix(m.dt),
@@ -2399,7 +2402,7 @@ function compactSedeMeteoForContext(meteo, { extended = false } = {}) {
   if (extended) {
     const alerts = Array.isArray(meteo.alerts) ? meteo.alerts : [];
     out.alertsCount = alerts.length;
-    out.alertBreve = alerts[0] ? alerts[0].event || null : null;
+    out.alertBreve = alerts[0] ? translateMeteoAlertEvent(alerts[0].event) : null;
     const ms = meteo.minutelySummary || {};
     out.hasRainSoon = !!ms.hasRainSoon;
     out.pioggiaProssimaOra = ms.hasRainSoon

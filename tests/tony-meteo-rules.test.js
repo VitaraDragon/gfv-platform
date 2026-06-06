@@ -8,7 +8,7 @@ import {
   computeDryDaysBeforeTarget,
   evaluateGiornoOperativoCompleto,
 } from '../functions/tony-meteo-rules.js';
-import { formatMeteoConsigliProactive } from '../core/config/tony-meteo-rules.js';
+import { formatMeteoConsigliProactive, buildMeteoProactiveBriefingConsigli } from '../core/config/tony-meteo-rules.js';
 import { deriveCondizioniMeteoFromCompactRow } from '../core/js/meteo-ui-helpers.js';
 
 describe('buildMeteoConsigli', () => {
@@ -47,24 +47,36 @@ describe('buildMeteoConsigli', () => {
   });
 
   it('formatMeteoConsigliProactive riassume i consigli principali', () => {
-    const consigli = buildMeteoConsigli(
-      DEFAULT_TONY_METEO_RULES,
-      [
-        {
-          terrenoId: 't1',
-          nome: 'Campo',
-          ok: true,
-          windSpeedKmh: 22,
-          hasRainSoon: false,
-          alertsCount: 0,
-        },
-      ],
-      [],
-      null
-    );
+    const consigli = buildMeteoProactiveBriefingConsigli({
+      label: 'Sede aziendale',
+      today: { pop: 85, rainMm: 4 },
+    });
     const text = formatMeteoConsigliProactive(consigli);
-    expect(text).toMatch(/Meteo operativo/i);
-    expect(text).toMatch(/Vento 22/i);
+    expect(text).toMatch(/Meteo sede/i);
+    expect(text).toMatch(/85%/);
+    expect(text).toMatch(/4 mm/);
+  });
+
+  it('buildMeteoProactiveBriefingConsigli ignora campi sotto soglia pop o mm', () => {
+    const sottoPop = buildMeteoProactiveBriefingConsigli({
+      label: 'Sede',
+      tomorrow: { pop: 75, rainMm: 5 },
+    });
+    expect(sottoPop).toHaveLength(0);
+
+    const sottoMm = buildMeteoProactiveBriefingConsigli({
+      label: 'Sede',
+      tomorrow: { pop: 90, rainMm: 1.5 },
+    });
+    expect(sottoMm).toHaveLength(0);
+
+    const ok = buildMeteoProactiveBriefingConsigli({
+      label: 'Sede',
+      tomorrow: { pop: 81, rainMm: 2.5 },
+    });
+    expect(ok).toHaveLength(1);
+    expect(ok[0].scope).toBe('sede');
+    expect(ok[0].motivo).toMatch(/Domani alla Sede/i);
   });
 });
 

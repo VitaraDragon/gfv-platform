@@ -87,57 +87,137 @@ body {
     width: 100%;
 }
 
-/* Panoramica manager/admin: sidebar moduli + colonna hub/scadenze */
+/* Panoramica manager/admin: colonna unica (menu moduli + hub/scadenze) */
 .dashboard-panorama-layout {
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 20px;
+    flex-direction: column;
     width: 100%;
     box-sizing: border-box;
 }
 
-.dashboard-module-sidebar {
-    flex: 0 0 288px;
-    min-width: 0;
-    position: sticky;
-    top: 12px;
-    max-height: calc(100vh - 24px);
+/* Menu a tendina moduli attivi */
+.dashboard-module-menu {
+    position: relative;
+    align-self: flex-start;
+    margin-bottom: 4px;
+    z-index: 20;
+}
+
+.dashboard-module-menu__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(46, 139, 87, 0.35);
+    background: #fff;
+    color: #1a1a1a;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dashboard-module-menu__trigger:hover {
+    background: #f0fdf4;
+    border-color: rgba(46, 139, 87, 0.55);
+}
+
+.dashboard-module-menu__trigger[aria-expanded="true"] {
+    background: #f0fdf4;
+    border-color: #2e8b57;
+    box-shadow: 0 2px 8px rgba(46, 139, 87, 0.15);
+}
+
+.dashboard-module-menu__trigger-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.dashboard-module-menu__trigger-label {
+    line-height: 1.2;
+}
+
+.dashboard-module-menu__trigger-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #2e8b57;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.dashboard-module-menu__trigger-chevron {
+    font-size: 12px;
+    color: #64748b;
+    transition: transform 0.15s ease;
+}
+
+.dashboard-module-menu__trigger[aria-expanded="true"] .dashboard-module-menu__trigger-chevron {
+    transform: rotate(180deg);
+}
+
+.dashboard-module-menu__panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: min(380px, calc(100vw - 32px));
+    max-width: min(420px, calc(100vw - 32px));
+    max-height: min(70vh, 520px);
     overflow-y: auto;
-    padding: 0;
-    margin: 0;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
     box-sizing: border-box;
 }
 
-.dashboard-module-sidebar__title {
-    margin: 0 0 12px 4px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #64748b;
+.dashboard-module-menu__panel[hidden] {
+    display: none;
 }
 
-.dashboard-module-sidebar__nav {
+.dashboard-module-menu__nav {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
-.dashboard-section.dashboard-section--in-sidebar {
+.dashboard-section.dashboard-section--in-menu {
     width: 100%;
     margin: 0;
     max-width: none;
 }
 
-.dashboard-module-sidebar .dashboard-module-tile {
-    min-height: 72px;
-    padding: 10px 10px 36px 10px;
+.dashboard-module-menu .dashboard-module-tile {
+    min-height: 52px;
+    padding: 8px 10px 32px 8px;
+}
+
+.dashboard-module-menu .dashboard-module-tile__desc {
+    display: none;
+}
+
+.dashboard-module-menu .dashboard-module-tile__title {
+    font-size: 14px;
+}
+
+.dashboard-module-menu .dashboard-module-tile__icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
 }
 
 .dashboard-panorama-main {
     flex: 1;
     min-width: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -546,15 +626,21 @@ body.dashboard-quick-bar-modal-open {
 }
 
 @media (max-width: 960px) {
-    .dashboard-panorama-layout {
-        flex-direction: column;
+    .dashboard-module-menu {
+        align-self: stretch;
     }
 
-    .dashboard-module-sidebar {
-        flex: none;
+    .dashboard-module-menu__trigger {
         width: 100%;
-        max-height: none;
-        position: static;
+        justify-content: space-between;
+    }
+
+    .dashboard-module-menu__panel {
+        left: 0;
+        right: 0;
+        min-width: 0;
+        max-width: none;
+        width: 100%;
     }
 }
 
@@ -1403,10 +1489,179 @@ body.dashboard-quick-bar-modal-open {
     text-decoration: underline;
 }
 
-/* Widget meteo sede (piano Base+) */
+/* Widget meteo sede — riga ibrida: meteo attuale | previsioni + operatività */
+.dashboard-meteo-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (min-width: 901px) {
+    .dashboard-meteo-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+    }
+}
+
 .dashboard-meteo-widget {
     background: linear-gradient(135deg, #f0f9ff 0%, #e8f5e9 100%);
     border: 1px solid #cfe8f3;
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.dashboard-meteo-side {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.dashboard-meteo-side__inner {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    height: 100%;
+}
+
+.dashboard-meteo-side__inner--forecast-only {
+    grid-template-rows: 1fr;
+}
+
+.dashboard-meteo-side-block {
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    min-width: 0;
+}
+
+.dashboard-meteo-side-block__title {
+    margin: 0 0 12px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.dashboard-meteo-side-block__link {
+    margin: 12px 0 0 0;
+    font-size: 13px;
+}
+
+.dashboard-meteo-forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-meteo-forecast-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dashboard-meteo-forecast-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-width: 0;
+}
+
+.dashboard-meteo-forecast-card__day {
+    margin: 0 0 4px 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: capitalize;
+}
+
+.dashboard-meteo-forecast-card__temp {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1565c0;
+    line-height: 1.1;
+}
+
+.dashboard-meteo-forecast-card__meta {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.dashboard-meteo-forecast-card__desc {
+    margin: 6px 0 0 0;
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.35;
+    text-transform: capitalize;
+}
+
+.dashboard-meteo-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+@media (max-width: 640px) {
+    .dashboard-meteo-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dashboard-meteo-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 72px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.dashboard-meteo-kpi:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.dashboard-meteo-kpi__value {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    color: #1e293b;
+}
+
+.dashboard-meteo-kpi__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.25;
+}
+
+.dashboard-meteo-kpi--active .dashboard-meteo-kpi__value {
+    color: #2e7d32;
+}
+
+.dashboard-meteo-kpi--warn .dashboard-meteo-kpi__value {
+    color: #e65100;
+}
+
+.dashboard-meteo-kpi--info .dashboard-meteo-kpi__value {
+    color: #1565c0;
 }
 
 .dashboard-meteo-widget h2 {

@@ -758,7 +758,7 @@ function buildDashboardTourSteps(userData) {
         steps.push({
             element: panoramica,
             title: 'Panoramica aziendale',
-            intro: 'Card rapide per Amministrazione, Statistiche, Terreni e moduli attivi. La mappa satellitare con tutti i terreni è nella pagina dedicata: usa il pulsante «Mappa» in alto a destra nell\'intestazione. Clicca sulle card per aprire le sezioni.'
+            intro: 'Panoramica operativa con meteo, alert e scadenze a tutta larghezza. Apri il menu «Moduli» in alto per accedere a tutte le aree attive; la mappa satellitare è nella pagina dedicata (pulsante «Mappa» in intestazione).'
         });
     }
 
@@ -777,7 +777,7 @@ function buildDashboardTourSteps(userData) {
             element: mieiAccessi,
             title: 'I miei accessi',
             intro:
-                'Scegli fino a cinque collegamenti rapidi (lavori, validazione ore, moduli attivi e altro) con «Configura». Le card qui accanto e nella barra laterale continuano a portarti a tutte le aree dell’app.'
+                'Scegli fino a cinque collegamenti rapidi (lavori, validazione ore, moduli attivi e altro) con «Configura». Il menu «Moduli» e l’hub sotto contengono tutti gli accessi all’app.'
         });
     }
 

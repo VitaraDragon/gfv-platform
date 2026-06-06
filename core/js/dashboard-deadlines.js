@@ -9,6 +9,8 @@ import {
     loadLavoriDaPianificareCount,
     countOreDaValidareManager
 } from './dashboard-data.js';
+import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-snapshot.js';
+import { dashboardPerfAsync } from './dashboard-perf.js';
 
 const MAX_RIGHE = 8;
 
@@ -162,8 +164,9 @@ export async function fetchScadenzeAmministrazioneItems(tenantId, availableModul
  * @param {string} tenantId
  * @param {{ hasManodopera: boolean, hasContoTerzi: boolean, availableModules: string[] }} opts
  * @param {Object} dependencies
+ * @param {Object} [countsSnapshot]
  */
-export async function fetchInArrivoItems(tenantId, opts, dependencies) {
+export async function fetchInArrivoItems(tenantId, opts, dependencies, countsSnapshot) {
     const { db, collection, getDocs } = dependencies;
     const items = [];
     if (!tenantId) return items;
@@ -211,7 +214,10 @@ export async function fetchInArrivoItems(tenantId, opts, dependencies) {
 
     if (hasManodopera && hasContoTerzi) {
         try {
-            const n = await loadLavoriDaPianificareCount(tenantId, dependencies);
+            const snap = countsSnapshot || getDashboardCountsSnapshot();
+            const n = snap
+                ? snap.daPianificare || 0
+                : await loadLavoriDaPianificareCount(tenantId, dependencies);
             if (n > 0) {
                 items.push({
                     priorita: 2,
@@ -230,7 +236,13 @@ export async function fetchInArrivoItems(tenantId, opts, dependencies) {
 
     if (hasManodopera) {
         try {
-            const n = await countOreDaValidareManager(tenantId, dependencies);
+            const snap = countsSnapshot || getDashboardCountsSnapshot();
+            const n =
+                snap && !snap.oreDaValidarePending
+                    ? snap.oreDaValidare || 0
+                    : snap
+                      ? 0
+                      : await countOreDaValidareManager(tenantId, dependencies);
             if (n > 0) {
                 items.push({
                     priorita: 1,
@@ -382,7 +394,7 @@ export async function loadScadenzeAmministrazioneWidget(dependencies, tenantId, 
 /**
  * @param {Object} dependencies
  * @param {string} tenantId
- * @param {{ hasManodopera: boolean, hasContoTerzi: boolean, availableModules: string[] }} opts
+ * @param {{ hasManodopera: boolean, hasContoTerzi: boolean, availableModules: string[], countsSnapshot?: Object }} opts
  */
 export async function loadInArrivoWidget(dependencies, tenantId, opts) {
     const listEl = document.getElementById('in-arrivo-list');
@@ -397,7 +409,7 @@ export async function loadInArrivoWidget(dependencies, tenantId, opts) {
     listEl.innerHTML = '';
 
     try {
-        const items = await fetchInArrivoItems(tenantId, opts, dependencies);
+        const items = await fetchInArrivoItems(tenantId, opts, dependencies, opts.countsSnapshot);
         const mods = Array.isArray(opts.availableModules) ? opts.availableModules : [];
         let footerHref = 'admin/gestione-lavori-standalone.html';
         let footerLabel = 'Gestione lavori →';
@@ -424,6 +436,16 @@ export async function loadInArrivoWidget(dependencies, tenantId, opts) {
     }
 }
 
+/** Ricarica widget In arrivo quando arriva il conteggio ore (background). */
+export function bindInArrivoOreRefresh(dependencies, tenantId, opts) {
+    window.addEventListener(ORE_READY_EVENT, () => {
+        loadInArrivoWidget(dependencies, tenantId, {
+            ...opts,
+            countsSnapshot: getDashboardCountsSnapshot(),
+        });
+    });
+}
+
 /**
  * Carica entrambi i widget scadenze (dopo render dashboard manager/admin).
  */
@@ -432,10 +454,14 @@ export async function loadDashboardDeadlinesWidgets(dependencies, tenantId, opts
     const inArrivoOpts = {
         hasManodopera: !!opts.hasManodopera,
         hasContoTerzi: !!opts.hasContoTerzi,
-        availableModules
+        availableModules,
+        countsSnapshot: opts.countsSnapshot
     };
     await Promise.all([
-        loadScadenzeAmministrazioneWidget(dependencies, tenantId, availableModules),
-        loadInArrivoWidget(dependencies, tenantId, inArrivoOpts)
+        dashboardPerfAsync('deadlines.scadenze', () =>
+            loadScadenzeAmministrazioneWidget(dependencies, tenantId, availableModules)),
+        dashboardPerfAsync('deadlines.inArrivo', () =>
+            loadInArrivoWidget(dependencies, tenantId, inArrivoOpts))
     ]);
+    bindInArrivoOreRefresh(dependencies, tenantId, inArrivoOpts);
 }

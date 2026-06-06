@@ -6,6 +6,8 @@ import {
   renderHourlyPopBadge,
   formatRainMmShort,
   compactTerrenoMeteoRowFromFetch,
+  renderMinutelyPrecipStrip,
+  hasMinutelyRainExpected,
 } from '../core/js/meteo-ui-helpers.js';
 import { createRequire } from 'module';
 
@@ -155,5 +157,30 @@ describe('renderHourlyPopBadge', () => {
 
   it('renderizza percentuale sopra soglia', () => {
     expect(renderHourlyPopBadge(15, 'dashboard-meteo')).toContain('15%');
+  });
+});
+
+describe('renderMinutelyPrecipStrip', () => {
+  it('non renderizza se non è prevista pioggia nella prossima ora', () => {
+    expect(
+      renderMinutelyPrecipStrip({
+        minutely: [{ dt: '2026-05-21T14:00:00', precipitation: 0 }],
+        minutelySummary: { hasRainSoon: false, maxPrecipitation: 0 },
+      })
+    ).toBe('');
+    expect(hasMinutelyRainExpected({ minutelySummary: { hasRainSoon: false } })).toBe(false);
+  });
+
+  it('renderizza strip quando hasRainSoon è true', () => {
+    const html = renderMinutelyPrecipStrip({
+      minutely: [
+        { dt: '2026-05-21T14:00:00', precipitation: 0.4 },
+        { dt: '2026-05-21T14:01:00', precipitation: 1.2 },
+      ],
+      minutelySummary: { hasRainSoon: true, maxPrecipitation: 1.2, minutesWithRain: 2 },
+    });
+    expect(html).toContain('Pioggia prossima ora');
+    expect(html).toContain('Pioggia prevista nei prossimi 60 min');
+    expect(html).not.toContain('Nessuna pioggia');
   });
 });

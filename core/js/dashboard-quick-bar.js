@@ -10,6 +10,7 @@ import {
     loadMagazzinoSottoScortaCount,
     loadLavoriDaPianificareCount
 } from './dashboard-data.js';
+import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-snapshot.js';
 
 const STORAGE_PREFIX = 'gfv_dash_quickbar_v1_';
 const SLOT_COUNT = 5;
@@ -691,7 +692,7 @@ function buildBarHTML(slots, ctx, esc) {
     return html;
 }
 
-async function refreshBadges(root, slots, tenantId, ctx, dependencies) {
+async function refreshBadges(root, slots, tenantId, ctx, dependencies, countsSnapshot) {
     if (!tenantId || !root) return;
     const needOre = slots.includes('validazioneOre');
     const needGuasti = slots.includes('guasti');
@@ -704,10 +705,18 @@ async function refreshBadges(root, slots, tenantId, ctx, dependencies) {
     let nPian = 0;
 
     try {
-        if (needOre) nOre = (await countOreDaValidareManager(tenantId, dependencies)) || 0;
-        if (needGuasti) nGuasti = (await loadGuastiApertiCount(tenantId, dependencies)) || 0;
-        if (needScorta) nScorta = (await loadMagazzinoSottoScortaCount(dependencies)) || 0;
-        if (needPian) nPian = (await loadLavoriDaPianificareCount(tenantId, dependencies)) || 0;
+        const snap = countsSnapshot || getDashboardCountsSnapshot();
+        if (snap) {
+            if (needOre) nOre = snap.oreDaValidarePending ? 0 : snap.oreDaValidare || 0;
+            if (needGuasti) nGuasti = snap.guastiAperti || 0;
+            if (needScorta) nScorta = snap.sottoScorta || 0;
+            if (needPian) nPian = snap.daPianificare || 0;
+        } else {
+            if (needOre) nOre = (await countOreDaValidareManager(tenantId, dependencies)) || 0;
+            if (needGuasti) nGuasti = (await loadGuastiApertiCount(tenantId, dependencies)) || 0;
+            if (needScorta) nScorta = (await loadMagazzinoSottoScortaCount(dependencies, tenantId)) || 0;
+            if (needPian) nPian = (await loadLavoriDaPianificareCount(tenantId, dependencies)) || 0;
+        }
     } catch (e) {
         console.warn('refreshBadges quick bar:', e);
     }
@@ -848,8 +857,9 @@ function buildCatalogHTML(ctx, draftSet, esc) {
  * @param {boolean} options.hasManodopera
  * @param {string[]} [options.userRoles] — ruoli normalizzati (lowercase), es. da `userData.ruoli`
  * @param {Object} options.dependencies
+ * @param {Object} [options.countsSnapshot]
  */
-export async function initDashboardQuickBar(options) {
+export function initDashboardQuickBar(options) {
     const root = document.getElementById('dashboard-quick-bar-root');
     if (!root || root.dataset.quickBarInit === '1') return;
 
@@ -858,8 +868,11 @@ export async function initDashboardQuickBar(options) {
         tenantId,
         availableModules,
         hasManodopera,
-        dependencies
+        dependencies,
+        countsSnapshot: countsSnapshotOpt
     } = options;
+
+    let countsSnapshot = countsSnapshotOpt || getDashboardCountsSnapshot();
 
     const userRoles = Array.isArray(options.userRoles)
         ? options.userRoles.map((r) => String(r || '').trim().toLowerCase()).filter(Boolean)
@@ -871,12 +884,23 @@ export async function initDashboardQuickBar(options) {
     let slots = loadSlots(userId, ctx);
     const escA = escapeHtml;
 
-    async function render() {
+    function renderShell() {
         root.innerHTML = buildBarHTML(slots, ctx, escA);
-        await refreshBadges(root, slots, tenantId, ctx, dependencies);
     }
 
-    await render();
+    function scheduleBadgeRefresh() {
+        countsSnapshot = countsSnapshotOpt || getDashboardCountsSnapshot();
+        void refreshBadges(root, slots, tenantId, ctx, dependencies, countsSnapshot).catch((e) => {
+            console.warn('refreshBadges quick bar:', e);
+        });
+    }
+
+    renderShell();
+    scheduleBadgeRefresh();
+    window.addEventListener(ORE_READY_EVENT, () => {
+        scheduleBadgeRefresh();
+    });
+
     const configBtn = document.getElementById('dashboard-quick-bar-config-btn');
     const modal = document.getElementById('dashboard-quick-bar-modal');
     const modalForm = document.getElementById('dashboard-quick-bar-form');
@@ -954,11 +978,12 @@ export async function initDashboardQuickBar(options) {
     }
 
     if (modalForm) {
-        modalForm.addEventListener('submit', async (ev) => {
+        modalForm.addEventListener('submit', (ev) => {
             ev.preventDefault();
             slots = draftOrderToSavedSlots(draftOrder);
             saveSlots(userId, slots);
-            await render();
+            renderShell();
+            scheduleBadgeRefresh();
             closeModal();
         });
     }

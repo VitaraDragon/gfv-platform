@@ -400,6 +400,58 @@ export async function loadLavoriDaPianificareCount(tenantId, dependencies) {
     }
 }
 
+/**
+ * Snapshot compatto per widget dashboard (Manodopera): lavori oggi, in corso, ore da validare.
+ * @param {string} tenantId
+ * @param {Object} dependencies
+ * @returns {Promise<{ programmatiOggi: number, inCorso: number, oreDaValidare: number }>}
+ */
+export async function loadDashboardOperativitaOggiCounts(tenantId, dependencies) {
+    const { db, collection, getDocs } = dependencies;
+    const empty = { programmatiOggi: 0, inCorso: 0, oreDaValidare: 0 };
+    if (!tenantId) return empty;
+
+    try {
+        const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
+
+        let programmatiOggi = 0;
+        let inCorso = 0;
+
+        const snap = await getDocs(collection(db, `tenants/${tenantId}/lavori`));
+        snap.forEach((docSnap) => {
+            const lav = docSnap.data() || {};
+            const stato = String(lav.stato || '').toLowerCase();
+            if (stato === 'completato' || stato === 'annullato' || stato === 'sospeso') return;
+
+            if (stato === 'in_corso') {
+                inCorso += 1;
+            }
+
+            const start = parseLavoroDataInizio(lav.dataInizio);
+            if (!start || Number.isNaN(start.getTime())) return;
+            start.setHours(0, 0, 0, 0);
+            if (start.getTime() !== oggi.getTime()) return;
+
+            if (
+                stato === 'assegnato' ||
+                stato === 'programmato' ||
+                stato === 'pianificato' ||
+                stato === 'da_iniziare' ||
+                stato === 'da_pianificare'
+            ) {
+                programmatiOggi += 1;
+            }
+        });
+
+        const oreDaValidare = await countOreDaValidareManager(tenantId, dependencies);
+        return { programmatiOggi, inCorso, oreDaValidare };
+    } catch (err) {
+        console.warn('loadDashboardOperativitaOggiCounts:', err);
+        return empty;
+    }
+}
+
 // ============================================
 // MANAGER
 // ============================================
@@ -682,37 +734,46 @@ async function loadOreDaValidareManager(tenantId, dependencies) {
 }
 
 /**
+ * Conta ore da_validare per manager usando lavori già caricati (query ore in parallelo).
+ * @param {string} tenantId
+ * @param {import('firebase/firestore').QueryDocumentSnapshot[]} lavoriDocs
+ * @param {Object} dependencies
+ * @returns {Promise<number>}
+ */
+export async function countOreDaValidareFromLavoriDocs(tenantId, lavoriDocs, dependencies) {
+    const { db, collection, getDocs, query, where } = dependencies;
+    const docs = Array.isArray(lavoriDocs) ? lavoriDocs : [];
+    if (!tenantId || docs.length === 0) return 0;
+
+    const counts = await Promise.all(
+        docs.map(async (lavoroDoc) => {
+            const lavoroData = lavoroDoc.data();
+            const lavoroId = lavoroDoc.id;
+            try {
+                const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
+                const oreSnapshot = await getDocs(query(oreRef, where('stato', '==', 'da_validare')));
+                return contaOreManagerDaValidareSuLavoro(lavoroData, oreSnapshot.docs);
+            } catch (error) {
+                console.warn(`Errore caricamento ore da validare per lavoro ${lavoroId}:`, error);
+                return 0;
+            }
+        })
+    );
+    return counts.reduce((sum, n) => sum + (n || 0), 0);
+}
+
+/**
  * Conta ore da_validare per manager (lavori autonomi + ore caposquadra su squadra).
  * @param {string} tenantId
  * @param {Object} dependencies
  * @returns {Promise<number>}
  */
 export async function countOreDaValidareManager(tenantId, dependencies) {
-    const { db, collection, getDocs, query, where } = dependencies;
+    const { db, collection, getDocs } = dependencies;
 
     try {
-        const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
-        const lavoriSnapshot = await getDocs(lavoriCollection);
-
-        let conteggioOreDaValidare = 0;
-
-        for (const lavoroDoc of lavoriSnapshot.docs) {
-            const lavoroData = lavoroDoc.data();
-            const lavoroId = lavoroDoc.id;
-
-            try {
-                const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
-                const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
-                const oreSnapshot = await getDocs(oreQuery);
-                conteggioOreDaValidare += contaOreManagerDaValidareSuLavoro(
-                    lavoroData,
-                    oreSnapshot.docs
-                );
-            } catch (error) {
-                console.warn(`Errore caricamento ore da validare per lavoro ${lavoroId}:`, error);
-            }
-        }
-        return conteggioOreDaValidare;
+        const lavoriSnapshot = await getDocs(collection(db, `tenants/${tenantId}/lavori`));
+        return countOreDaValidareFromLavoriDocs(tenantId, lavoriSnapshot.docs, dependencies);
     } catch (error) {
         console.error('Errore caricamento ore da validare:', error);
         return 0;
@@ -1965,17 +2026,21 @@ export function renderComunicazioneRapidaForm() {
  * Carica il numero di prodotti sotto scorta minima (modulo Prodotti e Magazzino)
  * Per mostrare l'alert nella dashboard Manager
  * @param {Object} dependencies - db, auth, getDoc, doc, collection, getDocs
+ * @param {string} [tenantIdOverride] - se presente, evita lettura doc utente
  * @returns {Promise<number>} Numero di prodotti sotto scorta minima (0 se modulo non attivo o errore)
  */
-export async function loadMagazzinoSottoScortaCount(dependencies) {
+export async function loadMagazzinoSottoScortaCount(dependencies, tenantIdOverride) {
     try {
         const { db, auth, getDoc, doc, collection, getDocs } = dependencies;
-        const user = auth?.currentUser;
-        if (!user) return 0;
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (!userDoc.exists()) return 0;
-        const userData = userDoc.data();
-        const tenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+        let tenantId = tenantIdOverride;
+        if (!tenantId) {
+            const user = auth?.currentUser;
+            if (!user) return 0;
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (!userDoc.exists()) return 0;
+            const userData = userDoc.data();
+            tenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+        }
         if (!tenantId) return 0;
         const prodottiRef = collection(db, 'tenants', tenantId, 'prodotti');
         const snapshot = await getDocs(prodottiRef);

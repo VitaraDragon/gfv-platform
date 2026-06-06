@@ -403,7 +403,7 @@ window.GFVDashboardSections.createAffittiScadenzaCard = function createAffittiSc
 };
 
 /**
- * Sidebar verticale sinistra: stesse scorciatoie dei tile modulari (pin hub compatibili).
+ * Menu a tendina compatto: elenco moduli attivi (pin hub compatibili).
  * @param {{ variant: 'core' | 'manodopera', availableModules?: string[], sottoScortaMagazzino?: number }} opts
  */
 window.GFVDashboardSections.createDashboardModuleSidebar = function createDashboardModuleSidebar(opts) {
@@ -412,22 +412,36 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
     const variant = opts && opts.variant === 'manodopera' ? 'manodopera' : 'core';
     const sotto = opts && opts.sottoScortaMagazzino != null ? opts.sottoScortaMagazzino : 0;
 
-    const aside = document.createElement('aside');
-    aside.className = 'dashboard-module-sidebar';
-    aside.setAttribute('aria-label', 'Moduli e accessi');
+    const menu = document.createElement('div');
+    menu.className = 'dashboard-module-menu';
+    menu.setAttribute('data-tour-section', 'moduli-menu');
 
-    const title = document.createElement('h2');
-    title.className = 'dashboard-module-sidebar__title';
-    title.textContent = 'Moduli';
-    aside.appendChild(title);
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'dashboard-module-menu__trigger';
+    trigger.setAttribute('aria-haspopup', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', 'dashboard-module-menu-panel');
+    trigger.innerHTML =
+        '<span class="dashboard-module-menu__trigger-icon" aria-hidden="true">📂</span>' +
+        '<span class="dashboard-module-menu__trigger-label">Moduli</span>' +
+        '<span class="dashboard-module-menu__trigger-count"></span>' +
+        '<span class="dashboard-module-menu__trigger-chevron" aria-hidden="true">▾</span>';
+
+    const panel = document.createElement('div');
+    panel.id = 'dashboard-module-menu-panel';
+    panel.className = 'dashboard-module-menu__panel';
+    panel.hidden = true;
+    panel.setAttribute('role', 'menu');
+    panel.setAttribute('aria-label', 'Moduli attivi');
 
     const nav = document.createElement('nav');
-    nav.className = 'dashboard-module-sidebar__nav';
+    nav.className = 'dashboard-module-menu__nav';
     nav.setAttribute('aria-label', 'Elenco moduli attivi');
 
     function appendCard(el) {
         if (!el) return;
-        el.classList.add('dashboard-section--in-sidebar');
+        el.classList.add('dashboard-section--in-menu');
         nav.appendChild(el);
     }
 
@@ -456,9 +470,55 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('meteo')) appendCard(S.createMeteoCard());
     }
 
-    aside.appendChild(nav);
-    return aside;
+    const countEl = trigger.querySelector('.dashboard-module-menu__trigger-count');
+    const moduleCount = nav.children.length;
+    if (countEl) {
+        countEl.textContent = String(moduleCount);
+        countEl.setAttribute('aria-label', moduleCount + ' moduli attivi');
+    }
+
+    panel.appendChild(nav);
+    menu.appendChild(trigger);
+    menu.appendChild(panel);
+
+    setupDashboardModuleMenu(menu);
+
+    return menu;
 };
+
+function setupDashboardModuleMenu(menuEl) {
+    const trigger = menuEl.querySelector('.dashboard-module-menu__trigger');
+    const panel = menuEl.querySelector('.dashboard-module-menu__panel');
+    if (!trigger || !panel) return;
+
+    function closeMenu() {
+        panel.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function openMenu() {
+        panel.hidden = false;
+        trigger.setAttribute('aria-expanded', 'true');
+    }
+
+    trigger.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        if (panel.hidden) openMenu();
+        else closeMenu();
+    });
+
+    panel.addEventListener('click', function (ev) {
+        if (ev.target.closest('a.dashboard-module-tile')) closeMenu();
+    });
+
+    document.addEventListener('click', function (ev) {
+        if (!menuEl.contains(ev.target)) closeMenu();
+    });
+
+    document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') closeMenu();
+    });
+}
 
 /**
  * Barra accessi rapidi configurabili (5 slot) + schermata configurazione (card per modulo).
@@ -510,19 +570,31 @@ window.GFVDashboardSections.createDashboardQuickBarSection = function createDash
  * Widget meteo base (sede aziendale, piano Base+).
  */
 window.GFVDashboardSections.createDashboardMeteoSection = function createDashboardMeteoSection() {
+    const row = document.createElement('div');
+    row.className = 'dashboard-meteo-row';
+    row.setAttribute('data-tour-section', 'meteo');
+    row.hidden = true;
+
     const section = document.createElement('section');
     section.id = 'dashboard-meteo-widget';
     section.className = 'dashboard-section dashboard-meteo-widget';
-    section.setAttribute('data-tour-section', 'meteo');
     section.setAttribute('aria-label', 'Meteo sede aziendale');
-    section.hidden = true;
     section.innerHTML = `
         <h2><span class="section-icon" aria-hidden="true">🌤</span> Meteo sede</h2>
         <div class="dashboard-meteo__content">
             <p class="dashboard-meteo__message">Caricamento meteo…</p>
         </div>
     `;
-    return section;
+
+    const side = document.createElement('aside');
+    side.id = 'dashboard-meteo-side';
+    side.className = 'dashboard-meteo-side';
+    side.setAttribute('aria-label', 'Previsioni e operatività');
+    side.innerHTML = '<div class="dashboard-meteo-side__inner"><p class="dashboard-meteo__message">Caricamento…</p></div>';
+
+    row.appendChild(section);
+    row.appendChild(side);
+    return row;
 };
 
 /**
@@ -562,7 +634,7 @@ window.GFVDashboardSections.createDashboardPanoramaHubSection = function createD
             <div class="dashboard-hub-block dashboard-hub-block--attention">
                 <h3 class="dashboard-hub-heading">Richiede attenzione</h3>
                 <ul id="dashboard-hub-attention-list" class="dashboard-hub-list" hidden></ul>
-                <p id="dashboard-hub-attention-empty" class="dashboard-hub-empty">Caricamento…</p>
+                <p id="dashboard-hub-attention-empty" class="dashboard-hub-empty">Verifica in corso…</p>
             </div>
             <div class="dashboard-hub-block dashboard-hub-block--today">
                 <h3 class="dashboard-hub-heading">Per te oggi</h3>
@@ -570,7 +642,7 @@ window.GFVDashboardSections.createDashboardPanoramaHubSection = function createD
             </div>
             <div class="dashboard-hub-block dashboard-hub-block--shortcuts">
                 <h3 class="dashboard-hub-heading">Accessi rapidi</h3>
-                <p class="dashboard-hub-hint">Preferiti e ultimi moduli usati su questo dispositivo. Clicca la stella sulla card per fissare.</p>
+                <p class="dashboard-hub-hint">Preferiti e ultimi moduli usati su questo dispositivo. Clicca la stella nel menu Moduli per fissare un accesso.</p>
                 <div id="dashboard-hub-shortcuts" class="dashboard-hub-shortcuts"></div>
                 <p id="dashboard-hub-shortcuts-empty" class="dashboard-hub-empty" hidden>Nessun accesso rapido ancora: apri un modulo o aggiungi un preferito.</p>
             </div>
@@ -656,6 +728,31 @@ window.GFVDashboardSections.createMagazzinoCard = function createMagazzinoCard(s
     `;
 
     return section;
+};
+
+/**
+ * Aggiorna badge sotto-scorta su tutte le tile magazzino già renderizzate.
+ * @param {number} sottoScortaCount
+ */
+window.GFVDashboardSections.updateMagazzinoSottoScortaBadge = function updateMagazzinoSottoScortaBadge(sottoScortaCount) {
+    const n = sottoScortaCount != null ? Number(sottoScortaCount) : 0;
+    document.querySelectorAll('a.dashboard-module-tile[data-module="magazzino"]').forEach((tile) => {
+        const existing = tile.querySelector('.dashboard-module-tile__badge');
+        if (n > 0) {
+            if (existing) {
+                existing.textContent = `⚠ ${n}`;
+            } else {
+                tile.insertAdjacentHTML(
+                    'afterbegin',
+                    `<span class="dashboard-module-tile__badge" title="Prodotti sotto scorta minima">⚠ ${n}</span>`
+                );
+            }
+            tile.classList.add('dashboard-module-tile--has-badge');
+        } else {
+            if (existing) existing.remove();
+            tile.classList.remove('dashboard-module-tile--has-badge');
+        }
+    });
 };
 
 /**

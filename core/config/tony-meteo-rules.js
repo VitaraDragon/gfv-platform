@@ -29,6 +29,10 @@ export const DEFAULT_TONY_METEO_RULES = {
   praticabilitaTerreno: { ...DEFAULT_PRATICABILITA_MM },
 };
 
+/** Soglie messaggio proattivo dashboard (solo sede). */
+export const PROACTIVE_METEO_POP_MIN = 80;
+export const PROACTIVE_METEO_RAIN_MM_MIN = 2;
+
 function normalizeTerrenoKey(name) {
   return String(name || '')
     .toLowerCase()
@@ -162,6 +166,41 @@ export function buildMeteoConsigli(rules, terreniRows, lavori, sedeCompact) {
 }
 
 /**
+ * Consigli per messaggio proattivo dashboard: solo sede, pioggia significativa (pop > 80% e > 2 mm).
+ * @param {object|null|undefined} sedeCompact
+ * @param {{ popMin?: number, rainMin?: number }} [opts]
+ */
+export function buildMeteoProactiveBriefingConsigli(sedeCompact, opts = {}) {
+  if (!sedeCompact) return [];
+
+  const popMin = opts.popMin != null ? opts.popMin : PROACTIVE_METEO_POP_MIN;
+  const rainMin = opts.rainMin != null ? opts.rainMin : PROACTIVE_METEO_RAIN_MM_MIN;
+  const label = sedeCompact.label || 'sede aziendale';
+  const consigli = [];
+
+  function checkDay(dayLabel, day) {
+    if (!day) return;
+    const pop = day.pop != null ? Number(day.pop) : null;
+    const rainMm = day.rainMm != null ? Number(day.rainMm) : null;
+    if (pop == null || pop <= popMin) return;
+    if (rainMm == null || rainMm <= rainMin) return;
+    const popRounded = Math.round(pop);
+    const rainRounded = Math.round(rainMm * 10) / 10;
+    consigli.push({
+      tipo: 'pioggia_sede',
+      scope: 'sede',
+      esito: 'attenzione',
+      motivo: `${dayLabel} alla ${label}: probabilità pioggia ${popRounded}%, circa ${rainRounded} mm previsti`,
+    });
+  }
+
+  checkDay('Oggi', sedeCompact.today);
+  checkDay('Domani', sedeCompact.tomorrow);
+
+  return consigli;
+}
+
+/**
  * Messaggio proattivo breve per dashboard (max 3 punti).
  * @param {Array<object>} consigli
  */
@@ -178,5 +217,5 @@ export function formatMeteoConsigliProactive(consigli) {
 
   const top = sorted.slice(0, 3).map((c) => c.motivo).filter(Boolean);
   if (!top.length) return '';
-  return `Meteo operativo: ${top.join('. ')}. Vuoi aprire il modulo Meteo o approfondire in chat?`;
+  return `Meteo sede: ${top.join('. ')}. Vuoi aprire il modulo Meteo o approfondire in chat?`;
 }

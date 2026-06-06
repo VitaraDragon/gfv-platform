@@ -4,13 +4,10 @@
  */
 
 import {
-    loadMagazzinoSottoScortaCount,
-    loadScadenzeUrgentiCount,
-    loadGuastiApertiCount,
-    loadAffittiUrgentiCount,
-    loadLavoriDaPianificareCount,
-    countOreDaValidareManager
-} from './dashboard-data.js';
+    getDashboardCountsSnapshot,
+    ORE_READY_EVENT,
+} from './dashboard-counts-snapshot.js';
+import { dashboardPerfAsync } from './dashboard-perf.js';
 
 const MODULE_CATALOG = {
     amministrazione: { label: 'Amministrazione', href: 'admin/amministrazione-standalone.html', icon: '👑' },
@@ -115,6 +112,7 @@ function wrapTilesWithPinShells(rootEl) {
  * @param {boolean} options.hasContoTerzi
  * @param {string[]} options.availableModules
  * @param {Object} options.dependencies
+ * @param {Object} [options.countsSnapshot] - conteggi pre-caricati (Fase 2 performance)
  */
 export async function initDashboardPanoramaHub(options) {
     const hub = document.getElementById('dashboard-panorama-hub');
@@ -126,8 +124,11 @@ export async function initDashboardPanoramaHub(options) {
         hasManodopera,
         hasContoTerzi,
         availableModules: rawModules,
-        dependencies
+        dependencies,
+        countsSnapshot: countsSnapshotOpt
     } = options;
+
+    const countsSnapshot = countsSnapshotOpt || getDashboardCountsSnapshot();
 
     const availableModules = Array.isArray(rawModules) ? rawModules : [];
 
@@ -202,58 +203,24 @@ export async function initDashboardPanoramaHub(options) {
         const hasMacchine = availableModules.includes('parcoMacchine');
 
         try {
-            const tasks = [];
-
-            let sottoScorta = 0;
-            if (hasMagazzino) {
-                tasks.push(
-                    loadMagazzinoSottoScortaCount(dependencies).then((n) => {
-                        sottoScorta = n || 0;
-                    })
-                );
+            const snap = countsSnapshot;
+            if (!snap) {
+                attentionList.hidden = true;
+                attentionEmpty.hidden = false;
+                attentionEmpty.textContent = 'Verifica in corso…';
+                return;
             }
 
-            let scadenze = 0;
-            let guasti = 0;
-            if (tenantId && hasMacchine) {
-                tasks.push(
-                    loadScadenzeUrgentiCount(tenantId, dependencies).then((n) => {
-                        scadenze = n || 0;
-                    })
-                );
-                tasks.push(
-                    loadGuastiApertiCount(tenantId, dependencies).then((n) => {
-                        guasti = n || 0;
-                    })
-                );
-            }
-
-            let affittiUrgent = 0;
-            tasks.push(
-                loadAffittiUrgentiCount(dependencies, tenantId).then(({ urgentCount }) => {
-                    affittiUrgent = urgentCount || 0;
-                })
-            );
-
-            let daPianificare = 0;
-            if (tenantId && hasManodopera && hasContoTerzi) {
-                tasks.push(
-                    loadLavoriDaPianificareCount(tenantId, dependencies).then((n) => {
-                        daPianificare = n || 0;
-                    })
-                );
-            }
-
-            let oreDaValidare = 0;
-            if (tenantId && hasManodopera) {
-                tasks.push(
-                    countOreDaValidareManager(tenantId, dependencies).then((n) => {
-                        oreDaValidare = n || 0;
-                    })
-                );
-            }
-
-            await Promise.all(tasks);
+            const sottoScorta = hasMagazzino ? snap.sottoScorta || 0 : 0;
+            const scadenze = hasMacchine ? snap.scadenzeUrgenti || 0 : 0;
+            const guasti = hasMacchine ? snap.guastiAperti || 0 : 0;
+            const affittiUrgent = snap.affittiUrgenti || 0;
+            const daPianificare =
+                tenantId && hasManodopera && hasContoTerzi ? snap.daPianificare || 0 : 0;
+            const oreDaValidare =
+                tenantId && hasManodopera && snap && !snap.oreDaValidarePending
+                    ? snap.oreDaValidare || 0
+                    : 0;
 
             if (sottoScorta > 0) {
                 items.push({
@@ -383,7 +350,11 @@ export async function initDashboardPanoramaHub(options) {
     renderToday();
     renderPinsState();
     renderShortcuts();
-    await refreshAttention();
+    await dashboardPerfAsync('hub.refreshAttention', () => refreshAttention());
+
+    window.addEventListener(ORE_READY_EVENT, () => {
+        refreshAttention();
+    });
 
     hub.dataset.hubInit = '1';
 }

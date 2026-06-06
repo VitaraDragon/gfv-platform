@@ -1,6 +1,135 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-04.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-06.**
+
+## Dashboard — performance Fase 5 (affinamenti e resilienza) (2026-06-06)
+
+**Obiettivo:** polish cross-visit, prefetch login, meteo/cache, quick bar reattiva, perf off in prod, smoke SLO.
+
+**Soluzione:**
+- **5.1 Quick bar:** shell HTML sincrona; badge in async (`scheduleBadgeRefresh`).
+- **5.2 Meteo SWR:** cache localStorage 15 min → render immediato → refresh CF (`fetchMeteoSedeWithLocalCache`).
+- **5.3 Prefetch login:** `startDashboardPrefetchFromLogin` su login; snapshot in sessionStorage (TTL 120 s).
+- **5.4 Perf prod:** default off fuori localhost; `?dashboardPerf=1` o `localStorage gfv_dashboard_perf=1`.
+- **5.5 Smoke:** `dashboard-perf-slo.js` + `npm run dashboard:perf-smoke` (7 test).
+- **5.6 Tenant switch:** `switchTenant` invalida snapshot, prefetch e cache meteo.
+
+**File:** `core/js/dashboard-quick-bar.js`, `core/services/meteo-service.js`, `core/js/dashboard-meteo.js`, `core/js/dashboard-login-prefetch.js`, `core/js/dashboard-counts-snapshot.js`, `core/js/dashboard-perf.js`, `core/js/dashboard-perf-slo.js`, `core/auth/login-standalone.html`, `core/services/tenant-service.js`.
+
+---
+
+## Dashboard — performance Fasi 0–4 completate (2026-06-06)
+
+**Risultato:** boot dashboard da **~18,4 s** (baseline canary) a **`dashboard pronta` ~861 ms** (tenant Sabbie Gialle, localhost).
+
+**Architettura:** layout DOM immediato → snapshot conteggi condiviso (`dashboard-counts-snapshot.js`) → widget in `Promise.all` → summary perf → Tony (`vignetoContext`, `checkGlobalStatus`) in `requestIdleCallback`; conteggio ore da validare in background con evento `dashboard-counts-ore-ready`.
+
+**Piano:** `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md` — **Fasi 0–5 ✅**; canary attuale **`dashboard pronta` ~861 ms**. Backlog opzionale **3.A/3.B** (ore da validare strutturale).
+
+**File principali:** `core/dashboard-standalone.html`, `core/js/dashboard-counts-snapshot.js`, `core/js/dashboard-data.js`, `core/js/dashboard-perf.js`, widget hub/meteo/deadlines/quick-bar.
+
+---
+
+## Dashboard — performance Fase 1 (layout immediato + widget paralleli) (2026-06-06)
+
+**Obiettivo:** ridurre tempo percepito e misurato del boot dashboard (~18,4 s baseline) verso ≤ 10 s.
+
+**Soluzione Fase 1:**
+- **Magazzino non blocca DOM:** menu moduli renderizzato subito; badge aggiornato dallo snapshot (Fase 2) o placeholder 0.
+- **Widget in parallelo:** `Promise.all` hub / meteo / scadenze / quick bar avvolto in fase perf `widgets.parallelBatch`; rimosso secondo `resolveCurrentTenantId` (usa `userData.tenantId` da auth).
+- **Skeleton hub:** testo «Verifica in corso…» su alert «Richiede attenzione».
+
+**File:** `core/js/dashboard-controller.js`, `core/js/dashboard-sections.js`, `core/dashboard-standalone.html`.
+
+**Canary post-Fase 1** (Sabbie Gialle, localhost, 2026-06-06): totale **~9,5 s** (baseline ~18,4 s). Layout DOM **~0,5 s** post-auth; `widgets.parallelBatch` **~4,3 s**; hub/meteo/deadlines/quickBar con `totalMs` allineato (~4,76 s); assente `controller.magazzino_pre_menu_*`.
+
+## Dashboard — performance Fase 2 (snapshot conteggi condiviso) (2026-06-06)
+
+**Obiettivo:** una sola lettura Firestore per tipo conteggio per reload pagina; hub/quick bar/meteo KPI/Tony briefing senza query duplicate.
+
+**Soluzione:**
+- Nuovo `core/js/dashboard-counts-snapshot.js` (`loadDashboardCountsSnapshot`, `getDashboardCountsSnapshot`, `applyDashboardCountsToDom`).
+- Boot: snapshot avviato in parallelo al render DOM; widget ricevono `countsSnapshot`.
+- Consumer migrati: hub `refreshAttention` (solo render), meteo KPI operatività, deadlines in arrivo (conteggi), quick bar badge, `checkGlobalStatus` Tony.
+- `loadMagazzinoSottoScortaCount` accetta `tenantIdOverride` opzionale.
+
+**File:** `core/js/dashboard-counts-snapshot.js`, `core/dashboard-standalone.html`, `core/js/dashboard-hub.js`, `core/js/dashboard-meteo.js`, `core/js/dashboard-deadlines.js`, `core/js/dashboard-quick-bar.js`, `core/js/dashboard-data.js`, `core/js/dashboard-controller.js`.
+
+**Canary post-Fase 2** (Sabbie Gialle, localhost): `hub.refreshAttention` **2 ms**; `widgets.parallelBatch` **538 ms**; `counts.loadSnapshot` **~4,2 s** (collo di bottiglia: `countOreDaValidareManager`); totale summary **~8,3 s** (Tony vigneto ancora in coda — Fase 4). Path widget senza Tony: **~5,2 s** (≤ 6 s).
+
+## Dashboard — performance Fase 3 + 4 (ore defer + Tony fuori path critico) (2026-06-06)
+
+**Fase 3 — ore da validare:**
+- `countOreDaValidareFromLavoriDocs`: query `oreOperai` **in parallelo** (riuso docs lavori), sostituisce loop sequenziale N+1.
+- Snapshot: conteggio ore **fuori path critico** (`oreDaValidarePending` + `oreRefreshPromise` + evento `dashboard-counts-ore-ready`); hub/meteo/quick bar/in arrivo si aggiornano al completamento.
+
+**Fase 4 — Tony differito:**
+- `dashboardPerfSummary('dashboard pronta')` **prima** di vigneto e `checkGlobalStatus`.
+- Tony deferred via `requestIdleCallback` (fallback `setTimeout(0)`); briefing proattivo invariato (delay 3 s esistente).
+
+**File:** `core/js/dashboard-data.js`, `core/js/dashboard-counts-snapshot.js`, `core/js/dashboard-hub.js`, `core/js/dashboard-meteo.js`, `core/js/dashboard-quick-bar.js`, `core/js/dashboard-deadlines.js`, `core/dashboard-standalone.html`, `core/js/dashboard-perf.js`.
+
+**Canary post-Fase 3+4** (Sabbie Gialle, localhost): `dashboard pronta` **~861 ms** (baseline ~18,4 s); `counts.loadSnapshot` **111 ms**; `widgets.parallelBatch` **319 ms**; `counts.oreDaValidare` **313 ms** (background); Tony (`vignetoContext` ~3,3 s) **dopo** summary.
+
+## Dashboard — strumentazione tempi caricamento (2026-06-06)
+
+**Obiettivo:** misurare in console le fasi del boot dashboard (auth, render DOM, widget, Tony) per individuare colli di bottiglia prima della Phase 1 performance.
+
+**Soluzione:** modulo `core/js/dashboard-perf.js` (`dashboardPerfBegin`, `dashboardPerfAsync`, `dashboardPerfSummary`); integrato in `dashboard-standalone.html`, `dashboard-controller.js` (magazzino pre-render), `dashboard-hub.js`, `dashboard-meteo.js`, `dashboard-deadlines.js`. Log `[Dashboard Perf]` + tabella riepilogo; dati in `window.__gfvDashboardPerf`. Attivo di default; forzabile con `?dashboardPerf=1` o `localStorage gfv_dashboard_perf=1`.
+
+**File:** `core/js/dashboard-perf.js`, `core/dashboard-standalone.html`, `core/js/dashboard-controller.js`, `core/js/dashboard-hub.js`, `core/js/dashboard-meteo.js`, `core/js/dashboard-deadlines.js`.
+
+## Dashboard — piano performance Fasi 0–5 (2026-06-06)
+
+**Baseline canary:** ~18,4 s (tenant Sabbie Gialle, locale) — hub ~3,9 s, meteo ~3,6 s, inArrivo ~3,5 s, quick bar ~3,3 s; query duplicate e widget sequenziali.
+
+**Documento:** `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md` — **Fasi 0–5 ✅** (…); smoke **`npm run dashboard:perf-smoke`**. Backlog opzionale **3.A/3.B**.
+
+## Dashboard — fascia meteo ibrida (previsioni + operatività) (2026-06-06)
+
+**Prodotto:** a destra del widget meteo, stessa riga desktop — **Prossimi giorni** (domani + 2, da `dailyExtended`) e, con modulo Manodopera, **Operatività oggi** (programmati oggi, in corso, ore da validare) con link a gestione lavori / validazione ore.
+
+**File:** `core/js/dashboard-sections.js` (`dashboard-meteo-row`), `core/js/dashboard-meteo.js`, `core/js/dashboard-data.js` (`loadDashboardOperativitaOggiCounts`), `core/styles/dashboard.css`, `core/dashboard-standalone.html`.
+
+## Dashboard — widget meteo larghezza ridotta (2026-06-06)
+
+**Problema:** il widget meteo occupava tutta la larghezza della panoramica.
+
+**Soluzione:** su desktop (`≥901px`) larghezza `calc((100% - 20px) / 2)` — stessa colonna dei widget Scadenze / In arrivo; su mobile resta a tutta larghezza.
+
+**File:** `core/styles/dashboard.css`.
+
+## Meteo UI — alert OpenWeather localizzati in italiano (2026-06-06)
+
+**Problema:** banner giallo alert (temporali, ecc.) mostrava titoli/descrizioni in inglese: OpenWeather fornisce gli alert nazionali in EN indipendentemente da `lang=it`.
+
+**Soluzione:** dizionario MeteoAlarm + sostituzioni lessicali in `core/config/meteo-alert-i18n.js` (mirror CJS `functions/meteo-alert-i18n.js`); applicato in normalizzazione CF e in `renderAlertsBanner` / `renderAlertsList` (anche su cache esistente).
+
+**File:** `core/config/meteo-alert-i18n.js`, `functions/meteo-alert-i18n.js`, `functions/meteo-service.js`, `core/js/meteo-ui-helpers.js`, `tests/meteo-alert-i18n.test.js`.
+
+## Meteo UI — strip pioggia prossima ora solo se prevista (2026-06-06)
+
+**Problema:** widget dashboard e modulo Meteo mostravano sempre la sezione «Pioggia prossima ora», anche con messaggio «Nessuna pioggia prevista».
+
+**Soluzione:** `hasMinutelyRainExpected` + `renderMinutelyPrecipStrip` restituisce stringa vuota se `minutelySummary.hasRainSoon` è false e non ci sono mm/h > 0 nei dati minutely.
+
+**File:** `core/js/meteo-ui-helpers.js`, `tests/meteo-ui-helpers.test.js`.
+
+## Dashboard — briefing meteo proattivo Tony solo sede (2026-06-06)
+
+**Problema:** il messaggio proattivo in dashboard elencava ogni campo con probabilità di pioggia (rumoroso).
+
+**Soluzione:** `buildMeteoProactiveBriefingConsigli` — solo **sede aziendale**, solo se pop **> 80%** e mm previsti **> 2** (oggi/domani). Niente elenco terreni; `loadTonyMeteoBriefingData` non carica più lavori/terreni per il briefing.
+
+**File:** `core/config/tony-meteo-rules.js`, `core/js/dashboard-meteo-briefing.js`, `core/js/meteo-ui-helpers.js`, `tests/tony-meteo-rules.test.js`.
+
+## Dashboard — menu a tendina moduli al posto della sidebar (2026-06-06)
+
+**Problema:** la colonna sinistra moduli (288px) occupava troppo spazio nella panoramica manager/amministratore.
+
+**Soluzione:** `createDashboardModuleSidebar` ora crea un pulsante **Moduli** con badge conteggio; al click si apre un pannello a tendina con l’elenco compatto dei moduli attivi (pin hub e navigazione invariati). Layout `dashboard-panorama-layout` a colonna unica; hub, meteo, accessi rapidi e scadenze usano tutta la larghezza.
+
+**File:** `core/js/dashboard-sections.js`, `core/js/dashboard-controller.js`, `core/styles/dashboard.css`, `core/js/dashboard-tour.js`.
 
 ## Tony — Segna ore workspace campo: alias INJECT/SUBMIT + intercept locale (2026-06-04)
 
