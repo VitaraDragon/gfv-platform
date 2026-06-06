@@ -98,6 +98,28 @@ export class Lavoro extends Base {
     this.sospensioneCausa = data.sospensioneCausa != null ? String(data.sospensioneCausa) : '';
     this.sospensioneIl = data.sospensioneIl ? timestampToDate(data.sospensioneIl) : null;
 
+    /** Standby per assenza personale (distinto da sospeso/guasto) */
+    this.standbyStatoPrecedente = data.standbyStatoPrecedente || null;
+    this.standbyCausa = data.standbyCausa || null;
+    this.standbyAssenzaId = data.standbyAssenzaId || null;
+    this.standbyOperaioId = data.standbyOperaioId || null;
+    this.standbyDaIl = data.standbyDaIl ? timestampToDate(data.standbyDaIl) : null;
+    this.standbyNota = data.standbyNota != null ? String(data.standbyNota) : '';
+    this.standbyGiornoKey = data.standbyGiornoKey || null;
+    this.standbyRipristinatoDa = data.standbyRipristinatoDa || null;
+    this.standbyRipristinatoIl = data.standbyRipristinatoIl
+      ? timestampToDate(data.standbyRipristinatoIl)
+      : null;
+
+    /** Operaio assente (storico dopo conferma + sostituto) */
+    this.assenzaOperaioAssenteId = data.assenzaOperaioAssenteId || null;
+    /** Sostituto scelto dal manager dopo assenza (lavoro autonomo: può aggiornare anche operaioId) */
+    this.assenzaSostitutoOperaioId = data.assenzaSostitutoOperaioId || null;
+    this.assenzaSostitutoDa = data.assenzaSostitutoDa || null;
+    this.assenzaSostitutoIl = data.assenzaSostitutoIl
+      ? timestampToDate(data.assenzaSostitutoIl)
+      : null;
+
     /** Snapshot costi (opzionale, es. da aggregazioni) — usato come fallback in prefill registro trattamenti/concimazioni */
     this.costi = data.costi && typeof data.costi === 'object' ? data.costi : null;
     
@@ -168,7 +190,16 @@ export class Lavoro extends Base {
       errors.push('Durata prevista non può superare 365 giorni');
     }
     
-    const statiValidi = ['da_pianificare', 'assegnato', 'in_corso', 'sospeso', 'completato', 'completato_da_approvare', 'annullato'];
+    const statiValidi = [
+      'da_pianificare',
+      'assegnato',
+      'in_corso',
+      'in_standby',
+      'sospeso',
+      'completato',
+      'completato_da_approvare',
+      'annullato'
+    ];
     if (this.stato && !statiValidi.includes(this.stato)) {
       errors.push(`Stato non valido. Stati validi: ${statiValidi.join(', ')}`);
     }
@@ -255,6 +286,7 @@ export class Lavoro extends Base {
       'da_pianificare': '📝 Da pianificare',
       'assegnato': '📋 Assegnato',
       'in_corso': '🔄 In corso',
+      'in_standby': '⏸️ Standby (assenza)',
       'sospeso': '⏸️ Sospeso',
       'completato': '✅ Completato',
       'completato_da_approvare': '⏳ In attesa approvazione',
@@ -301,6 +333,15 @@ export class Lavoro extends Base {
     }
     if (this.sospensioneIl instanceof Date) {
       data.sospensioneIl = dateToTimestamp(this.sospensioneIl);
+    }
+    if (this.standbyDaIl instanceof Date) {
+      data.standbyDaIl = dateToTimestamp(this.standbyDaIl);
+    }
+    if (this.standbyRipristinatoIl instanceof Date) {
+      data.standbyRipristinatoIl = dateToTimestamp(this.standbyRipristinatoIl);
+    }
+    if (this.assenzaSostitutoIl instanceof Date) {
+      data.assenzaSostitutoIl = dateToTimestamp(this.assenzaSostitutoIl);
     }
 
     // Rimuovi dati derivati se sono null o 0 (verranno ricalcolati)

@@ -57,6 +57,7 @@ export function getStatoFormattato(stato) {
         'da_pianificare': '📝 Da pianificare',
         'assegnato': '📋 Assegnato',
         'in_corso': '🔄 In corso',
+        'in_standby': '⏸️ Standby (assenza)',
         'sospeso': '⏸️ Sospeso',
         'completato': '✅ Completato',
         'completato_da_approvare': '⏳ In attesa approvazione',

@@ -561,7 +561,12 @@
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from './services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, query, where, addDoc, Timestamp, serverTimestamp } from './services/firebase-service.js';
         import { onAuthStateChanged } from './services/firebase-service.js';
-        import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from './services/manodopera-lavori-scope.js';
+        import {
+            fetchLavoriDocumentsForFieldUser,
+            isLavoroVisibileOperaioCampo,
+            isLavoroSegnabileOperaio,
+            resolveSegnaturaOreRoleFlags
+        } from './services/manodopera-lavori-scope.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -571,6 +576,9 @@
         let currentUserData = null;
         let currentTenantId = null;
         let lavoriList = [];
+        /** Solo lavori attivi segnabili (dropdown «Segna nuova ora») */
+        let lavoriListSegnabili = [];
+        let lavoriListSegnabiliRaw = [];
         let oreList = [];
         /** Snapshot post-caricamento per filtri Tony senza ricaricare da Firestore */
         let lavoriListRawForTony = [];
@@ -691,6 +699,7 @@
                 }
             }
             lavoriList = applyTonyFilterLavoriSegnatura(lavoriListRawForTony.length ? lavoriListRawForTony : lavoriList);
+            lavoriListSegnabili = applyTonyFilterLavoriSegnatura(lavoriListSegnabiliRaw.length ? lavoriListSegnabiliRaw : lavoriListSegnabili);
             oreList = applyTonyFilterOreSegnatura(oreListRawForTony.length ? oreListRawForTony : oreList);
             renderLavori();
             renderOre();
@@ -824,48 +833,49 @@
             container.innerHTML = '<div class="loading">Caricamento lavori...</div>';
 
             try {
-                const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
-                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
                 const userId = currentUserData.id || currentUserData.uid;
+                const roleFlags = resolveSegnaturaOreRoleFlags(currentUserData);
 
-                const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, {
-                    isCaposquadra: !!isCaposquadra,
-                    isOperaio: !!isOperaio
-                });
+                const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, roleFlags);
 
                 const dataLimite = new Date();
                 dataLimite.setDate(dataLimite.getDate() - 7);
+                const oggi = new Date();
 
-                lavoriList = [];
+                const tuttiFiltrati = [];
+                const segnabili = [];
                 fetched.forEach((lav) => {
                     const data = lav;
-                    const isAttivo = data.stato === 'assegnato' || data.stato === 'in_corso' || data.stato === 'sospeso';
                     const isCompletatoRecente = (data.stato === 'completato' || data.stato === 'completato_da_approvare') &&
                         data.completatoIl &&
                         data.completatoIl.toDate &&
                         data.completatoIl.toDate() >= dataLimite;
-                    if (!isAttivo && !isCompletatoRecente) return;
+                    if (!isLavoroVisibileOperaioCampo(data, oggi) && !isCompletatoRecente) return;
 
                     const row = { ...data };
                     if (row.dataInizio && row.dataInizio.toDate) {
                         row.dataInizio = row.dataInizio.toDate();
                     }
                     row.isCompletatoRecente = isCompletatoRecente;
-                    lavoriList.push(row);
+                    tuttiFiltrati.push(row);
+                    if (!isCompletatoRecente && isLavoroSegnabileOperaio(data, oggi)) {
+                        segnabili.push(row);
+                    }
                 });
 
-                if (isOperaio && !isCaposquadra && lavoriList.length > 3) {
-                    lavoriList = sliceOperaioLavoriWindow(lavoriList, { focusLavoroId: null, maxNeighbors: 1 });
-                }
-
-                lavoriList.sort((a, b) => {
+                const sortByData = (a, b) => {
                     const dateA = a.dataInizio instanceof Date ? a.dataInizio : new Date(a.dataInizio);
                     const dateB = b.dataInizio instanceof Date ? b.dataInizio : new Date(b.dataInizio);
                     return dateB - dateA;
-                });
+                };
+                tuttiFiltrati.sort(sortByData);
+                segnabili.sort(sortByData);
 
+                lavoriListSegnabiliRaw = segnabili.slice();
+                lavoriList = tuttiFiltrati;
                 lavoriListRawForTony = lavoriList.slice();
                 lavoriList = applyTonyFilterLavoriSegnatura(lavoriListRawForTony);
+                lavoriListSegnabili = applyTonyFilterLavoriSegnatura(lavoriListSegnabiliRaw);
                 renderLavori();
             } catch (error) {
                 console.error('Errore caricamento lavori:', error);
@@ -873,6 +883,8 @@
                 showAlert('Errore caricamento lavori', 'error');
                 lavoriListRawForTony = [];
                 lavoriList = [];
+                lavoriListSegnabili = [];
+                lavoriListSegnabiliRaw = [];
                 syncTonyTableDataSegnaturaOre();
             }
         }
@@ -1267,7 +1279,9 @@
             const sel = document.getElementById('ora-lavoro');
             if (!sel) return;
             const lid = sel.value;
-            const listPerSelect = (lavoriListRawForTony && lavoriListRawForTony.length) ? lavoriListRawForTony : lavoriList;
+            const listPerSelect = (lavoriListSegnabili && lavoriListSegnabili.length)
+                ? lavoriListSegnabili
+                : lavoriList;
             const lavoro = lid && listPerSelect ? listPerSelect.find(function (l) { return l.id === lid; }) : null;
             if (lavoro && (lavoro.macchinaId || lavoro.attrezzoId)) {
                 populateMacchineDropdown(lavoro.macchinaId || null, lavoro.attrezzoId || null);
@@ -1285,7 +1299,9 @@
             select.innerHTML = '<option value="">Seleziona lavoro...</option>';
             
             let lavoroSelezionato = null;
-            const listPerSelect = (lavoriListRawForTony && lavoriListRawForTony.length) ? lavoriListRawForTony : lavoriList;
+            const listPerSelect = (lavoriListSegnabili && lavoriListSegnabili.length)
+                ? lavoriListSegnabili
+                : [];
             listPerSelect.forEach(lavoro => {
                 const option = document.createElement('option');
                 option.value = lavoro.id;

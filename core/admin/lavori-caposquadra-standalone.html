@@ -1125,7 +1125,7 @@
                     const x = s || 'assegnato';
                     if (x === 'completato' || x === 'annullato') return 40;
                     if (x === 'completato_da_approvare') return 30;
-                    if (x === 'sospeso') return 20;
+                    if (x === 'sospeso' || x === 'in_standby') return 20;
                     return 0;
                 };
                 lavoriList.sort((a, b) => {
@@ -1224,6 +1224,12 @@
                         }
                     }
                     
+                    let sostitutoDisplay = null;
+                    if (lavoro.assenzaSostitutoOperaioId) {
+                        const { resolveAssenzaSostitutoDisplay } = await import('../services/lavoro-sostituto-context.js');
+                        sostitutoDisplay = await resolveAssenzaSostitutoDisplay(db, lavoro);
+                    }
+
                     return { 
                         ...lavoro, 
                         terreno,
@@ -1233,7 +1239,8 @@
                         percentuale,
                         statoProgresso,
                         giorniEffettivi,
-                        giorniRimanenti
+                        giorniRimanenti,
+                        sostitutoDisplay
                     };
                 })
             );
@@ -1270,6 +1277,14 @@
                             ${statoBadge}
                         </div>
                         
+                        ${lavoro.sostitutoDisplay && lavoro.sostitutoDisplay.sostitutoId ? `
+                            <div style="background:#e8f5e9;border-left:4px solid #4caf50;padding:10px 12px;margin:10px 0;border-radius:6px;font-size:13px;">
+                                <strong>👤 Sostituzione</strong><br>
+                                Assente: ${escapeHtml(lavoro.sostitutoDisplay.assenteNome || '—')} ·
+                                Sostituto: <strong>${escapeHtml(lavoro.sostitutoDisplay.sostitutoNome)}</strong><br>
+                                <small>Il sostituto segna ore da Segna ore; in workspace mobile le approvi in «Valida ore».</small>
+                            </div>
+                        ` : ''}
                         <div class="lavoro-info">
                             <div class="info-item">
                                 <span class="info-label">Terreno</span>
@@ -1328,12 +1343,18 @@
                                     <small>${lavoro.sospensioneCausa ? escapeHtml(String(lavoro.sospensioneCausa)) : 'In attesa del lavoro di ripresa dal Manager.'}</small>
                                 </div>
                             ` : ''}
-                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' ? `
+                            ${lavoro.stato === 'in_standby' ? `
+                                <div style="background: #fff8e1; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #ff9800;">
+                                    <strong>⏸️ Standby per assenza</strong><br>
+                                    <small>${lavoro.standbyNota ? escapeHtml(String(lavoro.standbyNota)) : 'In attesa di sostituto o ripristino dal Manager.'}</small>
+                                </div>
+                            ` : ''}
+                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `
                                 <button class="btn btn-primary" onclick="${isEmbedMobile ? `openTracciaZonaMobileFullscreen('${lavoro.id}')` : `openTracciaZonaModal('${lavoro.id}')`}">
                                     📍 Traccia Segmento Lavorato
                                 </button>
                             ` : ''}
-                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'annullato' ? `
+                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' && lavoro.stato !== 'annullato' ? `
                                 <button type="button" class="btn btn-secondary" onclick="sospendiLavoroDaCaposquadra('${lavoro.id}')" title="Sospendi per meteo o altro; il Manager creerà il lavoro di ripresa">
                                     ⏸️ Sospendi lavoro
                                 </button>
@@ -1346,7 +1367,7 @@
                                 </div>
                             ` : ''}
                             
-                            ${parseFloat(percentuale) >= sogliaSegnaCompletato && lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' && lavoro.stato !== 'sospeso' ? `
+                            ${parseFloat(percentuale) >= sogliaSegnaCompletato && lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `
                                 <button class="btn btn-info" onclick="segnaCompletato('${lavoro.id}', ${parseFloat(percentuale).toFixed(1)})" style="background: #ffc107; color: #000;">
                                     ✅ Segna come Completato
                                 </button>
@@ -1416,6 +1437,7 @@
                 'assegnato': '📋 Assegnato',
                 'in_corso': '🔄 In corso',
                 'sospeso': '⏸️ Sospeso',
+                'in_standby': '⏸️ Standby (assenza)',
                 'completato': '✅ Completato',
                 'completato_da_approvare': '⏳ In attesa approvazione',
                 'annullato': '❌ Annullato'

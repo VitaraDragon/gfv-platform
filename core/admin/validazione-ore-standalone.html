@@ -450,6 +450,15 @@
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, query, where, orderBy, onSnapshot, updateDoc, serverTimestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import {
+            oreVisibileInCodaValidazione,
+            assertUtentePuoValidareOra,
+            isLavoroAutonomo
+        } from '../services/manodopera-ore-validazione-scope.js';
+        import {
+            getManodoperaDisplayNameFromMap,
+            indexManodoperaUserInMap
+        } from '../services/comunicazioni-squadra-utils.js';
 
         // Import service unificato macchine (solo se modulo attivo)
         let macchineUtilizzoService = null;
@@ -578,22 +587,40 @@
             }
         });
 
-        // Carica operai per riferimento
+        // Operai + caposquadra (ore del capo usano operaioId = uid capo)
         async function loadOperai() {
             try {
+                operaiMap.clear();
                 const usersRef = collection(db, 'users');
-                const q = query(
-                    usersRef,
-                    where('tenantId', '==', currentTenantId),
-                    where('ruoli', 'array-contains', 'operaio')
-                );
-                const snapshot = await getDocs(q);
-                
-                snapshot.forEach(doc => {
-                    operaiMap.set(doc.id, { id: doc.id, ...doc.data() });
-                });
+                const ruoliManodopera = ['operaio', 'caposquadra'];
+                for (const ruolo of ruoliManodopera) {
+                    const q = query(
+                        usersRef,
+                        where('tenantId', '==', currentTenantId),
+                        where('ruoli', 'array-contains', ruolo)
+                    );
+                    const snapshot = await getDocs(q);
+                    snapshot.forEach((userDoc) => {
+                        indexManodoperaUserInMap(operaiMap, userDoc.id, userDoc.data());
+                    });
+                }
             } catch (error) {
-                console.error('Errore caricamento operai:', error);
+                console.error('Errore caricamento utenti manodopera:', error);
+            }
+        }
+
+        async function ensureSegnalatoriInMap(operaioIds) {
+            const unique = [...new Set((operaioIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
+            for (const operaioId of unique) {
+                if (operaiMap.has(operaioId)) continue;
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', operaioId));
+                    if (userDoc.exists()) {
+                        indexManodoperaUserInMap(operaiMap, userDoc.id, userDoc.data());
+                    }
+                } catch (error) {
+                    console.warn('[validazione-ore] Utente non risolto:', operaioId, error);
+                }
             }
         }
 
@@ -613,37 +640,24 @@
                 
                 oreDaValidare = [];
                 
-                // Per ogni lavoro, verifica se l'utente può validare le ore
                 for (const lavoroDoc of lavoriSnapshot.docs) {
                     const lavoroId = lavoroDoc.id;
                     const lavoroData = lavoroDoc.data();
-                    
-                    let canValidate = false;
-                    
-                    if (isCaposquadra) {
-                        // CAPOSQUADRA: può validare solo lavori di squadra assegnati a lui
-                        if (lavoroData.caposquadraId === userId && !lavoroData.operaioId) {
-                            canValidate = true;
-                        }
-                    } else if (isManager) {
-                        // MANAGER: può validare lavori autonomi (operaioId presente, caposquadraId null)
-                        if (lavoroData.operaioId && !lavoroData.caposquadraId) {
-                            canValidate = true;
-                        }
-                    }
-                    
-                    if (!canValidate) {
-                        continue; // Salta questo lavoro
-                    }
-                    
-                    // Carica ore da validare per questo lavoro
                     const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
                     const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
                     const oreSnapshot = await getDocs(oreQuery);
                     
                     oreSnapshot.forEach(oraDoc => {
                         const data = oraDoc.data();
-                        // Converti Timestamp in Date
+                        if (!oreVisibileInCodaValidazione({
+                            oraData: data,
+                            lavoroData,
+                            userId,
+                            isCaposquadra,
+                            isManager
+                        })) {
+                            return;
+                        }
                         if (data.data && data.data.toDate) {
                             data.data = data.data.toDate();
                         }
@@ -654,7 +668,7 @@
                             id: oraDoc.id,
                             lavoroId: lavoroId,
                             lavoroNome: lavoroData.nome || 'N/A',
-                            tipoLavoro: lavoroData.operaioId ? 'autonomo' : 'squadra', // Flag per distinguere
+                            tipoLavoro: isLavoroAutonomo(lavoroData) ? 'autonomo' : 'squadra',
                             ...data
                         });
                     });
@@ -666,6 +680,8 @@
                     const dateB = b.creatoIl instanceof Date ? b.creatoIl : new Date(b.creatoIl);
                     return dateA - dateB;
                 });
+
+                await ensureSegnalatoriInMap(oreDaValidare.map((o) => o.operaioId));
 
                 updateStats();
                 renderOre();
@@ -712,28 +728,22 @@
             
             for (const lavoroDoc of lavoriSnapshot.docs) {
                 const lavoroData = lavoroDoc.data();
-                let canValidate = false;
-                
-                if (isCaposquadra) {
-                    // CAPOSQUADRA: solo lavori di squadra assegnati a lui
-                    if (lavoroData.caposquadraId === userId && !lavoroData.operaioId) {
-                        canValidate = true;
-                    }
-                } else if (isManager) {
-                    // MANAGER: solo lavori autonomi
-                    if (lavoroData.operaioId && !lavoroData.caposquadraId) {
-                        canValidate = true;
-                    }
-                }
-                
-                if (!canValidate) continue;
-                
                 const lavoroId = lavoroDoc.id;
                 const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
                 const oreSnapshot = await getDocs(oreRef);
                 
                 oreSnapshot.forEach(oraDoc => {
-                    const stato = oraDoc.data().stato;
+                    const oraRow = oraDoc.data();
+                    if (!oreVisibileInCodaValidazione({
+                        oraData: oraRow,
+                        lavoroData,
+                        userId,
+                        isCaposquadra,
+                        isManager
+                    })) {
+                        return;
+                    }
+                    const stato = oraRow.stato;
                     if (stato === 'validate') {
                         validateCount++;
                     } else if (stato === 'rifiutate') {
@@ -769,7 +779,7 @@
                                 <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this.checked)">
                             </th>
                             <th>Data</th>
-                            <th>Operaio</th>
+                            <th>Chi ha segnato</th>
                             <th>Lavoro</th>
                             <th>Orario</th>
                             <th>Ore Nette</th>
@@ -783,10 +793,7 @@
             oreDaValidare.forEach(ora => {
                 const data = formatDateLikeToItalianLongLocal(ora.data) || '';
                 
-                const operaio = operaiMap.get(ora.operaioId);
-                const operaioNome = operaio 
-                    ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A'
-                    : 'N/A';
+                const operaioNome = getManodoperaDisplayNameFromMap(operaiMap, ora.operaioId);
                 
                 const oreFormattate = formattaOre(ora.oreNette || 0);
 
@@ -882,22 +889,6 @@
                 const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
                 const userId = currentUserData.id || currentUserData.uid;
                 
-                // Verifica permessi in base al tipo di lavoro
-                if (lavoroData.operaioId && !lavoroData.caposquadraId) {
-                    // Lavoro autonomo: solo Manager può validare
-                    if (!isManager) {
-                        throw new Error('Solo Manager può validare ore di lavori autonomi');
-                    }
-                } else if (lavoroData.caposquadraId && !lavoroData.operaioId) {
-                    // Lavoro di squadra: solo caposquadra assegnato può validare
-                    if (!isCaposquadra || lavoroData.caposquadraId !== userId) {
-                        throw new Error('Non sei il caposquadra assegnato a questo lavoro');
-                    }
-                } else {
-                    throw new Error('Lavoro non valido (deve essere assegnato a caposquadra o operaio)');
-                }
-                
-                // Verifica che l'ora esista e sia in stato "da_validare"
                 const oraDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai', oraId));
                 if (!oraDoc.exists()) {
                     throw new Error('Ora non trovata');
@@ -907,8 +898,15 @@
                 if (oraData.stato !== 'da_validare') {
                     throw new Error('Questa ora è già stata validata o rifiutata');
                 }
+
+                assertUtentePuoValidareOra({
+                    oraData,
+                    lavoroData,
+                    userId,
+                    isCaposquadra,
+                    isManager
+                });
                 
-                // Aggiorna stato
                 await updateDoc(oraDoc.ref, {
                     stato: 'validate',
                     validatoDa: currentUserData.id,
@@ -917,7 +915,6 @@
                     motivoRifiuto: null
                 });
                 
-                // Aggiorna ore macchina/attrezzo automaticamente
                 await aggiornaOreMacchina(oraData);
 
                 if (oraData.operaioId) {
@@ -941,10 +938,7 @@
                 return;
             }
             
-            const operaio = operaiMap.get(ora.operaioId);
-            const operaioNome = operaio 
-                ? `${operaio.nome || ''} ${operaio.cognome || ''}`.trim() || operaio.email || 'N/A'
-                : 'N/A';
+            const operaioNome = getManodoperaDisplayNameFromMap(operaiMap, ora.operaioId);
             
             const data = formatDateLikeToItalianLongLocal(ora.data) || '';
             
@@ -955,7 +949,7 @@
             document.getElementById('rifiuta-motivo').value = '';
             
             document.getElementById('rifiuta-ora-details').innerHTML = `
-                <p><strong>Operaio:</strong> ${escapeHtml(operaioNome)}</p>
+                <p><strong>Chi ha segnato:</strong> ${escapeHtml(operaioNome)}</p>
                 <p><strong>Lavoro:</strong> ${escapeHtml(ora.lavoroNome)}</p>
                 <p><strong>Data:</strong> ${data}</p>
                 <p><strong>Orario:</strong> ${ora.orarioInizio || ''} - ${ora.orarioFine || ''}</p>
@@ -997,22 +991,6 @@
                 const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
                 const userId = currentUserData.id || currentUserData.uid;
                 
-                // Verifica permessi in base al tipo di lavoro
-                if (lavoroData.operaioId && !lavoroData.caposquadraId) {
-                    // Lavoro autonomo: solo Manager può rifiutare
-                    if (!isManager) {
-                        throw new Error('Solo Manager può rifiutare ore di lavori autonomi');
-                    }
-                } else if (lavoroData.caposquadraId && !lavoroData.operaioId) {
-                    // Lavoro di squadra: solo caposquadra assegnato può rifiutare
-                    if (!isCaposquadra || lavoroData.caposquadraId !== userId) {
-                        throw new Error('Non sei il caposquadra assegnato a questo lavoro');
-                    }
-                } else {
-                    throw new Error('Lavoro non valido (deve essere assegnato a caposquadra o operaio)');
-                }
-                
-                // Verifica che l'ora esista e sia in stato "da_validare"
                 const oraDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai', oraId));
                 if (!oraDoc.exists()) {
                     throw new Error('Ora non trovata');
@@ -1022,8 +1000,15 @@
                 if (oraData.stato !== 'da_validare') {
                     throw new Error('Questa ora è già stata validata o rifiutata');
                 }
+
+                assertUtentePuoValidareOra({
+                    oraData,
+                    lavoroData,
+                    userId,
+                    isCaposquadra,
+                    isManager
+                });
                 
-                // Aggiorna stato
                 await updateDoc(oraDoc.ref, {
                     stato: 'rifiutate',
                     rifiutatoDa: currentUserData.id,
@@ -1134,22 +1119,6 @@
                         const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
                         const userId = currentUserData.id || currentUserData.uid;
                         
-                        // Verifica permessi in base al tipo di lavoro
-                        if (lavoroData.operaioId && !lavoroData.caposquadraId) {
-                            // Lavoro autonomo: solo Manager può validare
-                            if (!isManager) {
-                                throw new Error('Solo Manager può validare ore di lavori autonomi');
-                            }
-                        } else if (lavoroData.caposquadraId && !lavoroData.operaioId) {
-                            // Lavoro di squadra: solo caposquadra assegnato può validare
-                            if (!isCaposquadra || lavoroData.caposquadraId !== userId) {
-                                throw new Error('Non sei il caposquadra assegnato a questo lavoro');
-                            }
-                        } else {
-                            throw new Error('Lavoro non valido (deve essere assegnato a caposquadra o operaio)');
-                        }
-                        
-                        // Verifica che l'ora esista e sia in stato "da_validare"
                         const oraDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai', oraId));
                         if (!oraDoc.exists()) {
                             throw new Error('Ora non trovata');
@@ -1159,8 +1128,15 @@
                         if (oraData.stato !== 'da_validare') {
                             throw new Error('Questa ora è già stata validata o rifiutata');
                         }
+
+                        assertUtentePuoValidareOra({
+                            oraData,
+                            lavoroData,
+                            userId,
+                            isCaposquadra,
+                            isManager
+                        });
                         
-                        // Aggiorna stato
                         await updateDoc(oraDoc.ref, {
                             stato: 'validate',
                             validatoDa: currentUserData.id,

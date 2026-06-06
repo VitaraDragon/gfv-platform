@@ -258,6 +258,68 @@
             color: #455a64;
         }
 
+        .badge-in_standby {
+            background: #fce4ec;
+            color: #880e4f;
+        }
+
+        #assenze-segnalate-banner {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+
+        #sostituto-shortlist {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .sostituto-card {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .sostituto-card:hover {
+            border-color: #ff9800;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .sostituto-card-libero {
+            border-left: 4px solid #4caf50;
+        }
+
+        .sostituto-card-impegnato {
+            border-left: 4px solid #ff9800;
+        }
+
+        .sostituto-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .sostituto-badge {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .sostituto-card-meta {
+            font-size: 13px;
+            color: #555;
+        }
+
         .badge-completato {
             background: #e8f5e9;
             color: #388e3c;
@@ -654,6 +716,7 @@
 
         <div class="content">
             <div id="alert-container"></div>
+            <div id="assenze-segnalate-banner" hidden></div>
             
             <!-- Card Statistiche -->
             <div class="stats-grid" id="stats-container" data-tour-section="lavori-stats">
@@ -701,6 +764,7 @@
                         <option value="assegnato">Assegnato</option>
                         <option value="in_corso">In corso</option>
                         <option value="sospeso">⏸️ Sospeso</option>
+                        <option value="in_standby">⏸️ Standby (assenza)</option>
                         <option value="completato_da_approvare">In attesa approvazione</option>
                         <option value="completato">Completato</option>
                         <option value="annullato">Annullato</option>
@@ -810,6 +874,59 @@
                 <div id="dettaglio-ore-content">
                     <div class="loading">Caricamento statistiche ore...</div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal standby per assenza -->
+    <div id="standby-assenza-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="standby-assenza-modal-title">Standby per assenza</h3>
+                <button type="button" class="close-btn" onclick="closeStandbyAssenzaModal()">&times;</button>
+            </div>
+            <input type="hidden" id="standby-assenza-lavoro-id">
+            <input type="hidden" id="standby-assenza-assenza-id">
+            <p id="standby-assenza-info" style="font-size:14px;color:#555;margin-bottom:16px;"></p>
+            <div id="standby-assenza-form-wrap">
+                <div class="form-group">
+                    <label for="assenza-operaio">Operaio assente *</label>
+                    <select id="assenza-operaio" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="assenza-tipo">Tipo assenza</label>
+                    <select id="assenza-tipo"></select>
+                </div>
+                <div class="form-group">
+                    <label for="assenza-giorno">Giorno</label>
+                    <input type="date" id="assenza-giorno">
+                </div>
+                <div class="form-group">
+                    <label for="assenza-nota">Nota</label>
+                    <textarea id="assenza-nota" rows="2" placeholder="Es. febbre, ferie, permesso"></textarea>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+                <button type="button" class="btn btn-warning" id="standby-assenza-submit-btn" onclick="submitStandbyAssenzaModal()">Conferma assenza e standby</button>
+                <button type="button" class="btn btn-primary" id="standby-assenza-ripristina-btn" style="display:none;" onclick="ripristinaDaStandbyModal()">Ripristina lavoro</button>
+                <button type="button" class="btn btn-secondary" onclick="closeStandbyAssenzaModal()">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal assegna sostituto -->
+    <div id="sostituto-assenza-modal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>Assegna sostituto</h3>
+                <button type="button" class="close-btn" onclick="closeSostitutoAssenzaModal()">&times;</button>
+            </div>
+            <input type="hidden" id="sostituto-assenza-lavoro-id">
+            <p id="sostituto-assenza-info" style="font-size:14px;color:#555;margin-bottom:8px;"></p>
+            <p style="font-size:13px;color:#666;margin:0 0 8px;">Scegli un candidato (shortlist). I liberi sono in cima.</p>
+            <div id="sostituto-shortlist"></div>
+            <div style="margin-top:16px;">
+                <button type="button" class="btn btn-secondary" onclick="closeSostitutoAssenzaModal()">Chiudi</button>
             </div>
         </div>
     </div>
@@ -1508,6 +1625,22 @@
             buildLavoriTourSteps as buildLavoriTourStepsModule
         } from './js/gestione-lavori-tour.js';
 
+        import {
+            initGestioneLavoriAssenzeUi,
+            refreshAssenzeSegnalateBanner,
+            openStandbyAssenzaModal,
+            closeStandbyAssenzaModal,
+            submitStandbyAssenzaModal,
+            ripristinaDaStandbyModal,
+            confermaSegnalazioneStandby
+        } from './js/gestione-lavori-assenze-ui.js';
+
+        import {
+            initGestioneLavoriSostitutiUi,
+            openSostitutoAssenzaModal,
+            closeSostitutoAssenzaModal
+        } from './js/gestione-lavori-sostituti-ui.js';
+
         // Import per modulo Vigneto (pianificazioni e forme allevamento)
         let getAllPianificazioniModule = null;
         let getFormeAllevamentoListModule = null;
@@ -1931,6 +2064,49 @@
                 populateSottocategorieLavoroWrapper,
                 loadTipiLavoroWrapper
             );
+        }
+
+        /** Context Tony + evento per inject modal (prima di loadLavori — percorso critico Tony). */
+        async function publishTonyLavoriFormContextForInject() {
+            if (!window.Tony || typeof window.Tony.setContext !== 'function') return;
+            const { mapColturaToCategoria } = await import('../js/attivita-utils.js');
+            const terreniRaw = lavoriState.terreniList || [];
+            const normCat = (c) => (c && typeof c === 'string') ? (c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()) : null;
+            const terreniPerTony = terreniRaw.map(t => {
+                const coltura = t.coltura || null;
+                const catDaDb = t.colturaCategoria ? normCat(String(t.colturaCategoria)) : null;
+                const catDaColtura = coltura ? mapColturaToCategoria(coltura) : null;
+                return {
+                    id: t.id,
+                    nome: (t.nome || coltura || '').toString(),
+                    coltura: coltura,
+                    coltura_categoria: catDaDb || catDaColtura || 'Default'
+                };
+            });
+            const coltureConFilari = ['Vite', 'Frutteto', 'Olivo'];
+            window.Tony.setContext('lavori', {
+                terreni: terreniPerTony,
+                colture_con_filari: coltureConFilari,
+                categorie_lavoro: lavoriState.categorieLavoriPrincipali || [],
+                sottocategorieLavoriMap: lavoriState.sottocategorieLavoriMap || new Map(),
+                tipi_lavoro: lavoriState.tipiLavoroList || [],
+                caposquadraList: lavoriState.caposquadraList || [],
+                operaiList: lavoriState.operaiList || [],
+                squadreList: lavoriState.squadreList || [],
+                trattoriList: lavoriState.trattoriList || [],
+                attrezziList: lavoriState.attrezziList || [],
+                hasManodoperaModule: lavoriState.hasManodoperaModule || false,
+                hasParcoMacchineModule: lavoriState.hasParcoMacchineModule || false
+            });
+            window.__lavoriFormDataReady = true;
+            window.dispatchEvent(new CustomEvent('lavori-form-data-ready', {
+                detail: {
+                    terreni: terreniPerTony.length,
+                    tipi: (lavoriState.tipiLavoroList || []).length,
+                    trattori: (lavoriState.trattoriList || []).length
+                }
+            }));
+            console.log('[Gestione Lavori] Context Tony lavori impostato (form-data-ready)');
         }
 
         // Setup handler per tipo lavoro Impianto
@@ -2456,10 +2632,16 @@
                 currentTenantId || lavoriState.currentTenantId,
                 db
             );
+            if (lavoriState.hasManodoperaModule) {
+                await refreshAssenzeSegnalateBanner();
+            }
         }
 
         // Wrapper per openCreaModal
         async function openCreaModalWrapper() {
+            if (window.TonyFormInjector && typeof window.TonyFormInjector.resetLavoroInterviewSessionState === 'function') {
+                window.TonyFormInjector.resetLavoroInterviewSessionState();
+            }
             // Rileva se siamo in modalità conto terzi
             const urlParams = new URLSearchParams(window.location.search);
             const contoTerziFromUrl = urlParams.get('contoTerzi');
@@ -2911,6 +3093,13 @@
         // Nota: editLavoro e deleteLavoro sono alias di openModificaModal e openEliminaModal
         window.editLavoro = openModificaModalWrapper;
         window.deleteLavoro = openEliminaModalWrapper;
+        window.openStandbyAssenzaModal = openStandbyAssenzaModal;
+        window.closeStandbyAssenzaModal = closeStandbyAssenzaModal;
+        window.submitStandbyAssenzaModal = submitStandbyAssenzaModal;
+        window.ripristinaDaStandbyModal = ripristinaDaStandbyModal;
+        window.confermaSegnalazioneStandby = confermaSegnalazioneStandby;
+        window.openSostitutoAssenzaModal = openSostitutoAssenzaModal;
+        window.closeSostitutoAssenzaModal = closeSostitutoAssenzaModal;
 
         // Setup tour button all'inizio
         setupLavoriTourButtonWrapper();
@@ -2985,9 +3174,16 @@
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 hasContoTerziModule = modules.includes('contoTerzi');
                                 
-                                // Inizializza context Tony con i moduli attivi usando helper
+                                // Inizializza context Tony: moduli + ruoli manager (evita guard profilo campo errata)
+                                var tonyOptsLavori = {
+                                    tenantId: currentTenantId,
+                                    utente_corrente: {
+                                        nome: ((currentUserData.nome || '') + ' ' + (currentUserData.cognome || '')).trim() || (currentUser && currentUser.email) || '',
+                                        ruoli: Array.isArray(currentUserData.ruoli) ? currentUserData.ruoli.slice() : []
+                                    }
+                                };
                                 if (window.Tony && window.Tony.initContextWithModules) {
-                                    window.Tony.initContextWithModules(modules);
+                                    window.Tony.initContextWithModules(modules, tonyOptsLavori);
                                 } else {
                                     // Fallback se helper non disponibile (retry manuale)
                                     var initTonyContext = function(retries) {
@@ -2995,7 +3191,9 @@
                                         if (window.Tony && typeof window.Tony.setContext === 'function') {
                                             window.Tony.setContext('dashboard', {
                                                 info_azienda: { moduli_attivi: modules },
-                                                moduli_attivi: modules
+                                                moduli_attivi: modules,
+                                                tenantId: currentTenantId,
+                                                utente_corrente: tonyOptsLavori.utente_corrente
                                             });
                                             console.log('[Gestione Lavori] Context Tony inizializzato con moduli:', modules);
                                         } else if (retries < 10) {
@@ -3098,6 +3296,14 @@
                             loadOperaiWrapper(),
                             loadSquadreWrapper()
                         ]);
+                        const assenzeSostitutiDeps = {
+                            getCurrentUserData: () => currentUserData,
+                            getOperaiList: () => lavoriState.operaiList || [],
+                            getSquadreList: () => lavoriState.squadreList || [],
+                            renderLavori: () => renderLavoriWrapper()
+                        };
+                        initGestioneLavoriAssenzeUi(assenzeSostitutiDeps);
+                        initGestioneLavoriSostitutiUi(assenzeSostitutiDeps);
                     }
                     
                     // Carica macchine solo se modulo Parco Macchine attivo
@@ -3109,62 +3315,24 @@
                         ]);
                     }
                     
-                    // DOPO aver caricato tutti i dati di riferimento, carica i lavori
-                    await loadLavoriWrapper();
-                    
-                    // Applica filtro stato se presente nell'URL (loadLavori chiama già applyFilters, ma lo richiamiamo per sicurezza)
-                    if (statoFromUrl) {
-                        applyFiltersWrapper();
+                    // Tony inject: context + dropdown PRIMA della tabella lavori (loadLavori è pesante e non serve al modal)
+                    await publishTonyLavoriFormContextForInject();
+
+                    if (hasManodoperaModule) {
+                        setupTipoAssegnazioneHandlersWrapper();
                     }
-                    
-                    // Context Tony per compilazione form Lavori (Treasure Map)
-                    if (window.Tony && typeof window.Tony.setContext === 'function') {
-                        const { mapColturaToCategoria } = await import('../js/attivita-utils.js');
-                        const terreniRaw = lavoriState.terreniList || [];
-                        // coltura_categoria: priorità a terreno.colturaCategoria (da DB), altrimenti da coltura (stesso schema attivita)
-                        const normCat = (c) => (c && typeof c === 'string') ? (c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()) : null;
-                        const terreniPerTony = terreniRaw.map(t => {
-                            const coltura = t.coltura || null;
-                            const catDaDb = t.colturaCategoria ? normCat(String(t.colturaCategoria)) : null;
-                            const catDaColtura = coltura ? mapColturaToCategoria(coltura) : null;
-                            return {
-                                id: t.id,
-                                nome: (t.nome || coltura || '').toString(),
-                                coltura: coltura,
-                                coltura_categoria: catDaDb || catDaColtura || 'Default'
-                            };
-                        });
-                        // Stessa regola di attivita: Vite, Frutteto, Olivo hanno filari → sottocategoria mai "Generale"
-                        const coltureConFilari = ['Vite', 'Frutteto', 'Olivo'];
-                        window.Tony.setContext('lavori', {
-                            terreni: terreniPerTony,
-                            colture_con_filari: coltureConFilari,
-                            categorie_lavoro: lavoriState.categorieLavoriPrincipali || [],
-                            sottocategorieLavoriMap: lavoriState.sottocategorieLavoriMap || new Map(),
-                            tipi_lavoro: lavoriState.tipiLavoroList || [],
-                            caposquadraList: lavoriState.caposquadraList || [],
-                            operaiList: lavoriState.operaiList || [],
-                            squadreList: lavoriState.squadreList || [],
-                            trattoriList: lavoriState.trattoriList || [],
-                            attrezziList: lavoriState.attrezziList || [],
-                            hasManodoperaModule: lavoriState.hasManodoperaModule || false,
-                            hasParcoMacchineModule: lavoriState.hasParcoMacchineModule || false
-                        });
-                        console.log('[Gestione Lavori] Context Tony lavori impostato');
-                    }
+                    setupCategoriaLavoroHandlerWrapper();
+
+                    loadLavoriWrapper().then(function () {
+                        if (statoFromUrl) applyFiltersWrapper();
+                    }).catch(function (err) {
+                        console.warn('[Gestione Lavori] loadLavori background:', err);
+                    });
                     
                     // Se openModal=crea nell'URL, apri il modal crea lavoro
                     if (openModalCrea) {
                         setTimeout(() => openCreaModalWrapper(), 300);
                     }
-                    
-                    // Inizializza handler tipo assegnazione solo se Manodopera attivo
-                    if (hasManodoperaModule) {
-                        setupTipoAssegnazioneHandlersWrapper();
-                    }
-                    
-                    // Inizializza handler categoria lavoro
-                    setupCategoriaLavoroHandlerWrapper();
                     
                     // Carica moduli vigneto se disponibili
                     await loadVignetoModules();

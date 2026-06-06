@@ -278,7 +278,8 @@
             color: #333;
         }
 
-        #podere-map-container {
+        #podere-map-container,
+        #sede-map-container {
             position: relative;
         }
 
@@ -349,6 +350,24 @@
                     <div class="form-group">
                         <label for="azienda-provincia">Provincia</label>
                         <input type="text" id="azienda-provincia" placeholder="MI">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sede-map-search">Sede aziendale sulla mappa</label>
+                        <p class="info-text" style="margin-bottom: 10px;">
+                            Cerca l’indirizzo della sede, verifica il pin e salva. Il punto serve al <strong>meteo in dashboard</strong> (piano Base).
+                            Puoi anche cliccare sulla mappa o trascinare il marker per affinare la posizione.
+                        </p>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <input type="text" id="sede-map-search" placeholder="Cerca indirizzo, località o azienda…" style="flex: 1; min-width: 220px;" autocomplete="off">
+                            <button type="button" class="btn btn-primary" onclick="searchSedeAddress()" style="white-space: nowrap;">🔍 Cerca</button>
+                            <button type="button" class="btn btn-secondary" onclick="searchSedeAddressFromForm()" style="white-space: nowrap;" title="Usa i campi indirizzo, CAP, città e provincia sopra">Da anagrafica</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearSedeMarker()" style="white-space: nowrap;">Rimuovi pin</button>
+                        </div>
+                        <div id="sede-coords-hint" class="info-text" style="margin-bottom: 10px;"></div>
+                        <div id="sede-map-container" style="height: 300px; width: 100%; border: 1px solid #ced4da; border-radius: 6px; position: relative;">
+                            <div id="sede-map" style="height: 100%; width: 100%;"></div>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -751,8 +770,9 @@
                 document.head.appendChild(script);
                 
                 window.initGoogleMapsPodere = function() {
-
                     window.googleMapsReadyPodere = true;
+                    sedeMapInitAttempts = 0;
+                    tryInitSedeMap();
                 };
             } else {
                 console.warn('Google Maps API key non disponibile');
@@ -796,6 +816,10 @@
         let poderiList = [];
         let podereMap = null;
         let podereMarker = null;
+        let sedeMap = null;
+        let sedeMarker = null;
+        let pendingSedeCoordinate = null;
+        let sedeMapInitAttempts = 0;
         let logoFileToUpload = null;
         
         // Liste predefinite
@@ -899,6 +923,11 @@
                                     document.getElementById('logo-current-img').src = tenantData.logoUrl;
                                     document.getElementById('logo-current').style.display = 'block';
                                 }
+
+                                pendingSedeCoordinate = normalizeSedeCoordinate(tenantData.sedeCoordinate);
+                                prefillSedeMapSearch(tenantData);
+                                bindSedeMapSearchEnter();
+                                tryInitSedeMap();
                             }
                             
                             // Mostra/nascondi tariffe operai in base al modulo Manodopera
@@ -1218,6 +1247,9 @@
                     tenantData.logoUrl = logoUrl;
                 }
 
+                const sedeCoord = getSedeCoordinateForSave();
+                tenantData.sedeCoordinate = sedeCoord;
+
                 // Se il documento esiste, aggiorna; altrimenti crea
                 if (tenantSnap.exists()) {
                     await updateDoc(tenantRef, tenantData);
@@ -1237,12 +1269,257 @@
                 // Reset upload
                 logoFileToUpload = null;
                 document.getElementById('azienda-logo').value = '';
-                
+
+                pendingSedeCoordinate = sedeCoord;
+                updateSedeCoordsHint(sedeCoord);
+
                 showAlert('Impostazioni azienda salvate con successo', 'success');
             } catch (error) {
                 console.error('Errore salvataggio azienda:', error);
                 showAlert('Errore durante il salvataggio: ' + error.message, 'error');
             }
+        }
+
+        function normalizeSedeCoordinate(raw) {
+            if (!raw || typeof raw !== 'object') return null;
+            const lat = typeof raw.lat === 'number' ? raw.lat : parseFloat(raw.lat);
+            const lng = typeof raw.lng === 'number' ? raw.lng : parseFloat(raw.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+            return { lat, lng };
+        }
+
+        function updateSedeCoordsHint(coord) {
+            const hint = document.getElementById('sede-coords-hint');
+            if (!hint) return;
+            if (coord && Number.isFinite(coord.lat) && Number.isFinite(coord.lng)) {
+                hint.textContent = 'Pin impostato: ' + coord.lat.toFixed(5) + ', ' + coord.lng.toFixed(5);
+                hint.style.color = '#198754';
+            } else {
+                hint.textContent = 'Nessun pin impostato: il meteo in dashboard non sarà disponibile finché non salvi una posizione sede.';
+                hint.style.color = '#856404';
+            }
+        }
+
+        function getSedeCoordinateForSave() {
+            if (!sedeMarker) return null;
+            const position = sedeMarker.getPosition();
+            if (!position) return null;
+            return {
+                lat: position.lat(),
+                lng: position.lng()
+            };
+        }
+
+        function tryInitSedeMap() {
+            const mapDiv = document.getElementById('sede-map');
+            const aziendaSection = document.getElementById('azienda-section');
+            if (!mapDiv || !aziendaSection || aziendaSection.style.display === 'none') return;
+
+            if (window.google && window.google.maps && window.googleMapsReadyPodere) {
+                initSedeMap(pendingSedeCoordinate);
+                return;
+            }
+
+            sedeMapInitAttempts += 1;
+            if (sedeMapInitAttempts <= 30) {
+                setTimeout(tryInitSedeMap, 500);
+            } else {
+                mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 14px; text-align: center; padding: 12px;">Google Maps non disponibile. Verifica la connessione o riapri la pagina.</div>';
+            }
+        }
+
+        function initSedeMap(center) {
+            const mapDiv = document.getElementById('sede-map');
+            if (!mapDiv) return;
+
+            if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
+                mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; font-size: 14px;">Caricamento mappa...</div>';
+                tryInitSedeMap();
+                return;
+            }
+
+            const normalizedCenter = normalizeSedeCoordinate(center);
+
+            if (sedeMap) {
+                if (normalizedCenter) {
+                    const latLng = new google.maps.LatLng(normalizedCenter.lat, normalizedCenter.lng);
+                    sedeMap.setCenter(latLng);
+                    sedeMap.setZoom(17);
+                    setSedeMarker(latLng, { skipCenter: true });
+                }
+                updateSedeCoordsHint(getSedeCoordinateForSave() || normalizedCenter);
+                return;
+            }
+
+            try {
+                mapDiv.innerHTML = '';
+                const defaultCenter = normalizedCenter || { lat: 44.4949, lng: 11.3426 };
+
+                sedeMap = new google.maps.Map(mapDiv, {
+                    zoom: normalizedCenter ? 17 : 6,
+                    center: defaultCenter,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE
+                });
+
+                sedeMap.setOptions({
+                    mapTypeControl: true,
+                    mapTypeControlOptions: {
+                        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                        position: google.maps.ControlPosition.TOP_RIGHT,
+                        mapTypeIds: [
+                            google.maps.MapTypeId.SATELLITE,
+                            google.maps.MapTypeId.HYBRID,
+                            google.maps.MapTypeId.ROADMAP
+                        ]
+                    }
+                });
+
+                sedeMap.addListener('click', function(event) {
+                    setSedeMarker(event.latLng);
+                });
+
+                if (normalizedCenter) {
+                    setSedeMarker(new google.maps.LatLng(normalizedCenter.lat, normalizedCenter.lng));
+                } else {
+                    updateSedeCoordsHint(null);
+                }
+
+                bindSedeMapSearchEnter();
+            } catch (error) {
+                console.error('Errore inizializzazione mappa sede:', error);
+                mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #dc3545; font-size: 14px;">Errore caricamento mappa sede</div>';
+            }
+        }
+
+        function setSedeMarker(position, options) {
+            options = options || {};
+            if (!sedeMap || !window.google || !window.google.maps) return;
+
+            if (sedeMarker) {
+                sedeMarker.setMap(null);
+            }
+
+            sedeMarker = new google.maps.Marker({
+                map: sedeMap,
+                position: position,
+                draggable: true,
+                title: 'Sede aziendale'
+            });
+
+            if (!options.skipCenter) {
+                sedeMap.setCenter(position);
+                sedeMap.setZoom(17);
+            }
+
+            sedeMarker.addListener('dragend', function() {
+                updateSedeCoordsHint(getSedeCoordinateForSave());
+            });
+
+            updateSedeCoordsHint(getSedeCoordinateForSave());
+        }
+
+        function clearSedeMarker() {
+            if (sedeMarker) {
+                sedeMarker.setMap(null);
+                sedeMarker = null;
+            }
+            updateSedeCoordsHint(null);
+        }
+
+        function buildSedeAddressQuery() {
+            const parts = [
+                document.getElementById('azienda-indirizzo')?.value.trim(),
+                document.getElementById('azienda-cap')?.value.trim(),
+                document.getElementById('azienda-citta')?.value.trim(),
+                document.getElementById('azienda-provincia')?.value.trim(),
+                'Italia'
+            ].filter(Boolean);
+            return parts.join(', ');
+        }
+
+        function prefillSedeMapSearch(tenantData) {
+            const searchInput = document.getElementById('sede-map-search');
+            if (!searchInput) return;
+            const fromForm = buildSedeAddressQuery();
+            if (fromForm && fromForm !== 'Italia') {
+                searchInput.value = fromForm.replace(/, Italia$/, '');
+            } else if (tenantData && tenantData.nome) {
+                searchInput.placeholder = 'Es. ' + tenantData.nome + ', città…';
+            }
+        }
+
+        function bindSedeMapSearchEnter() {
+            const searchInput = document.getElementById('sede-map-search');
+            if (!searchInput || searchInput.dataset.enterBound === '1') return;
+            searchInput.dataset.enterBound = '1';
+            searchInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    searchSedeAddress();
+                }
+            });
+        }
+
+        function searchSedeAddressFromForm() {
+            const query = buildSedeAddressQuery();
+            if (!query || query === 'Italia') {
+                showAlert('Compila almeno indirizzo e città nei campi anagrafica sopra.', 'error');
+                return;
+            }
+            const searchInput = document.getElementById('sede-map-search');
+            if (searchInput) {
+                searchInput.value = query.replace(/, Italia$/, '');
+            }
+            geocodeSedeQuery(query);
+        }
+
+        function searchSedeAddress() {
+            if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
+                showAlert('Mappa non ancora caricata. Attendi qualche secondo.', 'error');
+                return;
+            }
+
+            const searchInput = document.getElementById('sede-map-search');
+            let query = searchInput ? searchInput.value.trim() : '';
+            if (!query) {
+                query = buildSedeAddressQuery();
+            }
+            if (!query || query === 'Italia') {
+                showAlert('Digita un indirizzo o una località nella barra di ricerca.', 'error');
+                if (searchInput) searchInput.focus();
+                return;
+            }
+
+            geocodeSedeQuery(query);
+        }
+
+        function geocodeSedeQuery(query) {
+            if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
+                showAlert('Mappa non ancora caricata. Attendi qualche secondo.', 'error');
+                return;
+            }
+
+            if (!sedeMap) {
+                initSedeMap();
+            }
+
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({
+                address: query.indexOf('Italia') === -1 ? query + ', Italia' : query,
+                componentRestrictions: { country: 'it' }
+            }, function(results, status) {
+                if (status === 'OK' && results[0]) {
+                    const location = results[0].geometry.location;
+                    setSedeMarker(location);
+                    const searchInput = document.getElementById('sede-map-search');
+                    if (searchInput && results[0].formatted_address) {
+                        searchInput.value = results[0].formatted_address;
+                    }
+                    showAlert('Sede trovata. Verifica il pin e salva le impostazioni azienda.', 'success');
+                } else {
+                    showAlert('Indirizzo non trovato. Prova con più dettagli o posiziona il pin manualmente sulla mappa.', 'error');
+                }
+            });
         }
 
         // Salva impostazioni account
@@ -3979,6 +4256,9 @@
         
         // Esponi funzioni globalmente
         window.handleSaveAzienda = handleSaveAzienda;
+        window.searchSedeAddress = searchSedeAddress;
+        window.searchSedeAddressFromForm = searchSedeAddressFromForm;
+        window.clearSedeMarker = clearSedeMarker;
         window.handleSaveAccount = handleSaveAccount;
         window.handleChangePassword = handleChangePassword;
         window.addTipoLavoro = addTipoLavoro;

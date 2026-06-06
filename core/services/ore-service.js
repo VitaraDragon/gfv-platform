@@ -9,6 +9,7 @@ import {
   getCurrentTenantId 
 } from './tenant-service.js';
 import { getCurrentUserData } from './auth-service.js';
+import { isOraDelCaposquadraSuLavoroSquadra } from './manodopera-ore-validazione-scope.js';
 
 /**
  * Ottieni tutte le ore di un lavoro
@@ -123,9 +124,12 @@ export async function getOreDaValidare(caposquadraId) {
       const oreQuery = query(oreRef, where('stato', '==', 'da_validare'));
       const oreSnapshot = await getDocs(oreQuery);
       
+      const lavoroData = lavoroDoc.data();
       oreSnapshot.forEach(oraDoc => {
         const data = oraDoc.data();
-        // Converti Timestamp in Date
+        if (isOraDelCaposquadraSuLavoroSquadra(data, lavoroData)) {
+          return;
+        }
         if (data.data && data.data.toDate) {
           data.data = data.data.toDate();
         }
@@ -135,7 +139,7 @@ export async function getOreDaValidare(caposquadraId) {
         oreDaValidare.push({
           id: oraDoc.id,
           lavoroId: lavoroId,
-          lavoroNome: lavoroDoc.data().nome || 'N/A',
+          lavoroNome: lavoroData.nome || 'N/A',
           ...data
         });
       });
