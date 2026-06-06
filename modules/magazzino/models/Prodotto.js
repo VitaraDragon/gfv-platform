@@ -81,6 +81,21 @@ export class Prodotto extends Base {
       errors.push('Giorni di carenza non possono essere negativi');
     }
 
+    const cat = String(this.categoria || '').trim().toLowerCase();
+    const richiedeDos = cat === 'fitofarmaci' || cat === 'fertilizzanti';
+    const richiedeCar = cat === 'fitofarmaci';
+    if (richiedeDos) {
+      if (this.dosaggioMin == null || !Number.isFinite(this.dosaggioMin)) {
+        errors.push('Dosaggio minimo obbligatorio per fitofarmaci e fertilizzanti');
+      }
+      if (this.dosaggioMax == null || !Number.isFinite(this.dosaggioMax)) {
+        errors.push('Dosaggio massimo obbligatorio per fitofarmaci e fertilizzanti');
+      }
+    }
+    if (richiedeCar && (this.giorniCarenza == null || !Number.isFinite(this.giorniCarenza))) {
+      errors.push('Giorni di carenza obbligatori per i fitofarmaci');
+    }
+
     return {
       valid: errors.length === 0,
       errors

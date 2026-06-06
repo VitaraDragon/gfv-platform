@@ -278,9 +278,11 @@ REGOLE:
       'prodotto-giorni-carenza'
     ],
     /**
-     * Solo queste categorie (value del select) usano i giorni di carenza in interviewEmpty; tutte le altre no.
+     * Solo fitofarmaci: giorni di carenza obbligatori in form e intervista Tony.
      */
     prodottoCategoriaRichiedeGiorniCarenza: ['fitofarmaci'],
+    /** Fitofarmaci e fertilizzanti: dosaggio min/max obbligatori in form. */
+    prodottoCategoriaRichiedeDosaggio: ['fitofarmaci', 'fertilizzanti'],
     injectionOrder: [
       'prodotto-codice',
       'prodotto-nome',
@@ -344,10 +346,15 @@ REGOLE:
   const TRATTAMENTO_CAMPO_FORM_MAP = {
     formId: 'form-trattamento',
     modalId: 'modal-trattamento',
+    meteoSuggest: {
+      fieldId: 'trattamento-condizioni-meteo',
+      terrenoResolver: 'trattamento_campo',
+    },
     tonyInterviewFieldIds: ['trattamento-note', 'trattamento-copertura-terreno'],
     injectionOrder: [
       'trattamento-prodotti',
       'trattamento-superficie',
+      'trattamento-condizioni-meteo',
       'trattamento-note',
       'trattamento-copertura-terreno',
       'trattamento-superficie-anagrafe',
@@ -361,6 +368,11 @@ REGOLE:
           '**dosaggio** = kg/ha. Se l’utente esprime dose **per ettaro** (o risponde a «per ettaro»), è già kg/ha. Se esprime **totale** sul campo (ql/kg totali), la cloud function può ricavare kg/ha = kg_totali/ha. Opzionale prodottoId.'
       },
       'trattamento-superficie': { type: 'number', resolve: 'as_is', description: 'Superficie trattata (ha)' },
+      'trattamento-condizioni-meteo': {
+        type: 'select',
+        resolve: 'as_is',
+        description: 'Opzionale: sereno | nuvoloso | pioggia | vento forte (suggerimento meteo se modulo attivo)'
+      },
       'trattamento-note': { type: 'text', resolve: 'as_is', description: 'Note' },
       'trattamento-copertura-terreno': {
         type: 'select',
@@ -391,7 +403,7 @@ REGOLE:
 - **Dose per ettaro** (ql/ha, kg/ha, o risposta a «dosaggio per ettaro»): dosaggio = **ql×100** kg/ha — non confondere con kg_totali/ha.
 - **Superficie da anagrafe** / **scarico magazzino**: **trattamento-superficie-anagrafe**, **trattamento-registra-scarico-magazzino** — solo dopo **conferma utente** o richiesta esplicita; non insieme al solo dosaggio senza chiedere.
 - **Totale sul campo** (ql o kg totali): dosaggio = kg_totali / ha. **1 ql = 100 kg**.
-- Opzionali: trattamento-superficie, trattamento-note, trattamento-copertura-terreno (non_dichiarata|completa|parziale). Checkbox: **trattamento-superficie-anagrafe**, **trattamento-prosegue-precedente**, **trattamento-registra-scarico-magazzino**.
+- Opzionali: trattamento-superficie, trattamento-note, trattamento-copertura-terreno (non_dichiarata|completa|parziale), **trattamento-condizioni-meteo** (sereno|nuvoloso|pioggia|vento forte — suggerimento meteo se modulo attivo, conferma utente). Checkbox: **trattamento-superficie-anagrafe**, **trattamento-prosegue-precedente**, **trattamento-registra-scarico-magazzino**.
 - Non sovrascrivere costi manodopera/macchina se già precompilati da lavoro.`;
 
   const SYSTEM_INSTRUCTION_MAGAZZINO_FORMS = `Form Magazzino (id DOM = chiavi in fields / INJECT_FORM_DATA):
@@ -409,6 +421,7 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
       'terreno-coltura-categoria',
       'terreno-coltura',
       'terreno-podere',
+      'terreno-tipo-campo',
       'terreno-tipo-possesso',
       'terreno-data-scadenza-affitto',
       'terreno-canone-affitto',
@@ -424,6 +437,11 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
       'terreno-coltura-categoria': { type: 'select', resolve: 'by_name', lookup: 'categorie_coltura', description: 'Categoria coltura (Frutteto, Vigneto, Seminativo, Ortive)' },
       'terreno-coltura': { type: 'select', resolve: 'by_name', lookup: 'colture', description: 'Coltura specifica (Vite da Vino, Albicocche, Kaki, Grano)' },
       'terreno-podere': { type: 'select', resolve: 'by_name', lookup: 'poderi', description: 'Podere (es. Casetti, Barbavara Vecchia)' },
+      'terreno-tipo-campo': {
+        type: 'select',
+        resolve: 'as_is',
+        description: 'Morfologia terreno: pianura, collina o montagna (per praticabilità meteo e tariffe)',
+      },
       'terreno-tipo-possesso': { type: 'select', resolve: 'as_is', description: 'proprieta o affitto. Default proprieta.' },
       'terreno-data-scadenza-affitto': { type: 'date', resolve: 'as_is', description: 'Data scadenza contratto affitto (YYYY-MM-DD). Richiesto se tipo-possesso=affitto.' },
       'terreno-canone-affitto': { type: 'number', resolve: 'as_is', description: 'Canone mensile in euro (opzionale)' },
@@ -571,6 +589,12 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     mechanicalDefaultKeywords: ['trinciatur', 'erpicatur', 'fresatur', 'vangatur', 'ripunt', 'diserb', 'sfalci', 'trattament', 'concimaz', 'pre-potatur', 'potatura meccanica', 'vendemmia meccanica'],
     // Per questi intenti, se possibile Tony prova a valorizzare trattore/attrezzo.
     machineRequiredKeywords: ['trinciatur', 'erpicatur', 'fresatur', 'vangatur', 'ripunt', 'diserb', 'trattament', 'concimaz', 'pre-potatur', 'potatura meccanica', 'vendemmia meccanica'],
+    /** Stem per cui Tony può chiedere prima manuale vs meccanica (se nel catalogo esistono entrambe). */
+    manualMechChoiceStems: ['potatur', 'vendemm'],
+    /** Stem intrinsecamente meccanici: salta la domanda manuale/meccanica → tipo o macchine. */
+    manualMechSkipStems: ['trinciatur', 'erpicatur', 'aratur', 'fresatur', 'vangatur', 'ripunt', 'diserb', 'sfalci', 'semin', 'concimaz'],
+    manualSubtypeKeywords: ['manual', 'manuale', 'produz', 'rinnov', 'allevament'],
+    mechanicalSubtypeKeywords: ['meccanic', 'verde', 'pre-potatur', 'prepotatur'],
     coverageRules: {
       rowCropSubcategories: ['Tra le File', 'Sulla Fila'],
       openFieldSubcategory: 'Generale'

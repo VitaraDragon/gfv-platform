@@ -680,6 +680,17 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="terreno-tipo-campo">Morfologia del terreno</label>
+                    <select id="terreno-tipo-campo">
+                        <option value="">-- Seleziona morfologia --</option>
+                        <option value="pianura">Pianura</option>
+                        <option value="collina">Collina</option>
+                        <option value="montagna">Montagna</option>
+                    </select>
+                    <small>Usata per tariffe conto terzi e per la praticabilità meteo (Tony / modulo Meteo)</small>
+                </div>
+
+                <div class="form-group">
                     <label for="terreno-tipo-possesso">Tipo Possesso *</label>
                     <select id="terreno-tipo-possesso" required onchange="toggleDataScadenzaAffitto()">
                         <option value="proprieta">Proprietà</option>

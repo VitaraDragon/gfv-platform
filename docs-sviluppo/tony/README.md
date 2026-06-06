@@ -14,6 +14,7 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | **MASTER_PLAN.md** | Visione, architettura, roadmap, principi di scalabilità. Ogni modifica Tony deve allinearsi a questo piano. |
 | **STATO_ATTUALE.md** | Stato verificato sul codice: cosa funziona, cosa manca, prossimi passi. |
 | **PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md** | Design (non ancora implementato): sostituzioni operai, equipaggio minimo, shortlist, policy tenant, Tony. Da leggere prima di lavorare su manodopera/squadre/lavori. |
+| **PLAN_OTTIMIZZAZIONE_PERFORMANCE.md** | Piano performance Tony (rev. 3, 2026-05-24): Fase 0–2b implementate; tier enforcement + meteo preventivo-data; validazione produzione pending; Fase 3 streaming/form. |
 | **README.md** | Questo file – panoramica e link. |
 
 ---

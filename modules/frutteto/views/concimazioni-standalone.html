@@ -221,6 +221,16 @@
                     <label for="trattamento-note">Note</label>
                     <textarea id="trattamento-note" rows="2" placeholder="Opzionale"></textarea>
                 </div>
+                <div class="form-group" id="trattamento-condizioni-meteo-group">
+                    <label for="trattamento-condizioni-meteo">Condizioni meteo (opzionale)</label>
+                    <select id="trattamento-condizioni-meteo">
+                        <option value="">— Non specificato —</option>
+                        <option value="sereno">Sereno</option>
+                        <option value="nuvoloso">Nuvoloso</option>
+                        <option value="pioggia">Pioggia</option>
+                        <option value="vento forte">Vento forte</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="trattamento-copertura-terreno">Copertura del terreno (questo intervento)</label>
                     <select id="trattamento-copertura-terreno">
@@ -1424,6 +1434,7 @@
                 document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
                 document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
                 document.getElementById('trattamento-note').value = t.note || '';
+                setCondizioniMeteoOnForm(t.condizioniMeteo);
                 document.getElementById('trattamento-copertura-terreno').value = t.coperturaTerreno || 'non_dichiarata';
                 let lavoroRipresaDa = null;
                 if (row.lavoroId) {
@@ -1480,6 +1491,7 @@
                 if (poligonoInfo) poligonoInfo.style.display = (!t.superficieDaAnagrafeTerreno && poligonoCoordsTrattamento.length >= 3) ? 'block' : 'none';
                 applyScaricoMagazzinoUi(t);
                 document.getElementById('modal-trattamento').classList.add('active');
+                suggestTrattamentoMeteoIfAvailable();
             } catch (err) {
                 showAlert(err.message || 'Errore creazione concimazione', 'error');
                 await loadTrattamenti();
@@ -1518,6 +1530,7 @@
             document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
             document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
             document.getElementById('trattamento-note').value = t.note || '';
+            setCondizioniMeteoOnForm(t.condizioniMeteo);
             document.getElementById('trattamento-copertura-terreno').value = t.coperturaTerreno || 'non_dichiarata';
             let lavoroRipresaDaEd = null;
             if (row.lavoroId) {
@@ -1582,6 +1595,26 @@
             if (poligonoInfo) poligonoInfo.style.display = (!t.superficieDaAnagrafeTerreno && poligonoCoordsTrattamento.length >= 3) ? 'block' : 'none';
             applyScaricoMagazzinoUi(t);
             document.getElementById('modal-trattamento').classList.add('active');
+            suggestTrattamentoMeteoIfAvailable();
+        }
+
+        function readCondizioniMeteoFromForm() {
+            const el = document.getElementById('trattamento-condizioni-meteo');
+            const v = el && el.value ? String(el.value).trim() : '';
+            return v || null;
+        }
+
+        function setCondizioniMeteoOnForm(value) {
+            const el = document.getElementById('trattamento-condizioni-meteo');
+            if (el) el.value = value || '';
+            const hint = document.getElementById('trattamento-condizioni-meteo-hint');
+            if (hint) hint.remove();
+        }
+
+        function suggestTrattamentoMeteoIfAvailable() {
+            if (typeof window.__tonySuggestTrattamentoCondizioniMeteo === 'function') {
+                window.__tonySuggestTrattamentoCondizioniMeteo(window.Tony && window.Tony.context);
+            }
         }
 
         function closeModal() {
@@ -1709,7 +1742,8 @@
                 costoMacchina,
                 giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
                 parcella: null,
-                note: document.getElementById('trattamento-note').value.trim() || null
+                note: document.getElementById('trattamento-note').value.trim() || null,
+                condizioniMeteo: readCondizioniMeteoFromForm()
             };
             const copVal = document.getElementById('trattamento-copertura-terreno').value;
             data.coperturaTerreno = ['completa', 'parziale', 'non_dichiarata'].includes(copVal) ? copVal : 'non_dichiarata';
@@ -1841,7 +1875,12 @@
                 window.__tonyTrattamentoCampoApi = {
                     renderProdotti: function(rows) { renderProdottiTrattamento(rows); },
                     getProdottiAnagrafica: function() { return listProdottiAnagrafica; },
-                    syncSuperficieAnagrafeAfterTonyInject: syncSuperficieAnagrafeAfterTonyInject
+                    syncSuperficieAnagrafeAfterTonyInject: syncSuperficieAnagrafeAfterTonyInject,
+                    getTerrenoId: function() {
+                        const fid = document.getElementById('trattamento-frutteto-id').value;
+                        const f = frutteti.find(x => x.id === fid);
+                        return f && f.terrenoId ? f.terrenoId : null;
+                    }
                 };
                 document.getElementById('btn-aggiungi-prodotto-trattamento').addEventListener('click', aggiungiRigaProdottoTrattamento);
                 document.getElementById('trattamento-superficie').addEventListener('input', ricalcolaQuantitaCostoProdotti);

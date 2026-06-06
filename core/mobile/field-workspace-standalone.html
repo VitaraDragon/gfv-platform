@@ -27,6 +27,7 @@
                 <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni">⚙️</button>
                 <div class="field-options-menu" id="field-options-menu" hidden>
                     <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener">Guida Manodopera</a>
+                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html" class="field-options-link" hidden>Validazione ore (schermo intero)</a>
                     <a href="../admin/impostazioni-standalone.html" class="field-options-link">Impostazioni account</a>
                 </div>
             </div>
@@ -50,6 +51,7 @@
                             <option value="">Caricamento lavori...</option>
                         </select>
                         <small id="gps-suggestion" class="hint-text"></small>
+                        <div id="lavoro-sostituto-banner" class="inline-sostituto-banner" hidden></div>
                     </div>
                     <section id="inline-team-section" class="inline-team-section" hidden>
                         <h3 class="inline-team-title">👥 La mia squadra</h3>
@@ -63,6 +65,45 @@
                         <p class="inline-team-subtitle">Conferma o rifiuta le ore in attesa per il lavoro selezionato.</p>
                         <div id="pending-hours-list" class="inline-list-card">
                             <div class="empty-state-inline">Seleziona un lavoro per vedere le ore da validare.</div>
+                        </div>
+                    </section>
+                    <section id="inline-segnala-assenza-section" class="inline-team-section" hidden>
+                        <h3 class="inline-team-title">🚫 Segnala assenza</h3>
+                        <p class="inline-team-subtitle">Avvisa il manager: il lavoro passa in standby dopo la conferma.</p>
+                        <form id="segnala-assenza-form" class="gfv-card-inner">
+                            <label for="assenza-segnala-operaio" class="label-inline">Operaio</label>
+                            <select id="assenza-segnala-operaio" class="field-input" required></select>
+                            <label for="assenza-segnala-tipo" class="label-inline">Tipo</label>
+                            <select id="assenza-segnala-tipo" class="field-input">
+                                <option value="malattia">Malattia</option>
+                                <option value="ferie">Ferie</option>
+                                <option value="permesso">Permesso</option>
+                                <option value="altro">Altro</option>
+                            </select>
+                            <label for="assenza-segnala-giorno" class="label-inline">Giorno</label>
+                            <input id="assenza-segnala-giorno" class="field-input" type="date" required>
+                            <label for="assenza-segnala-nota" class="label-inline">Nota</label>
+                            <textarea id="assenza-segnala-nota" class="field-input" rows="2" placeholder="Es. febbre"></textarea>
+                            <button type="submit" class="field-mobile-btn primary">Invia segnalazione</button>
+                            <small id="assenza-segnala-status" class="hint-text"></small>
+                        </form>
+                    </section>
+                </div>
+            </article>
+
+            <article class="field-slide operaio-only" data-slide-title="Comunicazioni" hidden>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>📣 Comunicazioni</h2>
+                        <p>Messaggi dal caposquadra per il tuo turno.</p>
+                    </div>
+                </div>
+                <div class="slide-body slide-body-brand">
+                    <section class="inline-team-section">
+                        <h3 class="inline-team-title">📬 Da leggere</h3>
+                        <p class="inline-team-subtitle">Conferma la ricezione per segnalare al caposquadra che hai visto il messaggio.</p>
+                        <div id="received-communications-list" class="inline-list-card">
+                            <div class="empty-state-inline">Caricamento comunicazioni...</div>
                         </div>
                     </section>
                 </div>
@@ -93,6 +134,28 @@
                         <p class="inline-team-subtitle">Ultimi invii effettuati da questa schermata.</p>
                         <div id="sent-communications-list" class="inline-list-card">
                             <div class="empty-state-inline">Nessuna comunicazione inviata.</div>
+                        </div>
+                    </section>
+                </div>
+            </article>
+
+            <article class="field-slide capo-only" data-slide-title="Valida ore" hidden>
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2>✅ Valida ore</h2>
+                        <p>Approva o rifiuta le ore segnate dagli operai della squadra.</p>
+                    </div>
+                </div>
+                <div class="slide-body slide-body-brand">
+                    <section class="inline-team-section">
+                        <h3 class="inline-team-title">🕒 In attesa di validazione</h3>
+                        <p class="inline-team-subtitle">Tutti i tuoi lavori di squadra. Per filtri avanzati apri la validazione completa.</p>
+                        <div id="pending-hours-all-list" class="inline-list-card">
+                            <div class="empty-state-inline">Caricamento ore da validare...</div>
+                        </div>
+                        <div class="work-actions" style="margin-top: 12px;">
+                            <button type="button" id="btn-refresh-pending-hours" class="field-mobile-btn">Aggiorna elenco</button>
+                            <a href="../admin/validazione-ore-standalone.html" class="field-link-btn" target="_blank" rel="noopener">Apri validazione completa</a>
                         </div>
                     </section>
                 </div>

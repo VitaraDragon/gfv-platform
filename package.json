@@ -14,7 +14,8 @@
     "bump:pwa-cache": "node scripts/bump-pwa-cache-version.mjs",
     "setup:hooks": "git config core.hooksPath .githooks",
     "guida:impact": "node scripts/guida-impact.mjs",
-    "guida:suggest": "node scripts/guida-suggest-prompt.mjs"
+    "guida:suggest": "node scripts/guida-suggest-prompt.mjs",
+    "tony:perf-review": "node scripts/tony-perf-log-review.mjs"
   },
   "keywords": [
     "agriculture",

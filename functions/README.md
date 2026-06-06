@@ -18,12 +18,12 @@ La callable **tonyAsk** chiama l’API Gemini con la chiave sul server, così il
    ```
 
 2. **Imposta la chiave Gemini (GEMINI_API_KEY)**  
-   La function legge **process.env.GEMINI_API_KEY**. Per le Functions v2 (Cloud Run) la variabile si imposta dalla **Google Cloud Console**:
-   - Vai su [Cloud Run](https://console.cloud.google.com/run) → progetto **gfv-platform** → servizio **tonyask**
-   - Clicca **Modifica nuova revisione** (o Modifica)
-   - Sezione **Container** → scorri a **Variabili e secret** / **Variables and secrets**
-   - **Aggiungi variabile**: Nome `GEMINI_API_KEY`, Valore = la tua API key Gemini
-   - **Distribuisci**
+   La function legge **process.env.GEMINI_API_KEY**. Per le Functions v2 (Cloud Run) la variabile si imposta dalla **Google Cloud Console** su **entrambi** i servizi Tony:
+   - [Cloud Run](https://console.cloud.google.com/run) → progetto **gfv-platform** → servizi **`tonyask`** e **`tonyaskstream`**
+   - Per ciascuno: **Modifica nuova revisione** → **Container** → **Variabili e secret**
+   - **Aggiungi variabile**: Nome `GEMINI_API_KEY`, Valore = la tua API key Gemini → **Distribuisci**
+
+   `tonyaskstream` (SSE Fase 3) usa lo stesso handler di `tonyAsk`; senza la chiave su **tonyaskstream** il client fa fallback su `tonyAsk` callable (crea lavoro / Gemini stream non partono via SSE).
 
    In alternativa (secret): crea il secret con `firebase functions:secrets:set GEMINI_API_KEY` e adatta il codice a usare `defineSecret` (vedi documentazione Firebase).
 
@@ -72,3 +72,36 @@ Dopo il deploy e l’impostazione di GEMINI_API_KEY: apri la dashboard (utente l
 await Tony.ask("Ciao")
 ```
 Vedi anche `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` (sezione 3).
+
+## Meteo sede (OpenWeather)
+
+Callable **`getMeteoSede`** (regione **europe-west1**, come Tony):
+
+- **Secret**: `OPENWEATHER_API_KEY` — `firebase functions:secrets:set OPENWEATHER_API_KEY`
+- **Input**: `{ tenantId }` — utente autenticato, membership tenant attiva
+- **Gating**: piano tenant **Free** → rifiutato; **Base+** → meteo sulla `sedeCoordinate` del tenant
+- **Logica**: `functions/meteo-service.js` — One Call 3.0, cache 15 min in `tenants/{id}/meteoCache/sede`
+
+**Deploy** (prima function nuova):
+
+```bash
+firebase deploy --only "functions,firestore:rules"
+```
+
+**Client**: `core/services/meteo-service.js` → `fetchMeteoSede`; widget `core/js/dashboard-meteo.js`.
+
+Documentazione completa: **`docs-sviluppo/meteo/PLAN_INTEGRAZIONE_METEO.md`**.
+
+### Tony — meteo operativo (modulo `meteo` + Tony Avanzato)
+
+Logica chat in **`functions/meteo-service.js`** (`tryMeteoOperativoQuickReply`, `tryMeteoGiornoQuickReply`, …) e regole in **`functions/tony-meteo-rules.js`**:
+
+- Pianificazione **trattamento** e **lavorazione terreno** (`lavoroCampo`) su previsioni ~8 gg
+- Valutazione **tre assi**: meteo del giorno + praticabilità (mm lookback × morfologia) + asciugatura post-pioggia (solo lavorazioni)
+- **Doppia alternativa** dopo rifiuto praticabilità: prima data utile prima/dopo il giorno scartato
+- Mirror client: `core/config/tony-meteo-rules.js`
+
+Canone prodotto: **`docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §19**. Test: `tests/meteo-tony-quick-reply.test.js`, `tests/tony-meteo-rules.test.js`.
+
+Deploy Tony/meteo: `firebase deploy --only functions` + hard refresh widget Tony (`core/js/tony/main.js` per fix filo chat).
+

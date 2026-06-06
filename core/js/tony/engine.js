@@ -93,6 +93,9 @@ export var TONY_PAGE_MAP = {
     'report': 'modules/report/views/report-dashboard-standalone.html',
     'report terreni': 'modules/report/views/report-terreni-standalone.html',
     'report vigneto': 'modules/report/views/report-standalone.html',
+    'meteo': 'modules/meteo/views/meteo-dashboard-standalone.html',
+    'modulo meteo': 'modules/meteo/views/meteo-dashboard-standalone.html',
+    'previsioni meteo': 'modules/meteo/views/meteo-dashboard-standalone.html',
     'amministrazione': 'core/admin/amministrazione-standalone.html',
     'guasti': 'modules/macchine/views/guasti-list-standalone.html',
     'gestione guasti': 'modules/macchine/views/guasti-list-standalone.html',
@@ -150,6 +153,7 @@ export var TONY_LABEL_MAP = {
     'clienti': 'Clienti', 'preventivi': 'Preventivi', 'tariffe': 'Tariffe',
     'terreni clienti': 'Terreni Clienti', 'mappa clienti': 'Mappa Clienti',
     'report': 'Report', 'amministrazione': 'Amministrazione', 'guasti': 'Elenco Guasti', 'gestione guasti': 'Elenco Guasti', 'elenco guasti': 'Elenco Guasti',
+    'meteo': 'Meteo', 'modulo meteo': 'Meteo', 'previsioni meteo': 'Meteo',
     'segnalazione guasti': 'Segnalazione Guasti', 'abbonamento': 'Abbonamento',
     'impostazioni': 'Impostazioni', 'diario': 'Diario Attività',
     'statistiche del vigneto': 'Statistiche Vigneto', 'statistiche del frutteto': 'Statistiche Frutteto',
@@ -172,6 +176,7 @@ export function resolveTarget(raw) {
         'home vigneto': 'vigneto', 'home frutteto': 'frutteto', 'home magazzino': 'magazzino',
         'home conto terzi': 'conto terzi', 'contoterzi': 'conto terzi',
         'dashboard frutteto': 'frutteto', 'dashboard vigneto': 'vigneto', 'cosa devo fare': 'lavori',
+        'previsioni': 'meteo', 'previsioni del tempo': 'meteo',
         'gestione lavori': 'lavori', 'parco macchine': 'parcoMacchine',         'operai': 'manodopera',
         'field-workspace': 'workspace campo', 'workspace mobile': 'workspace campo',
         'home campo': 'workspace campo', 'flusso campo': 'workspace campo'
@@ -311,6 +316,320 @@ export function extractTonyResponseFromString(str) {
             }
         } catch (_) {}
         jsonStr = jsonStr.slice(0, -1).trim();
+    }
+    return null;
+}
+
+const TONY_ACTION_TO_TYPE = {
+    open_modal: 'OPEN_MODAL',
+    apri_pagina: 'APRI_PAGINA',
+    apri_modulo: 'APRI_PAGINA',
+    fill_form: 'INJECT_FORM_DATA',
+    inject_form_data: 'INJECT_FORM_DATA',
+    inject: 'INJECT_FORM_DATA',
+    ask: 'INJECT_FORM_DATA',
+    save: 'SAVE_ACTIVITY',
+    save_activity: 'SAVE_ACTIVITY',
+    submit: 'QUICK_SAVE',
+    quick_save: 'QUICK_SAVE',
+    filter_table: 'FILTER_TABLE',
+    set_field: 'SET_FIELD',
+    click_button: 'CLICK_BUTTON'
+};
+
+/** @param {string} [target] */
+function isTonyQuickHoursCommandTarget(target) {
+    if (target == null || target === '') return false;
+    var s = String(target).trim().toLowerCase();
+    return s === 'quick-hours-form' ||
+        s === 'field-workspace-ore-form' ||
+        s === 'ora-form' ||
+        s.indexOf('quick-hours') >= 0;
+}
+
+/** Alias DOM/CF → chiavi canoniche ora-* per workspace campo. */
+function mapTonyQuickHoursFormDataKeys(formData) {
+    if (!formData || typeof formData !== 'object' || Array.isArray(formData)) return formData;
+    var out = Object.assign({}, formData);
+    if (out['ora-start'] != null && out['ora-inizio'] == null) out['ora-inizio'] = out['ora-start'];
+    if (out['ora-end'] != null && out['ora-fine'] == null) out['ora-fine'] = out['ora-end'];
+    if (out['ora-break'] != null && out['ora-pause'] == null) out['ora-pause'] = out['ora-break'];
+    if (out['attivita-orario-inizio'] && !out['ora-inizio']) out['ora-inizio'] = out['attivita-orario-inizio'];
+    if (out['attivita-orario-fine'] && !out['ora-fine']) out['ora-fine'] = out['attivita-orario-fine'];
+    if (out['attivita-pause'] != null && out['ora-pause'] == null) out['ora-pause'] = out['attivita-pause'];
+    if (out['attivita-data'] && !out['ora-data']) out['ora-data'] = out['attivita-data'];
+    return out;
+}
+
+/**
+ * Normalizza comando CF/modello ({ action, params } | { type } | Treasure Map) → { type, ... }.
+ * @param {object|null|undefined} cmd
+ * @returns {object|null}
+ */
+export function normalizeTonyCommand(cmd) {
+    if (!cmd || typeof cmd !== 'object') return null;
+    var c = Object.assign({}, cmd);
+    if (!c.type && c.action) {
+        var a = String(c.action).trim();
+        var low = a.toLowerCase();
+        c.type = TONY_ACTION_TO_TYPE[low] || a.toUpperCase().replace(/\s+/g, '_');
+        if (c.params && typeof c.params === 'object' && !Array.isArray(c.params)) {
+            Object.assign(c, c.params);
+        }
+    }
+    if (c.type) c.type = String(c.type).toUpperCase();
+    if (c.type === 'INJECT') {
+        var injTarget = c.target || c.formId || c.id || c.modalId;
+        var injPayload = c.parameters || c.params || c.formData || c.fields || c.fieldValues;
+        c.type = 'INJECT_FORM_DATA';
+        if (isTonyQuickHoursCommandTarget(injTarget)) {
+            c.formId = 'field-workspace-ore-form';
+        } else if (injTarget) {
+            c.formId = String(injTarget).trim();
+        }
+        if (injPayload && typeof injPayload === 'object' && !Array.isArray(injPayload)) {
+            c.formData = mapTonyQuickHoursFormDataKeys(injPayload);
+        }
+    }
+    if (c.type === 'SUBMIT') {
+        var subTarget = c.target || c.formId || c.id;
+        if (isTonyQuickHoursCommandTarget(subTarget) || !subTarget) {
+            c.type = 'QUICK_SAVE';
+            c.formId = 'field-workspace-ore-form';
+        } else {
+            c.type = 'SUBMIT_FORM';
+            c.formId = String(subTarget).trim();
+        }
+    }
+    if (c.type === 'INJECT_FORM_DATA') {
+        if (!c.formId && c.form_id) c.formId = c.form_id;
+        if (!c.formId && isTonyQuickHoursCommandTarget(c.target)) c.formId = 'field-workspace-ore-form';
+        var fd = c.formData || c.fields || c.fieldValues || c.parameters || c.params;
+        if (fd && typeof fd === 'object' && !Array.isArray(fd)) {
+            c.formData = mapTonyQuickHoursFormDataKeys(fd);
+        }
+    }
+    if (c.type === 'QUICK_SAVE' || c.type === 'SUBMIT_FORM') {
+        if (!c.formId && isTonyQuickHoursCommandTarget(c.target)) c.formId = 'field-workspace-ore-form';
+    }
+    if (c.type === 'OPEN_MODAL' && !c.id) {
+        c.id = c.modalId || c.target || c.id;
+    }
+    if (c.type === 'APRI_PAGINA' && !c.target) {
+        c.target = (c.params && c.params.target) || c.modulo || c.target;
+    }
+    if (!c.type || !String(c.type).trim()) return null;
+    return c;
+}
+
+/** Rimuove blocchi ```json ... ``` dal testo mostrato in chat / TTS. */
+export function stripTonyMarkdownJsonBlocks(text) {
+    if (text == null || typeof text !== 'string') return '';
+    return String(text)
+        .replace(/```(?:json)?\s*[\s\S]*?```/gi, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+}
+
+/**
+ * Testo utente + comando eseguibile: estrae JSON residuo nel testo, pulisce display.
+ * @param {string} [text]
+ * @param {object|null} [command]
+ * @returns {{ text: string, command: object|null }}
+ */
+export function resolveTonyUserVisibleText(text, command) {
+    var cmd = normalizeTonyCommand(command);
+    var t = stripTonyMarkdownJsonBlocks(text || '');
+    if (t && /\{[\s\S]*"(?:action|command|type)"\s*:/i.test(t)) {
+        var ex = extractTonyResponseFromString(t);
+        if (ex) {
+            if (!cmd && ex.command) cmd = normalizeTonyCommand(ex.command);
+            if (ex.text && String(ex.text).trim()) t = ex.text;
+        }
+    }
+    t = cleanTextFromJsonResidue(t);
+    if (!t && cmd) t = 'Ok.';
+    if (!t) t = 'Ok.';
+    return { text: t, command: cmd };
+}
+
+/** Minuti opzionali: «18:30», «18,30», «18 30», «18.30» */
+var SEGNA_ORA_MIN_SUFFIX = '(?:[:.,\\s](\\d{1,2}))?';
+
+/**
+ * Estrae fascia oraria da testo libero utente (Segna ore workspace).
+ * Ritorna match stile RegExpExecArray: [0]=full, [1]=h1, [2]=m1?, [3]=h2, [4]=m2?
+ * @param {string} blob
+ * @returns {RegExpMatchArray|null}
+ */
+export function matchSegnaOraTimeRangeFromBlob(blob) {
+    if (!blob || typeof blob !== 'string') return null;
+    var min = SEGNA_ORA_MIN_SUFFIX;
+    var m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return m;
+    // Typo vocali/STT: «daklle 6 aslle 18», «dalle 6 al 18»
+    m = blob.match(new RegExp('\\bd[a-z]{0,4}l+e\\s+(\\d{1,2})' + min + '\\s+a[sxz]{0,2}l+e\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return m;
+    m = blob.match(new RegExp('(?:^|\\s)(\\d{1,2})' + min + '\\s+a[sxz]{0,2}l+e\\s+(\\d{1,2})' + min + '\\b', 'i'));
+    if (m) return m;
+    m = blob.match(new RegExp('(?:^|\\s)(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min + '\\b', 'i'));
+    if (m) return m;
+    m = blob.match(new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\s+e\\s+(?:sono\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return m;
+    m = blob.match(new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\s+(?:fino\\s+)?alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return m;
+    m = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min + '\\s+e\\s+(?:sono\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return m;
+    var sm = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (sm) {
+        var fm = blob.match(new RegExp('(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+        if (fm) {
+            return [sm[0] + ' … ' + fm[0], sm[1], sm[2] || '', fm[1], fm[2] || ''];
+        }
+        var alleMatches = [];
+        var reAlle = new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\b', 'gi');
+        var mm;
+        while ((mm = reAlle.exec(blob)) !== null) {
+            alleMatches.push({
+                h: parseInt(mm[1], 10),
+                mi: mm[2] ? parseInt(mm[2], 10) : 0,
+                index: mm.index
+            });
+        }
+        if (alleMatches.length >= 2) {
+            var startIdx = sm.index != null ? sm.index : 0;
+            var afterStart = alleMatches.filter(function (a) { return a.index > startIdx; });
+            var cand = afterStart.length ? afterStart[afterStart.length - 1] : alleMatches[alleMatches.length - 1];
+            var sh = parseInt(sm[1], 10);
+            var smi = sm[2] ? parseInt(sm[2], 10) : 0;
+            if (cand && (cand.h !== sh || cand.mi !== smi)) {
+                return [blob, sm[1], sm[2] || '', String(cand.h), cand.mi ? String(cand.mi) : ''];
+            }
+        }
+    }
+    if (!sm) {
+        var alleFlat = collectSegnaOraAlleTimesFromUserTexts([blob]);
+        if (alleFlat.length >= 2) {
+            var af0 = alleFlat[0];
+            var af1 = alleFlat[alleFlat.length - 1];
+            if (af0.h !== af1.h || af0.mi !== af1.mi) {
+                return [
+                    blob,
+                    String(af0.h),
+                    af0.mi ? String(af0.mi) : '',
+                    String(af1.h),
+                    af1.mi ? String(af1.mi) : '',
+                ];
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Singolo orario «alle 7» / «inizio alle 8» (non fascia completa).
+ * @param {string} blob
+ * @returns {RegExpMatchArray|null} [0]=full, [1]=h, [2]=m?, [3]=kind start|end
+ */
+export function matchSegnaOraSingleTimeFromBlob(blob) {
+    if (!blob || typeof blob !== 'string') return null;
+    var t = blob.trim();
+    if (!t || matchSegnaOraTimeRangeFromBlob(t)) return null;
+    var min = SEGNA_ORA_MIN_SUFFIX;
+    var m = t.match(new RegExp('^(?:ho\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min + '\\s*$', 'i'));
+    if (m) return [m[0], m[1], m[2] || '', 'end'];
+    m = t.match(new RegExp('^(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min + '\\s*$', 'i'));
+    if (m) return [m[0], m[1], m[2] || '', 'start'];
+    m = t.match(new RegExp('^(?:alle|dalle?)\\s+(\\d{1,2})' + min + '\\s*$', 'i'));
+    if (m) return [m[0], m[1], m[2] || '', 'unknown'];
+    return null;
+}
+
+/**
+ * Solo cifra/ora nuda in intervista (es. «7», «18», «18:30») — non pausa se manca fine e h ≤ 23.
+ * @param {string} blob
+ * @param {{ hasStart?: boolean, hasEnd?: boolean }} [formHint]
+ * @returns {RegExpMatchArray|null}
+ */
+export function matchSegnaOraBareHourFromBlob(blob, formHint) {
+    if (!blob || typeof blob !== 'string') return null;
+    formHint = formHint || {};
+    var t = blob.trim();
+    if (!t || matchSegnaOraTimeRangeFromBlob(t) || matchSegnaOraSingleTimeFromBlob(t)) return null;
+    var m = t.match(new RegExp('^\\s*(\\d{1,2})' + SEGNA_ORA_MIN_SUFFIX + '\\s*$'));
+    if (!m) return null;
+    var h = parseInt(m[1], 10);
+    var mi = m[2] ? parseInt(m[2], 10) : 0;
+    if (!Number.isFinite(h) || h < 0 || h > 23) return null;
+    if (!Number.isFinite(mi) || mi < 0 || mi > 59) return null;
+    var hasStart = !!formHint.hasStart;
+    var hasEnd = !!formHint.hasEnd;
+    if (hasStart && hasEnd) return null;
+    if (hasStart && !hasEnd) return [m[0], m[1], m[2] || '', 'end'];
+    if (!hasStart) return [m[0], m[1], m[2] || '', 'start'];
+    return null;
+}
+
+/**
+ * Estrae coppie «alle H» da turni utente in ordine cronologico (evita duplicati consecutivi).
+ * @param {string[]} userTexts
+ * @returns {{ h: number, mi: number }[]}
+ */
+function pushSegnaOraClockPoint(out, hStr, miStr) {
+    var h = parseInt(hStr, 10);
+    var mi = miStr != null && String(miStr).trim() !== '' ? parseInt(miStr, 10) : 0;
+    if (!Number.isFinite(h) || h < 0 || h > 23) return;
+    if (!Number.isFinite(mi) || mi < 0 || mi > 59) return;
+    var prev = out.length ? out[out.length - 1] : null;
+    if (prev && prev.h === h && prev.mi === mi) return;
+    out.push({ h: h, mi: mi });
+}
+
+export function collectSegnaOraAlleTimesFromUserTexts(userTexts) {
+    var out = [];
+    if (!Array.isArray(userTexts)) return out;
+    var min = SEGNA_ORA_MIN_SUFFIX;
+    for (var i = 0; i < userTexts.length; i++) {
+        var line = String(userTexts[i] || '').trim();
+        if (!line) continue;
+        var bare = line.match(new RegExp('^(\\d{1,2})' + min + '\\s*$'));
+        if (bare) {
+            pushSegnaOraClockPoint(out, bare[1], bare[2]);
+            continue;
+        }
+        var re = new RegExp('\\b(?:alle|dalle?)\\s+(\\d{1,2})' + min + '\\b', 'gi');
+        var mm;
+        while ((mm = re.exec(line)) !== null) {
+            pushSegnaOraClockPoint(out, mm[1], mm[2]);
+        }
+    }
+    return out;
+}
+
+/**
+ * Fascia oraria da turni utente ordinati (es. «alle 7» poi «alle 18»), prima prova range per turno.
+ * @param {string[]} userTexts
+ * @returns {RegExpMatchArray|null}
+ */
+export function matchSegnaOraTimeRangeFromUserTexts(userTexts) {
+    if (!Array.isArray(userTexts) || !userTexts.length) return null;
+    for (var i = 0; i < userTexts.length; i++) {
+        var perTurn = matchSegnaOraTimeRangeFromBlob(String(userTexts[i] || ''));
+        if (perTurn) return perTurn;
+    }
+    var alle = collectSegnaOraAlleTimesFromUserTexts(userTexts);
+    if (alle.length >= 2) {
+        var a0 = alle[0];
+        var a1 = alle[alle.length - 1];
+        if (a0.h !== a1.h || a0.mi !== a1.mi) {
+            return [
+                userTexts.join(' '),
+                String(a0.h),
+                a0.mi ? String(a0.mi) : '',
+                String(a1.h),
+                a1.mi ? String(a1.mi) : '',
+            ];
+        }
     }
     return null;
 }

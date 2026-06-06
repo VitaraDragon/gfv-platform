@@ -14,11 +14,33 @@ import {
     serverTimestamp,
     Timestamp
 } from '../../services/firebase-service.js';
+import { formatOreNette } from '../../js/attivita-utils.js';
 
 import {
     fetchLavoriDocumentsForFieldUser,
-    sliceOperaioLavoriWindow
+    resolveCaposquadraIdsForOperaio,
+    isLavoroVisibileOperaioCampo,
+    isLavoroSegnabileOperaio,
+    resolveSegnaturaOreRoleFlags
 } from '../../services/manodopera-lavori-scope.js';
+import { fetchOperaioIdsForCaposquadraSquadre } from '../../services/comunicazioni-squadra-service.js';
+import { segnalaAssenza } from '../../services/manodopera-assenze-service.js';
+import { toGiornoKey } from '../../config/manodopera-assenze-config.js';
+import {
+    lavoroHaSostitutoAttivo,
+    resolveAssenzaSostitutoDisplay
+} from '../../services/lavoro-sostituto-context.js';
+import {
+    confermeIncludesUser,
+    isComunicazioneAttivaPerData,
+    formatComunicazioneLuogo,
+    formatComunicazioneTesto,
+    caposquadraIdsForQuery,
+    primaryManodoperaUserId,
+    comunicazioneVisibilePerOperaio,
+    normalizeDestinatariIds
+} from '../../services/comunicazioni-squadra-utils.js';
+import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
 
 const {
     normalizeRoles,
@@ -50,8 +72,18 @@ const lavoriFullDetailLinkEl = document.getElementById('lavori-full-detail-link'
 const squadListEl = document.getElementById('squad-members-list');
 const inlineTeamSectionEl = document.getElementById('inline-team-section');
 const inlineValidateHoursSectionEl = document.getElementById('inline-validate-hours-section');
+const inlineSegnalaAssenzaSectionEl = document.getElementById('inline-segnala-assenza-section');
+const segnalaAssenzaFormEl = document.getElementById('segnala-assenza-form');
+const assenzaSegnalaOperaioEl = document.getElementById('assenza-segnala-operaio');
+const assenzaSegnalaGiornoEl = document.getElementById('assenza-segnala-giorno');
+const assenzaSegnalaStatusEl = document.getElementById('assenza-segnala-status');
+const lavoroSostitutoBannerEl = document.getElementById('lavoro-sostituto-banner');
 const pendingHoursListEl = document.getElementById('pending-hours-list');
+const pendingHoursAllListEl = document.getElementById('pending-hours-all-list');
+const btnRefreshPendingHoursEl = document.getElementById('btn-refresh-pending-hours');
+const fieldValidazioneOreLinkEl = document.getElementById('field-validazione-ore-link');
 const sentCommunicationsListEl = document.getElementById('sent-communications-list');
+const receivedCommunicationsListEl = document.getElementById('received-communications-list');
 const operaioModalEl = document.getElementById('operaio-contact-modal');
 const operaioContactNameEl = document.getElementById('operaio-contact-name');
 const operaioContactSubEl = document.getElementById('operaio-contact-sub');
@@ -73,8 +105,11 @@ let currentSlideIndex = 0;
 let cachedWorks = [];
 let selectedWork = null;
 let userIsCaposquadra = false;
+let lastSquadMembers = [];
+let lastSquadLabel = 'Squadra';
 let userIsOperaio = false;
 let currentPendingHours = [];
+let currentAllPendingHours = [];
 let pullTouchStartY = 0;
 let pullTouchStartX = 0;
 let pendingFocusLavoroIdFromUrl = null;
@@ -189,7 +224,10 @@ function setupSlidesForRole(isCaposquadra) {
     const allSlides = Array.from(swiperEl.querySelectorAll('.field-slide'));
     allSlides.forEach((slide) => {
         const isCapoOnly = slide.classList.contains('capo-only');
+        const isOperaioOnly = slide.classList.contains('operaio-only');
         if (isCapoOnly && !isCaposquadra) {
+            slide.hidden = true;
+        } else if (isOperaioOnly && isCaposquadra) {
             slide.hidden = true;
         } else {
             slide.hidden = false;
@@ -239,6 +277,9 @@ function findSlideIndexByToken(token) {
         }
         if (normalized === 'comunicazioni') {
             return title === 'comunicazioni';
+        }
+        if (normalized === 'valida-ore' || normalized === 'validazione-ore' || normalized === 'validazione') {
+            return title === 'valida ore';
         }
         return title === normalized;
     });
@@ -428,10 +469,7 @@ function normalizeWorkLabel(work) {
 }
 
 function isWorkRelevantForFieldRole(work) {
-    const stato = (work.stato || '').toLowerCase();
-    const allowedStates = ['assegnato', 'in_corso', 'in corso', 'attivo', 'pianificato', 'da_pianificare', 'aperto'];
-    if (!stato) return true;
-    return allowedStates.includes(stato);
+    return isLavoroVisibileOperaioCampo(work);
 }
 
 async function loadWorksForSelection() {
@@ -441,32 +479,16 @@ async function loadWorksForSelection() {
     }
     try {
         const userId = (currentUserData && (currentUserData.id || currentUserData.uid)) || currentUser.uid;
-        const rawList = await fetchLavoriDocumentsForFieldUser(getDb(), currentTenantId, userId, {
-            isCaposquadra: userIsCaposquadra,
-            isOperaio: userIsOperaio
-        });
+        const roleFlags = userIsCaposquadra && !userIsOperaio
+            ? { isCaposquadra: true, isOperaio: false }
+            : resolveSegnaturaOreRoleFlags(currentUserData || {});
+        const rawList = await fetchLavoriDocumentsForFieldUser(getDb(), currentTenantId, userId, roleFlags);
 
-        let eligible = rawList.filter((w) => isWorkRelevantForFieldRole(w));
-
-        if (userIsOperaio && !userIsCaposquadra && eligible.length > 3) {
-            let focus = pendingFocusLavoroIdFromUrl;
-            try {
-                if (!focus) focus = localStorage.getItem('gfv_mobile_selected_work_id');
-            } catch (error) {
-                // ignore
-            }
-            let expandTonyId = null;
-            try {
-                const ex = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('gfv_tony_expand_lavoro_for_select') : '';
-                if (ex && String(ex).trim()) expandTonyId = String(ex).trim();
-            } catch (eEx) { /* ignore */ }
-            if (expandTonyId) focus = expandTonyId;
-            if (expandTonyId && !eligible.some((w) => w.id === expandTonyId)) {
-                const extra = rawList.find((w) => w.id === expandTonyId);
-                if (extra && isWorkRelevantForFieldRole(extra)) eligible.push(extra);
-            }
-            eligible = sliceOperaioLavoriWindow(eligible, { focusLavoroId: focus || null, maxNeighbors: 1 });
-        }
+        const eligible = rawList.filter((w) => (
+            userIsCaposquadra && !userIsOperaio
+                ? isWorkRelevantForFieldRole(w)
+                : isLavoroSegnabileOperaio(w)
+        ));
 
         const works = eligible.map((work) => ({
             id: work.id,
@@ -522,10 +544,55 @@ function updateLavoriDetailEmbed() {
     lavoriFullDetailLinkEl.href = fullUrl;
 }
 
+async function refreshLavoroSostitutoBanner() {
+    if (!lavoroSostitutoBannerEl) return;
+    const raw = selectedWork?.raw;
+    if (!userIsCaposquadra || !raw || !lavoroHaSostitutoAttivo(raw)) {
+        lavoroSostitutoBannerEl.hidden = true;
+        lavoroSostitutoBannerEl.innerHTML = '';
+        return;
+    }
+    try {
+        const info = await resolveAssenzaSostitutoDisplay(getDb(), raw);
+        lavoroSostitutoBannerEl.hidden = false;
+        lavoroSostitutoBannerEl.innerHTML = `
+            <strong>👤 Sostituzione attiva</strong><br>
+            <span style="font-size:13px;">Assente: ${escapeHtmlUnsafe(info.assenteNome || '—')} · 
+            <strong>Sostituto: ${escapeHtmlUnsafe(info.sostitutoNome || info.sostitutoId)}</strong></span><br>
+            <span style="font-size:12px;">Valida le sue ore in «Valida ore» sotto; il sostituto le segna da Segna ore.</span>
+        `;
+    } catch (e) {
+        console.warn('[FIELD-WORKSPACE] banner sostituto:', e);
+        lavoroSostitutoBannerEl.hidden = true;
+    }
+}
+
+async function refreshSquadraConSostituto() {
+    if (!userIsCaposquadra || !squadListEl || !lastSquadMembers.length) return;
+    let members = lastSquadMembers.slice();
+    let label = lastSquadLabel;
+    const raw = selectedWork?.raw;
+    if (raw && lavoroHaSostitutoAttivo(raw)) {
+        const info = await resolveAssenzaSostitutoDisplay(getDb(), raw);
+        if (info.sostitutoId && !members.some((m) => (m.id || m.uid) === info.sostitutoId)) {
+            const udoc = await getDoc(doc(getDb(), 'users', info.sostitutoId));
+            if (udoc.exists()) {
+                members.push({ id: info.sostitutoId, ...udoc.data(), _isSostituto: true });
+            }
+        }
+        label = `${lastSquadLabel} · sostituto in campo`;
+    }
+    renderSquadList(label, members);
+}
+
 function syncLavoroOperativoEmbeds() {
     updateLavoriDetailEmbed();
     if (userIsCaposquadra) {
         loadPendingHoursForSelectedWork().catch(() => {});
+        refreshLavoroSostitutoBanner().catch(() => {});
+        refreshSquadraConSostituto().catch(() => {});
+    } else if (lavoroSostitutoBannerEl) {
+        lavoroSostitutoBannerEl.hidden = true;
     }
 }
 
@@ -554,11 +621,13 @@ function renderSquadList(squadLabel, members) {
     squadListEl.appendChild(sub);
     members.forEach((m) => {
         const fullName = `${m.nome || ''} ${m.cognome || ''}`.trim() || m.email || m.id;
+        const label = m._isSostituto ? `${fullName} (sostituto)` : fullName;
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'squad-member-row';
-        btn.textContent = fullName;
-        btn.addEventListener('click', () => openOperaioContactModal(m, fullName));
+        if (m._isSostituto) btn.style.borderLeft = '3px solid #4caf50';
+        btn.textContent = label;
+        btn.addEventListener('click', () => openOperaioContactModal(m, label));
         squadListEl.appendChild(btn);
     });
 }
@@ -601,6 +670,55 @@ function closeOperaioContactModal() {
     operaioModalEl.setAttribute('aria-hidden', 'true');
 }
 
+function populateAssenzaSegnalaOperaiSelect(members) {
+    if (!assenzaSegnalaOperaioEl) return;
+    const list = members || lastSquadMembers || [];
+    assenzaSegnalaOperaioEl.innerHTML =
+        '<option value="">-- Seleziona --</option>' +
+        list
+            .map((m) => {
+                const id = m.id || m.uid;
+                const nome = `${m.nome || ''} ${m.cognome || ''}`.trim() || m.email || id;
+                return `<option value="${escapeHtmlUnsafe(id)}">${escapeHtmlUnsafe(nome)}</option>`;
+            })
+            .join('');
+}
+
+async function submitSegnalaAssenza(event) {
+    event.preventDefault();
+    if (!currentUser || !currentTenantId) return;
+    const operaioId = assenzaSegnalaOperaioEl?.value;
+    const tipo = document.getElementById('assenza-segnala-tipo')?.value || 'malattia';
+    const giorno = assenzaSegnalaGiornoEl?.value || toGiornoKey(new Date());
+    const nota = document.getElementById('assenza-segnala-nota')?.value || '';
+    const segnalatoDa = currentUserData?.id || currentUser.uid;
+    if (!operaioId) {
+        if (assenzaSegnalaStatusEl) assenzaSegnalaStatusEl.textContent = 'Seleziona un operaio.';
+        return;
+    }
+    try {
+        if (assenzaSegnalaStatusEl) assenzaSegnalaStatusEl.textContent = 'Invio...';
+        await segnalaAssenza({
+            operaioId,
+            tipo,
+            dataGiorno: giorno,
+            nota,
+            lavoroId: selectedWork?.id || null,
+            segnalatoDa
+        }, currentTenantId);
+        if (assenzaSegnalaStatusEl) {
+            assenzaSegnalaStatusEl.textContent = 'Segnalazione inviata al manager.';
+        }
+        if (segnalaAssenzaFormEl) segnalaAssenzaFormEl.reset();
+        if (assenzaSegnalaGiornoEl) assenzaSegnalaGiornoEl.value = toGiornoKey(new Date());
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] segnala assenza:', error);
+        if (assenzaSegnalaStatusEl) {
+            assenzaSegnalaStatusEl.textContent = error.message || 'Errore invio segnalazione.';
+        }
+    }
+}
+
 async function loadSquadMembersForCapo() {
     if (!squadListEl || !currentTenantId || !currentUser) return;
     squadListEl.innerHTML = '<div class="empty-state-inline">Caricamento squadra...</div>';
@@ -629,6 +747,7 @@ async function loadSquadMembersForCapo() {
         const squadLabel = squadDocs.length === 1
             ? (squadDocs[0].nome || 'Squadra')
             : `${squadDocs.length} squadre · membri unici`;
+        lastSquadLabel = squadLabel;
         if (operaioIdSet.size === 0) {
             squadListEl.innerHTML = '<div class="empty-state-inline">Nessun operaio in squadra.</div>';
             return;
@@ -645,7 +764,9 @@ async function loadSquadMembersForCapo() {
             const nb = `${b.nome || ''} ${b.cognome || ''}`.trim() || b.email || '';
             return na.localeCompare(nb, 'it');
         });
+        lastSquadMembers = members;
         renderSquadList(squadLabel, members);
+        populateAssenzaSegnalaOperaiSelect(members);
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore caricamento squadra:', error);
         squadListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento squadra.</div>';
@@ -662,24 +783,96 @@ function renderPendingHours() {
         pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Nessuna ora in attesa di validazione.</div>';
         return;
     }
-    pendingHoursListEl.innerHTML = currentPendingHours.map((row) => {
-        const who = escapeHtmlUnsafe(row.operaioNome || row.operaioId || 'Operaio');
-        const ore = Number(row.oreNette || 0).toFixed(2);
-        const time = `${escapeHtmlUnsafe(row.orarioInizio || '--:--')} - ${escapeHtmlUnsafe(row.orarioFine || '--:--')}`;
-        return `
-            <div class="inline-item">
-                <div class="inline-item-head">
-                    <div class="inline-item-title">${who}</div>
-                    <div class="inline-item-sub">${formatDateShort(row.data) || 'Data non indicata'}</div>
-                </div>
-                <div class="inline-item-sub">${time} • ${ore} h</div>
-                <div class="inline-item-actions">
-                    <button type="button" class="mini-btn approve" data-approve-hour-id="${row.id}">✅ Approva</button>
-                    <button type="button" class="mini-btn reject" data-reject-hour-id="${row.id}">❌ Rifiuta</button>
-                </div>
+    pendingHoursListEl.innerHTML = currentPendingHours.map((row) => renderPendingHourRowHtml(row, false)).join('');
+}
+
+function renderPendingHourRowHtml(row, showLavoro) {
+    const who = escapeHtmlUnsafe(row.operaioNome || row.operaioId || 'Operaio');
+    const ore = Number(row.oreNette || 0).toFixed(2);
+    const time = `${escapeHtmlUnsafe(row.orarioInizio || '--:--')} - ${escapeHtmlUnsafe(row.orarioFine || '--:--')}`;
+    const lavoroLine = showLavoro && row.lavoroNome
+        ? `<div class="inline-item-sub" style="font-weight:600;color:#2E8B57;">${escapeHtmlUnsafe(row.lavoroNome)}</div>`
+        : '';
+    const lavAttr = row.lavoroId ? ` data-lavoro-id="${escapeHtmlUnsafe(row.lavoroId)}"` : '';
+    return `
+        <div class="inline-item">
+            <div class="inline-item-head">
+                <div class="inline-item-title">${who}</div>
+                <div class="inline-item-sub">${formatDateShort(row.data) || 'Data non indicata'}</div>
             </div>
-        `;
-    }).join('');
+            ${lavoroLine}
+            <div class="inline-item-sub">${time} • ${ore} h</div>
+            <div class="inline-item-actions">
+                <button type="button" class="mini-btn approve" data-approve-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>✅ Approva</button>
+                <button type="button" class="mini-btn reject" data-reject-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>❌ Rifiuta</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderAllPendingHours() {
+    if (!pendingHoursAllListEl) return;
+    if (!currentAllPendingHours.length) {
+        pendingHoursAllListEl.innerHTML = '<div class="empty-state-inline">Nessuna ora in attesa di validazione.</div>';
+        return;
+    }
+    pendingHoursAllListEl.innerHTML = currentAllPendingHours.map((row) => renderPendingHourRowHtml(row, true)).join('');
+}
+
+async function loadAllPendingHoursForCapo() {
+    if (!pendingHoursAllListEl || !currentTenantId || !currentUser || !userIsCaposquadra) return;
+    pendingHoursAllListEl.innerHTML = '<div class="empty-state-inline">Caricamento ore da validare...</div>';
+    try {
+        const userId = primaryManodoperaUserId(currentUser, currentUserData);
+        const works = await fetchLavoriDocumentsForFieldUser(getDb(), currentTenantId, userId, {
+            isCaposquadra: true,
+            isOperaio: false
+        });
+        const rows = [];
+        const userNameCache = new Map();
+        for (const lav of works) {
+            const oreRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${lav.id}/oreOperai`);
+            const snap = await getDocs(query(oreRef, where('stato', '==', 'da_validare')));
+            const lavoroData = {
+                caposquadraId: lav.caposquadraId || lav.raw?.caposquadraId || userId,
+                operaioId: lav.operaioId || lav.raw?.operaioId || null
+            };
+            for (const docSnap of snap.docs) {
+                const data = docSnap.data();
+                if (isOraDelCaposquadraSuLavoroSquadra(data, lavoroData)) continue;
+                let operaioNome = '';
+                if (data.operaioId) {
+                    if (userNameCache.has(data.operaioId)) {
+                        operaioNome = userNameCache.get(data.operaioId);
+                    } else {
+                        const userDoc = await getDoc(doc(getDb(), 'users', data.operaioId));
+                        if (userDoc.exists()) {
+                            const u = userDoc.data();
+                            operaioNome = `${u.nome || ''} ${u.cognome || ''}`.trim() || u.email || '';
+                            userNameCache.set(data.operaioId, operaioNome);
+                        }
+                    }
+                }
+                rows.push({
+                    id: docSnap.id,
+                    lavoroId: lav.id,
+                    lavoroNome: lav.nome || 'Lavoro',
+                    ...data,
+                    operaioNome
+                });
+            }
+        }
+        rows.sort((a, b) => {
+            const ad = (a.creatoIl && a.creatoIl.toDate) ? a.creatoIl.toDate().getTime() : 0;
+            const bd = (b.creatoIl && b.creatoIl.toDate) ? b.creatoIl.toDate().getTime() : 0;
+            return bd - ad;
+        });
+        currentAllPendingHours = rows;
+        renderAllPendingHours();
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore caricamento ore da validare (tutti i lavori):', error);
+        pendingHoursAllListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento ore da validare.</div>';
+    }
 }
 
 async function loadPendingHoursForSelectedWork() {
@@ -692,9 +885,15 @@ async function loadPendingHoursForSelectedWork() {
     try {
         const oreRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`);
         const snap = await getDocs(query(oreRef, where('stato', '==', 'da_validare')));
+        const capoUserId = primaryManodoperaUserId(currentUser, currentUserData);
+        const lavoroData = {
+            caposquadraId: selectedWork.caposquadraId || selectedWork.raw?.caposquadraId || capoUserId,
+            operaioId: selectedWork.operaioId || selectedWork.raw?.operaioId || null
+        };
         const rows = [];
         for (const docSnap of snap.docs) {
             const data = docSnap.data();
+            if (isOraDelCaposquadraSuLavoroSquadra(data, lavoroData)) continue;
             let operaioNome = '';
             if (data.operaioId) {
                 const userDoc = await getDoc(doc(getDb(), 'users', data.operaioId));
@@ -718,10 +917,17 @@ async function loadPendingHoursForSelectedWork() {
     }
 }
 
-async function updateHourValidationStatus(hourId, status) {
-    if (!selectedWork || !currentTenantId || !currentUser || !hourId) return;
-    const pendingRow = currentPendingHours.find((r) => r.id === hourId);
-    const hourRef = doc(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`, hourId);
+async function updateHourValidationStatus(hourId, status, lavoroIdOpt) {
+    const lavoroId = lavoroIdOpt || selectedWork?.id;
+    if (!lavoroId || !currentTenantId || !currentUser || !hourId) return;
+    const pendingRow = currentPendingHours.find((r) => r.id === hourId)
+        || currentAllPendingHours.find((r) => r.id === hourId);
+    const capoUserId = primaryManodoperaUserId(currentUser, currentUserData);
+    if (pendingRow && String(pendingRow.operaioId) === String(capoUserId)) {
+        console.warn('[FIELD-WORKSPACE] Le ore del caposquadra sono validate dal manager');
+        return;
+    }
+    const hourRef = doc(getDb(), `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`, hourId);
     if (status === 'validate') {
         await updateDoc(hourRef, {
             stato: 'validate',
@@ -743,14 +949,121 @@ async function updateHourValidationStatus(hourId, status) {
     }
 }
 
+async function resolveDestinatariIdsForSend() {
+    const fromSquadra = await fetchOperaioIdsForCaposquadraSquadre(
+        getDb(),
+        currentTenantId,
+        currentUser,
+        currentUserData
+    );
+    if (fromSquadra.length > 0) return fromSquadra;
+    if (squadListEl) await loadSquadMembersForCapo();
+    const fallback = new Set();
+    (lastSquadMembers || []).forEach((m) => {
+        const id = m.id || m.uid;
+        if (id) fallback.add(String(id));
+    });
+    caposquadraIdsForQuery(currentUser, currentUserData).forEach((id) => fallback.delete(String(id)));
+    return Array.from(fallback);
+}
+
+async function loadReceivedCommunications() {
+    if (!receivedCommunicationsListEl || !currentTenantId || !currentUser) return;
+    receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni...</div>';
+    try {
+        const operaioUserId = primaryManodoperaUserId(currentUser, currentUserData);
+        const capoIdsOperaio = await resolveCaposquadraIdsForOperaio(getDb(), currentTenantId, operaioUserId);
+        const lavoriOperaio = await fetchLavoriDocumentsForFieldUser(
+            getDb(),
+            currentTenantId,
+            operaioUserId,
+            resolveSegnaturaOreRoleFlags(currentUserData || {})
+        );
+        const operaioLavoroIds = lavoriOperaio.map((l) => String(l.id));
+        const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
+        const snap = await getDocs(query(commRef, where('stato', '==', 'attiva')));
+        const rows = [];
+        snap.forEach((d) => {
+            const data = d.data();
+            const dataCom = data.data?.toDate ? data.data.toDate() : new Date(data.data);
+            if (!comunicazioneVisibilePerOperaio(data, currentUser, currentUserData, capoIdsOperaio, operaioLavoroIds)) return;
+            if (!isComunicazioneAttivaPerData(dataCom)) return;
+            rows.push({
+                id: d.id,
+                ...data,
+                dataCom,
+                haConfermato: confermeIncludesUser(data.conferme, currentUser, currentUserData)
+            });
+        });
+        rows.sort((a, b) => (a.dataCom?.getTime?.() || 0) - (b.dataCom?.getTime?.() || 0));
+        if (!rows.length) {
+            receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione attiva.</div>';
+            return;
+        }
+        receivedCommunicationsListEl.innerHTML = rows.map((row) => {
+            const luogo = formatComunicazioneLuogo(row);
+            const testo = formatComunicazioneTesto(row);
+            const dataLabel = row.dataCom
+                ? row.dataCom.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+                : '-';
+            const confermaBtn = row.haConfermato
+                ? '<span class="inline-item-badge">✅ Confermato</span>'
+                : `<button type="button" class="field-mobile-btn primary" data-confirm-comm-id="${escapeHtmlUnsafe(row.id)}" style="margin-top:8px;">Conferma ricezione</button>`;
+            return `
+                <div class="inline-item" style="border-left: 3px solid ${row.haConfermato ? '#28a745' : '#ffc107'};">
+                    <div class="inline-item-head">
+                        <div class="inline-item-title">${escapeHtmlUnsafe(luogo)}</div>
+                        <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${escapeHtmlUnsafe(dataLabel)}</div>
+                    </div>
+                    ${testo ? `<div class="inline-item-sub">${escapeHtmlUnsafe(testo)}</div>` : ''}
+                    <div class="inline-item-sub">Da: ${escapeHtmlUnsafe(row.caposquadraNome || 'Caposquadra')}</div>
+                    ${confermaBtn}
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore comunicazioni ricevute:', error);
+        receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento comunicazioni.</div>';
+    }
+}
+
+async function confirmReceivedCommunication(communicationId) {
+    if (!communicationId || !currentTenantId || !currentUser) return;
+    try {
+        const commRef = doc(getDb(), `tenants/${currentTenantId}/comunicazioni`, communicationId);
+        const commDoc = await getDoc(commRef);
+        if (!commDoc.exists()) return;
+        const comm = commDoc.data();
+        const conferme = Array.isArray(comm.conferme) ? comm.conferme.slice() : [];
+        if (confermeIncludesUser(conferme, currentUser, currentUserData)) {
+            setStatus('Hai già confermato questa comunicazione.');
+            return;
+        }
+        conferme.push({
+            userId: primaryManodoperaUserId(currentUser, currentUserData),
+            timestamp: Timestamp.now()
+        });
+        await updateDoc(commRef, { conferme });
+        setStatus('Conferma inviata al caposquadra.');
+        await loadReceivedCommunications();
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore conferma comunicazione:', error);
+        setStatus(`Errore conferma: ${error.message}`, true);
+    }
+}
+
 async function loadSentCommunications() {
     if (!sentCommunicationsListEl || !currentTenantId || !currentUser) return;
     sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni inviate...</div>';
     try {
         const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
-        const snap = await getDocs(query(commRef, where('caposquadraId', '==', currentUser.uid)));
-        const rows = [];
-        snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
+        const byId = new Map();
+        const capoIds = caposquadraIdsForQuery(currentUser, currentUserData);
+        for (const capoId of capoIds) {
+            const snap = await getDocs(query(commRef, where('caposquadraId', '==', capoId)));
+            snap.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
+        }
+        const rows = Array.from(byId.values());
         rows.sort((a, b) => {
             const ad = (a.createdAt && a.createdAt.toDate) ? a.createdAt.toDate().getTime() : 0;
             const bd = (b.createdAt && b.createdAt.toDate) ? b.createdAt.toDate().getTime() : 0;
@@ -770,7 +1083,7 @@ async function loadSentCommunications() {
                 <div class="inline-item-sub">${escapeHtmlUnsafe((row.messaggio || '').slice(0, 120))}</div>
                 <div class="inline-item-head" style="margin-top: 6px; margin-bottom: 0;">
                     <div class="inline-item-sub">Conferme ricezione</div>
-                    <span class="inline-item-badge">👍 ${(Array.isArray(row.conferme) ? row.conferme.length : 0)}/${(Array.isArray(row.destinatari) && row.destinatari.length > 0) ? row.destinatari.length : '?'}</span>
+                    <span class="inline-item-badge">👍 ${(Array.isArray(row.conferme) ? row.conferme.length : 0)}/${normalizeDestinatariIds(row.destinatari).length || '0'}</span>
                 </div>
             </div>
         `).join('');
@@ -785,7 +1098,20 @@ async function refreshWorkspaceData() {
     if (userIsCaposquadra) {
         await loadSquadMembersForCapo();
         await loadPendingHoursForSelectedWork();
+        await loadAllPendingHoursForCapo();
         await loadSentCommunications();
+        if (quickStatusEl) {
+            const n = await resolveDestinatariIdsForSend();
+            if (n.length > 0) {
+                quickStatusEl.textContent = `Squadra pronta: il messaggio arriverà a ${n.length} operai.`;
+                quickStatusEl.style.color = '#166534';
+            } else {
+                quickStatusEl.textContent = 'Nessun operaio in squadra: configura Gestione squadre prima di inviare.';
+                quickStatusEl.style.color = '#b91c1c';
+            }
+        }
+    } else if (userIsOperaio) {
+        await loadReceivedCommunications();
     }
 }
 
@@ -807,7 +1133,7 @@ function calculateNetHours() {
     const breakMin = Math.max(0, parseInt(oraBreakEl.value || '0', 10) || 0);
 
     if (!start || !end) {
-        hoursValueEl.textContent = '0.00';
+        hoursValueEl.textContent = formatOreNette(0);
         return 0;
     }
 
@@ -816,12 +1142,12 @@ function calculateNetHours() {
     const startMinutes = (sh * 60) + sm;
     const endMinutes = (eh * 60) + em;
     if (endMinutes <= startMinutes) {
-        hoursValueEl.textContent = '0.00';
+        hoursValueEl.textContent = formatOreNette(0);
         return 0;
     }
     const netMinutes = Math.max(0, endMinutes - startMinutes - breakMin);
     const netHours = netMinutes / 60;
-    hoursValueEl.textContent = netHours.toFixed(2);
+    hoursValueEl.textContent = formatOreNette(netHours);
     return netHours;
 }
 
@@ -890,7 +1216,7 @@ async function saveQuickHours(event) {
         };
         const oraRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`);
         await addDoc(oraRef, oraData);
-        hoursStatusEl.textContent = `Ore salvate: ${netHours.toFixed(2)} h. Puoi registrare un altro turno.`;
+        hoursStatusEl.textContent = `Ore salvate: ${formatOreNette(netHours)}. Puoi registrare un altro turno.`;
         hoursStatusEl.style.color = '#166534';
         resetQuickHoursFormFieldsForNextEntry();
     } catch (error) {
@@ -952,19 +1278,19 @@ async function sendQuickCommunication(event) {
     }
 
     const selected = cachedWorks.find((w) => w.id === workId);
-    const destinatari = (() => {
-        const raw = selected?.raw || {};
-        const all = []
-            .concat(Array.isArray(raw.operai) ? raw.operai : [])
-            .concat(Array.isArray(raw.operaiIds) ? raw.operaiIds : [])
-            .concat(Array.isArray(raw.utentiAssegnati) ? raw.utentiAssegnati : []);
-        return Array.from(new Set(all.filter((id) => id && id !== currentUser.uid)));
-    })();
+    const destinatari = await resolveDestinatariIdsForSend();
+    if (!destinatari.length) {
+        quickStatusEl.textContent = 'Nessun operaio in squadra da avvisare. In Gestione squadre assegna operai al tuo profilo caposquadra.';
+        quickStatusEl.style.color = '#b91c1c';
+        return;
+    }
+    const caposquadraNome = `${currentUserData?.nome || ''} ${currentUserData?.cognome || ''}`.trim();
     try {
         const [y, m, d] = dateIso.split('-').map(Number);
         const dataDate = new Date(y, (m || 1) - 1, d || 1);
         await addDoc(collection(getDb(), `tenants/${currentTenantId}/comunicazioni`), {
-            caposquadraId: currentUser.uid,
+            caposquadraId: primaryManodoperaUserId(currentUser, currentUserData),
+            caposquadraNome: caposquadraNome || undefined,
             lavoroId: workId,
             lavoroNome: selected?.label || 'Lavoro',
             messaggio: message,
@@ -976,7 +1302,7 @@ async function sendQuickCommunication(event) {
             createdAt: serverTimestamp(),
             source: 'mobile_field_workspace'
         });
-        quickStatusEl.textContent = 'Comunicazione inviata.';
+        quickStatusEl.textContent = `Comunicazione inviata a ${destinatari.length} operai.`;
         quickStatusEl.style.color = '#166534';
         const msgInput = document.getElementById('quick-comm-message');
         if (msgInput) msgInput.value = '';
@@ -1007,24 +1333,41 @@ function bindOperaioModal() {
 }
 
 function bindInlineSectionsActions() {
-    if (!pendingHoursListEl) return;
-    pendingHoursListEl.addEventListener('click', async (event) => {
+    if (receivedCommunicationsListEl) {
+        receivedCommunicationsListEl.addEventListener('click', async (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) return;
+            const commId = target.getAttribute('data-confirm-comm-id');
+            if (!commId) return;
+            await confirmReceivedCommunication(commId);
+        });
+    }
+    const onPendingHoursClick = async (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
         const approveId = target.getAttribute('data-approve-hour-id');
         const rejectId = target.getAttribute('data-reject-hour-id');
         if (!approveId && !rejectId) return;
+        const lavoroId = target.getAttribute('data-lavoro-id') || selectedWork?.id;
         try {
             if (approveId) {
-                await updateHourValidationStatus(approveId, 'validate');
+                await updateHourValidationStatus(approveId, 'validate', lavoroId);
             } else if (rejectId) {
-                await updateHourValidationStatus(rejectId, 'rifiutate');
+                await updateHourValidationStatus(rejectId, 'rifiutate', lavoroId);
             }
             await loadPendingHoursForSelectedWork();
+            await loadAllPendingHoursForCapo();
         } catch (error) {
             console.error('[FIELD-WORKSPACE] Errore aggiornamento validazione ore:', error);
         }
-    });
+    };
+    if (pendingHoursListEl) pendingHoursListEl.addEventListener('click', onPendingHoursClick);
+    if (pendingHoursAllListEl) pendingHoursAllListEl.addEventListener('click', onPendingHoursClick);
+    if (btnRefreshPendingHoursEl) {
+        btnRefreshPendingHoursEl.addEventListener('click', () => {
+            loadAllPendingHoursForCapo().catch(() => {});
+        });
+    }
 }
 
 function bindPullToRefresh() {
@@ -1095,6 +1438,12 @@ function bindToolbar() {
     }
     if (quickHoursFormEl) {
         quickHoursFormEl.addEventListener('submit', saveQuickHours);
+    }
+    if (segnalaAssenzaFormEl) {
+        segnalaAssenzaFormEl.addEventListener('submit', submitSegnalaAssenza);
+    }
+    if (assenzaSegnalaGiornoEl && !assenzaSegnalaGiornoEl.value) {
+        assenzaSegnalaGiornoEl.value = toGiornoKey(new Date());
     }
     if (oraStartEl) oraStartEl.addEventListener('input', calculateNetHours);
     if (oraEndEl) oraEndEl.addEventListener('input', calculateNetHours);
@@ -1194,11 +1543,19 @@ async function initFieldWorkspace() {
                 if (inlineValidateHoursSectionEl) {
                     inlineValidateHoursSectionEl.hidden = !isCaposquadra;
                 }
+                if (inlineSegnalaAssenzaSectionEl) {
+                    inlineSegnalaAssenzaSectionEl.hidden = !isCaposquadra;
+                }
                 setupSlidesForRole(isCaposquadra);
                 // Ordine caposquadra richiesto:
                 // Seleziona lavoro (+ squadra inline) -> Comunicazioni -> Segna ore -> I miei lavori -> Statistiche
-                if (isCaposquadra) {
-                    const order = ['Lavoro', 'Comunicazioni', 'Ore', 'Statistiche'];
+                if (fieldValidazioneOreLinkEl) {
+                    fieldValidazioneOreLinkEl.hidden = !isCaposquadra;
+                }
+                if (isCaposquadra || isOperaio) {
+                    const order = isCaposquadra
+                        ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Statistiche']
+                        : ['Lavoro', 'Comunicazioni', 'Ore', 'Statistiche'];
                     activeSlides.sort((a, b) => order.indexOf(a.dataset.slideTitle) - order.indexOf(b.dataset.slideTitle));
                     activeSlides.forEach((slide) => swiperEl.appendChild(slide));
                 }

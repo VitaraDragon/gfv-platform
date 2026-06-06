@@ -242,5 +242,44 @@ export function initTonyVoice(options) {
             processNextAudio();
         }
 
-    return { speakWithTTS: speakWithTTS };
+        /** Avvia getTonyAudio in parallelo (warm cache) senza bloccare la UI chat. */
+        function prefetchTonyTTS(testo) {
+            if (!testo || typeof testo !== 'string') return;
+            var testoPulito = pulisciTestoPerVoce(testo);
+            if (testoPulito.indexOf('{') >= 0 || testoPulito.indexOf('"text"') >= 0) {
+                var extracted = extractTextForTTS(testoPulito);
+                if (extracted) testoPulito = extracted;
+            }
+            if (!testoPulito || testoPulito.length < 2) return;
+            if (testoPulito === lastTTSCache.text && lastTTSCache.audioBase64) return;
+            (async function() {
+                try {
+                    var firebaseService = await import('../../services/firebase-service.js');
+                    var app = firebaseService.getAppInstance && firebaseService.getAppInstance();
+                    if (!app) return;
+                    var firebaseFunctions = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
+                    var functions = firebaseFunctions.getFunctions(app, 'europe-west1');
+                    var getTonyAudio = firebaseFunctions.httpsCallable(functions, 'getTonyAudio');
+                    var ctxPayload = null;
+                    try {
+                        if (window.Tony && window.Tony.context) {
+                            ctxPayload = JSON.parse(JSON.stringify(window.Tony.context));
+                        }
+                    } catch (eCtx) {}
+                    var result = await getTonyAudio({ text: testoPulito, context: ctxPayload });
+                    if (result.data && result.data.audioContent) {
+                        lastTTSCache.text = testoPulito;
+                        lastTTSCache.audioBase64 = result.data.audioContent;
+                    }
+                } catch (e) {
+                    /* prefetch best-effort */
+                }
+            })();
+        }
+
+        if (typeof window !== 'undefined') {
+            window.__tonyPrefetchTTS = prefetchTonyTTS;
+        }
+
+    return { speakWithTTS: speakWithTTS, prefetchTonyTTS: prefetchTonyTTS };
 }

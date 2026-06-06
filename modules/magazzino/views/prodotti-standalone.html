@@ -171,14 +171,14 @@
                     <div class="form-group">
                         <label for="prodotto-dosaggio-max">Dosaggio max (per ha)</label>
                         <input type="number" id="prodotto-dosaggio-max" min="0" step="0.01" placeholder="Es. 1">
-                        <span class="form-hint">Range per ettaro nella stessa unità (es. 0,5–1 L/ha oppure 2–5 kg/ha).</span>
+                        <span class="form-hint">Range per ettaro (obbligatorio per fitofarmaci e fertilizzanti).</span>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="prodotto-giorni-carenza">Giorni di carenza</label>
-                        <input type="number" id="prodotto-giorni-carenza" min="0" step="1" placeholder="Opzionale">
-                        <span class="form-hint">Giorni prima della raccolta consentita (es. 30).</span>
+                        <input type="number" id="prodotto-giorni-carenza" min="0" step="1" placeholder="Es. 30">
+                        <span class="form-hint">Obbligatorio per fitofarmaci (es. 30).</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -209,6 +209,12 @@
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import {
+            syncProdottoDosaggioCarenzaRequiredDom,
+            getProdottoDosaggioCarenzaRequiredFieldIds,
+            prodottoCategoriaRichiedeDosaggio,
+            prodottoCategoriaRichiedeGiorniCarenza,
+        } from '../../../core/js/prodotto-form-required.js';
 
         if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
             window.currentTableData = { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };
@@ -265,6 +271,7 @@
                 document.getElementById('filter-categoria').onchange = renderProdotti;
                 document.getElementById('filter-search').oninput = renderProdotti;
                 document.getElementById('prodotto-form').onsubmit = saveProdotto;
+                document.getElementById('prodotto-categoria').addEventListener('change', syncProdottoDosaggioCarenzaRequiredDom);
                 await loadProdotti();
             } catch (e) {
                 console.error(e);
@@ -413,6 +420,7 @@
             document.getElementById('prodotto-giorni-carenza').value = p.giorniCarenza != null ? p.giorniCarenza : '';
             document.getElementById('prodotto-note').value = p.note || '';
             document.getElementById('prodotto-modal').classList.add('active');
+            syncProdottoDosaggioCarenzaRequiredDom();
         };
 
         window.disattivaProdotto = async function(id, nome) {
@@ -445,6 +453,7 @@
             document.getElementById('prodotto-dosaggio-max').value = '';
             document.getElementById('prodotto-giorni-carenza').value = '';
             document.getElementById('prodotto-modal').classList.add('active');
+            syncProdottoDosaggioCarenzaRequiredDom();
         }
 
         function closeModal() {
@@ -453,12 +462,31 @@
 
         async function saveProdotto(e) {
             e.preventDefault();
+            syncProdottoDosaggioCarenzaRequiredDom();
             const id = document.getElementById('prodotto-id').value;
+            const categoria = document.getElementById('prodotto-categoria').value || 'altro';
             const dosaggioMinVal = document.getElementById('prodotto-dosaggio-min').value.trim();
             const dosaggioMaxVal = document.getElementById('prodotto-dosaggio-max').value.trim();
             const giorniCarenzaVal = document.getElementById('prodotto-giorni-carenza').value.trim();
             const dosaggioMin = dosaggioMinVal ? parseFloat(dosaggioMinVal) : null;
             const dosaggioMax = dosaggioMaxVal ? parseFloat(dosaggioMaxVal) : null;
+
+            if (prodottoCategoriaRichiedeDosaggio(categoria)) {
+                if (dosaggioMin == null || !Number.isFinite(dosaggioMin)) {
+                    showAlert('Dosaggio minimo obbligatorio per fitofarmaci e fertilizzanti.', 'error');
+                    return;
+                }
+                if (dosaggioMax == null || !Number.isFinite(dosaggioMax)) {
+                    showAlert('Dosaggio massimo obbligatorio per fitofarmaci e fertilizzanti.', 'error');
+                    return;
+                }
+            }
+            if (prodottoCategoriaRichiedeGiorniCarenza(categoria)) {
+                if (!giorniCarenzaVal || !Number.isFinite(parseInt(giorniCarenzaVal, 10))) {
+                    showAlert('Giorni di carenza obbligatori per i fitofarmaci.', 'error');
+                    return;
+                }
+            }
             if (dosaggioMin != null && dosaggioMax != null && dosaggioMin > dosaggioMax) {
                 showAlert('Il dosaggio massimo deve essere >= dosaggio minimo.', 'error');
                 return;

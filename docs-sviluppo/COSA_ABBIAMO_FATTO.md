@@ -1,6 +1,754 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-05-15.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-04.**
+
+## Tony — Segna ore workspace campo: alias INJECT/SUBMIT + intercept locale (2026-06-04)
+
+**Problema:** flusso chat «segniamo le ore» → orari → pausa → «sì» compilava `#quick-hours-form` ma **non** persisteva su Firestore: CF emetteva `{ type: 'INJECT' }` / `{ type: 'SUBMIT' }` ignorati dal client; doppie domande pausa (CF + proattivo); falsa sensazione «salvato».
+
+**Fix (parità manager Fase 3b sul percorso ore, non crea-lavoro):**
+- **Client:** `normalizeTonyCommand` (`engine.js`) + fallback nel `default` di `processTonyCommand`; ramo `INJECT_FORM_DATA` usa `injectFieldWorkspaceQuickHoursForm` sul workspace; **`tryInterceptQuickHoursSaveBeforeCf`** («sì»/«salva», 0 CF); **`tryInterceptSegnaOreTurnBeforeCf`** (fascia oraria nel testo); **`tryInterceptSegnaOrePauseBeforeCf`** (solo minuti, es. «60»); **`quickHoursDomReadyForTonySave`** se contesto form in ritardo vs DOM; dedup proattivo se CF ha già chiesto pausa/salva (`__tonyQuickHoursCfAskedPauseAt` / `SaveAt`).
+- **CF:** `functions/tony-field-workspace-command.js` — post-process `normalizeFieldWorkspaceTonyResult` prima di `finishTonyAskEarly` (INJECT/SUBMIT → INJECT_FORM_DATA / QUICK_SAVE).
+- **Test Vitest:** `tests/tony-normalize-command.test.js`, `tests/tony-field-workspace-command.test.js`, `tests/tony-form-save-local.test.js` — **33/33** pass.
+
+**Criterio E2E:** form compilato + 1× `saveQuickHours` / messaggio verde sotto «Salva ore lavorate» + record in validazione manager; nessun log `Tipo comando sconosciuto: INJECT|SUBMIT`; turni «ok»/«sì»/«salva» con form pieno → 0 `tonyAskStream` + log `[Tony] SALVA: submit su quick-hours-form`.
+
+**Fix follow-up (2026-06-04):** intervista **100% locale** workspace (0 CF): regex `segniamo le ore` corretta; blocco CF obbligatorio su turni ore; recovery solo dal **messaggio corrente** (no orari da chat vecchia); QUICK_SAVE CF bloccato senza «sì»/«salva»; niente testo «Ore salvate» falso. Test: `tests/tony-segna-ora-time-range.test.js`.
+
+**Fix follow-up 2 (2026-06-04):** turni **un campo per messaggio** («alle 7» → «alle 18» → «60»): flag `__tonySegnaOraLocalInterviewAt` + sync turni utente in `Tony.chatHistory`; intercettazione locale su ogni singolo orario (0 CF); sanitize CF corregge inversione inizio/fine da turni cronologici (`collectSegnaOraAlleTimesFromUserTexts`).
+
+**Fix follow-up 3 (2026-06-04):** ora nuda «18» / «7» (senza «alle») riconosciuta in intervista; niente blocco su «Sto controllando…» se il turno non è gestito (fallback testuale).
+
+**Fix follow-up 4 (2026-06-04):** formati orario elastici in chat (`18:30`, `18,30`, `18 30`, `alle 18,30`); display ore nette workspace in **10h 45min** (`formatOreNette`, come attività/statistiche); «45» interpretato come pausa solo con inizio e fine già nel form.
+
+**Fix follow-up 5 (2026-06-04):** salvataggio locale con «ok»/«sì» dopo pausa 0: `quickHoursDomReadyForTonySave` accetta «nessuna», flag `__tonyQuickHoursPauseAckAt`, bypass `forceIfSaveConfirm` se orari completi; niente reset intervista al posto del save.
+
+**Fix follow-up 6 (2026-06-04):** `tonySalvaQuickHoursWorkspace` non bloccava più il submit: `tonyQuickHoursUserAcknowledgedPause` ora legge tutti i turni utente («0», «nessuna») e il flag pausa inject; messaggio «Ore salvate» anche in chat Tony dopo submit reale.
+
+**E2E verificato (2026-06-04):** flusso completo su `field-workspace-standalone.html` — **operaio** (lavoro autonomo → validazione manager) e **caposquadra** (stesso pattern inject/save locale 0 CF) — `segniamo le ore` → orari → pausa → «ok» → `[Tony] SALVA: submit su quick-hours-form`. Canary **3b-C21** ✅.
+
+**Test Vitest aggiornati:** `tests/tony-form-save-local.test.js` (**28**), `tests/tony-segna-ora-time-range.test.js` (**14**).
+
+---
+
+## Tony — Fase 4 performance: nav, filtri, RIASSUNTO, cache invalidation (2026-06-03)
+
+**Obiettivo:** spostare percorsi **binario B** (e parte consultazione) **fuori da Gemini**, senza patch per singola pagina nel client.
+
+**Implementazione CF (config centralizzata):**
+- `functions/tony-nav-quick-reply.js` — `APRI_PAGINA` + `RIASSUNTO` (tabella `tableDataSummary` o briefing `globalStatus`); gate `tony-module-gate`.
+- `functions/tony-filter-table-quick-reply.js` — `FILTER_TABLE` / `SUM_COLUMN` su pageType ad alto traffico (`lavori`, `terreni`, `tariffe`, `prodotti`, `movimenti`, …); fallback Gemini se ambiguo.
+- `functions/tony-multi-block-quick-reply.js` — messaggi multi-dominio (meteo + scorte + scadenze) concatenati senza Gemini se tutti i blocchi colpiscono.
+- `functions/tony-context-cache.js` — `invalidateTonyContextCache(tenantId)`; trigger Firestore `tonyInvalidateCacheOn*Write` su `prodotti`, `movimentiMagazzino`, `preventivi`, `tariffe`, `guasti`; hook su `aggiornaStatoPreventivoPubblico`.
+- Pipeline `handleTonyAskRequest`: dopo quick reply A → nav → filter → multi-blocco → pattern attività / lavoro entity.
+
+**Test:** `tests/tony-nav-quick-reply.test.js`, `tests/tony-filter-table-quick-reply.test.js`, `tests/tony-multi-block-quick-reply.test.js`, caso invalidazione in `tests/tony-context-cache.test.js` — **39/39** Vitest. Smoke `scripts/tony-perf-log-review.mjs` — sezione binario B quick 3/3.
+
+**Deploy produzione (2026-06-03):** `tonyAsk` + `tonyAskStream` ok; trigger cache ok al secondo deploy (primo tentativo: Eventarc Service Agent — risolto con attesa/redeploy).
+
+**Verifica E2E browser + log:** nav tariffe, RIASSUNTO tabella, `FILTER_TABLE` lavori/prodotti, crea lavoro (1× CF ~0,6–5 s + intervista locale). `npm run tony:perf-review`: **6** hit B con `quickReplyHit` nav/filter_table/riassunto_tabella e `usedGemini=false` (campione ~89 log stream); ~25% richieste totali senza Gemini; residuo ~12 navigazioni B ancora su Gemini (frasi fuori mappa).
+
+**Fuori scope Fase 4.4:** coda ore offline mobile — track manodopera separato.
+
+**Doc:** `tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §9 Fase 4, `tony/STATO_ATTUALE.md`, `TONY_DECISIONI_E_REQUISITI.md` §19.6.11.
+
+---
+
+## Tony — crea lavoro frase completa: operaio/autonomo mancanti (2026-06-03)
+
+**Problema:** messaggio entity-dense tipo «crea lavoro trinciatura per luca nel pinot domani 1 giorno agrifull» compilava terreno/tipo/data/durata/macchine ma **non** `lavoro-operaio` né `tipo-assegnazione=autonomo`.
+
+**Cause:** (1) parser persona estraeva token `luca nel` invece di `luca` da «per luca nel pinot»; (2) messaggi entity-dense su Gestione Lavori bypassavano il flusso locale con attesa manodopera; (3) dopo inject, se restavano solo macchine da chiedere, Tony saltava la domanda squadra/autonomo.
+
+**Fix:** `trimPersonInterviewToken` / `extractPersonTokenFromInterviewText`, `applyLavoroAssigneeFromTextToPatch` (re-run post `waitForLavoriManodoperaReady`), gate assign-mode prima macchine, entity-dense locale su pagina lavori (`main.js`). **Follow-up (2026-06-03):** messaggio entity-dense ancora sul fallback intercept; con 2 operai «Luca» perdeva terreno/tipo/data dopo disamb — `__tonyLavoroPendingCreationText`, inject campi non-persona prima della disamb operaio, merge pending al «fabbri», assignee spostato a fine `buildLavoroInterviewPatch`.
+
+**Test Vitest:** `tony-lavoro-interview-client.test.js` — frase completa per luca nel pinot (**39 pass**).
+
+---
+
+## Tony — fix modello Gemini deprecato (404 navigazione / tonyAsk) (2026-06-03)
+
+**Problema:** `tonyAskStream` e `tonyAsk` fallivano con `Errore chiamata Gemini: 404` — Tony non rispondeva (navigazione `APRI_PAGINA`, filtri, chat).
+
+**Causa:** Google ha ritirato `gemini-2.0-flash` per molti tenant/chiavi API (404 NOT_FOUND).
+
+**Fix:** modello aggiornato a **`gemini-2.5-flash`** in `functions/index.js` (`TONY_GEMINI_MODEL`, override opzionale env `GEMINI_MODEL`) e `core/services/tony-service.js`.
+
+**Deploy:** ridistribuire `tonyAsk` + `tonyAskStream` su Cloud Functions.
+
+**Verifica utente (2026-06-03):** Tony operativo di nuovo — chat, navigazione `APRI_PAGINA` e comandi CF OK dopo deploy.
+
+---
+
+## Tony — ack tipo in chat dopo stem vago (intervista lavoro) (2026-06-03)
+
+**Problema (PLAN §1.6 residuo UX):** con terreno già impostato, «dobbiamo trinciare» → inject tipo OK (auto-pick `manualMechSkipStems`) ma Tony chiedeva subito la data senza confermare il tipo scelto.
+
+**Fix:** `buildLavoroTipoStemOnlyAckMessage` + `prependLavoroTipoStemOnlyAck` in `tony-form-injector.js` — dopo auto-pick stem-only (non disamb, non M/M, non correzione) messaggio tipo «Ok, [Tipo] su [Terreno]. [prossima domanda]» — **0 CF**.
+
+**Test Vitest:** `tony-lavoro-interview-client.test.js` — caso «dobbiamo trinciare» (**37 pass**).
+
+**Canary E2E browser ✅ PASS (2026-06-03, 3b-C20):** `gestione-lavori-standalone.html` — terreno **Larghetta** già nel form → «dobbiamo trinciare» → **«Ok, Trinciatura tra le file su larghetta. È un lavoro di squadra o lo assegno a una persona?»** → disamb. Luca (fabbri) → domani / 1 → disamb. trattore (agrifull) → «Vuoi che salvi il lavoro?» → **salva** → record in lista; console solo `Intercept intervista lavoro client-side` / save locale, **0** `tonyAskStream` sui follow-up.
+
+---
+
+## Tony — E2E magazzino validato (3b-C15…C19) (2026-06-02)
+
+**3b-C15 (prodotto save):** inject → «Vuoi che salvi il prodotto?» → «salva» → save locale **0 CF** — **PASS E2E** (2026-05-31).
+
+**3b-C16 (movimento entrata):** «crea entrata nimrod 10 unità» → creazione locale + prezzo catalogo → save locale — **PASS E2E** (2026-06-02).
+
+**3b-C17 (movimento uscita):** «registra uscita roundup 5 litri» → creazione locale, no prezzo, save locale — **PASS E2E** (2026-06-02).
+
+**3b-C18 (creazione prodotto):** «crea prodotto roundup fitofarmaci litri scorta 50 prezzo 45 dosaggio 0.5-1 carenza 30» → `tryInterceptProdottoCreateBeforeCf` (0 CF) → modal + inject 8 campi → save locale — **PASS E2E** (2026-06-02). Dosaggio min/max e carenza **obbligatori** in form per fitofarmaci/fertilizzanti (`prodotto-form-required.js`).
+
+**3b-C19 (cross-page magazzino):** da abbonamento/conto terzi «crea prodotto …» / «crea entrata nimrod 10 unità» → nav prodotti/movimenti + `pending-after-nav` inject + modal — **PASS E2E** (2026-06-02).
+
+**Moduli:** `tony-prodotto-create-local.js`, `core/js/prodotto-form-required.js`, estensione `tony-movimento-create-local.js` (cross-page), wiring `tony/main.js`.
+
+**Test:** `tony-form-save-local.test.js` (20), `tony-movimento-create-local.test.js` (15), `tony-prodotto-create-local.test.js` (11), `prodotto-form-required.test.js` (5), `movimento-prezzo-catalogo.test.js` (9) — **60 pass**.
+
+---
+
+## Tony — fix creazione movimento: CF «Movimento registrato!» senza form (2026-05-31)
+
+**Problema:** «crea entrata nimrod 10 unità» → CF intervista (data, conferma) → «Movimento registrato!» **senza** `OPEN_MODAL` / `INJECT` / `SAVE_ACTIVITY` (lista invariata).
+
+**Fix:**
+- `core/js/tony-movimento-create-local.js` — parse intent client-side; `tryInterceptMovimentoCreateBeforeCf` (apre `movimento-modal` + fields, data default oggi); recovery `tryRecoverMovimentoCfFakeSave` se CF mente post-conferma
+- `core/js/tony/main.js` — wiring intercept prima di tonyAsk; recovery in `onComplete`
+- `functions/index.js` — regola **0** ristretta: vietato falso «Movimento registrato!» in **creazione** (solo dopo save reale)
+
+**Test:** `tests/tony-movimento-create-local.test.js` (10) + regressione save locale (20) ✅.
+
+## Tony — prezzo movimento entrata da anagrafica prodotto (2026-05-31)
+
+**Obiettivo:** su **entrata**, se `mov-prezzo` è vuoto, precompilare da `prezzoUnitario` anagrafica (editabile; non blocca save).
+
+**Implementazione:**
+- `core/js/movimento-prezzo-catalogo.js` — `enrichMovimentoFormDataFromCatalog`, `suggestMovPrezzoInDom`
+- `core/js/tony-form-injector.js` — `injectMovimentoForm` risolve prodotto + arricchisce prezzo prima di INJECT
+- `modules/magazzino/views/movimenti-standalone.html` — al cambio prodotto/tipo → suggerimento prezzo (solo se campo vuoto); espone `window.__gfvMagazzinoProdotti` per Tony inject
+- `functions/index.js` — Context Builder: `prezzoUnitario` incluso nel fetch `azienda.prodotti`
+- `core/js/tony-form-injector.js` — enrich inline + fallback DOM post-inject (non dipende solo da main.js)
+- Parser movimento: «crea movimento nimrod in entrata 15» → prodotto `nimrod` (non più stringa intera frase)
+
+**Test:** `tests/movimento-prezzo-catalogo.test.js` (9).
+
+## Tony — fix save magazzino: CF «Prodotto salvato!» falso (2026-05-31)
+
+**Problema:** dialogo CF «Perfetto, salvo?» → utente «salva» → testo «Prodotto salvato!» **senza** `SAVE_ACTIVITY` (modal aperto, prodotto assente in lista).
+
+**Fix client-side (`tony-form-save-local.js` + `main.js`):**
+- `tryInterceptMagazzinoSaveBeforeCf` — «salva»/«sì» con form pronto **prima di tonyAsk**: prompt canonico «Vuoi che salvi il prodotto/movimento?» + `SAVE_ACTIVITY` reale
+- Timer post-inject magazzino: **800 ms** se form completo (allineato a preventivo, non 7 s)
+- `isTonyMagazzinoCfFakeSaveText` — sopprime «Prodotto salvato!» / «Perfetto, salvo?» CF; fallback post-CF se «salva» era già passato alla CF
+- Fallback `isTonySaveConfirmText` sull’ultimo messaggio utente (non solo «ok salva»)
+
+**Test:** `tests/tony-form-save-local.test.js` — 20 test (+ intercept pre-CF, fake save text, `magazzinoProactiveReadyForSave`).
+
+## Tony — save locale magazzino prodotto + movimento (2026-05-31)
+
+**Obiettivo (PLAN §3b.9 / §14.6b Fase 2):** estendere al modulo **Magazzino** (`prodotto-form`, `movimento-form`) il pattern save locale già verificato su lavoro (3b-C8) e preventivo (3b-C14) — prompt «Vuoi che salvi il prodotto/movimento?», conferma «sì/salva» → `SAVE_ACTIVITY` client-side, **0 round-trip CF**.
+
+**Implementazione:**
+- `core/js/tony-form-save-local.js` — config `prodotto-form` + `movimento-form`; `magazzinoFormReadyForTonySave` + **`magazzinoProactiveReadyForSave`** (movimento: solo required HTML per prompt save); ordine intercept esteso
+- `core/js/tony/main.js` — `__tonyPromptProdottoSaveLocal` / `__tonyPromptMovimentoSaveLocal`; `__tonyTriggerAskForSaveConfirmation` usa prompt locale per magazzino (no CF «Form completo, confermi salvataggio?»); hook `window.__tonyGetMagazzinoInterviewEmpty` per readiness condivisa; timer proattivo magazzino invariato (delega al trigger)
+
+**Test:** `tests/tony-form-save-local.test.js` — 20 test. Regressione lavoro: `tests/tony-lavoro-interview-client.test.js` (36) ✅.
+
+**Canary:** v. voce in testa **2026-06-02** (3b-C15/C16 E2E).
+
+**Prossimi (§14.6b):** ~~ack tipo in chat dopo stem vago~~ ✅ (2026-06-03, E2E browser).
+
+## Tony — save locale preventivo (2026-05-31)
+
+**Obiettivo (PLAN §3b.8 / §14.6b Fase 1):** estendere al form **preventivo** il pattern già funzionante su Gestione Lavori — prompt «Vuoi che salvi?» in chat, conferma «sì/salva» → `SAVE_ACTIVITY` locale, **0 round-trip CF**.
+
+**Implementazione:**
+- Nuovo modulo `core/js/tony-form-save-local.js` — config centralizzata (`lavoro-form`, `preventivo-form`), `isTonySaveConfirmText` / `isTonySaveDenyText`, `promptTonyFormSaveLocal`, `tryInterceptTonyFormSaveConfirm`, `formReadyForTonySave`
+- `core/js/tony/main.js` — intercept save generico **prima** di intervista/tonyAsk; `__tonyPromptPreventivoSaveLocal`; `__tonyTriggerAskForSaveConfirmation` usa prompt locale per preventivo (non più CF «Form completo, confermi salvataggio?»); guard proattivo se save pending; timer preventivo `ready_for_save` **800 ms** (allineato a lavoro)
+- `__tonyPromptLavoroSaveLocal` refactor su API generica (backward compat canary 3b-C8)
+
+**Test:** `tests/tony-form-save-local.test.js` — 8 test (regex conferma/negazione, config preventivo, intercept SAVE_ACTIVITY).
+
+**Canary 3b-C14:** ✅ PASS (2026-05-31) — Vitest (8) + **E2E browser** tenant Sabbie Gialle: messaggio «crea preventivo luca fabbri trinciatura trebbiano» → disamb. terreno (lago) → data (venerdì → meteo → sabato 6 giu) → timer `ready_for_save` → «Vuoi che salvi il preventivo?» → «salva» → console `Salva preventivo-form: conferma utente locale (senza tonyAsk).` + `SAVE_ACTIVITY`; **0** `tonyAskStream` sulla conferma; redirect elenco con bozza **PREV-2026-012**. Regressione 3b-C8 lavoro: test intervista (36) + stesso modulo save.
+
+**Prossimi (§14.6b):** ~~save locale magazzino~~ ✅ (3b-C15/C16, 2026-06-02); ~~ack tipo in chat dopo stem vago~~ ✅ (2026-06-03).
+
+## Tony — disamb. terreno ambiguo intervista lavoro (2026-05-31)
+
+**Obiettivo (PLAN §3b.8 task 2):** hint terreno ambiguo (es. «pinot» con 2 terreni Pinot) → elenco candidati in chat, follow-up breve → inject `lavoro-terreno`, **0 CF** — stesso pattern operaio/trattore/tipo.
+
+**Client (`tony-form-injector.js`):**
+- `findTerrenoInInterviewText`: 0 match → null, 1 → record, 2+ → `{ ambiguous, candidates }`
+- Stato `__tonyLavoroTerrenoDisambCandidates`; `resolveTerrenoFromDisambReply`, `offerTerrenoDisambResponse`, `buildTerrenoDisambiguationMessage`, `isTerrenoDisambQualifierText`
+- Intercept in `applyLavoroInterviewFromUserReply` (prima di `buildLavoroInterviewPatch`); disamb. proattiva in `buildLavoroInterviewPatch`; `userCanReplyToLavoroInterview` + reset sessione; `buildNextLavoroInterviewMessage` con elenco pending
+- Export helper su `window.TonyFormInjector` per test
+
+**Test:** `tests/tony-lavoro-interview-client.test.js` — **36** test (pinot×2, follow-up casetti, operaio/caposquadra omonimi, pending tipo bloccato su «a luca»).
+
+**Canary 3b-C12:** ✅ PASS (2026-05-31) — sangiovese×2 → pannelli → potatura manuale rinnovamento → save locale; 0 CF sui follow-up.
+
+**Fix stem disamb. operaio (2026-05-31):** messaggio «Ho trovato più operai per «crea lavoro per luca»» → «…per «luca»» — `lavoroInterviewDisambStemHint` + stem in sessione.
+
+**Fix cross-page crea lavoro (2026-05-31):** da altra pagina «crea lavoro per luca» non passa più a CF+inject auto (Luca Fabbri): intercept locale + `tony_pending_lavoro_local_intent`; `sanitizeAmbiguousLavoroInterviewFields` pre-inject; `resolveUserByName` null se match multipli; timer proattivo non salta se disamb. pending.
+
+**Fix assign mode operaio vs caposquadra (2026-05-31):** nome operaio (es. «luca») durante intervista non chiede più caposquadra — `__tonyLavoroConfirmedAssignMode` separato dal default DOM «squadra»; `findPersonInInterviewText` preferisce operai se non c’è intent squadra; disamb. operaio imposta autonomo esplicito.
+
+**Fix inject operaio + priorità disamb. (2026-05-31, canary 3b-C13 ✅):** risposta «a Luca» / «fabbri» non saltava più a data/tipo — causa: hint tipo pending (`__tonyLavoroPendingTipoHint`) riempiva la patch e la disamb. operaio veniva ignorata (check solo su patch vuota). Fix: `lavoroInterviewCanApplyPendingTipoHint` (blocca tipo se assign mode aperto o testo assegna persona); `lavoroInterviewPersonDisambPending` + ritorno disamb. **anche con patch non vuota**; `getLavoroInterviewRequiredEmpty` aggiunge `lavoro-operaio`/`lavoro-caposquadra` se modalità confermata in sessione; `buildNextLavoroInterviewMessage` priorizza disamb. persona; inject simple patch: radio autonomo → delay 80 ms → select operaio.
+
+**Canary 3b-C13:** ✅ PASS (2026-05-31) — cross-page sangiovese×2 → pannelli → «a Luca» → disamb fabbri/brutto → fabbri → autonomo+operaio DOM → trinciatura → domani/1 → agrifull → save locale; 0 CF follow-up.
+
+**Test intervista lavoro:** `tests/tony-lavoro-interview-client.test.js` — **36** test.
+
+**Prossimi (§14.6b):** save su altri form; messaggio conferma tipo dopo risposta vaga («dobbiamo trinciare»).
+
+## Tony — disamb. operaio ambiguo autonomo (2026-05-31)
+
+**Obiettivo (PLAN §3b.8 task 1):** 2+ operai con stesso nome (es. «Luca») → elenco candidati in chat, risposta breve → inject DOM, **0 CF** — stesso pattern trattore/tipo.
+
+**Client (`tony-form-injector.js`):**
+- Stato `__tonyLavoroPersonDisambCandidates` + `__tonyLavoroPersonDisambRole`; `resolvePersonFromDisambReply`, `offerPersonDisambResponse`, `buildPersonDisambiguationMessage`
+- Intercept follow-up in `applyLavoroInterviewFromUserReply` (prima di `buildLavoroInterviewPatch`); `userCanReplyToLavoroInterview` + reset sessione
+- `findPersonInInterviewText`: preferisce operai se non c’è intent squadra; disamb. anche se capi+operai omonimi
+- Priorità disamb. persona su hint tipo pending (`lavoroInterviewCanApplyPendingTipoHint`); ritorno elenco anche se patch ha altri campi
+- Inject: `tipo-assegnazione` autonomo → delay → `lavoro-operaio`; `getLavoroInterviewRequiredEmpty` forza operaio se autonomo confermato
+
+**Test:** `tests/tony-lavoro-interview-client.test.js` — **36** test.
+
+**Canary 3b-C11 / 3b-C13:** ✅ PASS — disamb. Luca×2 → fabbri → radio autonomo + operaio; E2E cross-page sangiovese → trinciatura → save (0 CF follow-up).
+
+**Fix potatura (2026-05-31):** stem «potatura» non auto-pick «Potatura Manuale» (+4 scoring); domanda **manuale/meccanica** prima di `amb.auto` policy erpicatura. — `findTipoLavoroInInterviewText` valuta policy filari/seminativo anche su stem-only; `offerTipoLavoroDisambIfNeeded` non elenca candidati se `amb.auto` (§14.7). — l'intervista usava `getLavoroInterviewAssignMode()` anche senza conferma utente, quindi «luca» finiva in «Non ho trovato tra i caposquadra». Ora `getConfirmedLavoroInterviewAssignMode()` + ritorno disamb. subito dopo `buildLavoroInterviewPatch`; `promptLavoroInterviewMissing` salva `__tonyLastLavoroInterviewQuestion`.
+
+**Fix macchine dopo potatura meccanica (2026-05-31):** `inferRequiresMachineFromTipo` ora usa `classifyTipoLavoroModo` + `__tonyLavoroTipoModo` — «Potatura verde» (keyword `verde`) richiede trattore+attrezzo; tipo manuale/produzione no; al set tipo manuale si azzerano trattore/attrezzo in patch.
+
+**Canary vendemmia squadra (2026-05-31):** squadra → Pier Best → sangiovese (vite) → vendemmia → manuale → **Vendemmia Manuale**, niente macchine, save locale + vendemmia auto — conferma policy M/M solo su stem ambivalenti (`manualMechChoiceStems` + `hasMan && hasMech` in catalogo).
+
+**Server (`tony-lavoro-entity-parser.js`):** `extractAssigneeToken` — lookahead `per luca` termina su `domani`/giorni settimana (allineato a messaggi entity-dense).
+
+**Prossimi (§14.6b):** save su altri form; ~~ack tipo in chat dopo stem vago~~ ✅ (2026-06-03).
+
+## Tony — intervista lavoro: unificazione macchine + prompt salva (2026-05-30)
+
+**Problema:** durante `__tonyLavoroCreationFlow`, risposte trattore/attrezzo (`agrifull`, `t5`) finivano in «Non ho capito» (typo `applyLavoroMacchinesFromUserReply` + pipeline intervista/macchine parallele); dopo flusso erpicatura completo mancava «Vuoi che salvi?» (blocco `lavoro-nome`); stato macchine stale tra sessioni intercettava tipi (`trinciatura`).
+
+**Fix client:**
+- `applyLavoroCreationTurn` — turn handler unificato intervista + macchine; `main.js` creation flow lo usa al posto del doppio ramo
+- `userCanReplyToMacchineDisamb` — priorità fase macchine in creation flow prima delle euristiche intervista
+- `markLavoroInterviewMacchineAsked` su ogni domanda/risposta attrezzo; `autoFillLavoroNomeIfMissing` + `lavoroInterviewReadyForSave()` per prompt salva
+- Messaggio esplicito se tipo non matchato (typo/frasi); `macchineDisambPending` solo se fase macchine attiva
+- Reset sessione Tony all'apertura modal «Crea Nuovo Lavoro» (`openCreaModalWrapper`)
+- **Fix ricorsione infinita (2026-05-30):** `userCanReplyToLavoroInterview` con `skipMacchineCheck` quando chiamato da `userTextShouldGoToLavoroInterviewNotMacchine`
+- **Fix risposta trattore (t5):** dopo inject trattore non marcare subito disamb. attrezzo; errore attrezzo solo se trattore era già impostato (`trWasAlreadySet`)
+- **Fix prompt salva:** `getLavoroInterviewRequiredEmpty` ignora caposquadra in autonomo / operaio in squadra; `syncLavoroOperatoreMacchinaIfNeeded`; dopo macchine OK verifica `lavoroInterviewReadyForSave()` prima di chiedere altri campi
+- **Fix date intervista (martedì):** parser giorni settimana su testo normalizzato NFD (bug `\b` JS con accenti); supporto `il 2` come durata; routing schedule prioritario in `applyLavoroCreationTurn`
+- **Fix conferma «salva»:** intercept `__tonyAwaitingLavoroSaveConfirm` spostato **prima** del turno `__tonyLavoroCreationFlow` (altrimenti «salva» finiva in «Non ho capito»); guard sul creation flow; `syncLavoroOperatoreMacchinaIfNeeded` esportato e chiamato prima di `SAVE_ACTIVITY`
+- **Fix lavoro di squadra:** risoluzione caposquadra solo su `caposquadraList` quando modalità squadra (evita ambiguità con operai omonimi tipo «pier»); messaggio field-aware se caposquadra non trovato
+- **Disamb. tipo lavoro (intervista):** su stem vago («potatura», «trinciatura») elenco candidati come trattore/attrezzo; no auto-pick con match multipli; follow-up breve («produzione», «manuale») su `__tonyLavoroTipoDisambCandidates`; messaggio proattivo se hint tipo era stato detto prima del terreno
+- **Disamb. tipo lavoro a 2 livelli (2026-05-30):** per potatura/vendemmia (config `manualMechChoiceStems`) prima «manuale o meccanica?» poi elenco varianti filtrate; trinciatura/erpicatura/aratura (`manualMechSkipStems`) saltano il primo livello → tipo/macchine
+- **Hint persona messaggio iniziale:** «crea lavoro per gaia» estrae operaio/caposquadra (`stripLavoroCreationIntentPrefix`); `openCreaModal` atteso prima del parse; `waitForLavoriManodoperaReady` se operai non ancora in `lavoriState`
+- Test: `tony-lavoro-interview-client.test.js` (21 test: parser intervista, squadra, disamb. tipo 2 livelli, hint «crea lavoro per …»)
+
+**Documentazione aggiornata:**
+- `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — **rev. 6** (2026-05-30): §1.5 baseline intervista post-fix, §3b.8 intervista unificata + disamb. tipo, canary 3b-C5…C8, criteri **0 CF** su ogni risposta breve dopo il 1° turno
+- `docs-sviluppo/tony/STATO_ATTUALE.md` — righe Widget / Form Injector / pattern disamb. client-side
+
+**Allineamento decisioni §14.6b (stato 2026-05-31):** pattern client-side completato su **attrezzo multiplo**, **intervista campi**, **conferma salvataggio**, **disamb. tipo** (2 livelli M/M), **operaio ambiguo autonomo**; **prossimi:** terreno ambiguo, save su altri form — sottocategoria da coltura resta deterministica.
+
+## Tony — intervista lavoro: durata «3», filari, trattore t5 (2026-05-26)
+
+**Problema:** durante `crea lavoro` locale, risposta bare `3` andava in CF (~14s); tipo erpicatura resettava sottocategoria a Generale su terreno filari; risposta `t5` finiva in «Non ho capito» (intercettata dall'intervista prima delle macchine).
+
+**Fix client:** `extractLavoroInterviewDuration` accetta cifra sola; creation flow accetta `/^\d{1,3}$/`; intercept macchine **prima** del turno intervista; `applyLavorazioneDefaultsLavoro` legge terreno da DOM; re-applicazione policy filari dopo `deriveParentsFromTipoLavoro`; messaggio trattore non duplicato se evento `tony-macchine-disambiguation` già inviato.
+
+## Tony — intervista lavoro client-side (2026-05-26)
+
+**Obiettivo:** risposte brevi in intervista (terreno, operaio, data, durata, tipo) senza round-trip CF — stesso spirito §3b.7 macchine.
+
+**Client:** `buildLavoroInterviewPatch`, `applyLavoroInterviewFromUserReply`, `promptLavoroInterviewMissing` in `tony-form-injector.js`; intercept in `tony/main.js`; domanda proattiva locale al posto di «Form aperto…» CF quando possibile. Test: `tony-lavoro-interview-client.test.js`.
+
+## Tony — lavoro macchine: filtro CV attrezzo↔trattore + alias attrezzo (2026-05-26)
+
+**Problema:** dopo scelta Agrifull (80 CV) Tony chiedeva disamb. tra erpice 200 e 350 (350 richiede 100 CV); risposte «erpice 200» non venivano riconosciute (loop). Primo messaggio OPEN_MODAL chiedeva già l'attrezzo insieme a «Ti porto a gestione lavori».
+
+**Fix client (`tony-form-injector.js`):** `attrezziCompatibiliConTrattoreCv` + `resolveTrattoreRecordFromLavoroDom` — dopo trattore noto, auto-inject attrezzo se unico compatibile CV; `findAttrezzoInUserText` con match numerico/token («erpice 200» → rotante 200).
+
+**Fix CF (`tony-lavoro-entity-parser.js`):** attrezzo da tipo solo se utente nomina esplicitamente l'attrezzo; OPEN_MODAL → testo solo navigazione (domande macchine differite al form aperto / client).
+
+## Tony — lavoro macchine: ordine disamb. trattore prima di attrezzo (2026-05-26)
+
+**Problema:** con 2+ erpici e messaggio senza macchine, al turno 1 Tony chiedeva **attrezzo e trattore insieme** (inferenza attrezzo da tipo prima che ci fosse un trattore in DOM).
+
+**Fix (`tony-form-injector.js`):** `shouldAskAttrezzoDisambigFromTipo` — disamb. attrezzo da tipo lavoro **solo** se `lavoro-trattore` valorizzato o se l'utente ha già `lavoro-attrezzo` nel formData (entity-first). Altrimenti prima trattore, attrezzo al turno successivo (client-side). Test: `tony-lavoro-attrezzo-disamb.test.js` (ordine trattore→attrezzo).
+
+## Tony — disambiguazione attrezzo multiplo: pattern client-side (2026-05-26)
+
+**Obiettivo:** estendere il canary §14.4 (trattore) ad **attrezzo** ambiguo dopo scelta trattore o inferenza da tipo lavoro (es. erpicatura → Erpice 200 cm vs Erpice a denti).
+
+**Fix:**
+- `tony-form-injector.js` — `findAttrezzoInUserText` (alias `erpice 200`, `200`, `denti`); `buildAttrezzoDisambiguationPayload` + candidati in `__tonyMacchineDisambAttrezziCandidati`; `attrezziListForMacchineDisambReply`; `resolveAttrezzoAfterTrattoreKnown` emette disamb. se 2+ attrezzi compatibili; `applyLavoroMacchineFromUserReply` gestisce risposta attrezzo-only
+- `tony/main.js` — intercept anche per `lavoro-attrezzo` pending; messaggi errore field-aware
+- `tests/tony-lavoro-attrezzo-disamb.test.js` — 4 test alias/match ambiguo
+
+**Flusso canary:** crea lavoro erpicatura larghetta → (trattore se serve) → disamb. attrezzo → `erpice 200` → inject DOM → «Vuoi che salvi?» → **0 ms CF** sulla risposta attrezzo.
+
+## Tony — canary 3b disambiguazione trattore: E2E verificato (t5 + agrifull) (2026-05-25)
+
+**Esito:** flusso completo in Gestione Lavori — messaggio entity-dense → form compilato → disambiguazione trattore → risposta breve (`t5` o `agrifull`) → inject client-side → «Vuoi che salvi il lavoro?» → conferma locale, **senza** round-trip CF sulla risposta macchine.
+
+**Decisione prodotto (allineamento doc):** estensione futura dello stesso pattern client-side (intercept + inject + conferma salvataggio) ha priorità su **attrezzo** (se multiplo), **operaio ambiguo**, **terreno ambiguo**, **conferma salvataggio** su altri form — **non** su sottocategoria/tipo lavoro: con terreno noto la scelta è **deterministica da coltura** (`applyLavorazioneDefaultsLavoro`, policy filari/seminativo). Vedi `TONY_DECISIONI_E_REQUISITI.md` §14.4–§14.7 e `tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §1.4, §3b.7 (rev. 5). *Aggiornamento 2026-05-30:* attrezzo, intervista, save e disamb. tipo — vedi voce «intervista lavoro 2026-05-30» e piano **rev. 6** §1.5, §3b.8.
+
+## Tony — disambiguazione trattore: alias corti (t5) + no doppia domanda (2026-05-25)
+
+**Problema:** risposta «t5» a disambiguazione Agrifull/Nuovo T5 non intercettata client-side (`findTrattoreInUserText` richiedeva token ≥3 char) → round-trip CF (~5 s), «Trattore impostato» senza DOM aggiornato, stessa domanda ripetuta.
+
+**Fix:**
+- `tony-form-injector.js` — match alias corti (es. `t5` → Nuovo T5); candidati disamb salvati in `__tonyMacchineDisambTrattoriCandidati`; guard `shouldSkipMacchineDisambiguationReask` (120 s) evita re-ask da reconcile/CF
+- `tony/main.js` — intercept anche su contesto disamb pending; fallback locale (no CF) se risposta non riconosciuta
+- `tests/tony-lavoro-trattore-disamb.test.js` — alias `t5`, `agrifull`, testo ambiguo
+
+## Tony — lavoro: risposta trattore + conferma salvataggio client-side (2026-05-25)
+
+**Problema:** dopo disambiguazione trattore (es. «agrifull») Tony mostrava «Configuro le macchine» poi si bloccava (CF lenta con 68 lavori in contesto), input disabilitato, nessuna «Vuoi che salvi?»; messaggi disambiguazione con `**` visibili in chat.
+
+**Fix (`tony-form-injector.js`):** `applyLavoroMacchineFromUserReply`: risposta breve a disambiguazione trattore/attrezzo senza round-trip CF; `plainTonyMacchineText` rimuove markdown `**`; **select disabled** (Agrifull `in_uso`): Tony abilita temporaneamente l'option e imposta `selectedIndex`; intercept anche su risposta breve senza attendere solo `__tonyMacchineDisambAskedAt`
+- `tony/main.js` — intercept «agrifull»/nome trattore prima di `tonyAsk`; `__tonyPromptLavoroSaveLocal` chiede salvataggio in chat (no CF); conferma «sì/salva» → `SAVE_ACTIVITY` locale; timer `ready_for_save` **800 ms** (prima 7 s)
+
+## Tony — parser entity-first: durata «durata 1» senza «giorno» (2026-05-25)
+
+**Problema:** canary 3b-C1 con messaggio `… inizio mercoledì durata 1` — inject 12 campi, **`lavoro-durata` vuoto** in form (regex richiedeva «giorno/giorni»).
+
+**Fix (`functions/tony-lavoro-entity-parser.js`):** `extractDurationDays` accetta anche `durata 1`, `durata di N`, `una giornata`; test canary 3b-C1 completo → **≥13 campi** incluso `lavoro-durata: "1"`. **Canary browser E2E post-deploy (2026-05-25): PASS** — inject 13 campi, durata=1 in DOM, T5 + erpice, SSE ~1,8 s, `ready_for_save`.
+
+## Tony — inject lavoro più rapido: form-data-ready + loadLavori differito (2026-05-25)
+
+**Problema:** dopo risposta CF (~2 s), compilazione form percepita ~10 s — `loadLavori` bloccava bootstrap; inject con poll 12–14 s e delay fissi 700+ ms.
+
+**Fix:**
+- `gestione-lavori-standalone.html` — `publishTonyLavoriFormContextForInject()` + evento `lavori-form-data-ready` **prima** di `loadLavori` (tabella in background); handler categoria/assegnazione anticipati
+- `tony-form-injector.js` — `waitForLavoriFormDataReady`, delay cascata ridotti, second pass skip se entity-first OK, timeout select 5 s post-ready
+- `tony/main.js` — delay inject post-nav 2600→350 ms (gate su form-ready)
+
+**Obiettivo:** compilazione form ~2–4 s dopo risposta Tony (no redeploy CF).
+
+**Canary browser E2E post-fix (2026-05-25, 3b-C1): PASS** — `lavori-form-data-ready OK` ~90 ms; inject 13 campi (durata=1, T5, erpice, luca, 2026-05-27); `Form lavoro iniettato con successo` ~**6,8 s** da `INJECT_FORM_DATA` (prima ~10–15 s); `ready_for_save`. Collo di bottiglia residuo: attesa dropdown `lavoro-categoria-principale` ~5 s dopo terreno.
+
+## Tony — domanda macchine più rapida (client-side, no CF ~7 s) (2026-05-25)
+
+**Problema:** crea lavoro senza trattore/attrezzo nel messaggio — domanda «quale trattore?» percepita dopo ~10 s (poll dropdown DOM + timer proattivo 2,8 s + 7 s + round-trip CF ~7 s).
+
+**Fix:**
+- `tony-form-injector.js` — `resolveLavoroMacchineFromState` / `promptLavoroMacchineMissing`: disambiguazione da `lavoriState` (inferenza attrezzo da tipo, CV, elenco nomi) senza poll select 5–10 s; gate `form-data-ready` include liste macchine se parco attivo
+- `tony/main.js` — timer lavoro: check post-inject **450 ms**, ask macchine-only **400 ms**; skip CF se client ha già chiesto; «controlla il form» non blocca ask su trattore/attrezzo
+
+## Tony — no auto-trattore se utente non l'ha detto (2026-05-25)
+
+**Problema:** messaggio senza trattore → Gemini/CF iniettava `lavoro-trattore` a caso (es. Agrifull) con Agrifull + Nuovo T5 entrambi compatibili; nessuna domanda all'utente.
+
+**Fix:**
+- `tony-form-injector.js` — `sanitizeUndeclaredLavoroMacchine`: rimuove trattore non dichiarato se 2+ compatibili CV; poi `resolveLavoroMacchineFromState` chiede in chat
+- `functions/tony-lavoro-entity-parser.js` — stessa regola in parser + `enrichLavoroCommandFormData` (strip trattore Gemini); ambiguità trattore se attrezzo dedotto e 2+ compatibili
+- Test: `tests/tony-lavoro-entity-parser.test.js` (14)
+
+**Deploy CF** consigliato per il path enrich Gemini; il guard client funziona subito dopo refresh pagina.
+
+## Tony — inject lavoro: retry trattore/attrezzo post-hydration liste (2026-05-25)
+
+**Problema:** navigazione Dashboard → Gestione Lavori: `trattoriList`/`attrezziList` e dropdown mezzi arrivano ~7 s dopo l’avvio inject; trattore/attrezzo nel formData venivano saltati o fallivano in silenzio.
+
+**Fix client (`core/js/tony-form-injector.js`):**
+- `waitForLavoriStateList` + `waitForSelectOptionsWithValue` nel loop inject trattore/attrezzo (anche match per nome, non solo id Firestore)
+- `reconcileLavoroMacchineFields` — second pass dopo terreno/tipo (attesa fino 14 s) con re-inject hint + inferenza fallback CV/disambiguazione
+- fuzzy match `lavoro-trattore` / `lavoro-attrezzo` in `setSelectValue`
+
+**Nota:** se la CF non include `lavoro-trattore`/`lavoro-attrezzo` nel formData (parser prod), il retry client non può inventarli dal messaggio utente — resta necessario deploy/parser CF.
+
+## Tony — Fase 3b crea lavoro entity-first (2026-05-25)
+
+**Implementato:** parser deterministico + hook CF + patch inject client + gating timer proattivo.
+
+**Codice:**
+- `functions/tony-lavoro-entity-parser.js` — estrazione operaio, trattore, attrezzo, terreno, tipo, data relativa, durata; early return `OPEN_MODAL`/`INJECT_FORM_DATA` se ≥8 campi core e ≤1 ambiguità
+- `functions/index.js` — hook post activity-patterns; enrich post-Gemini; slim `currentTableData` lavori su follow-up form aperto; prompt entity-first
+- `functions/tony-perf.js` — log `lavoroEntityParseHit`, `lavoroInjectFieldsCount`, `lavoroFollowUpTurns`
+- `core/js/tony-form-injector.js` — modalità `patchOnly` (salta campi già valorizzati in DOM)
+- `core/js/tony/main.js` — skip timer proattivo se messaggio entity-dense o CF chiede già all'utente
+- `scripts/tony-perf-log-review.mjs` — aggregazione metriche 3b
+- `tests/tony-lavoro-entity-parser.test.js` — fixture messaggio §1.3 piano (12 test, incluso canary `durata 1` senza «giorno»)
+
+**Verifica:** Vitest fixture §1.3 → 13 campi, earlyReturn, no domanda su luca/agrifull; regressione pinot/luca/trincia OK. Canary browser E2E (3b-C1, scenario 7) richiede deploy CF + test manuale in app.
+
+**Decisione:** `TONY_DECISIONI_E_REQUISITI.md` §19.6.10 → **implementato**.
+
+## Tony — baseline campo crea lavoro + piano Fase 3b (2026-05-25)
+
+**Contesto:** test reale manager — *«crea un lavoro per luca… erpicatura trebbiano con agrifull e erpice rotante… inizio mercoledì durata 1 giorno»*.
+
+**Esito:** prodotto OK (form completo → *«Vuoi che salvi?»*); UX **non accettabile** — ~3 turni CF (~33 s + ~34 s + ~5 s), domande su **luca** e **agrifull** già nel messaggio, **3 inject** completi con pause dropdown.
+
+**Documentazione aggiornata:**
+- `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — §1.3 comportamento reale; **Fase 3b** crea lavoro entity-first (task, file, canary 3b-C1…C4, criteri &lt;15 s)
+- `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` — §19.6.10 regole entity-first / disambiguazione
+- `docs-sviluppo/tony/STATO_ATTUALE.md` — gap noto + prossimo lavoro
+- `docs-sviluppo/tony/MASTER_PLAN.md` — riferimento piano performance
+
+**Prossimo implementativo:** Fase 3b (parser entità lavoro, inject patch, gating proattivo) — vedi piano §9.
+
+## Tony — fix SSE tonyAskStream E2E (2026-05-25)
+
+**Problema:** canary locale — `tonyAskStream` completava in ~200–400 ms ma il client non riceveva l’evento `done` → fallback sistematico su `tonyAsk`.
+
+**Fix:**
+- **`functions/tony-ask-stream.js`** — padding SSE post-headers (anti-buffering proxy); `res.flush()` dopo ogni evento; `readJsonBody` (Buffer/string/stream); `invoker: public`; lazy `getHandleTonyAskRequest()`.
+- **`core/services/tony-sse-parse.js`** + **`core/services/tony-service.js`** — parsing SSE via `response.text()` (affidabile su CF); header `Accept: text/event-stream`; fallback JSON; log preview body se manca `done`.
+- **`functions/tony-gemini-api.js`** — loop `getReader()` corretto (prima `for await` su ReadableStream non iterabile in Node).
+
+**Test:** `tests/tony-sse-parse.test.js` (5) + `tests/tony-stream-phase3.test.js` (7).
+
+**Prossimo:** Fase **3b** entity-first crea lavoro — vedi `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §9.
+
+## Tony — canary Fase 3 SSE (2026-05-25)
+
+**Scenario 9** — *«ho trinciato 6 ore nel pinot ieri»* (manager, manodopera attiva): **PASS**
+- Dashboard, risposta testuale manodopera (no diario, no Segna ore)
+- Console: `[Tony] tonyAskStream completata in 1624 ms` — nessun fallback
+
+**Scenario 7** — *«crea un lavoro di trinciatura per luca nel pinot…»*: **PASS** (post-`GEMINI_API_KEY` su `tonyaskstream`, 2026-05-25)
+- Console: `[Tony] tonyAskStream completata in 7580 ms` — **nessun fallback**
+- Log CF `tonyaskstream`: `streamUsed=true`, `timeToFirstChunkMs=4974`, `geminiStreamMs=5687`
+- Navigazione Gestione Lavori + `INJECT_FORM_DATA` (Trinciatura Pinot, pinot, luca, domani, 3 gg)
+
+**Scenario 7 (prima fix env)** — fallback callable, prodotto ok — v. commit precedente.
+
+**Script:** `scripts/tony-perf-log-review.mjs` — report `streamUsed`, `timeToFirstChunkMs`, query separata `tonyask` + `tonyaskstream`.
+
+## Tony — Fase 3 performance: streaming SSE + pattern attività (2026-05-25)
+
+**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §6.1, §9 Fase 3
+
+**Implementato (deploy CF `tonyAskStream` richiesto per attivazione end-to-end):**
+- **`functions/tonyAskStream`** (`tony-ask-stream.js`) — endpoint `onRequest` SSE, auth Bearer Firebase ID token; eventi `chunk` (delta testo Gemini) + `done` `{ text, command }`; quick reply binario A = solo `done`.
+- **`handleTonyAskRequest`** in `functions/index.js` — pipeline condivisa callable + stream; path Gemini con `streamGenerateContent` quando `streamOpts.onChunk`; log `[Tony Perf]` estesi (`streamUsed`, `timeToFirstChunkMs`, `geminiStreamMs`).
+- **`functions/tony-gemini-api.js`** — `callGeminiWithRetry`, `streamGeminiGenerateContent`, `geminiStreamUrl`.
+- **`functions/tony-activity-patterns.js`** — parser attività/ore: **`attivita-form` (diario)** solo senza manodopera; **con manodopera** risposta testuale senza navigazione (manager non usa diario né Segna ore; operai/capi → profilo campo).
+- **Treasure Map:** parser first-shot tollerante (JSON senza fence ` ```json `); retry Gemini solo se parsing strutturato fallisce del tutto.
+- **Client:** `core/services/tony-service.js` — `askStream` via fetch SSE (fallback `ask()` se stream non disponibile); URL `europe-west1-{projectId}.cloudfunctions.net/tonyAskStream`.
+
+**Test:** `tests/tony-stream-phase3.test.js` (7) — pattern attività con/senza manodopera, `geminiStreamUrl`.
+
+**Client (2026-05-25):** `core/js/tony/main.js` — Segna ore / `ora-form` solo profilo campo; manager+manodopera: bloccati diario e Segna ore su comandi legacy.
+
+**Prossimo:** ~~deploy~~ canary post-fix SSE (vedi voce sopra); scenario 10 tenant senza manodopera → diario.
+
+## Tony — preventivo Conto Terzi end-to-end: filari + meteo data + disambiguazione (2026-05-24)
+
+**Obiettivo:** flusso voce «crea preventivo per Luca, trinciare il trebbiano» → terreno → data → meteo → bozza, con tariffa coerente (`Trinciatura tra le file` + Tra le File su vite/trebbiano).
+
+**Tipo lavoro / filari (client + cloud):**
+- `core/js/tony-form-injector.js` — `upgradePreventivoLavorazioneFilari`; `resolveTipoLavoroToNome` non ferma sul match corto se terreno a filari; niente downgrade DOM; inject rapido solo `data-prevista` se terreno già nel form; no `tipo-campo`/Generale senza terreno.
+- `core/js/tony/main.js` — `tonyStripConflictingPreventivoLavorazione` blocca downgrade sottocategoria Generale; hint terreno esclude messaggi data/scheduling; skip disambiguazione se terreno già selezionato o inject date-only; post-nav enrich skip se form già compilato.
+- `functions/index.js` — inferenza «trinciare + trebbiano/vite»; `upgradePreventivoTipoForFilariCloud`; hint parziale «lago» → Trebbiano lago; `messageIsPreventivoScheduleTurn` / conferma «va bene»; stop-word giorni in `getHintTokens`.
+
+**Meteo su data prevista:**
+- `functions/meteo-service.js` — `tryMeteoPreventivoDateQuickReply` / `isTonyPreventivoDateMeteoEval`: su `preventivo-form` con `tipo-lavoro`, messaggio solo data (es. «mercoledì») → valutazione operativa con morfologia terreno (collina); se sconsigliato → alternative senza inject `data-prevista`; «ok/allora facciamo martedì» → Gemini inietta data (no seconda risposta meteo operativa).
+- `functions/tony-quick-replies.js` — `isTonyOperationalCreationIntent` esteso (typo preventio, «dobbiamo trinciare»); meteo operativo richiede giorno/data, non basta «trinciare» nel messaggio.
+
+**Test:** `tests/meteo-tony-quick-reply.test.js` (`tryMeteoPreventivoDateQuickReply`), `tests/tony-quick-reply.test.js` (creation intent).
+
+**Retest manuale OK (2026-05-24):** Luca / trebbiano lago / «lago» / data mercoledì → warning pioggia in collina + martedì 26 → «ok allora facciamo martedì» → `ready_for_save` + richiesta bozza. Rumore residuo non bloccante: domanda terreno duplicata 1× all’apertura; più cicli `INJECT_FORM_DATA` in console (post-nav).
+
+## Tony — Fase 2b tier enforcement (2026-05-24)
+
+**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §4.4, §Fase 2b
+
+**Implementato:**
+- `buildContextAziendaTier(tenantId, tierMax)` in `functions/index.js` — fetch Firestore cumulativi T1→T4 (~4 fetch su binario A vs ~13 su T4 pieno).
+- `functions/tony-context-tier.js` — `sliceContextAziendaToTier`, `resolveEffectiveTierMax` (boost quick reply + conservativo binario C).
+- Cache: `tony-context-cache.js` — hit Firestore T4 → slice al tier richiesto; write cache solo su build T4.
+- Router: `tony-intent-router.js` — `tierUsed = tierCalculated` (enforcement attivo); meteo operativo (`trinciare`/`erpicare` domani) classificato binario **A**.
+- `tonyAsk`: router → tier → build/cache → quick reply → meteo → Gemini; prompt diet condizionale (meteo/subagent/ELENCO DATI solo se pertinenti al turno).
+
+**Test:** `tests/tony-context-tier.test.js` (8); aggiornati `tony-intent-router`, `tony-context-cache`. Suite obbligatoria 75/77 OK — 2 fail meteo data-driven (`sabato` vs oggi domenica 24/05, pre-esistenti).
+
+**Prossimo:** ~~deploy `functions:tonyAsk`~~ deploy attivo in produzione (log 2026-05-24T18:52+); canary manuale periodico; monitoraggio tier binario A.
+
+## Tony — validazione produzione Fase 2b tier (2026-05-24)
+
+**Comando:** `npm run tony:perf-review -- --days=7 --limit=150`
+
+**Esito:** tier enforcement **attivo in produzione** — non più 100% `T4_full` come baseline pre-2b.
+
+| Metrica | Pre-2b (43 log) | Post-2b (100 log, 7g) |
+|---------|-----------------|------------------------|
+| `routerTierUsed` | 100% `T4_full` | T4×55, T4_full×18, T3×5, T2×2, T1×0 — **62/80** log con router ≠ `T4_full` |
+| `cacheHit` | 72% | **76%** |
+| `usedGemini: false` | 26% | **23%** (campione dominato da binario C) |
+| Smoke router locale | 8/8 | **8/8** |
+
+**Quick reply produzione:** meteo×13, `meteo_preventivo_data`×3, tariffe×4, scorte×2.
+
+**Note:** 20 log senza campi router (revisioni CF precedenti); traffico binario A scarso (5/80) — T1/T2 poco rappresentati; 4 navigazioni binario B ancora via Gemini; 1 anomalia meteo su messaggio lungo (verificare crea lavoro). Ultimi log: preventivo/meteo data + crea lavoro con `tierUsed` T3/T4 e cache hit.
+
+**Test suite obbligatoria:** 82/85 OK — 3 fail meteo data-driven (`sabato 23 maggio` vs oggi domenica 24/05 + typo test object) — debito noto, non bloccante.
+
+**Prossimo:** ~~Fase 3 streaming CF~~ implementata (2026-05-25); deploy `tonyAsk` + `tonyAskStream` e canary streaming locale.
+
+## Tony — canary manuale Fase 2b locale (2026-05-25)
+
+**Ambiente:** `http://localhost:8000/core/dashboard-standalone.html` · tenant **Sabbie Gialle** · Tony Avanzato **ATTIVO**. CF produzione `tonyAsk`.
+
+| # | Scenario | Messaggio | Esito | Note |
+|---|----------|-----------|-------|------|
+| 1 | Tariffe (A) | quante tariffe attive ho? | ✅ | Quick reply ~3 s: 37/38 tariffe |
+| 2 | Costo (A) | quanto costa trinciatura in collina? | ✅ | Quick reply: 115 €/ettaro |
+| 3 | Scorte (A) | cosa ho sotto scorta? | ✅ | Quick reply: concime (1) |
+| 4 | Meteo (A) | domani posso trinciare il pinot? | ✅ | Quick reply: Sì, 0% pioggia |
+| 5 | RIASSUNTO (B) | RIASSUNTO | ✅ | Briefing guasti/scadenze/scorte |
+| 6 | Navigazione (B) | portami alle tariffe | ✅ | APRI_PAGINA → Tariffe |
+| 7 | Crea lavoro (C) | crea lavoro trinciatura luca pinot… | ✅ | No meteo; APRI_PAGINA Gestione Lavori (~15 s) |
+| 8 | Preventivo (C) | crea preventivo Luca trebbiano → lago → mercoledì → martedì | ✅ E2E | APRI_PAGINA + disamb. terreno + meteo data + conferma data |
+
+**Nota:** GitHub Pages non aggiornato → Tony base lì, canary **non valido** online.
+
+## Tony — review performance CLI `tony:perf-review` (2026-05-24)
+
+**Script:** `scripts/tony-perf-log-review.mjs` — smoke test router locale (8 scenari) + aggregazione log produzione `[Tony Perf]` via `gcloud`.
+
+**Comando:** `npm run tony:perf-review` (opz. `-- --days=7 --limit=150`). Richiede `gcloud` autenticato su progetto `gfv-platform`.
+
+**Prima baseline produzione (7g, 43 righe parse, 2026-05-24):**
+- `routerTierUsed: T4_full` 100% — shadow mode OK
+- `cacheHit` 72%; `usedGemini: false` 26% (campione piccolo, molti turni crea lavoro)
+- Quick reply: meteo×5, tariffe×2, scorte×1, scadenze×1
+- `geminiMs` mediana ~3 s; crea lavoro ~11–12 s
+- Smoke locale 8/8 OK
+- Note review: 25 log pre-shadow (revisioni CF vecchie); meteo operativo etichettato shadow `binario C` ma quick reply meteo OK; 3 navigazioni (B) ancora via Gemini (ottimizzazione Fase 2/3)
+
+**Prossimo:** ripetere review ogni pochi giorni; Fase 2b tier enforcement dopo 1–2 settimane uso reale.
+
+## Tony — verifica manuale post-deploy (2026-05-23)
+
+**Ambiente:** tenant con moduli `meteo`, `tony`, `contoTerzi`, `manodopera`, `parcoMacchine`; pagine Gestione Lavori e tariffe.
+
+| Scenario | Esito | Note |
+|----------|-------|------|
+| Consultazione tariffe / navigazione | ✅ | Quick reply + `APRI_PAGINA` rispettano `moduli_attivi` |
+| Meteo operativo («posso trinciare/erpicare domani nel pinot?») | ✅ | Quick reply CF ~1–3 s; modulo meteo riconosciuto |
+| Crea lavoro cross-page (trinciatura, terreno, date, macchine) | ✅ | `OPEN_MODAL lavoro-modal` + inject 13 campi; binario C ~12 s CF + inject client |
+| Regressione: crea lavoro non intercettato da meteo | ✅ | `isTonyOperationalCreationIntent` |
+
+**Prossimo:** monitoraggio periodico `npm run tony:perf-review` → Fase 2b tier enforcement.
+
+## Tony — fix meteo vs crea lavoro (2026-05-23)
+
+**Problema:** messaggi tipo «crea un lavoro di trinciatura … domani nel pinot» venivano intercettati dalla quick reply meteo operativa (`tryMeteoOperativoQuickReply`) perché contenevano `lavoro` + `domani` + terreno — risposta meteo invece di `OPEN_MODAL lavoro-modal`.
+
+**Fix:** `isTonyOperationalCreationIntent()` in `functions/tony-quick-replies.js` (export condiviso); guard in `meteo-service.js` e blocco meteo early in `tonyAsk`.
+
+**Test:** `tests/meteo-tony-quick-reply.test.js`; `tests/tony-quick-reply.test.js`.
+
+## Tony — fix meteo «posso trinciare domani» (2026-05-23)
+
+**Problema:** «domani posso trinciare il pinot?» non era riconosciuta come domanda meteo (`trinciare` assente dai pattern); la CF non costruiva `azienda.meteo` e Gemini rispondeva «serve il modulo Meteo» anche con meteo attivo in `moduli_attivi` client.
+
+**Fix:** pattern `trinciare|trinciatura` in `isTonyMeteoOperationalQuestion` / `isTonyMeteoQuestion`; `resolveMeteoModuleActive(tenantData, moduliAttiviCtx)` allinea Firestore + contesto client in `shouldBuildTonyMeteoContext` e `buildContextMeteo`.
+
+**Test:** `tests/meteo-tony-quick-reply.test.js` (trinciare + resolveMeteoModuleActive).
+
+## Tony — Fase 2a shadow intent router (2026-05-23)
+
+**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §4.6
+
+**Implementato (log only, nessun cambio comportamento utente):**
+- `functions/tony-intent-router.js` — classifica binario A/B/C + `tierCalculated`; `tierUsed` resta sempre `T4_full`.
+- Integrazione in `tonyAsk`: campi `[Tony Perf]` `routerBinario`, `routerTierCalculated`, `routerTierUsed`, `routerDomains`, `routerConfidence`, `routerAmbiguous`, `routerQuickReplyCandidate`, `messageHash`.
+- Boost conservativo T4 su intent di creazione cross-page (crea lavoro/attività/preventivo senza form aperto).
+
+**Test:** `tests/tony-intent-router.test.js` (7 test).
+
+**Prossimo:** review periodica `npm run tony:perf-review` → Fase 2b tier enforcement.
+
+## Tony — fix domande duplicate post-inject (2026-05-23)
+
+**Problema:** dopo `INJECT_FORM_DATA`, timer proattivo (~2.8s + 7s) richiamava `__tonyTriggerAskForMissingFields()` anche se la risposta CF conteneva già una domanda (es. categoria attività chiesta due volte).
+
+**Fix:** `core/js/tony/main.js` — `tonyCfReplyAlreadyAsksUser()`, `tonyShouldArmProactiveMissingFieldsAsk()`; skip proattivo se l’ultima risposta chiede già all’utente.
+
+## Tony — rispetto moduli attivi (2026-05-23)
+
+**Problema:** briefing dashboard, quick reply (tariffe/scorte) e `APRI_PAGINA` ignoravano `moduli_attivi` del tenant (es. tariffe e navigazione con Conto Terzi disattivo).
+
+**Fix:**
+- `functions/tony-module-gate.js` + mirror client `core/config/tony-module-gate.js`: filtro `buildContextAzienda` per modulo; gate quick reply; sanitizzazione comando `APRI_PAGINA` lato CF; regola prompt `TONY_MODULI_ATTIVI_RULE`.
+- `core/dashboard-standalone.html` — `checkGlobalStatus` carica scorte/scadenze/guasti solo se `magazzino` / `parcoMacchine` attivi; messaggio TTS adattato.
+- `core/js/tony/main.js` — blocco client `APRI_PAGINA` verso moduli non attivi; `formatFriendlyBriefing` rispetta moduli.
+
+**Test:** `tests/tony-module-gate.test.js`; estesi `tests/tony-quick-reply.test.js`.
+
+## Tony — performance Fase 0 + Fase 1 (2026-05-23)
+
+**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
+
+**Cloud Functions:**
+- Log strutturato `[Tony Perf]` in `tonyAsk` (cacheHit, buildContextAziendaMs, buildContextMeteoMs, quickReplyHit, geminiMs, geminiRetryCount, profilo campo / Tony Avanzato).
+- Cache context: `functions/tony-context-cache.js` → Firestore `tenants/{id}/tonyContextCache/latest` (TTL 120s) + LRU memoria istanza.
+- `buildContextMeteo` condizionale (`shouldBuildTonyMeteoContext`) — non su ogni messaggio Tony Avanzato.
+- Quick reply binario A: `functions/tony-quick-replies.js` (`QUICK_REPLY_MAP`: scorte, scadenze, tariffe, conteggi, movimenti, guasti).
+- `PREVENTIVO_LIST_ACTION` deterministico **prima** di Gemini (early return).
+
+**Client:** indicatore «Sto controllando…» ~150 ms; TTS prefetch parallelo (`voice.js` `prefetchTonyTTS` + testo chat immediato).
+
+**Test:** `tests/tony-quick-reply.test.js`, `tests/tony-context-cache.test.js`.
+
+**Prossimo:** Fase 2b tier enforcement (dopo review periodica `npm run tony:perf-review`).
+
+## Meteo Tony — documentazione meteo aggiornata (2026-05-22)
+
+**File:** `docs-sviluppo/meteo/PLAN_INTEGRAZIONE_METEO.md` (§11.6–§11.7), `functions/README.md` (sezione Tony meteo operativo).
+
+**Contenuto:** tre assi valutazione date, `lavoroCampo`, asciugatura post-pioggia, doppia alternativa prima/dopo, flusso chat, file e test; riferimento incrociato a `TONY_DECISIONI_E_REQUISITI.md` §19.
+
+## Meteo Tony — documentazione logica valutazione date e doppia alternativa (2026-05-22)
+
+**Riferimento decisioni:** `TONY_DECISIONI_E_REQUISITI.md` §19 (aggiornato con §19.8 flusso post-pioggia e §19.9 doppia alternativa).
+
+**Sintesi implementata:**
+- Valutazione giorno candidato = **Asse A** (meteo del giorno: pop/mm; vento solo trattamenti) + **Asse B** (lookback mm × morfologia) + **Asse B bis asciugatura** (solo `lavoroCampo`: N giornate asciutte dopo ultima pioggia significativa).
+- Dati: **solo mm previsti** OpenWeather (~8 gg), mai pioggia realmente caduta.
+- Dopo rifiuto praticabilità o «cerca un'altra data»: **due proposte** (prima utile **prima** del giorno scartato + prima utile **dopo**), scelta all'utente.
+- File: `functions/tony-meteo-rules.js`, `functions/meteo-service.js`; test `meteo-tony-quick-reply.test.js` (55 verdi).
+
+## Meteo Tony — doppia alternativa prima/dopo (2026-05-22)
+
+**Prodotto:** dopo rifiuto praticabilità o richiesta «altra data», Tony propone sempre **due opzioni** quando disponibili: prima data utile **prima** della pioggia + prima **dopo** (con asciugatura per lavorazioni). L’utente sceglie; Tony non decide una sola data. `findDualAlternativeDays`, `buildDualAlternativaOperativaReply` in `meteo-service.js`. Test: 55 verdi.
+
+## Meteo Tony — fix dialogo erpicatura Pinot (alternativa data, briefing) (2026-05-22)
+
+**Problema:** dopo «no» su praticabilità giovedì 28, «si cerca un altra data» attivava il briefing dashboard; «cerca un altra data per erpicare» proponeva venerdì 22 (prima del 28).
+
+**Fix:** `meteo-service.js` — alternativa `lavoroCampo` solo **dopo** il giorno rifiutato; parser «cerca un'altra data» + follow-up «sì» nel filo meteo; «si cerca…» non interpretato come risposta trattore; `avoidQuery` preferisce giorno con numero da messaggio Tony. `main.js` — «sì» non rubato al briefing se Tony chiede un'altra data. Test: 54 verdi.
+
+## Meteo operativo Tony — lavorazione terreno: asciugatura e praticabilità (2026-05-22)
+
+**Problema:** dopo pioggia forte (es. 10 mm giovedì in collina) Tony poteva approvare venerdì/sabato perché il lookback mm contava solo D+D−1 e il giorno dopo la pioggia risultava «asciutto» senza attendere l’asciugatura del terreno.
+
+**Fix:** `functions/tony-meteo-rules.js` — per `lavoroCampo`: **Asse B bis asciugatura** (2 giornate asciutte in collina/montagna, 1 in pianura, dopo pioggia oltre soglia okMax tabella praticabilità); soglia impraticabile `>= chiediMax` (10 mm collina = sconsigliato); messaggi distinti lavorazione vs trattore. `functions/meteo-service.js` — praticabilità obbligatoria anche senza terreno citato (chiede morfologia); `tipoCampoOverride` nel filo chat. Mirror client `core/config/tony-meteo-rules.js` (solo pioggia, no vento lavori). Test: 52 test verdi.
+
+## Meteo operativo Tony — lavorazione terreno (solo pioggia + praticabilità) (2026-05-22)
+
+**Estensione:** stessa pipeline dei trattamenti per **lavorazione terreno / lavori in campo** (`activityKind: lavoroCampo`): Asse A solo pop/mm (vento ignorato); Asse B invariato (lookback mm pianura/collina/montagna, domanda praticabilità adattata). Parser: erpicare, lavorazione terreno, aratura, ecc.; filo chat mantiene il tipo attività su «trova alternativa». File: `functions/tony-meteo-rules.js`, `functions/meteo-service.js`, `functions/index.js` (prompt). Test: `tony-meteo-rules.test.js`, `meteo-tony-quick-reply.test.js`.
+
+## Meteo operativo Tony — consiglio date, «dopo il N», typo giorni (2026-05-22)
+
+**Problema:** dialogo Kaki (mercoldì, alternativa, «dopo il 27/29», esclusioni 25/26) con risposte Gemini incoerenti (es. lunedì 25 dopo mercoledì 27), timeout su «trova data dopo il 29».
+
+**Fix:** `functions/meteo-service.js` — typo `mercoldì`→mercoledì; giorno da history; `dopo il N` vs alternativa; esclusioni history; pattern «trova un altra data»; follow-up «e sabato?»; **priorità consiglio**: prima giorni ideali (no pioggia significativa, vento sotto soglia, mm lookback ok in montagna), poi solo attenzione entro soglie — non più «meno rischioso» con pop 86%. `tony-meteo-rules.js`: `isGiornoOperativoRiserva`. Test in `meteo-tony-quick-reply.test.js`.
+
+**Deploy:** `firebase deploy --only functions`.
+
+## Meteo operativo Tony — fix follow-up sì/no e confronto giorni (2026-05-22)
+
+**Problema:** nel dialogo «posso trattare kaki mercoledì?» → «sì/no» → «trova alternativa» → «28 o 29?», le risposte passavano da Gemini (testo libero) invece che dalla quick reply deterministica.
+
+**Cause:** `history.slice(0, -1)` rimuoveva l’ultima domanda Tony (il messaggio utente corrente non è ancora in history); ricorsione infinita su «no,non riesco» perché il parser rileggeva la negazione nel messaggio composito; «sì» poteva attivare il RIASSUNTO briefing.
+
+**Fix:** `functions/meteo-service.js` — history completa, flag `_fromTrattoreFollowUp`, contesto valutazione da history, riuso `trattorePraticabile` da thread, confronto multi-giorno («28 o 29»), normalizzazione virgole; `core/js/tony/main.js` — esclusione intervista meteo dal RIASSUNTO. Test: `tests/meteo-tony-quick-reply.test.js` (37 test verdi).
+
+**Deploy:** `firebase deploy --only functions` + hard refresh widget Tony.
+
+## ✅ Modulo Meteo pay-per-use (~€1/mese) + meteo base (2026-05-19)
+
+**Stato:** meteo **base** su piano **Base+**; modulo **`meteo`** acquistabile da Abbonamento con widget espanso, pagina dedicata e meteo per terreno. Traccia: **`docs-sviluppo/meteo/PLAN_INTEGRAZIONE_METEO.md`**.
+
+### Gating
+- **Free:** nessun meteo (UI + callable).
+- **Base senza modulo `meteo`:** solo widget compatto sede (`getMeteoSede`).
+- **Base + modulo `meteo`:** widget espanso (alert, ore), tile sidebar, pagina modulo, `getMeteoSedeAvanzato` / `getMeteoTerreni`.
+
+### Backend
+- **`core/config/subscription-plans.js`**: modulo `meteo` (€1, utility).
+- **`functions/meteo-service.js`**: `getMeteoSede`, `getMeteoSedeAvanzato`, `getMeteoTerreni`; cache `meteoCache/sede`, `sedeAvanzato`, `terreno_{id}`; centroide da `polygonCoords` o `coordinate`.
+- **`firestore.rules`**: `meteoCache/{document=**}` deny client.
+
+### Frontend
+- **`modules/meteo/views/meteo-dashboard-standalone.html`**: mappa satellitare (stessa logica **Mappa aziendale** / `loadMappaAziendale` modalità `meteo`) + pannello dettaglio al click sul campo; sede in riquadro compatto sopra.
+- Controller, CSS; gating modulo + piano.
+- **`core/js/dashboard-meteo.js`**: widget base vs espanso; link al modulo.
+- **`core/js/dashboard-sections.js`**: `createMeteoCard`; sidebar se `meteo` attivo.
+- **Hub / quick bar**: voci modulo Meteo.
+
+### Deploy
+- `firebase deploy --only "functions,firestore:rules"` (nuove callable: deploy `functions` intero al primo rilascio).
+
+### Opzione A — pioggia minutely + alert in evidenza (2026-05-19)
+- **Backend:** chiamate avanzate includono `minutely` (60 min) e `minutelySummary`; rimosso `exclude=minutely` da One Call.
+- **UI:** `core/js/meteo-ui-helpers.js` — banner alert + strip pioggia; modulo Meteo e widget dashboard espanso.
+- **Cache:** entry esistenti si aggiornano al prossimo TTL (~15 min).
+
+### Tony + Meteo — fase 6 (2026-05-19)
+- **`functions/meteo-service.js`**: `buildContextMeteo`, `isTonyMeteoQuestion` (cache OW, sede + fino 30 terreni se modulo meteo).
+- **`functions/tony-meteo-rules.js`**: soglie vento/pioggia + `buildMeteoConsigli` (lavori collegati ai terreni).
+- **`functions/index.js`**: `tonyAsk` con secret OpenWeather; gating Tony Guida (risposta widget) vs Avanzato (fatti sede) vs Avanzato+modulo meteo (consigli); prompt `TONY_METEO_CONTEXT_RULES`; target `APRI_PAGINA` **meteo**.
+- **`modules/meteo/js/meteo-dashboard-controller.js`**: `currentTableData` `meteo_dashboard`, deep link `?terrenoId=`.
+- **`core/js/tony/engine.js`**: navigazione Tony → pagina modulo Meteo.
+- **Test:** `tests/tony-meteo-rules.test.js`.
+- **Deploy:** `firebase deploy --only functions` (tonyAsk ora usa `OPENWEATHER_API_KEY`).
+
+### Tony + Meteo — fase 6 Sprint 5 (2026-05-21)
+- **Proattività dashboard:** `core/js/dashboard-meteo-briefing.js` + estensione `checkGlobalStatus` in `core/dashboard-standalone.html` — consigli meteo (alert, pioggia imminente, trattamenti a rischio) solo con **Tony Avanzato + modulo meteo**; riuso `getMeteoTerreni` (cache 15 min) + `buildMeteoConsigli` (`core/config/tony-meteo-rules.js`); messaggio proattivo chat (`skipUserHistory`) e voce integrata nel briefing/RIASSUNTO.
+- **`condizioniMeteo` form trattamento:** campo select `#trattamento-condizioni-meteo` (vigneto/frutteto concimazioni+trattamenti); mapping `tony-form-mapping.js` + suggerimento in `tony-form-injector.js` (`meteoSuggest`, `suggestTrattamentoCondizioniMeteo`); hint visivo, niente auto-save; derivazione da `deriveCondizioniMeteoFromCompactRow` in `meteo-ui-helpers.js`.
+- **Test:** `tests/tony-meteo-rules.test.js` esteso (proattività + condizioniMeteo).
+
+### Tony + Meteo — previsioni 8 giorni e chat operativa (2026-05-21)
+
+**Widget dashboard (UX pioggia):** `core/js/meteo-ui-helpers.js` — `buildTodayForecastCopy` (max pop ore restanti + nota disallineamento daily OW), badge pop su chip orarie; `dashboard-meteo.js`, modulo Meteo (`Prob. in giornata`). Test: `tests/meteo-ui-helpers.test.js`.
+
+**Context Builder + pagina modulo:**
+- **`previsioniGiornaliere`** (~8 giorni: dt, `giornoSettimana`, `giornoMese`, tempMin/Max, pop, **rainMm** (mm in giornata da OW `daily.rain`, fallback somma oraria), **windSpeedKmh**, humidity) in `buildContextMeteo` (`compactSedeMeteoForContext`, `compactTerrenoMeteoRow`) e mirror `meteo-ui-helpers.js`.
+- **`oggi` / `domani`** compatti con vento/temperature/umidità; backfill vento da `dailyExtended`, **hourly** (max giornaliero) e vento corrente (oggi) — `buildGiorniMeteoCompatti`.
+- Modulo Meteo: `currentTableData.sede.previsioniGiornaliere` + `items[].previsioniGiornaliere`; sanitizzazione Tony in `tony-service.js` (`pageType: meteo_dashboard`).
+
+**Tony chat — risposte rapide (senza Gemini, `functions/meteo-service.js` + `functions/tony-meteo-rules.js`):**
+- **`tryMeteoOperativoQuickReply`** (priorità in `tonyAsk`): pianificazione trattamento/lavoro — «posso/potremmo trattare [giorno]?» → sì / attenzione / **sconsigliato** con motivazione (pop, **rainMm**, vento vs soglie); «**consigliami un'altra data**» / «**che giorno mi consigli?**» / «**facciamo giovedì?**» via `buildConsigliaDataOperativaReply` + **`findBestGiornoOperativoOk`** (solo giorni **ok**: pop ≤30% e vento ≤15 km/h per trattamenti — **no** alternative ventose); giorno da evitare se citato nel messaggio; weekday = **prossima** occorrenza futura (`findPrevisioneEntry`).
+- **`evaluateMeteoOperativoGiorno`**: soglie condivise con `buildMeteoConsigli` (trattamento / lavoroCampo).
+- **`tryMeteoGiornoQuickReply`**: pioggia per giorno («sabato pioverà?», «quanti mm sabato?», «mercoledì 27»); testo **«probabilità del X%»** + **mm previsti** quando `rainMm` disponibile.
+- **`tryMeteoCondizioniQuickReply`**: vento, temperatura, umidità (oggi/domani/giorno + campo citato es. «nel pinot»); suffisso «per campo» solo se terreno riconosciuto nel messaggio.
+- **`shouldBuildTerreniMeteoContext`**: meteo terreni solo se campo citato, pagina `meteo_dashboard` con selezione, o domanda operativa — fetch parallelo (batch 8) per evitare timeout `tonyAsk`.
+
+**Prompt / CF:** `TONY_METEO_CONTEXT_RULES` in `functions/index.js` (consiglio date: solo giorni entro soglia vento/pioggia); `isTonyMeteoQuestion` esteso (giorno settimana, consiglio data, operativo).
+
+**Test:** `tests/meteo-ui-helpers.test.js`, `tests/meteo-tony-quick-reply.test.js`.
+
+**Deploy:** `firebase deploy --only functions` (Context Builder + quick reply meteo).
+
+### Tony + Meteo — Sprint 6 praticabilità terreno × morfologia (2026-05-22)
+
+Traccia decisioni: **`docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §19** (implementato).
+
+- **`functions/tony-meteo-rules.js`**: `DEFAULT_PRATICABILITA_MM` / `praticabilitaTerreno` in `DEFAULT_TONY_METEO_RULES`; `computeLookbackRainMm` (D + D−1; montagna + D−2); `evaluatePraticabilitaTerreno`; `evaluateGiornoOperativoCompleto` (Asse A + B); `isGiornoOperativoAccettabile`; `parseTipoCampoFromMessage`.
+- **`functions/meteo-service.js`**: `tryMeteoOperativoQuickReply` async — praticabilità su terreno citato/selezionato; intervista morfologia (salvataggio `tipoCampo` Firestore) e «riesci a passare con il trattore?»; `findBestGiornoOperativoOk` / alternativa rispettano praticabilità; `tipoCampo` su `compactTerrenoMeteoRow` e `pickMeteoPrevisioniSource` (`selectedTerrenoId`).
+- **`functions/index.js`**: `tipoCampo` in `getCollectionLight` terreni; `TONY_METEO_CONTEXT_RULES` Asse B; quick reply con `history`, `terreniCatalog`, `db`, `tenantId`.
+- **Form terreno**: select morfologia in `core/terreni-standalone.html`, persistenza in `core/js/terreni-events.js`; mapping `terreno-tipo-campo` in `tony-form-mapping.js`.
+- **Test:** `tests/meteo-tony-quick-reply.test.js` (22 test), `tests/tony-meteo-rules.test.js` (praticabilità + lookback).
+- **Deploy:** `firebase deploy --only functions`.
+
+### Prossimo (fase 6 — resto)
+- FILTER_TABLE `meteo_dashboard` (opzionale); confronti temporali / proattività cross-modulo oltre meteo.
+- UI Impostazioni soglie praticabilità tenant (override su `praticabilitaTerreno` — struttura pronta, default hardcoded in v1).
+
+## ✅ Manodopera: validazione ore caposquadra → manager, slide mobile «Valida ore», nomi in lista (2026-05-19)
+
+- **Flusso ore (confermato in codice):** operai su lavoro di squadra → validazione **caposquadra**; ore segnate dal **caposquadra** sullo stesso lavoro → validazione **manager** (`stato: da_validare` fino all’approvazione).
+- **`core/services/manodopera-ore-validazione-scope.js`**: regole condivise (`oreVisibileInCodaValidazione`, `contaOreManagerDaValidareSuLavoro`, `isOraDelCaposquadraSuLavoroSquadra`, assert permessi).
+- **`core/js/dashboard-data.js`**: **`countOreDaValidareManager`** conta anche ore del capo su lavori di squadra (non solo lavori autonomi); widget caposquadra esclude le proprie ore dal contatore «da validare».
+- **`core/js/dashboard-hub.js`**: testo alert ore da validare allineato (operai autonomi + caposquadra).
+- **`core/admin/validazione-ore-standalone.html`**: manager vede/valida ore capo; capo solo ore operai; preload utenti **operaio + caposquadra** + fallback `getDoc(users)`; colonna **«Chi ha segnato»**.
+- **`core/services/comunicazioni-squadra-utils.js`**: **`formatManodoperaDisplayName`**, **`indexManodoperaUserInMap`**, **`getManodoperaDisplayNameFromMap`** (lookup per uid/doc id).
+- **`core/services/ore-service.js`**: **`getOreDaValidare`** esclude ore del capo dalla coda caposquadra.
+- **`core/mobile/field-workspace-standalone.html`** + **`field-workspace-controller.js`**: slide capo **«Valida ore»** (tutti i lavori squadra), approva/rifiuta con `lavoroId`; link validazione desktop; ordine slide Lavoro → Comunicazioni → Valida ore → Ore → Statistiche; le proprie ore del capo non compaiono nella lista validazione mobile.
+- **Comunicazioni squadra (stesso periodo):** destinatari da squadre Firestore, slide Comunicazioni operaio/capo, visibilità comunicazioni allineata (`comunicazioni-squadra-utils` / `dashboard-data`).
+- **Test:** `tests/services/manodopera-ore-validazione-scope.test.js`, estensione `comunicazioni-squadra-utils.test.js`.
 
 ## ✅ Dashboard: rimossa sezione «Gestione Manodopera» ridondante (2026-05-15)
 
@@ -75,7 +823,7 @@
 - **`core/js/dashboard-sections.js`**: sezione **`createDashboardPanoramaHubSection`** (griglia: Richiede attenzione, Per te oggi, Accessi rapidi con hint pin).
 - **`core/js/dashboard-controller.js`**: hub inserita **prima** della riga moduli per manager/amministratore (con e senza Manodopera) nella panoramica a griglia.
 - **`core/js/dashboard-hub.js`**: inizializzazione unica (`data-hub-init`): alert aggregati (magazzino sotto scorta, guasti, scadenze macchine, affitti urgenti, lavori da pianificare se Conto Terzi + Manodopera, ore da validare se Manodopera), promemoria con link fissi (mappa, diario, statistiche, lavori/terreni), **localStorage** preferiti (`gfv_dash_pins_*`) e ultimi moduli (`gfv_dash_recent_*`), chip accesso rapido; shell tile + pulsante stella senza rompere navigazione.
-- **`core/js/dashboard-data.js`**: **`loadAffittiUrgentiCount`**, **`loadLavoriDaPianificareCount`**; **`countOreDaValidareManager`** esportato, **`loadOreDaValidareManager`** lo riusa (stesso conteggio badge).
+- **`core/js/dashboard-data.js`**: **`loadAffittiUrgentiCount`**, **`loadLavoriDaPianificareCount`**; **`countOreDaValidareManager`** esportato (lavori autonomi + ore caposquadra su squadra — aggiornato 2026-05-19), **`loadOreDaValidareManager`** lo riusa (stesso conteggio badge).
 - **`core/dashboard-standalone.html`**: dopo **`renderDashboard`**, **`initDashboardPanoramaHub`** con tenant risolto e moduli attivi.
 - **`core/styles/dashboard.css`**: stili hub, alert, chip, **`.dashboard-module-tile-shell`** e **`.dashboard-module-tile__pin`**.
 

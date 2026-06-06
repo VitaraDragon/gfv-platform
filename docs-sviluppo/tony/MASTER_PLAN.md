@@ -15,9 +15,9 @@
 | **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo |
 | **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08) |
 | **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); **summarySottoScorta** + prodottiSottoScorta (2026-04-11) |
-| **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24); magazzino prodotto/movimento via mapping+injector |
+| **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24; **filari + meteo data + disambiguazione terreno** verificati 2026-05-24); **Magazzino** prodotto/movimento + **save locale** + creazione client-side + **cross-page** (3b-C15…**C19** E2E 2026-06-02), dosaggio/carenza obbligatori fitofarmaci, prezzo entrata da catalogo; **intervista lavoro client-side** — ack tipo dopo stem vago E2E ✅ (2026-06-03); **Segna ore workspace campo** intervista + save locale 0 CF + validazione manager E2E ✅ (**3b-C21**, 2026-06-04) |
 | **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
-| **6** | Proattività e memoria | ⏳ Parziale | Dashboard + Guasti ok; liste/form magazzino con proattività parziale (timer, interview, conferma salvataggio); "Ho notato X" da fare |
+| **6** | Proattività e memoria | ⏳ Parziale | Dashboard + Guasti ok; briefing meteo + **chat 8 giorni** + **pianificazione trattamento/lavorazione** (quick reply CF); **praticabilità + asciugatura + doppia alternativa** (§19 TONY_DECISIONI); `condizioniMeteo` trattamento; "Ho notato X" cross-modulo da fare |
 
 ---
 
@@ -144,6 +144,12 @@ Tony non legge solo la "tabella della pagina corrente". Attinge a un **Context B
 ### 5.3 Estensibilità
 Nuovo modulo → nuovo adapter che produce un blocco di contesto. Il Context Builder li assembla. Nessuna modifica alla logica centrale.
 
+### 5.4 Backend Gemini (API REST)
+- **Modello in produzione (2026-06-03):** **`gemini-2.5-flash`** — sostituisce `gemini-2.0-flash` (deprecato da Google, risposta 404 su `tonyAsk` / `tonyAskStream`).
+- **Config:** costante `TONY_GEMINI_MODEL` in `functions/index.js`; stesso identificatore in `core/services/tony-service.js` per fallback SDK locale.
+- **Override senza redeploy codice:** variabile env **`GEMINI_MODEL`** su Cloud Run (`tonyask`, `tonyaskstream`). Chiave API: **`GEMINI_API_KEY`** (obbligatoria su entrambi i servizi).
+- **Manutenzione:** se in console compare `Errore chiamata Gemini: 404`, verificare modelli disponibili (`GET …/v1beta/models`) e aggiornare `TONY_GEMINI_MODEL` / env.
+
 ---
 
 ## 6. Accesso Read / Write
@@ -193,6 +199,7 @@ L'utente non deve navigare alla sezione giusta prima di parlare con Tony.
 **Domanda di conferma (trattore/attrezzo)**:
 - Se in azienda c'è un solo trattore o un solo attrezzo idoneo al tipo lavoro → Tony compila direttamente.
 - Se ce ne sono più → Tony chiede: "Quale trattore/attrezzo hai usato? [elenco opzioni]" e aspetta la risposta prima di compilare.
+- **2026-05-25 (form Lavoro):** risposta breve a disambiguazione **trattore** gestita **client-side** (inject + verifica DOM + «Vuoi che salvi?» locale, senza CF). Estensioni concordate: attrezzo multiplo, operaio/terreno ambigui — **non** sottocategoria/tipo lavoro (derivati da coltura terreno). Vedi `TONY_DECISIONI_E_REQUISITI.md` §14.4–§14.7.
 
 ---
 
@@ -226,6 +233,8 @@ Tony non "compila" grafici. Può:
 ### Fase 4 – Iniezione universale ✅ In corso
 - Injector generico che legge da TONY_FORM_MAPPING
 - Form Attività e Lavori: INJECT_FORM_DATA, deriveCategoriaFromTipo, override Generale→Tra le File
+- **Lavoro — gerarchia lavorazione:** sottocategoria/tipo derivati da **coltura terreno** (policy injector + mapping); disambiguazione chat solo per **macchine** (trattore/attrezzo) e campi realmente ambigui, non per Tra le File vs Interfilare se terreno noto
+- **Lavoro — disamb. trattore (2026-05-25):** risposta utente client-side, canary E2E OK
 - Terreno: OPEN_MODAL + fields
 - Nuovo Preventivo (preventivo-form), Magazzino (prodotto-form / movimento-form): mapping + injector + comandi standard
 - **Criterio done**: Nuovo form/modulo richiede soprattutto mapping e istruzioni CF, non patch per pagina
@@ -237,8 +246,9 @@ Tony non "compila" grafici. Può:
 - **Criterio done**: "Mostrami le statistiche vigneto" → Tony apre la pagina e/o riassume i dati
 
 ### Fase 6 – Proattività e memoria ⏳ Parziale
-- Parziale: briefing/dashboard, modulo Guasti, avvisi sotto scorta in pagina prodotti (TTS), form magazzino con domande/intervista e promemoria conferma salvataggio (senza salvataggio automatico da solo testo modello)
-- Da fare: frasi tipo "Ho notato X, vuoi che...?" cross-modulo; confronti temporali strutturati dove i dati sono disponibili
+- Parziale: briefing/dashboard (scorte, scadenze, guasti), **briefing meteo operativo** con modulo `meteo` + Tony Avanzato (2026-05-21), **chat meteo ~8 giorni** e **pianificazione trattamento/lavoro** (quick reply CF + soglie vento/pioggia), **suggerimento `condizioniMeteo`** su form trattamento campo (conferma utente prima del salvataggio)
+- **Implementato (2026-05-22):** praticabilità terreno per **morfologia** (pianura/collina/montagna), soglie mm lookback, **asciugatura post-pioggia** per lavorazioni terreno, **doppia alternativa** (prima/dopo giorno scartato), select `tipoCampo`, quick reply Tony (morfologia + praticabilità + due date) — v. `TONY_DECISIONI_E_REQUISITI.md` §19.8–§19.9; **UI Impostazioni** override soglie tenant ancora da fare (default hardcoded)
+- Da fare: frasi tipo "Ho notato X, vuoi che...?" cross-modulo oltre meteo; confronti temporali strutturati dove i dati sono disponibili
 - Backlog operativo concordato: flusso "campioni" con mappa punti georeferenziati (raccolta/profilazione maturazione), su pattern GPS opzionale riusabile e non bloccante
 - **Criterio done (obiettivo)**: Tony segnala proattivamente scadenze e sotto scorta in modo uniforme sui moduli + memoria/confronti ove previsto
 
@@ -257,6 +267,7 @@ Tony non "compila" grafici. Può:
 ## 11. Riferimenti
 
 - **Stato attuale**: `docs-sviluppo/tony/STATO_ATTUALE.md`
+- **Piano ottimizzazione performance** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 - **PWA / deploy client**: hook **`pre-commit`** / script **`bump:pwa-cache`** aggiornano **`SW_CACHE_BUILD_ID`** in `service-worker.js` (vedi **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8) — riduce cache stale su app installata
 - **Magazzino – ipotesi future (OCR/Gemini, bolla/fattura, prezzi in attesa)**: `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — da considerare quando si lavora su acquisizione documenti e movimenti d’acquisto
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`

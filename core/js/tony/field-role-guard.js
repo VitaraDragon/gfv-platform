@@ -14,13 +14,23 @@ export function getTonyFieldProfileFromContext() {
         var d = window.Tony && window.Tony.context && window.Tony.context.dashboard;
         var ruoli = (d && d.utente_corrente && d.utente_corrente.ruoli) || [];
         if (!Array.isArray(ruoli) || ruoli.length === 0) {
+            // Fallback sessionStorage solo su pagine campo: evita che un manager su Gestione Lavori
+            // erediti ruoli operaio/caposquadra da una sessione precedente nello stesso browser.
+            var pathLow = '';
             try {
-                var stored = sessionStorage.getItem('gfv_tony_utente_ruoli');
-                if (stored) {
-                    var parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length > 0) ruoli = parsed;
-                }
-            } catch (e) { /* ignore */ }
+                pathLow = (window.location && window.location.pathname ? String(window.location.pathname) : '').toLowerCase();
+            } catch (ePath) { /* ignore */ }
+            var fieldWorkspacePath =
+                /field-workspace|segnatura-ore|lavori-caposquadra|validazione-ore/.test(pathLow);
+            if (fieldWorkspacePath) {
+                try {
+                    var stored = sessionStorage.getItem('gfv_tony_utente_ruoli');
+                    if (stored) {
+                        var parsed = JSON.parse(stored);
+                        if (Array.isArray(parsed) && parsed.length > 0) ruoli = parsed;
+                    }
+                } catch (e) { /* ignore */ }
+            }
         }
         if (!Array.isArray(ruoli) || ruoli.length === 0) return null;
         var n = ruoli.map(function (r) {

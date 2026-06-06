@@ -7,9 +7,46 @@ require("./instrument");
  * Oppure (Firebase v2): definisci un secret GEMINI_API_KEY
  */
 
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { logTonyPerf, finishTonyAskEarly } = require("./tony-perf");
+const { callGeminiWithRetry, streamGeminiGenerateContent, geminiStreamUrl } = require("./tony-gemini-api");
+const { tryTonyActivityPatterns } = require("./tony-activity-patterns");
+const {
+  tryTonyLavoroEntityParse,
+  enrichLavoroCommandFormData,
+  slimContextForLavoroFormFollowUp,
+  isTonyLavoroCreationIntent,
+} = require("./tony-lavoro-entity-parser");
 const { defineSecret } = require("firebase-functions/params");
 const { handleSendTransactionalEmail } = require("./email-resend");
+const {
+  handleGetMeteoSede,
+  handleGetMeteoSedeAvanzato,
+  handleGetMeteoTerreni,
+  buildContextMeteo,
+  isTonyMeteoQuestion,
+  shouldBuildTerreniMeteoContext,
+  tryMeteoOperativoQuickReply,
+  tryMeteoPreventivoDateQuickReply,
+  isTonyPreventivoDateMeteoEval,
+  tryMeteoGiornoQuickReply,
+  tryMeteoCondizioniQuickReply,
+  tenantHasMeteoModule,
+  resolveMeteoModuleActive,
+} = require("./meteo-service");
+const { getCachedContextAzienda, invalidateTonyContextCache } = require("./tony-context-cache");
+const { tryTonyNavQuickReply } = require("./tony-nav-quick-reply");
+const { tryTonyFilterTableQuickReply } = require("./tony-filter-table-quick-reply");
+const { tryTonyMultiBlockQuickReply } = require("./tony-multi-block-quick-reply");
+const { resolveEffectiveTierMax, sliceContextAziendaToTier, tierRankNum, normalizeTierMax } = require("./tony-context-tier");
+const { tryTonyQuickReplies, isTonyOperationalCreationIntent, isTonyPreventivoFormFieldCorrection } = require("./tony-quick-replies");
+const {
+  filterAziendaByModuliAttivi,
+  sanitizeTonyResultForModules,
+  TONY_MODULI_ATTIVI_RULE,
+} = require("./tony-module-gate");
+const { classifyTonyIntentShadow } = require("./tony-intent-router");
 const textToSpeech = require("@google-cloud/text-to-speech");
 const admin = require("firebase-admin");
 
@@ -19,12 +56,18 @@ const sentryDsn = defineSecret("SENTRY_DSN");
 /** API Resend — solo server; impostare con: firebase functions:secrets:set RESEND_API_KEY */
 const resendApiKey = defineSecret("RESEND_API_KEY");
 
+/** OpenWeather — solo server; impostare con: firebase functions:secrets:set OPENWEATHER_API_KEY */
+const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
+
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 const db = admin.firestore();
+
+/** Modello Gemini REST (override: env GEMINI_MODEL). gemini-2.0-flash deprecato → 404. */
+const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 /** Piano tenant: Tony è assente in freemium; enforcement anche lato callable. */
 function normalizeSubscriptionPlanId(raw) {
@@ -401,36 +444,26 @@ function buildSummarySottoScorta(prodotti) {
   };
 }
 
-async function buildContextAzienda(tenantId) {
-  if (!tenantId || typeof tenantId !== "string" || tenantId.trim() === "") {
-    return {};
-  }
-
-  const results = await Promise.allSettled([
-    getCollectionLight(tenantId, "terreni", ["nome", "podere", "coltura", "superficie", "tipoPossesso", "dataScadenzaAffitto", "clienteId"], 200),
-    getCollectionLight(tenantId, "clienti", ["id", "ragioneSociale", "stato", "totaleLavori"], 100),
-    getCollectionLight(tenantId, "poderi", ["nome"], 100),
-    getCollectionLight(tenantId, "colture", ["nome", "categoriaId"], 100),
-    getCollectionLight(tenantId, "categorie", ["nome", "codice", "applicabileA"], 50),
-    getCollectionLight(tenantId, "tipiLavoro", ["nome", "categoriaId", "sottocategoriaId"], 150),
-    getCollectionLight(tenantId, "macchine", ["nome", "tipoMacchina", "stato", "cavalli", "cavalliMinimiRichiesti", "prossimaRevisione", "prossimaAssicurazione"], 100),
-    getCollectionLight(tenantId, "prodotti", ["nome", "codice", "unitaMisura", "scortaMinima", "sogliaMinima", "giacenza", "attivo"], 200),
-    getGuastiAperti(tenantId, 50),
-    getCollectionLight(tenantId, "lavori", ["clienteId"], 500),
-    getCollectionLight(tenantId, "preventivi", ["id", "numero", "clienteId", "stato", "tipoLavoro", "coltura"], 200),
-    getCollectionLight(tenantId, "tariffe", ["id", "tipoLavoro", "coltura", "categoriaColturaId", "tipoCampo", "tariffaBase", "coefficiente", "attiva"], 200),
-    getUltimiMovimentiMagazzino(tenantId, 50)
-  ]);
-
-  let [terreniRaw, clienti, poderi, colture, categorie, tipiLavoro, macchine, prodotti, guastiAperti, lavoriRaw, preventivi, tariffe, movimentiRaw] = results.map((r) =>
-    r.status === "fulfilled" ? r.value : []
-  );
+function assembleContextAziendaFromParts(parts) {
+  let {
+    terreniRaw = [],
+    clienti = [],
+    poderi = [],
+    colture = [],
+    categorie = [],
+    tipiLavoro = [],
+    macchine = [],
+    prodotti = [],
+    guastiAperti = [],
+    lavoriRaw = [],
+    preventivi = [],
+    tariffe = [],
+    movimentiRaw = [],
+  } = parts || {};
 
   const { movimentiRecenti, summaryMovimentiRecenti } = enrichMovimentiMagazzinoContext(movimentiRaw, prodotti);
-
   const { summarySottoScorta, prodottiSottoScorta } = buildSummarySottoScorta(prodotti);
 
-  // totaleLavori: calcolo reale da collection lavori (non dipende da aggiornaStatisticheCliente sul documento cliente)
   const countByCliente = {};
   (lavoriRaw || []).forEach((l) => {
     const cid = l.clienteId;
@@ -438,10 +471,9 @@ async function buildContextAzienda(tenantId) {
   });
   clienti = (clienti || []).map((c) => ({
     ...c,
-    totaleLavori: countByCliente[c.id] !== undefined ? countByCliente[c.id] : (c.totaleLavori != null ? Number(c.totaleLavori) : 0)
+    totaleLavori: countByCliente[c.id] !== undefined ? countByCliente[c.id] : (c.totaleLavori != null ? Number(c.totaleLavori) : 0),
   }));
 
-  // Terreni aziendali (escludi terreni clienti) vs terreni clienti (conto terzi)
   const terreniClienti = (terreniRaw || []).filter((t) => t.clienteId && t.clienteId !== "");
   const terreni = (terreniRaw || [])
     .filter((t) => !t.clienteId || t.clienteId === "")
@@ -457,12 +489,6 @@ async function buildContextAzienda(tenantId) {
       return { ...t, coltura_categoria };
     });
 
-  results.forEach((r, i) => {
-    if (r.status === "rejected") {
-      console.warn("[Tony Context Builder] Collection", i, "fallita:", r.reason?.message || r.reason);
-    }
-  });
-
   let summaryScadenze = "";
   try {
     summaryScadenze = buildSummaryScadenze(terreni, macchine);
@@ -470,10 +496,13 @@ async function buildContextAzienda(tenantId) {
     summaryScadenze = "Dati scadenze non disponibili.";
   }
 
-  // Trattori e attrezzi per domanda di conferma (escludi dismessi). cavalli/cavalliMinimiRichiesti per filtrare compatibilità.
   const nonDismessi = (m) => (m.stato || "").toLowerCase() !== "dismesso";
-  const trattori = (macchine || []).filter((m) => (m.tipoMacchina || m.tipo || "").toLowerCase() === "trattore" && nonDismessi(m)).map((m) => ({ id: m.id, nome: m.nome, cavalli: m.cavalli }));
-  const attrezzi = (macchine || []).filter((m) => (m.tipoMacchina || m.tipo || "").toLowerCase() === "attrezzo" && nonDismessi(m)).map((m) => ({ id: m.id, nome: m.nome, cavalliMinimiRichiesti: m.cavalliMinimiRichiesti }));
+  const trattori = (macchine || [])
+    .filter((m) => (m.tipoMacchina || m.tipo || "").toLowerCase() === "trattore" && nonDismessi(m))
+    .map((m) => ({ id: m.id, nome: m.nome, cavalli: m.cavalli }));
+  const attrezzi = (macchine || [])
+    .filter((m) => (m.tipoMacchina || m.tipo || "").toLowerCase() === "attrezzo" && nonDismessi(m))
+    .map((m) => ({ id: m.id, nome: m.nome, cavalliMinimiRichiesti: m.cavalliMinimiRichiesti }));
 
   return {
     terreni,
@@ -494,8 +523,69 @@ async function buildContextAzienda(tenantId) {
     prodottiSottoScorta,
     tariffe: tariffe || [],
     movimentiRecenti,
-    summaryMovimentiRecenti
+    summaryMovimentiRecenti,
   };
+}
+
+/**
+ * Fetch Firestore tier-aware (T1→T4 cumulativi). T0 = nessun fetch aziendale.
+ * @param {string} tenantId
+ * @param {string} tierMax T0|T1|T2|T3|T4
+ */
+async function buildContextAziendaTier(tenantId, tierMax) {
+  if (!tenantId || typeof tenantId !== "string" || tenantId.trim() === "") {
+    return {};
+  }
+  const tierNum = tierRankNum(tierMax);
+  if (tierNum <= 0) return {};
+
+  const fetchJobs = [];
+  const jobKeys = [];
+
+  if (tierNum >= 1) {
+    jobKeys.push("terreniRaw", "macchine", "prodotti", "guastiAperti");
+    fetchJobs.push(
+      getCollectionLight(tenantId, "terreni", ["nome", "podere", "coltura", "superficie", "tipoPossesso", "dataScadenzaAffitto", "clienteId", "tipoCampo"], 200),
+      getCollectionLight(tenantId, "macchine", ["nome", "tipoMacchina", "stato", "cavalli", "cavalliMinimiRichiesti", "prossimaRevisione", "prossimaAssicurazione"], 100),
+      getCollectionLight(tenantId, "prodotti", ["nome", "codice", "unitaMisura", "scortaMinima", "sogliaMinima", "giacenza", "prezzoUnitario", "attivo"], 200),
+      getGuastiAperti(tenantId, 50)
+    );
+  }
+  if (tierNum >= 2) {
+    jobKeys.push("clienti", "poderi", "colture", "categorie", "tipiLavoro", "lavoriRaw", "preventivi", "tariffe");
+    fetchJobs.push(
+      getCollectionLight(tenantId, "clienti", ["id", "ragioneSociale", "stato", "totaleLavori"], 100),
+      getCollectionLight(tenantId, "poderi", ["nome"], 100),
+      getCollectionLight(tenantId, "colture", ["nome", "categoriaId"], 100),
+      getCollectionLight(tenantId, "categorie", ["nome", "codice", "applicabileA"], 50),
+      getCollectionLight(tenantId, "tipiLavoro", ["nome", "categoriaId", "sottocategoriaId"], 150),
+      getCollectionLight(tenantId, "lavori", ["clienteId"], 500),
+      getCollectionLight(tenantId, "preventivi", ["id", "numero", "clienteId", "stato", "tipoLavoro", "coltura"], 200),
+      getCollectionLight(tenantId, "tariffe", ["id", "tipoLavoro", "coltura", "categoriaColturaId", "tipoCampo", "tariffaBase", "coefficiente", "attiva"], 200)
+    );
+  }
+  if (tierNum >= 4) {
+    jobKeys.push("movimentiRaw");
+    fetchJobs.push(getUltimiMovimentiMagazzino(tenantId, 50));
+  }
+
+  const results = await Promise.allSettled(fetchJobs);
+  const parts = {};
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled") {
+      parts[jobKeys[i]] = r.value;
+    } else {
+      console.warn("[Tony Context Builder] Fetch", jobKeys[i], "fallita:", r.reason?.message || r.reason);
+      parts[jobKeys[i]] = [];
+    }
+  });
+
+  const assembled = assembleContextAziendaFromParts(parts);
+  return sliceContextAziendaToTier(assembled, tierMax);
+}
+
+async function buildContextAzienda(tenantId) {
+  return buildContextAziendaTier(tenantId, "T4");
 }
 
 function normalizeItTony(s) {
@@ -1111,6 +1201,9 @@ Regole operative:
 5. NON emettere MAI comandi JSON (niente APRI_PAGINA, OPEN_MODAL, FILTER_TABLE, né altri): senza Tony Avanzato il sistema non esegue azioni; rispondi solo in testo e spiega i passi manuali o invita ad attivare il modulo Tony Avanzato dalla pagina Abbonamento se chiedono automazione.
 6. Terreni: hai accesso ai dettagli completi (canoneAffitto, scadenze, statoContratto) in page.currentTableData.items. Se l'utente chiede informazioni economiche o contrattuali sui terreni, rispondi usando questi dati senza dire che non hai le informazioni.
 
+DOMANDE METEO (Tony Guida — senza Tony Avanzato):
+- Se l'utente chiede meteo, previsioni, pioggia, vento, temperatura, trattamenti in base al tempo: NON inventare dati numerici. Indica il riquadro Meteo in dashboard (sede aziendale) e che per domande meteo in chat serve Tony Avanzato in Abbonamento.
+
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
 **[/CONTESTO_AZIENDALE]**`;
@@ -1142,7 +1235,7 @@ NAVIGAZIONE (APRI_PAGINA) – PRIORITÀ ASSOLUTA:
 - ECCEZIONE MAGAZZINO HOME: Se [CONTESTO].page.pagePath include "magazzino-home" oppure il path è la home magazzino (modulo magazzino senza "prodotti", "movimenti", "tracciabilita" nel nome file) e l'utente chiede solo "portami al magazzino" / "vai al magazzino" / "apri il magazzino" (senza chiedere anagrafica prodotti o movimenti), NON usare APRI_PAGINA target "magazzino". Rispondi con testo breve: "Sei già nella home del magazzino." e command null.
 - ECCEZIONE TRACCIABILITÀ CONSUMI: Se pageType "tracciabilita_consumi" o path include "tracciabilita-consumi", agisci SEMPRE sulla lista già aperta con FILTER_TABLE: **categoria**, **terreno** (nome appezzamento o id Firestore del terreno — match su select filter-terreno; "Tutti i terreni" = reset solo terreno insieme ad altri filtri se richiesto), **vista** ("raggruppata" | "dettaglio"), **reset**. Il contesto JSON è catturato **prima** che il client esegua FILTER_TABLE: per domande su **quantità/totali** ("quanto", "kg", "litri", "somma") DEVI **nello stesso turno** (stesso JSON di risposta) includere nel campo **text** i numeri richiesti, ricavandoli da page.currentTableData.items **oppure** da page.currentTableData.consumiAggregates (terreno, prodotto, quantitaTotale, unitaMisura) — match flessibile su nome terreno (es. "Pinot") e categoria (concime → fertilizzanti). Se emetti anche FILTER_TABLE per allineare la UI, il testo deve già contenere i totali calcolati dai dati **presenti nel contesto inviato** (non dire "sommo dopo il filtro"). **Solo se unitaMisura uguale** tra le righe sommate; se unità miste, spiega il limite. **IMPORTANTE:** "concimazioni"/"fertilizzanti" qui = params.categoria "fertilizzanti", non APRI_PAGINA registro Concimazioni salvo richiesta esplicita di **quella pagina**. "Trattamenti" fitosanitari = categoria "fitofarmaci"; text coerente con l'utente.
 - MAI usare OPEN_MODAL per la navigazione tra pagine. OPEN_MODAL serve solo quando il form Attività è già aperto e l'utente vuole compilare il diario (es. "segna le ore", "cosa hai fatto oggi").
-DEFAULT NAVIGAZIONE: La navigazione tra le pagine base (Home, Dashboard, Terreni, Vigneto, Frutteto, Magazzino, Macchine, Manodopera) deve essere SEMPRE consentita tramite JSON APRI_PAGINA, poiché non comporta modifiche ai dati. Anche in caso di incertezza, esegui sempre la navigazione richiesta con il target corretto dalla mappa.
+DEFAULT NAVIGAZIONE: La navigazione tramite APRI_PAGINA è consentita solo verso moduli presenti in dashboard.moduli_attivi (es. se contoTerzi non è attivo, NON aprire tariffe/clienti/preventivi). Pagine core (Dashboard, Terreni, Attività, Statistiche, Abbonamento) sono sempre consentite.
 MAPPA TARGET RIGIDA (Dashboard e moduli – "Portami a [X]" punta sempre alla pagina principale del modulo):
 - Dashboard generale: "Home", "Pagina principale", "Dashboard", "torna alla home" → target: "dashboard".
 - Terreni: "Terreni", "Mappa", "Appezzamenti", "portami ai terreni" → target: "terreni".
@@ -1198,7 +1291,7 @@ LISTA CORRENTE (page.currentTableData) – per QUALSIASI pagina con tabella (cli
 - Pagina terreni clienti: in items ogni riga ha nome, cliente, superficie, coltura, podere. Per "quanti terreni?", "quanti terreni per [cliente]?", "elenca i terreni di Rossi" usa il summary o items. La pagina filtra per cliente tramite select filter-cliente.
 
 REGOLE DI RISPOSTA (form e modal):
-0. MODAL CHIUSO: Se [CONTESTO].form è null o [CONTESTO].form.formId manca (es. dopo salvataggio il modal si chiude): NON emettere SAVE_ACTIVITY, INJECT_FORM_DATA o SET_FIELD. Rispondi SOLO con testo di conferma coerente con l'ultimo flusso: se page path o session include "prodotti" e l'utente conferma salvataggio prodotto → "Prodotto salvato correttamente!"; se include "movimenti" e movimento → "Movimento registrato!"; altrimenti per diario attività → "Attività salvata correttamente!".
+0. MODAL CHIUSO (solo DOPO un salvataggio già avvenuto con SAVE_ACTIVITY): Se [CONTESTO].form è null o [CONTESTO].form.formId manca perché il modal si è chiuso dopo submit: NON emettere SAVE_ACTIVITY, INJECT_FORM_DATA o SET_FIELD. Rispondi SOLO con testo di conferma coerente con l'ultimo flusso: se page path o session include "prodotti" e l'utente conferma salvataggio prodotto → "Prodotto salvato correttamente!"; se include "movimenti" e movimento → "Movimento registrato!"; altrimenti per diario attività → "Attività salvata correttamente!". **VIETATO** usare questa regola per **creare** un nuovo prodotto o movimento: se l'utente chiede creazione/registrazione e il modal non è mai stato aperto nel turno, DEVI usare OPEN_MODAL (regola 5c) con fields — MAI solo testo «Movimento registrato!» / «Prodotto salvato!» senza comando.
 0b. VERIFICA MODULO (prompt interno): Se il messaggio utente nel turno è la domanda di sistema «Form completo, confermi salvataggio?» (proattività widget), NON è una conferma reale dell'utente: NON includere MAI SAVE_ACTIVITY né testo «salvato». Rispondi con una sola frase che invita a confermare esplicitamente (es. «Quando vuoi, dimmi ok salva») o a indicare cosa modificare. Il salvataggio parte solo quando l'utente scrive davvero di salvare.
 1. Se [CONTESTO].form.formId === "attivita-form" (form GIÀ aperto): usa SET_FIELD per ogni dato. Esempio: "Ho trinciato" -> SET_FIELD attivita-tipo-lavoro-gerarchico "Trinciatura".
 2. Se [CONTESTO].form.formId NON è "attivita-form" (form NON aperto, es. da Dashboard): usa SEMPRE OPEN_MODAL con "fields", mai SET_FIELD. Vedi ENTRY POINT DA OVUNQUE.
@@ -1440,7 +1533,8 @@ NON usare APRI_PAGINA verso: dashboard, terreni, attività/diario aziendale comp
 
 SEGNA ORE / WORKSPACE CAMPO (form inline quick-hours):
 - Se nel contesto ci sono lavori in elenco (page.currentTableData.items su field_workspace / lavori_caposquadra) e l'utente nomina un lavoro a parole (es. «potatura», «erpicatura sul trebbiano»), imposta **ora-lavoro** (o INJECT equivalente) sull'**id del lavoro che corrisponde a quel nome**, non basarti solo sul lavoro già evidenziato in interfaccia se il messaggio indica un altro elenco.
-- Frasi come «segniamo / segna le ore di ieri o oggi», «registrare il turno», «ore in [nome lavoro]» sono **sempre in ambito** profilo campo: **non** usare il rifiuto generico «non ho accesso». Se mancano orari o pausa, chiedili; se l'utente indica fascia oraria e pausa, usa INJECT su quick-hours / campo-blocco ore.
+- Frasi come «segniamo / segna le ore di ieri o oggi», «registrare il turno», «ore in [nome lavoro]» sono **sempre in ambito** profilo campo: **non** usare il rifiuto generico «non ho accesso». Se mancano orari o pausa, chiedili; se l'utente indica fascia oraria e pausa, compila con **INJECT_FORM_DATA** (formId **field-workspace-ore-form**, chiavi **ora-inizio**, **ora-fine**, **ora-pause** in minuti, **ora-data**, **ora-lavoro** se deducibile).
+- **Comandi canone client** (VIETATO usare type INJECT o SUBMIT): compilazione → {"type":"INJECT_FORM_DATA","formId":"field-workspace-ore-form","formData":{...}}; salvataggio dopo conferma utente «sì»/«salva» → {"type":"QUICK_SAVE","formId":"field-workspace-ore-form"}. Dopo inject **non** dire che le ore sono già salvate: chiedi pausa mancante o «Vuoi salvare?».
 - **Pausa sul form campo**: il campo è **minuti** di pausa, non orario. Chiedi sempre «**Quanti minuti** di pausa hai fatto?» (o «per quanti minuti ti sei fermato?»). **Vietato** chiedere «a che ora hai fatto la pausa?» — è fuorviante.
 - Nel **text** / **replyText** non prefissare mai «Tony:», «Assistente:» o simili: l'interfaccia mostra già il mittente; scrivi solo la frase o la domanda.
 
@@ -1862,6 +1956,44 @@ function userMentionsExplicitDate(message) {
   return false;
 }
 
+function getLastTonyAssistantText(history) {
+  if (!Array.isArray(history)) return "";
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    const role = String(h.role || h.author || "").toLowerCase();
+    if (role === "assistant" || role === "model" || role === "tony") {
+      return String(h.content || h.text || h.message || "").trim();
+    }
+  }
+  return "";
+}
+
+function isShortAffirmativeReply(message) {
+  const m = normText(message);
+  if (!m || m.length > 48) return false;
+  if (/\b(non|no|niente|meglio di no)\b/.test(m)) return false;
+  return (
+    /^(si|sì|ok|va bene|confermo|esatto|perfetto|procedi|certo)(\s|$|[,.!])/.test(m) ||
+    /^(si|sì),?\s*(ok|va bene)/.test(m)
+  );
+}
+
+/** Conferma breve dopo disambiguazione terreno («si va bene» su unico candidato citato da Tony). */
+function resolvePreventivoTerrenoFromDisambiguationConfirm(message, history, pool) {
+  if (!isShortAffirmativeReply(message) || !Array.isArray(pool) || !pool.length) return null;
+  const last = normText(getLastTonyAssistantText(history));
+  if (!last) return null;
+  if (!/va bene|trova solo|impostato il terreno|unico terreno|selezionalo nel modulo terreno/i.test(last)) {
+    return null;
+  }
+  const mentioned = pool.filter((t) => {
+    const n = normText(t.nome || "");
+    return n.length >= 4 && last.includes(n);
+  });
+  if (mentioned.length === 1) return mentioned[0].id || mentioned[0].nome;
+  return null;
+}
+
 function inferPreventivoFallbackFormData(message, ctxFinal) {
   const out = {};
   const msgN = normText(message);
@@ -1876,14 +2008,30 @@ function inferPreventivoFallbackFormData(message, ctxFinal) {
   });
   if (cliente) out["cliente-id"] = cliente.id || cliente.ragioneSociale;
 
-  let tipo = tipi.find((t) => {
+  function pickBestTipoLavoroMatch(candidates) {
+    if (!Array.isArray(candidates) || !candidates.length) return null;
+    return candidates
+      .slice()
+      .sort((a, b) => {
+        const na = normText(a.nome || "");
+        const nb = normText(b.nome || "");
+        const la = (a.nome || "").length;
+        const lb = (b.nome || "").length;
+        const fullA = msgN.includes(na) ? 1 : 0;
+        const fullB = msgN.includes(nb) ? 1 : 0;
+        if (fullB !== fullA) return fullB - fullA;
+        return lb - la;
+      })[0];
+  }
+  let tipoMatches = tipi.filter((t) => {
     const n = normText(t.nome || t.id);
     return n && (msgN.includes(n) || n.includes(msgN));
   });
+  let tipo = pickBestTipoLavoroMatch(tipoMatches);
   // Match più tollerante: es. "trinciatura" / "trinciatura tra le file" nel messaggio vs catalogo
   if (!tipo && Array.isArray(tipi) && tipi.length) {
     const msgTokens = msgN.split(/[^a-z0-9]+/i).filter((w) => w && w.length >= 5);
-    tipo = tipi.find((t) => {
+    tipoMatches = tipi.filter((t) => {
       const n = normText(t.nome || "");
       if (!n || n.length < 4) return false;
       const words = n.split(/\s+/).filter((x) => x.length >= 4);
@@ -1896,8 +2044,28 @@ function inferPreventivoFallbackFormData(message, ctxFinal) {
       }
       return false;
     });
+    tipo = pickBestTipoLavoroMatch(tipoMatches);
   }
   if (tipo && tipo.nome) out["tipo-lavoro"] = tipo.nome;
+  if (/\btra\s+le\s+file\b/.test(msgN)) {
+    out["lavoro-sottocategoria"] = "Tra le File";
+  } else if (/\bsulla\s+fila\b/.test(msgN)) {
+    out["lavoro-sottocategoria"] = "Sulla Fila";
+  } else if (out["tipo-lavoro"] && /trebbian|vite|vigneto|frutteto|olivo/.test(msgN)) {
+    const root = normText(out["tipo-lavoro"]).split(/\s+/)[0];
+    if (root && root.length >= 4) {
+      const upgraded = tipi
+        .filter((t) => {
+          const n = normText(t.nome || "");
+          return n.includes(root) && n.includes("tra le file");
+        })
+        .sort((a, b) => (b.nome || "").length - (a.nome || "").length)[0];
+      if (upgraded && upgraded.nome) {
+        out["tipo-lavoro"] = upgraded.nome;
+        out["lavoro-sottocategoria"] = "Tra le File";
+      }
+    }
+  }
 
   // Terreno: se c'è match nome/cultura univoco dentro i terreni del cliente scelto, usa nome (non id incerto).
   const terreniPool = out["cliente-id"]
@@ -1909,7 +2077,15 @@ function inferPreventivoFallbackFormData(message, ctxFinal) {
     return s.replace(/[aeiou]$/i, "");
   }
   function getHintTokens(text) {
-    const stop = new Set(["per", "con", "del", "della", "dello", "nel", "nella", "campo", "terreno", "cliente", "preventivo", "fare", "fai", "compila", "nuovo", "luca", "fabbri"]);
+    const stop = new Set([
+      "per", "con", "del", "della", "dello", "nel", "nella", "campo", "terreno", "cliente", "preventivo",
+      "fare", "fai", "compila", "nuovo", "luca", "fabbri", "bene", "va", "si", "ok", "certo", "confermo",
+      "esatto", "perfetto", "procedi", "allora", "facciamo", "imposta", "procediamo", "salva", "bozza",
+      "data", "prevista", "giorno", "domani", "oggi", "dopodomani",
+      "lunedi", "martedi", "mercoledi", "giovedi", "venerdi", "sabato", "domenica",
+      "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
+      "settembre", "ottobre", "novembre", "dicembre",
+    ]);
     return normText(text)
       .split(/[^a-z0-9]+/i)
       .filter((t) => t && t.length >= 4 && !stop.has(t));
@@ -1956,20 +2132,82 @@ function inferPreventivoFallbackFormData(message, ctxFinal) {
   } else if (terrScored.length > 1 && terrScored[0].score > terrScored[1].score + 20) {
     // Match migliore nettamente dominante: usa il più probabile.
     out["terreno-id"] = terrScored[0].terreno.nome || terrScored[0].terreno.id;
-  } else if (terrScored.length > 1 && hintTokens.length > 0) {
+  } else if (terrScored.length > 1 && hintTokens.length > 0 && !messageIsPreventivoScheduleTurn(message)) {
     // Ambiguità: passa un hint testuale per attivare la disambiguazione lato client.
     out["terreno-id"] = hintTokens[0];
+  }
+
+  if (messageIsPreventivoScheduleTurn(message)) {
+    delete out["terreno-id"];
   }
 
   return out;
 }
 
-function enrichPreventivoCommandFormData(formData, message, ctxFinal) {
+function terrenoHasFilariColturaCloud(t) {
+  if (!t) return false;
+  const blob = normText([
+    t.coltura, t.colturaSottocategoria, t.colturaSottoCategoria, t.colturaCategoria, t.nome
+  ].filter(Boolean).join(" "));
+  return /vite|vigneto|trebbian|frutteto|olivo|oliveto|arboreo|alberi|albicocc|pesc|cilieg|susin|prugn|pero|melo|kaki|mandorl|nocciol|noce|kiwi|melograno|castagn|pistac|fico|nespol|giuggiol|gelso/.test(blob);
+}
+
+/** Vite/trebbiano a filari: tipo generico → variante "… tra le file" + sottocategoria Tra le File. */
+function upgradePreventivoTipoForFilariCloud(fd, pool, tipi) {
+  const tid = String(fd["terreno-id"] || "").trim();
+  if (!tid || !Array.isArray(pool) || !pool.length) return;
+  const ter = pool.find((t) =>
+    String(t.id || "") === tid || normText(t.nome || "") === normText(tid)
+  );
+  if (!ter || !terrenoHasFilariColturaCloud(ter)) return;
+  const subN = normText(fd["lavoro-sottocategoria"] || "");
+  if (!subN || subN === "generale") fd["lavoro-sottocategoria"] = "Tra le File";
+  const curTipo = String(fd["tipo-lavoro"] || "").trim();
+  const curN = normText(curTipo);
+  if (!curTipo || curN.includes("tra le file") || curN.includes("sulla fila")) return;
+  if (!Array.isArray(tipi) || !tipi.length) return;
+  const root = curN.split(/\s+/)[0];
+  if (!root || root.length < 4) return;
+  const candidates = tipi.filter((t) => {
+    const n = normText(t.nome || "");
+    return n.includes(root) && (n.includes("tra le file") || n.includes("sulla fila"));
+  });
+  const best = candidates.sort((a, b) => (b.nome || "").length - (a.nome || "").length)[0];
+  if (best && best.nome) fd["tipo-lavoro"] = best.nome;
+}
+
+function messageIsPreventivoScheduleTurn(message) {
+  if (!message || typeof message !== "string") return false;
+  if (!userMentionsExplicitDate(message)) return false;
+  const m = normText(message);
+  if (/\b(facciamo|allora|imposta|procediamo|salva|bozza|data\s+prevista)\b/.test(m)) return true;
+  return m.split(/\s+/).filter(Boolean).length <= 4;
+}
+
+function enrichPreventivoCommandFormData(formData, message, ctxFinal, history) {
   const fd = formData && typeof formData === "object" ? { ...formData } : {};
+  const scheduleTurn = messageIsPreventivoScheduleTurn(message);
   const inferred = inferPreventivoFallbackFormData(message, ctxFinal);
   if (!fd["cliente-id"] && inferred["cliente-id"]) fd["cliente-id"] = inferred["cliente-id"];
-  if (!fd["tipo-lavoro"] && inferred["tipo-lavoro"]) fd["tipo-lavoro"] = inferred["tipo-lavoro"];
-  if (!fd["terreno-id"] && inferred["terreno-id"]) fd["terreno-id"] = inferred["terreno-id"];
+  if (inferred["tipo-lavoro"]) {
+    const cur = String(fd["tipo-lavoro"] || "").trim();
+    const inc = String(inferred["tipo-lavoro"] || "").trim();
+    if (!cur || normText(inc).length > normText(cur).length) {
+      fd["tipo-lavoro"] = inc;
+    }
+  }
+  if (inferred["lavoro-sottocategoria"] && !fd["lavoro-sottocategoria"]) {
+    fd["lavoro-sottocategoria"] = inferred["lavoro-sottocategoria"];
+  }
+  if (!fd["terreno-id"] && inferred["terreno-id"] && !isShortAffirmativeReply(message) && !scheduleTurn) {
+    fd["terreno-id"] = inferred["terreno-id"];
+  }
+  if (scheduleTurn) {
+    delete fd["terreno-id"];
+  }
+  if (fd["terreno-id"] && fd["tipo-campo"] && !/\b(pianura|collina|accliv|decliv)\b/.test(normText(message))) {
+    delete fd["tipo-campo"];
+  }
   const azi = (ctxFinal && ctxFinal.azienda) || {};
   const terreniClienti = Array.isArray(azi.terreniClienti) ? azi.terreniClienti : [];
   const clienti = Array.isArray(azi.clienti) ? azi.clienti : [];
@@ -1991,6 +2229,11 @@ function enrichPreventivoCommandFormData(formData, message, ctxFinal) {
     pool = terreniClienti.filter((t) => String(t.clienteId || "") === clienteId);
   }
 
+  if (!fd["terreno-id"]) {
+    const confirmedTerreno = resolvePreventivoTerrenoFromDisambiguationConfirm(message, history, pool);
+    if (confirmedTerreno) fd["terreno-id"] = confirmedTerreno;
+  }
+
   // Guardrail anti-selezione ambigua:
   // se arriva terreno-id ma il cliente ha più terreni "compatibili" e
   // il messaggio non contiene il nome terreno scelto in modo esplicito,
@@ -2007,7 +2250,12 @@ function enrichPreventivoCommandFormData(formData, message, ctxFinal) {
       // Nome terreno "esplicito" = il messaggio contiene il nome completo normalizzato
       // (evita di fidarsi solo di match parziali tipo coltura vs più terreni con colture diverse in DB).
       const nameExplicitInMessage = !!selectedNameN && selectedNameN.length >= 3 && msgN.includes(selectedNameN);
-      if (!nameExplicitInMessage) {
+      const partialHintOk =
+        !nameExplicitInMessage &&
+        msgN.length >= 3 &&
+        msgN.length <= 28 &&
+        selectedNameN.includes(msgN);
+      if (!nameExplicitInMessage && !partialHintOk) {
         delete fd["terreno-id"];
       }
     } else if (pool.length > 1) {
@@ -2020,6 +2268,8 @@ function enrichPreventivoCommandFormData(formData, message, ctxFinal) {
   if (!fd["terreno-id"] && pool.length === 1) {
     fd["terreno-id"] = pool[0].id || pool[0].nome;
   }
+  const tipiLavoro = Array.isArray(azi.tipiLavoro) ? azi.tipiLavoro : [];
+  upgradePreventivoTipoForFilariCloud(fd, pool, tipiLavoro);
   return fd;
 }
 
@@ -2041,47 +2291,15 @@ function neutralPreventivoReplyWhenTerrenoStripped() {
   return "Ok, apro Nuovo Preventivo con cliente e lavorazione indicati. Per il terreno ci sono più possibilità: sceglilo nel modulo oppure scrivimi il nome preciso del terreno.";
 }
 
-async function callGeminiWithRetry(url, body, label) {
-  const maxAttempts = 6;
-  const baseDelayOther = 900;
-  let lastStatus = 0;
-  let lastText = "";
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (res.ok) return res;
-    const retryAfterHeader = res.headers.get("retry-after");
-    lastStatus = res.status;
-    lastText = await res.text();
-    console.error("Gemini API error:", res.status, lastText);
-    const retriable = res.status === 429 || res.status === 500 || res.status === 503;
-    if (!retriable || attempt === maxAttempts) break;
-    let waitMs;
-    if (res.status === 429) {
-      let sec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
-      if (!Number.isFinite(sec) || sec < 1) {
-        sec = Math.min(90, Math.pow(2, attempt) * 2);
-      }
-      waitMs = Math.min(120000, sec * 1000);
-      waitMs = Math.max(2000, waitMs);
-    } else {
-      waitMs = baseDelayOther * attempt;
-    }
-    console.warn(
-      `[Tony Cloud Function] ${label} retry ${attempt}/${maxAttempts - 1} dopo ${waitMs}ms (status ${res.status})`
-    );
-    await sleep(waitMs);
-  }
-  if (lastStatus === 429) {
-    throw new HttpsError(
-      "resource-exhausted",
-      "Servizio AI temporaneamente al limite di richieste. Riprova tra qualche decina di secondi."
-    );
-  }
-  throw new HttpsError("internal", "Errore chiamata Gemini: " + (lastStatus || "unknown"));
+/**
+ * Meteo context solo quando serve (domanda meteo, dashboard meteo, pianificazione operativa).
+ * Router shadow (Fase 2a) classifica binario/tier prima del fetch — vedi classifyTonyIntentShadow in tonyAsk.
+ */
+function shouldBuildTonyMeteoContext(message, pageType, tenantData, moduliAttiviFromRequest) {
+  if (!resolveMeteoModuleActive(tenantData, moduliAttiviFromRequest)) return false;
+  if (String(pageType || "") === "meteo_dashboard") return true;
+  if (isTonyMeteoQuestion(message)) return true;
+  return false;
 }
 
 /** Messaggio inviato dal widget come promemoria (timer proattivo): non è conferma utente al salvataggio. */
@@ -2216,26 +2434,32 @@ MAPPA TARGET COMPLETA (sottopagine incluse). Per "Portami a [X]" usa il target e
 - Magazzino: magazzino (home), prodotti, movimenti.
 - Conto terzi: conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, nuovo preventivo, accetta preventivo.
 - Report: report.
+- Meteo: meteo, modulo meteo, previsioni meteo (richiede modulo meteo attivo per la pagina dedicata; widget sede in dashboard con piano Base).
 Se [CONTESTO].page.availableRoutes è fornito (array di { target, path, label }), considera validi anche quei target per la navigazione.
 `;
 
+const TONY_GUIDA_METEO_REPLY =
+  "Per le previsioni meteo usa il riquadro Meteo in dashboard: lì trovi temperatura e previsioni per la sede aziendale. Se non compare nulla, imposta la sede in Impostazioni. Per chiedermi il meteo in chat attiva Tony Avanzato dalla pagina Abbonamento.";
+
+const TONY_METEO_CONTEXT_RULES = `
+METEO (solo Tony Avanzato; vedi azienda.meteo nel contesto):
+- Se azienda.meteo.meteoChatDisponibile è false: non rispondere con previsioni inventate.
+- Se azienda.meteo.consigliOperativi è false (modulo meteo NON attivo): usa SOLO azienda.meteo.sede e azienda.meteo.summaryMeteo per domande descrittive alla sede (temperatura, oggi/domani, vento, umidità). NON consigliare posticipi trattamenti/lavori né analisi per singoli campi; se chiedono consigli operativi sul campo, invita ad attivare il modulo Meteo in Abbonamento.
+- Se azienda.meteo.consigliOperativi è true: usa azienda.meteo.terreni e azienda.meteo.consigli per analisi operative e pianificazione. Basa i consigli SOLO sui dati strutturati; non inventare. **Trattamenti:** pop, rainMm, vento ≤15 km/h + praticabilità (mm lookback per morfologia). **Lavorazione terreno / lavori in campo:** stesse regole di praticabilità (mm su giorno e giorni precedenti; montagna anche D−2); per il meteo conta **solo la pioggia** (pop/mm), **non** il vento; in fascia intermedia chiedi se si può lavorare il terreno. **non** assumere pianura se tipoCampo manca — chiedi morfologia. Per «consigliami un'altra data» o dopo rifiuto praticabilità: la quick reply propone **due date** (prima utile prima della pioggia + prima utile dopo con asciugatura); non inventare una sola data se il sistema meteo l'ha già gestita.
+- Previsioni oltre domani (es. mercoledì 27, sabato, tra una settimana): usa previsioniGiornaliere (~8 giorni) in azienda.meteo.sede e, se presenti, in azienda.meteo.terreni[]. Ogni voce: dt, giornoSettimana, giornoMese, tempMin, tempMax, pop, rainMm (mm previsti in giornata, se disponibili), windSpeedKmh (km/h), humidity (%). Per oggi/domani usa anche sede.today / sede.tomorrow (stessi campi). Per vento/temperature/umidità NON rispondere solo con la pioggia; se l'utente chiede i millimetri, usa rainMm quando presente.
+- Se azienda.meteo.disponibile è false: spiega il motivo (es. sede non impostata) senza inventare numeri.
+- Navigazione modulo: APRI_PAGINA target "meteo". Opzionale params.fields.terrenoId se risolvibile da azienda.terreni / azienda.meteo.terreni.
+- Se page.currentTableData?.pageType === "meteo_dashboard": usa items e summary; sede in page.currentTableData.sede.previsioniGiornaliere; per campo items[].previsioniGiornaliere; se selectedTerrenoId è impostato, priorità a quel terreno per domande su un appezzamento.
+`;
+
 /**
- * Callable: tonyAsk - Chiama Gemini con messaggio e contesto. Richiede utente autenticato.
- * Body: { message: string, context?: object }
+ * Pipeline condivisa tonyAsk (callable) e tonyAskStream (SSE).
+ * @param {object} request - Firebase request (auth + data)
+ * @param {{ onChunk?: (delta: string) => void, stream?: boolean } | null} streamOpts
  */
-exports.tonyAsk = onCall(
-  { region: "europe-west1", secrets: [sentryDsn] },
-  async (request) => {
+async function handleTonyAskRequest(request, streamOpts) {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Utente non autenticato.");
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Chiave Gemini non configurata. Imposta GEMINI_API_KEY (secret o env) e ridistribuisci le functions."
-      );
     }
 
     const reqData = request.data || {};
@@ -2278,12 +2502,57 @@ exports.tonyAsk = onCall(
     }
     const tonyFieldProfile = getTonyFieldProfileFromRoles(ruoliUtente);
 
+    const moduliAttiviEarly = Array.isArray(dashboard.moduli_attivi)
+      ? dashboard.moduli_attivi
+      : Array.isArray(dashboard.info_azienda?.moduli_attivi)
+        ? dashboard.info_azienda.moduli_attivi
+        : Array.isArray(ctx.moduli_attivi)
+          ? ctx.moduli_attivi
+          : Array.isArray(ctx.info_azienda?.moduli_attivi)
+            ? ctx.info_azienda.moduli_attivi
+            : [];
+    const isTonyAdvancedEarly =
+      Array.isArray(moduliAttiviEarly) &&
+      moduliAttiviEarly.some((m) => String(m).toLowerCase() === "tony");
+
+    const tonyPerf = {
+      tonyFieldProfile: tonyFieldProfile || null,
+      isTonyAdvanced: isTonyAdvancedEarly,
+      cacheHit: false,
+      buildContextAziendaMs: 0,
+      buildContextMeteoMs: 0,
+      quickReplyHit: null,
+      geminiMs: 0,
+      geminiRetryCount: 0,
+      usedGemini: false,
+    };
+
+    if (!tonyFieldProfile && !isTonyAdvancedEarly && isTonyMeteoQuestion(message)) {
+      return finishTonyAskEarly(tonyPerf, message, { text: TONY_GUIDA_METEO_REPLY, command: null });
+    }
+
     // Context Builder: arricchisci con dati aziendali da Firestore (solo per manager / non profilo campo)
     const tenantId = dashboard.tenantId ?? ctx.tenantId ?? null;
 
+    const pageTypeRouter =
+      (ctx && ctx.page && ctx.page.currentTableData && ctx.page.currentTableData.pageType) ||
+      (ctx && ctx.page && ctx.page.pageType) ||
+      null;
+    const formIdRouter = (ctx && ctx.form && (ctx.form.formId || ctx.form.modalId)) || null;
+    tonyPerf.routerShadow = classifyTonyIntentShadow({
+      message,
+      history,
+      ctx,
+      pageType: pageTypeRouter,
+      formId: formIdRouter,
+      tonyFieldProfile: tonyFieldProfile || null,
+    });
+    const tierMaxFetch = resolveEffectiveTierMax(tonyPerf.routerShadow);
+    if (tonyPerf.routerShadow) tonyPerf.routerShadow.tierUsed = tierMaxFetch;
+
     if (tonyFieldProfile && isTonyFieldBizDataQuestion(message)) {
       console.log("[Tony Cloud Function] Profilo campo: domanda su dati aziendali — risposta deterministica (no Gemini)");
-      return { text: TONY_FIELD_BIZ_REFUSAL_TEXT, command: null };
+      return finishTonyAskEarly(tonyPerf, message, { text: TONY_FIELD_BIZ_REFUSAL_TEXT, command: null });
     }
 
     let azienda = {};
@@ -2293,21 +2562,245 @@ exports.tonyAsk = onCall(
         messaggio: "Contesto aziendale completo non disponibile per operaio/caposquadra.",
       };
     } else {
+      const ctxBuildStart = Date.now();
       try {
-        azienda = await buildContextAzienda(tenantId);
+        const cached = await getCachedContextAzienda(
+          db,
+          tenantId,
+          (tier) => buildContextAziendaTier(tenantId, tier),
+          { tierMax: tierMaxFetch }
+        );
+        azienda = cached.azienda || {};
+        tonyPerf.cacheHit = !!cached.cacheHit;
       } catch (err) {
         console.error("[Tony Context Builder] Errore fetch:", err);
         azienda = { _error: "Dati aziendali temporaneamente non disponibili." };
+      }
+      tonyPerf.buildContextAziendaMs = Date.now() - ctxBuildStart;
+
+      if (isTonyAdvancedEarly && tenantId && subscriptionPlanId !== "free") {
+        try {
+          const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+          const tenantData = tenantSnap.exists ? tenantSnap.data() || {} : {};
+          const pageTypeEarly =
+            (ctx && ctx.page && ctx.page.currentTableData && ctx.page.currentTableData.pageType) || null;
+          const selectedTerrenoIdEarly =
+            (ctx && ctx.page && ctx.page.selectedTerrenoId) ||
+            (ctx && ctx.page && ctx.page.currentTableData && ctx.page.currentTableData.selectedTerrenoId) ||
+            null;
+
+          if (shouldBuildTonyMeteoContext(message, pageTypeEarly, tenantData, moduliAttiviEarly)) {
+            const meteoStart = Date.now();
+            const terreniNamesEarly = (azienda.terreni || [])
+              .map((t) => String(t.nome || "").trim())
+              .filter(Boolean);
+            const includeTerreniMeteo = shouldBuildTerreniMeteoContext(message, pageTypeEarly, {
+              terreniNames: terreniNamesEarly,
+              selectedTerrenoId: selectedTerrenoIdEarly,
+            });
+            let lavoriForMeteo = [];
+            if (includeTerreniMeteo) {
+              const lavoriSnap = await db
+                .collection("tenants")
+                .doc(tenantId)
+                .collection("lavori")
+                .limit(120)
+                .get();
+              lavoriForMeteo = lavoriSnap.docs.map((doc) => ({
+                id: doc.id,
+                ...(doc.data() || {}),
+              }));
+            }
+            azienda.meteo = await buildContextMeteo(
+              db,
+              process.env.OPENWEATHER_API_KEY,
+              tenantId,
+              tenantData,
+              subscriptionPlanId,
+              {
+                tonyAvanzato: true,
+                meteoModule: resolveMeteoModuleActive(tenantData, moduliAttiviEarly),
+                lavori: lavoriForMeteo,
+                includeTerreni: includeTerreniMeteo,
+              }
+            );
+            tonyPerf.buildContextMeteoMs = Date.now() - meteoStart;
+          }
+        } catch (meteoErr) {
+          console.warn("[Tony Context Builder] meteo:", meteoErr.message);
+          azienda.meteo = {
+            meteoChatDisponibile: true,
+            disponibile: false,
+            summaryMeteo: "Meteo temporaneamente non disponibile.",
+          };
+        }
+      }
+    }
+    const preventivoDateMeteoEval =
+      isTonyPreventivoDateMeteoEval(message, ctx) &&
+      azienda.meteo &&
+      azienda.meteo.disponibile &&
+      azienda.meteo.moduloMeteoAttivo;
+    if (
+      isTonyAdvancedEarly &&
+      !tonyFieldProfile &&
+      !isTonyOperationalCreationIntent(message) &&
+      !isTonyPreventivoFormFieldCorrection(message, ctx) &&
+      azienda.meteo &&
+      azienda.meteo.disponibile &&
+      (preventivoDateMeteoEval || isTonyMeteoQuestion(message))
+    ) {
+      const quickMeteoOpts = {
+        terreniNames: (azienda.terreni || []).map((t) => String(t.nome || "").trim()).filter(Boolean),
+        terreniCatalog: (azienda.terreni || []).map((t) => ({
+          id: t.id,
+          nome: t.nome,
+          tipoCampo: t.tipoCampo || null,
+        })),
+        history,
+        db,
+        tenantId,
+        tonyContext: ctx,
+        selectedTerrenoId:
+          (ctx && ctx.form && ctx.form.formId === "preventivo-form"
+            ? String(
+                (Array.isArray(ctx.form.fields)
+                  ? (ctx.form.fields.find((f) => f.id === "terreno-id") || {}).value
+                  : ctx.form.fields && ctx.form.fields["terreno-id"]) || ""
+              ).trim() || null
+            : null) ||
+          (ctx && ctx.page && ctx.page.selectedTerrenoId) ||
+          (ctx && ctx.page && ctx.page.currentTableData && ctx.page.currentTableData.selectedTerrenoId) ||
+          null,
+      };
+      const quickMeteo =
+        (preventivoDateMeteoEval
+          ? await tryMeteoPreventivoDateQuickReply(message, azienda.meteo, quickMeteoOpts)
+          : null) ||
+        (preventivoDateMeteoEval
+          ? null
+          : await tryMeteoOperativoQuickReply(message, azienda.meteo, quickMeteoOpts)) ||
+        tryMeteoGiornoQuickReply(message, azienda.meteo, {
+          terreniNames: (azienda.terreni || []).map((t) => String(t.nome || "").trim()).filter(Boolean),
+        }) ||
+        tryMeteoCondizioniQuickReply(message, azienda.meteo, {
+          terreniNames: (azienda.terreni || []).map((t) => String(t.nome || "").trim()).filter(Boolean),
+        });
+      if (quickMeteo) {
+        console.log(
+          "[Tony Cloud Function] Meteo quick reply",
+          preventivoDateMeteoEval ? "(preventivo data-prevista)" : ""
+        );
+        tonyPerf.quickReplyHit = preventivoDateMeteoEval ? "meteo_preventivo_data" : "meteo";
+        return finishTonyAskEarly(tonyPerf, message, { text: quickMeteo, command: null });
       }
     }
     const ctxStripped = ctx && typeof ctx === "object" ? { ...ctx } : {};
     delete ctxStripped.azienda;
     const ctxBase = tonyFieldProfile ? sanitizeContextForTonyField(ctxStripped) : ctxStripped;
-    const ctxFinal = { ...ctxBase, azienda };
+    const aziendaFiltered = filterAziendaByModuliAttivi(azienda, moduliAttiviEarly, { buildSummaryScadenze });
+    const ctxFinal = {
+      ...ctxBase,
+      azienda: aziendaFiltered,
+      moduli_attivi: moduliAttiviEarly,
+      dashboard: {
+        ...(ctxBase.dashboard && typeof ctxBase.dashboard === "object" ? ctxBase.dashboard : {}),
+        moduli_attivi: moduliAttiviEarly,
+        info_azienda: {
+          ...(ctxBase.dashboard && ctxBase.dashboard.info_azienda ? ctxBase.dashboard.info_azienda : {}),
+          moduli_attivi: moduliAttiviEarly,
+        },
+      },
+    };
     if (!tonyFieldProfile && azienda.terreni && Array.isArray(azienda.terreni)) {
       ctxFinal.attivita = ctxFinal.attivita || {};
       ctxFinal.attivita.terreni = azienda.terreni;
       ctxFinal.attivita.colture_con_filari = ["Vite", "Frutteto", "Olivo"];
+    }
+
+    // PREVENTIVO_LIST_ACTION + quick reply binario A (prima di Gemini)
+    if (isTonyAdvancedEarly && !tonyFieldProfile) {
+      if (detectPreventivoListActionVerb(message)) {
+        const prevDet = resolvePreventivoListActionDeterministic(message, ctxFinal);
+        if (prevDet) {
+          tonyPerf.quickReplyHit = prevDet.command ? "preventivo_list_action" : "preventivo_list_action_prompt";
+          const prevOut = { text: prevDet.text };
+          if (prevDet.command) prevOut.command = prevDet.command;
+          return finishTonyAskEarly(tonyPerf, message, prevOut);
+        }
+      }
+      const bizQuick = tryTonyQuickReplies({ message, history, ctx: ctxFinal });
+      if (bizQuick) {
+        tonyPerf.quickReplyHit = bizQuick.id;
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: bizQuick.text,
+          command: bizQuick.command || null,
+        });
+      }
+      const navQuick = tryTonyNavQuickReply({ message, history, ctx: ctxFinal });
+      if (navQuick) {
+        tonyPerf.quickReplyHit = navQuick.id.startsWith("nav") ? "nav" : navQuick.id;
+        const navOut = sanitizeTonyResultForModules(
+          { text: navQuick.text, command: navQuick.command || null },
+          moduliAttiviEarly
+        );
+        return finishTonyAskEarly(tonyPerf, message, navOut);
+      }
+      const filterQuick = tryTonyFilterTableQuickReply({ message, history, ctx: ctxFinal });
+      if (filterQuick) {
+        tonyPerf.quickReplyHit = filterQuick.id.startsWith("sum_column")
+          ? "sum_column"
+          : "filter_table";
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: filterQuick.text,
+          command: filterQuick.command || null,
+        });
+      }
+      const multiQuick = await tryTonyMultiBlockQuickReply({
+        message,
+        history,
+        ctx: ctxFinal,
+        meteoFns: {
+          db,
+          tenantId,
+          tryMeteoOperativoQuickReply,
+          tryMeteoGiornoQuickReply,
+          tryMeteoCondizioniQuickReply,
+        },
+      });
+      if (multiQuick) {
+        tonyPerf.quickReplyHit = "multi_block";
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: multiQuick.text,
+          command: multiQuick.command || null,
+        });
+      }
+      const activityQuick = tryTonyActivityPatterns({ message, history, ctx: ctxFinal });
+      if (activityQuick) {
+        tonyPerf.quickReplyHit = activityQuick.id;
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: activityQuick.text,
+          command: activityQuick.command || null,
+        });
+      }
+      const lavoroEntity = tryTonyLavoroEntityParse({ message, history, ctx: ctxFinal });
+      if (lavoroEntity && lavoroEntity.earlyReturn) {
+        tonyPerf.quickReplyHit = lavoroEntity.id;
+        tonyPerf.lavoroEntityParseHit = true;
+        tonyPerf.lavoroInjectFieldsCount = lavoroEntity.fieldsCount || 0;
+        tonyPerf.lavoroFollowUpTurns = 0;
+        console.log(
+          "[Tony Cloud Function] Lavoro entity-first hit:",
+          lavoroEntity.coreCount,
+          "core fields,",
+          lavoroEntity.fieldsCount,
+          "total"
+        );
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: lavoroEntity.text,
+          command: lavoroEntity.command || null,
+        });
+      }
     }
     const moduliAttivi = Array.isArray(dashboard.moduli_attivi)
       ? dashboard.moduli_attivi
@@ -2322,6 +2815,7 @@ exports.tonyAsk = onCall(
     let isTonyAdvanced =
       Array.isArray(moduliAttivi) && moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
     const isTonyAdvancedActive = isTonyAdvanced;
+    tonyPerf.isTonyAdvanced = isTonyAdvancedActive;
 
     console.log("[Tony Cloud Function] DEBUG - request.data keys:", Object.keys(reqData));
     console.log("[Tony Cloud Function] DEBUG - ctx.dashboard presente:", !!ctx.dashboard);
@@ -2334,7 +2828,8 @@ exports.tonyAsk = onCall(
         ? SYSTEM_INSTRUCTION_ADVANCED
         : SYSTEM_INSTRUCTION_BASE;
 
-    const contextJson = JSON.stringify(ctxFinal, null, 2);
+    const ctxForPrompt = slimContextForLavoroFormFollowUp(ctxFinal);
+    const contextJson = JSON.stringify(ctxForPrompt, null, 2);
     let systemInstruction = systemInstructionTemplate.replace(
       "{CONTESTO_PLACEHOLDER}",
       contextJson || '"Nessun dato contestuale fornito."'
@@ -2347,10 +2842,31 @@ exports.tonyAsk = onCall(
       || (pageTitle && /mezzi|macchine|parco\s*macchine|gestione\s*mezzi/i.test(pageTitle));
     const isManodoperaContext = /segnatura-ore|validazione-ore|gestione-operai|gestione-squadre|compensi-operai|statistiche-manodopera|lavori-caposquadra|field-workspace|statistiche-lavoratore/i.test(pagePath);
     const isContoTerziContext = pagePath.includes("/conto-terzi/");
+    const routerShadow = tonyPerf.routerShadow || {};
+    const routerBinario = routerShadow.binario || "C";
+    const routerDomains = Array.isArray(routerShadow.domains) ? routerShadow.domains : [];
+    const routerAmbiguous = !!routerShadow.ambiguous;
+    const contextTierNum = tierRankNum(tierMaxFetch || routerShadow.tierUsed || "T4");
+    const needsFullPrompt = routerBinario === "C" || routerAmbiguous || contextTierNum >= 4;
+    const includeMeteoRules =
+      isTonyMeteoQuestion(message) ||
+      routerDomains.includes("meteo") ||
+      String(pageTypeRouter || "") === "meteo_dashboard";
+    const includeMagazzinoRules =
+      contextTierNum >= 1 &&
+      (routerDomains.includes("magazzino") || pagePath.includes("/magazzino/") || needsFullPrompt);
+    const includeTariffeRules =
+      contextTierNum >= 2 && (routerDomains.includes("conto_terzi") || needsFullPrompt || isContoTerziContext);
+    const includeTerreniMezziRules =
+      contextTierNum >= 3 &&
+      (routerDomains.includes("terreni") ||
+        routerDomains.includes("macchine") ||
+        routerDomains.includes("manodopera") ||
+        routerDomains.includes("form_operativo") ||
+        needsFullPrompt);
+
     let extraBlocks = "";
-    // Pianificazione/calcolo materiali: anche Tony **base** (senza modulo "tony" avanzato nel tenant).
-    // Prima era solo dentro isTonyAdvanced → in dashboard vigneto il modello vedeva solo le sintesi nel JSON e poteva scegliere il frutteto.
-    if (!tonyFieldProfile) {
+    if (!tonyFieldProfile && routerBinario !== "A") {
       extraBlocks += TONY_PIANIFICAZIONE_CONTESTO_RULE;
       if (pagePath.includes("/vigneto/")) {
         extraBlocks += SUBAGENT_VIGNAIOLO;
@@ -2361,22 +2877,62 @@ exports.tonyAsk = onCall(
       extraBlocks += SUBAGENT_TONY_MODULO;
     }
     if (isTonyAdvanced && !tonyFieldProfile) {
-      extraBlocks += "\nI dati aziendali (terreni, macchine, trattori, attrezzi, prodotti, movimenti magazzino recenti, tipi lavoro, colture, poderi, summaryScadenze, **summarySottoScorta**, **prodottiSottoScorta**, guastiAperti) sono in [CONTESTO].azienda. Per **sotto scorta** / **scorte basse**: usa sempre azienda.summarySottoScorta (testo riepilogativo) e azienda.prodottiSottoScorta (dettaglio con giacenza e soglia). I prodotti in azienda.prodotti hanno giacenza e scortaMinima (o legacy sogliaMinima). azienda.movimentiRecenti (ultimi fino a 50, ordinati per data) e azienda.summaryMovimentiRecenti servono per domande su carichi/scarichi da qualsiasi pagina; la lista filtrabile completa resta sulla pagina Movimenti (page.currentTableData). azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili con un attrezzo: filtra dove trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Quando chiedi quale trattore/attrezzo, elenca SEMPRE i nomi. Se azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente e suggerisci di riprovare.\n";
-      extraBlocks += "\nELENCO DATI (obbligatorio): Quando l'utente chiede \"quali terreni\", \"elenca i prodotti\", \"quanti clienti\", \"quanti preventivi\", \"quante tariffe\", \"ultimi movimenti magazzino\", \"quali carichi/scarichi\", \"cosa c'è sotto scorta\", \"quanti prodotti sotto scorta\", \"quanto costa aratura nel seminativo in pianura\", \"quanto costa diserbare un vigneto in collina\", ecc., DEVI usare i dati azienda e enumerare/rispondere. Usa azienda.terreni, azienda.clienti, azienda.preventivi, azienda.tariffe (id, tipoLavoro, coltura, categoriaColturaId, tipoCampo, tariffaBase, coefficiente, attiva), azienda.categorie, azienda.tipiLavoro, azienda.prodotti, **azienda.summarySottoScorta**, **azienda.prodottiSottoScorta**, azienda.movimentiRecenti, azienda.summaryMovimentiRecenti, azienda.macchine. Per **movimenti magazzino** nel testo della risposta (e per voce/TTS): usa **date in italiano** (es. \"10 aprile 2026\"), mai solo ISO \"2026-04-10\" né leggere le cifre anno per anno; in azienda.movimentiRecenti ogni voce ha **dataItaliana** oltre a **data**. Per \"quanto costa [lavoro] nel [categoria] in [pianura/collina/montagna]\" usa DOMANDE SUI COSTI DELLE TARIFFE: match categoria (azienda.categorie), tipoCampo, tipoLavoro (flessibile con azienda.tipiLavoro), tariffaFinale = tariffaBase * coefficiente. Rispondi \"Costa X €/ettaro\".\n";
-      extraBlocks += SMARTFORMVALIDATOR_RULE;
-      if (pagePath.includes("/magazzino/")) {
+      extraBlocks += TONY_MODULI_ATTIVI_RULE;
+      if (includeMagazzinoRules || includeTariffeRules || includeTerreniMezziRules || needsFullPrompt) {
+        extraBlocks +=
+          "\nI dati aziendali pertinenti al turno sono in [CONTESTO].azienda (tier " +
+          normalizeTierMax(tierMaxFetch) +
+          "). Usa solo le chiavi presenti nel JSON; se mancano dati necessari, informa l'utente e suggerisci di riprovare o aprire la pagina dedicata.\n";
+      }
+      if (includeMagazzinoRules) {
+        extraBlocks +=
+          "Per **sotto scorta** / **scorte basse**: usa azienda.summarySottoScorta e azienda.prodottiSottoScorta. ";
+        if (contextTierNum >= 4) {
+          extraBlocks +=
+            "I prodotti in azienda.prodotti hanno giacenza e scortaMinima. azienda.movimentiRecenti (ultimi fino a 50) e azienda.summaryMovimentiRecenti servono per carichi/scarichi da qualsiasi pagina.\n";
+        } else {
+          extraBlocks += "\n";
+        }
+      }
+      if (includeTerreniMezziRules) {
+        extraBlocks +=
+          "azienda.trattori ha {id, nome, cavalli}; azienda.attrezzi ha {id, nome, cavalliMinimiRichiesti}. Per trattori compatibili: trattore.cavalli >= attrezzo.cavalliMinimiRichiesti. Elenca SEMPRE i nomi quando chiedi quale trattore/attrezzo.\n";
+      }
+      if (isTonyLavoroCreationIntent(message, ctxFinal)) {
+        extraBlocks +=
+          "\nCREA LAVORO ENTITY-FIRST (Fase 3b): Se il messaggio contiene operaio/caposquadra, trattore, attrezzo, terreno, tipo lavoro, data o durata già risolvibili dagli elenchi tenant (ctx.lavori.operaiList/caposquadraList, azienda.trattori/attrezzi/terreni/tipiLavoro), includili TUTTI nel primo INJECT_FORM_DATA o OPEN_MODAL fields. NON chiedere in chat ciò che è già nel messaggio e univoco (es. «per luca» + un solo Luca, «agrifull» + un solo Agrifull). Chiedi SOLO ambiguità reale (2+ match).\n";
+      }
+      if (includeMeteoRules) {
+        extraBlocks += TONY_METEO_CONTEXT_RULES;
+      }
+      if (includeTariffeRules || needsFullPrompt) {
+        extraBlocks +=
+          "\nELENCO DATI (obbligatorio quando pertinente): clienti, preventivi, tariffe, tipiLavoro, categorie, colture — usa azienda.* corrispondente. Per **quanto costa [lavoro] × [campo/coltura]**: match categoria, tipoCampo, tipoLavoro; tariffaFinale = tariffaBase × coefficiente. Rispondi \"Costa X €/ettaro\".\n";
+      } else if (includeMagazzinoRules && contextTierNum < 2) {
+        extraBlocks +=
+          "\nELENCO DATI: per scadenze usa summaryScadenze; per scorte summarySottoScorta/prodottiSottoScorta; per guasti guastiAperti.\n";
+      }
+      if (needsFullPrompt || routerBinario === "C") {
+        extraBlocks += SMARTFORMVALIDATOR_RULE;
+      }
+      if (pagePath.includes("/magazzino/") || routerDomains.includes("magazzino")) {
         extraBlocks += SUBAGENT_LOGISTICO;
       }
-      if (isManodoperaContext) {
+      if (isManodoperaContext || routerDomains.includes("manodopera")) {
         extraBlocks += SUBAGENT_MANODOPERA;
       }
-      if (isContoTerziContext) {
+      if (isContoTerziContext || routerDomains.includes("conto_terzi")) {
         extraBlocks += SUBAGENT_CONTO_TERZI;
       }
-      if (isMacchineContext) {
+      if (isMacchineContext || routerDomains.includes("macchine")) {
         extraBlocks += SUBAGENT_MECCANICO;
       }
-      extraBlocks += TONY_TARGETS_EXTENDED;
+      if (needsFullPrompt || routerBinario === "B" || routerBinario === "C") {
+        extraBlocks += TONY_TARGETS_EXTENDED;
+      }
+      if (ctxFinal.azienda && ctxFinal.azienda._error) {
+        extraBlocks += "\nSe azienda._error è presente, non hai dati aziendali aggiornati; informa l'utente.\n";
+      }
     }
     if (extraBlocks) {
       systemInstruction = systemInstruction + "\n" + extraBlocks;
@@ -2527,7 +3083,14 @@ exports.tonyAsk = onCall(
       ? "\n\n[IMPORTANTE: L'utente chiede di filtrare o vedere dati. Rispondi SEMPRE con JSON completo: {\"text\": \"...\", \"command\": {\"type\": \"FILTER_TABLE\", \"params\": {...}}}]"
       : "";
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Chiave Gemini non configurata. Imposta GEMINI_API_KEY (secret o env) e ridistribuisci le functions."
+      );
+    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${TONY_GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
     // Modalità Treasure Map: form attività o lavoro aperto, OPPURE crea lavoro da pagina lavori (modal chiuso)
     const isAttivitaForm = ctxFinal.form?.formId === "attivita-form" || ctxFinal.form?.modalId === "attivita-modal";
@@ -2648,20 +3211,47 @@ exports.tonyAsk = onCall(
       generationConfig,
     };
 
-    const res = await callGeminiWithRetry(url, body, "initial");
+    const geminiStats = { retryCount: 0 };
+    const geminiStart = Date.now();
+    let rawText;
+    const useStream = !!(streamOpts && streamOpts.stream && streamOpts.onChunk);
+    if (useStream) {
+      tonyPerf.streamUsed = true;
+      let firstChunkAt = null;
+      const streamUrl = geminiStreamUrl(url);
+      rawText = await streamGeminiGenerateContent(streamUrl, body, (delta) => {
+        if (firstChunkAt == null) {
+          firstChunkAt = Date.now();
+          tonyPerf.timeToFirstChunkMs = firstChunkAt - geminiStart;
+        }
+        streamOpts.onChunk(delta);
+      }, geminiStats);
+      tonyPerf.geminiStreamMs = Date.now() - geminiStart;
+      tonyPerf.geminiMs = tonyPerf.geminiStreamMs;
+    } else {
+      const res = await callGeminiWithRetry(url, body, "initial", geminiStats);
+      tonyPerf.geminiMs = Date.now() - geminiStart;
+      const data = await res.json();
+      rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    }
+    tonyPerf.geminiRetryCount = geminiStats.retryCount || 0;
+    tonyPerf.usedGemini = true;
 
-    const data = await res.json();
-    let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (rawText == null) {
       throw new HttpsError("internal", "Risposta Gemini vuota o non valida.");
     }
 
     // Treasure Map: estrai blocco ```json dalla risposta e converti nel formato atteso
     if (useStructuredFormOutput && typeof rawText === "string") {
-      const jsonBlockMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonBlockMatch) {
+      let jsonBlockMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+      let structuredSource = jsonBlockMatch ? jsonBlockMatch[1].trim() : null;
+      if (!structuredSource) {
+        const looseMatch = rawText.match(/\{[\s\S]*"action"\s*:\s*"[^"]+"[\s\S]*\}/);
+        if (looseMatch) structuredSource = looseMatch[0].trim();
+      }
+      if (structuredSource) {
         try {
-          const structured = JSON.parse(jsonBlockMatch[1].trim());
+          const structured = JSON.parse(structuredSource);
           const cleanedText = rawText.replace(/```(?:json)?\s*[\s\S]*?```/g, "").trim() || structured.replyText || "Ok.";
           const result = { text: cleanedText };
           if (structured.action === "open_modal" && structured.modalId) {
@@ -2730,12 +3320,26 @@ exports.tonyAsk = onCall(
           } else if ((structured.action === "fill_form" || structured.action === "ask") && structured.formData && Object.keys(structured.formData).length > 0) {
             const formDataKeys = Object.keys(structured.formData);
             const explicitLavoroGestione = formDataKeys.some((k) => k === "lavoro-tipo-lavoro" || k === "lavoro-nome" || k === "tipo-assegnazione");
+            const ctxFormId = ctxFinal && ctxFinal.form && ctxFinal.form.formId ? String(ctxFinal.form.formId) : "";
+            const isPreventivoPageCtx =
+              ctxFormId === "preventivo-form" ||
+              /preventivo/i.test(ctxFormId) ||
+              /preventivo/i.test(String((ctxFinal && ctxFinal.page && ctxFinal.page.pageType) || ""));
+            const preventivoFieldKeys = [
+              "tipo-lavoro",
+              "coltura-categoria",
+              "coltura",
+              "terreno-id",
+              "data-prevista",
+              "lavoro-categoria-principale",
+              "lavoro-sottocategoria",
+              "superficie",
+              "tipo-campo",
+            ];
             const explicitPreventivo =
-              formDataKeys.includes("cliente-id") &&
-              (formDataKeys.includes("tipo-lavoro") ||
-                formDataKeys.includes("coltura-categoria") ||
-                formDataKeys.includes("coltura") ||
-                formDataKeys.includes("terreno-id"));
+              (formDataKeys.includes("cliente-id") &&
+                preventivoFieldKeys.some((k) => formDataKeys.includes(k))) ||
+              (isPreventivoPageCtx && preventivoFieldKeys.some((k) => formDataKeys.includes(k)));
             const isTrattamentoCampoData = formDataKeys.some((k) => k.startsWith("trattamento-"));
             let formId = "attivita-form";
             if (isTrattamentoCampoData) {
@@ -2763,7 +3367,7 @@ exports.tonyAsk = onCall(
           }
           // Guardrail Preventivo: se terreno-id è un id non verificabile nel contesto cliente, non forzarlo.
           if (result.command && result.command.type === "INJECT_FORM_DATA" && result.command.formId === "preventivo-form") {
-            const fd = enrichPreventivoCommandFormData(result.command.formData || {}, message, ctxFinal);
+            const fd = enrichPreventivoCommandFormData(result.command.formData || {}, message, ctxFinal, history);
             result.command.formData = fd;
             if (fd["data-prevista"] && !userMentionsExplicitDate(message)) {
               console.log("[Tony Cloud Function] Guardrail preventivo: data-prevista rimossa (data non esplicitata dall'utente).");
@@ -2805,6 +3409,26 @@ exports.tonyAsk = onCall(
             }
           }
 
+          if (result.command && result.command.type === "INJECT_FORM_DATA" && result.command.formId === "lavoro-form") {
+            const fdLav = enrichLavoroCommandFormData(result.command.formData || {}, message, ctxFinal, history);
+            result.command.formData = fdLav;
+            tonyPerf.lavoroEntityParseHit = true;
+            tonyPerf.lavoroInjectFieldsCount = Object.keys(fdLav).length;
+          }
+          if (
+            result.command &&
+            result.command.type === "OPEN_MODAL" &&
+            String(result.command.id || "").toLowerCase().indexOf("lavoro") >= 0 &&
+            result.command.fields
+          ) {
+            const fdOpenLav = enrichLavoroCommandFormData(result.command.fields || {}, message, ctxFinal, history);
+            if (Object.keys(fdOpenLav).length > 0) {
+              result.command.fields = fdOpenLav;
+              tonyPerf.lavoroEntityParseHit = true;
+              tonyPerf.lavoroInjectFieldsCount = Object.keys(fdOpenLav).length;
+            }
+          }
+
           if (
             result.command &&
             result.command.type === "INJECT_FORM_DATA" &&
@@ -2818,15 +3442,16 @@ exports.tonyAsk = onCall(
             "[Tony Cloud Function] Treasure Map - JSON estratto:",
             result.command ? JSON.stringify(result.command, null, 2) : "(nessun comando)"
           );
-          return result;
+          return finishTonyAskEarly(tonyPerf, message, result);
         } catch (parseErr) {
           console.warn("[Tony Cloud Function] Parse blocco json fallito:", parseErr.message);
         }
       } else {
-        console.log("[Tony Cloud Function] Treasure Map - nessun blocco ```json trovato, retry con prompt forzato");
+        console.log("[Tony Cloud Function] Treasure Map - nessun JSON strutturato, retry con prompt forzato");
         const retryPrompt = `${fullPrompt}\n\n[ERRORE: La risposta precedente non conteneva il blocco JSON. Riprova: rispondi SOLO con \`\`\`json\n{"action":"open_modal","modalId":"lavoro-modal","replyText":"...","formData":{...}}\n\`\`\`]`;
         const retryBody = { ...body, contents: [{ parts: [{ text: retryPrompt }] }] };
-        const retryRes = await callGeminiWithRetry(url, retryBody, "structured-retry");
+        const retryRes = await callGeminiWithRetry(url, retryBody, "structured-retry", geminiStats);
+        tonyPerf.geminiRetryCount = geminiStats.retryCount || 0;
         if (retryRes && retryRes.ok) {
           const retryData = await retryRes.json();
           const retryText = retryData?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -2885,7 +3510,7 @@ exports.tonyAsk = onCall(
                     ? "Tutti i campi obbligatori sono compilati. Vuoi che salvi il preventivo in bozza? Rispondi sì, conferma o salva per procedere."
                     : "Tutti i campi obbligatori sono compilati. Vuoi che salvi? Rispondi sì, conferma o salva per procedere.";
                   console.log("[Tony Cloud Function] Retry: save ignorato (messaggio proattivo sistema)");
-                  return result;
+                  return finishTonyAskEarly(tonyPerf, message, result);
                 }
                 if (
                   (isTrattamentoCampoForm || isTrattamentoCampoStructuredTrigger) &&
@@ -2896,7 +3521,7 @@ exports.tonyAsk = onCall(
                     { type: "INJECT_FORM_DATA", formId: "form-trattamento" }
                   );
                   console.log("[Tony Cloud Function] Retry: save ignorato (solo conferma flag trattamento)");
-                  return result;
+                  return finishTonyAskEarly(tonyPerf, message, result);
                 }
                 result.command = { type: "SAVE_ACTIVITY" };
               } else if ((structured.action === "fill_form" || structured.action === "ask") && structured.formData && Object.keys(structured.formData).length > 0) {
@@ -2944,7 +3569,7 @@ exports.tonyAsk = onCall(
                 }
               }
               if (result.command && result.command.type === "INJECT_FORM_DATA" && result.command.formId === "preventivo-form") {
-                result.command.formData = enrichPreventivoCommandFormData(result.command.formData || {}, message, ctxFinal);
+                result.command.formData = enrichPreventivoCommandFormData(result.command.formData || {}, message, ctxFinal, history);
                 if (result.command.formData["data-prevista"] && !userMentionsExplicitDate(message)) {
                   console.log("[Tony Cloud Function] Guardrail preventivo retry: data-prevista rimossa (non esplicitata).");
                   delete result.command.formData["data-prevista"];
@@ -2960,7 +3585,7 @@ exports.tonyAsk = onCall(
               }
               if (result.command) {
                 console.log("[Tony Cloud Function] Retry - JSON estratto:", JSON.stringify(result.command, null, 2));
-                return result;
+                return finishTonyAskEarly(tonyPerf, message, result);
               }
             } catch (e) {
               console.warn("[Tony Cloud Function] Retry parse fallito:", e.message);
@@ -2972,27 +3597,37 @@ exports.tonyAsk = onCall(
           const fd = inferPreventivoFallbackFormData(message, ctxFinal);
           if (Object.keys(fd).length > 0) {
             console.log("[Tony Cloud Function] Fallback sintetico: INJECT_FORM_DATA preventivo-form");
-            return {
+            return finishTonyAskEarly(tonyPerf, message, {
               text: "Compilo il preventivo con i dati trovati e ti chiedo i campi mancanti.",
               command: { type: "INJECT_FORM_DATA", formId: "preventivo-form", formData: fd },
-            };
+            });
           }
           if (isCreaPreventivoIntent && !isPreventivoForm) {
             console.log("[Tony Cloud Function] Fallback sintetico: APRI_PAGINA nuovo preventivo (nessun field inferito)");
-            return {
+            return finishTonyAskEarly(tonyPerf, message, {
               text: "Ti porto al nuovo preventivo.",
               command: {
                 type: "APRI_PAGINA",
                 target: "nuovo preventivo",
                 _tonyPendingModal: "preventivo-form",
               },
-            };
+            });
           }
         }
         if (useStructuredFormOutput && (isLavoroForm || (isLavoriPage && isCreaLavoroIntent))) {
+          const lavoroFallback = tryTonyLavoroEntityParse({ message, history, ctx: ctxFinal });
           const fallbackText = (rawText && typeof rawText === "string" ? rawText.replace(/```[\s\S]*?```/g, "").trim() : "") || "Apro il form per creare il lavoro.";
+          if (lavoroFallback && lavoroFallback.command) {
+            tonyPerf.lavoroEntityParseHit = true;
+            tonyPerf.lavoroInjectFieldsCount = lavoroFallback.fieldsCount || 0;
+            console.log("[Tony Cloud Function] Fallback sintetico: entity parser lavoro");
+            return finishTonyAskEarly(tonyPerf, message, {
+              text: lavoroFallback.text || fallbackText,
+              command: lavoroFallback.command,
+            });
+          }
           console.log("[Tony Cloud Function] Fallback sintetico: OPEN_MODAL lavoro-modal");
-          return { text: fallbackText, command: { type: "OPEN_MODAL", id: "lavoro-modal", fields: {} } };
+          return finishTonyAskEarly(tonyPerf, message, { text: fallbackText, command: { type: "OPEN_MODAL", id: "lavoro-modal", fields: {} } });
         }
         console.log("[Tony Cloud Function] Proseguo legacy");
       }
@@ -3265,8 +3900,19 @@ exports.tonyAsk = onCall(
     
     // Fallback "crea lavoro": se l'utente ha chiaramente chiesto di creare un lavoro e non abbiamo comando (es. path legacy senza structured output), apri il modal
     if (isTonyAdvancedActive && isCreaLavoroIntent && (!result.command || !result.command.type)) {
-      result.command = { type: "OPEN_MODAL", id: "lavoro-modal", fields: {} };
-      console.log("[Tony Cloud Function] Fallback crea lavoro: nessun comando in risposta, restituisco OPEN_MODAL lavoro-modal");
+      const lavoroFb = tryTonyLavoroEntityParse({ message, history, ctx: ctxFinal });
+      if (lavoroFb && lavoroFb.command) {
+        result.command = lavoroFb.command;
+        if (!result.text || result.text.trim() === "" || result.text.trim() === "Ok.") {
+          result.text = lavoroFb.text;
+        }
+        tonyPerf.lavoroEntityParseHit = true;
+        tonyPerf.lavoroInjectFieldsCount = lavoroFb.fieldsCount || 0;
+        console.log("[Tony Cloud Function] Fallback crea lavoro: entity parser");
+      } else {
+        result.command = { type: "OPEN_MODAL", id: "lavoro-modal", fields: {} };
+        console.log("[Tony Cloud Function] Fallback crea lavoro: nessun comando in risposta, restituisco OPEN_MODAL lavoro-modal");
+      }
     }
     
     // Comando vuoto o senza type: non restituirlo (evita "ESEGUO COMANDO: {}" nel client)
@@ -3306,6 +3952,15 @@ exports.tonyAsk = onCall(
         if (hadTerreno && !merged["terreno-id"]) {
           result.text = neutralPreventivoReplyWhenTerrenoStripped();
         }
+      } else if (mid.indexOf("lavoro") >= 0) {
+        const rawFieldsLav =
+          result.command.fields && typeof result.command.fields === "object" ? { ...result.command.fields } : {};
+        const mergedLav = enrichLavoroCommandFormData(rawFieldsLav, message, ctxFinal, history);
+        if (Object.keys(mergedLav).length > 0) {
+          result.command.fields = mergedLav;
+          tonyPerf.lavoroEntityParseHit = true;
+          tonyPerf.lavoroInjectFieldsCount = Object.keys(mergedLav).length;
+        }
       }
     }
     if (isTonyAdvancedActive && result.command && result.command.type === "APRI_PAGINA") {
@@ -3327,11 +3982,21 @@ exports.tonyAsk = onCall(
 
     if (isTonyAdvancedActive) {
       result = applyPreventivoListActionResolution(result, message, ctxFinal);
+      result = sanitizeTonyResultForModules(result, moduliAttivi);
     }
 
-    return result;
-  }
+    return finishTonyAskEarly(tonyPerf, message, result);
+}
+
+exports.tonyAsk = onCall(
+  { region: "europe-west1", secrets: [sentryDsn, openWeatherApiKey], timeoutSeconds: 120, memory: "512MiB" },
+  async (request) => handleTonyAskRequest(request, null)
 );
+
+exports.handleTonyAskRequest = handleTonyAskRequest;
+
+const { tonyAskStream } = require("./tony-ask-stream");
+exports.tonyAskStream = tonyAskStream;
 
 /**
  * Callable: getTonyAudio - Sintesi vocale neurale per Tony.
@@ -3482,12 +4147,14 @@ exports.aggiornaStatoPreventivoPubblico = onCall(
         stato: "accettato_email",
         dataAccettazione: admin.firestore.FieldValue.serverTimestamp(),
       });
+      await invalidateTonyContextCache(db, found.tenantId);
       return { ok: true, stato: "accettato_email" };
     }
 
     await found.ref.update({
       stato: "rifiutato",
     });
+    await invalidateTonyContextCache(db, found.tenantId);
     return { ok: true, stato: "rifiutato" };
   }
 );
@@ -3505,3 +4172,64 @@ exports.sendTransactionalEmail = onCall(
     return handleSendTransactionalEmail(db, apiKey, request);
   }
 );
+
+/**
+ * Callable: meteo base sulla sede aziendale (One Call 3.0, cache Firestore).
+ * Piano Free: rifiutato. Richiede sedeCoordinate sul tenant.
+ * Body: { tenantId }
+ */
+exports.getMeteoSede = onCall(
+  { region: "europe-west1", secrets: [openWeatherApiKey] },
+  async (request) => {
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    return handleGetMeteoSede(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: meteo avanzato sede (alert, orarie ~48h, giornaliere ~8 giorni).
+ * Richiede piano Base+ e modulo `meteo` attivo.
+ * Body: { tenantId }
+ */
+exports.getMeteoSedeAvanzato = onCall(
+  { region: "europe-west1", secrets: [openWeatherApiKey] },
+  async (request) => {
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    return handleGetMeteoSedeAvanzato(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: meteo per terreni aziendali + sede avanzata.
+ * Richiede piano Base+ e modulo `meteo` attivo.
+ * Body: { tenantId }
+ */
+exports.getMeteoTerreni = onCall(
+  { region: "europe-west1", secrets: [openWeatherApiKey] },
+  async (request) => {
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    return handleGetMeteoTerreni(db, apiKey, request);
+  }
+);
+
+/** Fase 4.1: invalidazione cache Tony dopo write critici (magazzino, conto terzi, guasti). */
+function makeTonyContextCacheInvalidateFn(collectionId) {
+  return onDocumentWritten(
+    {
+      document: `tenants/{tenantId}/${collectionId}/{docId}`,
+      region: "europe-west1",
+    },
+    async (event) => {
+      const tenantId = event.params && event.params.tenantId;
+      if (!tenantId) return;
+      await invalidateTonyContextCache(db, tenantId);
+    }
+  );
+}
+
+exports.tonyInvalidateCacheOnProdottiWrite = makeTonyContextCacheInvalidateFn("prodotti");
+exports.tonyInvalidateCacheOnMovimentiMagazzinoWrite =
+  makeTonyContextCacheInvalidateFn("movimentiMagazzino");
+exports.tonyInvalidateCacheOnPreventiviWrite = makeTonyContextCacheInvalidateFn("preventivi");
+exports.tonyInvalidateCacheOnTariffeWrite = makeTonyContextCacheInvalidateFn("tariffe");
+exports.tonyInvalidateCacheOnGuastiWrite = makeTonyContextCacheInvalidateFn("guasti");

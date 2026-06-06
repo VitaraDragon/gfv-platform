@@ -5,12 +5,38 @@
 
 import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, extractTonyResponseFromString } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts } from './engine.js';
+import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
     isTonyOpenModalBlockedForFieldProfile
 } from './field-role-guard.js';
+import {
+    formReadyForTonySave,
+    magazzinoFormReadyForTonySave,
+    magazzinoProactiveReadyForSave,
+    getActiveMagazzinoFormIdForSave,
+    isTonySaveConfirmText,
+    isTonyMagazzinoCfFakeSaveText,
+    executeTonyMagazzinoSaveLocal,
+    isAnyTonyFormSaveConfirmPending,
+    promptTonyFormSaveLocal,
+    tryInterceptTonyFormSaveConfirm,
+    tryInterceptMagazzinoSaveBeforeCf,
+    tryInterceptQuickHoursSaveBeforeCf,
+    quickHoursFormReadyForTonySave,
+    isTonyQuickHoursCfFakeSaveText,
+} from '../tony-form-save-local.js';
+import {
+    tryInterceptMovimentoCreateBeforeCf,
+    tryRecoverMovimentoCfFakeSave,
+} from '../tony-movimento-create-local.js';
+import {
+    tryInterceptProdottoCreateBeforeCf,
+    tryRecoverProdottoCfFakeSave,
+} from '../tony-prodotto-create-local.js';
+import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
 
 (function() {
     'use strict';
@@ -27,7 +53,35 @@ import {
 
     // Timer proattivo form: delay post-inject (stabilizzazione) poi check; timer inattività parte dopo il check
     var POST_INJECT_CHECK_DELAY_MS = 2800;
+    var POST_INJECT_CHECK_DELAY_LAVORO_MS = 450;
     var IDLE_REMINDER_MS = 7000;
+    var MACCHINE_ONLY_ASK_DELAY_MS = 400;
+
+    /** True se l'ultima risposta CF/chat di Tony contiene già una domanda all'utente. */
+    function tonyCfReplyAlreadyAsksUser(text) {
+        if (!text || typeof text !== 'string') return false;
+        var t = String(text).trim();
+        if (!t) return false;
+        if (t.indexOf('?') >= 0) return true;
+        return /\b(quali|quante|quale|che ora|cosa|come|quando|dove|confermi|mi manca|devo sapere|indica|scegli|dimmi)\b/i.test(t);
+    }
+
+    /** Domanda generica («controlla il form») — non blocca ask client-side su trattore/attrezzo. */
+    function tonyCfReplyAlreadyAsksAboutMacchine(text) {
+        if (!text || typeof text !== 'string') return false;
+        var t = String(text).toLowerCase();
+        if (t.indexOf('?') < 0 && !/\b(quale|quali)\b/.test(t)) return false;
+        return /\b(trattor|attrezz|macchin|erpice|trincia|fresa|vanga)\w*/.test(t);
+    }
+
+    function tonyShouldArmProactiveMissingFieldsAsk() {
+        return !tonyCfReplyAlreadyAsksUser(window.__tonyLastCfAssistantText || '');
+    }
+
+    function tonyShouldArmProactiveMacchineAsk() {
+        if (tonyCfReplyAlreadyAsksAboutMacchine(window.__tonyLastCfAssistantText || '')) return false;
+        return true;
+    }
 
     /** True se il messaggio utente sembra già indicare trattore e/o attrezzo (Gestione Lavori). */
     function tonyUserMentionedLavoroMacchine(userText) {
@@ -69,6 +123,106 @@ import {
         if (/\b(durata|giornat[ae]|giorn[oi])\b/.test(t) && /\b(un|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|\d+)\b/.test(t)) return true;
         if (/\b(per|di)\s+(un|due|tre|\d+)\s+giorn/.test(t)) return true;
         return false;
+    }
+
+    /** Messaggio entity-dense crea lavoro (operaio + mezzi + data/durata nel testo iniziale). */
+    function tonyUserMessageEntityDenseForLavoro(userText) {
+        if (!userText) return false;
+        return tonyUserMentionedLavoroAssignee(userText) &&
+            tonyUserMentionedLavoroMacchine(userText) &&
+            tonyUserMentionedLavoroDataDurata(userText);
+    }
+
+    function tonyOnGestioneLavoriPage() {
+        var p = (window.location && window.location.pathname ? String(window.location.pathname).toLowerCase() : '');
+        return p.indexOf('gestione-lavori') >= 0;
+    }
+
+    function tonyIsBareCreaLavoroIntent(userText) {
+        var t = String(userText || '').trim();
+        return /^(crea(\s+un)?\s+lavoro|nuovo\s+lavoro)\s*$/i.test(t);
+    }
+
+    /** Avvio locale: «crea lavoro …» con eventuali hint (tipo/terreno/persona), escluso messaggio entity-dense CF cross-page. */
+    function tonyIsLocalLavoroCreationIntent(userText) {
+        var t = String(userText || '').trim();
+        if (!t) return false;
+        if (!/^(crea(\s+un)?\s+lavoro|nuovo\s+lavoro)\b/i.test(t)) return false;
+        if (tonyUserMessageEntityDenseForLavoro(userText) && !tonyOnGestioneLavoriPage()) return false;
+        return true;
+    }
+
+    function tonyFormSaveLocalDeps() {
+        return {
+            appendMessage: appendMessage,
+            speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
+        };
+    }
+
+    function tonyTryPromptLavoroSaveIfComplete() {
+        if (window.__tonyAwaitingLavoroSaveConfirm) return;
+        if (window.TonyFormInjector && typeof window.TonyFormInjector.lavoroInterviewReadyForSave === 'function' &&
+            window.TonyFormInjector.lavoroInterviewReadyForSave() &&
+            typeof window.__tonyPromptLavoroSaveLocal === 'function') {
+            setTimeout(function () { window.__tonyPromptLavoroSaveLocal(); }, 600);
+        }
+    }
+
+    function tonyEnsureLavoroModalForInterview() {
+        return new Promise(function (resolve) {
+            var modal = document.getElementById('lavoro-modal');
+            if (modal && modal.classList.contains('active')) {
+                resolve(true);
+                return;
+            }
+            if (typeof window.openCreaModal !== 'function') {
+                resolve(false);
+                return;
+            }
+            if (window.TonyFormInjector && typeof window.TonyFormInjector.resetLavoroInterviewSessionState === 'function') {
+                window.TonyFormInjector.resetLavoroInterviewSessionState();
+            }
+            var openResult = window.openCreaModal();
+            function waitModalActive() {
+                var tries = 0;
+                var iv = setInterval(function () {
+                    tries++;
+                    var m = document.getElementById('lavoro-modal');
+                    if (m && m.classList.contains('active')) {
+                        clearInterval(iv);
+                        resolve(true);
+                    } else if (tries > 50) {
+                        clearInterval(iv);
+                        resolve(false);
+                    }
+                }, 100);
+            }
+            if (openResult && typeof openResult.then === 'function') {
+                openResult.then(function () { waitModalActive(); }).catch(function () { waitModalActive(); });
+            } else {
+                waitModalActive();
+            }
+        });
+    }
+
+    function tonyFinishLavoroInterviewTurn(resIv, opts) {
+        removeTyping();
+        if (resIv && resIv.handled) {
+            if (resIv.message) {
+                appendMessage(resIv.message, 'tony');
+                if (window.Tony && typeof window.Tony.speak === 'function' && resIv.voiceText) {
+                    window.Tony.speak(resIv.voiceText);
+                }
+            }
+            if (resIv.readyForSave && typeof window.__tonyPromptLavoroSaveLocal === 'function') {
+                setTimeout(function () { window.__tonyPromptLavoroSaveLocal(); }, 600);
+            } else {
+                tonyTryPromptLavoroSaveIfComplete();
+            }
+        } else {
+            appendMessage('Non ho capito. Ripeti con squadra/persona, terreno, tipo lavoro, data o durata (es. martedì, domani, 3).', 'tony');
+        }
+        if (opts.fromVoice) isWaitingForTonyResponse = false;
     }
 
     /** Rimuove domande ridondanti su data/durata se l'utente le aveva già nel messaggio. */
@@ -375,47 +529,10 @@ import {
     }
 
     /**
-     * Estrae fascia oraria da testo libero (stessa logica di extractSegnaOraFormDataFromConversation lato CF).
-     * Copre: «dalle 7 alle 18», «7 alle 18», «ho iniziato alle 7 e finito alle 18», e due turni («…iniziato alle 7» poi «alle 18»).
+     * Estrae fascia oraria da testo libero (alias export engine per test e recovery).
      */
     function tonyMatchSegnaOraTimeRangeFromBlob(blob) {
-        if (!blob || typeof blob !== 'string') return null;
-        var m = blob.match(/dalle\s+(\d{1,2})(?:[:.](\d{2}))?\s+alle\s+(\d{1,2})(?:[:.](\d{2}))?/i);
-        if (m) return m;
-        m = blob.match(/(?:^|\s)(\d{1,2})(?:[:.](\d{2}))?\s+alle\s+(\d{1,2})(?:[:.](\d{2}))?\b/i);
-        if (m) return m;
-        m = blob.match(
-            /(?:ho\s+)?(?:iniziato|inizio|cominciato|comincio)\s+alle\s+(\d{1,2})(?:[:.](\d{2}))?\s+e\s+(?:sono\s+)?(?:finito|fine|terminato)\s+alle\s+(\d{1,2})(?:[:.](\d{2}))?/i
-        );
-        if (m) return m;
-        var sm = blob.match(/(?:ho\s+)?(?:iniziato|inizio|cominciato|comincio)\s+alle\s+(\d{1,2})(?:[:.](\d{2}))?/i);
-        if (sm) {
-            var fm = blob.match(/(?:finito|fine|terminato)\s+alle\s+(\d{1,2})(?:[:.](\d{2}))?/i);
-            if (fm) {
-                return [sm[0] + ' … ' + fm[0], sm[1], sm[2] || '', fm[1], fm[2] || ''];
-            }
-            var alleMatches = [];
-            var reAlle = /\balle\s+(\d{1,2})(?:[:.](\d{2}))?\b/gi;
-            var mm;
-            while ((mm = reAlle.exec(blob)) !== null) {
-                alleMatches.push({
-                    h: parseInt(mm[1], 10),
-                    mi: mm[2] ? parseInt(mm[2], 10) : 0,
-                    index: mm.index
-                });
-            }
-            if (alleMatches.length >= 2) {
-                var startIdx = sm.index != null ? sm.index : 0;
-                var afterStart = alleMatches.filter(function (a) { return a.index > startIdx; });
-                var cand = afterStart.length ? afterStart[afterStart.length - 1] : alleMatches[alleMatches.length - 1];
-                var sh = parseInt(sm[1], 10);
-                var smi = sm[2] ? parseInt(sm[2], 10) : 0;
-                if (cand && (cand.h !== sh || cand.mi !== smi)) {
-                    return [blob, sm[1], sm[2] || '', String(cand.h), cand.mi ? String(cand.mi) : ''];
-                }
-            }
-        }
-        return null;
+        return matchSegnaOraTimeRangeFromBlob(blob);
     }
 
     /** Testo utente + sessionStorage + ultimi turni chat (stesso ordine della recovery inject). */
@@ -427,7 +544,7 @@ import {
             }
         } catch (e0) { /* ignore */ }
         try {
-            var lastU = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('tony_last_user_message') : '';
+            var lastU = tonyGetLastUserMessage();
             if (lastU && String(lastU).trim()) blob += ' ' + String(lastU).trim();
         } catch (e1) { /* ignore */ }
         try {
@@ -451,7 +568,7 @@ import {
             }
         } catch (e0) { /* ignore */ }
         try {
-            var lastU = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('tony_last_user_message') : '';
+            var lastU = tonyGetLastUserMessage();
             if (lastU && String(lastU).trim()) blob += ' ' + String(lastU).trim();
         } catch (e1) { /* ignore */ }
         try {
@@ -479,7 +596,7 @@ import {
             }
         } catch (e0) { /* ignore */ }
         try {
-            var lastUss = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('tony_last_user_message') : '';
+            var lastUss = tonyGetLastUserMessage();
             if (lastUss && String(lastUss).trim()) prefix += ' ' + String(lastUss).trim();
         } catch (e1) { /* ignore */ }
         var parts = [];
@@ -496,20 +613,239 @@ import {
         return String(prefix + ' ' + parts.join(' ')).trim();
     }
 
-    /** True se in chat l'utente ha già parlato di pausa (anche «nessuna pausa»). */
+    /** Ultimi N messaggi utente (array cronologico), opzionale turno corrente in coda se non già presente. */
+    function tonyGetSegnaOraUserTurnTexts(maxTurns, optExtraUserText) {
+        var n = maxTurns && maxTurns > 0 ? maxTurns : 6;
+        var parts = [];
+        try {
+            var hist = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
+            for (var i = hist.length - 1; i >= 0 && parts.length < n; i--) {
+                var e = hist[i];
+                if (!e || e.role !== 'user' || !e.parts || !e.parts.length) continue;
+                var t = e.parts[0] && e.parts[0].text ? String(e.parts[0].text).trim() : '';
+                if (!t) continue;
+                parts.unshift(t);
+            }
+        } catch (eH) { /* ignore */ }
+        try {
+            if (optExtraUserText && String(optExtraUserText).trim()) {
+                var extra = String(optExtraUserText).trim();
+                if (!parts.length || parts[parts.length - 1] !== extra) parts.push(extra);
+            }
+        } catch (eX) { /* ignore */ }
+        return parts;
+    }
+
+    function tonyMatchSegnaOraTimeRangeFromUserHistory(maxTurns, optExtraUserText) {
+        var turns = tonyGetSegnaOraUserTurnTexts(maxTurns, optExtraUserText);
+        if (!turns.length) return null;
+        return matchSegnaOraTimeRangeFromUserTexts(turns);
+    }
+
+    function tonyMatchSegnaOraSingleTimeFromBlob(blob) {
+        return matchSegnaOraSingleTimeFromBlob(blob);
+    }
+
+    function tonyMatchSegnaOraSingleTimeForQuickHoursForm(blob, formHint) {
+        var single = matchSegnaOraSingleTimeFromBlob(blob);
+        if (single) return single;
+        return matchSegnaOraBareHourFromBlob(blob, formHint);
+    }
+
+    function tonySegnaOraUnrecognizedTurnMessage(text) {
+        var ub = String(text || '').trim();
+        var qhWin = tonyResolveQuickHoursWindow();
+        var startVal = '';
+        var endVal = '';
+        if (qhWin && qhWin.document) {
+            var st = qhWin.document.getElementById('ora-start');
+            var en = qhWin.document.getElementById('ora-end');
+            startVal = st ? String(st.value || '').trim() : '';
+            endVal = en ? String(en.value || '').trim() : '';
+        }
+        if (startVal && !endVal) {
+            return 'Non ho capito l\'orario di fine. Scrivi ad esempio «alle 18», «18:30», «18,30» o «18 30».';
+        }
+        if (!startVal) {
+            return 'Non ho capito l\'orario di inizio. Scrivi ad esempio «alle 7», «7:30» o solo «7».';
+        }
+        if (startVal && endVal && /^\s*(\d{1,3})\s*$/.test(ub)) {
+            return 'Quanti minuti di pausa hai fatto? (es. 45, oppure «nessuna pausa»).';
+        }
+        return TONY_SEGNA_ORE_ASK_FALLBACK;
+    }
+
+    var TONY_SEGNA_ORE_LOCAL_INTERVIEW_MS = 30 * 60 * 1000;
+    var TONY_SEGNA_ORE_MODEL_INTERVIEW_RE =
+        /iniziato|inizio alle|ok,?\s*inizio alle|fino a che ora|a che ora hai iniziato|minuti di pausa|orari nel form|impostato la pausa|impostato orari|segn.*ore/i;
+
+    function tonyMarkSegnaOraLocalInterview() {
+        try {
+            if (typeof window !== 'undefined') window.__tonySegnaOraLocalInterviewAt = Date.now();
+        } catch (eMark) { /* ignore */ }
+    }
+
+    function tonySegnaOraLocalInterviewRecent() {
+        try {
+            return !!(window.__tonySegnaOraLocalInterviewAt &&
+                (Date.now() - window.__tonySegnaOraLocalInterviewAt) < TONY_SEGNA_ORE_LOCAL_INTERVIEW_MS);
+        } catch (eRec) {
+            return false;
+        }
+    }
+
+    /** Evita buchi in chatHistory: appendMessage UI non aggiorna Tony.chatHistory (solo CF / intercettazioni locali). */
+    function tonyEnsureUserTurnInChatHistory(userText) {
+        try {
+            var t = String(userText || '').trim();
+            if (!t || !window.Tony || !Array.isArray(window.Tony.chatHistory)) return;
+            var hist = window.Tony.chatHistory;
+            for (var i = hist.length - 1; i >= 0; i--) {
+                var e = hist[i];
+                if (!e || e.role !== 'user' || !e.parts || !e.parts.length) continue;
+                var prev = e.parts[0] && e.parts[0].text ? String(e.parts[0].text).trim() : '';
+                if (prev === t) return;
+                break;
+            }
+            tonyPushLocalChatTurn(t, null, { skipModelPush: true });
+        } catch (eEns) { /* ignore */ }
+    }
+
+    /** Intervista Segna ore già avviata (intent, form parziale o ultima domanda Tony su orari/pausa). */
+    function tonyIsActiveSegnaOraInterview() {
+        try {
+            if (tonySegnaOraLocalInterviewRecent()) return true;
+            var recentUb = tonyBuildSegnaOraUserBlobLastNUserTurns(4);
+            if (tonyUserMessageSuggestsSegnaOre(recentUb)) return true;
+            var qhWin = tonyResolveQuickHoursWindow();
+            if (qhWin && qhWin.document) {
+                var st = qhWin.document.getElementById('ora-start');
+                var en = qhWin.document.getElementById('ora-end');
+                if (st && String(st.value || '').trim()) return true;
+                if (en && String(en.value || '').trim()) return true;
+            }
+            var hist = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
+            var modelScanned = 0;
+            for (var i = hist.length - 1; i >= 0 && modelScanned < 4; i--) {
+                var e = hist[i];
+                if (!e || e.role !== 'model' || !e.parts || !e.parts.length) continue;
+                modelScanned++;
+                var t = e.parts[0] && e.parts[0].text ? String(e.parts[0].text) : '';
+                if (TONY_SEGNA_ORE_MODEL_INTERVIEW_RE.test(t)) return true;
+            }
+        } catch (eInt) { /* ignore */ }
+        return false;
+    }
+
+    function tonyPadQuickHoursTime(val) {
+        if (val == null || String(val).trim() === '') return null;
+        var hm = String(val).trim().match(/^(\d{1,2})(?::(\d{2}))?/);
+        if (!hm) return null;
+        var h = parseInt(hm[1], 10);
+        var mi = hm[2] ? parseInt(hm[2], 10) : 0;
+        if (!Number.isFinite(h) || h < 0 || h > 23 || !Number.isFinite(mi) || mi < 0 || mi > 59) return null;
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        return pad(h) + ':' + pad(mi);
+    }
+
+    function tonyUserBlobContainsHour(ub, hour) {
+        if (hour == null || !ub) return false;
+        var re = new RegExp('(?:^|\\D)' + hour + '(?:\\D|$)');
+        if (re.test(ub)) return true;
+        if (hour < 10) {
+            re = new RegExp('(?:^|\\D)0' + hour + '(?:\\D|$)');
+            if (re.test(ub)) return true;
+        }
+        return false;
+    }
+
+    /** Orari CF plausibili se l'utente ha citato quelle ore (es. «6» e «18» in «daklle 6 aslle 18»). */
+    function tonyCfTimesPlausibleForUserBlob(fd, ub, optUserTurns) {
+        if (!fd || !ub) return false;
+        var ni = tonyPadQuickHoursTime(fd['ora-inizio'] || fd['ora-start'] || fd['attivita-orario-inizio']);
+        var nf = tonyPadQuickHoursTime(fd['ora-fine'] || fd['ora-end'] || fd['attivita-orario-fine']);
+        if (!ni || !nf) return false;
+        var h1 = parseInt(ni.split(':')[0], 10);
+        var h2 = parseInt(nf.split(':')[0], 10);
+        if (!Number.isFinite(h1) || !Number.isFinite(h2) || h1 === h2) return false;
+        var turns = Array.isArray(optUserTurns) ? optUserTurns : tonyGetSegnaOraUserTurnTexts(6);
+        var ordered = matchSegnaOraTimeRangeFromUserTexts(turns);
+        if (ordered) {
+            return parseInt(ordered[1], 10) === h1 && parseInt(ordered[3], 10) === h2;
+        }
+        return tonyUserBlobContainsHour(ub, h1) && tonyUserBlobContainsHour(ub, h2) && h1 < h2;
+    }
+
+    function tonyApplySegnaOraTimeRangeMatchToFields(fd, m) {
+        if (!m || !fd) return;
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        var h1 = parseInt(m[1], 10);
+        var mi1 = m[2] ? parseInt(m[2], 10) : 0;
+        var h2 = parseInt(m[3], 10);
+        var mi2 = m[4] ? parseInt(m[4], 10) : 0;
+        fd['ora-inizio'] = pad(h1) + ':' + pad(mi1);
+        fd['ora-fine'] = pad(h2) + ':' + pad(mi2);
+    }
+
+    /** Corregge inversione inizio/fine se i turni utente citano due «alle H» in ordine cronologico. */
+    function tonyFixSegnaOraFieldsOrderFromUserTurns(fd, userTurns) {
+        if (!fd || typeof fd !== 'object') return fd;
+        var ni = tonyPadQuickHoursTime(fd['ora-inizio'] || fd['ora-start'] || fd['attivita-orario-inizio']);
+        var nf = tonyPadQuickHoursTime(fd['ora-fine'] || fd['ora-end'] || fd['attivita-orario-fine']);
+        if (!ni || !nf) return fd;
+        var turns = Array.isArray(userTurns) ? userTurns : [];
+        var ordered = matchSegnaOraTimeRangeFromUserTexts(turns);
+        if (ordered) {
+            tonyApplySegnaOraTimeRangeMatchToFields(fd, ordered);
+            return fd;
+        }
+        var hStart = parseInt(ni.split(':')[0], 10);
+        var hEnd = parseInt(nf.split(':')[0], 10);
+        if (!Number.isFinite(hStart) || !Number.isFinite(hEnd) || hStart < hEnd) return fd;
+        var alle = collectSegnaOraAlleTimesFromUserTexts(turns);
+        if (alle.length >= 2) {
+            var a0 = alle[0];
+            var a1 = alle[alle.length - 1];
+            if (a0.h < a1.h || (a0.h === a1.h && a0.mi < a1.mi)) {
+                tonyApplySegnaOraTimeRangeMatchToFields(fd, [
+                    turns.join(' '),
+                    String(a0.h),
+                    a0.mi ? String(a0.mi) : '',
+                    String(a1.h),
+                    a1.mi ? String(a1.mi) : '',
+                ]);
+            }
+        }
+        return fd;
+    }
+
+    /** True se in chat l'utente ha già parlato di pausa (anche «0» o «nessuna pausa»). */
     function tonyQuickHoursUserAcknowledgedPause(blob) {
-        if (!blob || typeof blob !== 'string') return false;
+        if (!blob || typeof blob !== 'string') blob = '';
         if (/(\d+)\s*min(?:uti)?(?:\s+di\s*pausa)?/i.test(blob)) return true;
         if (/un['']?ora\s+di\s+pausa/i.test(blob)) return true;
         if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa|mai\s+fatto\s+pausa|non\s+ho\s+paus/i.test(blob)) return true;
         if (/\bpausa\b/i.test(blob) && /\b(nessun|niente|nulla|\b0\b)\b/i.test(blob)) return true;
         try {
-            var lastU = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('tony_last_user_message') : '';
-            if (lastU && /^\s*(\d{1,3})\s*$/.test(String(lastU).trim())) {
-                var n = parseInt(RegExp.$1, 10);
-                if (Number.isFinite(n) && n >= 0 && n <= 600) return true;
+            if (window.__tonyQuickHoursPauseAckAt &&
+                (Date.now() - window.__tonyQuickHoursPauseAckAt) < TONY_SEGNA_ORE_LOCAL_INTERVIEW_MS) {
+                return true;
             }
-        } catch (eLu) { /* ignore */ }
+        } catch (eFl) { /* ignore */ }
+        try {
+            var turns = tonyGetSegnaOraUserTurnTexts(8);
+            for (var i = 0; i < turns.length; i++) {
+                var t = String(turns[i] || '').trim();
+                if (!t) continue;
+                var loneNum = t.match(/^\s*(\d{1,3})\s*$/);
+                if (loneNum) {
+                    var n = parseInt(loneNum[1], 10);
+                    if (Number.isFinite(n) && n >= 0 && n <= 600) return true;
+                }
+                if (/^\s*(nessuna|nessun|niente|nulla)\s*$/i.test(t)) return true;
+                if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa/i.test(t)) return true;
+            }
+        } catch (eT) { /* ignore */ }
         return false;
     }
 
@@ -525,8 +861,10 @@ import {
             if (Number.isFinite(n0) && n0 >= 0 && n0 <= 600) return n0;
         }
         if (/un['']?ora\s+di\s+pausa/i.test(userBlob)) return 60;
+        if (/^\s*(nessuna|nessun|niente|nulla)\s*$/i.test(userBlob.trim())) return 0;
+        if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa/i.test(userBlob)) return 0;
         try {
-            var lastU2 = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('tony_last_user_message') : '';
+            var lastU2 = tonyGetLastUserMessage();
             if (lastU2 && /^\s*(\d{1,3})\s*$/.test(String(lastU2).trim())) {
                 var lone = parseInt(RegExp.$1, 10);
                 if (Number.isFinite(lone) && lone >= 0 && lone <= 600) return lone;
@@ -562,7 +900,7 @@ import {
             }
         } catch (eL) { /* ignore */ }
         try {
-            var lastU = typeof sessionStorage !== 'undefined' ? String(sessionStorage.getItem('tony_last_user_message') || '').trim() : '';
+            var lastU = tonyGetLastUserMessage();
             if (lastU) {
                 var nu = lastU.match(/^\s*(note|nota|annotazioni?)\s*[:\.]?\s*(.+)$/i);
                 if (nu && nu[2]) {
@@ -604,7 +942,27 @@ import {
      */
     function tonySanitizeCfWorkspaceOraFormData(formDataIn) {
         var fd = formDataIn && typeof formDataIn === 'object' ? Object.assign({}, formDataIn) : {};
-        var ub = tonyBuildSegnaOraUserBlobLastNUserTurns(6);
+        var lastU = tonyGetLastUserMessage();
+        var userTurns = tonyGetSegnaOraUserTurnTexts(6, lastU || null);
+        var ub = tonyBuildSegnaOraUserBlobLastNUserTurns(6, lastU || null);
+        var m = matchSegnaOraTimeRangeFromUserTexts(userTurns);
+        if (!m && lastU) m = tonyMatchSegnaOraTimeRangeFromBlob(lastU);
+        if (m) {
+            tonyApplySegnaOraTimeRangeMatchToFields(fd, m);
+        } else if (tonyCfTimesPlausibleForUserBlob(fd, ub, userTurns)) {
+            var ni = tonyPadQuickHoursTime(fd['ora-inizio'] || fd['ora-start'] || fd['attivita-orario-inizio']);
+            var nf = tonyPadQuickHoursTime(fd['ora-fine'] || fd['ora-end'] || fd['attivita-orario-fine']);
+            if (ni) fd['ora-inizio'] = ni;
+            if (nf) fd['ora-fine'] = nf;
+        } else {
+            delete fd['ora-inizio'];
+            delete fd['ora-fine'];
+            delete fd['ora-start'];
+            delete fd['ora-end'];
+            delete fd['attivita-orario-inizio'];
+            delete fd['attivita-orario-fine'];
+        }
+        tonyFixSegnaOraFieldsOrderFromUserTurns(fd, userTurns);
         delete fd['ora-pause'];
         delete fd['attivita-pause'];
         var pu = tonyExtractPauseMinutesFromUserBlob(ub);
@@ -618,10 +976,242 @@ import {
         return fd;
     }
 
+    function tonyTrackQuickHoursCfInterviewFromSpeech(speech) {
+        try {
+            if (!speech || typeof speech !== 'string') return;
+            var s = speech.toLowerCase();
+            if (/minut[io].*pausa|pausa.*minut|quanti minuti|nessuna pausa|per quanti minuti/i.test(s)) {
+                window.__tonyQuickHoursCfAskedPauseAt = Date.now();
+            }
+            if (/vuoi salvare|confermi|salvo\?|ok salva|scrivi «sì»|scrivi "sì"/i.test(s)) {
+                window.__tonyQuickHoursCfAskedSaveAt = Date.now();
+            }
+        } catch (eTr) { /* ignore */ }
+    }
+
+    function tonyCfSpeechCoversQuickHoursInterview(speech) {
+        if (!speech || typeof speech !== 'string') return false;
+        var s = speech.toLowerCase();
+        if (/minut[io].*pausa|pausa.*minut|quanti minuti|nessuna pausa|per quanti minuti/i.test(s)) return true;
+        if (/vuoi salvare|confermi|salvo\?|ok salva|scrivi «sì»|scrivi "sì"/i.test(s)) return true;
+        return false;
+    }
+
+    function tonyPushLocalChatTurn(userText, assistantText, opts) {
+        opts = opts || {};
+        try {
+            if (!window.Tony || !Array.isArray(window.Tony.chatHistory)) return;
+            if (!opts.skipUserPush && userText && String(userText).trim()) {
+                window.Tony.chatHistory.push({ role: 'user', parts: [{ text: String(userText).trim() }] });
+            }
+            if (!opts.skipModelPush && assistantText && String(assistantText).trim()) {
+                window.Tony.chatHistory.push({ role: 'model', parts: [{ text: String(assistantText).trim() }] });
+            }
+            while (window.Tony.chatHistory.length > 80) window.Tony.chatHistory.shift();
+        } catch (ePush) { /* ignore */ }
+    }
+
+    function tonyFinishSegnaOreLocalIntercept(userText, msg, handlers) {
+        handlers = handlers || {};
+        if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+        if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+        tonyMarkSegnaOraLocalInterview();
+        tonyPushLocalChatTurn(userText, msg, { skipUserPush: true });
+        window.__tonyLastCfAssistantText = msg;
+        if (typeof handlers.appendMessage === 'function') handlers.appendMessage(msg, 'tony');
+        if (typeof handlers.speak === 'function') handlers.speak(msg);
+        if (typeof handlers.saveState === 'function') handlers.saveState();
+    }
+
+    /** Messaggio utente appartenente al flusso Segna ore workspace (intercettabile senza CF). */
+    function tonyMessageIsFieldWorkspaceSegnaOreTurn(text) {
+        var ub = String(text || '').trim();
+        if (!ub) return false;
+        if (isTonySaveConfirmText(ub)) return true;
+        if (tonyUserMessageSuggestsSegnaOre(ub)) return true;
+        if (tonyMatchSegnaOraTimeRangeFromBlob(ub)) return true;
+        if (tonyIsActiveSegnaOraInterview() || tonySegnaOraLocalInterviewRecent()) {
+            var qhWin = tonyResolveQuickHoursWindow();
+            if (qhWin && qhWin.document) {
+                var st = qhWin.document.getElementById('ora-start');
+                var en = qhWin.document.getElementById('ora-end');
+                var formHint = {
+                    hasStart: !!(st && String(st.value || '').trim()),
+                    hasEnd: !!(en && String(en.value || '').trim()),
+                };
+                if (tonyMatchSegnaOraSingleTimeForQuickHoursForm(ub, formHint)) return true;
+                if (formHint.hasStart && formHint.hasEnd && /^\s*(\d{1,3})\s*$/.test(ub)) return true;
+            }
+        }
+        if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa/i.test(ub)) return true;
+        return false;
+    }
+
+    /**
+     * @returns {{ handled: boolean }}
+     */
+    function tryInterceptSegnaOreIntentBeforeCf(text, handlers) {
+        handlers = handlers || {};
+        if (!tonyResolveQuickHoursWindow() || !tonyIsCampoLikeWorkspaceForTony()) return { handled: false };
+        var ub = String(text || '').trim();
+        if (!ub || isTonySaveConfirmText(ub)) return { handled: false };
+        if (!tonyUserMessageSuggestsSegnaOre(ub)) return { handled: false };
+        if (tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
+        if (/^\s*(\d{1,3})\s*$/.test(ub)) return { handled: false };
+        var qhWin = tonyResolveQuickHoursWindow();
+        try {
+            if (qhWin && typeof qhWin.gfvFieldWorkspaceGoToHoursSlide === 'function') qhWin.gfvFieldWorkspaceGoToHoursSlide();
+        } catch (eSl) { /* ignore */ }
+        var doc = qhWin.document;
+        var st = doc.getElementById('ora-start');
+        var en = doc.getElementById('ora-end');
+        var hasTimes = st && en && String(st.value || '').trim() && String(en.value || '').trim();
+        var msg;
+        if (hasTimes && quickHoursFormReadyForTonySave()) {
+            msg = 'Ho già orari e pausa nel form. Vuoi salvare? Scrivi «sì» o «salva».';
+        } else if (hasTimes) {
+            msg = 'Ho già gli orari nel form. Quanti minuti di pausa hai fatto? (es. 30, oppure «nessuna pausa»).';
+        } else {
+            msg = TONY_SEGNA_ORE_ASK_FALLBACK;
+        }
+        tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
+        console.log('[Tony] Segna ore: intervista locale avvio (0 CF).');
+        return { handled: true };
+    }
+
+    /**
+     * Primo messaggio con fascia oraria su workspace campo: inject locale + domanda pausa, 0 CF.
+     * @returns {{ handled: boolean }}
+     */
+    function tryInterceptSegnaOreTurnBeforeCf(text, handlers) {
+        handlers = handlers || {};
+        if (!tonyResolveQuickHoursWindow() || !tonyIsCampoLikeWorkspaceForTony()) return { handled: false };
+        var ub = String(text || '').trim();
+        if (!ub || isTonySaveConfirmText(ub)) return { handled: false };
+        if (!tonyUserMessageSuggestsSegnaOre(ub) && !tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
+        if (!tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
+        if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+        if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
+        Promise.resolve(tonyRecoverSegnaOraFromChatHistory({ userText: ub, maxTurns: 2 })).then(function(ok) {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+            if (!ok) return;
+            var fc = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+            var intE = (fc && fc.interviewEmpty) ? fc.interviewEmpty : [];
+            var onlyPause = intE.length === 1 && intE[0] === 'ora-break';
+            var msg = onlyPause
+                ? 'Ho impostato orari nel form. Quanti minuti di pausa hai fatto? (es. 30, oppure «nessuna pausa»).'
+                : 'Ho impostato orari nel form. Vuoi salvare? Scrivi «sì» o «salva».';
+            tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
+            console.log('[Tony] Segna ore: inject locale da fascia oraria (senza tonyAsk).');
+        }).catch(function() {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+        });
+        return { handled: true };
+    }
+
+    /**
+     * Un solo orario per messaggio (es. «alle 7» poi «alle 18»): inject locale campo per campo, 0 CF.
+     * @returns {{ handled: boolean }}
+     */
+    function tryInterceptSegnaOreSingleTimeBeforeCf(text, handlers) {
+        handlers = handlers || {};
+        if (!tonyResolveQuickHoursWindow() || !tonyIsCampoLikeWorkspaceForTony()) return { handled: false };
+        var ub = String(text || '').trim();
+        if (!ub || isTonySaveConfirmText(ub)) return { handled: false };
+        if (tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
+        if (!tonyIsActiveSegnaOraInterview()) return { handled: false };
+        tonyMarkSegnaOraLocalInterview();
+        var qhWin = tonyResolveQuickHoursWindow();
+        var doc = qhWin.document;
+        var st = doc.getElementById('ora-start');
+        var en = doc.getElementById('ora-end');
+        if (!st || !en) return { handled: false };
+        var startVal = String(st.value || '').trim();
+        var endVal = String(en.value || '').trim();
+        var single = tonyMatchSegnaOraSingleTimeForQuickHoursForm(ub, {
+            hasStart: !!startVal,
+            hasEnd: !!endVal,
+        });
+        if (!single) return { handled: false };
+        var kind = single[3] || 'unknown';
+        var time = tonyPadQuickHoursTime(single[1] + ':' + (single[2] || '00'));
+        if (!time) return { handled: false };
+        var fd = {};
+        var msg;
+        if (kind === 'end' || (startVal && !endVal)) {
+            fd['ora-fine'] = time;
+            msg = 'Ok, fine alle ' + time + '. Quanti minuti di pausa hai fatto? (es. 30, oppure «nessuna pausa»).';
+        } else if (!startVal || kind === 'start') {
+            fd['ora-inizio'] = time;
+            msg = 'Ok, inizio alle ' + time + '. Fino a che ora hai lavorato?';
+        } else {
+            fd['ora-fine'] = time;
+            msg = 'Ok, fine alle ' + time + '. Quanti minuti di pausa hai fatto? (es. 30, oppure «nessuna pausa»).';
+        }
+        if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+        if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
+        Promise.resolve(
+            window.TonyFormInjector && typeof window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm === 'function'
+                ? window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm(fd, window.Tony && window.Tony.context, { targetWindow: qhWin })
+                : false
+        ).then(function(ok) {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+            if (!ok) return;
+            tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
+            console.log('[Tony] Segna ore: inject locale singolo orario (senza tonyAsk).');
+        }).catch(function() {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+        });
+        return { handled: true };
+    }
+
+    /**
+     * Risposta solo minuti pausa (es. «60») con orari già nel form: inject pausa + domanda salva, 0 CF.
+     * @returns {{ handled: boolean }}
+     */
+    function tryInterceptSegnaOrePauseBeforeCf(text, handlers) {
+        handlers = handlers || {};
+        if (!tonyResolveQuickHoursWindow() || !tonyIsCampoLikeWorkspaceForTony()) return { handled: false };
+        var ub = String(text || '').trim();
+        if (!ub || isTonySaveConfirmText(ub)) return { handled: false };
+        if (tonyMatchSegnaOraTimeRangeFromBlob(ub)) {
+            return tryInterceptSegnaOreTurnBeforeCf(text, handlers);
+        }
+        var pauseMin = tonyExtractPauseMinutesFromUserBlob(ub);
+        if (pauseMin == null) return { handled: false };
+        var qhWin = tonyResolveQuickHoursWindow();
+        var doc = qhWin.document;
+        var st = doc.getElementById('ora-start');
+        var en = doc.getElementById('ora-end');
+        if (!st || !en || !String(st.value || '').trim() || !String(en.value || '').trim()) {
+            return { handled: false };
+        }
+        if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+        if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
+        var fdPause = { 'ora-pause': String(pauseMin) };
+        Promise.resolve(
+            window.TonyFormInjector && typeof window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm === 'function'
+                ? window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm(fdPause, window.Tony && window.Tony.context, { targetWindow: qhWin })
+                : false
+        ).then(function(ok) {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+            if (!ok) return;
+            try { window.__tonyQuickHoursPauseAckAt = Date.now(); } catch (eAck) { /* ignore */ }
+            var msg = quickHoursFormReadyForTonySave()
+                ? 'Ho impostato la pausa nel form. Vuoi salvare? Scrivi «sì», «ok» o «salva».'
+                : 'Ho impostato la pausa nel form. Controlla i campi e conferma quando sei pronto.';
+            tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
+            console.log('[Tony] Segna ore: pausa inject locale (senza tonyAsk).');
+        }).catch(function() {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+        });
+        return { handled: true };
+    }
+
     /** Ultimo messaggio utente chiede esplicitamente di salvare / confermare (no solo orari, pausa o «note:»). */
     function tonyLastUserMessageExplicitSegnaOraSubmitIntent() {
         try {
-            var lastU = typeof sessionStorage !== 'undefined' ? String(sessionStorage.getItem('tony_last_user_message') || '').trim() : '';
+            var lastU = tonyGetLastUserMessage();
             if (!lastU) return false;
             if (/^\s*\d{1,3}\s*$/.test(lastU)) return false;
             if (/^\s*(note|nota|annotazioni?)\s*[:\.]/i.test(lastU)) return false;
@@ -695,12 +1285,63 @@ import {
 
     function tonyUserMessageSuggestsSegnaOre(userBlob) {
         if (!userBlob || typeof userBlob !== 'string') return false;
-        if (/segn(a|)re\s+le\s+ore|segn(a|)m(o|iamo)\s+le\s+ore|registr(a|)re\s+le\s+ore|ore\s+di\s+(ieri|oggi)|segn(a|)tura\s+ore|segna\s+ore/i.test(userBlob)) return true;
+        if (/segn\w*\s+le\s+ore|registr\w*\s+le\s+ore|ore\s+di\s+(ieri|oggi)|segnatura\s+ore|segna\s+ore/i.test(userBlob)) return true;
         var u = userBlob.toLowerCase();
         if (/\b(ore|orari)\b/.test(u) && /\b(lavoro|lavorato|turno|ieri|oggi|pausa|inizio|fine)\b/.test(u)) return true;
         if (/\b(ho\s+lavorato|ho\s+iniziat|iniziat\w*\s+alle\s+\d|ore\s+lavorate|finito\s+il\s+turno|inizio\s+turno|registr\w*\s+il\s+tempo)\b/.test(u)) return true;
         if (tonyMatchSegnaOraTimeRangeFromBlob(userBlob)) return true;
         return false;
+    }
+
+    var TONY_SEGNA_ORE_ASK_FALLBACK = 'A che ora hai iniziato e finito? Quanti minuti di pausa?';
+
+    /** Fallback RAM quando Tracking Prevention blocca sessionStorage. */
+    function tonyGetLastUserMessage() {
+        try {
+            if (typeof sessionStorage !== 'undefined') {
+                var stored = sessionStorage.getItem('tony_last_user_message');
+                if (stored && String(stored).trim()) return String(stored).trim();
+            }
+        } catch (_) { /* ignore */ }
+        try {
+            if (typeof window !== 'undefined' && window.__tonyLastUserMessage) {
+                return String(window.__tonyLastUserMessage).trim();
+            }
+        } catch (_) { /* ignore */ }
+        return '';
+    }
+
+    function tonySetLastUserMessage(text) {
+        var t = String(text || '').trim();
+        if (!t) return;
+        try {
+            if (typeof window !== 'undefined') window.__tonyLastUserMessage = t;
+        } catch (_) { /* ignore */ }
+        try {
+            if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('tony_last_user_message', t);
+        } catch (_) { /* ignore */ }
+    }
+
+    function tonyEnsureSegnaOraAssistantVisible(text) {
+        var t = String(text || '').trim();
+        if (t) return t;
+        if (!tonyIsCampoLikeWorkspaceForTony()) return '';
+        var ub = String(tonyBuildSegnaOraUserBlobLastNUserTurns(6) || '').trim();
+        if (!tonyUserMessageSuggestsSegnaOre(ub)) return '';
+        return TONY_SEGNA_ORE_ASK_FALLBACK;
+    }
+
+    function tonyStripRedundantSegnaOraOpener(speech) {
+        var s = String(speech || '').trim();
+        if (!s) return '';
+        if (/apri(re)?\s+(la\s+)?pagin|vai\s+alla\s+segnatur|vado\s+alla\s+pagin|inserisc(i|ite)\s+.{0,40}dati|compila(re)?\s+(il\s+)?form\s+a\s+mano|porto\s+.{0,30}segnatur|ok,?\s*apri\s+la\s+pagin/i.test(s)) {
+            return '';
+        }
+        var out = s.replace(/\b(?:ok\.?\s*,?\s*)?(?:certo\.?\s*,?\s*)?(?:vuoi\s+(?:segnare|registrare)\s+le\s+ore(?:\s+per\s+oggi)?\??)\s*/gi, ' ').trim();
+        out = out.replace(/^ok\.?\s*,?\s*vuoi\b[^.?!]*[.?!]?\s*/i, '').trim();
+        if (/^ok\.?!?$/i.test(out) || /^va\s*bene\.?!?$/i.test(out) || /^certo\.?!?$/i.test(out)) return '';
+        if (/cambio\s+(la\s+)?data\b/i.test(out) && !/\b(orario|dalle\s+\d|alle\s+\d|inizio|fine)\b/i.test(out)) return '';
+        return out;
     }
 
     /**
@@ -717,7 +1358,7 @@ import {
             var domTimesOk = stG && enG && String(stG.value || '').trim() && String(enG.value || '').trim();
             var rangeOk = !!tonyMatchSegnaOraTimeRangeFromBlob(segnaOreBlob);
             var sG = String(speech || '');
-            var claimsSaved = /ore\s+segnate|segna\w*\s+(le\s+)?ore|salvat[ao]\b|registrat[ei]\s+.{0,20}ore|perfetto\s*[,.]?\s*(tutto|ore)|tutto\s+chiaro\s*[.!]*\s*perfetto|perfetto\s*[,.]?\s*tutto\s+chiaro/i.test(sG);
+            var claimsSaved = /ore\s+segnate\b|salvat[ao]\b|registrat[ei]\s+.{0,20}ore|perfetto\s*[,.]?\s*(tutto|ore)|tutto\s+chiaro\s*[.!]*\s*perfetto|perfetto\s*[,.]?\s*tutto\s+chiaro|(?:^|[.!?\s])segna(?:te|to)\s+le\s+ore\b/i.test(sG);
             if (claimsSaved && (!rangeOk || !domTimesOk)) {
                 if (!rangeOk) {
                     return 'Indica fascia oraria e pausa (es. «dalle 7 alle 18» o «iniziato alle 7 e finito alle 18»), così compilo il form.';
@@ -748,12 +1389,10 @@ import {
         if (!isOraFlow) return speech;
         var s = (speech || '').trim();
         if (!s) return s;
-        if (/apri(re)?\s+(la\s+)?pagin|vai\s+alla\s+segnatur|vado\s+alla\s+pagin|inserisc(i|ite)\s+.{0,40}dati|compila(re)?\s+(il\s+)?form\s+a\s+mano|porto\s+.{0,30}segnatur|ok,?\s*apri\s+la\s+pagin/i.test(s)) return '';
-        if (/\bvuoi\s+segnare\s+le\s+ore\b/i.test(s) || /\bvuoi\s+registrare\s+le\s+ore\b/i.test(s)) return '';
-        if (/^ok\.?\s*,?\s*vuoi\b/i.test(s)) return '';
-        if (/^ok\.?!?$/i.test(s) || /^va\s*bene\.?!?$/i.test(s) || /^certo\.?!?$/i.test(s)) return '';
-        if (/cambio\s+(la\s+)?data\b/i.test(s) && !/\b(orario|dalle\s+\d|alle\s+\d|inizio|fine)\b/i.test(s)) return '';
-        return speech;
+        var cleaned = tonyStripRedundantSegnaOraOpener(s);
+        if (cleaned) return cleaned;
+        if (/[?]/.test(s) || /\b(a che ora|quanti minuti|orari|pausa|iniziato|finito)\b/i.test(s)) return s;
+        return TONY_SEGNA_ORE_ASK_FALLBACK;
     }
 
     /**
@@ -823,7 +1462,18 @@ import {
                 var st = doc.getElementById('ora-start');
                 var en = doc.getElementById('ora-end');
                 var recentUb = tonyBuildSegnaOraUserBlobLastNUserTurns(6, userMessagePlain || '');
-                var hasTimeRange = !!tonyMatchSegnaOraTimeRangeFromBlob(recentUb);
+                var curMsg = String(userMessagePlain || '').trim();
+                if (tonyIsCampoLikeWorkspaceForTony()) {
+                    var curRange = !!tonyMatchSegnaOraTimeRangeFromBlob(curMsg);
+                    var curPause = /^\s*(\d{1,3})\s*$/.test(curMsg) ||
+                        (tonyExtractPauseMinutesFromUserBlob(curMsg) != null && !curRange);
+                    if (!curRange && !curPause) {
+                        resolve(false);
+                        return;
+                    }
+                }
+                var hasTimeRange = !!tonyMatchSegnaOraTimeRangeFromBlob(curMsg) ||
+                    !!tonyMatchSegnaOraTimeRangeFromBlob(recentUb);
                 if (st && en && String(st.value || '').trim() && String(en.value || '').trim()) {
                     if (!tonyQuickHoursPauseInjectNeeded(recentUb, doc)) {
                         resolve(false);
@@ -849,9 +1499,10 @@ import {
                     return;
                 }
                 var ctype = commandToExecute && commandToExecute.type ? String(commandToExecute.type).toUpperCase() : '';
-                if (ctype === 'INJECT_FORM_DATA') {
-                    var fid = commandToExecute.formId || '';
-                    if (fid === 'field-workspace-ore-form' || fid === 'ora-form') {
+                if (ctype === 'INJECT' || ctype === 'INJECT_FORM_DATA') {
+                    var fid = commandToExecute.formId || commandToExecute.target || '';
+                    if (fid === 'field-workspace-ore-form' || fid === 'ora-form' ||
+                        String(fid).toLowerCase() === 'quick-hours-form') {
                         resolve(false);
                         return;
                     }
@@ -863,7 +1514,7 @@ import {
                         return;
                     }
                 }
-                Promise.resolve(tonyRecoverSegnaOraFromChatHistory()).then(function(ok) {
+                Promise.resolve(tonyRecoverSegnaOraFromChatHistory({ userText: userMessagePlain, maxTurns: 2 })).then(function(ok) {
                     if (ok) console.log('[Tony] Fallback post-CF: ore compilate sul workspace (risposta senza inject affidabile).');
                     resolve(!!ok);
                 }).catch(function() {
@@ -879,16 +1530,21 @@ import {
      * Dopo una risposta CF senza INJECT affidabile (o testo-only): se l'utente parla di ore e il form inline è incompleto,
      * avvia il timer proattivo domande/salva — altrimenti senza inject il timer post-inject non partiva mai.
      */
-    function tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, userMessagePlain, opts) {
+    function tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, userMessagePlain, opts, cfSpeech) {
         try {
             if (opts && opts.proactive) return;
             if (!tonyResolveQuickHoursWindow()) return;
             if (!tonyIsCampoLikeWorkspaceForTony()) return;
             var ctype = commandToExecute && commandToExecute.type ? String(commandToExecute.type).toUpperCase() : '';
-            if (ctype === 'INJECT_FORM_DATA') {
-                var fid = commandToExecute.formId || '';
-                if (fid === 'field-workspace-ore-form' || fid === 'ora-form') return;
+            if (ctype === 'INJECT' || ctype === 'INJECT_FORM_DATA') {
+                var fid = commandToExecute.formId || commandToExecute.target || '';
+                if (fid === 'field-workspace-ore-form' || fid === 'ora-form' ||
+                    String(fid).toLowerCase() === 'quick-hours-form') return;
             }
+            if (ctype === 'QUICK_SAVE' || ctype === 'SUBMIT' || ctype === 'SUBMIT_FORM' || ctype === 'SALVA' || ctype === 'SAVE') return;
+            var speech = cfSpeech || window.__tonyLastCfAssistantText || '';
+            if (tonyCfSpeechCoversQuickHoursInterview(speech)) return;
+            if (quickHoursFormReadyForTonySave()) return;
             var userBlob = String(tonyBuildSegnaOraUserBlobLastNUserTurns(6) || '').trim();
             if (!userBlob || !tonyUserMessageSuggestsSegnaOre(userBlob)) return;
             var schedWin = tonyResolveQuickHoursProactiveScheduleWindow();
@@ -924,6 +1580,20 @@ import {
     /** Dopo inject su #quick-hours-form: timer proattivo (campi mancanti vs conferma salvataggio), se il widget ha già inizializzato il blocco invio. */
     function tonyPromptSaveAfterQuickHoursInject() {
         try {
+            if (quickHoursFormReadyForTonySave()) {
+                if (window.__tonyQuickHoursCfAskedSaveAt &&
+                    (Date.now() - window.__tonyQuickHoursCfAskedSaveAt) < 15000) {
+                    return;
+                }
+            } else {
+                var fcPause = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+                var intPause = (fcPause && fcPause.interviewEmpty) ? fcPause.interviewEmpty : [];
+                if (intPause.length === 1 && intPause[0] === 'ora-break' &&
+                    window.__tonyQuickHoursCfAskedPauseAt &&
+                    (Date.now() - window.__tonyQuickHoursCfAskedPauseAt) < 15000) {
+                    return;
+                }
+            }
             var schedWin = tonyResolveQuickHoursProactiveScheduleWindow();
             if (schedWin && typeof schedWin.__tonyScheduleQuickHoursProactiveAfterInject === 'function') {
                 schedWin.__tonyScheduleQuickHoursProactiveAfterInject();
@@ -946,8 +1616,18 @@ import {
         try {
             var qhWin = tonyResolveQuickHoursWindow();
             if (!qhWin) return Promise.resolve(false);
-            var recentUb = tonyBuildSegnaOraUserBlobLastNUserTurns(6);
-            var m = tonyMatchSegnaOraTimeRangeFromBlob(recentUb);
+            var userText = opts.userText != null ? String(opts.userText).trim() : '';
+            var maxTurns = typeof opts.maxTurns === 'number' ? opts.maxTurns : (userText ? 2 : 6);
+            var userTurns = tonyGetSegnaOraUserTurnTexts(maxTurns, userText || null);
+            var recentUb = userTurns.join(' ');
+            var m = userText ? tonyMatchSegnaOraTimeRangeFromBlob(userText) : null;
+            if (!m) m = matchSegnaOraTimeRangeFromUserTexts(userTurns);
+            if (userText && tonyUserMessageSuggestsSegnaOre(userText) &&
+                !tonyMatchSegnaOraTimeRangeFromBlob(userText) &&
+                !/^\s*(\d{1,3})\s*$/.test(userText) &&
+                !/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa/i.test(userText)) {
+                m = null;
+            }
             var doc0 = qhWin.document;
             var st0 = doc0.getElementById('ora-start');
             var en0 = doc0.getElementById('ora-end');
@@ -956,11 +1636,7 @@ import {
             if (!m && !domHasTimes && (!noteTxt || !String(noteTxt).trim())) return Promise.resolve(false);
             var fd = {};
             if (m) {
-                function pad(n) { return (n < 10 ? '0' : '') + n; }
-                var h1 = parseInt(m[1], 10), mi1 = m[2] ? parseInt(m[2], 10) : 0;
-                var h2 = parseInt(m[3], 10), mi2 = m[4] ? parseInt(m[4], 10) : 0;
-                fd['ora-inizio'] = pad(h1) + ':' + pad(mi1);
-                fd['ora-fine'] = pad(h2) + ':' + pad(mi2);
+                tonyApplySegnaOraTimeRangeMatchToFields(fd, m);
             }
             var pauseMin = tonyExtractPauseMinutesFromUserBlob(recentUb);
             if (pauseMin != null) fd['ora-pause'] = String(pauseMin);
@@ -1027,6 +1703,21 @@ import {
                     var btn = form.querySelector('button[type="submit"]');
                     if (btn) btn.click();
                 }
+                setTimeout(function () {
+                    var statusEl = doc.getElementById('hours-save-status');
+                    var statusTxt = statusEl ? String(statusEl.textContent || '').trim() : '';
+                    if (/^Ore salvate:/i.test(statusTxt)) {
+                        if (typeof showMessageInChat === 'function') {
+                            showMessageInChat(statusTxt, 'tony');
+                        }
+                        try {
+                            window.__tonyQuickHoursPauseAckAt = 0;
+                            window.__tonySegnaOraLocalInterviewAt = 0;
+                        } catch (eReset) { /* ignore */ }
+                    } else if (/^Errore salvataggio:/i.test(statusTxt) && typeof showMessageInChat === 'function') {
+                        showMessageInChat(statusTxt, 'error');
+                    }
+                }, 1200);
             }, ms);
         }
         if (opts.skipRecover) {
@@ -1095,6 +1786,7 @@ import {
     }
 
     function enqueueTonyCommand(command, options) {
+        command = normalizeTonyCommand(command);
         if (!command || !command.type) return;
         options = options || {};
 
@@ -1174,11 +1866,7 @@ import {
     function tonyGetUserPromptForPendingNav() {
         var fromHist = tonyGetLastUserMessageText();
         if (fromHist) return fromHist;
-        try {
-            if (typeof sessionStorage === 'undefined') return '';
-            var s = sessionStorage.getItem('tony_last_user_message');
-            return (s && String(s).trim()) ? String(s).trim() : '';
-        } catch (e) { return ''; }
+        return tonyGetLastUserMessage();
     }
 
     /**
@@ -1243,6 +1931,21 @@ import {
             if (a.indexOf(b) >= 0 || b.indexOf(a) >= 0) return true;
             return false;
         }
+        function tipoLavoroIncomingMoreSpecific(domText, incoming) {
+            var a = normTipo(domText);
+            var b = normTipo(incoming);
+            if (!a || !b || a === b) return false;
+            if (b.length > a.length + 2 && (b.indexOf(a) >= 0 || a.indexOf(b) >= 0)) return true;
+            return false;
+        }
+        function preventivoSubIncomingDowngradesDom(domSubText, incomingSub) {
+            var ds = normTipo(domSubText);
+            var inc = normTipo(incomingSub);
+            if (!ds || !inc || ds === inc) return false;
+            if (ds === 'tra le file' && inc === 'generale') return true;
+            if (ds === 'sulla fila' && inc === 'generale') return true;
+            return false;
+        }
         var hasHierarchyPayload = PREVENTIVO_LAVORAZIONE_FIELD_IDS.some(function (k) {
             return formData[k] != null && String(formData[k]).trim() !== '';
         });
@@ -1251,11 +1954,34 @@ import {
         var incTipo = formData['tipo-lavoro'] != null ? String(formData['tipo-lavoro']).trim() : '';
         var conflict = false;
         if (incTipo) {
+            if (tipoLavoroIncomingMoreSpecific(curText, incTipo)) {
+                return formData;
+            }
             if (!tipoLavoroCompatibile(curText, incTipo)) conflict = true;
         } else {
+            var incSubOnly = String(formData['lavoro-sottocategoria'] || '').trim();
+            if (incSubOnly && !formData['lavoro-categoria-principale']) {
+                return formData;
+            }
             conflict = !!(formData['lavoro-categoria-principale'] || formData['lavoro-sottocategoria']);
         }
         if (!conflict) return formData;
+        if (incTipo && tipoLavoroCompatibile(curText, incTipo) && formData['lavoro-sottocategoria']) {
+            var subEl = document.getElementById('lavoro-sottocategoria');
+            var curSubText = '';
+            if (subEl && subEl.options && subEl.selectedIndex >= 0) {
+                var subOpt = subEl.options[subEl.selectedIndex];
+                curSubText = String((subOpt && (subOpt.text || subOpt.value)) || '').trim();
+            }
+            var outPartial = Object.assign({}, formData);
+            delete outPartial['tipo-lavoro'];
+            delete outPartial['lavoro-categoria-principale'];
+            if (preventivoSubIncomingDowngradesDom(curSubText, formData['lavoro-sottocategoria'])) {
+                delete outPartial['lavoro-sottocategoria'];
+                console.log('[Tony] Preventivo: ignorata sottocategoria downgrade (DOM già: "' + curSubText + '")');
+            }
+            return outPartial;
+        }
         var out = Object.assign({}, formData);
         PREVENTIVO_LAVORAZIONE_FIELD_IDS.forEach(function (k) { delete out[k]; });
         console.log('[Tony] Preventivo: ignorata sovrascrittura lavorazione (DOM già: "' + curText + '")');
@@ -1618,8 +2344,41 @@ import {
         fare: 1, fatto: 1, sono: 1, stato: 1, questa: 1, questo: 1, quale: 1, quelli: 1, anche: 1, solo: 1, tipo: 1, lavoro: 1,
         trinciare: 1, trinciatura: 1, trincia: 1, nostro: 1, nostri: 1, cliente: 1, conto: 1, terzi: 1, avere: 1, bisogno: 1,
         campo: 1, campi: 1, ecco: 1, qua: 1, qui: 1, nome: 1, indicami: 1, indicare: 1, quando: 1, dove: 1, come: 1, cosa: 1,
-        signor: 1, signora: 1, luca: 1, marco: 1, paolo: 1, andrea: 1, giuseppe: 1
+        signor: 1, signora: 1, luca: 1, marco: 1, paolo: 1, andrea: 1, giuseppe: 1,
+        allora: 1, facciamo: 1, imposta: 1, procediamo: 1, salva: 1, bozza: 1, data: 1, prevista: 1, bene: 1, va: 1,
+        oggi: 1, domani: 1, dopodomani: 1,
+        lunedi: 1, martedi: 1, mercoledi: 1, giovedi: 1, venerdi: 1, sabato: 1, domenica: 1
     };
+
+    function userMessageIsPreventivoScheduleHint(text) {
+        if (!text || typeof text !== 'string') return false;
+        var m = normTxtPreventivoTerrenoHint(text);
+        if (!m) return false;
+        var hasDay = /\b(lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica|oggi|domani|dopodomani)\b/.test(m);
+        if (!hasDay) return false;
+        return /\b(allora|facciamo|imposta|procediamo|ok|salva|bozza|data|prevista)\b/.test(m) ||
+            m.split(/\s+/).filter(Boolean).length <= 4;
+    }
+
+    function userMessageIsShortAffirmative(text) {
+        if (!text || typeof text !== 'string') return false;
+        var m = normTxtPreventivoTerrenoHint(text).trim();
+        if (!m || m.length > 40) return false;
+        return /^(si|sì|ok|va bene|confermo|esatto|perfetto|certo)(\s|$|[,.!])/.test(m) ||
+            /^(si|sì),?\s*(ok|va bene)/.test(m);
+    }
+
+    function injectPreventivoIsDateOnlyUpdate(fd) {
+        if (!fd || typeof fd !== 'object') return false;
+        var keys = Object.keys(fd).filter(function(k) {
+            return k.indexOf('_') !== 0 && fd[k] != null && String(fd[k]).trim() !== '';
+        });
+        if (keys.indexOf('data-prevista') < 0) return false;
+        var substantive = keys.filter(function(k) {
+            return k !== 'cliente-id' && k !== 'iva' && k !== 'giorni-scadenza';
+        });
+        return substantive.length <= 1;
+    }
 
     function terrenoClienteNormBlob(t) {
         if (!t || typeof t !== 'object') return '';
@@ -1662,7 +2421,10 @@ import {
         for (var i = hist.length - 1; i >= 0; i--) {
             var m = hist[i];
             if (m.role === 'user' && m.parts && m.parts[0] && m.parts[0].text) {
-                parts.push(m.parts[0].text);
+                var lastUserText = m.parts[0].text;
+                if (!userMessageIsPreventivoScheduleHint(lastUserText) && !userMessageIsShortAffirmative(lastUserText)) {
+                    parts.push(lastUserText);
+                }
                 break;
             }
         }
@@ -1746,6 +2508,15 @@ import {
                 ids = ids.filter(function(id) { return id !== 'prodotto-giorni-carenza'; });
             }
         }
+        if (formId === 'prodotto-form' && map.prodottoCategoriaRichiedeDosaggio && map.prodottoCategoriaRichiedeDosaggio.length) {
+            var catD = byId['prodotto-categoria'];
+            var catValD = catD && catD.value != null ? String(catD.value).trim().toLowerCase() : '';
+            if (!catValD || map.prodottoCategoriaRichiedeDosaggio.indexOf(catValD) < 0) {
+                ids = ids.filter(function(id) {
+                    return id !== 'prodotto-dosaggio-min' && id !== 'prodotto-dosaggio-max';
+                });
+            }
+        }
         var placeholderRe = /^(seleziona|--\s*seleziona|--\s*nessun|scegli\.\.\.|select\.\.\.)/i;
         var empty = [];
         ids.forEach(function(id) {
@@ -1762,6 +2533,23 @@ import {
         });
         return empty;
     }
+    window.__tonyGetMagazzinoInterviewEmpty = tonyGetMagazzinoInterviewEmpty;
+    window.__tonyEnrichMovimentoFormDataFromCatalog = enrichMovimentoFormDataFromCatalog;
+
+    function tonyScheduleMagazzinoSavePromptIfReady(formId, delayMs) {
+        delayMs = typeof delayMs === 'number' ? delayMs : 800;
+        setTimeout(function() {
+            if (window.__tonyInjectionInProgress) return;
+            if (isAnyTonyFormSaveConfirmPending()) return;
+            if (!magazzinoFormReadyForTonySave(formId)) return;
+            var mid = formId === 'prodotto-form' ? 'prodotto-modal' : 'movimento-modal';
+            var mel = document.getElementById(mid);
+            if (!mel || !mel.classList.contains('active')) return;
+            if (typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
+                window.__tonyTriggerAskForSaveConfirmation();
+            }
+        }, delayMs);
+    }
 
     function tonyMagazzinoInterviewLabels(formCtx, ids) {
         if (!ids || !ids.length || !formCtx || !formCtx.fields) return ids.join(', ');
@@ -1771,6 +2559,40 @@ import {
             var f = byId[id];
             return f ? String(f.label || id).replace(/\s*\*?\s*$/, '') : id;
         }).join(', ');
+    }
+
+    /** Messaggio proattivo campi mancanti magazzino: prodotto in chat locale (no CF), movimento via CF se opzionali. */
+    function tonyMagazzinoProactiveMissingPrompt(formId, fc) {
+        if (!fc || !formId) return;
+        var reqP = fc.requiredEmpty && fc.requiredEmpty.length ? fc.requiredEmpty : [];
+        var intP = (fc.interviewEmpty && fc.interviewEmpty.length) ? fc.interviewEmpty : (typeof tonyGetMagazzinoInterviewEmpty === 'function' ? tonyGetMagazzinoInterviewEmpty(fc, formId) : []);
+        var missMsg;
+        if (formId === 'prodotto-form') {
+            if (reqP.indexOf('prodotto-dosaggio-min') >= 0 || reqP.indexOf('prodotto-dosaggio-max') >= 0) {
+                missMsg = 'Indica il dosaggio minimo e massimo per ettaro (es. dosaggio 0.5-1).';
+            } else if (reqP.indexOf('prodotto-giorni-carenza') >= 0) {
+                missMsg = 'Quanti giorni di carenza ha il fitofarmaco? (es. carenza 30)';
+            } else {
+                missMsg = reqP.length
+                    ? ('Mi mancano ancora: ' + tonyMagazzinoInterviewLabels(fc, reqP) + '.')
+                    : (intP.length ? ('Indica ancora ' + tonyMagazzinoInterviewLabels(fc, intP) + '.') : undefined);
+            }
+            if (missMsg && typeof appendMessage === 'function') {
+                appendMessage(missMsg, 'tony');
+                return;
+            }
+            if (missMsg && typeof window !== 'undefined' && typeof window.appendMessage === 'function') {
+                window.appendMessage(missMsg, 'tony');
+                return;
+            }
+        } else {
+            missMsg = reqP.length
+                ? ('Form movimento: obbligatori mancanti: ' + tonyMagazzinoInterviewLabels(fc, reqP) + '.')
+                : (intP.length ? ('Form movimento: indica ancora ' + tonyMagazzinoInterviewLabels(fc, intP) + '.') : undefined);
+        }
+        if (missMsg && typeof window.__tonyTriggerAskForMissingFields === 'function') {
+            window.__tonyTriggerAskForMissingFields(missMsg);
+        }
     }
 
     /** Dopo SET_FIELD su prodotto/movimento la CF spesso non rimanda subito un turno: schedula lo stesso check proattivo di post-INJECT (debounced). */
@@ -1803,8 +2625,7 @@ import {
         if (window.__tonyProactiveAskTimerId) { clearTimeout(window.__tonyProactiveAskTimerId); window.__tonyProactiveAskTimerId = null; }
         if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
         var hasReq = fc.requiredEmpty && fc.requiredEmpty.length > 0;
-        var intE = (fc.interviewEmpty && fc.interviewEmpty.length) ? fc.interviewEmpty : (typeof tonyGetMagazzinoInterviewEmpty === 'function' ? tonyGetMagazzinoInterviewEmpty(fc, fc.formId) : []);
-        var complete = !hasReq && intE.length === 0;
+        var complete = magazzinoProactiveReadyForSave(fc.formId, !!hasReq);
         window.__tonyProactiveFormState = { active: true, type: complete ? 'ready_for_save' : 'missing_fields', formId: fc.formId, modalId: mid };
         var idleDelay = complete ? MAGAZZINO_IDLE_AFTER_SETFIELD_SAVE_MS : IDLE_REMINDER_MS;
         window.__tonyIdleReminderTimerId = setTimeout(function() {
@@ -1817,24 +2638,11 @@ import {
             var fc2 = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
             if (!fc2 || fc2.formId !== state.formId) { window.__tonyProactiveFormState = null; return; }
             var hasReq2 = fc2.requiredEmpty && fc2.requiredEmpty.length > 0;
-            var intE2 = (fc2.interviewEmpty && fc2.interviewEmpty.length) ? fc2.interviewEmpty : (typeof tonyGetMagazzinoInterviewEmpty === 'function' ? tonyGetMagazzinoInterviewEmpty(fc2, fc2.formId) : []);
-            var complete2 = !hasReq2 && intE2.length === 0;
+            var complete2 = magazzinoProactiveReadyForSave(fc2.formId, !!hasReq2);
             if (complete2 && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
                 window.__tonyTriggerAskForSaveConfirmation();
-            } else if (!complete2 && typeof window.__tonyTriggerAskForMissingFields === 'function') {
-                var reqP = fc2.requiredEmpty && fc2.requiredEmpty.length ? fc2.requiredEmpty : [];
-                var intP = intE2;
-                var missMsg;
-                if (state.formId === 'prodotto-form') {
-                    missMsg = reqP.length
-                        ? ('Form prodotto: obbligatori mancanti: ' + tonyMagazzinoInterviewLabels(fc2, reqP) + '.')
-                        : (intP.length ? ('Form prodotto: indica ancora ' + tonyMagazzinoInterviewLabels(fc2, intP) + '.') : undefined);
-                } else {
-                    missMsg = reqP.length
-                        ? ('Form movimento: obbligatori mancanti: ' + tonyMagazzinoInterviewLabels(fc2, reqP) + '.')
-                        : (intP.length ? ('Form movimento: opzionali ancora da completare: ' + tonyMagazzinoInterviewLabels(fc2, intP) + '.') : undefined);
-                }
-                if (missMsg) window.__tonyTriggerAskForMissingFields(missMsg);
+            } else if (!complete2) {
+                tonyMagazzinoProactiveMissingPrompt(state.formId, fc2);
             }
             window.__tonyProactiveFormState = null;
         }, idleDelay);
@@ -1864,9 +2672,10 @@ import {
      * @param {Object} data - L'oggetto comando (es. { type: 'OPEN_MODAL', id: '...' })
      */
     function processTonyCommand(data) {
+        data = normalizeTonyCommand(data);
         // console.log('[DEBUG CURSOR] processTonyCommand: Chiamata ricevuta');
         // console.log('[DEBUG CURSOR] processTonyCommand: Dati comando:', JSON.stringify(data, null, 2));
-        console.log('[Tony] Esecuzione comando:', data.type, data.field || data.id || '');
+        console.log('[Tony] Esecuzione comando:', data && data.type, data && (data.field || data.id || ''));
 
         if (!data || !data.type) {
             console.warn('[Tony] Comando malformato o vuoto.');
@@ -1906,6 +2715,17 @@ import {
                             console.log('[Tony] INJECT_FORM_DATA magazzino: merge con inject precedente (<15s)');
                         }
                         window.__tonyMagazzinoLastInject = { formId: data.formId, formData: Object.assign({}, data.formData), t: Date.now() };
+                    }
+                    if (data.formData && !window.TonyFormInjector) {
+                        var injectRetryN = (typeof data._injectRetryCount === 'number' ? data._injectRetryCount : 0) + 1;
+                        if (injectRetryN <= 10) {
+                            var injectRetryCmd = Object.assign({}, data, { _injectRetryCount: injectRetryN });
+                            console.warn('[Tony] INJECT_FORM_DATA: injector non pronto, retry', injectRetryN, '/10');
+                            enqueueTonyCommand(injectRetryCmd, { source: 'inject-wait-injector', delayMs: 400 });
+                            break;
+                        }
+                        console.warn('[Tony] INJECT_FORM_DATA: TonyFormInjector assente dopo retry — compilazione saltata');
+                        break;
                     }
                     if (data.formData && window.TonyFormInjector) {
                         // Muto durante iniezione: disabilita timer proattivi e resetta a ogni avvio INJECT
@@ -1963,6 +2783,27 @@ import {
                                 fdInj = data.formData;
                             }
                         }
+                        if (data.formId === 'attivita-form' && tonyModuliAttiviIncludeManodopera() && !document.getElementById('attivita-modal')) {
+                            window.__tonyInjectionInProgress = false;
+                            if (getTonyFieldProfileFromContext()) {
+                                var fdOraFromAtt = tonyMapAttivitaFieldsToSegnaOra(Object.assign({}, data.formData || {}));
+                                if (data.formData && data.formData['attivita-tipo-lavoro'] && !fdOraFromAtt['ora-note']) {
+                                    var noteAtt = String(data.formData['attivita-tipo-lavoro']);
+                                    if (data.formData['attivita-ore']) noteAtt += ' — ' + data.formData['attivita-ore'] + ' ore';
+                                    fdOraFromAtt['ora-note'] = noteAtt;
+                                }
+                                fdOraFromAtt = tonyResolveOraLavoroForQuickHours(fdOraFromAtt, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
+                                console.log('[Tony] INJECT attivita-form con manodopera: profilo campo → workspace Segna ore');
+                                window.Tony.triggerAction('APRI_PAGINA', {
+                                    target: 'workspace campo',
+                                    _tonyPendingModal: 'quick-hours-form',
+                                    _tonyPendingFields: Object.keys(fdOraFromAtt).length > 0 ? fdOraFromAtt : null
+                                });
+                            } else {
+                                console.log('[Tony] INJECT attivita-form ignorato: manodopera attivo, profilo manager (né diario né Segna ore)');
+                            }
+                            break;
+                        }
                         var targetModalId = (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') ? 'lavoro-modal' : (data.formId === 'attivita-form' ? 'attivita-modal' : (data.formId === 'prodotto-form' ? 'prodotto-modal' : (data.formId === 'movimento-form' ? 'movimento-modal' : (data.formId === 'zona-form' ? 'zona-modal' : (data.formId === 'ora-form' ? 'ora-modal' : null)))));
                         var modalEl = targetModalId ? document.getElementById(targetModalId) : null;
                         var isModalOpen = modalEl && modalEl.classList.contains('active');
@@ -1979,6 +2820,7 @@ import {
                             }
                             var formDataToInject = data.formData;
                             var formCtxMerge = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+                            var patchOnlyLavoro = false;
                             if (formCtxMerge && formCtxMerge.fields && formCtxMerge.fields.length > 0) {
                                 var merged = Object.assign({}, formDataToInject);
                                 formCtxMerge.fields.forEach(function(f) {
@@ -1986,20 +2828,42 @@ import {
                                     if (f.id && hasVal && !(f.id in formDataToInject)) {
                                         merged[f.id] = f.value;
                                     }
+                                    if (f.id && hasVal) patchOnlyLavoro = true;
                                 });
                                 if (Object.keys(merged).length > Object.keys(formDataToInject).length) {
                                     formDataToInject = merged;
                                     console.log('[Tony] INJECT_FORM_DATA: merge con valori esistenti, campi totali:', Object.keys(formDataToInject).length);
                                 }
                             }
-                            window.TonyFormInjector.injectLavoroForm(formDataToInject, ctx).then(function(ok) {
+                            window.TonyFormInjector.injectLavoroForm(formDataToInject, ctx, patchOnlyLavoro ? { patchOnly: true } : undefined).then(function(ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
                                     console.log('[Tony] Form lavoro iniettato con successo');
+                                    window.__tonyLavoroCreationFlow = true;
+                                    if (window.__tonyLavoroPersonDisambCandidates && window.__tonyLavoroPersonDisambCandidates.length > 1 &&
+                                        window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroInterviewMissing === 'function') {
+                                        window.TonyFormInjector.promptLavoroInterviewMissing().then(function(locDis) {
+                                            if (locDis && locDis.message) {
+                                                appendMessage(locDis.message, 'tony');
+                                                if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(locDis.message);
+                                            }
+                                        });
+                                    } else if (window.__tonyLavoroTerrenoDisambCandidates && window.__tonyLavoroTerrenoDisambCandidates.length > 1 &&
+                                        window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroInterviewMissing === 'function') {
+                                        window.TonyFormInjector.promptLavoroInterviewMissing().then(function(locDisT) {
+                                            if (locDisT && locDisT.message) {
+                                                appendMessage(locDisT.message, 'tony');
+                                                if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(locDisT.message);
+                                            }
+                                        });
+                                    }
+                                    var formCtxAfterInj = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+                                    window.__tonyLavoroInterviewPending = !!(formCtxAfterInj && formCtxAfterInj.requiredEmpty && formCtxAfterInj.requiredEmpty.length > 0);
                                     if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
                                     if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
                                     function runProactiveCheckLavoro(retryCount) {
                                         retryCount = retryCount || 0;
+                                        if (window.__tonyInjectionInProgress) return;
                                         var formCtx = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                                         var modalEl = document.getElementById('lavoro-modal');
                                         if (!modalEl || !modalEl.classList.contains('active')) {
@@ -2026,8 +2890,22 @@ import {
                                         }
                                         var formComplete = !hasRequiredEmpty && !needsMacchine;
                                         var needsMacchineOnly = !hasRequiredEmpty && needsMacchine;
+                                        var lastUpDense = tonyGetLastUserMessage();
+                                        if (lastUpDense && tonyUserMessageEntityDenseForLavoro(lastUpDense) && (hasRequiredEmpty || needsMacchine)) {
+                                            console.log('[Tony] Timer proattivo lavoro: skip (messaggio entity-dense, attendo inject completo)');
+                                            window.__tonyProactiveFormState = null;
+                                            return;
+                                        }
+                                        if (!tonyShouldArmProactiveMissingFieldsAsk() && (hasRequiredEmpty || needsMacchine)) {
+                                            if (!(needsMacchineOnly && tonyShouldArmProactiveMacchineAsk())) {
+                                                console.log('[Tony] Timer proattivo lavoro: skip (CF chiede già all\'utente)');
+                                                window.__tonyProactiveFormState = null;
+                                                return;
+                                            }
+                                        }
                                         window.__tonyProactiveFormState = { active: true, type: formComplete ? 'ready_for_save' : 'missing_fields', formId: 'lavoro-form', modalId: 'lavoro-modal', needsMacchineOnly: !!needsMacchineOnly };
                                         console.log('[Tony] Timer proattivo lavoro: check eseguito, type=', window.__tonyProactiveFormState.type, 'hasRequiredEmpty=', hasRequiredEmpty, 'needsMacchine=', needsMacchine);
+                                        var idleDelayLavoro = needsMacchineOnly ? MACCHINE_ONLY_ASK_DELAY_MS : (formComplete ? 800 : IDLE_REMINDER_MS);
                                         window.__tonyIdleReminderTimerId = setTimeout(function() {
                                             window.__tonyIdleReminderTimerId = null;
                                             if (window.__tonyInjectionInProgress) return;
@@ -2035,27 +2913,99 @@ import {
                                             if (!state || !state.active) return;
                                             var el = document.getElementById(state.modalId);
                                             if (!el || !el.classList.contains('active')) { window.__tonyProactiveFormState = null; return; }
+                                            if (window.__tonyMacchineDisambAskedAt && Date.now() - window.__tonyMacchineDisambAskedAt < 120000) {
+                                                window.__tonyProactiveFormState = null;
+                                                return;
+                                            }
                                             if (state.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
                                                 window.__tonyTriggerAskForSaveConfirmation();
-                                            } else if (state.type === 'missing_fields' && typeof window.__tonyTriggerAskForMissingFields === 'function') {
-                                                var lastUpM = '';
-                                                try { lastUpM = String(sessionStorage.getItem('tony_last_user_message') || '').trim(); } catch (eMk) {}
+                                            } else if (state.type === 'missing_fields') {
+                                                var lastUpM = tonyGetLastUserMessage();
                                                 if (state.needsMacchineOnly && lastUpM && tonyUserMentionedLavoroMacchine(lastUpM)) {
                                                     window.__tonyProactiveFormState = null;
-                                                } else if (state.formId === 'lavoro-form' && lastUpM && tonyUserMentionedLavoroAssignee(lastUpM)) {
+                                                    return;
+                                                }
+                                                if (state.formId === 'lavoro-form' && lastUpM && tonyUserMentionedLavoroAssignee(lastUpM) && !state.needsMacchineOnly) {
+                                                    var opElPro = document.getElementById('lavoro-operaio');
+                                                    var capElPro = document.getElementById('lavoro-caposquadra');
+                                                    var assigneeSet = (opElPro && String(opElPro.value || '').trim()) ||
+                                                        (capElPro && String(capElPro.value || '').trim());
+                                                    if (assigneeSet && !(window.__tonyLavoroPersonDisambCandidates &&
+                                                        window.__tonyLavoroPersonDisambCandidates.length > 1)) {
+                                                        window.__tonyProactiveFormState = null;
+                                                        return;
+                                                    }
+                                                }
+                                                if (window.__tonyLavoroPersonDisambCandidates && window.__tonyLavoroPersonDisambCandidates.length > 1 &&
+                                                    window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroInterviewMissing === 'function') {
+                                                    window.TonyFormInjector.promptLavoroInterviewMissing().then(function(locPd) {
+                                                        if (locPd && locPd.message) {
+                                                            appendMessage(locPd.message, 'tony');
+                                                            if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(locPd.message);
+                                                        }
+                                                    });
                                                     window.__tonyProactiveFormState = null;
-                                                } else {
+                                                    return;
+                                                }
+                                                if (window.__tonyLavoroTerrenoDisambCandidates && window.__tonyLavoroTerrenoDisambCandidates.length > 1 &&
+                                                    window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroInterviewMissing === 'function') {
+                                                    window.TonyFormInjector.promptLavoroInterviewMissing().then(function(locPt) {
+                                                        if (locPt && locPt.message) {
+                                                            appendMessage(locPt.message, 'tony');
+                                                            if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(locPt.message);
+                                                        }
+                                                    });
+                                                    window.__tonyProactiveFormState = null;
+                                                    return;
+                                                }
+                                                if (state.needsMacchineOnly && window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroMacchineMissing === 'function') {
+                                                    if (window.__tonyMacchineDisambAskedAt && Date.now() - window.__tonyMacchineDisambAskedAt < 12000) {
+                                                        return;
+                                                    }
+                                                    window.TonyFormInjector.promptLavoroMacchineMissing().then(function(res) {
+                                                        if (res && (res.asked || res.resolved)) return;
+                                                        if (window.__tonyMacchineDisambAskedAt && Date.now() - window.__tonyMacchineDisambAskedAt < 12000) return;
+                                                        if (window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroInterviewMissing === 'function') {
+                                                            window.TonyFormInjector.promptLavoroInterviewMissing().then(function(loc) {
+                                                                if (loc && loc.asked && loc.message) {
+                                                                    appendMessage(loc.message, 'tony');
+                                                                    if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(loc.message);
+                                                                    return;
+                                                                }
+                                                                if (tonyShouldArmProactiveMacchineAsk() && typeof window.__tonyTriggerAskForMissingFields === 'function') {
+                                                                    window.__tonyTriggerAskForMissingFields('Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e attrezzo vuoi usare?');
+                                                                }
+                                                            });
+                                                            return;
+                                                        }
+                                                        if (tonyShouldArmProactiveMacchineAsk() && typeof window.__tonyTriggerAskForMissingFields === 'function') {
+                                                            window.__tonyTriggerAskForMissingFields('Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e attrezzo vuoi usare?');
+                                                        }
+                                                    });
+                                                } else if (window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroInterviewMissing === 'function') {
+                                                    window.TonyFormInjector.promptLavoroInterviewMissing().then(function(loc) {
+                                                        if (loc && loc.asked && loc.message) {
+                                                            appendMessage(loc.message, 'tony');
+                                                            if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(loc.message);
+                                                            return;
+                                                        }
+                                                        if (typeof window.__tonyTriggerAskForMissingFields === 'function' && tonyShouldArmProactiveMissingFieldsAsk()) {
+                                                            var msg = (state.needsMacchineOnly) ? 'Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e attrezzo vuoi usare?' : null;
+                                                            window.__tonyTriggerAskForMissingFields(msg);
+                                                        }
+                                                    });
+                                                } else if (typeof window.__tonyTriggerAskForMissingFields === 'function' && tonyShouldArmProactiveMissingFieldsAsk()) {
                                                     var msg = (state.needsMacchineOnly) ? 'Mancano solo trattore e attrezzo per questo lavoro meccanico. Quale trattore e attrezzo vuoi usare?' : null;
                                                     window.__tonyTriggerAskForMissingFields(msg);
                                                 }
                                             }
                                             window.__tonyProactiveFormState = null;
-                                        }, IDLE_REMINDER_MS);
+                                        }, idleDelayLavoro);
                                     }
                                     window.__tonyProactiveAskTimerId = setTimeout(function() {
                                         window.__tonyProactiveAskTimerId = null;
                                         runProactiveCheckLavoro(0);
-                                    }, POST_INJECT_CHECK_DELAY_MS);
+                                    }, POST_INJECT_CHECK_DELAY_LAVORO_MS);
                                 } else {
                                     console.warn('[Tony] Iniezione form lavoro fallita');
                                 }
@@ -2149,6 +3099,7 @@ import {
                                         window.__tonyIdleReminderTimerId = setTimeout(function() {
                                             window.__tonyIdleReminderTimerId = null;
                                             if (window.__tonyInjectionInProgress) return;
+                                            if (isAnyTonyFormSaveConfirmPending()) return;
                                             var stateP = window.__tonyProactiveFormState;
                                             if (!stateP || !stateP.active || stateP.formId !== 'preventivo-form') return;
                                             if (!document.getElementById('preventivo-form')) {
@@ -2158,10 +3109,12 @@ import {
                                             if (stateP.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
                                                 window.__tonyTriggerAskForSaveConfirmation();
                                             } else if (stateP.type === 'missing_fields' && typeof window.__tonyTriggerAskForMissingFields === 'function') {
-                                                window.__tonyTriggerAskForMissingFields(stateP.proactiveMissingMessage);
+                                                if (tonyShouldArmProactiveMissingFieldsAsk()) {
+                                                    window.__tonyTriggerAskForMissingFields(stateP.proactiveMissingMessage);
+                                                }
                                             }
                                             window.__tonyProactiveFormState = null;
-                                        }, IDLE_REMINDER_MS);
+                                        }, formCompleteP ? 800 : IDLE_REMINDER_MS);
                                     }
                                     window.__tonyProactiveAskTimerId = setTimeout(function() {
                                         window.__tonyProactiveAskTimerId = null;
@@ -2170,7 +3123,9 @@ import {
                                 }
                                 var cidPrev = fdPrev && fdPrev['cliente-id'];
                                 var hadTerrenoPayload = fdPrev && String(fdPrev['terreno-id'] || '').trim() !== '';
-                                if (ok && cidPrev && !hadTerrenoPayload) {
+                                var terElNow = document.getElementById('terreno-id');
+                                var terrenoGiaSelezionato = terElNow && String(terElNow.value || '').trim() !== '';
+                                if (ok && cidPrev && !hadTerrenoPayload && !terrenoGiaSelezionato && !injectPreventivoIsDateOnlyUpdate(fdPrev)) {
                                     var checkMultiTerrenoCliente = function(attempt) {
                                         attempt = attempt || 0;
                                         var ps = window.preventivoState;
@@ -2259,7 +3214,9 @@ import {
                                             if (state.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
                                                 window.__tonyTriggerAskForSaveConfirmation();
                                             } else if (state.type === 'missing_fields' && typeof window.__tonyTriggerAskForMissingFields === 'function') {
-                                                window.__tonyTriggerAskForMissingFields();
+                                                if (tonyShouldArmProactiveMissingFieldsAsk()) {
+                                                    window.__tonyTriggerAskForMissingFields();
+                                                }
                                             }
                                             window.__tonyProactiveFormState = null;
                                         }, IDLE_REMINDER_MS);
@@ -2288,6 +3245,9 @@ import {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
                                     console.log('[Tony] Form prodotto iniettato con successo');
+                                    if (typeof window.__tonySyncProdottoDosaggioCarenzaRequired === 'function') {
+                                        window.__tonySyncProdottoDosaggioCarenzaRequired();
+                                    }
                                     if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
                                     if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
                                     window.__tonyProactiveAskTimerId = setTimeout(function() {
@@ -2296,29 +3256,25 @@ import {
                                         var modalEl = document.getElementById('prodotto-modal');
                                         if (!formCtx || formCtx.formId !== 'prodotto-form' || !modalEl || !modalEl.classList.contains('active')) return;
                                         var hasRequiredEmpty = formCtx.requiredEmpty && formCtx.requiredEmpty.length > 0;
-                                        var intEmptyP = (formCtx.interviewEmpty && formCtx.interviewEmpty.length) ? formCtx.interviewEmpty : (typeof tonyGetMagazzinoInterviewEmpty === 'function' ? tonyGetMagazzinoInterviewEmpty(formCtx, 'prodotto-form') : []);
-                                        var formComplete = !hasRequiredEmpty && intEmptyP.length === 0;
+                                        var formComplete = magazzinoProactiveReadyForSave('prodotto-form', !!hasRequiredEmpty);
                                         window.__tonyProactiveFormState = { active: true, type: formComplete ? 'ready_for_save' : 'missing_fields', formId: 'prodotto-form', modalId: 'prodotto-modal' };
+                                        var idleDelayProdotto = formComplete ? 800 : IDLE_REMINDER_MS;
                                         window.__tonyIdleReminderTimerId = setTimeout(function() {
                                             window.__tonyIdleReminderTimerId = null;
                                             if (window.__tonyInjectionInProgress) return;
+                                            if (isAnyTonyFormSaveConfirmPending()) return;
                                             var state = window.__tonyProactiveFormState;
                                             if (!state || !state.active) return;
                                             var el = document.getElementById(state.modalId);
                                             if (!el || !el.classList.contains('active')) { window.__tonyProactiveFormState = null; return; }
                                             if (state.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
                                                 window.__tonyTriggerAskForSaveConfirmation();
-                                            } else if (state.type === 'missing_fields' && typeof window.__tonyTriggerAskForMissingFields === 'function') {
+                                            } else if (state.type === 'missing_fields') {
                                                 var fcP = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
-                                                var reqP = fcP && fcP.requiredEmpty && fcP.requiredEmpty.length ? fcP.requiredEmpty : [];
-                                                var intP = fcP && fcP.interviewEmpty && fcP.interviewEmpty.length ? fcP.interviewEmpty : (fcP && typeof tonyGetMagazzinoInterviewEmpty === 'function' ? tonyGetMagazzinoInterviewEmpty(fcP, 'prodotto-form') : []);
-                                                var missMsg = reqP.length
-                                                    ? ('Form prodotto: obbligatori mancanti: ' + tonyMagazzinoInterviewLabels(fcP, reqP) + '.')
-                                                    : (intP.length ? ('Form prodotto: indica ancora ' + tonyMagazzinoInterviewLabels(fcP, intP) + '.') : undefined);
-                                                window.__tonyTriggerAskForMissingFields(missMsg);
+                                                tonyMagazzinoProactiveMissingPrompt('prodotto-form', fcP);
                                             }
                                             window.__tonyProactiveFormState = null;
-                                        }, IDLE_REMINDER_MS);
+                                        }, idleDelayProdotto);
                                     }, POST_INJECT_CHECK_DELAY_MS);
                                 } else {
                                     console.warn('[Tony] Iniezione form prodotto fallita');
@@ -2352,12 +3308,13 @@ import {
                                         var modalMov = document.getElementById('movimento-modal');
                                         if (!formCtxM || formCtxM.formId !== 'movimento-form' || !modalMov || !modalMov.classList.contains('active')) return;
                                         var hasReqM = formCtxM.requiredEmpty && formCtxM.requiredEmpty.length > 0;
-                                        var intEmptyM = (formCtxM.interviewEmpty && formCtxM.interviewEmpty.length) ? formCtxM.interviewEmpty : (typeof tonyGetMagazzinoInterviewEmpty === 'function' ? tonyGetMagazzinoInterviewEmpty(formCtxM, 'movimento-form') : []);
-                                        var completeM = !hasReqM && intEmptyM.length === 0;
+                                        var completeM = magazzinoProactiveReadyForSave('movimento-form', !!hasReqM);
                                         window.__tonyProactiveFormState = { active: true, type: completeM ? 'ready_for_save' : 'missing_fields', formId: 'movimento-form', modalId: 'movimento-modal' };
+                                        var idleDelayMov = completeM ? 800 : IDLE_REMINDER_MS;
                                         window.__tonyIdleReminderTimerId = setTimeout(function() {
                                             window.__tonyIdleReminderTimerId = null;
                                             if (window.__tonyInjectionInProgress) return;
+                                            if (isAnyTonyFormSaveConfirmPending()) return;
                                             var stateM = window.__tonyProactiveFormState;
                                             if (!stateM || !stateM.active) return;
                                             var elM = document.getElementById(stateM.modalId);
@@ -2374,7 +3331,7 @@ import {
                                                 window.__tonyTriggerAskForMissingFields(msgM);
                                             }
                                             window.__tonyProactiveFormState = null;
-                                        }, IDLE_REMINDER_MS);
+                                        }, idleDelayMov);
                                     }, POST_INJECT_CHECK_DELAY_MS);
                                 } else {
                                     console.warn('[Tony] Iniezione form movimento fallita');
@@ -2411,15 +3368,47 @@ import {
                                     });
                                     break;
                                 }
+                                if (tonyModuliAttiviIncludeManodopera() && !getTonyFieldProfileFromContext()) {
+                                    window.__tonyInjectionInProgress = false;
+                                    console.log('[Tony] INJECT ora-form ignorato: Segna ore riservato a operai/caposquadra');
+                                    break;
+                                }
+                                if (window.Tony && typeof window.Tony.triggerAction === 'function') {
+                                    window.__tonyInjectionInProgress = false;
+                                    console.log('[Tony] INJECT ora-form: form assente — navigo a Segna ore standalone');
+                                    window.Tony.triggerAction('APRI_PAGINA', {
+                                        target: 'segnatura ore',
+                                        _tonyPendingModal: 'ora-modal',
+                                        _tonyPendingFields: (formDataOra && typeof formDataOra === 'object' && Object.keys(formDataOra).length > 0) ? formDataOra : null
+                                    });
+                                    break;
+                                }
                                 window.__tonyInjectionInProgress = false;
                                 console.warn('[Tony] INJECT ora-form: nessun form ore nel DOM (Segna ore standalone o workspace mobile).');
                                 break;
                             }
-                            window.TonyFormInjector.injectSegnaOraForm(formDataOra, ctx).then(function (ok) {
+                            var qhWinOraInj = tonyResolveQuickHoursWindow();
+                            var injectOraPromise;
+                            if (qhWinOraInj && window.TonyFormInjector &&
+                                typeof window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm === 'function') {
+                                injectOraPromise = window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm(
+                                    formDataOra, ctx, { targetWindow: qhWinOraInj }
+                                );
+                            } else if (window.TonyFormInjector &&
+                                typeof window.TonyFormInjector.injectSegnaOraForm === 'function') {
+                                injectOraPromise = window.TonyFormInjector.injectSegnaOraForm(formDataOra, ctx);
+                            } else {
+                                window.__tonyInjectionInProgress = false;
+                                console.warn('[Tony] INJECT ora-form: injector assente');
+                                break;
+                            }
+                            Promise.resolve(injectOraPromise).then(function (ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
                                     console.log('[Tony] Form segna ora iniettato');
-                                    tonyPromptSaveAfterQuickHoursInject();
+                                    var cfSaveAsk = window.__tonyQuickHoursCfAskedSaveAt &&
+                                        (Date.now() - window.__tonyQuickHoursCfAskedSaveAt) < 15000;
+                                    if (!cfSaveAsk) tonyPromptSaveAfterQuickHoursInject();
                                 } else {
                                     console.warn('[Tony] Iniezione ora-form fallita');
                                     try {
@@ -2570,11 +3559,20 @@ import {
                                 var _pendingFields = (data.fields && typeof data.fields === 'object') ? data.fields : null;
                                 if (_fpAtt && _man) {
                                     _pendingFields = tonyMapAttivitaFieldsToSegnaOra(_pendingFields || {});
+                                    if (_pendingFields && _pendingFields['attivita-tipo-lavoro'] && !_pendingFields['ora-note']) {
+                                        var _noteAtt = String(_pendingFields['attivita-tipo-lavoro']);
+                                        if (_pendingFields['attivita-ore']) _noteAtt += ' — ' + _pendingFields['attivita-ore'] + ' ore';
+                                        _pendingFields['ora-note'] = _noteAtt;
+                                    }
                                     _pendingFields = tonyResolveOraLavoroForQuickHours(_pendingFields, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
+                                }
+                                if (_man && !_fpAtt) {
+                                    console.log('[Tony] OPEN_MODAL attivita-modal ignorato: manodopera attivo, profilo manager (né diario né Segna ore)');
+                                    break;
                                 }
                                 var _attNavTarget = _fpAtt ? 'workspace campo' : 'attivita';
                                 var _pendModal = _fpAtt ? (_man ? 'quick-hours-form' : null) : 'attivita-modal';
-                                console.log('[Tony] Modal attività non presente in questa pagina, apro', _attNavTarget, _fpAtt && _man ? '(profilo campo + manodopera → workspace mobile, form inline Segna ore)' : '');
+                                console.log('[Tony] Modal attività non presente in questa pagina, apro', _attNavTarget);
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: _attNavTarget,
                                     _tonyPendingModal: _pendModal,
@@ -2697,6 +3695,12 @@ import {
                             } else if (resolvedId === 'lavoro-modal') {
                                 if (typeof window.openCreaModal === 'function') {
                                     console.log('[Tony] Inizializzo modal lavoro (popolamento dropdown)');
+                                    window.__tonyLavoroCreationFlow = true;
+                                    if (window.TonyFormInjector && typeof window.TonyFormInjector.resetLavoroInterviewSessionState === 'function') {
+                                        window.TonyFormInjector.resetLavoroInterviewSessionState();
+                                    } else {
+                                        window.__tonyLavoroAssignModeConfirmed = false;
+                                    }
                                     window.openCreaModal();
                                     enqueueTonyCommand({ type: '_WAIT_MODAL_READY' }, { source: 'post-open-lavoro', delayMs: 800 });
                                 }
@@ -2720,7 +3724,7 @@ import {
                                 var fieldsObj = data.fields;
                                 if ((resolvedId === 'attivita-modal' || resolvedId === 'lavoro-modal' || resolvedId === 'prodotto-modal' || resolvedId === 'movimento-modal' || resolvedId === 'ora-modal') && window.TonyFormInjector) {
                                     var formId = resolvedId === 'attivita-modal' ? 'attivita-form' : resolvedId === 'lavoro-modal' ? 'lavoro-form' : resolvedId === 'prodotto-modal' ? 'prodotto-form' : resolvedId === 'ora-modal' ? 'ora-form' : 'movimento-form';
-                                    var delayMag = (resolvedId === 'prodotto-modal' || resolvedId === 'movimento-modal') ? 1200 : (resolvedId === 'ora-modal' ? 1400 : 1800);
+                                    var delayMag = (resolvedId === 'prodotto-modal' || resolvedId === 'movimento-modal') ? 1200 : (resolvedId === 'ora-modal' ? 1400 : (resolvedId === 'lavoro-modal' ? 350 : 1800));
                                     enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: formId, formData: fieldsObj }, { source: 'open-modal-fields', delayMs: delayMag });
                                 } else {
                                     var formMap = (typeof TONY_FORM_MAPPING !== 'undefined' && TONY_FORM_MAPPING.getFormMap) ? TONY_FORM_MAPPING.getFormMap(resolvedId) : null;
@@ -2754,8 +3758,7 @@ import {
                                     var mElMagOpen = document.getElementById(midMagOpen);
                                     if (!fcMagOpen || fcMagOpen.formId !== fidMagOpen || !mElMagOpen || !mElMagOpen.classList.contains('active')) return;
                                     var hasReqMagOpen = fcMagOpen.requiredEmpty && fcMagOpen.requiredEmpty.length > 0;
-                                    var intMagOpen = (fcMagOpen.interviewEmpty && fcMagOpen.interviewEmpty.length) ? fcMagOpen.interviewEmpty : (typeof tonyGetMagazzinoInterviewEmpty === 'function' ? tonyGetMagazzinoInterviewEmpty(fcMagOpen, fidMagOpen) : []);
-                                    var doneMagOpen = !hasReqMagOpen && intMagOpen.length === 0;
+                                    var doneMagOpen = magazzinoProactiveReadyForSave(fidMagOpen, !!hasReqMagOpen);
                                     window.__tonyProactiveFormState = { active: true, type: doneMagOpen ? 'ready_for_save' : 'missing_fields', formId: fidMagOpen, modalId: midMagOpen };
                                     window.__tonyIdleReminderTimerId = setTimeout(function() {
                                         window.__tonyIdleReminderTimerId = null;
@@ -3394,6 +4397,11 @@ import {
                         tonyNotifyFieldProfileBlocked('page', target);
                         break;
                     }
+                    if (target && !isApriPaginaTargetAllowed(target, getModuliAttiviFromTonyContext())) {
+                        console.warn('[Tony] APRI_PAGINA bloccato: modulo non attivo per target', target);
+                        tonyNotifyModuleInactive(target, showMessageInChat);
+                        break;
+                    }
                     if (target && tonyBlockApriSegnaturaIfOnFieldWorkspace(target, Object.assign({}, data, data.params && typeof data.params === 'object' ? data.params : {}))) {
                         break;
                     }
@@ -3848,8 +4856,14 @@ import {
                     } catch (e) { console.warn('[Tony] RIASSUNTO:', e); }
                     break;
 
-                default:
+                default: {
+                    var fbCmd = normalizeTonyCommand(Object.assign({}, data));
+                    if (fbCmd && fbCmd.type && String(fbCmd.type).toUpperCase() !== String(data.type).toUpperCase()) {
+                        processTonyCommand(fbCmd);
+                        break;
+                    }
                     console.warn('[Tony] Tipo comando sconosciuto:', data.type);
+                }
             }
         } catch (err) {
             console.error('[Tony] Errore durante l\'esecuzione del comando:', err, data);
@@ -3869,6 +4883,7 @@ import {
      * @param {string} [rawTarget] - target grezzo per etichetta (solo kind page)
      */
     function tonyNotifyFieldProfileBlocked(kind, rawTarget) {
+        window.__tonyFieldGuardNotifiedThisTurn = true;
         var label = '';
         try {
             if (rawTarget) {
@@ -4440,6 +5455,16 @@ import {
                 var hasReq2 = fc2.requiredEmpty && fc2.requiredEmpty.length > 0;
                 var intE2 = (fc2.interviewEmpty && fc2.interviewEmpty.length) ? fc2.interviewEmpty : [];
                 var complete2 = !hasReq2 && intE2.length === 0;
+                var pauseAskRecent = window.__tonyQuickHoursCfAskedPauseAt && (Date.now() - window.__tonyQuickHoursCfAskedPauseAt) < 15000;
+                var saveAskRecent = window.__tonyQuickHoursCfAskedSaveAt && (Date.now() - window.__tonyQuickHoursCfAskedSaveAt) < 15000;
+                if (complete2 && saveAskRecent) {
+                    window.__tonyProactiveFormState = null;
+                    return;
+                }
+                if (!complete2 && intE2.length === 1 && intE2[0] === 'ora-break' && pauseAskRecent) {
+                    window.__tonyProactiveFormState = null;
+                    return;
+                }
                 if (complete2 && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
                     window.__tonyTriggerAskForSaveConfirmation();
                 } else if (!complete2 && typeof window.__tonyTriggerAskForMissingFields === 'function') {
@@ -4653,12 +5678,24 @@ import {
         }
         function formatFriendlyBriefing(data) {
             if (!data) return 'Non ho dati aggiornati al momento.';
-            var s = data.sottoScorta || 0, y = data.scadenzeUrgenti || 0, z = data.guastiAperti || 0;
-            if (s === 0 && y === 0 && z === 0) return 'Siamo in una botte di ferro, non vedo criticità.';
+            var mods = data.availableModules || getModuliAttiviFromTonyContext();
+            var hasMagazzino = data.hasMagazzino === true || (data.hasMagazzino == null && hasActiveModule(mods, 'magazzino'));
+            var hasParcoMacchine = data.hasParcoMacchine === true || (data.hasParcoMacchine == null && hasActiveModule(mods, 'parcoMacchine'));
+            var s = hasMagazzino ? (data.sottoScorta || 0) : 0;
+            var y = hasParcoMacchine ? (data.scadenzeUrgenti || 0) : 0;
+            var z = hasParcoMacchine ? (data.guastiAperti || 0) : 0;
+            var meteoParts = [];
+            if (data.meteo && Array.isArray(data.meteo.consigli) && data.meteo.consigli.length) {
+                data.meteo.consigli.slice(0, 3).forEach(function(c) {
+                    if (c && c.motivo) meteoParts.push(c.motivo);
+                });
+            }
+            if (s === 0 && y === 0 && z === 0 && !meteoParts.length) return 'Siamo in una botte di ferro, non vedo criticità.';
             var parts = [];
             if (z > 0) parts.push('C\'è qualche guasto di troppo da sistemare' + (z > 1 ? ' (' + z + ')' : ''));
             if (y > 0) parts.push('Occhio alle scadenze dei mezzi' + (y > 1 ? ' (' + y + ')' : ''));
             if (s > 0) parts.push(s === 1 ? 'un prodotto sotto scorta' : s + ' prodotti sotto scorta');
+            if (meteoParts.length) parts.push('Meteo: ' + meteoParts.join('. '));
             return parts.join('. ') + '.';
         }
         window.getFriendlyGreeting = getFriendlyGreeting;
@@ -4697,44 +5734,346 @@ import {
                 appendMessage('Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento.', 'error');
                 return;
             }
+            if (!opts.proactive && !opts._suppressUserBubble) {
+                tonySetLastUserMessage(text);
+            }
             if (checkFarewellIntent(text)) opts.isClosingSession = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
-            if (!opts.proactive) {
+            if (!opts.proactive && !opts._suppressUserBubble) {
                 inputEl.value = '';
                 appendMessage(text, 'user');
+                tonyEnsureUserTurnInChatHistory(text);
+            }
+            var tonyEarlyTypingTimer = null;
+            if (!opts.proactive) {
+                tonyEarlyTypingTimer = setTimeout(function() {
+                    appendMessage('Sto controllando...', 'typing');
+                }, 150);
             }
             saveTonyState();
 
-            // Conferma salvataggio su «Segna ore» workspace: submit locale senza CF (evita APRI_PAGINA / testo fuorviante).
+            // Conferma salvataggio su «Segna ore» workspace: submit locale senza CF.
             if (!opts.proactive) {
-                var qhSv = tonyResolveQuickHoursWindow();
-                if (qhSv) {
-                    var docSv = qhSv.document;
-                    var formSv = docSv.getElementById('quick-hours-form');
-                    var dtSv = docSv.getElementById('ora-data');
-                    var stSv = docSv.getElementById('ora-start');
-                    var enSv = docSv.getElementById('ora-end');
-                    if (formSv && dtSv && stSv && enSv &&
-                        String(dtSv.value || '').trim() &&
-                        String(stSv.value || '').trim() &&
-                        String(enSv.value || '').trim()) {
-                        var tsv = String(text || '').trim();
-                        var saveQuick = /^\s*(ok\s+)?salva\s*[!.,]*\s*$/i.test(tsv) ||
-                            /^\s*s[iì1]\s+salva\s*[!.,]*\s*$/i.test(tsv) ||
-                            /^\s*(confermo|va\s*bene|procedi)\s+salva\s*[!.,]*\s*$/i.test(tsv) ||
-                            /^\s*s[iì1]\s*[!.,]*\s*$/i.test(tsv);
-                        if (saveQuick) {
-                            console.log('[Tony] Salva rapido: submit su quick-hours-form (senza tonyAsk).');
-                            tonySalvaQuickHoursWorkspace({ skipRecover: true });
-                            setTimeout(function() {
-                                if (typeof appendMessage === 'function') {
-                                    appendMessage('Salvataggio inviato. Controlla la conferma in verde sotto al pulsante.', 'tony');
+                var qhSaveIntercept = tryInterceptQuickHoursSaveBeforeCf(text, {
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                    salvaQuickHours: tonySalvaQuickHoursWorkspace,
+                    processTonyCommand: processTonyCommand,
+                });
+                if (qhSaveIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            var segnaOreLocalHandlers = {
+                appendMessage: appendMessage,
+                appendTyping: function () { appendMessage('Un attimo…', 'typing'); },
+                removeTyping: removeTyping,
+                speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
+                clearEarlyTyping: function () {
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                },
+                saveState: saveTonyState,
+            };
+
+            // «segniamo le ore» senza orari: intervista locale, 0 CF (stile lavoro/magazzino).
+            if (!opts.proactive) {
+                var segnaOreIntentIntercept = tryInterceptSegnaOreIntentBeforeCf(text, segnaOreLocalHandlers);
+                if (segnaOreIntentIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            // Fascia oraria nel messaggio su workspace campo: inject locale, 0 CF.
+            if (!opts.proactive) {
+                var segnaOreTurnIntercept = tryInterceptSegnaOreTurnBeforeCf(text, segnaOreLocalHandlers);
+                if (segnaOreTurnIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            // Singolo orario per messaggio (es. «alle 7» / «alle 18»): inject locale, 0 CF.
+            if (!opts.proactive) {
+                var segnaOreSingleIntercept = tryInterceptSegnaOreSingleTimeBeforeCf(text, segnaOreLocalHandlers);
+                if (segnaOreSingleIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            // Minuti pausa (es. «60») con orari già nel form: inject pausa + domanda salva, 0 CF.
+            if (!opts.proactive) {
+                var qhPauseIntercept = tryInterceptSegnaOrePauseBeforeCf(text, segnaOreLocalHandlers);
+                if (qhPauseIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            // Risposta breve a disambiguazione trattore/attrezzo (client-side, no CF) — prima dell'intervista creazione.
+            if (!opts.proactive && !opts._skipMacchineReplyIntercept) {
+                var pathLavMk = (window.location && window.location.pathname ? String(window.location.pathname).toLowerCase() : '');
+                var modalLavMk = document.getElementById('lavoro-modal');
+                var trSelMk = document.getElementById('lavoro-trattore');
+                var atSelMk = document.getElementById('lavoro-attrezzo');
+                var disambFieldMk = window.__tonyLastMacchineDisambField;
+                var tipoCorrectionMk = window.TonyFormInjector &&
+                    typeof window.TonyFormInjector.isLavoroTipoCorrectionText === 'function' &&
+                    window.TonyFormInjector.isLavoroTipoCorrectionText(text);
+                var routeToInterviewMk = window.TonyFormInjector &&
+                    typeof window.TonyFormInjector.userTextShouldGoToLavoroInterviewNotMacchine === 'function' &&
+                    window.TonyFormInjector.userTextShouldGoToLavoroInterviewNotMacchine(text);
+                var macchineDisambPending = !tipoCorrectionMk && !routeToInterviewMk &&
+                    pathLavMk.indexOf('gestione-lavori') >= 0 &&
+                    modalLavMk && modalLavMk.classList.contains('active') &&
+                    window.__tonyMacchineDisambAskedAt && Date.now() - window.__tonyMacchineDisambAskedAt < 120000 &&
+                    disambFieldMk &&
+                    (!window.__tonyLavoroCreationFlow || (window.TonyFormInjector.lavoroInterviewCanAskMacchine &&
+                        window.TonyFormInjector.lavoroInterviewCanAskMacchine())) &&
+                    ((disambFieldMk === 'lavoro-trattore' && trSelMk && !String(trSelMk.value || '').trim()) ||
+                     (disambFieldMk === 'lavoro-attrezzo' && atSelMk && !String(atSelMk.value || '').trim())) &&
+                    text && text.split(/\s+/).length <= 4 && String(text).trim().length <= 24;
+                if (pathLavMk.indexOf('gestione-lavori') >= 0 && window.TonyFormInjector &&
+                    typeof window.TonyFormInjector.userCanReplyToMacchineDisamb === 'function' &&
+                    typeof window.TonyFormInjector.applyLavoroMacchineFromUserReply === 'function' &&
+                    !tipoCorrectionMk && !routeToInterviewMk &&
+                    (window.TonyFormInjector.userCanReplyToMacchineDisamb(text) || macchineDisambPending)) {
+                    console.log('[Tony] Intercept macchine reply client-side:', text);
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    appendMessage('Un attimo…', 'typing');
+                    var disambFieldErrMk = disambFieldMk === 'lavoro-attrezzo' ? 'attrezzo' : 'trattore';
+                    var disambExamplesMk = disambFieldErrMk === 'attrezzo'
+                        ? '(es. Erpice 200 o Erpice a denti)'
+                        : '(es. Agrifull o Nuovo T5)';
+                    window.TonyFormInjector.applyLavoroMacchineFromUserReply(text).then(function(res) {
+                        removeTyping();
+                        if (res && res.handled) {
+                            if (res.message) {
+                                appendMessage(res.message, 'tony');
+                                if (window.Tony && typeof window.Tony.speak === 'function' && res.voiceText) {
+                                    window.Tony.speak(res.voiceText);
                                 }
-                            }, 700);
-                            if (opts.fromVoice) isWaitingForTonyResponse = false;
-                            return;
+                            }
+                            if (res.readyForSave && typeof window.__tonyPromptLavoroSaveLocal === 'function') {
+                                setTimeout(function() { window.__tonyPromptLavoroSaveLocal(); }, 600);
+                            } else {
+                                tonyTryPromptLavoroSaveIfComplete();
+                            }
+                        } else {
+                            var errFieldMk = (res && res.field === 'lavoro-attrezzo') ? 'attrezzo' : disambFieldErrMk;
+                            var errExamplesMk = errFieldMk === 'attrezzo'
+                                ? '(es. Erpice 200 o Erpice a denti)'
+                                : '(es. Agrifull o Nuovo T5)';
+                            appendMessage('Non ho capito quale ' + errFieldMk + '. Rispondi con il nome come in elenco ' + errExamplesMk + '.', 'tony');
+                            if (window.Tony && typeof window.Tony.speak === 'function') {
+                                window.Tony.speak('Non ho capito quale ' + errFieldMk + '. Rispondi con il nome come in elenco.');
+                            }
                         }
+                    }).catch(function(errMk) {
+                        removeTyping();
+                        console.warn('[Tony] applyLavoroMacchineFromUserReply:', errMk);
+                        appendMessage('Non ho capito quale ' + disambFieldErrMk + '. Rispondi con il nome come in elenco ' + disambExamplesMk + '.', 'tony');
+                    });
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            // Conferma salvataggio form (lavoro, preventivo, …) — prima di intervista/tonyAsk.
+            if (!opts.proactive && !opts._skipLavoroSaveIntercept) {
+                var saveIntercept = tryInterceptTonyFormSaveConfirm(text, {
+                    appendMessage: appendMessage,
+                    processTonyCommand: processTonyCommand,
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                });
+                if (saveIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+                var magSaveIntercept = tryInterceptMagazzinoSaveBeforeCf(text, {
+                    appendMessage: appendMessage,
+                    speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
+                    processTonyCommand: processTonyCommand,
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                });
+                if (magSaveIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+                var movCreateIntercept = tryInterceptMovimentoCreateBeforeCf(text, {
+                    appendMessage: appendMessage,
+                    processTonyCommand: processTonyCommand,
+                    getUrlForTarget: getUrlForTarget,
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                });
+                if (movCreateIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+                var prodCreateIntercept = tryInterceptProdottoCreateBeforeCf(text, {
+                    appendMessage: appendMessage,
+                    processTonyCommand: processTonyCommand,
+                    getUrlForTarget: getUrlForTarget,
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                });
+                if (prodCreateIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            // Creazione lavoro locale — no CF (crea lavoro + risposte intervista). Anche cross-page.
+            if (!opts.proactive && !opts._skipLavoroLocalCreation && window.TonyFormInjector &&
+                tonyIsLocalLavoroCreationIntent(text)) {
+                if (!tonyOnGestioneLavoriPage()) {
+                    window.__tonyLavoroCreationFlow = true;
+                    console.log('[Tony] Creazione lavoro cross-page: flusso locale (no CF).');
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    try {
+                        sessionStorage.setItem('tony_pending_lavoro_local_intent', JSON.stringify({
+                            text: String(text || '').trim(),
+                            ts: Date.now()
+                        }));
+                        sessionStorage.setItem('tony_pending_intent', JSON.stringify({
+                            target: 'gestione lavori',
+                            modalId: 'lavoro-modal',
+                            fields: null,
+                            lavoroLocalIntent: true
+                        }));
+                    } catch (eCrossLav) {}
+                    var urlCrossLav = getUrlForTarget('gestione lavori') || getUrlForTarget('lavori');
+                    appendMessage('Ti porto a gestione lavori.', 'tony');
+                    if (urlCrossLav) {
+                        window.location.href = urlCrossLav + (urlCrossLav.indexOf('?') >= 0 ? '&' : '?') + 'tnyNotify=lavori';
                     }
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+                window.__tonyLavoroCreationFlow = true;
+                console.log('[Tony] Creazione lavoro: flusso locale (no CF).');
+                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                appendMessage('Un attimo…', 'typing');
+                _isSendingMessage = true;
+                var startText = String(text || '').trim();
+                tonyEnsureLavoroModalForInterview().then(function () {
+                    var waitReady = window.TonyFormInjector.waitForLavoriFormDataReady
+                        ? window.TonyFormInjector.waitForLavoriFormDataReady(8000)
+                        : Promise.resolve(true);
+                    return waitReady.then(function () {
+                        if (tonyIsBareCreaLavoroIntent(startText)) {
+                            return window.TonyFormInjector.promptLavoroInterviewMissing();
+                        }
+                        var waitManodopera = window.TonyFormInjector.waitForLavoriManodoperaReady
+                            ? window.TonyFormInjector.waitForLavoriManodoperaReady(6000)
+                            : Promise.resolve(true);
+                        return waitManodopera.then(function () {
+                            return window.TonyFormInjector.applyLavoroInterviewFromUserReply(startText).then(function (resStart) {
+                                if (resStart && resStart.handled) return resStart;
+                                return window.TonyFormInjector.promptLavoroInterviewMissing().then(function (loc) {
+                                    return { handled: true, message: (loc && loc.message) || '', voiceText: (loc && loc.message) || '' };
+                                });
+                            });
+                        });
+                    });
+                }).then(function (loc) {
+                    removeTyping();
+                    var msg = (loc && loc.message) || 'È un lavoro di squadra o lo assegno a una persona?';
+                    if (msg) {
+                        appendMessage(msg, 'tony');
+                        if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(loc && loc.voiceText ? loc.voiceText : msg);
+                    }
+                    if (loc && loc.readyForSave) {
+                        tonyTryPromptLavoroSaveIfComplete();
+                    }
+                }).catch(function (err) {
+                    removeTyping();
+                    console.warn('[Tony] avvio locale crea lavoro:', err);
+                }).finally(function () {
+                    _isSendingMessage = false;
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                });
+                return;
+            }
+            if (!opts.proactive && !opts._skipLavoroLocalCreation && window.TonyFormInjector &&
+                window.__tonyLavoroCreationFlow && !isAnyTonyFormSaveConfirmPending() &&
+                (String(text).trim().length >= 2 || /^\d{1,3}$/.test(String(text).trim()))) {
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    appendMessage('Un attimo…', 'typing');
+                    _isSendingMessage = true;
+                    tonyEnsureLavoroModalForInterview().then(function () {
+                        var waitReady = window.TonyFormInjector.waitForLavoriFormDataReady
+                            ? window.TonyFormInjector.waitForLavoriFormDataReady(8000)
+                            : Promise.resolve(true);
+                        return waitReady.then(function () {
+                            if (window.TonyFormInjector.applyLavoroCreationTurn) {
+                                return window.TonyFormInjector.applyLavoroCreationTurn(text);
+                            }
+                            return window.TonyFormInjector.applyLavoroInterviewFromUserReply(text);
+                        });
+                    }).then(function (resIv) {
+                        tonyFinishLavoroInterviewTurn(resIv, opts);
+                    }).catch(function (errIv) {
+                        removeTyping();
+                        console.warn('[Tony] intervista lavoro locale:', errIv);
+                    }).finally(function () {
+                        _isSendingMessage = false;
+                    });
+                    return;
+            }
+
+            // Risposta breve intervista lavoro (fallback se modal già aperto senza creation flow).
+            if (!opts.proactive && !opts._skipLavoroInterviewIntercept && !window.__tonyLavoroCreationFlow) {
+                var pathLavIv = (window.location && window.location.pathname ? String(window.location.pathname).toLowerCase() : '');
+                var modalLavIv = document.getElementById('lavoro-modal');
+                if (pathLavIv.indexOf('gestione-lavori') >= 0 && modalLavIv && modalLavIv.classList.contains('active') &&
+                    window.TonyFormInjector &&
+                    typeof window.TonyFormInjector.userCanReplyToLavoroInterview === 'function' &&
+                    typeof window.TonyFormInjector.applyLavoroInterviewFromUserReply === 'function' &&
+                    window.TonyFormInjector.userCanReplyToLavoroInterview(text)) {
+                    console.log('[Tony] Intercept intervista lavoro client-side:', text);
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    appendMessage('Un attimo…', 'typing');
+                    var waitIv = window.TonyFormInjector.waitForLavoriFormDataReady
+                        ? window.TonyFormInjector.waitForLavoriFormDataReady(8000)
+                        : Promise.resolve(true);
+                    waitIv.then(function () {
+                        var waitManIv = window.TonyFormInjector.waitForLavoriManodoperaReady
+                            ? window.TonyFormInjector.waitForLavoriManodoperaReady(6000)
+                            : Promise.resolve(true);
+                        return waitManIv;
+                    }).then(function () {
+                        return window.TonyFormInjector.applyLavoroInterviewFromUserReply(text);
+                    }).then(function(resIv) {
+                        removeTyping();
+                        if (resIv && resIv.handled) {
+                            appendMessage(resIv.message || 'Ok.', 'tony');
+                            if (window.Tony && typeof window.Tony.speak === 'function' && resIv.voiceText) {
+                                window.Tony.speak(resIv.voiceText);
+                            }
+                            if (resIv.readyForSave && typeof window.__tonyPromptLavoroSaveLocal === 'function') {
+                                setTimeout(function() { window.__tonyPromptLavoroSaveLocal(); }, 600);
+                            }
+                        } else {
+                            appendMessage('Non ho capito. Ripeti con squadra/persona, terreno, tipo lavoro, data o durata (es. martedì, domani, 3).', 'tony');
+                        }
+                    }).catch(function(errIv) {
+                        removeTyping();
+                        console.warn('[Tony] applyLavoroInterviewFromUserReply:', errIv);
+                    });
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
                 }
             }
 
@@ -4743,7 +6082,20 @@ import {
                 var p = (window.location && window.location.pathname ? String(window.location.pathname).toLowerCase() : '');
                 var onGestioneLavori = p.indexOf('gestione-lavori') >= 0;
                 if (!onGestioneLavori) return false;
-                var t = String(userText).toLowerCase();
+                var t = String(userText).toLowerCase().trim();
+                if (/\bquanto\s+costa\b|\bquante\s+tariffe\b|\bquanti\s+clienti\b|\bquanti\s+preventiv|\beuro\s+per\s+ettaro\b|€\s*\/\s*ha|\blistino\b/.test(t)) {
+                    return false;
+                }
+                if (/\b(meteo|pioggia|previsioni?|vento|tempo)\b/.test(t) ||
+                    /\b(posso|conviene|riesco)\b/.test(t) && /\b(domani|oggi|trattare|erpicare|trinciare|lavorare)\b/.test(t)) {
+                    return false;
+                }
+                var modalLav = document.getElementById('lavoro-modal');
+                if (modalLav && modalLav.classList.contains('active') &&
+                    /^(crea\s+un?\s+lavoro|nuovo\s+lavoro)\s*$/i.test(t)) {
+                    return false;
+                }
+                if (window.__tonyLavoroCreationFlow) return false;
                 if (/\b(portami|porta\s+in|portaci|aprimi|vai\s+(a|al|alla|allo|all\')|porta\s+a|mostrami|indirizzami|naviga)\b/i.test(t)) {
                     return false;
                 }
@@ -4773,10 +6125,33 @@ import {
                 return String(userText || '') + extra;
             }
 
-            // Intercetta richiesta riassunto briefing (Dashboard)
+            // Intercetta richiesta riassunto briefing (Dashboard) — non rubare «sì»/«ok» a interviste meteo (praticabilità trattore)
+            function tonyIsPendingMeteoInterviewReply() {
+                try {
+                    var hist = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
+                    for (var i = hist.length - 1; i >= 0; i--) {
+                        var e = hist[i];
+                        if (!e || (e.role !== 'model' && e.role !== 'assistant' && e.role !== 'tony')) continue;
+                        var t = e.parts && e.parts[0] && e.parts[0].text ? String(e.parts[0].text) : '';
+                        if (/riesci a passare con il trattore|riesci a lavorare il terreno/i.test(t)) return true;
+                        if (/morfologia del terreno|in pianura, collina o montagna/i.test(t)) return true;
+                        if (/vuoi che cerchi un.altra data|cerchi un.altra data adatt|rimandiamo l.erpicatura|posticipare la lavorazione/i.test(t)) return true;
+                        return false;
+                    }
+                } catch (eMet) { /* ignore */ }
+                return false;
+            }
             var textTrimmed = text.replace(/\s+/g, ' ').trim().toLowerCase();
-            var riassuntoIntents = ['sì', 'si', 'ok', 'fammi il riassunto', 'dammi il riassunto', 'voglio il riassunto', 'dimmi il riassunto', 'riassunto'];
-            var wantsRiassunto = riassuntoIntents.some(function(r) { return textTrimmed === r || textTrimmed.startsWith(r + ' ') || textTrimmed.endsWith(' ' + r); });
+            var riassuntoShort = ['sì', 'si', 'ok'];
+            var riassuntoExplicit = ['fammi il riassunto', 'dammi il riassunto', 'voglio il riassunto', 'dimmi il riassunto', 'riassunto'];
+            var wantsRiassunto = riassuntoExplicit.some(function(r) {
+                return textTrimmed === r || textTrimmed.startsWith(r + ' ') || textTrimmed.endsWith(' ' + r);
+            });
+            if (!wantsRiassunto && !tonyIsPendingMeteoInterviewReply()) {
+                wantsRiassunto = riassuntoShort.some(function(r) {
+                    return textTrimmed === r || textTrimmed.startsWith(r + ' ') || textTrimmed.endsWith(' ' + r);
+                });
+            }
             if (wantsRiassunto && window.tonyGlobalBriefing && typeof processTonyCommand === 'function') {
                 processTonyCommand({ type: 'RIASSUNTO' });
                 var b = window.tonyGlobalBriefing;
@@ -4785,7 +6160,6 @@ import {
                 if (opts.fromVoice) isWaitingForTonyResponse = false;
                 return;
             }
-            
             // Rileva intenti di apertura modulo
             var textLower = text.toLowerCase();
             var openModalIntents = ['apri il modulo', 'apri modulo', 'apri il form', 'apri form', 
@@ -4798,6 +6172,10 @@ import {
                            'raccolto', 'semato', 'concimato', 'diserbato', 'erpicatura', 'trinciatura', 
                            'fresatura', 'potatura', 'raccolta', 'semina', 'concimazione', 'diserbo'];
             var hasKeyword = keywords.some(function(kw) { return textLower.includes(kw); });
+            if (hasKeyword && document.getElementById('preventivo-form')) {
+                var preventivoFieldCorrection = /\b(sottocategor|tipo\s+lavoro|tra\s+le\s+file|sulla\s+fila|è\s+trinciatur|è\s+erpicatur|la\s+lavorazione)\b/.test(textLower);
+                if (preventivoFieldCorrection) hasKeyword = false;
+            }
             
             // Funzione per attendere che il modal sia nel DOM e attivo - SINCRONIZZAZIONE ANTI-NULL
             var waitForModalAndGetContext = function(callback, maxAttempts, attempt) {
@@ -4831,8 +6209,17 @@ import {
             };
             
             // Funzione per inviare la richiesta con il contesto aggiornato. NON chiamare sendMessage dopo OPEN_MODAL/SET_FIELD.
-            var sendRequestWithContext = function(formCtx) {
-                if (_isSendingMessage) return;
+            var sendRequestWithContext = function(formCtx, _ctxRetry) {
+                _ctxRetry = typeof _ctxRetry === 'number' ? _ctxRetry : 0;
+                if (_isSendingMessage) {
+                    if (_ctxRetry < 20) {
+                        setTimeout(function() { sendRequestWithContext(formCtx, _ctxRetry + 1); }, 300);
+                    } else {
+                        console.warn('[Tony] sendRequestWithContext: timeout attesa coda invio');
+                        appendMessage('Tony è ancora occupato con la richiesta precedente. Attendi qualche secondo e riprova.', 'error');
+                    }
+                    return;
+                }
                 var ctx = window.Tony && window.Tony.context;
                 var moduli = ctx && (ctx.dashboard && ctx.dashboard.moduli_attivi || ctx.moduli_attivi);
                 var needRetry = !Array.isArray(moduli) || moduli.length === 0;
@@ -4856,7 +6243,67 @@ import {
 
             function doActualSend(formCtx) {
                 if (_isSendingMessage) return;
+                if (!opts.proactive && tonyResolveQuickHoursWindow() && tonyIsCampoLikeWorkspaceForTony() &&
+                    tonyMessageIsFieldWorkspaceSegnaOreTurn(text)) {
+                    _isSendingMessage = false;
+                    console.log('[Tony] Segna ore workspace: percorso locale (CF non usata).');
+                    var hSave = tryInterceptQuickHoursSaveBeforeCf(text, {
+                        clearEarlyTyping: function () {
+                            if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        },
+                        salvaQuickHours: tonySalvaQuickHoursWorkspace,
+                        processTonyCommand: processTonyCommand,
+                    });
+                    if (hSave.handled) {
+                        if (opts.fromVoice) isWaitingForTonyResponse = false;
+                        return;
+                    }
+                    if (isTonySaveConfirmText(text)) {
+                        if (typeof segnaOreLocalHandlers.clearEarlyTyping === 'function') {
+                            segnaOreLocalHandlers.clearEarlyTyping();
+                        }
+                        removeTyping();
+                        tonyFinishSegnaOreLocalIntercept(
+                            text,
+                            'Completa data, orari e pausa nel form, poi scrivi «sì», «ok» o «salva».',
+                            segnaOreLocalHandlers
+                        );
+                        if (opts.fromVoice) isWaitingForTonyResponse = false;
+                        return;
+                    }
+                    if (tryInterceptSegnaOreTurnBeforeCf(text, segnaOreLocalHandlers).handled ||
+                        tryInterceptSegnaOreSingleTimeBeforeCf(text, segnaOreLocalHandlers).handled ||
+                        tryInterceptSegnaOrePauseBeforeCf(text, segnaOreLocalHandlers).handled ||
+                        tryInterceptSegnaOreIntentBeforeCf(text, segnaOreLocalHandlers).handled) {
+                        if (opts.fromVoice) isWaitingForTonyResponse = false;
+                        return;
+                    }
+                    if (typeof segnaOreLocalHandlers.clearEarlyTyping === 'function') {
+                        segnaOreLocalHandlers.clearEarlyTyping();
+                    }
+                    removeTyping();
+                    tonyFinishSegnaOreLocalIntercept(text, tonySegnaOraUnrecognizedTurnMessage(text), segnaOreLocalHandlers);
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
                 _isSendingMessage = true;
+                window.__tonyFieldGuardNotifiedThisTurn = false;
+                if (window.__tonySendWatchdogId) {
+                    clearTimeout(window.__tonySendWatchdogId);
+                    window.__tonySendWatchdogId = null;
+                }
+                window.__tonySendWatchdogId = setTimeout(function() {
+                    if (!_isSendingMessage) return;
+                    console.error('[Tony] Timeout risposta (>95s): sblocco invio');
+                    _isSendingMessage = false;
+                    removeTyping();
+                    if (streamingMsgEl) streamingMsgEl.remove();
+                    appendMessage('La risposta sta impiegando troppo tempo. Controlla la connessione e riprova.', 'error');
+                    sendBtn.disabled = false;
+                    inputEl.disabled = false;
+                    var micWd = document.getElementById('tony-mic');
+                    if (micWd) micWd.disabled = false;
+                }, 95000);
                 if (window.Tony.setContext) {
                     window.Tony.setContext('form', formCtx || {});
                     var pagePath = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : '';
@@ -4945,16 +6392,17 @@ import {
                 sendBtn.disabled = true;
                 inputEl.disabled = true;
                 if (document.getElementById('tony-mic')) document.getElementById('tony-mic').disabled = true;
-                appendMessage('Sto pensando...', 'typing');
+                if (tonyEarlyTypingTimer) {
+                    clearTimeout(tonyEarlyTypingTimer);
+                    tonyEarlyTypingTimer = null;
+                }
 
                 var useStream = typeof window.Tony.askStream === 'function';
                 var streamingMsgEl = null;
 
                 function onComplete(response) {
                 try {
-                var tonyDeferSaveStateForQhRecovery = false;
                 removeTyping();
-                if (streamingMsgEl) streamingMsgEl.remove();
                 var rawData = response;
                 
                 var parsedData = {};
@@ -4968,6 +6416,7 @@ import {
                         if (cmd && cmd.action && !cmd.type) {
                             cmd = { type: cmd.action, ...(cmd.params || {}), params: cmd.params };
                         }
+                        cmd = normalizeTonyCommand(cmd);
                         parsedData = {
                             text: rawData.text != null ? String(rawData.text).trim() : '',
                             command: cmd
@@ -5070,8 +6519,11 @@ import {
                     console.error('[DEBUG CURSOR] onComplete: Stack:', e.stack);
                     parsedData = { text: typeof rawData === 'string' ? rawData : 'Nessuna risposta.' };
                 }
-                
-                
+
+                var resolvedUi = resolveTonyUserVisibleText(parsedData.text, parsedData.command);
+                parsedData.text = resolvedUi.text;
+                parsedData.command = normalizeTonyCommand(resolvedUi.command || parsedData.command);
+
                 // Verifica e esegui comando (solo se modulo attivo)
                 // Gestisci sia command che action (formato alternativo)
                 var commandToExecute = parsedData.command;
@@ -5100,15 +6552,17 @@ import {
                             var magAnagraficaFb = (formCtxFb.formId === 'prodotto-form' || formCtxFb.formId === 'movimento-form') &&
                                 (pathMagFb.indexOf('prodotti') >= 0 || pathMagFb.indexOf('movimenti') >= 0);
                             if (magAnagraficaFb) {
-                                var lastUserMag = '';
-                                try {
-                                    lastUserMag = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('tony_last_user_message'))
-                                        ? String(sessionStorage.getItem('tony_last_user_message')).trim() : '';
-                                } catch (eLm) {}
-                                var lastLooksOkSalva = lastUserMag && /\b(ok\s*salva|salva\s+il\s+prodotto|salva\s+il\s+movimento|conferma\s+salvataggio)\b/i.test(lastUserMag);
+                                var lastUserMag = tonyGetLastUserMessage();
+                                var lastLooksOkSalva = lastUserMag && isTonySaveConfirmText(lastUserMag);
                                 if (lastLooksOkSalva) {
-                                    commandToExecute = { type: 'SAVE_ACTIVITY' };
-                                    console.log('[Tony] Fallback SAVE magazzino: ultimo messaggio utente è conferma esplicita');
+                                    var fidMagFb = formCtxFb.formId === 'movimento-form' ? 'movimento-form' : 'prodotto-form';
+                                    if (magazzinoFormReadyForTonySave(fidMagFb)) {
+                                        window.__tonyMagazzinoExecuteSaveAfterCf = fidMagFb;
+                                        console.log('[Tony] Fallback magazzino: ultimo messaggio utente conferma → save locale (no testo CF)');
+                                    } else {
+                                        commandToExecute = { type: 'SAVE_ACTIVITY' };
+                                        console.log('[Tony] Fallback SAVE magazzino: ultimo messaggio utente è conferma esplicita');
+                                    }
                                 } else {
                                     console.log('[Tony] Fallback testo→SAVE disattivato su prodotti/movimenti: niente click Salva da solo testo modello');
                                 }
@@ -5261,6 +6715,61 @@ import {
                 }
                 finalSpeech = tonyReplaceFieldSegnaOreSpuriousRefusal(finalSpeech, text);
                 finalSpeech = tonySanitizeFieldWorkspaceSegnaOraAssistantText(text, commandToExecute, finalSpeech);
+                tonyTrackQuickHoursCfInterviewFromSpeech(finalSpeech);
+                var magFormSan = getActiveMagazzinoFormIdForSave();
+                if (magFormSan && isTonyMagazzinoCfFakeSaveText(finalSpeech)) {
+                    finalSpeech = '';
+                    if (window.__tonyMagazzinoExecuteSaveAfterCf === magFormSan) {
+                        window.__tonyMagazzinoExecuteSaveAfterCf = null;
+                    } else if (!isTonySaveConfirmText(String(text || '').trim())) {
+                        tonyScheduleMagazzinoSavePromptIfReady(magFormSan, 500);
+                    }
+                } else if (!magFormSan && tryRecoverMovimentoCfFakeSave(finalSpeech, {
+                    appendMessage: appendMessage,
+                    processTonyCommand: processTonyCommand,
+                })) {
+                    finalSpeech = '';
+                } else if (!magFormSan && tryRecoverProdottoCfFakeSave(finalSpeech, {
+                    appendMessage: appendMessage,
+                    processTonyCommand: processTonyCommand,
+                })) {
+                    finalSpeech = '';
+                } else if (tonyResolveQuickHoursWindow() && tonyIsCampoLikeWorkspaceForTony() &&
+                    isTonyQuickHoursCfFakeSaveText(finalSpeech)) {
+                    var qhSaveCmd = cmdForSaveNorm === 'QUICK_SAVE' || cmdForSaveNorm === 'SUBMIT_FORM' ||
+                        cmdForSaveNorm === 'SUBMIT' || cmdForSaveNorm === 'SALVA' || cmdForSaveNorm === 'SAVE';
+                    var qhUserConfirmed = tonyLastUserMessageExplicitSegnaOraSubmitIntent();
+                    if (!qhUserConfirmed) {
+                        commandToExecute = null;
+                        parsedData.command = null;
+                        var qhWinFake = tonyResolveQuickHoursWindow();
+                        var docFake = qhWinFake && qhWinFake.document;
+                        var stFake = docFake && docFake.getElementById('ora-start');
+                        var enFake = docFake && docFake.getElementById('ora-end');
+                        var hasTimesFake = stFake && enFake &&
+                            String(stFake.value || '').trim() && String(enFake.value || '').trim();
+                        if (quickHoursFormReadyForTonySave()) {
+                            finalSpeech = 'Per salvare scrivi «sì» o «salva», oppure tocca «Salva ore lavorate».';
+                        } else if (hasTimesFake) {
+                            finalSpeech = 'Ho gli orari nel form. Quanti minuti di pausa? (es. 30, oppure «nessuna pausa»).';
+                        } else {
+                            finalSpeech = TONY_SEGNA_ORE_ASK_FALLBACK;
+                        }
+                    } else if (!qhSaveCmd) {
+                        finalSpeech = '';
+                    }
+                }
+                if (window.__tonyMagazzinoExecuteSaveAfterCf) {
+                    var fidExec = window.__tonyMagazzinoExecuteSaveAfterCf;
+                    window.__tonyMagazzinoExecuteSaveAfterCf = null;
+                    executeTonyMagazzinoSaveLocal(fidExec, {
+                        appendMessage: appendMessage,
+                        speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
+                        processTonyCommand: processTonyCommand,
+                        logSuffix: 'post-CF conferma utente',
+                    });
+                    finalSpeech = '';
+                }
                 // Profilo campo: APRI_PAGINA / OPEN_MODAL bloccati — un solo messaggio da tonyNotifyFieldProfileBlocked; no testo modello ("ti porto a…")
                 var suppressAssistantTextFieldGuard = false;
                 if (commandToExecute && commandToExecute.type) {
@@ -5279,17 +6788,44 @@ import {
                         }
                     }
                 }
+                var tonyReplyShownThisTurn = false;
                 function doDisplay(txt) {
                     var out = (txt != null && String(txt).trim()) ? String(txt).trim() : finalSpeech;
                     out = (out != null && String(out).trim()) ? String(out).trim() : '';
+                    out = tonyEnsureSegnaOraAssistantVisible(out) || out;
                     if (!out) return;
-                    appendMessage(out, 'tony');
+                    tonyReplyShownThisTurn = true;
+                    window.__tonyLastCfAssistantText = out;
+                    if (streamingMsgEl && streamingMsgEl.parentNode) {
+                        streamingMsgEl.textContent = out;
+                        streamingMsgEl.classList.remove('streaming');
+                        streamingMsgEl = null;
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    } else {
+                        appendMessage(out, 'tony');
+                    }
+                    if (typeof window.__tonyPrefetchTTS === 'function') {
+                        try { window.__tonyPrefetchTTS(out); } catch (ePf) { /* ignore */ }
+                    }
                     speakWithTTS(out, opts);
                 }
                 // SUM_COLUMN: silenzia testo intermedio; il risultato viene mostrato da processTonyCommand
                 if (isSumColumnCmd) {
                 } else if (suppressAssistantTextFieldGuard) {
-                    // Messaggio utente già mostrato da tonyNotifyFieldProfileBlocked al primo triggerAction
+                    if (!window.__tonyFieldGuardNotifiedThisTurn) {
+                        var _fgKind = 'page';
+                        var _fgTg = '';
+                        if (commandToExecute && commandToExecute.type) {
+                            var _fgCt = String(commandToExecute.type).toUpperCase();
+                            if (_fgCt === 'OPEN_MODAL') {
+                                _fgKind = 'modal';
+                                _fgTg = commandToExecute.id || commandToExecute.target || '';
+                            } else if (_fgCt === 'APRI_PAGINA' || _fgCt === 'APRI_MODULO') {
+                                _fgTg = (commandToExecute.params && commandToExecute.params.target) || commandToExecute.target || commandToExecute.modulo || '';
+                            }
+                        }
+                        tonyNotifyFieldProfileBlocked(_fgKind, _fgTg);
+                    }
                 } else {
                     var formCtxForInject = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                     var isAttivitaForm = formCtxForInject && (formCtxForInject.formId === 'attivita-form' || formCtxForInject.modalId === 'attivita-modal');
@@ -5313,34 +6849,43 @@ import {
                             toShow = tonySanitizeQuickHoursSpeechVsFormDom(toShow, text);
                             doDisplay(toShow);
                             tonyQuickHoursRecoveryAfterCfReply(commandToExecute, text).then(function(recOk) {
-                                if (!recOk) tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, text, opts);
+                                if (!recOk) tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, text, opts, toShow);
                             });
                         });
                     } else {
-                        var qhFinish = tonyResolveQuickHoursWindow();
-                        var deferQhRecoveryFirst = qhFinish && tonyIsCampoLikeWorkspaceForTony() && !opts.proactive;
-                        if (deferQhRecoveryFirst) {
-                            tonyDeferSaveStateForQhRecovery = true;
-                            tonyQuickHoursRecoveryAfterCfReply(commandToExecute, text).then(function(recOk) {
-                                var fsOut = tonySanitizeQuickHoursSpeechVsFormDom(finalSpeech, text);
-                                doDisplay(fsOut);
-                                if (!recOk) tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, text, opts);
-                                saveTonyState();
-                            });
-                        } else {
-                            doDisplay(finalSpeech);
-                            tonyQuickHoursRecoveryAfterCfReply(commandToExecute, text).then(function(recOk) {
-                                if (!recOk) tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, text, opts);
-                            });
-                        }
+                        var qhCampoWs = tonyResolveQuickHoursWindow() && tonyIsCampoLikeWorkspaceForTony() && !opts.proactive;
+                        var fsCampoShow = qhCampoWs
+                            ? tonySanitizeQuickHoursSpeechVsFormDom(finalSpeech, text)
+                            : finalSpeech;
+                        doDisplay(fsCampoShow);
+                        tonyQuickHoursRecoveryAfterCfReply(commandToExecute, text).then(function(recOk) {
+                            if (!recOk) {
+                                tonyMaybeScheduleQuickHoursInterviewAfterCfReply(
+                                    commandToExecute, text, opts, fsCampoShow || finalSpeech
+                                );
+                            }
+                        }).catch(function(eRec) {
+                            console.warn('[Tony] Recovery ore post-CF fallita:', eRec);
+                        });
                     }
                 }
                 if (isSumColumnCmd || suppressAssistantTextFieldGuard) {
                     tonyQuickHoursRecoveryAfterCfReply(commandToExecute, text).then(function(recOk) {
-                        if (!recOk) tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, text, opts);
-                    });
+                        if (!recOk) tonyMaybeScheduleQuickHoursInterviewAfterCfReply(commandToExecute, text, opts, finalSpeech);
+                    }).catch(function() { /* ignore */ });
                 }
-                if (!tonyDeferSaveStateForQhRecovery) saveTonyState();
+                if (!tonyReplyShownThisTurn && !isSumColumnCmd && !opts.proactive) {
+                    if (suppressAssistantTextFieldGuard && !window.__tonyFieldGuardNotifiedThisTurn) {
+                        tonyNotifyFieldProfileBlocked('page', '');
+                    } else if (!suppressAssistantTextFieldGuard) {
+                        doDisplay(tonyEnsureSegnaOraAssistantVisible(finalSpeech) || (finalSpeech && String(finalSpeech).trim()) || 'Ok.');
+                    }
+                }
+                if (streamingMsgEl) {
+                    streamingMsgEl.remove();
+                    streamingMsgEl = null;
+                }
+                saveTonyState();
                 } catch (e) {
                     console.error('[Tony] onComplete: errore non gestito', e);
                     _isSendingMessage = false;
@@ -5363,11 +6908,18 @@ import {
                 if (code.indexOf('failed-precondition') >= 0 && /Gemini|chiave/i.test(msg)) {
                     return 'Configurazione servizio AI non disponibile. Contatta l\'amministratore.';
                 }
+                if (code.indexOf('deadline-exceeded') >= 0 || /timeout attesa risposta/i.test(msg)) {
+                    return 'La risposta del server ha impiegato troppo tempo (contesto molto grande o servizio AI lento). Riprova con un messaggio breve; se persiste, riduci i filtri in elenco o attendi un minuto.';
+                }
                 return msg || 'Riprova più tardi.';
             }
 
             function onError(err) {
                 _isSendingMessage = false;
+                if (window.__tonySendWatchdogId) {
+                    clearTimeout(window.__tonySendWatchdogId);
+                    window.__tonySendWatchdogId = null;
+                }
                 removeTyping();
                 if (streamingMsgEl) streamingMsgEl.remove();
                 appendMessage('Errore: ' + tonyFormatCallableError(err), 'error');
@@ -5376,6 +6928,10 @@ import {
 
             function onFinally() {
                 _isSendingMessage = false;
+                if (window.__tonySendWatchdogId) {
+                    clearTimeout(window.__tonySendWatchdogId);
+                    window.__tonySendWatchdogId = null;
+                }
                 isWaitingForTonyResponse = false;
                 sendBtn.disabled = false;
                 inputEl.disabled = false;
@@ -5455,6 +7011,10 @@ import {
             maxAttempts = typeof maxAttempts === 'number' ? maxAttempts : 24;
             var msg = String(text || '').trim();
             if (!msg) return;
+            if (isAnyTonyFormSaveConfirmPending()) {
+                console.log('[Tony] Proattivo omesso: in attesa conferma salvataggio locale.');
+                return;
+            }
             var n = 0;
             function tick() {
                 if (typeof sendMessage !== 'function') return;
@@ -5471,11 +7031,46 @@ import {
             }
             tick();
         }
+        window.__tonySendProactiveWhenUnlocked = tonySendProactiveWhenUnlocked;
+        window.__tonyPromptLavoroSaveLocal = function() {
+            promptTonyFormSaveLocal('lavoro-form', tonyFormSaveLocalDeps());
+        };
+        window.__tonyPromptPreventivoSaveLocal = function() {
+            promptTonyFormSaveLocal('preventivo-form', tonyFormSaveLocalDeps());
+        };
+        window.__tonyPromptProdottoSaveLocal = function() {
+            promptTonyFormSaveLocal('prodotto-form', tonyFormSaveLocalDeps());
+        };
+        window.__tonyPromptMovimentoSaveLocal = function() {
+            promptTonyFormSaveLocal('movimento-form', tonyFormSaveLocalDeps());
+        };
         window.__tonyTriggerAskForMissingFields = function(optionalMessage) {
             var defMsg = optionalMessage && String(optionalMessage).trim() ? String(optionalMessage).trim() : 'Form aperto con campi mancanti da compilare';
             tonySendProactiveWhenUnlocked(defMsg);
         };
         window.__tonyTriggerAskForSaveConfirmation = function() {
+            if (isAnyTonyFormSaveConfirmPending()) return;
+            var modalSave = document.getElementById('lavoro-modal');
+            if (modalSave && modalSave.classList.contains('active')) {
+                window.__tonyPromptLavoroSaveLocal();
+                return;
+            }
+            if (document.getElementById('preventivo-form') && formReadyForTonySave('preventivo-form')) {
+                window.__tonyPromptPreventivoSaveLocal();
+                return;
+            }
+            var modalProdotto = document.getElementById('prodotto-modal');
+            if (modalProdotto && modalProdotto.classList.contains('active') &&
+                magazzinoFormReadyForTonySave('prodotto-form')) {
+                window.__tonyPromptProdottoSaveLocal();
+                return;
+            }
+            var modalMovimento = document.getElementById('movimento-modal');
+            if (modalMovimento && modalMovimento.classList.contains('active') &&
+                magazzinoFormReadyForTonySave('movimento-form')) {
+                window.__tonyPromptMovimentoSaveLocal();
+                return;
+            }
             tonySendProactiveWhenUnlocked('Form completo, confermi salvataggio?');
         };
         inputEl.addEventListener('keydown', function(e) {
@@ -6032,6 +7627,11 @@ window.addEventListener('tony-module-updated', function(e) {
                                 tonyNotifyFieldProfileBlocked('page', rawTarget);
                                 return;
                             }
+                            if (!isApriPaginaTargetAllowed(rawTarget, getModuliAttiviFromTonyContext())) {
+                                console.warn('[Tony] onAction APRI_PAGINA bloccato: modulo non attivo', rawTarget);
+                                tonyNotifyModuleInactive(rawTarget, appendMessage);
+                                return;
+                            }
                             
                             // Guardia: se siamo già sulla pagina terreni e il target è terreni, non navigare (filtra invece)
                             var isOnTerreniPage = (typeof window !== 'undefined' && (
@@ -6064,6 +7664,9 @@ window.addEventListener('tony-module-updated', function(e) {
                                 return;
                             }
                             var resolved = resolveTarget(rawTarget) || rawTarget;
+                            if (resolved === 'meteo' && actualParams.fields && actualParams.fields.terrenoId) {
+                                url += (url.indexOf('?') >= 0 ? '&' : '?') + 'terrenoId=' + encodeURIComponent(String(actualParams.fields.terrenoId));
+                            }
                             var label = TONY_LABEL_MAP[resolved] || resolved;
                             var urlWithNotify = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'tnyNotify=' + encodeURIComponent(resolved);
                             window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
@@ -6210,20 +7813,58 @@ window.addEventListener('tony-module-updated', function(e) {
                                     window.openCreaModal();
                                     var jq = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null;
                                     if (jq) { jq('#' + modalId).modal('show'); } else { var el = document.getElementById(modalId); if (el) el.classList.add('active'); }
-                                    if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
-                                        enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'lavoro-form', formData: fields }, { source: 'pending-after-nav', delayMs: 1800 });
+                                    var localLavoroText = null;
+                                    try {
+                                        var rawLl = sessionStorage.getItem('tony_pending_lavoro_local_intent');
+                                        if (rawLl) {
+                                            var parsedLl = JSON.parse(rawLl);
+                                            localLavoroText = parsedLl && parsedLl.text ? String(parsedLl.text).trim() : null;
+                                            sessionStorage.removeItem('tony_pending_lavoro_local_intent');
+                                        }
+                                    } catch (eLl) {}
+                                    if (localLavoroText && window.TonyFormInjector) {
+                                        window.__tonyLavoroCreationFlow = true;
+                                        if (typeof window.TonyFormInjector.resetLavoroInterviewSessionState === 'function') {
+                                            window.TonyFormInjector.resetLavoroInterviewSessionState();
+                                        }
+                                        setTimeout(function() {
+                                            var wReady = window.TonyFormInjector.waitForLavoriFormDataReady
+                                                ? window.TonyFormInjector.waitForLavoriFormDataReady(8000)
+                                                : Promise.resolve(true);
+                                            var wMan = window.TonyFormInjector.waitForLavoriManodoperaReady
+                                                ? window.TonyFormInjector.waitForLavoriManodoperaReady(6000)
+                                                : Promise.resolve(true);
+                                            Promise.all([wReady, wMan]).then(function() {
+                                                if (window.TonyFormInjector.applyLavoroInterviewFromUserReply) {
+                                                    return window.TonyFormInjector.applyLavoroInterviewFromUserReply(localLavoroText);
+                                                }
+                                                return null;
+                                            }).then(function(resLl) {
+                                                var msgLl = (resLl && resLl.message) || '';
+                                                if (!msgLl && window.TonyFormInjector.promptLavoroInterviewMissing) {
+                                                    return window.TonyFormInjector.promptLavoroInterviewMissing().then(function(locLl) {
+                                                        return locLl && locLl.message ? locLl.message : '';
+                                                    });
+                                                }
+                                                return msgLl;
+                                            }).then(function(msgOut) {
+                                                if (msgOut && typeof appendMessage === 'function') {
+                                                    appendMessage(msgOut, 'tony');
+                                                    if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(msgOut);
+                                                }
+                                            }).catch(function(errLl) {
+                                                console.warn('[Tony] pending lavoro local intent:', errLl);
+                                            });
+                                        }, 500);
+                                    } else if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
+                                        enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'lavoro-form', formData: fields }, { source: 'pending-after-nav', delayMs: 350 });
                                     }
                                 } else if (modalId === 'preventivo-form') {
                                     if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
                                         enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'preventivo-form', formData: fields }, { source: 'pending-after-nav', delayMs: 2200 });
                                     }
                                     var userPromptNav = (intent.userPromptForPending && String(intent.userPromptForPending).trim()) ? String(intent.userPromptForPending).trim() : '';
-                                    if (!userPromptNav && typeof sessionStorage !== 'undefined') {
-                                        try {
-                                            var sup = sessionStorage.getItem('tony_last_user_message');
-                                            if (sup && String(sup).trim()) userPromptNav = String(sup).trim();
-                                        } catch (e2) {}
-                                    }
+                                    if (!userPromptNav) userPromptNav = tonyGetLastUserMessage();
                                     if (!userPromptNav) {
                                         userPromptNav = tonyGetUserPromptForPendingNav();
                                     }
@@ -6238,7 +7879,17 @@ window.addEventListener('tony-module-updated', function(e) {
                                                 var ctxNav = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                                                 var reqNav = (ctxNav && ctxNav.requiredEmpty) ? ctxNav.requiredEmpty : [];
                                                 if (reqNav.length === 0) return;
+                                                if (reqNav.length === 1 && reqNav[0] === 'data-prevista') return;
                                                 if (reqNav.indexOf('cliente-id') < 0 && reqNav.length < 4) return;
+                                                if (ctxNav && Array.isArray(ctxNav.fields)) {
+                                                    var hasTerrenoNav = ctxNav.fields.some(function(f) {
+                                                        return f.id === 'terreno-id' && f.value != null && String(f.value).trim() !== '';
+                                                    });
+                                                    var hasTipoNav = ctxNav.fields.some(function(f) {
+                                                        return f.id === 'tipo-lavoro' && f.value != null && String(f.value).trim() !== '';
+                                                    });
+                                                    if (hasTerrenoNav && hasTipoNav) return;
+                                                }
                                             }
                                             window.__tonyPreventivoPostNavEnrichDone = true;
                                             var enrichSuffix = '\n\n[Contesto: pagina Nuovo Preventivo già aperta nel browser. Rispondi con un solo comando JSON INJECT_FORM_DATA con formId "preventivo-form" e formData completo (cliente-id, tipo-lavoro, terreno-id se noto, colture, data-prevista, ecc.) dedotto dal messaggio.]';
@@ -6252,6 +7903,10 @@ window.addEventListener('tony-module-updated', function(e) {
                                     var btnPendP = document.getElementById('btn-nuovo-prodotto');
                                     if (btnPendP) btnPendP.click();
                                     else { var elPendP = document.getElementById('prodotto-modal'); if (elPendP) elPendP.classList.add('active'); }
+                                    if (fields && Object.keys(fields).length > 0) {
+                                        window.__tonyProdottoPendingDraft = Object.assign({}, fields);
+                                        try { sessionStorage.removeItem('tony_pending_prodotto_local_intent'); } catch (ePp) {}
+                                    }
                                     if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
                                         enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'prodotto-form', formData: fields }, { source: 'pending-after-nav', delayMs: 1200 });
                                     }
@@ -6259,6 +7914,10 @@ window.addEventListener('tony-module-updated', function(e) {
                                     var btnPendM = document.getElementById('btn-nuovo-movimento');
                                     if (btnPendM) btnPendM.click();
                                     else { var elPendM = document.getElementById('movimento-modal'); if (elPendM) elPendM.classList.add('active'); }
+                                    if (fields && Object.keys(fields).length > 0) {
+                                        window.__tonyMovimentoPendingDraft = Object.assign({}, fields);
+                                        try { sessionStorage.removeItem('tony_pending_movimento_local_intent'); } catch (ePm) {}
+                                    }
                                     if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
                                         enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'movimento-form', formData: fields }, { source: 'pending-after-nav', delayMs: 1200 });
                                     }

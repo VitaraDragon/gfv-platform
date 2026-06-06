@@ -12,43 +12,57 @@
         : (document.currentScript && document.currentScript.src) || '';
     window.__tonyScriptBase = scriptBase;
 
+    function loadTonyMain() {
+        import('./tony/main.js').catch(function(err) {
+            console.error('[Tony] Errore caricamento main.js:', err);
+        });
+    }
+
+    function appendClassicScript(relativePath, onload, onerror) {
+        var s = document.createElement('script');
+        s.src = new URL(relativePath, scriptBase).href;
+        if (onload) s.onload = onload;
+        if (onerror) {
+            s.onerror = onerror;
+        } else if (onload) {
+            s.onerror = onload;
+        }
+        document.head.appendChild(s);
+        return s;
+    }
+
+    function loadSchemasFillerInjector(onReady) {
+        onReady = typeof onReady === 'function' ? onReady : function() {};
+
+        function loadInjector() {
+            appendClassicScript('./tony-form-injector.js', onReady, function() {
+                console.warn('[Tony] tony-form-injector.js non caricato: INJECT_FORM_DATA non funzionerà.');
+                onReady();
+            });
+        }
+
+        function loadFillerThenInjector() {
+            appendClassicScript('./tony-smart-filler.js', loadInjector, loadInjector);
+        }
+
+        appendClassicScript('./tony-form-schemas.js', loadFillerThenInjector, loadFillerThenInjector);
+    }
+
     if (scriptBase) {
         var link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = new URL('../styles/tony-widget.css', scriptBase).href;
         document.head.appendChild(link);
 
-        function loadSchemasFillerInjector() {
-            var scriptSchemas = document.createElement('script');
-            scriptSchemas.src = new URL('./tony-form-schemas.js', scriptBase).href;
-            scriptSchemas.onload = function() {
-                var scriptFiller = document.createElement('script');
-                scriptFiller.src = new URL('./tony-smart-filler.js', scriptBase).href;
-                document.head.appendChild(scriptFiller);
-                var scriptInjector = document.createElement('script');
-                scriptInjector.src = new URL('./tony-form-injector.js', scriptBase).href;
-                document.head.appendChild(scriptInjector);
-            };
-            scriptSchemas.onerror = function() {
-                var scriptFiller = document.createElement('script');
-                scriptFiller.src = new URL('./tony-smart-filler.js', scriptBase).href;
-                document.head.appendChild(scriptFiller);
-            };
-            document.head.appendChild(scriptSchemas);
-        }
-
-        // Treasure Map: necessario per injectProdottoForm / injectMovimentoForm / getFormMap (standalone non includeva questo script)
-        var scriptMapping = document.createElement('script');
-        scriptMapping.src = new URL('../config/tony-form-mapping.js', scriptBase).href;
-        scriptMapping.onload = loadSchemasFillerInjector;
-        scriptMapping.onerror = function() {
+        // Treasure Map: necessario per injectProdottoForm / injectMovimentoForm / getFormMap
+        appendClassicScript('../config/tony-form-mapping.js', function() {
+            loadSchemasFillerInjector(loadTonyMain);
+        }, function() {
             console.warn('[Tony] tony-form-mapping.js non caricato: INJECT_FORM_DATA magazzino può fallire.');
-            loadSchemasFillerInjector();
-        };
-        document.head.appendChild(scriptMapping);
+            loadSchemasFillerInjector(loadTonyMain);
+        });
+        return;
     }
 
-    import('./tony/main.js').catch(function(err) {
-        console.error('[Tony] Errore caricamento main.js:', err);
-    });
+    loadTonyMain();
 })();

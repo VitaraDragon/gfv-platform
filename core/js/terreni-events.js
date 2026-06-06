@@ -95,6 +95,11 @@ export async function openTerrenoModal(
             const podereValue = terreno.podere || '';
             const podereSelect = document.getElementById('terreno-podere');
             if (podereSelect) podereSelect.value = podereValue;
+
+            const tipoCampoSelect = document.getElementById('terreno-tipo-campo');
+            if (tipoCampoSelect) {
+                tipoCampoSelect.value = terreno.tipoCampo || '';
+            }
             
             const noteInput = document.getElementById('terreno-note');
             if (noteInput) noteInput.value = terreno.note || '';
@@ -158,6 +163,8 @@ export async function openTerrenoModal(
         }
         const podereSelect = document.getElementById('terreno-podere');
         if (podereSelect) podereSelect.value = '';
+        const tipoCampoSelect = document.getElementById('terreno-tipo-campo');
+        if (tipoCampoSelect) tipoCampoSelect.value = '';
         const tipoPossessoSelect = document.getElementById('terreno-tipo-possesso');
         if (tipoPossessoSelect) tipoPossessoSelect.value = 'proprieta';
         
@@ -239,6 +246,9 @@ export async function handleSaveTerreno(
     
     const podereInput = document.getElementById('terreno-podere');
     const podere = podereInput ? podereInput.value.trim() || null : null;
+
+    const tipoCampoInput = document.getElementById('terreno-tipo-campo');
+    const tipoCampo = tipoCampoInput && tipoCampoInput.value ? tipoCampoInput.value : null;
     
     const noteInput = document.getElementById('terreno-note');
     const note = noteInput ? noteInput.value.trim() : '';
@@ -260,6 +270,7 @@ export async function handleSaveTerreno(
         superficie: null,
         coltura: coltura || null,
         podere: podere || null,
+        tipoCampo: tipoCampo,
         note: note || null,
         tipoPossesso: tipoPossesso || 'proprieta',
         updatedAt: serverTimestamp()

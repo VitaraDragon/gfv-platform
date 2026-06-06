@@ -251,6 +251,16 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Cache meteo (scritta solo da Cloud Functions — admin SDK; include sottocollezione terreni)
+    match /tenants/{tenantId}/meteoCache/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Cache context Tony (solo Cloud Functions — admin SDK)
+    match /tenants/{tenantId}/tonyContextCache/{document=**} {
+      allow read, write: if false;
+    }
+
     // Collection: liste (dati personalizzati, es. colture)
     match /tenants/{tenantId}/liste/{listaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
@@ -379,6 +389,22 @@ service cloud.firestore {
     match /tenants/{tenantId}/profiliManodopera/{userId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       allow create, update: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Assenze operai (giornata intera — segnalazione caposquadra, conferma manager)
+    match /tenants/{tenantId}/assenzeOperai/{assenzaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create: if isAuthenticated() && belongsToTenant(tenantId) && (
+        isManagerOrAdmin(tenantId) ||
+        (isCaposquadra(tenantId) && request.resource.data.stato == 'segnalata')
+      );
+      allow update: if isAuthenticated() && belongsToTenant(tenantId) && (
+        isManagerOrAdmin(tenantId) ||
+        (isCaposquadra(tenantId) &&
+         resource.data.stato == 'segnalata' &&
+         request.resource.data.stato == 'segnalata')
+      );
       allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 

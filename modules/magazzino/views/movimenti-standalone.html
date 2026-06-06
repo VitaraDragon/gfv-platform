@@ -170,6 +170,7 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+        import { suggestMovPrezzoInDom } from '../../../core/js/movimento-prezzo-catalogo.js';
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
@@ -248,9 +249,18 @@
                 document.getElementById('btn-annulla-modal').onclick = closeModal;
                 document.getElementById('mov-tipo').onchange = function() {
                     document.getElementById('prezzo-group').style.display = document.getElementById('mov-tipo').value === 'entrata' ? 'block' : 'none';
+                    if (document.getElementById('mov-tipo').value !== 'entrata') {
+                        document.getElementById('mov-prezzo').value = '';
+                    } else {
+                        suggestMovPrezzoInDom(prodotti);
+                    }
                     checkGiacenzaAlert();
                 };
-                document.getElementById('mov-prodotto').onchange = function() { updateQuantitaLabel(); checkGiacenzaAlert(); };
+                document.getElementById('mov-prodotto').onchange = function() {
+                    updateQuantitaLabel();
+                    suggestMovPrezzoInDom(prodotti);
+                    checkGiacenzaAlert();
+                };
                 document.getElementById('mov-quantita').oninput = checkGiacenzaAlert;
                 document.getElementById('movimento-form').onsubmit = saveMovimento;
                 document.getElementById('filter-tipo').onchange = renderMovimenti;
@@ -276,8 +286,15 @@
             });
             const selProdotto = document.getElementById('mov-prodotto');
             const selFilter = document.getElementById('filter-prodotto');
-            selProdotto.innerHTML = '<option value="">Seleziona prodotto</option>' + prodotti.map(p => `<option value="${p.id}">${(p.nome || p.codice || p.id)} (${p.unitaMisura || '-'})</option>`).join('');
+            selProdotto.innerHTML = '<option value="">Seleziona prodotto</option>' + prodotti.map(p => {
+                const nome = (p.nome || p.codice || p.id);
+                const um = p.unitaMisura || '-';
+                const pu = p.prezzoUnitario != null && Number.isFinite(Number(p.prezzoUnitario)) ? String(p.prezzoUnitario) : '';
+                const dataPrezzo = pu ? ` data-prezzo-unitario="${pu.replace(/"/g, '&quot;')}"` : '';
+                return `<option value="${p.id}"${dataPrezzo}>${nome} (${um})</option>`;
+            }).join('');
             selFilter.innerHTML = '<option value="">Tutti</option>' + prodotti.map(p => `<option value="${p.id}">${(p.nome || p.codice || p.id)}</option>`).join('');
+            window.__gfvMagazzinoProdotti = prodotti;
         }
 
         async function loadLavori() {

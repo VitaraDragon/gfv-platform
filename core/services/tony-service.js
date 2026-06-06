@@ -6,6 +6,30 @@
  */
 
 import { GUIDA_APP_PER_TONY } from './tony-guida-app.js';
+import { normalizeTonyCommand, resolveTonyUserVisibleText } from '../js/tony/engine.js';
+import { isTonySaveConfirmText, isTonyQuickHoursCfFakeSaveText } from '../js/tony-form-save-local.js';
+
+/** Blocca QUICK_SAVE CF su workspace Segna ore senza conferma utente («sì»/«salva»). */
+function _blockFieldWorkspaceQuickHoursSaveCommand(command, historyUserText, context) {
+  if (!command || !command.type) return false;
+  const cmd = String(command.type).toUpperCase();
+  if (cmd !== 'QUICK_SAVE' && cmd !== 'SUBMIT_FORM' && cmd !== 'SUBMIT' && cmd !== 'SALVA' && cmd !== 'SAVE') {
+    return false;
+  }
+  const fid = String(command.formId || command.id || '').toLowerCase();
+  const ctxForm =
+    context && context.form && context.form.formId ? String(context.form.formId).toLowerCase() : '';
+  const pagePath =
+    context && context.page && context.page.pagePath ? String(context.page.pagePath).toLowerCase() : '';
+  const onField =
+    fid.indexOf('field-workspace') >= 0 ||
+    fid.indexOf('quick-hours') >= 0 ||
+    ctxForm === 'field-workspace-ore-form' ||
+    pagePath.indexOf('field-workspace') >= 0;
+  if (!onField) return false;
+  const up = String(historyUserText || '').trim();
+  return !isTonySaveConfirmText(up);
+}
 
 /**
  * Ordine di caricamento guida markdown per Tony.
@@ -86,6 +110,9 @@ const GUIDA_SINTESI_ENTRY = {
  * nel primo messaggio si allega anche guida_sintesi per non perdere i passi Core.
  */
 const GUIDA_APP_FULL_THRESHOLD_CHARS = 12000;
+
+/** Modello Gemini SDK locale (callable usa functions/index.js TONY_GEMINI_MODEL). */
+const TONY_GEMINI_MODEL = 'gemini-2.5-flash';
 
 const GUIDA_SINTESI_FALLBACK = `
 GFV Core (sintesi): Impostazioni prima (azienda e poderi). Terreni con Traccia confini e Salva terreno. Diario attività per le giornate in campo. Dashboard con mappa se i confini sono già tracciati. Statistiche con filtri e Applica filtri. Menu con freccetta: rispetta l ordine delle scelte in schermata. Ruolo e moduli cambiano cosa vedi.
@@ -239,6 +266,10 @@ Regole operative:
 
 /** Numero massimo di messaggi in memoria (3–4 scambi = 6–8 elementi) */
 const CHAT_HISTORY_MAX = 8;
+/** Max righe tabella inviate a tonyAsk (evita payload enormi su Gestione Lavori / liste lunghe). */
+const TONY_CALLABLE_MAX_TABLE_ITEMS = 40;
+/** Timeout client sulla callable (allineato al limite tipico CF ~60–120s). */
+const TONY_CALLABLE_TIMEOUT_MS = 90000;
 
 /**
  * Preferisce una tabella lavori campo con items non vuoti: contesto serializzato a volte arriva senza righe
@@ -331,6 +362,7 @@ class TonyService {
     this.ai = null;
     this.app = null;
     this._tonyAskCallable = null;
+    this._tonyAskStreamUrl = null;
     this.context = {};
     this.onActionCallbacks = [];
     this._ready = false;
@@ -505,9 +537,13 @@ class TonyService {
             const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
             const functions = getFunctions(app, 'europe-west1');
             this._tonyAskCallable = httpsCallable(functions, 'tonyAsk');
+            this._tonyAskStreamUrl = this._resolveTonyAskStreamUrl(app);
             this._useCallable = true;
             this._ready = true;
             console.log('[Tony] Uso Cloud Function tonyAsk (getAI non disponibile in questo build).');
+            if (this._tonyAskStreamUrl) {
+              console.log('[Tony] Streaming SSE tonyAskStream attivo.');
+            }
             return;
           } catch (callableErr) {
             console.warn('[Tony] Callable non disponibile:', callableErr);
@@ -530,39 +566,41 @@ class TonyService {
       contextJson || '"Placeholder: nessun dato ancora iniettato"'
     );
     this.model = this._getGenerativeModel(this.ai, {
-      model: 'gemini-2.0-flash',
+      model: TONY_GEMINI_MODEL,
       systemInstruction
     });
   }
 
   /**
-   * Contesto per prompt/callable: la guida lunga (`guida_app`) pesa molti token,
-   * quindi dopo il primo messaggio resta fuori; i riassunti `guida_sintesi`,
-   * `guida_sintesi_parco_macchine`, `guida_sintesi_vigneto`, `guida_sintesi_frutteto`, `guida_sintesi_magazzino`, `guida_sintesi_manodopera`, `guida_sintesi_conto_terzi` e `guida_sintesi_tony` restano (tranne al primo turno quando la guida lunga
-   * è già caricata interamente da file, per evitare duplicati).
+   * Contesto per prompt / callable.
+   * - **Callable (tonyAsk)**: solo `guida_sintesi_*` (mai `guida_app` lunga).
+   * - **Modello locale**: primo turno può usare `guida_app` intera; sintesi omesse se ridondanti.
+   * @param {{ forCallable?: boolean }} [opts]
    */
-  _getContextForPrompt() {
+  _getContextForPrompt(opts = {}) {
+    const forCallable = !!opts.forCallable;
     const firstTurn = this.chatHistory.length === 0;
     const ga = this.context.guida_app;
     const longGuidaLoaded =
       typeof ga === 'string' && ga.length >= GUIDA_APP_FULL_THRESHOLD_CHARS;
+    const sintesiKeys = [
+      'guida_sintesi',
+      'guida_sintesi_parco_macchine',
+      'guida_sintesi_vigneto',
+      'guida_sintesi_frutteto',
+      'guida_sintesi_magazzino',
+      'guida_sintesi_manodopera',
+      'guida_sintesi_conto_terzi',
+      'guida_sintesi_tony'
+    ];
     const out = {};
     for (const key of Object.keys(this.context)) {
       if (key === 'guida_app') {
-        if (firstTurn) out[key] = this.context[key];
+        if (!forCallable && firstTurn) out[key] = this.context[key];
         continue;
       }
-      if (
-        key === 'guida_sintesi' ||
-        key === 'guida_sintesi_parco_macchine' ||
-        key === 'guida_sintesi_vigneto' ||
-        key === 'guida_sintesi_frutteto' ||
-        key === 'guida_sintesi_magazzino' ||
-        key === 'guida_sintesi_manodopera' ||
-        key === 'guida_sintesi_conto_terzi' ||
-        key === 'guida_sintesi_tony'
-      ) {
-        if (firstTurn && longGuidaLoaded) continue;
+      if (sintesiKeys.indexOf(key) >= 0) {
+        if (!forCallable && firstTurn && longGuidaLoaded) continue;
         out[key] = this.context[key];
         continue;
       }
@@ -778,7 +816,18 @@ class TonyService {
    */
   _sanitizeContextForAI(context) {
     if (!context || !context.page || !context.page.currentTableData) return context;
-    const cleanContext = JSON.parse(JSON.stringify(context));
+    let cleanContext;
+    try {
+      cleanContext = JSON.parse(JSON.stringify(context));
+    } catch (e) {
+      console.warn('[Tony] Contesto non serializzabile, invio senza currentTableData:', e && e.message);
+      const fallback = { ...context };
+      if (fallback.page) {
+        fallback.page = { ...fallback.page };
+        delete fallback.page.currentTableData;
+      }
+      return fallback;
+    }
     const table = cleanContext.page.currentTableData;
     const pageType = table.pageType || '';
     if (!Array.isArray(table.items)) return cleanContext;
@@ -836,6 +885,12 @@ class TonyService {
         caposquadra: item.caposquadra || '-',
         operaio: item.operaio || '-'
       }));
+      if (table.items.length > TONY_CALLABLE_MAX_TABLE_ITEMS) {
+        const total = table.items.length;
+        table.items = table.items.slice(0, TONY_CALLABLE_MAX_TABLE_ITEMS);
+        table._itemsCapped = true;
+        table._itemsTotal = total;
+      }
     } else if (pageType === 'terreni') {
       table.items = table.items.map((item) => ({
         id: item.id,
@@ -862,6 +917,23 @@ class TonyService {
         quantitaEttari: item.quantitaEttari != null ? item.quantitaEttari : null,
         resaQliHa: item.resaQliHa != null ? item.resaQliHa : null
       }));
+    } else if (pageType === 'meteo_dashboard') {
+      if (table.sede && table.sede.previsioniGiornaliere && table.sede.previsioniGiornaliere.length > 8) {
+        table.sede.previsioniGiornaliere = table.sede.previsioniGiornaliere.slice(0, 8);
+      }
+      table.items = table.items.map((item) => ({
+        id: item.id || item.terrenoId,
+        terrenoId: item.terrenoId,
+        nome: item.nome,
+        podere: item.podere,
+        ok: !!item.ok,
+        popOggi: item.popOggi,
+        popDomani: item.popDomani,
+        hasRainSoon: !!item.hasRainSoon,
+        previsioniGiornaliere: Array.isArray(item.previsioniGiornaliere)
+          ? item.previsioniGiornaliere.slice(0, 8)
+          : [],
+      }));
     } else {
       // Altri pageType (lavori, prodotti, movimenti, trattori, attrezzi, guasti, scadenze, flotta): mantieni struttura leggera
       table.items = table.items.map((item) => {
@@ -873,6 +945,195 @@ class TonyService {
       });
     }
     return cleanContext;
+  }
+
+  /**
+   * Alleggerisce il contesto inviato a tonyAsk (Map lavori, liste lunghe, tabella).
+   * Le guide passano solo come `guida_sintesi_*` (vedi `_getContextForPrompt({ forCallable: true })`).
+   */
+  _prepareContextForCallable(context) {
+    if (!context || typeof context !== 'object') return context;
+    const out = this._sanitizeForJson(context);
+    if (!out || typeof out !== 'object') return out;
+    if (out.guida_app != null) delete out.guida_app;
+    if (out.lavori && typeof out.lavori === 'object') {
+      const l = { ...out.lavori };
+      delete l.sottocategorieLavoriMap;
+      delete l.squadreList;
+      const capArr = (arr, max, mapFn) => {
+        if (!Array.isArray(arr)) return arr;
+        return arr.slice(0, max).map(mapFn);
+      };
+      l.terreni = capArr(l.terreni, 80, (t) =>
+        t && typeof t === 'object'
+          ? {
+              id: t.id,
+              nome: t.nome,
+              coltura: t.coltura,
+              coltura_categoria: t.coltura_categoria
+            }
+          : t
+      );
+      l.tipi_lavoro = capArr(l.tipi_lavoro, 100, (t) =>
+        t && typeof t === 'object'
+          ? { id: t.id, nome: t.nome || t.tipoLavoro || t.label, tipoLavoro: t.tipoLavoro }
+          : t
+      );
+      l.caposquadraList = capArr(l.caposquadraList, 40, (c) =>
+        c && typeof c === 'object'
+          ? { id: c.id, nome: `${c.nome || ''} ${c.cognome || ''}`.trim() }
+          : c
+      );
+      l.operaiList = capArr(l.operaiList, 40, (c) =>
+        c && typeof c === 'object'
+          ? { id: c.id, nome: `${c.nome || ''} ${c.cognome || ''}`.trim() }
+          : c
+      );
+      l.trattoriList = capArr(l.trattoriList, 40, (t) =>
+        t && typeof t === 'object' ? { id: t.id, nome: t.nome || t.label } : t
+      );
+      l.attrezziList = capArr(l.attrezziList, 40, (t) =>
+        t && typeof t === 'object' ? { id: t.id, nome: t.nome || t.label } : t
+      );
+      if (Array.isArray(l.categorie_lavoro) && l.categorie_lavoro.length > 40) {
+        l.categorie_lavoro = l.categorie_lavoro.slice(0, 40);
+        l._categorieCapped = true;
+      }
+      out.lavori = l;
+    }
+    if (out.page && out.page.currentTableData && Array.isArray(out.page.currentTableData.items)) {
+      const n = out.page.currentTableData.items.length;
+      if (n > TONY_CALLABLE_MAX_TABLE_ITEMS) {
+        out.page.currentTableData = {
+          ...out.page.currentTableData,
+          items: out.page.currentTableData.items.slice(0, TONY_CALLABLE_MAX_TABLE_ITEMS),
+          _itemsCapped: true,
+          _itemsTotal: n
+        };
+      }
+    }
+    return out;
+  }
+
+  /**
+   * URL HTTP tonyAskStream (SSE) — regione europe-west1.
+   * @param {import('firebase/app').FirebaseApp} app
+   * @returns {string|null}
+   */
+  _resolveTonyAskStreamUrl(app) {
+    try {
+      const opts = app && app.options ? app.options : {};
+      const projectId = opts.projectId || (typeof window !== 'undefined' && window.firebaseConfig && window.firebaseConfig.projectId);
+      if (!projectId) return null;
+      return `https://europe-west1-${projectId}.cloudfunctions.net/tonyAskStream`;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * @param {{ message: string, context: object, history: object[], onChunk?: (delta: string) => void }} payload
+   * @returns {Promise<{ text: string, command: object|null }>}
+   */
+  async _callTonyAskStream(payload) {
+    if (!this._tonyAskStreamUrl) {
+      throw new Error('tonyAskStream URL non configurato');
+    }
+    const { getAuth } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+    const { parseTonySseStream } = await import('./tony-sse-parse.js');
+    const auth = getAuth(this.app);
+    const user = auth.currentUser;
+    if (!user) throw new Error('Utente non autenticato');
+    const idToken = await user.getIdToken();
+
+    const started = Date.now();
+    const res = await fetch(this._tonyAskStreamUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        message: payload.message,
+        context: payload.context,
+        history: payload.history,
+      }),
+    });
+
+    if (!res.ok) {
+      let errMsg = `tonyAskStream HTTP ${res.status}`;
+      try {
+        const errBody = await res.json();
+        if (errBody && errBody.error) errMsg = String(errBody.error);
+      } catch (_) {}
+      throw new Error(errMsg);
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.indexOf('application/json') >= 0) {
+      const jsonBody = await res.json();
+      if (jsonBody && jsonBody.error) throw new Error(String(jsonBody.error));
+      return {
+        text: jsonBody && jsonBody.text != null ? String(jsonBody.text) : '',
+        command: jsonBody && jsonBody.command && typeof jsonBody.command === 'object' ? jsonBody.command : null,
+      };
+    }
+
+    const rawBody = await res.text();
+    let donePayload = null;
+    const parsed = parseTonySseStream(rawBody, {
+      onChunk(delta) {
+        if (payload.onChunk) payload.onChunk(delta);
+      },
+      onDone(data) {
+        donePayload = data;
+      },
+    });
+
+    console.log('[Tony] tonyAskStream completata in', Date.now() - started, 'ms');
+    if (!donePayload) {
+      const preview = String(rawBody || '').slice(0, 240).replace(/\s+/g, ' ');
+      console.warn('[Tony] tonyAskStream senza done; body preview:', preview || '(vuoto)', 'hadEvents:', parsed.hadEvents);
+      throw new Error('Stream Tony terminato senza evento done');
+    }
+    return {
+      text: donePayload.text != null ? String(donePayload.text) : '',
+      command: donePayload.command && typeof donePayload.command === 'object' ? donePayload.command : null,
+    };
+  }
+
+  /**
+   * @param {{ message: string, context: object, history: object[] }} payload
+   * @returns {Promise<*>}
+   */
+  async _callTonyAskCallable(payload) {
+    const started = Date.now();
+    let payloadKb = 0;
+    try {
+      payloadKb = Math.round(JSON.stringify(payload).length / 1024);
+    } catch (e) {
+      console.warn('[Tony] Stima payload callable non riuscita:', e && e.message);
+    }
+    console.log('[Tony] Invio tonyAsk (~' + payloadKb + ' KB)...');
+    const callPromise = this._tonyAskCallable(payload).then((r) => r.data);
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        const err = new Error(
+          'Tony: timeout attesa risposta dal server (' + Math.round(TONY_CALLABLE_TIMEOUT_MS / 1000) + ' s).'
+        );
+        err.code = 'deadline-exceeded';
+        reject(err);
+      }, TONY_CALLABLE_TIMEOUT_MS);
+    });
+    try {
+      const data = await Promise.race([callPromise, timeoutPromise]);
+      console.log('[Tony] tonyAsk completata in', Date.now() - started, 'ms');
+      return data;
+    } catch (err) {
+      console.error('[Tony] tonyAsk fallita dopo', Date.now() - started, 'ms:', err);
+      throw err;
+    }
   }
 
   /**
@@ -940,6 +1201,7 @@ class TonyService {
     // Prima di triggerAction / _pushChatTurn: così APRI_PAGINA post-conferma ha il testo utente anche se il dialog viene confermato prima che chatHistory sia aggiornata.
     if (historyUserText && !(askOptions && askOptions.skipUserHistory)) {
       try {
+        if (typeof window !== 'undefined') window.__tonyLastUserMessage = historyUserText;
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem('tony_last_user_message', historyUserText);
         }
@@ -950,9 +1212,12 @@ class TonyService {
       ? `Conversazione precedente:\n${historyBloc}\n\nDomanda utente: ${userPrompt}`
       : `Domanda utente: ${userPrompt}`;
 
-    const contextForPrompt = this._getContextForPrompt();
+    const contextForPrompt = this._getContextForPrompt({ forCallable: this._useCallable });
     const lightContext = this._sanitizeContextForAI(contextForPrompt);
-    const safeContext = this._sanitizeForJson(lightContext);
+    let safeContext = this._sanitizeForJson(lightContext);
+    if (this._useCallable) {
+      safeContext = this._prepareContextForCallable(safeContext);
+    }
     const safeHistory = this._sanitizeForJson(this.chatHistory);
 
     // Context Builder: passa tenantId per fetch dati aziendali lato Cloud (docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md)
@@ -980,7 +1245,7 @@ class TonyService {
     
     let text;
     if (this._useCallable && this._tonyAskCallable) {
-      const { data: rawData } = await this._tonyAskCallable({
+      const rawData = await this._callTonyAskCallable({
         message: userPrompt,
         context: safeContext,
         history: safeHistory
@@ -1113,6 +1378,10 @@ class TonyService {
         parsedData = { text: typeof rawData === 'string' ? rawData : 'Nessuna risposta da Tony.' };
       }
       text = parsedData.text ?? 'Nessuna risposta da Tony.';
+      parsedData.command = normalizeTonyCommand(parsedData.command);
+      const resolvedCallable = resolveTonyUserVisibleText(text, parsedData.command);
+      text = resolvedCallable.text;
+      parsedData.command = resolvedCallable.command;
       if (parsedData.command && typeof parsedData.command === 'object' && parsedData.command.type) {
         var cmdT0 = String(parsedData.command.type).toUpperCase();
         // Il widget invia «Form completo, confermi salvataggio?» come prompt proattivo; la CF a volte restituisce SAVE_ACTIVITY / QUICK_SAVE come se l'utente avesse confermato → non eseguire finché l'utente non scrive davvero una conferma (es. «sì» / «salva», o pulsante — gestito lato main.js).
@@ -1179,8 +1448,22 @@ class TonyService {
             this.triggerAction(parsedData.command.type, parsedData.command);
           }
         } else {
-          console.log('[Tony] ESEGUO COMANDO:', parsedData.command);
-          this.triggerAction(parsedData.command.type, parsedData.command);
+          const blockFieldQhAsk = _blockFieldWorkspaceQuickHoursSaveCommand(
+            parsedData.command,
+            historyUserText,
+            contextForPrompt
+          );
+          if (blockFieldQhAsk) {
+            console.log('[Tony Service] QUICK_SAVE workspace ore non eseguito: serve conferma esplicita («sì»/«salva»).');
+            parsedData.command = null;
+            if (!text.trim() || isTonyQuickHoursCfFakeSaveText(text)) {
+              parsedData.text = 'Per salvare le ore scrivi «sì» o «salva», oppure tocca «Salva ore lavorate» sul form.';
+              text = parsedData.text;
+            }
+          } else {
+            console.log('[Tony] ESEGUO COMANDO:', parsedData.command);
+            this.triggerAction(parsedData.command.type, parsedData.command);
+          }
         }
       }
       
@@ -1193,13 +1476,12 @@ class TonyService {
         return { text: cleaned, command: null };
       }
       // Restituisci al widget l'oggetto { text, command } quando il backend ha già estratto il comando
-      if (parsedData.command && typeof parsedData.command === 'object') {
-        const cleaned = this._parseAndTriggerActions(text);
-        this._pushChatTurn(historyUserText, cleaned, askOptions);
-        return { text: cleaned, command: parsedData.command };
+      if (parsedData.command && typeof parsedData.command === 'object' && parsedData.command.type) {
+        this._pushChatTurn(historyUserText, text, askOptions);
+        return { text: text, command: parsedData.command };
       }
-      // Sempre oggetto: nessun comando → command: null (evita che il widget riceva stringa e faccia parseRobustTonyResponse)
-      const finalText = (parsedData.text ?? text ?? 'Nessuna risposta da Tony.').toString().trim() || 'Ok.';
+      const cleanedNoCmd = this._parseAndTriggerActions(text);
+      const finalText = (cleanedNoCmd || text || 'Nessuna risposta da Tony.').toString().trim() || 'Ok.';
       this._pushChatTurn(historyUserText, finalText, askOptions);
       return { text: finalText, command: null };
       }
@@ -1225,6 +1507,116 @@ class TonyService {
   }
 
   /**
+   * askStream via CF SSE (Fase 3): quick reply = solo evento done; Gemini = chunk + done.
+   */
+  async _askStreamViaCallable(userPrompt, opts = {}) {
+    const onChunk = opts.onChunk || (() => {});
+    const historyUserText =
+      opts && opts.historyUserMessage != null && String(opts.historyUserMessage).trim() !== ''
+        ? String(opts.historyUserMessage).trim()
+        : String(userPrompt || '').trim();
+
+    if (historyUserText && !(opts && opts.skipUserHistory)) {
+      try {
+        if (typeof window !== 'undefined') window.__tonyLastUserMessage = historyUserText;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('tony_last_user_message', historyUserText);
+        }
+      } catch (_) {}
+    }
+
+    const contextForPrompt = this._getContextForPrompt({ forCallable: true });
+    const lightContext = this._sanitizeContextForAI(contextForPrompt);
+    let safeContext = this._sanitizeForJson(lightContext);
+    safeContext = this._prepareContextForCallable(safeContext);
+    const safeHistory = this._sanitizeForJson(this.chatHistory);
+
+    let tenantId = null;
+    try {
+      const mod = await import('./tenant-service.js');
+      tenantId = mod.getCurrentTenantId ? mod.getCurrentTenantId() : null;
+    } catch (_) {
+      tenantId = (typeof window !== 'undefined' && window.currentTenantId) ? window.currentTenantId : null;
+    }
+    if (tenantId && safeContext) {
+      if (!safeContext.dashboard) safeContext.dashboard = {};
+      safeContext.dashboard.tenantId = tenantId;
+    }
+
+    const fieldQuick = _tryFieldWorkspaceEnumerateJobsReply(userPrompt, safeContext, opts);
+    if (fieldQuick != null && String(fieldQuick).trim()) {
+      onChunk(fieldQuick);
+      this._pushChatTurn(historyUserText, fieldQuick, opts);
+      return { text: fieldQuick, command: null };
+    }
+
+    const rawData = await this._callTonyAskStream({
+      message: userPrompt,
+      context: safeContext,
+      history: safeHistory,
+      onChunk,
+    });
+
+    return this._finalizeCallableResponse(rawData, userPrompt, opts, historyUserText);
+  }
+
+  /**
+   * Post-process risposta CF { text, command } — allineato al path callable di ask().
+   */
+  _finalizeCallableResponse(rawData, userPrompt, askOptions, historyUserText) {
+    let parsedData =
+      rawData && typeof rawData === 'object'
+        ? { text: rawData.text, command: rawData.command || null }
+        : { text: String(rawData || ''), command: null };
+
+    let text = parsedData.text != null ? String(parsedData.text) : 'Ok.';
+    parsedData.command = normalizeTonyCommand(parsedData.command);
+
+    const resolved = resolveTonyUserVisibleText(text, parsedData.command);
+    text = resolved.text;
+    parsedData.command = resolved.command;
+
+    if (parsedData.command && typeof parsedData.command === 'object' && parsedData.command.type) {
+      const cmdT0 = String(parsedData.command.type).toUpperCase();
+      const proactiveSavePrompt =
+        askOptions.proactive &&
+        userPrompt &&
+        (/confermi\s+salvataggio/i.test(String(userPrompt)) || /^form\s+completo,?\s*confermi/i.test(String(userPrompt)));
+      const blockProactiveFalseSave =
+        proactiveSavePrompt &&
+        (cmdT0 === 'SAVE_ACTIVITY' ||
+          cmdT0 === 'QUICK_SAVE' ||
+          cmdT0 === 'SUBMIT_FORM' ||
+          cmdT0 === 'SALVA' ||
+          cmdT0 === 'SAVE');
+      if (!blockProactiveFalseSave) {
+        const ctxForSaveBlock = this._getContextForPrompt({ forCallable: true });
+        const blockFieldQhSave = _blockFieldWorkspaceQuickHoursSaveCommand(
+          parsedData.command,
+          historyUserText,
+          ctxForSaveBlock
+        );
+        if (blockFieldQhSave) {
+          console.log('[Tony Service] QUICK_SAVE workspace ore non eseguito: serve conferma esplicita («sì»/«salva»).');
+          parsedData.command = null;
+          if (!text.trim() || isTonyQuickHoursCfFakeSaveText(text)) {
+            text = 'Per salvare le ore scrivi «sì» o «salva», oppure tocca «Salva ore lavorate» sul form.';
+          }
+        } else {
+          this.triggerAction(parsedData.command.type, parsedData.command);
+        }
+      }
+    }
+
+    const finalText = (text || 'Ok.').trim() || 'Ok.';
+    this._pushChatTurn(historyUserText, finalText, askOptions);
+    return {
+      text: finalText,
+      command: parsedData.command && parsedData.command.type ? parsedData.command : null,
+    };
+  }
+
+  /**
    * Invia una domanda a Tony con streaming. Emette chunk via onChunk; restituisce il testo completo finale.
    * Se usa Cloud Function (callable), fa fallback su ask() senza streaming.
    * @param {string} userPrompt - Testo dell'utente
@@ -1241,9 +1633,17 @@ class TonyService {
         ? String(opts.historyUserMessage).trim()
         : String(userPrompt || '').trim();
 
+    if (this._useCallable && this._tonyAskStreamUrl) {
+      try {
+        return await this._askStreamViaCallable(userPrompt, opts);
+      } catch (streamErr) {
+        console.warn('[Tony] tonyAskStream fallito, fallback ask():', streamErr && streamErr.message);
+        return await this.ask(userPrompt, opts);
+      }
+    }
+
     if (this._useCallable && this._tonyAskCallable) {
-      const text = await this.ask(userPrompt, opts);
-      return text;
+      return await this.ask(userPrompt, opts);
     }
 
     if (!this.model) {
@@ -1252,13 +1652,14 @@ class TonyService {
 
     if (historyUserText && !(opts && opts.skipUserHistory)) {
       try {
+        if (typeof window !== 'undefined') window.__tonyLastUserMessage = historyUserText;
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem('tony_last_user_message', historyUserText);
         }
       } catch (_) {}
     }
 
-    const contextForPrompt = this._getContextForPrompt();
+    const contextForPrompt = this._getContextForPrompt({ forCallable: this._useCallable });
     const lightStreamContext = this._sanitizeContextForAI(contextForPrompt);
     const safeStreamContext = this._sanitizeForJson(lightStreamContext);
     const fieldWorkspaceQuickStream = _tryFieldWorkspaceEnumerateJobsReply(userPrompt, safeStreamContext, opts);
