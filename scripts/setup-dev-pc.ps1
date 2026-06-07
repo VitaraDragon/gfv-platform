@@ -1,4 +1,4 @@
-# setup-dev-pc.ps1 — Ambiente di sviluppo GFV + Cursor (Windows)
+﻿# setup-dev-pc.ps1 — Ambiente di sviluppo GFV + Cursor (Windows)
 #
 # Uso:
 #   .\scripts\setup-dev-pc.ps1              # solo controllo (default)
@@ -96,7 +96,7 @@ foreach ($key in @('user.name', 'user.email')) {
     if ($val) {
         Write-Host ("  [OK]   {0} = {1}" -f $key, $val) -ForegroundColor Green
     } else {
-        Write-Host ("  [MISS] {0} non impostato (git config --global {0} \"...\")" -f $key) -ForegroundColor Yellow
+        Write-Host ("  [MISS] {0} non impostato (git config --global {0} ...)" -f $key) -ForegroundColor Yellow
     }
 }
 

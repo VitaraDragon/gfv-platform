@@ -10,6 +10,11 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "start": "http-server -p 8000 -c-1",
+    "deploy:landing": "npm run build:landing && node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only hosting",
+    "deploy:functions": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only functions",
+    "deploy:rules": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only firestore:rules,firestore:indexes",
+    "deploy:firebase": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only functions,firestore:rules,firestore:indexes",
+    "deploy:hosting": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only hosting",
     "generate:tony-routes": "node scripts/generate-tony-routes.cjs",
     "bump:pwa-cache": "node scripts/bump-pwa-cache-version.mjs",
     "setup:hooks": "git config core.hooksPath .githooks",
@@ -28,6 +33,7 @@
   "license": "ISC",
   "devDependencies": {
     "@vitest/ui": "^1.0.0",
+    "firebase-tools": "^15.19.1",
     "http-server": "^14.1.1",
     "vitest": "^1.0.0"
   },

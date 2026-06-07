@@ -91,7 +91,35 @@ export function initTonyVoice(options) {
     if (typeof window !== 'undefined') {
         window.__tonyAudioQueue = window.__tonyAudioQueue || [];
         window.__tonyIsSpeaking = window.__tonyIsSpeaking || false;
+        if (typeof window.__tonyGeneration !== 'number') window.__tonyGeneration = 0;
     }
+
+        function currentGeneration() {
+            return typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0;
+        }
+
+        function stopCurrentTonyAudioElement() {
+            if (!window.currentTonyAudio) return;
+            try {
+                window.currentTonyAudio.pause();
+                window.currentTonyAudio.currentTime = 0;
+                window.currentTonyAudio.src = '';
+            } catch (_) {}
+            window.currentTonyAudio = null;
+        }
+
+        function clearTonyAudioPipeline(options) {
+            options = options || {};
+            if (options.bump === true) window.__tonyGeneration = currentGeneration() + 1;
+            window.__tonyAudioQueue = [];
+            window.__tonyIsSpeaking = false;
+            stopCurrentTonyAudioElement();
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            window.__tonyPlayOnInteractionScheduled = false;
+            if (typeof console !== 'undefined' && console.log) {
+                console.log('[Tony Voice] pipeline cleared', options.reason || '', 'gen=' + currentGeneration());
+            }
+        }
 
         function processNextAudio() {
             if (window.__tonyIsSpeaking || !window.__tonyAudioQueue || window.__tonyAudioQueue.length === 0) return;
@@ -100,11 +128,15 @@ export function initTonyVoice(options) {
                 processNextAudio();
                 return;
             }
+            if (item.gen != null && item.gen !== currentGeneration()) {
+                processNextAudio();
+                return;
+            }
             window.__tonyIsSpeaking = true;
             playOneTTS(item.text, item.opts || {}, function() {
                 window.__tonyIsSpeaking = false;
                 processNextAudio();
-            });
+            }, item.gen);
         }
 
         function schedulePlayOnFirstInteraction() {
@@ -122,16 +154,13 @@ export function initTonyVoice(options) {
             window.addEventListener('keydown', once, { once: true });
         }
 
-        function playOneTTS(testoPulito, opts, onDone) {
+        function playOneTTS(testoPulito, opts, onDone, genFromQueue) {
             opts = opts || {};
             if (!onDone) onDone = function() {};
-            if (opts.forceInterrupt) {
-                if (window.speechSynthesis) window.speechSynthesis.cancel();
-                if (window.currentTonyAudio) {
-                    window.currentTonyAudio.pause();
-                    window.currentTonyAudio = null;
-                }
-            }
+            var genAtStart = genFromQueue != null ? genFromQueue : (opts.gen != null ? opts.gen : currentGeneration());
+            function isStale() { return genAtStart !== currentGeneration(); }
+            if (opts.forceInterrupt) clearTonyAudioPipeline({ bump: false, reason: 'force_interrupt' });
+            if (isStale()) { onDone(); return; }
 
             if (testoPulito === lastTTSCache.text && lastTTSCache.audioBase64) {
                 var audioSrc = 'data:audio/mp3;base64,' + lastTTSCache.audioBase64;
@@ -143,11 +172,12 @@ export function initTonyVoice(options) {
                     onPlayEnd(opts);
                     onDone();
                 };
+                if (isStale()) { onDone(); return; }
                 window.currentTonyAudio.play().catch(function(e) {
                     if (e && e.name === 'NotAllowedError') {
                         window.currentTonyAudio = null;
                         window.__tonyAudioQueue = window.__tonyAudioQueue || [];
-                        window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts });
+                        window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts, gen: genAtStart });
                         window.__tonyIsSpeaking = false;
                         schedulePlayOnFirstInteraction();
                         if (typeof console !== 'undefined' && console.log) console.log('[Tony] Audio rinviato: riproduzione al primo click (policy browser).');
@@ -180,9 +210,11 @@ export function initTonyVoice(options) {
                             setTimeout(function() { reject(new Error('getTonyAudio timeout ' + TTS_TIMEOUT_MS + 'ms')); }, TTS_TIMEOUT_MS);
                         })
                     ]);
+                    if (isStale()) { onDone(); return; }
                     if (result.data && result.data.audioContent) {
                         lastTTSCache.text = testoPulito;
                         lastTTSCache.audioBase64 = result.data.audioContent;
+                        if (isStale()) { onDone(); return; }
                         var audioSrc = 'data:audio/mp3;base64,' + result.data.audioContent;
                         window.currentTonyAudio = new Audio(audioSrc);
                         window.currentTonyAudio.onplay = function() { onPlayStart(); };
@@ -192,11 +224,12 @@ export function initTonyVoice(options) {
                             onPlayEnd(opts);
                             onDone();
                         };
+                        if (isStale()) { onDone(); return; }
                         window.currentTonyAudio.play().catch(function(e) {
                             if (e && e.name === 'NotAllowedError') {
                                 window.currentTonyAudio = null;
                                 window.__tonyAudioQueue = window.__tonyAudioQueue || [];
-                                window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts });
+                                window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts, gen: genAtStart });
                                 window.__tonyIsSpeaking = false;
                                 schedulePlayOnFirstInteraction();
                                 if (typeof console !== 'undefined' && console.log) console.log('[Tony] Audio rinviato: riproduzione al primo click (policy browser).');
@@ -237,14 +270,16 @@ export function initTonyVoice(options) {
                 onPlayEnd(opts);
                 return;
             }
+            var gen = opts.gen != null ? opts.gen : currentGeneration();
             window.__tonyAudioQueue = window.__tonyAudioQueue || [];
-            window.__tonyAudioQueue.push({ text: testoPulito, opts: opts });
+            window.__tonyAudioQueue.push({ text: testoPulito, opts: opts, gen: gen });
             processNextAudio();
         }
 
         /** Avvia getTonyAudio in parallelo (warm cache) senza bloccare la UI chat. */
-        function prefetchTonyTTS(testo) {
+        function prefetchTonyTTS(testo, genOverride) {
             if (!testo || typeof testo !== 'string') return;
+            var genAtStart = genOverride != null ? genOverride : currentGeneration();
             var testoPulito = pulisciTestoPerVoce(testo);
             if (testoPulito.indexOf('{') >= 0 || testoPulito.indexOf('"text"') >= 0) {
                 var extracted = extractTextForTTS(testoPulito);
@@ -267,6 +302,7 @@ export function initTonyVoice(options) {
                         }
                     } catch (eCtx) {}
                     var result = await getTonyAudio({ text: testoPulito, context: ctxPayload });
+                    if (genAtStart !== currentGeneration()) return;
                     if (result.data && result.data.audioContent) {
                         lastTTSCache.text = testoPulito;
                         lastTTSCache.audioBase64 = result.data.audioContent;
@@ -279,7 +315,8 @@ export function initTonyVoice(options) {
 
         if (typeof window !== 'undefined') {
             window.__tonyPrefetchTTS = prefetchTonyTTS;
+            window.__tonyClearAudioPipeline = clearTonyAudioPipeline;
         }
 
-    return { speakWithTTS: speakWithTTS, prefetchTonyTTS: prefetchTonyTTS };
+    return { speakWithTTS: speakWithTTS, prefetchTonyTTS: prefetchTonyTTS, clearTonyAudioPipeline: clearTonyAudioPipeline };
 }

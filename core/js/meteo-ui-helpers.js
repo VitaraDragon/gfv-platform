@@ -48,7 +48,7 @@ export function renderAlertsBanner(meteo, opts = {}) {
   const items = alerts
     .map((a) => {
       const desc = (a.description || '').trim();
-      const shortDesc = desc.length > 320 ? `${desc.slice(0, 320)}…` : desc;
+      const shortDesc = desc.length > 520 ? `${desc.slice(0, 520)}…` : desc;
       return `
       <article class="${prefix}-alert-banner__item" role="alert">
         <p class="${prefix}-alert-banner__title">⚠ ${esc(a.event || 'Avviso meteo')}</p>

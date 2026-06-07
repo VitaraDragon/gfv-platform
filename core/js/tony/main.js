@@ -5636,6 +5636,7 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 if (startListeningRef) startListeningRef();
                 resetAutoModeTimeout();
             } else {
+                if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: false, reason: 'auto_mode_off' });
                 if (stopListeningRef) stopListeningRef();
                 panel.classList.remove('is-auto-mode');
                 micBtn.classList.remove('tony-mic-active', 'is-auto-mode');
@@ -5652,19 +5653,27 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             }
         }
 
+        var voiceApi = initTonyVoice({
+            onPlayEnd: function(opts) { if (opts && opts.isClosingSession) toggleAutoMode(false); else reopenMicIfAutoMode(); },
+            onPlayStart: function() { if (autoModeTimeout) { clearTimeout(autoModeTimeout); autoModeTimeout = null; } }
+        });
+        var speakWithTTS = voiceApi.speakWithTTS;
+        var clearTonyAudioPipeline = voiceApi.clearTonyAudioPipeline;
+
+        function tonyAudioPipelineActive() {
+            return !!(window.__tonyIsSpeaking ||
+                (window.__tonyAudioQueue && window.__tonyAudioQueue.length > 0) ||
+                (window.currentTonyAudio && !window.currentTonyAudio.paused));
+        }
+
         closeBtn.addEventListener('click', function() {
+            if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: false, reason: 'panel_close' });
             panel.classList.remove('is-open');
             pendingVoiceText = null;
             toggleAutoMode(false);
             var vc = document.getElementById('tony-voice-confirm');
             if (vc) vc.style.display = 'none';
         });
-
-        var voiceApi = initTonyVoice({
-            onPlayEnd: function(opts) { if (opts && opts.isClosingSession) toggleAutoMode(false); else reopenMicIfAutoMode(); },
-            onPlayStart: function() { if (autoModeTimeout) { clearTimeout(autoModeTimeout); autoModeTimeout = null; } }
-        });
-        var speakWithTTS = voiceApi.speakWithTTS;
 
         function getFriendlyGreeting() {
             var greetings = [
@@ -5719,6 +5728,9 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             if (window.__tonyProactiveFormState) window.__tonyProactiveFormState = null;
             var text = (overrideText != null ? String(overrideText).trim() : (inputEl.value || '').trim());
             if (!text) return;
+            if (!opts.proactive && clearTonyAudioPipeline) {
+                clearTonyAudioPipeline({ bump: true, reason: 'user_turn' });
+            }
             if (opts.fromVoice) {
                 isWaitingForTonyResponse = true;
                 pendingVoiceText = null;
@@ -7162,10 +7174,8 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 }, 1000);
             };
             recognition.onspeechstart = function() {
-                if (window.currentTonyAudio) {
-                    window.currentTonyAudio.pause();
-                    window.currentTonyAudio.currentTime = 0;
-                    window.currentTonyAudio = null;
+                if (tonyAudioPipelineActive() && clearTonyAudioPipeline) {
+                    clearTonyAudioPipeline({ bump: true, reason: 'barge_in_speech' });
                 }
             };
 
@@ -7191,10 +7201,8 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             };
 
             micBtn.addEventListener('click', function() {
-                if (window.currentTonyAudio && !window.currentTonyAudio.paused) {
-                    window.currentTonyAudio.pause();
-                    window.currentTonyAudio.currentTime = 0;
-                    window.currentTonyAudio = null;
+                if (tonyAudioPipelineActive()) {
+                    if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: true, reason: 'barge_in_mic' });
                     if (isAutoMode && startListeningRef) {
                         startListeningRef();
                         resetAutoModeTimeout();

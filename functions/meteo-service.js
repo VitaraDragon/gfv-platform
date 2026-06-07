@@ -186,6 +186,26 @@ function enrichDailyRainMm(dailyEntry, hourly, dateStr) {
   return Object.assign({}, dailyEntry, { rainMm: fromHourly });
 }
 
+function mapOpenWeatherAlerts(data) {
+  return localizeMeteoAlerts(
+    (Array.isArray(data.alerts) ? data.alerts : []).map((a) => ({
+      sender: a.sender_name || "",
+      event: a.event || "",
+      start: isoFromUnix(a.start),
+      end: isoFromUnix(a.end),
+      description: a.description || "",
+      tags: Array.isArray(a.tags) ? a.tags : [],
+    }))
+  );
+}
+
+function relocalizeMeteoPayload(meteo) {
+  if (!meteo || typeof meteo !== "object") return meteo;
+  const alerts = Array.isArray(meteo.alerts) ? meteo.alerts : [];
+  if (!alerts.length) return meteo;
+  return Object.assign({}, meteo, { alerts: localizeMeteoAlerts(alerts) });
+}
+
 function normalizeOpenWeatherBase(data, location) {
   const current = data.current || {};
   const daily = Array.isArray(data.daily) ? data.daily : [];
@@ -226,6 +246,7 @@ function normalizeOpenWeatherBase(data, location) {
     },
     updatedAt: new Date().toISOString(),
     attribution: "OpenWeather",
+    alerts: mapOpenWeatherAlerts(data),
   };
 }
 
@@ -267,16 +288,6 @@ function normalizeOpenWeatherExtended(data, location) {
   if (base.tomorrow && base.tomorrow.rainMm == null && dailyExtended[1] && dailyExtended[1].rainMm != null) {
     base.tomorrow = Object.assign({}, base.tomorrow, { rainMm: dailyExtended[1].rainMm });
   }
-  const alerts = localizeMeteoAlerts(
-    (Array.isArray(data.alerts) ? data.alerts : []).map((a) => ({
-      sender: a.sender_name || "",
-      event: a.event || "",
-      start: isoFromUnix(a.start),
-      end: isoFromUnix(a.end),
-      description: a.description || "",
-      tags: Array.isArray(a.tags) ? a.tags : [],
-    }))
-  );
 
   const minutely = (Array.isArray(data.minutely) ? data.minutely : []).slice(0, 60).map((m) => ({
     dt: isoFromUnix(m.dt),
@@ -295,7 +306,7 @@ function normalizeOpenWeatherExtended(data, location) {
   return Object.assign({}, base, {
     hourly,
     dailyExtended,
-    alerts,
+    alerts: base.alerts || [],
     minutely,
     minutelySummary: {
       maxPrecipitation: maxMinutelyPrecip,
@@ -344,7 +355,7 @@ async function readCachedMeteo(cacheRef, coord, nowMs) {
     cached.lat === coord.lat &&
     cached.lng === coord.lng
   ) {
-    return { meteo: cached.normalized, cached: true };
+    return { meteo: relocalizeMeteoPayload(cached.normalized), cached: true };
   }
   return null;
 }
@@ -2402,7 +2413,9 @@ function compactSedeMeteoForContext(meteo, { extended = false } = {}) {
   if (extended) {
     const alerts = Array.isArray(meteo.alerts) ? meteo.alerts : [];
     out.alertsCount = alerts.length;
-    out.alertBreve = alerts[0] ? translateMeteoAlertEvent(alerts[0].event) : null;
+    out.alertBreve = alerts[0]
+      ? translateMeteoAlertEvent(alerts[0].event, alerts[0].tags)
+      : null;
     const ms = meteo.minutelySummary || {};
     out.hasRainSoon = !!ms.hasRainSoon;
     out.pioggiaProssimaOra = ms.hasRainSoon

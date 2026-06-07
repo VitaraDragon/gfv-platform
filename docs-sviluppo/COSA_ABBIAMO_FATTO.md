@@ -1,6 +1,51 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-06.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-07.**
+
+## Tony — Fase 1 pipeline audio barge-in + generation token (2026-06-07)
+
+**Obiettivo:** eliminare la «coda fantasma» TTS al barge-in e tra turni utente con cancel logico (no AbortController su Callable).
+
+**Implementazione:**
+- `clearTonyAudioPipeline({ bump, reason })` + `window.__tonyGeneration` in `core/js/tony/voice.js`
+- Item coda con `gen`; play/prefetch scartano callback stale post-`getTonyAudio`
+- Wiring `main.js`: `sendMessage` (bump turno), barge-in mic/`onspeechstart`, chiusura pannello, uscita auto-mode
+
+**File:** `core/js/tony/voice.js`, `core/js/tony/main.js`. Piano: `docs-sviluppo/tony/PIANO_AUDIO_PIPELINE_BARGEIN.md`.
+
+## Tony — piano pipeline audio barge-in + generation token (2026-06-07)
+
+**Obiettivo:** documento operativo per agenti — Fase 1 `clearTonyAudioPipeline` + `__tonyGeneration` (cancel logico TTS Callable), wiring barge-in/chiusura pannello; Fase 2 chunking frase; backlog Gemini.
+
+**File:** `docs-sviluppo/tony/PIANO_AUDIO_PIPELINE_BARGEIN.md` (link in `docs-sviluppo/tony/README.md`).
+
+## Documentazione — PIANO_PIPELINE_AUDIO_BARGE_IN (2026-06-07)
+
+**Richiesta:** piano dettagliato multi-agente per Step 1 pipeline audio Tony (generation token, `clearTonyAudioPipeline`, barge-in) e preparazione chunking TTS Step 2.
+
+**File:** `docs-sviluppo/tony/PIANO_PIPELINE_AUDIO_BARGE_IN.md` — stato attuale codice, lacune, API, checklist, test, prompt agente.
+
+## Documentazione — TONY_ALTERNATIVE_SVILUPPO_PER_GEMINI (2026-06-07)
+
+**Richiesta:** documento autocontenuto da incollare in Gemini per valutare alternative di sviluppo (voce, STT/TTS, LLM, latenza, costi, UX).
+
+**File:** `docs-sviluppo/TONY_ALTERNATIVE_SVILUPPO_PER_GEMINI.md` — stato attuale, opzioni per area, domande aperte, prompt suggerito.
+
+## Meteo UI — alert MeteoAlarm Aeronautica Militare (descrizione IT) (2026-06-07)
+
+**Problema:** titolo alert già in italiano ma descrizione e mittente restavano in inglese (`Moderate intensity weather phenomena expected…`, `Italian Air Force National Meteorological Service`, blocco DISCLAIMER MeteoAlarm).
+
+**Soluzione:** parser dedicato descrizioni MeteoAlarm IT (intensità, area geografica, nota breve al posto del disclaimer EN); mittente Aeronautica Militare; mirror CF aggiornato.
+
+**File:** `core/config/meteo-alert-i18n.js`, `functions/meteo-alert-i18n.js`, `tests/meteo-alert-i18n.test.js`.
+
+## Meteo UI — alert MeteoAlarm con prefisso colore e cache (2026-06-07)
+
+**Problema:** alcuni alert (es. «Yellow Thunderstorm Warning») restavano in inglese nel banner dashboard: il dizionario copriva solo titoli standard senza prefissi colore MeteoAlarm; descrizioni e mittente poco tradotti; cache Firestore poteva servire testi EN senza ri-localizzazione.
+
+**Soluzione:** strip prefissi yellow/orange/red/amber, fallback su tag OpenWeather, più sostituzioni lessicali descrizione, traduzione mittente; ri-localizzazione alert in lettura cache CF; alert inclusi anche in normalizzazione meteo base.
+
+**File:** `core/config/meteo-alert-i18n.js`, `functions/meteo-alert-i18n.js`, `functions/meteo-service.js`, `tests/meteo-alert-i18n.test.js`.
 
 ## Dashboard — performance Fase 5 (affinamenti e resilienza) (2026-06-06)
 
