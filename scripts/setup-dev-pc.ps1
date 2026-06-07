@@ -146,7 +146,8 @@ Write-Host @'
   - Accedi a Cursor con lo stesso account (User Rules si sincronizzano)
   - Plugin Cursor: Firebase (+ Context7 se lo usi) da Settings > Plugins
   - firebase login  (e gcloud auth login se usi Cloud SDK)
-  - Copia functions/.env da .env.example se usi emulator locale
+  - Deploy: leggi docs-sviluppo/DEPLOY_RUNBOOK.md (functions/.env vs secret, hosting landing/dist)
+  - Emulator locale: functions/.secret.local (NON OPENWEATHER/RESEND in functions/.env)
   - Chiavi SSH (~/.ssh) se usi Git via SSH
 '@
 
@@ -202,3 +203,4 @@ Write-Host '  cd functions && npm install && cd ..' -ForegroundColor Cyan
 Write-Host '  cd landing && npm install && cd ..' -ForegroundColor Cyan
 Write-Host '  npm run setup:hooks' -ForegroundColor Cyan
 Write-Host '  firebase login' -ForegroundColor Cyan
+Write-Host '  Runbook deploy: docs-sviluppo/DEPLOY_RUNBOOK.md' -ForegroundColor Cyan

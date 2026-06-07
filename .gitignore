@@ -26,6 +26,7 @@ firestore-debug.log
 # Environment
 .env
 .env.local
+.secret.local
 
 # Build
 dist/

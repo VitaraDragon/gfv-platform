@@ -35,11 +35,31 @@ La callable **tonyAsk** chiama l’API Gemini con la chiave sul server, così il
    Se `SENTRY_DSN` manca, le functions partono comunque e in log compare un warning.
 
 3. **Deploy**
+
+   Dalla **root** del repo (consigliato — non dipende da `firebase` nel PATH globale):
+
    ```bash
-   cd ..
-   firebase deploy --only functions
+   npm run deploy:functions
    ```
+
+   Oppure: `firebase deploy --only functions` (richiede Firebase CLI in PATH).
+
+   **Runbook completo (nuovo PC, errori `.env`/hosting):** `docs-sviluppo/DEPLOY_RUNBOOK.md`.
+
    La function viene creata in **europe-west1**. Il client in `tony-service.js` deve usare **getFunctions(app, 'europe-west1')**; altrimenti le chiamate vanno a us-central1 e si ottiene CORS/404.
+
+## ⚠️ Deploy fallito — overlap secret / `.env`
+
+Se il deploy restituisce:
+
+`Secret environment variable overlaps non secret environment variable: OPENWEATHER_API_KEY` (o `RESEND_API_KEY`),
+
+**non** andare subito su Cloud Console: controllare **`functions/.env`** sulla macchina che deploya.
+
+- Il codice usa `defineSecret("OPENWEATHER_API_KEY")` e `defineSecret("RESEND_API_KEY")`.
+- Se le stesse chiavi sono in `functions/.env`, Firebase le invia come env **normali** + **secret** → Cloud Run 400.
+
+**Fix:** rimuovere quelle righe da `functions/.env`; per emulator usare `functions/.secret.local`. Dettaglio: **`docs-sviluppo/DEPLOY_RUNBOOK.md` §4**.
 
 ## Preventivo pubblico (link email cliente)
 

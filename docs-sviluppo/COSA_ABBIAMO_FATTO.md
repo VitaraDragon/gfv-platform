@@ -2,6 +2,16 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-07.**
 
+## Deploy — runbook Firebase, `.env` vs secret, hosting (2026-06-07)
+
+**Problema risolto:** `firebase deploy --only functions` falliva con `Secret environment variable overlaps non secret environment variable: OPENWEATHER_API_KEY` / `RESEND_API_KEY` perché `functions/.env` locale (gitignored) duplicava chiavi già in `defineSecret`.
+
+**Fix macchina:** rimuovere `OPENWEATHER_API_KEY`, `RESEND_API_KEY`, `SENTRY_DSN` da `functions/.env`; emulator → `functions/.secret.local`. Rilancio `npm run deploy:functions` → tutte le CF aggiornate.
+
+**Altro:** Firebase CLI via `firebase-tools` devDep + script `npm run deploy:*` e `scripts/firebase.ps1` (PATH Windows); hosting richiede `npm run build:landing` prima di `deploy:hosting`; ERP su GitHub Pages (push), non Firebase hosting.
+
+**Doc agenti:** `docs-sviluppo/DEPLOY_RUNBOOK.md` · aggiornati `functions/README.md`, `functions/.env.example`, `scripts/setup-dev-pc.ps1`.
+
 ## Tony — Fase 1 pipeline audio barge-in + generation token (2026-06-07)
 
 **Obiettivo:** eliminare la «coda fantasma» TTS al barge-in e tra turni utente con cancel logico (no AbortController su Callable).
