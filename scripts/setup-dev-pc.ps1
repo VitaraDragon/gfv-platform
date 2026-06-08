@@ -148,6 +148,7 @@ Write-Host @'
   - firebase login  (e gcloud auth login se usi Cloud SDK)
   - Deploy: leggi docs-sviluppo/DEPLOY_RUNBOOK.md (functions/.env vs secret, hosting landing/dist)
   - Secret CF: npm run sync:functions-secrets (o functions/.secret.local)
+  - Altro PC / seconda macchina: docs-sviluppo/SETUP_ALTRO_PC_CURSOR.md
   - Chiavi SSH (~/.ssh) se usi Git via SSH
 '@
 

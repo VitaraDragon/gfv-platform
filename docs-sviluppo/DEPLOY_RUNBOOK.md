@@ -225,12 +225,11 @@ npm run deploy:landing
 
 ## 9. Prompt per agente su secondo PC
 
+**File completo:** `docs-sviluppo/SETUP_ALTRO_PC_CURSOR.md` (prompt + checklist).
+
 ```text
-Leggi docs-sviluppo/DEPLOY_RUNBOOK.md.
-Verifica functions/.env: nessuna riga OPENWEATHER_API_KEY, RESEND_API_KEY, SENTRY_DSN.
-Se manca landing/dist: npm run build:landing prima di deploy:hosting.
-Deploy CF: npm run deploy:functions dalla root repo.
-Deploy ERP client: git push (GitHub Pages), non firebase hosting.
+Leggi docs-sviluppo/SETUP_ALTRO_PC_CURSOR.md e DEPLOY_RUNBOOK.md.
+git pull → npm install → functions/.env senza chiavi → npm run sync:functions-secrets:deploy se serve deploy CF.
 ```
 
 ---
@@ -245,3 +244,4 @@ Deploy ERP client: git push (GitHub Pages), non firebase hosting.
 | `functions/.env.example` | regole `.env` vs `.secret.local` |
 | `functions/README.md` | Tony/Gemini, meteo, preventivo pubblico |
 | `firebase.json` | hosting → `landing/dist` |
+| `docs-sviluppo/SETUP_ALTRO_PC_CURSOR.md` | **Setup completo altro PC per Cursor** |

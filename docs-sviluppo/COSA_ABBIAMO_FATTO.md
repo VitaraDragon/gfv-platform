@@ -2,6 +2,12 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-07.**
 
+## Documentazione — SETUP_ALTRO_PC_CURSOR (2026-06-07)
+
+**Richiesta:** istruzioni per Cursor su seconda macchina (pull, npm, secret, deploy, test).
+
+**File:** `docs-sviluppo/SETUP_ALTRO_PC_CURSOR.md` — prompt da incollare, checklist completa, troubleshooting.
+
 ## Deploy — runbook Firebase, `.env` vs secret, hosting (2026-06-07)
 
 **Problema risolto:** `firebase deploy --only functions` falliva con `Secret environment variable overlaps non secret environment variable: OPENWEATHER_API_KEY` / `RESEND_API_KEY` perché `functions/.env` locale (gitignored) duplicava chiavi già in `defineSecret`.
