@@ -14,6 +14,8 @@
     "deploy:functions": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only functions",
     "deploy:rules": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only firestore:rules,firestore:indexes",
     "deploy:firebase": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only functions,firestore:rules,firestore:indexes",
+    "sync:functions-secrets": "powershell -ExecutionPolicy Bypass -File scripts/sync-functions-secrets.ps1",
+    "sync:functions-secrets:deploy": "powershell -ExecutionPolicy Bypass -File scripts/sync-functions-secrets.ps1 -Deploy",
     "deploy:hosting": "node ./node_modules/firebase-tools/lib/bin/firebase.js deploy --only hosting",
     "generate:tony-routes": "node scripts/generate-tony-routes.cjs",
     "bump:pwa-cache": "node scripts/bump-pwa-cache-version.mjs",

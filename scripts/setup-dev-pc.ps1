@@ -147,7 +147,7 @@ Write-Host @'
   - Plugin Cursor: Firebase (+ Context7 se lo usi) da Settings > Plugins
   - firebase login  (e gcloud auth login se usi Cloud SDK)
   - Deploy: leggi docs-sviluppo/DEPLOY_RUNBOOK.md (functions/.env vs secret, hosting landing/dist)
-  - Emulator locale: functions/.secret.local (NON OPENWEATHER/RESEND in functions/.env)
+  - Secret CF: npm run sync:functions-secrets (o functions/.secret.local)
   - Chiavi SSH (~/.ssh) se usi Git via SSH
 '@
 

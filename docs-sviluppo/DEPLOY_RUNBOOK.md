@@ -110,7 +110,16 @@ Se esiste **`functions/.env`** con le stesse chiavi, Firebase CLI le carica come
 
 ### Produzione — dove stanno le chiavi
 
-Secret Manager (impostati una volta per progetto):
+**Script automatico (consigliato):**
+
+```powershell
+# Dalla root repo — legge functions/.secret.local, oppure recupera GEMINI dalla revisione Cloud Run precedente
+npm run sync:functions-secrets:deploy
+```
+
+Equivalente: `.\scripts\sync-functions-secrets.ps1 -Deploy`
+
+Manuale (Secret Manager):
 
 ```powershell
 firebase functions:secrets:set OPENWEATHER_API_KEY
