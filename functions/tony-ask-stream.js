@@ -6,6 +6,7 @@ const admin = require("firebase-admin");
 
 const sentryDsn = defineSecret("SENTRY_DSN");
 const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -76,7 +77,7 @@ function getHandleTonyAskRequest() {
 exports.tonyAskStream = onRequest(
   {
     region: "europe-west1",
-    secrets: [sentryDsn, openWeatherApiKey],
+    secrets: [sentryDsn, openWeatherApiKey, geminiApiKey],
     timeoutSeconds: 120,
     memory: "512MiB",
     cors: false,

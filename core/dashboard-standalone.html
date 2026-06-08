@@ -509,6 +509,28 @@
             }
         }
 
+        /** Mobile / touch: TTS autoplay spesso bloccato; preferire messaggio in chat. */
+        function tonyDashboardPreferChatBriefing() {
+            try {
+                if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+                if (/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent || '')) return true;
+            } catch (e) { /* ignore */ }
+            return false;
+        }
+
+        function tonyDashboardDeliverBriefing(fullText, speakAllowed) {
+            var msg = String(fullText || '').trim();
+            if (!msg) return;
+            var useVoice = speakAllowed && !tonyDashboardPreferChatBriefing();
+            if (typeof window.__tonyDisplayProactive === 'function') {
+                window.__tonyDisplayProactive(msg, { speak: useVoice });
+                return;
+            }
+            if (useVoice && window.Tony && typeof window.Tony.speak === 'function') {
+                window.Tony.speak(msg);
+            }
+        }
+
         // Carica contesto vigneto per Tony (produzione per anno) se modulo attivo
         // tenantIdExplicit: obbligatorio per evitare race con tenant-service dopo reload / membership-only
         async function loadTonyVignetoContext(availableModules, tenantIdExplicit) {
@@ -600,16 +622,9 @@
                     scadenzeUrgenti +
                     guastiAperti +
                     (meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0);
-                if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony && typeof window.Tony.speak === 'function') {
+                if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony) {
                     setTimeout(function() {
                         if (total <= 0 || window.tonyDashboardBriefingFired) return;
-                        if (!tonyDashboardBriefingVoiceAllowed()) {
-                            window.tonyDashboardBriefingFired = true;
-                            if (meteoBriefing && meteoBriefing.proactiveText && typeof window.__tonySendProactiveWhenUnlocked === 'function') {
-                                window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
-                            }
-                            return;
-                        }
                         window.tonyDashboardBriefingFired = true;
                         var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
                         var opsAttention = (hasMagazzino && sottoScorta > 0) || (hasParcoMacchine && (scadenzeUrgenti + guastiAperti) > 0);
@@ -625,26 +640,26 @@
                             meteoBriefing && meteoBriefing.proactiveText
                                 ? ' ' + meteoBriefing.proactiveText
                                 : '';
-                        window.Tony.speak(greeting + speakCore + speakMeteo);
-                        if (
-                            meteoBriefing &&
-                            meteoBriefing.proactiveText &&
-                            !tonyDashboardBriefingVoiceAllowed() &&
-                            typeof window.__tonySendProactiveWhenUnlocked === 'function'
-                        ) {
-                            window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
-                        }
+                        tonyDashboardDeliverBriefing(
+                            greeting + speakCore + speakMeteo,
+                            tonyDashboardBriefingVoiceAllowed()
+                        );
                     }, 3000);
                 } else if (
                     meteoBriefing &&
                     meteoBriefing.proactiveText &&
-                    !window.tonyMeteoBriefingFired &&
-                    typeof window.__tonySendProactiveWhenUnlocked === 'function'
+                    !window.tonyMeteoBriefingFired
                 ) {
                     setTimeout(function() {
                         if (window.tonyMeteoBriefingFired) return;
                         window.tonyMeteoBriefingFired = true;
-                        window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
+                        if (typeof window.__tonyDisplayProactive === 'function') {
+                            window.__tonyDisplayProactive(meteoBriefing.proactiveText, {
+                                speak: tonyDashboardBriefingVoiceAllowed() && !tonyDashboardPreferChatBriefing()
+                            });
+                        } else if (typeof window.__tonySendProactiveWhenUnlocked === 'function') {
+                            window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
+                        }
                     }, 3500);
                 }
             } catch (e) {
@@ -756,18 +771,36 @@
         }
 
         function scheduleTonyDashboardDeferred(availableModules, userDataNormalized, currentTenantId) {
-            const run = function() {
-                if (!window.Tony || !Tony.isReady()) return;
+            function runTonyDashboardDeferred() {
+                if (window.__tonyGlobalStatusRan) return;
+                if (!window.Tony || !Tony.isReady()) return false;
+                window.__tonyGlobalStatusRan = true;
                 Promise.all([
                     dashboardPerfAsync('tony.vignetoContext', () => loadTonyVignetoContext(availableModules, currentTenantId)),
                     dashboardPerfAsync('tony.checkGlobalStatus', () =>
                         checkGlobalStatus(currentTenantId, userDataNormalized.ruoli, availableModules, getDashboardCountsSnapshot()))
-                ]).catch(function() {});
-            };
+                ]).catch(function(e) {
+                    console.warn('[Tony] deferred dashboard briefing:', e);
+                });
+                return true;
+            }
+            var attempts = 0;
+            function pollUntilTonyReady() {
+                if (runTonyDashboardDeferred()) return;
+                attempts++;
+                if (attempts < 60) {
+                    setTimeout(pollUntilTonyReady, 500);
+                } else {
+                    console.warn('[Tony] briefing dashboard: timeout attesa Tony.isReady()');
+                }
+            }
+            window.addEventListener('tony-widget-ready', function() {
+                pollUntilTonyReady();
+            }, { once: true });
             if (typeof requestIdleCallback === 'function') {
-                requestIdleCallback(run, { timeout: 2500 });
+                requestIdleCallback(pollUntilTonyReady, { timeout: 3000 });
             } else {
-                setTimeout(run, 0);
+                setTimeout(pollUntilTonyReady, 500);
             }
         }
 

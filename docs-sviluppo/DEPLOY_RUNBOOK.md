@@ -115,14 +115,31 @@ Secret Manager (impostati una volta per progetto):
 ```powershell
 firebase functions:secrets:set OPENWEATHER_API_KEY
 firebase functions:secrets:set RESEND_API_KEY
+firebase functions:secrets:set GEMINI_API_KEY
 firebase functions:secrets:set SENTRY_DSN   # opzionale
 ```
 
-Verifica:
+Verifica presenza (nomi servizio Cloud Run, **non** valori):
 
 ```powershell
-firebase functions:secrets:access OPENWEATHER_API_KEY
+gcloud run services describe tonyask --region=europe-west1 --format="value(spec.template.spec.containers[0].env[].name)"
 ```
+
+Attesi almeno: `OPENWEATHER_API_KEY`, `GEMINI_API_KEY` (montati come secret).
+
+### Errore Tony «Configurazione servizio AI… Contatta l'amministratore»
+
+**Causa:** `GEMINI_API_KEY` assente su `tonyask` / `tonyaskstream` dopo un deploy (la chiave era solo env manuale su Cloud Run e il redeploy l’ha rimossa).
+
+**Fix:**
+
+1. `firebase functions:secrets:set GEMINI_API_KEY` (chiave da [Google AI Studio](https://aistudio.google.com/apikey))
+2. `npm run deploy:functions`
+3. Hard refresh app / PWA
+
+Il codice usa `defineSecret("GEMINI_API_KEY")` in `functions/index.js` e `functions/tony-ask-stream.js`.
+
+**Non** mettere `GEMINI_API_KEY` in `functions/.env`.
 
 **GEMINI_API_KEY** oggi è env **plain** su Cloud Run (`tonyask` / `tonyaskstream`), non `defineSecret` — può restare in Console Cloud Run; **non** metterla in `.env` se in futuro passa a secret con lo stesso nome.
 
@@ -189,6 +206,8 @@ npm run deploy:landing
 |----------|--------|
 | `firebase` / `npx` non riconosciuto | Riavvia terminale; §2 PATH; usa `npm run deploy:*` |
 | Overlap OPENWEATHER / RESEND | §4 — svuota `functions/.env` |
+| Tony «Contatta l'amministratore» / meteo chat errore | §4 — `firebase functions:secrets:set GEMINI_API_KEY` + `deploy:functions` |
+| Briefing dashboard assente su mobile PWA | Autoplay TTS bloccato: serve messaggio in chat (`__tonyDisplayProactive`); aggiorna client da GitHub Pages |
 | `landing/dist` missing | §6 — `npm run build:landing` |
 | Tony CORS / 404 callable | Client deve usare `getFunctions(app, 'europe-west1')` |
 | 403 callable pubbliche preventivo | Cloud Run invoker public su servizio (vedi `functions/README.md`) |

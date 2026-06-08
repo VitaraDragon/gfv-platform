@@ -18,14 +18,28 @@ La callable **tonyAsk** chiama l’API Gemini con la chiave sul server, così il
    ```
 
 2. **Imposta la chiave Gemini (GEMINI_API_KEY)**  
-   La function legge **process.env.GEMINI_API_KEY**. Per le Functions v2 (Cloud Run) la variabile si imposta dalla **Google Cloud Console** su **entrambi** i servizi Tony:
-   - [Cloud Run](https://console.cloud.google.com/run) → progetto **gfv-platform** → servizi **`tonyask`** e **`tonyaskstream`**
-   - Per ciascuno: **Modifica nuova revisione** → **Container** → **Variabili e secret**
-   - **Aggiungi variabile**: Nome `GEMINI_API_KEY`, Valore = la tua API key Gemini → **Distribuisci**
+   Il codice usa **`defineSecret("GEMINI_API_KEY")`** su `tonyAsk` e `tonyAskStream` (come OpenWeather).  
+   **Una tantum** sul progetto:
 
-   `tonyaskstream` (SSE Fase 3) usa lo stesso handler di `tonyAsk`; senza la chiave su **tonyaskstream** il client fa fallback su `tonyAsk` callable (crea lavoro / Gemini stream non partono via SSE).
+   ```bash
+   firebase functions:secrets:set GEMINI_API_KEY
+   ```
 
-   In alternativa (secret): crea il secret con `firebase functions:secrets:set GEMINI_API_KEY` e adatta il codice a usare `defineSecret` (vedi documentazione Firebase).
+   Poi ridistribuisci: `npm run deploy:functions` (root repo).
+
+   **Non** mettere `GEMINI_API_KEY` in `functions/.env` (conflitto deploy analogo a OpenWeather — vedi `docs-sviluppo/DEPLOY_RUNBOOK.md` §4).
+
+   Dopo un deploy, Firebase **non** ripristina variabili env impostate solo a mano su Cloud Run: la chiave deve restare in Secret Manager.
+
+   Verifica (solo presenza, non stampare la chiave in chat):
+
+   ```bash
+   gcloud run services describe tonyask --region=europe-west1 --format="value(spec.template.spec.containers[0].env[].name)"
+   ```
+
+   Devono comparire `OPENWEATHER_API_KEY` e `GEMINI_API_KEY` (entrambe da secret ref).
+
+   ~~Impostazione manuale solo Cloud Run~~ (legacy, sostituita da secret sopra).
 
 2b. **Sentry (opzionale ma consigliato)**  
    Progetto Sentry: org **`sabbie-gialle`**, slug progetto **`node-gcpfunctions`** (regione ingest **DE**). Il codice carica `instrument.js` prima di tutto e legge **`SENTRY_DSN`**.  

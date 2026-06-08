@@ -5746,6 +5746,15 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 appendMessage('Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento.', 'error');
                 return;
             }
+            if (opts.proactive && opts._displayOnly) {
+                appendMessage(text, 'tony');
+                saveTonyState();
+                if (opts.speak !== false && typeof speakWithTTS === 'function') {
+                    speakWithTTS(text, {});
+                }
+                if (opts.fromVoice) isWaitingForTonyResponse = false;
+                return;
+            }
             if (!opts.proactive && !opts._suppressUserBubble) {
                 tonySetLastUserMessage(text);
             }
@@ -6917,8 +6926,8 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 if (code.indexOf('unauthenticated') >= 0) {
                     return 'Sessione scaduta. Effettua di nuovo l\'accesso.';
                 }
-                if (code.indexOf('failed-precondition') >= 0 && /Gemini|chiave/i.test(msg)) {
-                    return 'Configurazione servizio AI non disponibile. Contatta l\'amministratore.';
+                if (code.indexOf('failed-precondition') >= 0 && /Gemini|chiave|GEMINI_API_KEY/i.test(msg)) {
+                    return 'Servizio AI non configurato sul server (manca GEMINI_API_KEY). L\'amministratore deve eseguire: firebase functions:secrets:set GEMINI_API_KEY e poi npm run deploy:functions.';
                 }
                 if (code.indexOf('deadline-exceeded') >= 0 || /timeout attesa risposta/i.test(msg)) {
                     return 'La risposta del server ha impiegato troppo tempo (contesto molto grande o servizio AI lento). Riprova con un messaggio breve; se persiste, riduci i filtri in elenco o attendi un minuto.';
@@ -7044,6 +7053,14 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             tick();
         }
         window.__tonySendProactiveWhenUnlocked = tonySendProactiveWhenUnlocked;
+        window.__tonyDisplayProactive = function(text, options) {
+            options = options || {};
+            sendMessage(String(text || '').trim(), {
+                proactive: true,
+                _displayOnly: true,
+                speak: options.speak !== false
+            });
+        };
         window.__tonyPromptLavoroSaveLocal = function() {
             promptTonyFormSaveLocal('lavoro-form', tonyFormSaveLocalDeps());
         };
@@ -7559,6 +7576,9 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                         if (_tonyProntoLogged) return;
                         _tonyProntoLogged = true;
                         console.log('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO');
+                        try {
+                            window.dispatchEvent(new CustomEvent('tony-widget-ready'));
+                        } catch (eReady) { /* ignore */ }
                     }
                     
 window.addEventListener('tony-module-updated', function(e) {

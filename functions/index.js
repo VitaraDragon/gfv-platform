@@ -59,6 +59,9 @@ const resendApiKey = defineSecret("RESEND_API_KEY");
 /** OpenWeather — solo server; impostare con: firebase functions:secrets:set OPENWEATHER_API_KEY */
 const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
 
+/** Gemini — solo server; impostare con: firebase functions:secrets:set GEMINI_API_KEY */
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
 if (!admin.apps.length) {
@@ -3989,7 +3992,7 @@ async function handleTonyAskRequest(request, streamOpts) {
 }
 
 exports.tonyAsk = onCall(
-  { region: "europe-west1", secrets: [sentryDsn, openWeatherApiKey], timeoutSeconds: 120, memory: "512MiB" },
+  { region: "europe-west1", secrets: [sentryDsn, openWeatherApiKey, geminiApiKey], timeoutSeconds: 120, memory: "512MiB" },
   async (request) => handleTonyAskRequest(request, null)
 );
 
