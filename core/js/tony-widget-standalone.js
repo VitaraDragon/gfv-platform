@@ -7,13 +7,17 @@
 (function() {
     'use strict';
 
+    /** Bump a ogni fix Tony client — invalida cache moduli ES6 del browser. */
+    var TONY_LOADER_BUILD = '2026-06-09g';
+
     var scriptBase = typeof import.meta !== 'undefined' && import.meta.url
         ? import.meta.url
         : (document.currentScript && document.currentScript.src) || '';
     window.__tonyScriptBase = scriptBase;
+    window.__TONY_LOADER_BUILD = TONY_LOADER_BUILD;
 
     function loadTonyMain() {
-        import('./tony/main.js').catch(function(err) {
+        import('./tony/main.js?v=' + encodeURIComponent(TONY_LOADER_BUILD)).catch(function(err) {
             console.error('[Tony] Errore caricamento main.js:', err);
         });
     }

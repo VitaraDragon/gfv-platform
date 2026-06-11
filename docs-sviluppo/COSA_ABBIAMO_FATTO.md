@@ -1,6 +1,87 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-07.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-09 (build client Tony `2026-06-09g`, verifica vocale dashboard).**
+
+## Tony — voce dashboard verificata end-to-end (2026-06-09)
+
+**Verifica utente (console `build: 2026-06-09g`):** flusso vocale dashboard coerente — meteo locale senza CF; addio «Perfetto grazie» senza `tonyAskStream`; nessun troncamento TTS / eco microfono.
+
+**Pacchetto fix client (e→g, no deploy CF obbligatorio per meteo/riassunto/addio):**
+
+| Build | Contenuto |
+|-------|-----------|
+| **e** | Mic spento durante TTS; no `barge_in_speech` su eco; `scheduleReopenMicIfIdle` |
+| **f** | TTS temperature: `normalizeTemperaturesForItalianTTS` (fix «1929 gradi» da en-dash) |
+| **g** | `buildDashboardRiassuntoText` (ops + meteo oggi/domani); saluto dashboard anche senza criticità; «sì/ok» solo dopo offerta briefing; addio locale; meteo dashboard cache client |
+
+**Flusso atteso dashboard (manager + Tony Avanzato):**
+1. ~5–8 s dopo load → saluto proattivo (criticità e/o meteo + invito al riassunto)
+2. «Com'è il meteo domani?» → risposta locale cache (`Meteo dashboard: risposta locale`)
+3. «Fammi un riassunto» / «sì» (dopo offerta) → ops + previsioni + alert pioggia, 0 CF
+4. «Grazie» / «a posto» → chiusura locale, auto-mode off
+
+**Nota:** click microfono prima del saluto (~3 s dopo `checkGlobalStatus`) può saltare il briefing iniziale (`barge_in_mic`).
+
+**File:** `core/js/tony/main.js`, `voice.js`, `meteo-dashboard-quick-reply*.js`, `dashboard-meteo-briefing.js`, `dashboard-standalone.html`, `tony-widget-standalone.js`, `tony-service.js`. Test: `tony-meteo-dashboard-quick-reply.test.js` (7), `tony-voice-pipeline-canary.test.js`, `tony-stream-tts-chunk.test.js`.
+
+## Tony — riassunto dashboard allineato al briefing iniziale (2026-06-09)
+
+**Problema:** «fammi un riassunto» restituiva solo criticità magazzino/mezzi (o «botte di ferro») senza meteo; «ok grazie» scatenava RIASSUNTO; saluto iniziale assente se nessuna criticità; addio andava in CF.
+
+**Fix (build `2026-06-09g`):**
+- `buildDashboardRiassuntoText` — ops + previsioni oggi/domani + alert pioggia
+- `tonyWantsDashboardRiassunto` — «fammi un riassunto»; «sì/ok» solo dopo offerta briefing
+- Saluto dashboard anche senza criticità (meteo + invito al riassunto)
+- «grazie» / «a posto» → chiusura locale, no CF
+
+**File:** `main.js`, `meteo-dashboard-quick-reply-utils.js`, `dashboard-meteo-briefing.js`, `dashboard-standalone.html`.
+
+## Tony — fix TTS meteo «1929 gradi» (en-dash temperature) (2026-06-09)
+
+**Problema:** risposta meteo corretta in chat ma TTS leggeva «1929 gradi celsius» — `pulisciTestoPerVoce` rimuoveva l'en-dash (`19–29°C` → `1929°C`) prima della normalizzazione temperature.
+
+**Fix (build `2026-06-09f`):**
+- `voice.js` — `normalizeTemperaturesForItalianTTS` eseguita **prima** dello strip Unicode; rete di sicurezza su `1929 gradi`; strip emoji da `\u2016` (preserva trattini)
+- `meteo-dashboard-quick-reply-utils.js` — rimuove range °C ridondante dalla descrizione API
+
+**File:** `core/js/tony/voice.js`, `meteo-dashboard-quick-reply-utils.js`.
+
+## Tony — fix TTS troncato (eco microfono / barge-in falso) (2026-06-09)
+
+**Problema:** briefing e risposte vocali partivano ma venivano **interrotte** (`pipeline cleared barge_in_speech`, `Audio element error`); in auto-mode il microfono captava l'eco del TTS e inviava turni spurii («domani»).
+
+**Fix client-side (build `2026-06-09e`):**
+- Microfono **spento** all'avvio TTS (`speakWithTTS` wrapper + `onPlayStart`); riapertura solo a pipeline idle (`scheduleReopenMicIfIdle`)
+- **Rimosso** barge-in su `onspeechstart` in auto-mode (barge-in solo click microfono)
+- `onspeechend` / `onresult` ignorati durante TTS o attesa CF
+- `voice.js` — stop audio senza `onerror` spurio
+- `tonyFinishLocalVoiceReply` / `onFinally` — non riaprono mic durante coda TTS
+
+**File:** `core/js/tony/main.js`, `voice.js`, `tony-widget-standalone.js`.
+
+## Tony — fix blocco microfono dopo briefing + domanda vocale (2026-06-09)
+
+**Problema:** in dashboard, dopo il briefing TTS, una domanda al microfono veniva trascritta ma Tony non rispondeva (log fermato a `user_turn gen=2`; possibile `Audio element error` su barge-in).
+
+**Fix client-side (no deploy CF obbligatorio):**
+- `meteo-dashboard-quick-reply.js` — su **dashboard**, domande meteo («Com'è il meteo domani») risposte subito da **cache meteo client** (0 CF), voce inclusa
+- `main.js` — retry coda vocale, try/catch, log diagnostici, typing fino a risposta
+- `tony-widget-standalone.js` — cache bust `?v=2026-06-09d`
+- `tony-service.js` — log fetch tonyAskStream + timeout 90 s
+- `voice.js` — fix audio error post-barge-in
+
+**File:** `core/js/tony/main.js`, `voice.js`, `core/services/tony-service.js`.
+
+## Tony — Fase 2 chunking TTS per frase su SSE (2026-06-09)
+
+**Obiettivo:** Tony inizia a parlare la prima frase completa mentre Gemini genera il resto (latenza vocale percepita ↓), riusando `__tonyGeneration` della Fase 1.
+
+**Implementazione:**
+- `core/js/tony/stream-tts-chunk.js` — estrazione frasi (`. ? !` / newline; skip decimali `3.5` ed ellipsis)
+- `core/js/tony/main.js` — `onChunk` → `applyStreamingTtsChunks` (prefetch + speak per frase); `tonySpeakAssistantText` in `doDisplay` parla solo il **remainder** se lo stream ha già emesso frasi
+- Test: `tests/tony-stream-tts-chunk.test.js` (6), canary voice aggiornato
+
+**File:** `stream-tts-chunk.js`, `main.js`, `voice.js` (prefetch esposto). Piano: `PIANO_AUDIO_PIPELINE_BARGEIN.md` §7.
 
 ## Documentazione — SETUP_ALTRO_PC_CURSOR (2026-06-07)
 

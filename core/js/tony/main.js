@@ -37,6 +37,12 @@ import {
     tryRecoverProdottoCfFakeSave,
 } from '../tony-prodotto-create-local.js';
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
+import { applyStreamingTtsChunks, getStreamingTtsRemainder } from './stream-tts-chunk.js';
+import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText } from './meteo-dashboard-quick-reply-utils.js';
+
+    /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
+export const TONY_CLIENT_BUILD = '2026-06-09g';
+if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
     'use strict';
@@ -4845,7 +4851,10 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                     try {
                         var briefing = window.tonyGlobalBriefing;
                         if (briefing && window.Tony && window.Tony.speak) {
-                            var friendlyText = typeof formatFriendlyBriefing === 'function' ? formatFriendlyBriefing(briefing) : ('Abbiamo ' + (briefing.sottoScorta || 0) + ' prodotti sotto scorta, ' + (briefing.scadenzeUrgenti || 0) + ' scadenze nel parco macchine e ' + (briefing.guastiAperti || 0) + ' guasti da risolvere.');
+                            var opsRiass = typeof window.formatFriendlyBriefing === 'function'
+                                ? window.formatFriendlyBriefing(briefing)
+                                : '';
+                            var friendlyText = buildDashboardRiassuntoText(briefing, opsRiass);
                             window.Tony.speak(friendlyText);
                         }
                         var toHighlight = document.querySelectorAll('[data-tony-briefing]');
@@ -5648,22 +5657,49 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             if (isAutoMode && startListeningRef) {
                 resetAutoModeTimeout();
                 setTimeout(function() {
-                    if (isAutoMode) startListeningRef();
+                    if (isAutoMode && !isWaitingForTonyResponse && !tonyAudioPipelineActive()) {
+                        startListeningRef();
+                    }
                 }, 300);
             }
         }
 
+        function scheduleReopenMicIfIdle(delayMs) {
+            setTimeout(function() {
+                if (!isAutoMode || isWaitingForTonyResponse || tonyAudioPipelineActive()) return;
+                reopenMicIfAutoMode();
+            }, typeof delayMs === 'number' ? delayMs : 120);
+        }
+
         var voiceApi = initTonyVoice({
-            onPlayEnd: function(opts) { if (opts && opts.isClosingSession) toggleAutoMode(false); else reopenMicIfAutoMode(); },
-            onPlayStart: function() { if (autoModeTimeout) { clearTimeout(autoModeTimeout); autoModeTimeout = null; } }
+            onPlayEnd: function(opts) {
+                if (opts && opts.isClosingSession) toggleAutoMode(false);
+                else scheduleReopenMicIfIdle(80);
+            },
+            onPlayStart: function() {
+                if (autoModeTimeout) { clearTimeout(autoModeTimeout); autoModeTimeout = null; }
+                if (typeof stopListeningRef === 'function') stopListeningRef();
+            }
         });
         var speakWithTTS = voiceApi.speakWithTTS;
+        var prefetchTonyTTS = voiceApi.prefetchTonyTTS;
         var clearTonyAudioPipeline = voiceApi.clearTonyAudioPipeline;
+
+        function tonyAudioElementPlaying() {
+            var a = window.currentTonyAudio;
+            if (!a) return false;
+            try {
+                if (a.error) return false;
+                return !a.paused && !a.ended;
+            } catch (_) {
+                return false;
+            }
+        }
 
         function tonyAudioPipelineActive() {
             return !!(window.__tonyIsSpeaking ||
                 (window.__tonyAudioQueue && window.__tonyAudioQueue.length > 0) ||
-                (window.currentTonyAudio && !window.currentTonyAudio.paused));
+                tonyAudioElementPlaying());
         }
 
         closeBtn.addEventListener('click', function() {
@@ -5709,13 +5745,44 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
         }
         window.getFriendlyGreeting = getFriendlyGreeting;
         window.formatFriendlyBriefing = formatFriendlyBriefing;
+        window.buildDashboardRiassuntoText = function(b) {
+            return buildDashboardRiassuntoText(b, formatFriendlyBriefing(b));
+        };
         window.__tonySayGreeting = function(t) { speakWithTTS(t || getFriendlyGreeting(), {}); };
 
         function sendMessage(overrideText, opts) {
             opts = opts || {};
-            if (_isSendingMessage) {
+            var isRealCfTurn = !opts.proactive && !opts._displayOnly;
+            if (isRealCfTurn && _isSendingMessage && !opts.fromVoice) {
                 console.warn('[Tony] sendMessage ignorato: richiesta già in corso (anti-flood).');
                 return;
+            }
+            var voiceTurnGuardId = null;
+            function clearVoiceTurnGuard() {
+                if (voiceTurnGuardId) {
+                    clearTimeout(voiceTurnGuardId);
+                    voiceTurnGuardId = null;
+                }
+            }
+            function scheduleVoiceTurnGuard() {
+                if (!opts.fromVoice) return;
+                clearVoiceTurnGuard();
+                voiceTurnGuardId = setTimeout(function() {
+                    voiceTurnGuardId = null;
+                    if (!isWaitingForTonyResponse || _isSendingMessage) return;
+                    console.warn('[Tony] Turno vocale bloccato senza invio al server — sblocco microfono');
+                    isWaitingForTonyResponse = false;
+                    removeTyping();
+                    reopenMicIfAutoMode();
+                    appendMessage('Non sono riuscito a inviare la domanda. Riprova.', 'error');
+                }, 3500);
+            }
+            function releaseVoiceTurnFromIntercept() {
+                clearVoiceTurnGuard();
+                if (opts.fromVoice) {
+                    isWaitingForTonyResponse = false;
+                    reopenMicIfAutoMode();
+                }
             }
             if (window.__tonyProactiveAskTimerId) {
                 clearTimeout(window.__tonyProactiveAskTimerId);
@@ -5728,6 +5795,23 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             if (window.__tonyProactiveFormState) window.__tonyProactiveFormState = null;
             var text = (overrideText != null ? String(overrideText).trim() : (inputEl.value || '').trim());
             if (!text) return;
+            try {
+            if (opts.fromVoice && _isSendingMessage) {
+                var voiceRetryEarly = typeof opts._voiceRetry === 'number' ? opts._voiceRetry : 0;
+                if (voiceRetryEarly < 20) {
+                    console.warn('[Tony] Voice: coda CF occupata, riprovo tra 400 ms (' + (voiceRetryEarly + 1) + '/20)');
+                    setTimeout(function() {
+                        sendMessage(overrideText, Object.assign({}, opts, { _voiceRetry: voiceRetryEarly + 1 }));
+                    }, 400);
+                    return;
+                }
+                console.warn('[Tony] Voice: coda CF bloccata — reset forzato');
+                _isSendingMessage = false;
+                if (window.__tonySendWatchdogId) {
+                    clearTimeout(window.__tonySendWatchdogId);
+                    window.__tonySendWatchdogId = null;
+                }
+            }
             if (!opts.proactive && clearTonyAudioPipeline) {
                 clearTonyAudioPipeline({ bump: true, reason: 'user_turn' });
             }
@@ -5735,14 +5819,15 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 isWaitingForTonyResponse = true;
                 pendingVoiceText = null;
                 if (typeof stopListeningRef === 'function') stopListeningRef();
+                console.log('[Tony] Voice turn avviato (build ' + (window.__TONY_CLIENT_BUILD || '?') + '):', text.slice(0, 80));
             }
             if (!window.Tony || !window.Tony.isReady()) {
-                if (opts.fromVoice) isWaitingForTonyResponse = false;
+                releaseVoiceTurnFromIntercept();
                 appendMessage('Tony non è ancora pronto. Attendi qualche secondo e riprova.', 'error');
                 return;
             }
             if (window.__tonyFreemiumBlocked) {
-                if (opts.fromVoice) isWaitingForTonyResponse = false;
+                releaseVoiceTurnFromIntercept();
                 appendMessage('Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento.', 'error');
                 return;
             }
@@ -6162,23 +6247,65 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 } catch (eMet) { /* ignore */ }
                 return false;
             }
-            var textTrimmed = text.replace(/\s+/g, ' ').trim().toLowerCase();
-            var riassuntoShort = ['sì', 'si', 'ok'];
-            var riassuntoExplicit = ['fammi il riassunto', 'dammi il riassunto', 'voglio il riassunto', 'dimmi il riassunto', 'riassunto'];
-            var wantsRiassunto = riassuntoExplicit.some(function(r) {
-                return textTrimmed === r || textTrimmed.startsWith(r + ' ') || textTrimmed.endsWith(' ' + r);
-            });
-            if (!wantsRiassunto && !tonyIsPendingMeteoInterviewReply()) {
-                wantsRiassunto = riassuntoShort.some(function(r) {
-                    return textTrimmed === r || textTrimmed.startsWith(r + ' ') || textTrimmed.endsWith(' ' + r);
-                });
+            function tonyLastTonyMessageOfferedRiassunto() {
+                try {
+                    var histOffer = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
+                    for (var j = histOffer.length - 1; j >= 0; j--) {
+                        var entry = histOffer[j];
+                        if (!entry || (entry.role !== 'model' && entry.role !== 'assistant' && entry.role !== 'tony')) continue;
+                        var txtOffer = entry.parts && entry.parts[0] && entry.parts[0].text ? String(entry.parts[0].text) : '';
+                        return /vuoi che ti faccia un riassunto|preferisci procedere tu/i.test(txtOffer);
+                    }
+                } catch (_) { /* ignore */ }
+                return false;
             }
-            if (wantsRiassunto && window.tonyGlobalBriefing && typeof processTonyCommand === 'function') {
-                processTonyCommand({ type: 'RIASSUNTO' });
-                var b = window.tonyGlobalBriefing;
-                var reply = typeof formatFriendlyBriefing === 'function' ? formatFriendlyBriefing(b) : ('Abbiamo ' + (b.sottoScorta || 0) + ' prodotti sotto scorta, ' + (b.scadenzeUrgenti || 0) + ' scadenze nel parco macchine e ' + (b.guastiAperti || 0) + ' guasti da risolvere.');
+            function tonyDeliverDashboardRiassunto(replyText, voiceOpts) {
+                voiceOpts = voiceOpts || {};
+                if (tonyEarlyTypingTimer) {
+                    clearTimeout(tonyEarlyTypingTimer);
+                    tonyEarlyTypingTimer = null;
+                }
+                removeTyping();
+                var reply = String(replyText || '').trim();
+                if (!reply) return;
                 appendMessage(reply, 'tony');
-                if (opts.fromVoice) isWaitingForTonyResponse = false;
+                if (typeof speakWithTTS === 'function') {
+                    speakWithTTS(reply, { fromVoice: !!voiceOpts.fromVoice, isClosingSession: !!voiceOpts.isClosingSession });
+                } else if (window.Tony && typeof window.Tony.speak === 'function') {
+                    window.Tony.speak(reply);
+                }
+                document.querySelectorAll('[data-tony-briefing]').forEach(function(el) {
+                    el.classList.add('tony-highlight');
+                    setTimeout(function() { el.classList.remove('tony-highlight'); }, 5000);
+                });
+                saveTonyState();
+                clearVoiceTurnGuard();
+                _isSendingMessage = false;
+                sendBtn.disabled = false;
+                inputEl.disabled = false;
+                if (voiceOpts.fromVoice) {
+                    isWaitingForTonyResponse = false;
+                    if (voiceOpts.isClosingSession) toggleAutoMode(false);
+                    else scheduleReopenMicIfIdle(400);
+                }
+            }
+            if (!opts.proactive && checkFarewellIntent(text)) {
+                tonyDeliverDashboardRiassunto('Perfetto, a presto! Resto qui se ti serve altro.', {
+                    fromVoice: opts.fromVoice,
+                    isClosingSession: true
+                });
+                return;
+            }
+            var wantsRiassunto = tonyWantsDashboardRiassunto(text, {
+                allowShortConfirm: !tonyIsPendingMeteoInterviewReply() && tonyLastTonyMessageOfferedRiassunto()
+            });
+            if (wantsRiassunto) {
+                if (!window.tonyGlobalBriefing) {
+                    tonyDeliverDashboardRiassunto('Sto ancora caricando il riepilogo dashboard. Riprova tra qualche secondo.', { fromVoice: opts.fromVoice });
+                    return;
+                }
+                var fullReply = buildDashboardRiassuntoText(window.tonyGlobalBriefing, formatFriendlyBriefing(window.tonyGlobalBriefing));
+                tonyDeliverDashboardRiassunto(fullReply, { fromVoice: opts.fromVoice });
                 return;
             }
             // Rileva intenti di apertura modulo
@@ -6237,6 +6364,9 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                         setTimeout(function() { sendRequestWithContext(formCtx, _ctxRetry + 1); }, 300);
                     } else {
                         console.warn('[Tony] sendRequestWithContext: timeout attesa coda invio');
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        removeTyping();
+                        releaseVoiceTurnFromIntercept();
                         appendMessage('Tony è ancora occupato con la richiesta precedente. Attendi qualche secondo e riprova.', 'error');
                     }
                     return;
@@ -6250,7 +6380,10 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                         window.Tony.setContext('dashboard', { info_azienda: { moduli_attivi: discovered }, moduli_attivi: discovered });
                         saveModuliToStorage(discovered);
                         if (typeof window.__tonyCheckModuleStatus === 'function') window.__tonyCheckModuleStatus(true);
-                        if (_isSendingMessage) return;
+                        if (_isSendingMessage) {
+                            setTimeout(function() { sendRequestWithContext(formCtx, _ctxRetry + 1); }, 250);
+                            return;
+                        }
                         _isSendingMessage = true;
                         setTimeout(function() {
                             _isSendingMessage = false;
@@ -6262,8 +6395,20 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 doActualSend(formCtx);
             };
 
-            function doActualSend(formCtx) {
-                if (_isSendingMessage) return;
+            function doActualSend(formCtx, _doRetry) {
+                _doRetry = typeof _doRetry === 'number' ? _doRetry : 0;
+                if (_isSendingMessage) {
+                    if (_doRetry < 25) {
+                        setTimeout(function() { doActualSend(formCtx, _doRetry + 1); }, 250);
+                    } else {
+                        console.warn('[Tony] doActualSend: coda invio bloccata');
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        removeTyping();
+                        releaseVoiceTurnFromIntercept();
+                        appendMessage('Tony è occupato. Riprova tra poco.', 'error');
+                    }
+                    return;
+                }
                 if (!opts.proactive && tonyResolveQuickHoursWindow() && tonyIsCampoLikeWorkspaceForTony() &&
                     tonyMessageIsFieldWorkspaceSegnaOreTurn(text)) {
                     _isSendingMessage = false;
@@ -6324,7 +6469,12 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                     inputEl.disabled = false;
                     var micWd = document.getElementById('tony-mic');
                     if (micWd) micWd.disabled = false;
+                    isWaitingForTonyResponse = false;
+                    reopenMicIfAutoMode();
                 }, 95000);
+                if (opts.fromVoice) {
+                    console.log('[Tony] Voice: preparazione contesto CF…');
+                }
                 if (window.Tony.setContext) {
                     window.Tony.setContext('form', formCtx || {});
                     var pagePath = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : '';
@@ -6413,13 +6563,37 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 sendBtn.disabled = true;
                 inputEl.disabled = true;
                 if (document.getElementById('tony-mic')) document.getElementById('tony-mic').disabled = true;
-                if (tonyEarlyTypingTimer) {
-                    clearTimeout(tonyEarlyTypingTimer);
-                    tonyEarlyTypingTimer = null;
-                }
 
                 var useStream = typeof window.Tony.askStream === 'function';
                 var streamingMsgEl = null;
+                var streamTtsState = {
+                    consumedLength: 0,
+                    active: false,
+                    gen: typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0
+                };
+
+                function tonySpeakAssistantText(out, speakOpts) {
+                    speakOpts = speakOpts || opts;
+                    var ttsGen = typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : undefined;
+                    if (streamTtsState && streamTtsState.active) {
+                        var remainder = getStreamingTtsRemainder(out, streamTtsState);
+                        streamTtsState.active = false;
+                        if (remainder && remainder.length >= 2) {
+                            var remGen = streamTtsState.gen != null ? streamTtsState.gen : ttsGen;
+                            if (prefetchTonyTTS) {
+                                try { prefetchTonyTTS(remainder, remGen); } catch (ePf) { /* ignore */ }
+                            }
+                            speakWithTTS(remainder, Object.assign({}, speakOpts, remGen != null ? { gen: remGen } : {}));
+                        }
+                        return;
+                    }
+                    if (prefetchTonyTTS) {
+                        try { prefetchTonyTTS(out, ttsGen); } catch (ePf) { /* ignore */ }
+                    } else if (typeof window.__tonyPrefetchTTS === 'function') {
+                        try { window.__tonyPrefetchTTS(out, ttsGen); } catch (ePf2) { /* ignore */ }
+                    }
+                    speakWithTTS(out, Object.assign({}, speakOpts, ttsGen != null ? { gen: ttsGen } : {}));
+                }
 
                 function onComplete(response) {
                 try {
@@ -6825,10 +6999,7 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                     } else {
                         appendMessage(out, 'tony');
                     }
-                    if (typeof window.__tonyPrefetchTTS === 'function') {
-                        try { window.__tonyPrefetchTTS(out); } catch (ePf) { /* ignore */ }
-                    }
-                    speakWithTTS(out, opts);
+                    tonySpeakAssistantText(out, opts);
                 }
                 // SUM_COLUMN: silenzia testo intermedio; il risultato viene mostrato da processTonyCommand
                 if (isSumColumnCmd) {
@@ -6936,6 +7107,7 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             }
 
             function onError(err) {
+                clearVoiceTurnGuard();
                 _isSendingMessage = false;
                 if (window.__tonySendWatchdogId) {
                     clearTimeout(window.__tonySendWatchdogId);
@@ -6944,10 +7116,12 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 removeTyping();
                 if (streamingMsgEl) streamingMsgEl.remove();
                 appendMessage('Errore: ' + tonyFormatCallableError(err), 'error');
+                isWaitingForTonyResponse = false;
                 reopenMicIfAutoMode();
             }
 
             function onFinally() {
+                clearVoiceTurnGuard();
                 _isSendingMessage = false;
                 if (window.__tonySendWatchdogId) {
                     clearTimeout(window.__tonySendWatchdogId);
@@ -6958,6 +7132,7 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 inputEl.disabled = false;
                 var micBtn = document.getElementById('tony-mic');
                 if (micBtn) micBtn.disabled = false;
+                scheduleReopenMicIfIdle(200);
                 inputEl.focus();
             }
 
@@ -6976,27 +7151,78 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
 
                 if (useStream) {
                     var streamingAccum = '';
+                    streamTtsState = {
+                        consumedLength: 0,
+                        active: false,
+                        gen: typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0
+                    };
+                    if (opts.fromVoice) {
+                        console.log('[Tony] Voice: tonyAskStream avviato');
+                    }
                     window.Tony.askStream(textForTony, Object.assign({}, tonyAskOpts, {
                         onChunk: function(chunk) {
-                            streamingAccum += chunk;
-                            var daMostrare = nascondiJsonDaStreaming(streamingAccum);
-                            if (!streamingMsgEl) {
-                                removeTyping();
-                                streamingMsgEl = document.createElement('div');
-                                streamingMsgEl.className = 'tony-msg tony streaming';
-                                messagesEl.appendChild(streamingMsgEl);
+                            try {
+                                streamingAccum += chunk;
+                                var daMostrare = nascondiJsonDaStreaming(streamingAccum);
+                                if (!streamingMsgEl) {
+                                    removeTyping();
+                                    streamingMsgEl = document.createElement('div');
+                                    streamingMsgEl.className = 'tony-msg tony streaming';
+                                    messagesEl.appendChild(streamingMsgEl);
+                                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                                }
+                                streamingMsgEl.textContent = daMostrare;
                                 messagesEl.scrollTop = messagesEl.scrollHeight;
+                                var ttsChunkResult = applyStreamingTtsChunks(daMostrare, streamTtsState, {
+                                    gen: streamTtsState.gen,
+                                    opts: opts,
+                                    prefetch: prefetchTonyTTS,
+                                    speak: speakWithTTS
+                                });
+                                streamTtsState = ttsChunkResult.state;
+                            } catch (eChunk) {
+                                console.warn('[Tony] onChunk stream/TTS:', eChunk);
                             }
-                            streamingMsgEl.textContent = daMostrare;
-                            messagesEl.scrollTop = messagesEl.scrollHeight;
                         }
                     })).then(onComplete).catch(onError).finally(onFinally);
                 } else {
+                    if (opts.fromVoice) {
+                        console.log('[Tony] Voice: tonyAsk avviato');
+                    }
                     window.Tony.ask(textForTony, tonyAskOpts).then(onComplete).catch(onError).finally(onFinally);
                 }
             };
-            
-            // FIX CODA ESECUZIONE: Assicura che sendRequestWithContext venga sempre chiamata
+
+            function tonyFinishLocalVoiceReply(replyText) {
+                if (tonyEarlyTypingTimer) {
+                    clearTimeout(tonyEarlyTypingTimer);
+                    tonyEarlyTypingTimer = null;
+                }
+                removeTyping();
+                var out = String(replyText || '').trim();
+                if (!out) return;
+                appendMessage(out, 'tony');
+                if (window.Tony && typeof window.Tony.speak === 'function') {
+                    window.Tony.speak(out);
+                }
+                saveTonyState();
+                clearVoiceTurnGuard();
+                _isSendingMessage = false;
+                if (opts.fromVoice) {
+                    isWaitingForTonyResponse = false;
+                    scheduleReopenMicIfIdle(400);
+                }
+                sendBtn.disabled = false;
+                inputEl.disabled = false;
+                var micUnlock = document.getElementById('tony-mic');
+                if (micUnlock) micUnlock.disabled = false;
+            }
+
+            function tonyFinalizeSendToCf() {
+            scheduleVoiceTurnGuard();
+            if (opts.fromVoice) {
+                console.log('[Tony] Voice: dispatch verso CF…');
+            }
             // Se rilevato intento di apertura modulo, attendi che il modal sia nel DOM
             if (hasOpenModalIntent) {
                 console.log('[Tony Widget Sync] Intent apertura modulo rilevato, attendo che modal sia nel DOM (max 1000ms)');
@@ -7023,6 +7249,41 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 var formCtx = getCurrentFormContext();
                 // FIX CODA ESECUZIONE: Garantisce che formCtx non sia null
                 sendRequestWithContext(formCtx || { fields: [] });
+            }
+            }
+
+            if (!opts.proactive && !opts._displayOnly) {
+                import('./meteo-dashboard-quick-reply.js').then(function(meteoMod) {
+                    if (!meteoMod.isTonyDashboardPagePath || !meteoMod.isTonyDashboardPagePath()) {
+                        tonyFinalizeSendToCf();
+                        return;
+                    }
+                    if (!meteoMod.isDashboardMeteoQuestion || !meteoMod.isDashboardMeteoQuestion(text)) {
+                        tonyFinalizeSendToCf();
+                        return;
+                    }
+                    console.log('[Tony] Meteo dashboard: risposta locale (cache client)');
+                    return meteoMod.tryDashboardMeteoQuickReply(text).then(function(localMeteo) {
+                        if (localMeteo && localMeteo.handled && localMeteo.text) {
+                            tonyFinishLocalVoiceReply(localMeteo.text);
+                            return;
+                        }
+                        tonyFinalizeSendToCf();
+                    });
+                }).catch(function(eMeteoLocal) {
+                    console.warn('[Tony] Meteo dashboard locale:', eMeteoLocal);
+                    tonyFinalizeSendToCf();
+                });
+            } else {
+                tonyFinalizeSendToCf();
+            }
+            } catch (eSendMsg) {
+                console.error('[Tony] sendMessage errore sincrono:', eSendMsg);
+                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                removeTyping();
+                releaseVoiceTurnFromIntercept();
+                _isSendingMessage = false;
+                appendMessage('Errore durante l\'invio. Riprova.', 'error');
             }
         }
 
@@ -7128,7 +7389,7 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 if (isAutoMode) resetAutoModeTimeout();
             };
             recognition.onresult = function(e) {
-                if (window.currentTonyAudio && !window.currentTonyAudio.paused) return;
+                if (tonyAudioPipelineActive() || isWaitingForTonyResponse) return;
                 if (isAutoMode) resetAutoModeTimeout();
                 var transcript = '';
                 for (var i = e.resultIndex; i < e.results.length; i++) {
@@ -7176,6 +7437,12 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
             stopListeningRef = stopListening;
 
             recognition.onspeechend = function() {
+                if (tonyAudioPipelineActive() || isWaitingForTonyResponse) {
+                    console.log('[Tony] Speechend ignorato: Tony in risposta o TTS attivo.');
+                    try { recognition.stop(); } catch (err) {}
+                    pendingVoiceText = null;
+                    return;
+                }
                 console.log('[Tony] Fine rilevamento voce, attendo processamento...');
                 setTimeout(function() {
                     stopListening();
@@ -7191,14 +7458,12 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 }, 1000);
             };
             recognition.onspeechstart = function() {
-                if (tonyAudioPipelineActive() && clearTonyAudioPipeline) {
-                    clearTonyAudioPipeline({ bump: true, reason: 'barge_in_speech' });
-                }
+                /* Barge-in solo dal click sul microfono (evita eco TTS → troncamento in auto-mode). */
             };
 
             recognition.onend = function() {
-                if (window.currentTonyAudio && !window.currentTonyAudio.paused) {
-                    console.log('[Tony] Audio in corso, microfono resta spento.');
+                if (tonyAudioPipelineActive()) {
+                    console.log('[Tony] TTS in corso, microfono resta spento.');
                     return;
                 }
                 if (isWaitingForTonyResponse) {
@@ -7208,13 +7473,20 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                 if (isAutoMode && autoModeTimeout) {
                     console.log('[Tony] Fine sessione naturale, riaccendo tra 1 secondo...');
                     setTimeout(function() {
-                        if (isAutoMode && autoModeTimeout && !isWaitingForTonyResponse && (!window.currentTonyAudio || window.currentTonyAudio.paused)) {
+                        if (isAutoMode && autoModeTimeout && !isWaitingForTonyResponse && !tonyAudioPipelineActive()) {
                             try { recognition.start(); } catch (err) {}
                         }
                     }, 1000);
                 } else {
                     micBtn.classList.remove('tony-mic-active');
                 }
+            };
+
+            var speakWithTTSCore = speakWithTTS;
+            speakWithTTS = function(text, opts) {
+                pendingVoiceText = null;
+                if (typeof stopListeningRef === 'function') stopListeningRef();
+                return speakWithTTSCore(text, opts);
             };
 
             micBtn.addEventListener('click', function() {
@@ -7575,7 +7847,7 @@ import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo
                     function logProntoIfNeeded() {
                         if (_tonyProntoLogged) return;
                         _tonyProntoLogged = true;
-                        console.log('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO');
+                        console.log('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'build:', window.__TONY_CLIENT_BUILD || '?');
                         try {
                             window.dispatchEvent(new CustomEvent('tony-widget-ready'));
                         } catch (eReady) { /* ignore */ }

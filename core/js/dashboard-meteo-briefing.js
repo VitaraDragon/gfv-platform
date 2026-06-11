@@ -9,6 +9,7 @@ import {
   formatMeteoConsigliProactive,
 } from '../config/tony-meteo-rules.js';
 import { compactSedeMeteoFromFetch } from './meteo-ui-helpers.js';
+import { formatMeteoDayBlock } from './tony/meteo-dashboard-quick-reply-utils.js';
 
 const METEO_MODULE_ID = 'meteo';
 const TONY_MODULE_ID = 'tony';
@@ -37,7 +38,13 @@ export async function loadTonyMeteoBriefingData(tenantId) {
   const sede = compactSedeFromTerreniResponse(meteoRes.sede);
 
   const consigli = buildMeteoProactiveBriefingConsigli(sede);
-  if (!consigli.length) return null;
+  const weatherParts = [];
+  const where = (sede && sede.label) || 'sede aziendale';
+  const oggiLine = formatMeteoDayBlock('Oggi a ' + where, sede && sede.today, sede && sede.previsioniGiornaliere, 0);
+  const domaniLine = formatMeteoDayBlock('Domani a ' + where, sede && sede.tomorrow, sede && sede.previsioniGiornaliere, 1);
+  if (oggiLine) weatherParts.push(oggiLine);
+  if (domaniLine) weatherParts.push(domaniLine);
+  const weatherSummary = weatherParts.join(' ');
 
   const proactiveText = formatMeteoConsigliProactive(consigli);
   const summaryParts = consigli.slice(0, 5).map((c) => c.motivo).filter(Boolean);
@@ -47,6 +54,7 @@ export async function loadTonyMeteoBriefingData(tenantId) {
     consigliCount: consigli.length,
     summaryMeteo: summaryParts.join('; '),
     proactiveText,
+    weatherSummary,
     updatedAt: new Date().toISOString(),
   };
 }

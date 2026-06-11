@@ -131,8 +131,12 @@
 | 10.2 | askStream per streaming risposta | TONY_DA_IMPLEMENTARE | implementato | |
 | 10.3 | Pulizia testo per TTS (no markdown, emoji, JSON) | TONY_DA_IMPLEMENTARE | implementato | |
 | 10.4 | Modalità continua, barge-in, congedo vocale | TONY_FUNZIONI | implementato | |
-
----
+| 10.5 | Cancel logico TTS (`clearTonyAudioPipeline` + `__tonyGeneration`) | PIANO_AUDIO_PIPELINE_BARGEIN | implementato | 2026-06-07 |
+| 10.6 | Chunking TTS per frase durante SSE (`stream-tts-chunk.js`) | PIANO_AUDIO_PIPELINE_BARGEIN §7 | implementato | 2026-06-09; remainder in doDisplay |
+| 10.7 | Mic spento durante TTS; no barge-in su `onspeechstart` (eco auto-mode); riapertura mic solo a pipeline idle | fix voce dashboard 2026-06-09 | implementato | build `2026-06-09e`; `scheduleReopenMicIfIdle` |
+| 10.8 | Normalizzazione temperature TTS prima strip Unicode (en-dash `19–29°C` → «da 19 a 29 gradi», non «1929 gradi») | fix voce dashboard 2026-06-09 | implementato | `normalizeTemperaturesForItalianTTS` in `voice.js` — build `2026-06-09f` |
+| 10.9 | Meteo vocale su dashboard da cache client (`tryDashboardMeteoQuickReply`), senza CF | fix voce dashboard 2026-06-09 | implementato | `meteo-dashboard-quick-reply.js` |
+| 10.10 | RIASSUNTO dashboard client: ops + meteo; «sì/ok» solo dopo offerta briefing; addio «grazie» locale senza CF | fix voce dashboard 2026-06-09 | implementato | `buildDashboardRiassuntoText`, `tonyWantsDashboardRiassunto` — build `2026-06-09g` |
 
 ## 11. Limitazioni esplicite
 
@@ -377,6 +381,17 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 19.9.4 | Se una sola opzione esiste, Tony la propone da sola e lo indica nel testo | implementato | |
 | 19.9.5 | Giorni esclusi in chat («il 25 non posso») restano esclusi anche nelle due proposte | implementato | `collectExcludedDtsFromHistory` in `buildDualAlternativaOperativaReply` |
 | 19.9.6 | «Sì» a «Vuoi che cerchi un'altra data?» **non** deve attivare briefing dashboard | implementato | `tonyIsPendingMeteoInterviewReply` in `core/js/tony/main.js` |
+| 19.9.7 | «Sì» / «ok» attivano RIASSUNTO **solo** se l'ultimo messaggio Tony offre il riassunto («vuoi che ti faccia un riassunto») | implementato | `tonyLastTonyMessageOfferedRiassunto` + `tonyWantsDashboardRiassunto` — 2026-06-09g |
+| 19.9.8 | «Ok grazie» / «perfetto grazie» **non** devono attivare RIASSUNTO né CF — chiusura locale | implementato | `checkFarewellIntent` + `tonyDeliverDashboardRiassunto` — 2026-06-09g |
+
+### 19.10 Dashboard — voce e briefing (2026-06-09)
+
+| # | Decisione | Stato | Note |
+|---|-----------|-------|------|
+| 19.10.1 | Saluto proattivo dashboard anche se scorte/scadenze/guasti = 0 (meteo + invito riassunto) | implementato | `checkGlobalStatus` ramo `total===0` — build `2026-06-09g` |
+| 19.10.2 | RIASSUNTO vocale = criticità ops + `weatherSummary` (oggi/domani sede) + alert pioggia proattivi | implementato | `buildDashboardRiassuntoText`; `loadTonyMeteoBriefingData` espone `weatherSummary` |
+| 19.10.3 | Domanda meteo su dashboard (es. «Com'è il meteo domani») → risposta locale cache, distinta dal RIASSUNTO | implementato | Log client `[Tony] Meteo dashboard: risposta locale` |
+| 19.10.4 | Briefing iniziale ~3 s dopo `checkGlobalStatus`; interazione mic prima del saluto può saltarlo (`barge_in_mic`) | implementato | Comportamento atteso, non bug |
 
 ### 19.7 Implementazione (riferimento — 2026-05-22)
 
@@ -391,7 +406,9 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | `functions/tony-multi-block-quick-reply.js` | ✅ Fase 4 — multi-blocco meteo/scorte/scadenze |
 | `functions/tony-context-cache.js` | ✅ Cache T4 + **`invalidateTonyContextCache`** (Fase 4.1) |
 | `functions/tony-module-gate.js` | ✅ Gate moduli tenant (quick reply, APRI_PAGINA, ctx.azienda) |
-| `core/js/tony/main.js` | ✅ «sì» nel filo meteo non rubato al briefing; skip proattivo se CF già chiede; **preventivo:** strip downgrade filari, hint terreno vs scheduling (2026-05-24) |
+| `core/js/tony/main.js` | ✅ «sì» nel filo meteo non rubato al briefing; **voce dashboard 2026-06-09g:** RIASSUNTO client, meteo locale, addio locale, mic/TTS; skip proattivo se CF già chiede; **preventivo:** strip downgrade filari, hint terreno vs scheduling (2026-05-24) |
+| `core/js/tony/meteo-dashboard-quick-reply*.js` | ✅ Meteo + RIASSUNTO dashboard client-side; test Vitest (7) — 2026-06-09 |
+| `core/js/dashboard-meteo-briefing.js` | ✅ `weatherSummary` in briefing; saluto senza criticità ops — 2026-06-09g |
 | Form terreno | ✅ `terreno-tipo-campo` |
 | Context Builder | ✅ `tipoCampo` su `azienda.terreni` e `meteo.terreni[]` |
 | Tony | ✅ Domanda morfologia; praticabilità; **due date prima/dopo** |

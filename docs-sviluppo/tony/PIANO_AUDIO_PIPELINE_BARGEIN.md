@@ -1,8 +1,8 @@
 # Piano — Pipeline audio Tony, barge-in totale e generation token
 
 **Data:** 2026-06-07  
-**Stato:** ✅ **Fase 1 implementata** (2026-06-07) — Fase 2 chunking TTS da fare  
-**Priorità:** Alta — **prerequisito** al chunking TTS per frase (Fase 2)  
+**Stato:** ✅ **Fase 1 implementata** (2026-06-07) · ✅ **Fase 2 chunking TTS** (2026-06-09)  
+**Priorità:** Alta — Fase 2 chiude latenza vocale percepita su stream SSE  
 **Allineamento:** `MASTER_PLAN.md` (UX vocale campo), `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §6.2 (TTS decoupled)
 
 ---

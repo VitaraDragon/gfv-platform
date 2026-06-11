@@ -5,6 +5,41 @@
 
 var lastTTSCache = { text: '', audioBase64: '' };
 
+    /** Trattini usati in range (es. 19–29°C). Va normalizzato prima dello strip Unicode che rimuove U+2013. */
+    var TTS_DASH_CLASS = '[\\u2010-\\u2015\\-—–]';
+
+    /**
+     * Range e valori °C → forma parlata ("da 19 a 29 gradi").
+     * @param {string} testo
+     * @returns {string}
+     */
+    function normalizeTemperaturesForItalianTTS(testo) {
+        if (!testo || typeof testo !== 'string') return testo;
+        var dash = TTS_DASH_CLASS;
+        var s = testo;
+        s = s.replace(new RegExp('(\\d+(?:[.,]\\d+)?)\\s*' + dash + '\\s*(\\d+(?:[.,]\\d+)?)\\s*°?\\s*C\\b', 'gi'), 'da $1 a $2 gradi');
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*°?\s*C\b/gi, '$1 gradi');
+        s = s.replace(/\bgradi\s+celsius\b/gi, 'gradi');
+        // Rete di sicurezza se en-dash già rimosso: "1929°C" / "1929 gradi" → "da 19 a 29 gradi"
+        s = s.replace(/\b(\d{2})(\d{2})(?:\s*°?\s*C|\s+gradi)\b/gi, function(_m, a, b) {
+            var lo = parseInt(a, 10);
+            var hi = parseInt(b, 10);
+            if (lo >= -15 && lo <= 50 && hi >= -15 && hi <= 50 && lo <= hi) {
+                return 'da ' + lo + ' a ' + hi + ' gradi';
+            }
+            return _m;
+        });
+        s = s.replace(/\btemperature\s+(\d{2})(\d{2})\s+gradi\b/gi, function(_m, a, b) {
+            var lo = parseInt(a, 10);
+            var hi = parseInt(b, 10);
+            if (lo >= -15 && lo <= 50 && hi >= -15 && hi <= 50 && lo <= hi) {
+                return 'temperature da ' + lo + ' a ' + hi + ' gradi';
+            }
+            return _m;
+        });
+        return s;
+    }
+
     /**
      * Sigle e codici unità → parole adatte alla lettura vocale (italiano).
      * Copre tutte le risposte Tony passate da speakWithTTS / pulisciTestoPerVoce
@@ -33,13 +68,19 @@ var lastTTSCache = { text: '', audioBase64: '' };
         s = s.replace(/(\d+(?:[.,]\d+)?)\s*m2\b/gi, '$1 metri quadri');
         s = s.replace(/(\d+(?:[.,]\d+)?)\s*mq\b/gi, '$1 metri quadri');
         s = s.replace(/(\d+(?:[.,]\d+)?)\s*m²/g, '$1 metri quadri');
+        s = normalizeTemperaturesForItalianTTS(s);
+        // velocità vento
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*km\s*\/\s*h\b/gi, '$1 chilometri orari');
+        // probabilità
+        s = s.replace(/(\d+(?:[.,]\d+)?)\s*%/g, '$1 percento');
         return s;
     }
 
     function pulisciTestoPerVoce(testo) {
         if (!testo || typeof testo !== 'string') return '';
         var t = testo;
-        t = t.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '');
+        t = normalizeTemperaturesForItalianTTS(t);
+        t = t.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2016-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '');
         t = t.replace(/\{[\s\S]*?\}/g, '');
         t = t.replace(/[#*>_~`]/g, '');
         t = t.replace(/\*\*(.*?)\*\*/g, '$1');
@@ -101,16 +142,25 @@ export function initTonyVoice(options) {
         function stopCurrentTonyAudioElement() {
             if (!window.currentTonyAudio) return;
             try {
-                window.currentTonyAudio.pause();
-                window.currentTonyAudio.currentTime = 0;
-                window.currentTonyAudio.src = '';
+                var a = window.currentTonyAudio;
+                a.onerror = null;
+                a.onended = null;
+                a.onplay = null;
+                a.pause();
+                a.currentTime = 0;
+                a.removeAttribute('src');
+                a.load();
             } catch (_) {}
             window.currentTonyAudio = null;
         }
 
         function clearTonyAudioPipeline(options) {
             options = options || {};
-            if (options.bump === true) window.__tonyGeneration = currentGeneration() + 1;
+            if (options.bump === true) {
+                window.__tonyGeneration = currentGeneration() + 1;
+                lastTTSCache.text = '';
+                lastTTSCache.audioBase64 = null;
+            }
             window.__tonyAudioQueue = [];
             window.__tonyIsSpeaking = false;
             stopCurrentTonyAudioElement();
@@ -166,7 +216,11 @@ export function initTonyVoice(options) {
                 var audioSrc = 'data:audio/mp3;base64,' + lastTTSCache.audioBase64;
                 window.currentTonyAudio = new Audio(audioSrc);
                 window.currentTonyAudio.onplay = function() { onPlayStart(); };
-                window.currentTonyAudio.onerror = function(e) { console.error('[Tony] Audio cached error:', e); onDone(); };
+                window.currentTonyAudio.onerror = function(e) {
+                    console.error('[Tony] Audio cached error:', e);
+                    window.currentTonyAudio = null;
+                    onDone();
+                };
                 window.currentTonyAudio.onended = function() {
                     window.currentTonyAudio = null;
                     onPlayEnd(opts);
@@ -218,7 +272,11 @@ export function initTonyVoice(options) {
                         var audioSrc = 'data:audio/mp3;base64,' + result.data.audioContent;
                         window.currentTonyAudio = new Audio(audioSrc);
                         window.currentTonyAudio.onplay = function() { onPlayStart(); };
-                        window.currentTonyAudio.onerror = function(e) { console.error('[Tony] Audio element error:', e); onDone(); };
+                        window.currentTonyAudio.onerror = function(e) {
+                            console.error('[Tony] Audio element error:', e);
+                            window.currentTonyAudio = null;
+                            onDone();
+                        };
                         window.currentTonyAudio.onended = function() {
                             window.currentTonyAudio = null;
                             onPlayEnd(opts);
@@ -320,3 +378,5 @@ export function initTonyVoice(options) {
 
     return { speakWithTTS: speakWithTTS, prefetchTonyTTS: prefetchTonyTTS, clearTonyAudioPipeline: clearTonyAudioPipeline };
 }
+
+export { expandSpokenUnitsForItalianTTS, normalizeTemperaturesForItalianTTS, pulisciTestoPerVoce };

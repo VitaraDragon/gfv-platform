@@ -1046,20 +1046,38 @@ class TonyService {
     if (!user) throw new Error('Utente non autenticato');
     const idToken = await user.getIdToken();
 
+    let payloadKb = 0;
+    try {
+      payloadKb = Math.round(JSON.stringify(payload).length / 1024);
+    } catch (_) { /* ignore */ }
+
     const started = Date.now();
-    const res = await fetch(this._tonyAskStreamUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({
-        message: payload.message,
-        context: payload.context,
-        history: payload.history,
+    console.log('[Tony] tonyAskStream fetch avviato (~' + payloadKb + ' KB)');
+    const TONY_ASK_STREAM_TIMEOUT_MS = 90000;
+    const res = await Promise.race([
+      fetch(this._tonyAskStreamUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          message: payload.message,
+          context: payload.context,
+          history: payload.history,
+        }),
       }),
-    });
+      new Promise((_, reject) => {
+        setTimeout(() => {
+          const err = new Error(
+            'Tony: timeout attesa risposta stream (' + Math.round(TONY_ASK_STREAM_TIMEOUT_MS / 1000) + ' s).'
+          );
+          err.code = 'deadline-exceeded';
+          reject(err);
+        }, TONY_ASK_STREAM_TIMEOUT_MS);
+      }),
+    ]);
 
     if (!res.ok) {
       let errMsg = `tonyAskStream HTTP ${res.status}`;

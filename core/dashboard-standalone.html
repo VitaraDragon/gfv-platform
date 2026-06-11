@@ -661,6 +661,19 @@
                             window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
                         }
                     }, 3500);
+                } else if (!window.tonyDashboardBriefingFired && window.Tony) {
+                    setTimeout(function() {
+                        if (window.tonyDashboardBriefingFired) return;
+                        window.tonyDashboardBriefingFired = true;
+                        var greetingIdle = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                        var weatherIdle = meteoBriefing && meteoBriefing.weatherSummary
+                            ? ' ' + meteoBriefing.weatherSummary
+                            : ' Tutto sotto controllo in azienda.';
+                        tonyDashboardDeliverBriefing(
+                            greetingIdle + weatherIdle + ' Chiedimi un riassunto dettagliato quando vuoi.',
+                            tonyDashboardBriefingVoiceAllowed()
+                        );
+                    }, 3000);
                 }
             } catch (e) {
                 console.warn('[Tony] checkGlobalStatus:', e);
