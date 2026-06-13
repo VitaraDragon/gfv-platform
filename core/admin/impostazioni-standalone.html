@@ -305,7 +305,7 @@
                 <h1>⚙️ Impostazioni</h1>
                 <p style="opacity: 0.9; margin-top: 5px;">Configura azienda e account</p>
             </div>
-            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            <a href="../../modules/manodopera/views/manodopera-home-standalone.html" id="dashboard-link" class="btn btn-secondary">← Manodopera</a>
         </div>
 
         <div class="content">
@@ -708,6 +708,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { formatDateLikeToItalianLongWeekday } from '../js/date-format-it.js';
+        import { wireManagerHomeLink } from '../config/manodopera-hub-nav.js';
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -896,6 +897,7 @@
                                 const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasContoTerziModule = modules.includes('contoTerzi');
+                                wireManagerHomeLink('dashboard-link', hasManodoperaModule);
                                 
                                 // Inizializza context Tony: moduli + ruoli (guard profilo campo / manager)
                                 var nomeTonyImp = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim() || (user && user.email) || '';

@@ -13,7 +13,7 @@
 | Fase | Nome | Stato | Criterio done |
 |------|------|-------|---------------|
 | **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo |
-| **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08) |
+| **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08); **hub Manodopera manager** (2026-06-13) |
 | **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); **summarySottoScorta** + prodottiSottoScorta (2026-04-11) |
 | **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24; **filari + meteo data + disambiguazione terreno** verificati 2026-05-24); **Magazzino** prodotto/movimento + **save locale** + creazione client-side + **cross-page** (3b-C15…**C19** E2E 2026-06-02), dosaggio/carenza obbligatori fitofarmaci, prezzo entrata da catalogo; **intervista lavoro client-side** — ack tipo dopo stem vago E2E ✅ (2026-06-03); **Segna ore workspace campo** intervista + save locale 0 CF + validazione manager E2E ✅ (**3b-C21**, 2026-06-04) |
 | **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
@@ -223,6 +223,7 @@ Tony non "compila" grafici. Può:
 - Entry point da ovunque: "ho trinciato 6 ore" da Dashboard funziona
 - Fallback APRI_PAGINA + OPEN_MODAL quando modal assente
 - System prompt: routing intent (attività vs lavoro vs terreni vs domanda)
+- **Hub modulo Manodopera (2026-06-13):** home manager `manodopera-home-standalone.html`; Tony target `manodopera` → hub; card Moduli + quick bar `manodoperaHome` — allineamento pattern Magazzino/Vigneto (piano `docs-sviluppo/manodopera/PLAN_HUB_MODULO_MANODOPERA.md` Fase 1 ✅)
 - **Criterio done**: Operaio può dire "Ho fatto 8 ore di potatura" da qualsiasi pagina e Tony completa il flusso
 
 ### Fase 3 – Context Builder e dati aziendali ✅ In corso

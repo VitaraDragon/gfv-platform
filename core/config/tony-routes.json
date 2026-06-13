@@ -277,6 +277,12 @@
       "module": "magazzino"
     },
     {
+      "target": "manodopera",
+      "path": "modules/manodopera/views/manodopera-home-standalone.html",
+      "label": "Manodopera Home",
+      "module": "manodopera"
+    },
+    {
       "target": "movimenti",
       "path": "modules/magazzino/views/movimenti-standalone.html",
       "label": "Movimenti",

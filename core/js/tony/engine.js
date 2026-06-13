@@ -46,7 +46,7 @@ export var TONY_PAGE_MAP = {
     'scadenze': 'modules/macchine/views/scadenze-list-standalone.html',
     'elenco scadenze': 'modules/macchine/views/scadenze-list-standalone.html',
     'scadenze macchine': 'modules/macchine/views/scadenze-list-standalone.html',
-    'manodopera': 'core/admin/gestione-operai-standalone.html',
+    'manodopera': 'modules/manodopera/views/manodopera-home-standalone.html',
     'magazzino': 'modules/magazzino/views/magazzino-home-standalone.html',
     'scorte': 'modules/magazzino/views/magazzino-home-standalone.html',
     'prodotti': 'modules/magazzino/views/prodotti-standalone.html', 'anagrafica prodotti': 'modules/magazzino/views/prodotti-standalone.html',
@@ -174,10 +174,11 @@ export function resolveTarget(raw) {
         'pianificazione impianto vigneto': 'pianificazione impianto', 'impianto vigneto': 'pianificazione impianto',
         'pianificazione impianto frutteto': 'pianificazione impianto frutteto', 'impianto frutteto': 'pianificazione impianto frutteto',
         'home vigneto': 'vigneto', 'home frutteto': 'frutteto', 'home magazzino': 'magazzino',
+        'home manodopera': 'manodopera', 'dashboard manodopera': 'manodopera',
         'home conto terzi': 'conto terzi', 'contoterzi': 'conto terzi',
         'dashboard frutteto': 'frutteto', 'dashboard vigneto': 'vigneto', 'cosa devo fare': 'lavori',
         'previsioni': 'meteo', 'previsioni del tempo': 'meteo',
-        'gestione lavori': 'lavori', 'parco macchine': 'parcoMacchine',         'operai': 'manodopera',
+        'gestione lavori': 'lavori', 'parco macchine': 'parcoMacchine',
         'field-workspace': 'workspace campo', 'workspace mobile': 'workspace campo',
         'home campo': 'workspace campo', 'flusso campo': 'workspace campo'
     };

@@ -1248,7 +1248,7 @@ MAPPA TARGET RIGIDA (Dashboard e moduli – "Portami a [X]" punta sempre alla pa
 - Lavori: "Lavori", "Gestione lavori", "Cosa devo fare", "portami ai lavori" → target: "lavori". MAI "attivita" o "diario" per queste richieste.
 - Magazzino: "Magazzino", "Scorte", "portami al magazzino" → target: "magazzino".
 - Macchine: "Macchine", "Trattori", "Mezzi", "Parco macchine", "portami alle macchine" → target: "parcoMacchine".
-- Manodopera: "Manodopera", "Operai", "portami alla manodopera" → target: "manodopera".
+- Manodopera: "Manodopera", "portami alla manodopera", "home manodopera", "dashboard manodopera" → target: "manodopera" (hub modulo). Gestione operai / anagrafica operai: target "gestione operai" o "operai".
 - Diario attività: "Diario", "Diario attività", "segna le ore", "segnare ore", "cosa hai fatto oggi" → target: "attivita" o OPEN_MODAL "attivita-modal".
 NAVIGAZIONE INTERNA:
 - Una volta arrivato nella Dashboard di un modulo, l'utente potrà dare comandi successivi per le sottopagine (da mappare in seguito). Per ora il comando "Portami a [modulo]" deve sempre puntare alla pagina principale (dashboard) del modulo indicato.
@@ -2360,10 +2360,10 @@ SUB-AGENTE LOGISTICO (attivo quando [CONTESTO].page.pagePath contiene "/magazzin
  * Sub-Agente Manodopera: pagine ore, squadre, operai, compensi (path standalone core/admin o workspace campo).
  */
 const SUBAGENT_MANODOPERA = `
-SUB-AGENTE MANODOPERA (attivo quando [CONTESTO].page.pagePath indica segnatura ore, validazione ore, gestione operai/squadre, compensi operai, statistiche manodopera, lavori caposquadra o versione mobile campo field-workspace):
+SUB-AGENTE MANODOPERA (attivo quando [CONTESTO].page.pagePath indica hub manodopera, segnatura ore, validazione ore, gestione operai/squadre, compensi operai, statistiche manodopera, lavori caposquadra o versione mobile campo field-workspace):
 - Ti comporti come referente di organizzazione del lavoro in campo: segnatura ore, validazione, squadre (solo manager in gestione dedicata), operai, compensi, statistiche ore, versione mobile per operaio/caposquadra.
 - Per domande "come fare" su queste aree: integra **context.guida_sintesi_manodopera** se presente; linguaggio operativo (pulsanti, ordine dei passi), senza gergo da sviluppatore; non dire che il caposquadra «gestisce le squadre» (compito del manager).
-- Per navigazione: target segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche manodopera, statistiche ore, gestione operai, operai, gestione squadre, squadre, compensi operai, compensi, manodopera (hub operai) come da mappa target.
+- Per navigazione: target segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche manodopera, statistiche ore, gestione operai, operai, gestione squadre, squadre, compensi operai, compensi, manodopera (hub home modulo) come da mappa target.
 - Distingui **operaio** (solo versione mobile semplificata, ore proprie, no Diario manageriale) da **caposquadra** (versione mobile con comunicazioni e validazione ore altrui) da **manager** (gestione squadre, anagrafiche, compensi, validazione globale).
 `;
 
@@ -2843,7 +2843,7 @@ async function handleTonyAskRequest(request, streamOpts) {
     const pageTitle = (ctxFinal.page && ctxFinal.page.pageTitle) ? String(ctxFinal.page.pageTitle) : "";
     const isMacchineContext = pagePath.includes("/macchine/") || pagePath.includes("macchine") || pagePath.includes("mezzi")
       || (pageTitle && /mezzi|macchine|parco\s*macchine|gestione\s*mezzi/i.test(pageTitle));
-    const isManodoperaContext = /segnatura-ore|validazione-ore|gestione-operai|gestione-squadre|compensi-operai|statistiche-manodopera|lavori-caposquadra|field-workspace|statistiche-lavoratore/i.test(pagePath);
+    const isManodoperaContext = /manodopera-home|segnatura-ore|validazione-ore|gestione-operai|gestione-squadre|compensi-operai|statistiche-manodopera|lavori-caposquadra|field-workspace|statistiche-lavoratore/i.test(pagePath);
     const isContoTerziContext = pagePath.includes("/conto-terzi/");
     const routerShadow = tonyPerf.routerShadow || {};
     const routerBinario = routerShadow.binario || "C";

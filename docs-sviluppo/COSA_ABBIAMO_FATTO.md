@@ -1,6 +1,35 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-09 (build client Tony `2026-06-09g`, verifica vocale dashboard).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-13 (hub Manodopera Fase 1 ✅ + performance pagine admin).**
+
+## Manodopera — hub navigazione Fase 1 MVP ✅ (2026-06-13)
+
+**Piano:** `docs-sviluppo/manodopera/PLAN_HUB_MODULO_MANODOPERA.md` — **Fase 1 completata**; Fase 2 opzionale aperta.
+
+**Implementato:**
+- Home hub `modules/manodopera/views/manodopera-home-standalone.html` — KPI da `dashboard-counts-snapshot`, 3 sezioni card (Pianificazione / Persone / Controllo), auth manager+admin, accent `#2E8B57`, «← Dashboard» → dashboard principale.
+- Dashboard: `createManodoperaCard()` in `dashboard-sections.js` (variant `manodopera` + `core`); `MODULE_CATALOG.manodopera` in `dashboard-hub.js`; «Per te oggi» → hub se Manodopera attivo.
+- Quick bar: voce `manodoperaHome` + `dashboardRouteId` in `QUICK_BAR_SECTION_ORDER` (`dashboard-quick-bar.js`).
+- Tony client: target `manodopera` → hub in `tony/engine.js`; route in `tony-routes.json`.
+- Tony cloud: istruzioni navigazione + `isManodoperaContext` include `manodopera-home` in `functions/index.js` (deploy CF da verificare E2E).
+- Navigazione admin: link «← Manodopera» → hub su pagine manager (`core/config/manodopera-hub-nav.js` + header pagine admin).
+
+**Test:** canary manager localhost (tenant Sabbie Gialle) — tile Moduli, KPI, card, quick bar, back-link; `tests/tony-nav-quick-reply.test.js` 5/5.
+
+**Non in scope / Fase 2:** quick bar widget sulla home hub, smoke test automatici hub, tour onboarding, pulizia sidebar dashboard.
+
+## Manodopera — performance caricamento pagine admin (2026-06-13)
+
+**Problema:** validazione ore, statistiche e compensi facevano N+1 query Firestore sequenziali (tutti i lavori + `oreOperai` per ogni lavoro, spesso più volte sulla stessa pagina).
+
+**Soluzione Fase 1:**
+- Nuovo servizio condiviso `core/services/manodopera-lavori-ore-loader.js` — fetch lavori + subcollection `oreOperai` in **`Promise.all`**, helper `fetchUsersByIds` parallelo.
+- **Validazione ore:** un solo fetch per KPI + coda; tabella in **background**; KPI «da validare» pre-popolati da `dashboard-counts-snapshot` se disponibile.
+- **Statistiche manodopera:** un fetch lavori+ore condiviso per tutte le sezioni; terreni/squadre in parallelo; report ore operai **rifiltra in memoria** (no re-fetch al cambio periodo).
+- **Compensi operai:** stesso loader con filtro `stato == validate`.
+- Test: `tests/services/manodopera-lavori-ore-loader.test.js`.
+
+**Prossimo passo (Fase 2 performance, non implementato):** collection group / filtro periodo Firestore per storico molto grande (`PLAN_SCALABILITA_LISTA_LAVORI.md`).
 
 ## Tony — voce dashboard verificata end-to-end (2026-06-09)
 

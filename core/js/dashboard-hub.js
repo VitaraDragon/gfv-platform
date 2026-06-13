@@ -19,6 +19,7 @@ const MODULE_CATALOG = {
     vigneto: { label: 'Vigneto', href: '../modules/vigneto/views/vigneto-dashboard-standalone.html', icon: '🍇' },
     frutteto: { label: 'Frutteto', href: '../modules/frutteto/views/frutteto-dashboard-standalone.html', icon: '🍎' },
     magazzino: { label: 'Magazzino', href: '../modules/magazzino/views/magazzino-home-standalone.html', icon: '📦' },
+    manodopera: { label: 'Manodopera', href: '../modules/manodopera/views/manodopera-home-standalone.html', icon: '👷' },
     parcoMacchine: { label: 'Parco Macchine', href: '../modules/macchine/views/macchine-dashboard-standalone.html', icon: '🚜' },
     report: { label: 'Report', href: '../modules/report/views/report-dashboard-standalone.html', icon: '📑' },
     meteo: { label: 'Meteo', href: '../modules/meteo/views/meteo-dashboard-standalone.html', icon: '🌦️' }
@@ -306,7 +307,10 @@ export async function initDashboardPanoramaHub(options) {
             }
         ];
         if (hasManodopera) {
-            rows.push({ text: 'Gestione lavori, squadre e comunicazioni', href: 'admin/gestione-lavori-standalone.html' });
+            rows.push({
+                text: 'Manodopera: lavori, squadre e ore',
+                href: resolveModuleHref('manodopera', hasManodopera)
+            });
         } else {
             rows.push({ text: 'Anagrafica e confini dei terreni', href: 'terreni-standalone.html' });
         }

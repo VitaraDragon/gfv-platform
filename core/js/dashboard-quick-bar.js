@@ -22,7 +22,7 @@ const SLOT_COUNT = 5;
  */
 export const QUICK_BAR_SECTION_ORDER = [
     { id: 'core', label: 'Core e strumenti', dashboardRouteId: null },
-    { id: 'manodopera', label: 'Manodopera', dashboardRouteId: null },
+    { id: 'manodopera', label: 'Manodopera', dashboardRouteId: 'manodoperaHome' },
     { id: 'contoTerzi', label: 'Conto Terzi', dashboardRouteId: 'contoTerziHome' },
     { id: 'parcoMacchine', label: 'Parco macchine', dashboardRouteId: 'parcoDashboard' },
     { id: 'vigneto', label: 'Vigneto', dashboardRouteId: 'vigneto' },
@@ -97,6 +97,16 @@ export const QUICK_BAR_CATALOG = {
         href: 'admin/statistiche-manodopera-standalone.html',
         modules: [],
         requireManodopera: true,
+        section: 'manodopera'
+    },
+    manodoperaHome: {
+        label: 'Manodopera',
+        desc: 'Home modulo: lavori, squadre e ore',
+        icon: '👷',
+        href: '../modules/manodopera/views/manodopera-home-standalone.html',
+        modules: ['manodopera'],
+        requireManodopera: true,
+        visibleForRoles: ['manager', 'amministratore'],
         section: 'manodopera'
     },
     gestioneLavori: {

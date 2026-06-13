@@ -252,7 +252,7 @@
                 <h1>💰 Compensi Operai</h1>
                 <p style="opacity: 0.9; margin-top: 5px;">Calcola e gestisci i compensi per gli operai</p>
             </div>
-            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            <a href="../../modules/manodopera/views/manodopera-home-standalone.html" id="dashboard-link" class="btn btn-secondary">← Manodopera</a>
         </div>
 
         <div class="content">
@@ -401,6 +401,10 @@
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { getDoc, doc, collection, getDocs, query, where } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import {
+            fetchLavoriWithOreOperai,
+            forEachOraInBundle
+        } from '../services/manodopera-lavori-ore-loader.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -597,8 +601,9 @@
         // Calcola compensi
         async function calcolaCompensi(tenantId, dataInizio, dataFine, options = {}) {
             try {
-                const lavoriCollection = collection(db, `tenants/${tenantId}/lavori`);
-                const lavoriSnapshot = await getDocs(lavoriCollection);
+                const bundle = await fetchLavoriWithOreOperai(tenantId, {
+                    db, collection, getDocs, query, where
+                }, { statoFilter: 'validate' });
 
                 const orePerOperaio = {};
 
@@ -627,51 +632,39 @@
                     }
                 }
 
-                for (const lavoroDoc of lavoriSnapshot.docs) {
-                    const lavoroId = lavoroDoc.id;
-                    const oreRef = collection(db, `tenants/${tenantId}/lavori/${lavoroId}/oreOperai`);
-                    const oreQuery = query(oreRef, where('stato', '==', 'validate'));
-                    const oreSnapshot = await getDocs(oreQuery);
+                forEachOraInBundle(bundle, function (ctx) {
+                    const ora = ctx.oraData;
+                    const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
 
-                    oreSnapshot.forEach(oraDoc => {
-                        const ora = oraDoc.data();
-                        const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
+                    if (dataOra < dataInizio || dataOra > dataFine) return;
 
-                        if (dataOra < dataInizio || dataOra > dataFine) {
-                            return;
+                    const operaioId = ora.operaioId;
+                    if (!operaioId) return;
+
+                    if (options.operaioId && operaioId !== options.operaioId) return;
+
+                    const oreNette = ora.oreNette || 0;
+                    const oreMacchina = ora.oreMacchina || 0;
+
+                    let costoMacchina = 0;
+                    if (hasParcoMacchineModule && ora.macchinaId && oreMacchina > 0) {
+                        const macchina = macchineMap[ora.macchinaId];
+                        if (macchina && macchina.costoOra) {
+                            costoMacchina = oreMacchina * macchina.costoOra;
                         }
+                    }
 
-                        const operaioId = ora.operaioId;
-                        if (!operaioId) return;
+                    if (!orePerOperaio[operaioId]) {
+                        orePerOperaio[operaioId] = {
+                            operaioId: operaioId,
+                            oreTotali: 0,
+                            costoMacchinaTotale: 0
+                        };
+                    }
 
-                        if (options.operaioId && operaioId !== options.operaioId) {
-                            return;
-                        }
-
-                        const oreNette = ora.oreNette || 0;
-                        const oreMacchina = ora.oreMacchina || 0;
-                        
-                        // Calcola costo macchina se presente
-                        let costoMacchina = 0;
-                        if (hasParcoMacchineModule && ora.macchinaId && oreMacchina > 0) {
-                            const macchina = macchineMap[ora.macchinaId];
-                            if (macchina && macchina.costoOra) {
-                                costoMacchina = oreMacchina * macchina.costoOra;
-                            }
-                        }
-
-                        if (!orePerOperaio[operaioId]) {
-                            orePerOperaio[operaioId] = {
-                                operaioId: operaioId,
-                                oreTotali: 0,
-                                costoMacchinaTotale: 0
-                            };
-                        }
-
-                        orePerOperaio[operaioId].oreTotali += oreNette;
-                        orePerOperaio[operaioId].costoMacchinaTotale += costoMacchina;
-                    });
-                }
+                    orePerOperaio[operaioId].oreTotali += oreNette;
+                    orePerOperaio[operaioId].costoMacchinaTotale += costoMacchina;
+                });
 
                 const usersQuery = query(collection(db, 'users'), where('tenantId', '==', tenantId));
                 const usersSnapshot = await getDocs(usersQuery);

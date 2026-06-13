@@ -448,6 +448,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
     if (variant === 'manodopera') {
         appendCard(S.createAmministrazioneCard());
         appendCard(S.createStatisticheCard(true));
+        if (mods.includes('manodopera')) appendCard(S.createManodoperaCard());
         appendCard(S.createTerreniCard());
         if (mods.includes('contoTerzi')) appendCard(S.createContoTerziCard());
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
@@ -461,6 +462,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         appendCard(S.createDiarioAttivitaCard());
         appendCard(S.createStatisticheCard(false));
         appendCard(S.createAbbonamentoCard());
+        if (mods.includes('manodopera')) appendCard(S.createManodoperaCard());
         if (mods.includes('contoTerzi')) appendCard(S.createContoTerziCard());
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
@@ -727,6 +729,24 @@ window.GFVDashboardSections.createMagazzinoCard = function createMagazzinoCard(s
         </a>
     `;
 
+    return section;
+};
+
+/**
+ * Card Manodopera — tile compatto (hub modulo)
+ */
+window.GFVDashboardSections.createManodoperaCard = function createManodoperaCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section dashboard-section--module-tile';
+    section.innerHTML = `
+        <a href="../modules/manodopera/views/manodopera-home-standalone.html" class="dashboard-module-tile" data-module="manodopera" style="--module-accent:#2E8B57;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">👷</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Manodopera</span>
+                <span class="dashboard-module-tile__desc">Lavori, squadre e ore. Pianificazione, validazione e compensi.</span>
+            </span>
+        </a>
+    `;
     return section;
 };
 

@@ -1,22 +1,25 @@
 # Piano implementazione: Hub modulo Manodopera (navigazione)
 
 **Data creazione**: 2026-06-12  
-**Stato**: da implementare  
+**Ultimo aggiornamento**: 2026-06-13  
+**Stato**: **Fase 1 ✅ implementata** — Fase 2 opzionale aperta  
 **Priorità**: media-alta (UX / coerenza moduli)  
-**Tipo intervento**: solo **accessi e navigazione** — nessun cambio a logica business, Firestore, servizi o pagine operative esistenti.
+**Tipo intervento**: solo **accessi e navigazione** — nessun cambio a logica business, Firestore, regole o flussi operativi esistenti (salvo ottimizzazione performance pagine admin, track parallelo 2026-06-13).
 
 ---
 
 ## Contesto e problema
 
-Oggi **Manodopera** è attivo come modulo in abbonamento (`core/config/subscription-plans.js`, `id: 'manodopera'`) ma **non ha** la stessa identità navigabile degli altri moduli:
+**Situazione pre-2026-06-13:** Manodopera era attivo come modulo ma **senza** la stessa identità navigabile degli altri moduli.
 
-| Elemento | Vigneto / Magazzino / … | Manodopera oggi |
-|----------|-------------------------|-----------------|
-| Cartella `modules/…` | Sì | No |
-| Home / dashboard modulo | Sì | No |
-| Card nel menu moduli (`MODULE_CATALOG`) | Sì | No |
-| `dashboardRouteId` in quick bar | Sì | `null` in `QUICK_BAR_SECTION_ORDER` |
+**Situazione post Fase 1 (2026-06-13):** hub manager implementato; card Moduli, quick bar e Tony allineati. Pagine operative restano in `core/admin/` (URL invariati).
+
+| Elemento | Vigneto / Magazzino / … | Manodopera (prima) | Manodopera (dopo Fase 1) |
+|----------|-------------------------|--------------------|---------------------------|
+| Cartella `modules/…` | Sì | No | Sì (`modules/manodopera/views/` — solo home) |
+| Home / dashboard modulo | Sì | No | ✅ `manodopera-home-standalone.html` |
+| Card nel menu moduli (`MODULE_CATALOG`) | Sì | No | ✅ `dashboard-sections.js` + `dashboard-hub.js` |
+| `dashboardRouteId` in quick bar | Sì | `null` | ✅ `manodoperaHome` |
 
 Le funzioni sono **sparse**: `core/admin/gestione-lavori-standalone.html`, `gestione-operai`, `gestione-squadre`, `validazione-ore`, `compensi-operai`, `statistiche-manodopera`, `core/segnatura-ore-standalone.html`, ecc. La quick bar espone già un gruppo **Manodopera** (`section: 'manodopera'` in `core/js/dashboard-quick-bar.js`), ma senza pagina hub.
 
@@ -194,28 +197,34 @@ Seguire `tony-agent-onboarding.mdc`: aggiornare solo i 4 file consentiti (`COSA_
 
 ## Fasi di lavoro
 
-### Fase 1 — Hub + card modulo (MVP)
+### Fase 1 — Hub + card modulo (MVP) ✅ Completata (2026-06-13)
 
-| # | Task | File principali |
-|---|------|-----------------|
-| 1 | Creare `manodopera-home-standalone.html` con KPI + 3 sezioni card | `modules/manodopera/views/` |
-| 2 | Auth, tenant, check modulo + ruolo manager/amministratore | stesso file (pattern magazzino-home) |
-| 3 | `createManodoperaCard()` + sidebar dashboard | `dashboard-sections.js`, `dashboard-controller.js` se serve |
-| 4 | `MODULE_CATALOG.manodopera` | `dashboard-hub.js` |
-| 5 | `manodoperaHome` + `dashboardRouteId` | `dashboard-quick-bar.js` |
-| 6 | Tony route hub | `tony/engine.js`, `tony-routes.json` |
-| 7 | Test manuale: login manager con/senza modulo; bookmark vecchi URL ancora ok | — |
+| # | Task | File principali | Stato |
+|---|------|-----------------|-------|
+| 1 | Creare `manodopera-home-standalone.html` con KPI + 3 sezioni card | `modules/manodopera/views/` | ✅ |
+| 2 | Auth, tenant, check modulo + ruolo manager/amministratore | stesso file (pattern magazzino-home) | ✅ |
+| 3 | `createManodoperaCard()` + sidebar dashboard | `dashboard-sections.js` | ✅ (variant `manodopera` + `core`) |
+| 4 | `MODULE_CATALOG.manodopera` | `dashboard-hub.js` | ✅ (+ «Per te oggi» → hub) |
+| 5 | `manodoperaHome` + `dashboardRouteId` | `dashboard-quick-bar.js` | ✅ |
+| 6 | Tony route hub | `tony/engine.js`, `tony-routes.json`, `functions/index.js` | ✅ client; **CF deploy E2E da verificare** |
+| 7 | Test manuale: login manager con/senza modulo; bookmark vecchi URL ancora ok | — | ✅ canary manager (Sabbie Gialle) |
 
-**Stima**: 1–3 giorni.
+**Extra implementati (fuori tabella originale, stesso sprint):**
+- Link «← Manodopera» su pagine admin manager → hub (`core/config/manodopera-hub-nav.js` + header pagine).
+- Performance pagine admin: `core/services/manodopera-lavori-ore-loader.js` (validazione ore, statistiche, compensi) — track parallelo, vedi `COSA_ABBIAMO_FATTO.md`.
 
-### Fase 2 — Raffinamenti (opzionale)
+**Stima originale**: 1–3 giorni.
 
-| # | Task |
-|---|------|
-| 1 | Montare quick bar widget sulla home manodopera |
-| 2 | Allineare test automatici smoke (link hub in catalogo) |
-| 3 | Tour onboarding manager “entra in Manodopera dalla card” |
-| 4 | Semplificare sidebar dashboard principale ora che esiste hub (rimuovere ridondanze) |
+### Fase 2 — Raffinamenti (opzionale) ⏳ Da fare
+
+| # | Task | Stato |
+|---|------|-------|
+| 1 | Montare quick bar widget sulla home manodopera | ❌ |
+| 2 | Allineare test automatici smoke (link hub in catalogo) | ❌ |
+| 3 | Tour onboarding manager “entra in Manodopera dalla card” | ❌ |
+| 4 | Semplificare sidebar dashboard principale ora che esiste hub (rimuovere ridondanze) | ❌ |
+| 5 | Deploy CF + test E2E Tony «apri manodopera» → hub in produzione | ❌ |
+| 6 | Aggiornamento guide utente MANODOPERA (solo se richiesto prodotto) | ❌ |
 
 ### Fase 3 — Non pianificata ora
 
@@ -225,31 +234,37 @@ Spostamento fisico pagine in `modules/manodopera/views/` con redirect legacy.
 
 ## Criteri di accettazione
 
-- [ ] Con modulo manodopera attivo, manager/amministratore vede **card Manodopera** nel menu moduli dashboard.
-- [ ] La card apre **manodopera-home** con tutte le card v1 elencate sopra.
-- [ ] KPI in alto mostrano dati coerenti con dashboard principale (stesso snapshot).
-- [ ] Card “Da pianificare” visibile **solo** con Conto Terzi attivo.
-- [ ] Caposquadra/operaio **non** vedono la home (redirect o assenza card).
-- [ ] Tutti i link delle card aprono le **stesse pagine** di prima (nessuna regressione funzionale).
-- [ ] Quick bar: gruppo Manodopera mostra **dashboard modulo** in testa (`dashboardRouteId`).
-- [ ] Tony “apri manodopera” / navigazione modulo → home (non più default gestione operai).
-- [ ] Link profondi da vigneto/conto terzi a `gestione-lavori` continuano a funzionare senza modifiche.
+- [x] Con modulo manodopera attivo, manager/amministratore vede **card Manodopera** nel menu moduli dashboard.
+- [x] La card apre **manodopera-home** con tutte le card v1 elencate sopra.
+- [x] KPI in alto mostrano dati coerenti con dashboard principale (stesso snapshot).
+- [x] Card “Da pianificare” visibile **solo** con Conto Terzi attivo.
+- [x] Caposquadra/operaio **non** vedono la home (redirect o assenza card).
+- [x] Tutti i link delle card aprono le **stesse pagine** di prima (nessuna regressione funzionale).
+- [x] Quick bar: gruppo Manodopera mostra **dashboard modulo** in testa (`dashboardRouteId`).
+- [x] Tony client «apri manodopera» / navigazione modulo → hub (non più default gestione operai).
+- [ ] Tony **cloud** «apri manodopera» → hub verificato **dopo deploy CF** (codice pronto in `functions/index.js`).
+- [x] Link profondi da vigneto/conto terzi a `gestione-lavori` continuano a funzionare senza modifiche.
 
 ---
 
 ## Checklist file (riferimento rapido)
 
-| Azione | Path |
-|--------|------|
-| **Nuovo** | `modules/manodopera/views/manodopera-home-standalone.html` |
-| Modifica | `core/js/dashboard-sections.js` |
-| Modifica | `core/js/dashboard-hub.js` |
-| Modifica | `core/js/dashboard-quick-bar.js` |
-| Modifica | `core/js/tony/engine.js` |
-| Modifica | `core/config/tony-routes.json` (se applicabile) |
-| Verifica only | `core/js/dashboard-controller.js` |
-| Verifica only | `core/js/dashboard-counts-snapshot.js` |
-| **Non toccare** | `core/admin/gestione-lavori-*.js`, servizi `manodopera-*`, `functions/index.js` (salvo riga navigazione Tony) |
+| Azione | Path | Stato |
+|--------|------|-------|
+| **Nuovo** | `modules/manodopera/views/manodopera-home-standalone.html` | ✅ |
+| **Nuovo** | `core/config/manodopera-hub-nav.js` | ✅ (extra: back-link admin) |
+| **Nuovo** | `core/services/manodopera-lavori-ore-loader.js` | ✅ (extra: performance, fuori scope hub) |
+| Modifica | `core/js/dashboard-sections.js` | ✅ |
+| Modifica | `core/js/dashboard-hub.js` | ✅ |
+| Modifica | `core/js/dashboard-quick-bar.js` | ✅ |
+| Modifica | `core/js/tony/engine.js` | ✅ |
+| Modifica | `core/config/tony-routes.json` | ✅ |
+| Modifica | `functions/index.js` | ✅ (istruzioni navigazione + contesto) |
+| Modifica | Header pagine admin manodopera | ✅ («← Manodopera») |
+| Modifica | `validazione-ore`, `statistiche-manodopera`, `compensi-operai` standalone | ✅ (performance loader) |
+| Verifica only | `core/js/dashboard-controller.js` | ✅ |
+| Verifica only | `core/js/dashboard-counts-snapshot.js` | ✅ (riuso KPI hub) |
+| **Non toccato (come da piano)** | `core/admin/gestione-lavori-*.js`, logica business servizi manodopera | ✅ |
 
 ---
 
@@ -280,7 +295,7 @@ flowchart TB
 
   QB[Quick bar I miei accessi]
   D --> QB
-  H -.->|opzionale v1.1| QB
+  H -.->|Fase 2 opzionale| QB
 ```
 
 ---
@@ -303,3 +318,7 @@ flowchart TB
 | 2026-06-12 | Card manager: lavori, validazione, operai, squadre, utenti, compensi, statistiche; da pianificare se Conto Terzi |
 | 2026-06-12 | Quick bar principale invariata; riuso widget sulla home opzionale |
 | 2026-06-12 | Gestisci utenti incluso in blocco Persone |
+| 2026-06-13 | **Fase 1 MVP completata** — hub, card, quick bar, Tony client, back-link admin |
+| 2026-06-13 | Link «← Manodopera» su pagine admin (extra UX, non in deliverable originale) |
+| 2026-06-13 | Loader performance `manodopera-lavori-ore-loader.js` — track parallelo, non parte deliverable hub |
+| 2026-06-13 | Residuo accettazione: verifica Tony cloud post-deploy CF |
