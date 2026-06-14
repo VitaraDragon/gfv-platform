@@ -54,7 +54,7 @@
 |---|-----------|-------|-------|------|
 | 4.1 | Form Attività: INJECT_FORM_DATA, deriveCategoriaFromTipo, override Generale→Tra le File su vigneto/frutteto | TONY_COMPILAZIONE, TONY_SVILUPPO_2026-03 | implementato | |
 | 4.2 | Form Lavori: INJECT_FORM_DATA, sottocategoria Tra le File, disambiguazione erpicatura/trinciatura | TONY_COMPILAZIONE_LAVORI | implementato | |
-| 4.3 | **Terreno-form**: OPEN_MODAL terreno-modal + fields, NON injectTerrenoForm | ANALISI_SUBAGENT §3.2 | implementato | main.js supporta terreno-modal |
+| 4.3 | **Terreno-form**: `injectTerrenoForm` atomico + save/proattivo locale; entity parser client/CF «aggiungi terreno»; categoria coltura prima di `terreno-coltura` | merge 2026-06-08 / 2026-06-14 | implementato | `tony-form-injector.js`, `tony-terreno-entity-parser.js`, `tony-form-save-local.js` |
 | 4.4 | Flusso bottom-up: tipo lavoro → deduce categoria/sottocategoria (deriveCategoriaFromTipo) | TONY_FLUSSO_INVERSO | implementato | |
 | 4.5 | Sottocategoria da terreno: Vite/Frutteto/Olivo → solo "Tra le File" o "Sulla Fila", mai "Generale" | TONY_COMPILAZIONE, TONY_SVILUPPO_2026-03 | implementato | TERRENO_SOTTOCATEGORIA_PREFERENCE |
 | 4.6 | Divieto ID Firestore, uso nomi nelle SELECT (resolve by_name) | MASTER_PLAN Fase 1 | implementato | |
@@ -137,6 +137,7 @@
 | 10.8 | Normalizzazione temperature TTS prima strip Unicode (en-dash `19–29°C` → «da 19 a 29 gradi», non «1929 gradi») | fix voce dashboard 2026-06-09 | implementato | `normalizeTemperaturesForItalianTTS` in `voice.js` — build `2026-06-09f` |
 | 10.9 | Meteo vocale su dashboard da cache client (`tryDashboardMeteoQuickReply`), senza CF | fix voce dashboard 2026-06-09 | implementato | `meteo-dashboard-quick-reply.js` |
 | 10.10 | RIASSUNTO dashboard client: ops + meteo; «sì/ok» solo dopo offerta briefing; addio «grazie» locale senza CF | fix voce dashboard 2026-06-09 | implementato | `buildDashboardRiassuntoText`, `tonyWantsDashboardRiassunto` — build `2026-06-09g` |
+| 10.11 | Latenza dialogo auto-mode: costanti mic/TTS accorciate (`2026-06-14a`: final 220 ms, speechend 450 ms, restart 350 ms, reopen 100 ms) | tuning UX vocale 2026-06-14 | implementato | Baseline stabile post E2E multi-PC; ulteriore riduzione non raccomandata senza test mirati |
 
 ---
 

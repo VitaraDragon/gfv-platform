@@ -1,6 +1,29 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (intervista lavoro vocale + Chirp 3 HD + terreno entity parser merge locale).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (merge multi-PC + E2E vocale lavoro su seconda macchina + baseline latenza `2026-06-14a`).**
+
+## Tony — merge GitHub + lavoro locale e verifica E2E seconda macchina (2026-06-14)
+
+**Contesto:** allineamento `main` con commit remoti (`68ff161`: Chirp 3 HD, intervista lavoro vocale, hub manodopera) **senza perdere** il lavoro locale (terreno entity parser, `tony-service` HTTP/SSE, latenza auto-mode). Branch di backup `wip/tony-locale-giu2026`; merge in `main` (`92e8336`).
+
+**Verifica E2E vocale utente — Gestione Lavori, localhost, build `2026-06-14a`:** sequenza **PASS** con **0 CF** su tutti i turni intervista/macchine/salva:
+
+| Turno | Esito |
+|-------|--------|
+| «crea un lavoro per Luca» | Flusso locale; **nessun** auto-pick terreno da «Luca» |
+| «Luca Fabbri» | Operaio autonomo iniettato |
+| «Sangiovese» (solo) | Nessun inject (ambiguo — atteso) |
+| «Sangiovese e pannelli» | Terreno `q7pzTRszyV346c0y1bAY`, Tra le File |
+| «trinciatura» | Tipo lavoro + nome auto |
+| «domani» / «un giorno» | Data + durata `1` |
+| «Agrifull» | Trattore + attrezzo Trincia (client-side) |
+| «Ok grazie» | Save locale → lavoro `aI6mpb1gUdb3f6P4QhAA` |
+
+**Console attesa:** `[Tony] Creazione lavoro: flusso locale (no CF).`, `riaccendo tra 350 ms`, `[Tony] Salva lavoro-form: conferma utente locale (senza tonyAsk).`
+
+**Decisione latenza vocale:** costanti `2026-06-14a` (**220/450/350/100 ms**) confermate come **baseline stabile** — nessuna ulteriore riduzione finché non emergono regressioni in campo (doppi turni, frasi troncate, eco).
+
+**Deploy pendente:** parser terreno server-side + eventuali fix meteo — `npm run deploy:functions`.
 
 ## Tony — intervista lavoro vocale: hardening durata + terreno + E2E (2026-06-14)
 
@@ -50,6 +73,8 @@
 | 120–400 ms idle reopen | 50–120 ms | `scheduleReopenMicIfIdle` |
 
 **File:** `core/js/tony/main.js`, `core/js/tony-widget-standalone.js`.
+
+**Baseline stabile (2026-06-14):** dopo test E2E su seconda macchina, valori confermati — ulteriore riduzione non raccomandata senza test mirati (rischio doppi turni / speechend vuoto).
 
 ## Tony — terreno entity parser + tony-service HTTP/SSE (2026-06-14, merge locale)
 
