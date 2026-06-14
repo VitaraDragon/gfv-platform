@@ -137,6 +137,9 @@ describe("tony-lavoro-entity-parser", () => {
 
   it("extractDurationDays 1 giorno", () => {
     expect(extractDurationDays("durata 1 giorno")).toBe(1);
+    expect(extractDurationDays("un giorno")).toBe(1);
+    expect(extractDurationDays("per un giorno")).toBe(1);
+    expect(extractDurationDays("il lavoro dura un giorno")).toBe(1);
   });
 
   it("extractDurationDays durata 1 senza 'giorno' (canary 3b-C1)", () => {

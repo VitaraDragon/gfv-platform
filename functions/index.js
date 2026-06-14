@@ -72,6 +72,11 @@ const db = admin.firestore();
 /** Modello Gemini REST (override: env GEMINI_MODEL). gemini-2.0-flash deprecato → 404. */
 const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
+/** Voce TTS Tony (override: env TONY_TTS_VOICE). Rollback: it-IT-Wavenet-D */
+const TONY_TTS_VOICE = process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
+/** Velocità parlato (override: env TONY_TTS_SPEAKING_RATE). */
+const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "0.95");
+
 /** Piano tenant: Tony è assente in freemium; enforcement anche lato callable. */
 function normalizeSubscriptionPlanId(raw) {
   if (raw == null || raw === "") return "base";
@@ -4029,11 +4034,12 @@ exports.getTonyAudio = onCall(
       throw new HttpsError("invalid-argument", "Campo 'text' (stringa) obbligatorio.");
     }
 
-    const VOICE_NAME = "it-IT-Wavenet-D";
+    const voiceName = TONY_TTS_VOICE;
     console.log("[getTonyAudio] Chiamata ricevuta", {
       textLen: text.length,
       textPreview: text.substring(0, 60) + (text.length > 60 ? "..." : ""),
-      voice: VOICE_NAME,
+      voice: voiceName,
+      speakingRate: TONY_TTS_SPEAKING_RATE,
       ts: new Date().toISOString(),
     });
 
@@ -4041,22 +4047,22 @@ exports.getTonyAudio = onCall(
       input: { text },
       voice: {
         languageCode: "it-IT",
-        name: VOICE_NAME,
+        name: voiceName,
       },
       audioConfig: {
         audioEncoding: "MP3",
-        pitch: -3.0,
-        speakingRate: 0.95,
+        speakingRate: TONY_TTS_SPEAKING_RATE,
       },
     });
 
     const audioContent = response.audioContent.toString("base64");
     console.log("[getTonyAudio] Audio generato", {
       audioLenBase64: audioContent.length,
-      voice: VOICE_NAME,
+      voice: voiceName,
+      speakingRate: TONY_TTS_SPEAKING_RATE,
       ts: new Date().toISOString(),
     });
-    return { audioContent, voice: VOICE_NAME };
+    return { audioContent, voice: voiceName };
   }
 );
 

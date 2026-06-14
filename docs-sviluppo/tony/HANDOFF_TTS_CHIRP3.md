@@ -1,7 +1,7 @@
 # Handoff — Cambio voce Tony: Google Chirp 3 HD
 
 **Creato:** 2026-06-10  
-**Stato:** 📋 **Pianificato** — non ancora implementato in produzione  
+**Stato:** ✅ **Implementato in codice** — deploy `getTonyAudio` + ascolto manuale da completare  
 **Scopo:** guida completa per un nuovo agente/sviluppatore: stato attuale, scelta voce, implementazione, costi, test, rollback.
 
 **Documenti correlati:**
@@ -269,11 +269,11 @@ gcloud text-to-speech voices list --filter="languageCodes:it-IT" --format="table
 
 ## 10. Criteri di accettazione
 
-- [ ] `getTonyAudio` usa `it-IT-Chirp3-HD-*` (o env equivalente)
+- [x] `getTonyAudio` usa `it-IT-Chirp3-HD-*` (o env equivalente)
 - [ ] Ascolto approvato su frasi meteo, navigazione, conferme ore
 - [ ] Nessuna regressione barge-in / chiusura pannello Tony
 - [ ] Piano Free ancora bloccato
-- [ ] Cache client coerente con voce (Fase B)
+- [x] Cache client coerente con voce (Fase B)
 - [ ] Documentazione aggiornata
 - [ ] Rollback documentato e testato
 
@@ -283,9 +283,9 @@ gcloud text-to-speech voices list --filter="languageCodes:it-IT" --format="table
 
 | Data | Nota | Stato |
 |------|------|--------|
-| 2026-06-10 | Documento creato; voce prod ancora `it-IT-Wavenet-D` | 📋 Da implementare |
-| | Scelta voce consigliata: `it-IT-Chirp3-HD-Charon` | Da validare ad orecchio |
-| | Prossimo step: Fase A env + deploy + ascolto | |
+| 2026-06-13 | Implementato in codice: `TONY_TTS_VOICE` default Charon, cache client con `voice`, no pitch | ✅ Codice; deploy + ascolto da fare |
+| 2026-06-10 | Documento creato; voce prod era `it-IT-Wavenet-D` | 📋 Handoff |
+| | Scelta voce consigliata: `it-IT-Chirp3-HD-Charon` | Da validare ad orecchio post-deploy |
 
 ---
 

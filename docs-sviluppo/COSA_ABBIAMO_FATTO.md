@@ -1,6 +1,42 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-13 (hub Manodopera Fase 1 ✅ + performance pagine admin).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (intervista lavoro vocale — durata, terreno, E2E completo).**
+
+## Tony — intervista lavoro vocale: hardening durata + terreno + E2E (2026-06-14)
+
+**Contesto:** creazione lavoro **solo vocale** su Gestione Lavori (`build 2026-06-09g`), flusso locale `__tonyLavoroCreationFlow` + `applyLavoroCreationTurn`, **0 CF** sui turni intervista/macchine/salva.
+
+**Problemi risolti (stessa sessione di sviluppo):**
+
+| Area | Sintomo | Fix (`core/js/tony-form-injector.js` + cloud parser) |
+|------|---------|------------------------------------------------------|
+| **Durata** | «un giorno» / «il lavoro dura un giorno» non iniettati in `lavoro-durata` | `extractLavoroInterviewDuration` + `extractDurationDays` (`functions/tony-lavoro-entity-parser.js`): `un/una giorno`, `per un giorno`, `dura N giorni` |
+| **Disamb. terreni** | «Sangiovese» ambiguo; «Sangiovese pannelli» inject 0 campi | `scoreTerrenoInterviewMatch` multi-token; `resolveTerrenoFromDisambReply` ranking; sanitize non rimuove id Firestore già risolto |
+| **Auto-pick errato** | «crea lavoro per Luca Fabbri» impostava terreno da token «Fabbri» | Skip terreno se messaggio assegna solo persona (`lavoroInterviewTextNamesPersonOnly`); soglia min score **300** per auto-pick |
+| **Correzione terreno** | «il terreno è Sangiovese» ignorato (campo già valorizzato + `patchOnly`) | `isLavoroTerrenoCorrectionText`, `extractTerrenoQueryFromInterviewText`, `injectOpts.forceFields` su terreno/cascata |
+
+**API nuove/esposte:** `isLavoroTerrenoCorrectionText` in `TonyFormInjector`.
+
+**Test automatici:** `tests/tony-lavoro-interview-client.test.js` **42/42**; `tests/tony-lavoro-entity-parser.test.js` (durata `un giorno`).
+
+**Verifica E2E vocale utente (2026-06-14, console):** sequenza completa **PASS** — «crea lavoro per Luca Fabbri» (solo operaio) → «Sangiovese pannelli» (terreno `q7pzTRszyV346c0y1bAY`) → «il tipo di lavoro è erpicatura» → «voglio iniziare domani» → «un giorno» → T5 + rotante 200 → «Sì grazie» → salvataggio (`m7INBY4PKCvIY0xABKTb`). **0 CF** sui turni intervista/macchine/conferma.
+
+**Nota operativa:** il solo «Sangiovese» (senza qualificatore) può generare solo messaggio disambiguazione in chat/TTS — in console **non** compaiono righe inject (comportamento atteso). Turni vocali ravvicinati possono occasionalmente ritardare un turno (coda `_isSendingMessage`); ripetere o specificare subito «Sangiovese pannelli».
+
+**File toccati:** `core/js/tony-form-injector.js`, `functions/tony-lavoro-entity-parser.js`, `tests/tony-lavoro-interview-client.test.js`, `tests/tony-lavoro-entity-parser.test.js`.
+
+## Tony — voce TTS Chirp 3 HD (2026-06-13)
+
+**Piano:** `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md`
+
+**Implementato:**
+- `getTonyAudio` (`functions/index.js`): voce default **`it-IT-Chirp3-HD-Charon`**, `speakingRate` **0.95**; override via env **`TONY_TTS_VOICE`** / **`TONY_TTS_SPEAKING_RATE`**; rimosso `pitch: -3.0` (non adatto a Chirp 3).
+- Cache client `lastTTSCache` in `core/js/tony/voice.js`: chiave include anche **`voice`** restituita dalla CF (evita audio Wavenet in cache dopo switch voce).
+- Rollback: `TONY_TTS_VOICE=it-IT-Wavenet-D` + redeploy `getTonyAudio`.
+
+**Deploy:** `firebase deploy --only functions:getTonyAudio` — da eseguire per attivare in produzione.
+
+**Verifica manuale:** ascolto frasi meteo/nav/ore; barge-in; piano Free bloccato.
 
 ## Manodopera — hub navigazione Fase 1 MVP ✅ (2026-06-13)
 

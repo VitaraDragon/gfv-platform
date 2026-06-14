@@ -2963,6 +2963,7 @@
     injectOpts = injectOpts || {};
     var skipFieldIds = injectOpts.skipFieldIds || null;
     var patchOnly = !!injectOpts.patchOnly;
+    var forceFields = injectOpts.forceFields || null;
 
     function fieldAlreadyHasValue(fieldId) {
       var el = document.getElementById(fieldId);
@@ -2995,7 +2996,7 @@
         continue;
       }
 
-      if (patchOnly && fieldAlreadyHasValue(fieldId)) {
+      if (patchOnly && fieldAlreadyHasValue(fieldId) && !(forceFields && forceFields[fieldId])) {
         log('injectForm patchOnly: salto ' + fieldId + ' (già valorizzato in DOM)');
         continue;
       }
@@ -4570,11 +4571,13 @@
     var m = String(message || '');
     var n = normalizeTonyText(m);
     var wordMap = { uno: 1, un: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10 };
-    var numToken = '(\\d+|uno|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)';
-    if (/\bun(?:a)?\s+giornat(?:a|e)\b/i.test(m)) return 1;
+    var numToken = '(\\d+|un|una|uno|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)';
+    if (/\bun(?:a|o)?\s+giorn(?:o|i|ata|ate)\b/i.test(m)) return 1;
     var match =
+      m.match(new RegExp('\\b(?:dura|durata)\\s+' + numToken + '\\s+giorn', 'i')) ||
       m.match(new RegExp('\\bdurata\\s+' + numToken + '\\s+giorn', 'i')) ||
       m.match(new RegExp('\\b(?:per|di)\\s+' + numToken + '\\s+giorn', 'i')) ||
+      m.match(new RegExp('\\b' + numToken + '\\s+giorn', 'i')) ||
       m.match(/\b(\d+)\s+giorn/i);
     if (!match) {
       var ilMatch = n.match(/\bil\s+(\d{1,3})\b/);
@@ -4702,6 +4705,39 @@
     if (!mentionsLavoroTipoKeyword(text)) return false;
     var t = normalizeTonyText(text);
     return /\b(manuale|meccanic\w*|produzione|verde|generale|tra\s+le\s+file|sulla\s+fila)\b/.test(t);
+  }
+
+  function isLavoroTerrenoCorrectionText(text) {
+    var t = normalizeTonyText(text);
+    if (!t) return false;
+    if (/\b(?:il\s+)?terreno\s+(?:e\s+|è\s+|sara\s+|sara)\b/.test(t)) return true;
+    if (/\bcambia(?:re)?\s+(?:il\s+)?terren/.test(t)) return true;
+    if (/\b(?:metti|imposta|usa)\s+(?:il\s+)?terren/.test(t)) return true;
+    return false;
+  }
+
+  function hasExplicitTerrenoInInterviewText(text) {
+    var t = normalizeTonyText(text);
+    if (!t) return false;
+    if (isLavoroTerrenoCorrectionText(text)) return true;
+    return /\b(?:nel|nella|nello|in|sul|sulla|sullo|terreno|vigneto|campo|appezzamento)\b/.test(t);
+  }
+
+  function extractTerrenoQueryFromInterviewText(text) {
+    var raw = String(text || '').trim();
+    if (!raw) return '';
+    var m = raw.match(/\b(?:il\s+)?terreno\s+(?:è|e|sara|sarà)\s+(.+)$/i);
+    if (m) return m[1].trim();
+    m = raw.match(/\b(?:nel|nella|nello|in|sul|sulla|sullo)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9'`\- ]{1,48})/i);
+    if (m) {
+      return m[1].replace(/\s+(?:con|per|domani|oggi|inizio|durata|assegna)\b.*$/i, '').trim();
+    }
+    return raw;
+  }
+
+  function lavoroInterviewTextNamesPersonOnly(text) {
+    if (!lavoroInterviewTextAssignsPerson(text)) return false;
+    return !hasExplicitTerrenoInInterviewText(text);
   }
 
   function lavoroInterviewAssignModeConfirmed() {
@@ -4844,49 +4880,61 @@
     return map[stem] || String(text || '').trim();
   }
 
+  function scoreTerrenoInterviewMatch(queryText, terrenoNome) {
+    var t = normalizeTonyText(queryText);
+    var n = normalizeTonyText(terrenoNome || '');
+    if (!t || !n || t.length < 2) return 0;
+    if (t === n) return 1000;
+    if (n.indexOf(t) >= 0) return 800 + Math.min(t.length, 40);
+    if (t.indexOf(n) >= 0) return 700 + Math.min(n.length, 40);
+    var queryParts = t.split(/\s+/).filter(function (w) { return w.length >= 2; });
+    if (queryParts.length >= 2) {
+      var matched = queryParts.filter(function (w) { return n.indexOf(w) >= 0; });
+      if (matched.length === queryParts.length) return 500 + matched.length * 10;
+      if (matched.length > 0) return 100 + matched.length * 10;
+      return 0;
+    }
+    if (queryParts.length === 1 && n.indexOf(queryParts[0]) >= 0) return 300;
+    var tokens = n.split(/\s+/).filter(function (w) { return w.length >= 4; });
+    for (var j = 0; j < tokens.length; j++) {
+      if (t.indexOf(tokens[j]) >= 0) return 200;
+    }
+    return 0;
+  }
+
   function findTerrenoInInterviewText(text, list) {
     if (!text || !Array.isArray(list) || !list.length) return null;
     var t = normalizeTonyText(text);
     if (!t || t.length < 2) return null;
-    var matches = [];
+    var scored = [];
     for (var i = 0; i < list.length; i++) {
       var tr = list[i];
       if (!tr) continue;
-      var n = normalizeTonyText(tr.nome || '');
-      if (!n || n.length < 2) continue;
-      if (t === n || t.indexOf(n) >= 0 || n.indexOf(t) >= 0) {
-        matches.push(tr);
-        continue;
-      }
-      var tokens = n.split(/\s+/).filter(function (w) { return w.length >= 4; });
-      for (var j = 0; j < tokens.length; j++) {
-        if (t.indexOf(tokens[j]) >= 0) {
-          matches.push(tr);
-          break;
-        }
-      }
+      var sc = scoreTerrenoInterviewMatch(t, tr.nome || '');
+      if (sc > 0) scored.push({ tr: tr, sc: sc });
     }
-    var seen = {};
-    matches = matches.filter(function (tr) {
-      var id = String(tr.id || tr.nome || '');
-      if (seen[id]) return false;
-      seen[id] = 1;
-      return true;
-    });
-    if (matches.length === 1) return matches[0];
-    if (matches.length > 1) {
-      return {
-        ambiguous: true,
-        candidates: matches.map(function (tr) {
-          return {
-            id: tr.id || null,
-            label: String(tr.nome || '').trim(),
-            coltura: tr.coltura || null
-          };
-        })
-      };
+    if (!scored.length) return null;
+    scored.sort(function (a, b) { return b.sc - a.sc; });
+    var topSc = scored[0].sc;
+    var tied = scored.filter(function (s) { return s.sc === topSc; });
+    if (tied.length === 1) {
+      if (tied[0].sc < 300) return null;
+      return tied[0].tr;
     }
-    return null;
+    if (scored.length > 1 && scored[0].sc > scored[1].sc) {
+      if (scored[0].sc < 300) return null;
+      return scored[0].tr;
+    }
+    return {
+      ambiguous: true,
+      candidates: tied.map(function (s) {
+        return {
+          id: s.tr.id || null,
+          label: String(s.tr.nome || '').trim(),
+          coltura: s.tr.coltura || null
+        };
+      })
+    };
   }
 
   function isTerrenoInterviewUniqueHit(hit) {
@@ -5070,6 +5118,20 @@
       return parts.length > 0 && parts.every(function (w) { return n.indexOf(w) >= 0; });
     });
     if (partial.length === 1) return partial[0];
+    if (partial.length > 1) {
+      var tPartsRank = t.split(/\s+/).filter(function (w) { return w.length >= 2; });
+      if (tPartsRank.length >= 2) {
+        var ranked = partial.map(function (c) {
+          var n = normalizeTonyText(c.label);
+          var matched = tPartsRank.filter(function (w) { return n.indexOf(w) >= 0; }).length;
+          return { c: c, matched: matched };
+        }).sort(function (a, b) { return b.matched - a.matched; });
+        if (ranked.length && ranked[0].matched > 0 &&
+            (ranked.length === 1 || ranked[0].matched > ranked[1].matched)) {
+          return ranked[0].c;
+        }
+      }
+    }
 
     var terreniList = (window.lavoriState && window.lavoriState.terreniList) || [];
     var allowedIds = {};
@@ -5248,18 +5310,21 @@
     if (!window.__tonyLavoroPersonDisambCandidates) stripPerson('caposquadra');
 
     if (!window.__tonyLavoroTerrenoDisambCandidates && formData['lavoro-terreno']) {
-      var terreniList = (window.lavoriState && window.lavoriState.terreniList) || [];
-      var trHint = msg || String(formData['lavoro-terreno'] || '').trim();
-      var trHit = findTerrenoInInterviewText(trHint, terreniList);
-      if ((!trHit || !trHit.ambiguous) && msg && trHint !== msg) {
-        trHit = findTerrenoInInterviewText(msg, terreniList);
-      }
-      if (trHit && trHit.ambiguous) {
-        delete formData['lavoro-terreno'];
-        delete formData['lavoro-sottocategoria'];
-        offerTerrenoDisambResponse(trHit, msg || trHint);
-        window.__tonyLavoroCreationFlow = true;
-        window.__tonyLavoroInterviewPending = true;
+      var terrenoVal = String(formData['lavoro-terreno'] || '').trim();
+      if (!looksLikeFirestoreDocId(terrenoVal)) {
+        var terreniList = (window.lavoriState && window.lavoriState.terreniList) || [];
+        var trHint = msg || terrenoVal;
+        var trHit = findTerrenoInInterviewText(trHint, terreniList);
+        if ((!trHit || !trHit.ambiguous) && msg && trHint !== msg) {
+          trHit = findTerrenoInInterviewText(msg, terreniList);
+        }
+        if (trHit && trHit.ambiguous) {
+          delete formData['lavoro-terreno'];
+          delete formData['lavoro-sottocategoria'];
+          offerTerrenoDisambResponse(trHit, msg || trHint);
+          window.__tonyLavoroCreationFlow = true;
+          window.__tonyLavoroInterviewPending = true;
+        }
       }
     }
 
@@ -5449,6 +5514,7 @@
           lavoroSelectIsEmpty('lavoro-attrezzo')) return false;
     }
     if (isLavoroTipoCorrectionText(t)) return true;
+    if (isLavoroTerrenoCorrectionText(t)) return true;
     if (window.__tonyLavoroAwaitingTipoModo) return true;
     if (window.__tonyLavoroTipoDisambCandidates && window.__tonyLavoroTipoDisambCandidates.length > 1 &&
         isLavoroTipoDisambQualifierText(t)) return true;
@@ -5830,14 +5896,30 @@
     var parseText = lavoroInterviewParseText(text);
     var terreniList = (window.lavoriState && window.lavoriState.terreniList) || [];
     var assignMode = getConfirmedLavoroInterviewAssignMode();
+    var terrenoCorrection = isLavoroTerrenoCorrectionText(text);
+    var canPatchTerreno = lavoroInterviewFieldEmpty('lavoro-terreno') || terrenoCorrection;
 
-    if (lavoroInterviewFieldEmpty('lavoro-terreno')) {
-      var tr = findTerrenoInInterviewText(parseText, terreniList);
-      if (!tr && parseText !== text) tr = findTerrenoInInterviewText(text, terreniList);
-      if (tr && tr.ambiguous) {
-        offerTerrenoDisambResponse(tr, text);
-      } else if (isTerrenoInterviewUniqueHit(tr)) {
-        patch['lavoro-terreno'] = String(tr.id || tr.nome || '').trim();
+    if (canPatchTerreno) {
+      if (!terrenoCorrection && lavoroInterviewTextNamesPersonOnly(text)) {
+        /* persona nel messaggio (es. «per Luca Fabbri») — non inferire terreno da cognome */
+      } else {
+        var terrenoQuery = extractTerrenoQueryFromInterviewText(parseText);
+        if (!terrenoQuery || terrenoQuery === parseText) {
+          terrenoQuery = extractTerrenoQueryFromInterviewText(text);
+        }
+        var trSearch = terrenoQuery || parseText;
+        var tr = findTerrenoInInterviewText(trSearch, terreniList);
+        if (!tr && trSearch !== text) tr = findTerrenoInInterviewText(text, terreniList);
+        if (tr && tr.ambiguous) {
+          offerTerrenoDisambResponse(tr, text);
+        } else if (isTerrenoInterviewUniqueHit(tr)) {
+          patch['lavoro-terreno'] = String(tr.id || tr.nome || '').trim();
+          if (terrenoCorrection) {
+            delete patch['lavoro-tipo-lavoro'];
+            delete patch['lavoro-categoria-principale'];
+            delete patch['lavoro-sottocategoria'];
+          }
+        }
       }
     }
 
@@ -5993,6 +6075,7 @@
     if (typeof isLavoroTipoCorrectionText === 'function' && isLavoroTipoCorrectionText(userText)) {
       return true;
     }
+    if (isLavoroTerrenoCorrectionText(userText)) return true;
     if (!opts.skipMacchineCheck &&
         typeof userCanReplyToMacchineDisamb === 'function' && userCanReplyToMacchineDisamb(userText)) return false;
     if (window.__tonyLavoroTipoDisambCandidates && window.__tonyLavoroTipoDisambCandidates.length > 1 &&
@@ -6023,7 +6106,9 @@
     }
     if (lavoroInterviewFieldEmpty('lavoro-terreno')) {
       var terreniList = (window.lavoriState && window.lavoriState.terreniList) || [];
-      if (isTerrenoInterviewUniqueHit(findTerrenoInInterviewText(userText, terreniList))) return true;
+      var trHitReply = findTerrenoInInterviewText(userText, terreniList);
+      if (isTerrenoInterviewUniqueHit(trHitReply)) return true;
+      if (trHitReply && trHitReply.ambiguous) return true;
     }
     var req = getLavoroInterviewRequiredEmpty();
     var needsMac = lavoroInterviewNeedsMacchineOnly();
@@ -6323,15 +6408,24 @@
 
     var ok = true;
     if (Object.keys(patch).length) {
+      var injectOptsIv = {
+        patchOnly: true,
+        interviewPatch: true,
+        formReadyMaxMs: 4000,
+        selectWaitMs: 5000
+      };
+      if (isLavoroTerrenoCorrectionText(text) && patch['lavoro-terreno']) {
+        injectOptsIv.forceFields = {
+          'lavoro-terreno': true,
+          'lavoro-sottocategoria': true,
+          'lavoro-categoria-principale': true,
+          'lavoro-tipo-lavoro': true
+        };
+      }
       if (isLavoroInterviewSimplePatch(patch)) {
         ok = await injectLavoroInterviewSimplePatch(patch, context);
       } else {
-        ok = await injectLavoroForm(patch, context, {
-          patchOnly: true,
-          interviewPatch: true,
-          formReadyMaxMs: 4000,
-          selectWaitMs: 5000
-        });
+        ok = await injectLavoroForm(patch, context, injectOptsIv);
       }
     }
     if (!ok) {
@@ -6641,6 +6735,7 @@
     promptLavoroInterviewMissing: promptLavoroInterviewMissing,
     resetLavoroInterviewSessionState: resetLavoroInterviewSessionState,
     isLavoroTipoCorrectionText: isLavoroTipoCorrectionText,
+    isLavoroTerrenoCorrectionText: isLavoroTerrenoCorrectionText,
     mentionsLavoroTipoKeyword: mentionsLavoroTipoKeyword,
     userTextShouldGoToLavoroInterviewNotMacchine: userTextShouldGoToLavoroInterviewNotMacchine,
     lavoroInterviewReadyForSave: lavoroInterviewReadyForSave,

@@ -92,11 +92,13 @@ function resolveWeekdayDate(message) {
 function extractDurationDays(message) {
   const m = String(message || "");
   const wordMap = { uno: 1, un: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9, dieci: 10 };
-  const numToken = "(\\d+|uno|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)";
-  if (/\bun(?:a)?\s+giornat(?:a|e)\b/i.test(m)) return 1;
+  const numToken = "(\\d+|un|una|uno|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)";
+  if (/\bun(?:a|o)?\s+giorn(?:o|i|ata|ate)\b/i.test(m)) return 1;
   let match =
+    m.match(new RegExp(`\\b(?:dura|durata)\\s+${numToken}\\s+giorn`, "i")) ||
     m.match(new RegExp(`\\bdurata\\s+${numToken}\\s+giorn`, "i")) ||
     m.match(new RegExp(`\\b(?:per|di)\\s+${numToken}\\s+giorn`, "i")) ||
+    m.match(new RegExp(`\\b${numToken}\\s+giorn`, "i")) ||
     m.match(/\b(\d+)\s+giorn/i) ||
     m.match(new RegExp(`\\bdurata\\s*(?:di|:)?\\s*${numToken}\\b(?![\\s\\S]*\\bdurata\\s)`, "i"));
   if (!match) return null;

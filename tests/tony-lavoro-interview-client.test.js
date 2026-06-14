@@ -44,8 +44,13 @@ function extractLavoroInterviewDuration(message) {
   const m = String(message || '');
   const n = normalizeTonyText(m);
   const wordMap = { uno: 1, un: 1, una: 1, due: 2, tre: 3, quattro: 4, cinque: 5 };
-  if (/\bun(?:a)?\s+giornat(?:a|e)\b/i.test(m)) return 1;
-  const match = m.match(/\b(?:per|di)\s+(\d+)\s+giorn/i) || m.match(/\b(\d+)\s+giorn/i);
+  const numToken = '(\\d+|un|una|uno|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)';
+  if (/\bun(?:a|o)?\s+giorn(?:o|i|ata|ate)\b/i.test(m)) return 1;
+  const match =
+    m.match(new RegExp(`\\b(?:dura|durata)\\s+${numToken}\\s+giorn`, 'i')) ||
+    m.match(new RegExp(`\\b(?:per|di)\\s+${numToken}\\s+giorn`, 'i')) ||
+    m.match(new RegExp(`\\b${numToken}\\s+giorn`, 'i')) ||
+    m.match(/\b(\d+)\s+giorn/i);
   if (!match) {
     const ilMatch = n.match(/\bil\s+(\d{1,3})\b/);
     if (ilMatch) {
@@ -60,49 +65,63 @@ function extractLavoroInterviewDuration(message) {
     if (wordMap[n] != null) return wordMap[n];
     return null;
   }
-  const num = parseInt(match[1], 10);
+  const raw = String(match[1]).toLowerCase();
+  const num = wordMap[raw] != null ? wordMap[raw] : parseInt(raw, 10);
   return Number.isFinite(num) && num > 0 ? num : null;
 }
 
+function scoreTerrenoInterviewMatch(queryText, terrenoNome) {
+  const t = normalizeTonyText(queryText);
+  const n = normalizeTonyText(terrenoNome || '');
+  if (!t || !n || t.length < 2) return 0;
+  if (t === n) return 1000;
+  if (n.indexOf(t) >= 0) return 800 + Math.min(t.length, 40);
+  if (t.indexOf(n) >= 0) return 700 + Math.min(n.length, 40);
+  const queryParts = t.split(/\s+/).filter((w) => w.length >= 2);
+  if (queryParts.length >= 2) {
+    const matched = queryParts.filter((w) => n.indexOf(w) >= 0);
+    if (matched.length === queryParts.length) return 500 + matched.length * 10;
+    if (matched.length > 0) return 100 + matched.length * 10;
+    return 0;
+  }
+  if (queryParts.length === 1 && n.indexOf(queryParts[0]) >= 0) return 300;
+  const tokens = n.split(/\s+/).filter((w) => w.length >= 4);
+  for (const tok of tokens) {
+    if (t.indexOf(tok) >= 0) return 200;
+  }
+  return 0;
+}
+
 function findTerrenoInInterviewText(text, list) {
+  if (!text || !Array.isArray(list) || !list.length) return null;
   const t = normalizeTonyText(text);
   if (!t || t.length < 2) return null;
-  const matches = [];
+  const scored = [];
   for (const tr of list) {
     if (!tr) continue;
-    const n = normalizeTonyText(tr.nome || '');
-    if (!n || n.length < 2) continue;
-    if (t === n || t.indexOf(n) >= 0 || n.indexOf(t) >= 0) {
-      matches.push(tr);
-      continue;
-    }
-    const tokens = n.split(/\s+/).filter((w) => w.length >= 4);
-    for (const tok of tokens) {
-      if (t.indexOf(tok) >= 0) {
-        matches.push(tr);
-        break;
-      }
-    }
+    const sc = scoreTerrenoInterviewMatch(t, tr.nome || '');
+    if (sc > 0) scored.push({ tr, sc });
   }
-  const seen = {};
-  const unique = matches.filter((tr) => {
-    const id = String(tr.id || tr.nome || '');
-    if (seen[id]) return false;
-    seen[id] = 1;
-    return true;
-  });
-  if (unique.length === 1) return unique[0];
-  if (unique.length > 1) {
-    return {
-      ambiguous: true,
-      candidates: unique.map((tr) => ({
-        id: tr.id || null,
-        label: String(tr.nome || '').trim(),
-        coltura: tr.coltura || null,
-      })),
-    };
+  if (!scored.length) return null;
+  scored.sort((a, b) => b.sc - a.sc);
+  const topSc = scored[0].sc;
+  const tied = scored.filter((s) => s.sc === topSc);
+  if (tied.length === 1) {
+    if (tied[0].sc < 300) return null;
+    return tied[0].tr;
   }
-  return null;
+  if (scored.length > 1 && scored[0].sc > scored[1].sc) {
+    if (scored[0].sc < 300) return null;
+    return scored[0].tr;
+  }
+  return {
+    ambiguous: true,
+    candidates: tied.map((s) => ({
+      id: s.tr.id || null,
+      label: String(s.tr.nome || '').trim(),
+      coltura: s.tr.coltura || null,
+    })),
+  };
 }
 
 function isTerrenoInterviewUniqueHit(hit) {
@@ -192,6 +211,9 @@ describe('intervista lavoro client-side (parser)', () => {
     expect(extractLavoroInterviewDate('martedi')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(extractLavoroInterviewDuration('durata 1 giorno')).toBe(1);
     expect(extractLavoroInterviewDuration('per 2 giorni')).toBe(2);
+    expect(extractLavoroInterviewDuration('per un giorno')).toBe(1);
+    expect(extractLavoroInterviewDuration('un giorno')).toBe(1);
+    expect(extractLavoroInterviewDuration('il lavoro dura un giorno')).toBe(1);
     expect(extractLavoroInterviewDuration('3')).toBe(3);
     expect(extractLavoroInterviewDuration('il 2')).toBe(2);
     expect(extractLavoroInterviewDuration('tre')).toBe(3);
@@ -286,6 +308,14 @@ describe('intervista lavoro client-side (parser)', () => {
     expect(hit && hit.ambiguous).toBeFalsy();
   });
 
+  it('non auto-pick terreno su cognome operaio (Fabbri debole)', () => {
+    const terreni = [
+      { id: 't-fab', nome: 'Vigneto Fabbri', coltura: 'Vite da Vino' },
+      { id: 't-treb', nome: 'Trebbiano', coltura: 'Vite da Vino' },
+    ];
+    expect(findTerrenoInInterviewText('per luca fabbri', terreni)).toBeNull();
+  });
+
   it('terreno ambiguo: due Pinot → candidati e messaggio con entrambi i nomi', () => {
     const terreni = [
       { id: 't-pinot-c', nome: 'Pinot Casetti', coltura: 'Vite da Vino' },
@@ -305,6 +335,43 @@ describe('intervista lavoro client-side (parser)', () => {
     expect(msg).toContain('Pinot Casetti');
     expect(msg).toContain('Pinot Monte');
     expect(msg).toContain('nome come in elenco');
+  });
+
+  it('terreno sangiovese ambiguo ma sangiovese pannelli univoco', () => {
+    const terreni = [
+      { id: 't-sg-p', nome: 'Sangiovese Pannelli', coltura: 'Vite da Vino' },
+      { id: 't-sg-m', nome: 'Sangiovese Monte', coltura: 'Vite da Vino' },
+      { id: 't-treb', nome: 'Trebbiano', coltura: 'Vite da Vino' },
+    ];
+    const amb = findTerrenoInInterviewText('sangiovese', terreni);
+    expect(amb && amb.ambiguous).toBe(true);
+    expect(amb.candidates.length).toBe(2);
+    const hit = findTerrenoInInterviewText('sangiovese pannelli', terreni);
+    expect(hit && hit.id).toBe('t-sg-p');
+    expect(hit && hit.ambiguous).toBeFalsy();
+  });
+
+  it('correzione terreno: estrae hint da «il terreno è sangiovese»', () => {
+    function isLavoroTerrenoCorrectionText(text) {
+      const t = normalizeTonyText(text);
+      if (!t) return false;
+      if (/\b(?:il\s+)?terreno\s+(?:e\s+|è\s+|sara\s+|sara)\b/.test(t)) return true;
+      return false;
+    }
+    function extractTerrenoQueryFromInterviewText(text) {
+      const raw = String(text || '').trim();
+      const m = raw.match(/\b(?:il\s+)?terreno\s+(?:è|e|sara|sarà)\s+(.+)$/i);
+      return m ? m[1].trim() : raw;
+    }
+    expect(isLavoroTerrenoCorrectionText('il terreno è Sangiovese')).toBe(true);
+    expect(extractTerrenoQueryFromInterviewText('il terreno è Sangiovese')).toBe('Sangiovese');
+    const terreni = [
+      { id: 't-sg-p', nome: 'Sangiovese Pannelli' },
+      { id: 't-sg-m', nome: 'Sangiovese Monte' },
+    ];
+    const q = extractTerrenoQueryFromInterviewText('terreno è Sangiovese pannelli');
+    const hit = findTerrenoInInterviewText(q, terreni);
+    expect(hit && hit.id).toBe('t-sg-p');
   });
 
   it('terreno ambiguo: follow-up casetti risolve id corretto', () => {

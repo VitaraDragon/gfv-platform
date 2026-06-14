@@ -3,7 +3,19 @@
  * @module core/js/tony/voice
  */
 
-var lastTTSCache = { text: '', audioBase64: '' };
+var lastTTSCache = { text: '', audioBase64: '', voice: '' };
+
+    function ttsCacheHit(testoPulito) {
+        return testoPulito === lastTTSCache.text
+            && !!lastTTSCache.audioBase64
+            && !!lastTTSCache.voice;
+    }
+
+    function storeTTSCache(testoPulito, audioContent, voice) {
+        lastTTSCache.text = testoPulito;
+        lastTTSCache.audioBase64 = audioContent;
+        lastTTSCache.voice = voice || '';
+    }
 
     /** Trattini usati in range (es. 19–29°C). Va normalizzato prima dello strip Unicode che rimuove U+2013. */
     var TTS_DASH_CLASS = '[\\u2010-\\u2015\\-—–]';
@@ -160,6 +172,7 @@ export function initTonyVoice(options) {
                 window.__tonyGeneration = currentGeneration() + 1;
                 lastTTSCache.text = '';
                 lastTTSCache.audioBase64 = null;
+                lastTTSCache.voice = '';
             }
             window.__tonyAudioQueue = [];
             window.__tonyIsSpeaking = false;
@@ -266,8 +279,7 @@ export function initTonyVoice(options) {
                     ]);
                     if (isStale()) { onDone(); return; }
                     if (result.data && result.data.audioContent) {
-                        lastTTSCache.text = testoPulito;
-                        lastTTSCache.audioBase64 = result.data.audioContent;
+                        storeTTSCache(testoPulito, result.data.audioContent, result.data.voice);
                         if (isStale()) { onDone(); return; }
                         var audioSrc = 'data:audio/mp3;base64,' + result.data.audioContent;
                         window.currentTonyAudio = new Audio(audioSrc);
@@ -344,7 +356,7 @@ export function initTonyVoice(options) {
                 if (extracted) testoPulito = extracted;
             }
             if (!testoPulito || testoPulito.length < 2) return;
-            if (testoPulito === lastTTSCache.text && lastTTSCache.audioBase64) return;
+            if (ttsCacheHit(testoPulito)) return;
             (async function() {
                 try {
                     var firebaseService = await import('../../services/firebase-service.js');
@@ -362,8 +374,7 @@ export function initTonyVoice(options) {
                     var result = await getTonyAudio({ text: testoPulito, context: ctxPayload });
                     if (genAtStart !== currentGeneration()) return;
                     if (result.data && result.data.audioContent) {
-                        lastTTSCache.text = testoPulito;
-                        lastTTSCache.audioBase64 = result.data.audioContent;
+                        storeTTSCache(testoPulito, result.data.audioContent, result.data.voice);
                     }
                 } catch (e) {
                     /* prefetch best-effort */
