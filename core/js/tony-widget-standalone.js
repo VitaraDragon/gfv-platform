@@ -8,7 +8,7 @@
     'use strict';
 
     /** Bump a ogni fix Tony client — invalida cache moduli ES6 del browser. */
-    var TONY_LOADER_BUILD = '2026-06-09g';
+    var TONY_LOADER_BUILD = '2026-06-14a';
 
     var scriptBase = typeof import.meta !== 'undefined' && import.meta.url
         ? import.meta.url

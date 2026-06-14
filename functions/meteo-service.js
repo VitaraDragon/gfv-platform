@@ -922,7 +922,7 @@ function isTonyMeteoOperationalQuestion(message, ctx) {
     const { isTonyPreventivoFormFieldCorrection } = require("./tony-quick-replies");
     if (isTonyPreventivoFormFieldCorrection(message, ctx)) return false;
   } catch (_) { /* ignore */ }
-  const m = normalizeMeteoMsg(message);
+  const m = fixWeekdayTyposInMsg(normalizeMeteoMsg(message));
   if (isTonyMeteoConsigliaDataQuestion(message) || isTonyMeteoSchedulaGiornoQuestion(message)) return true;
   if (/\b(praticabil|passare con il trattore|passaggio del trattore|terreno bagnato|impraticabil)\b/.test(m)) {
     return true;

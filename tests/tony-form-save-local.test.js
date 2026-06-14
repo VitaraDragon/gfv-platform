@@ -17,6 +17,9 @@ import {
   formReadyForTonySave,
   magazzinoFormReadyForTonySave,
   magazzinoProactiveReadyForSave,
+  terrenoFormReadyForTonySave,
+  terrenoProactiveReadyForSave,
+  tryInterceptTerrenoSaveBeforeCf,
 } from '../core/js/tony-form-save-local.js';
 
 describe('isTonySaveConfirmText', () => {
@@ -82,6 +85,15 @@ describe('TONY_FORM_SAVE_LOCAL_CONFIG', () => {
     expect(cfg.awaitingFlag).toBe('__tonyAwaitingMovimentoSaveConfirm');
     expect(cfg.saveMessage).toMatch(/movimento/i);
     expect(cfg.modalId).toBe('movimento-modal');
+  });
+
+  it('terreno risolve formId, flag e messaggio', () => {
+    const cfg = getTonyFormSaveLocalConfig('terreno-form');
+    expect(cfg).toBeTruthy();
+    expect(cfg.formId).toBe('terreno-form');
+    expect(cfg.awaitingFlag).toBe('__tonyAwaitingTerrenoSaveConfirm');
+    expect(cfg.saveMessage).toMatch(/terreno/i);
+    expect(cfg.modalId).toBe('terreno-modal');
   });
 });
 

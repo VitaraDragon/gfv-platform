@@ -23,6 +23,9 @@ import {
     isAnyTonyFormSaveConfirmPending,
     promptTonyFormSaveLocal,
     tryInterceptTonyFormSaveConfirm,
+    tryInterceptTerrenoSaveBeforeCf,
+    terrenoFormReadyForTonySave,
+    terrenoProactiveReadyForSave,
     tryInterceptMagazzinoSaveBeforeCf,
     tryInterceptQuickHoursSaveBeforeCf,
     quickHoursFormReadyForTonySave,
@@ -41,7 +44,7 @@ import { applyStreamingTtsChunks, getStreamingTtsRemainder } from './stream-tts-
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-09g';
+export const TONY_CLIENT_BUILD = '2026-06-14a';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -2542,6 +2545,93 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     window.__tonyGetMagazzinoInterviewEmpty = tonyGetMagazzinoInterviewEmpty;
     window.__tonyEnrichMovimentoFormDataFromCatalog = enrichMovimentoFormDataFromCatalog;
 
+    function tonyGetTerrenoInterviewEmpty(formCtx, formId) {
+        if (!formCtx || !formCtx.fields || formId !== 'terreno-form') return [];
+        var getMap = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING && window.TONY_FORM_MAPPING.getFormMap);
+        var map = getMap ? window.TONY_FORM_MAPPING.getFormMap(formId) : null;
+        var ids = map && map.tonyInterviewFieldIds;
+        if (!ids || !ids.length) return [];
+        var byId = {};
+        formCtx.fields.forEach(function (f) { byId[f.id] = f; });
+        var placeholderRe = /^(seleziona|--\s*seleziona|--\s*nessun|scegli\.\.\.|select\.\.\.)/i;
+        var empty = [];
+        ids.forEach(function (id) {
+            var f = byId[id];
+            if (!f) return;
+            var v = f.value;
+            var isEmpty = v == null || v === '' || String(v).trim() === '';
+            var t = (f.type || '').toLowerCase();
+            if (!isEmpty && (t === 'select-one' || t === 'select' || /^select/.test(t))) {
+                var vl = f.valueLabel || '';
+                if (vl && placeholderRe.test(String(vl).trim())) isEmpty = true;
+            }
+            if (isEmpty) empty.push(id);
+        });
+        return empty;
+    }
+    window.__tonyGetTerrenoInterviewEmpty = tonyGetTerrenoInterviewEmpty;
+
+    function tonyTerrenoInterviewLabels(formCtx, ids) {
+        if (!ids || !ids.length || !formCtx || !formCtx.fields) return ids.join(', ');
+        var byId = {};
+        formCtx.fields.forEach(function (f) { byId[f.id] = f; });
+        return ids.map(function (id) {
+            var f = byId[id];
+            return f ? String(f.label || id).replace(/\s*\*?\s*$/, '') : id;
+        }).join(', ');
+    }
+
+    function tonyTerrenoProactiveMissingPrompt(formCtx) {
+        if (!formCtx) return;
+        var reqT = formCtx.requiredEmpty && formCtx.requiredEmpty.length ? formCtx.requiredEmpty : [];
+        var intT = (formCtx.interviewEmpty && formCtx.interviewEmpty.length)
+            ? formCtx.interviewEmpty
+            : (typeof tonyGetTerrenoInterviewEmpty === 'function' ? tonyGetTerrenoInterviewEmpty(formCtx, 'terreno-form') : []);
+        var missMsg;
+        if (reqT.indexOf('terreno-data-scadenza-affitto') >= 0) {
+            missMsg = 'Per l\'affitto serve la data di scadenza del contratto (es. 2026-12-31).';
+        } else if (reqT.length) {
+            missMsg = 'Mi mancano ancora: ' + tonyTerrenoInterviewLabels(formCtx, reqT) + '.';
+        } else if (intT.length) {
+            missMsg = 'Per completare il terreno mi servono: ' + tonyTerrenoInterviewLabels(formCtx, intT) + '.';
+        } else {
+            missMsg = 'Come vuoi chiamare il terreno?';
+        }
+        appendMessage(missMsg, 'tony');
+        if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(missMsg);
+    }
+
+    function tonyScheduleTerrenoProactiveAfterInject() {
+        if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
+        if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
+        window.__tonyProactiveAskTimerId = setTimeout(function () {
+            window.__tonyProactiveAskTimerId = null;
+            var formCtx = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+            var modalEl = document.getElementById('terreno-modal');
+            if (!formCtx || formCtx.formId !== 'terreno-form' || !modalEl || !modalEl.classList.contains('active')) return;
+            var hasRequiredEmpty = formCtx.requiredEmpty && formCtx.requiredEmpty.length > 0;
+            var formComplete = terrenoProactiveReadyForSave('terreno-form', !!hasRequiredEmpty);
+            window.__tonyProactiveFormState = { active: true, type: formComplete ? 'ready_for_save' : 'missing_fields', formId: 'terreno-form', modalId: 'terreno-modal' };
+            var idleDelayTerreno = formComplete ? 800 : IDLE_REMINDER_MS;
+            window.__tonyIdleReminderTimerId = setTimeout(function () {
+                window.__tonyIdleReminderTimerId = null;
+                if (window.__tonyInjectionInProgress) return;
+                if (isAnyTonyFormSaveConfirmPending()) return;
+                var state = window.__tonyProactiveFormState;
+                if (!state || !state.active) return;
+                var el = document.getElementById(state.modalId);
+                if (!el || !el.classList.contains('active')) { window.__tonyProactiveFormState = null; return; }
+                if (state.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
+                    window.__tonyTriggerAskForSaveConfirmation();
+                } else if (state.type === 'missing_fields') {
+                    var fcT = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+                    tonyTerrenoProactiveMissingPrompt(fcT);
+                }
+                window.__tonyProactiveFormState = null;
+            }, idleDelayTerreno);
+        }, POST_INJECT_CHECK_DELAY_MS);
+    }
+
     function tonyScheduleMagazzinoSavePromptIfReady(formId, delayMs) {
         delayMs = typeof delayMs === 'number' ? delayMs : 800;
         setTimeout(function() {
@@ -2810,9 +2900,21 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             }
                             break;
                         }
-                        var targetModalId = (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') ? 'lavoro-modal' : (data.formId === 'attivita-form' ? 'attivita-modal' : (data.formId === 'prodotto-form' ? 'prodotto-modal' : (data.formId === 'movimento-form' ? 'movimento-modal' : (data.formId === 'zona-form' ? 'zona-modal' : (data.formId === 'ora-form' ? 'ora-modal' : null)))));
+                        var targetModalId = (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') ? 'lavoro-modal' : (data.formId === 'attivita-form' ? 'attivita-modal' : (data.formId === 'prodotto-form' ? 'prodotto-modal' : (data.formId === 'movimento-form' ? 'movimento-modal' : (data.formId === 'terreno-form' ? 'terreno-modal' : (data.formId === 'zona-form' ? 'zona-modal' : (data.formId === 'ora-form' ? 'ora-modal' : null))))));
                         var modalEl = targetModalId ? document.getElementById(targetModalId) : null;
                         var isModalOpen = modalEl && modalEl.classList.contains('active');
+                        if (data.formId === 'terreno-form' && !document.getElementById('terreno-form')) {
+                            window.__tonyInjectionInProgress = false;
+                            if (window.Tony && typeof window.Tony.triggerAction === 'function') {
+                                console.log('[Tony] INJECT_FORM_DATA: form terreno assente, apro pagina Terreni con intent pendente');
+                                window.Tony.triggerAction('APRI_PAGINA', {
+                                    target: 'terreni',
+                                    _tonyPendingModal: 'terreno-modal',
+                                    _tonyPendingFields: (data.formData && typeof data.formData === 'object') ? data.formData : null
+                                });
+                            }
+                            break;
+                        }
                         if (targetModalId && !isModalOpen && data.formData && Object.keys(data.formData).length > 0) {
                             console.log('[Tony] INJECT_FORM_DATA: modal non aperto, apro prima ' + targetModalId + ' e poi inietto');
                             window.__tonyInjectionInProgress = false;
@@ -3343,6 +3445,36 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     console.warn('[Tony] Iniezione form movimento fallita');
                                 }
                             });
+                        } else if (data.formId === 'terreno-form' || data.formId === 'terreno-modal') {
+                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData terreno');
+                            var formDataTerreno = data.formData;
+                            var formCtxTerreno = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+                            if (formCtxTerreno && formCtxTerreno.fields && formCtxTerreno.fields.length > 0) {
+                                var mergedTer = Object.assign({}, formDataTerreno);
+                                formCtxTerreno.fields.forEach(function (f) {
+                                    var hasVal = f.value != null && (f.value === 0 || f.value !== '');
+                                    if (f.id && hasVal && !(f.id in formDataTerreno)) {
+                                        mergedTer[f.id] = f.value;
+                                    }
+                                });
+                                if (Object.keys(mergedTer).length > Object.keys(formDataTerreno).length) {
+                                    formDataTerreno = mergedTer;
+                                }
+                            }
+                            if (!window.TonyFormInjector || typeof window.TonyFormInjector.injectTerrenoForm !== 'function') {
+                                window.__tonyInjectionInProgress = false;
+                                console.warn('[Tony] INJECT terreno-form: injector assente');
+                                break;
+                            }
+                            window.TonyFormInjector.injectTerrenoForm(formDataTerreno, ctx).then(function (ok) {
+                                window.__tonyInjectionInProgress = false;
+                                if (ok) {
+                                    console.log('[Tony] Form terreno iniettato con successo');
+                                    tonyScheduleTerrenoProactiveAfterInject();
+                                } else {
+                                    console.warn('[Tony] Iniezione form terreno fallita');
+                                }
+                            });
                         } else if (data.formId === 'zona-form') {
                             console.log('[Tony] INJECT_FORM_DATA: zona-form (traccia segmento lavorato)');
                             var formDataZona = data.formData;
@@ -3728,9 +3860,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             // Supporto fields: INJECT_FORM_DATA atomico per attivita/lavoro/magazzino (evita perdita compilazione)
                             if (data.fields && typeof data.fields === 'object' && Object.keys(data.fields).length > 0) {
                                 var fieldsObj = data.fields;
-                                if ((resolvedId === 'attivita-modal' || resolvedId === 'lavoro-modal' || resolvedId === 'prodotto-modal' || resolvedId === 'movimento-modal' || resolvedId === 'ora-modal') && window.TonyFormInjector) {
-                                    var formId = resolvedId === 'attivita-modal' ? 'attivita-form' : resolvedId === 'lavoro-modal' ? 'lavoro-form' : resolvedId === 'prodotto-modal' ? 'prodotto-form' : resolvedId === 'ora-modal' ? 'ora-form' : 'movimento-form';
-                                    var delayMag = (resolvedId === 'prodotto-modal' || resolvedId === 'movimento-modal') ? 1200 : (resolvedId === 'ora-modal' ? 1400 : (resolvedId === 'lavoro-modal' ? 350 : 1800));
+                                if ((resolvedId === 'attivita-modal' || resolvedId === 'lavoro-modal' || resolvedId === 'prodotto-modal' || resolvedId === 'movimento-modal' || resolvedId === 'terreno-modal' || resolvedId === 'ora-modal') && window.TonyFormInjector) {
+                                    var formId = resolvedId === 'attivita-modal' ? 'attivita-form' : resolvedId === 'lavoro-modal' ? 'lavoro-form' : resolvedId === 'prodotto-modal' ? 'prodotto-form' : resolvedId === 'ora-modal' ? 'ora-form' : resolvedId === 'terreno-modal' ? 'terreno-form' : 'movimento-form';
+                                    var delayMag = (resolvedId === 'prodotto-modal' || resolvedId === 'movimento-modal') ? 1200 : (resolvedId === 'terreno-modal' ? 1500 : (resolvedId === 'ora-modal' ? 1400 : (resolvedId === 'lavoro-modal' ? 350 : 1800)));
                                     enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: formId, formData: fieldsObj }, { source: 'open-modal-fields', delayMs: delayMag });
                                 } else {
                                     var formMap = (typeof TONY_FORM_MAPPING !== 'undefined' && TONY_FORM_MAPPING.getFormMap) ? TONY_FORM_MAPPING.getFormMap(resolvedId) : null;
@@ -3785,6 +3917,41 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                                 ? (prefMag + 'obbligatori mancanti: ' + tonyMagazzinoInterviewLabels(fcMag2, reqMag2) + '.')
                                                 : (intMag2.length ? (prefMag + (fidMagOpen === 'prodotto-form' ? 'indica ancora ' : 'opzionali: ') + tonyMagazzinoInterviewLabels(fcMag2, intMag2) + '.') : undefined);
                                             window.__tonyTriggerAskForMissingFields(msgMagOpen);
+                                        }
+                                        window.__tonyProactiveFormState = null;
+                                    }, IDLE_REMINDER_MS);
+                                }, POST_INJECT_CHECK_DELAY_MS);
+                            }
+                            var terOpenFields = data.fields && typeof data.fields === 'object' ? data.fields : null;
+                            var hasTerrenoOpenPayload = terOpenFields && Object.keys(terOpenFields).some(function (k) {
+                                var vv = terOpenFields[k];
+                                return vv != null && String(vv).trim() !== '';
+                            });
+                            if (resolvedId === 'terreno-modal' && !hasTerrenoOpenPayload) {
+                                if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
+                                if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
+                                window.__tonyProactiveAskTimerId = setTimeout(function () {
+                                    window.__tonyProactiveAskTimerId = null;
+                                    if (window.__tonyInjectionInProgress) return;
+                                    var gcfTer = window.__tonyGetCurrentFormContext;
+                                    var fcTerOpen = typeof gcfTer === 'function' ? gcfTer() : null;
+                                    var mElTerOpen = document.getElementById('terreno-modal');
+                                    if (!fcTerOpen || fcTerOpen.formId !== 'terreno-form' || !mElTerOpen || !mElTerOpen.classList.contains('active')) return;
+                                    var hasReqTerOpen = fcTerOpen.requiredEmpty && fcTerOpen.requiredEmpty.length > 0;
+                                    var doneTerOpen = terrenoProactiveReadyForSave('terreno-form', !!hasReqTerOpen);
+                                    window.__tonyProactiveFormState = { active: true, type: doneTerOpen ? 'ready_for_save' : 'missing_fields', formId: 'terreno-form', modalId: 'terreno-modal' };
+                                    window.__tonyIdleReminderTimerId = setTimeout(function () {
+                                        window.__tonyIdleReminderTimerId = null;
+                                        if (window.__tonyInjectionInProgress) return;
+                                        var stTerOpen = window.__tonyProactiveFormState;
+                                        if (!stTerOpen || !stTerOpen.active) return;
+                                        var elTerOpen2 = document.getElementById(stTerOpen.modalId);
+                                        if (!elTerOpen2 || !elTerOpen2.classList.contains('active')) { window.__tonyProactiveFormState = null; return; }
+                                        if (stTerOpen.type === 'ready_for_save' && typeof window.__tonyTriggerAskForSaveConfirmation === 'function') {
+                                            window.__tonyTriggerAskForSaveConfirmation();
+                                        } else if (stTerOpen.type === 'missing_fields') {
+                                            var fcTer2 = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
+                                            tonyTerrenoProactiveMissingPrompt(fcTer2);
                                         }
                                         window.__tonyProactiveFormState = null;
                                     }, IDLE_REMINDER_MS);
@@ -5310,6 +5477,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if ((form.id === 'prodotto-form' || form.id === 'movimento-form') && typeof tonyGetMagazzinoInterviewEmpty === 'function') {
                 interviewEmpty = tonyGetMagazzinoInterviewEmpty({ formId: form.id, fields: fields }, form.id);
             }
+            if (form.id === 'terreno-form' && typeof tonyGetTerrenoInterviewEmpty === 'function') {
+                interviewEmpty = tonyGetTerrenoInterviewEmpty({ formId: form.id, fields: fields }, 'terreno-form');
+            }
             var context = {
                 formId: form.id,
                 modalId: modalIdForContext || '',
@@ -5545,7 +5715,20 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         var stopListeningRef = null;
         var autoModeTimeout = null;
         var AUTO_MODE_SILENCE_MS = 30000; // 30 secondi (inattività prima di spegnere microfono)
+        var VOICE_SPEECH_END_COMMIT_MS = 450; // attesa dopo fine parlato se transcript non ancora final
+        var VOICE_SPEECH_END_COMMIT_FINAL_MS = 220; // transcript già isFinal
+        var VOICE_MIC_REOPEN_DELAY_MS = 100;
+        var VOICE_RECOGNITION_RESTART_MS = 350;
+        var VOICE_REOPEN_IDLE_DEFAULT_MS = 60;
+        var voiceAutoSendTimer = null;
         var TONY_SESSION_MAX_AGE_MS = 600000;
+
+        function clearVoiceAutoSendTimer() {
+            if (voiceAutoSendTimer) {
+                clearTimeout(voiceAutoSendTimer);
+                voiceAutoSendTimer = null;
+            }
+        }
 
         function saveTonyState() {
             try {
@@ -5645,6 +5828,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (startListeningRef) startListeningRef();
                 resetAutoModeTimeout();
             } else {
+                clearVoiceAutoSendTimer();
                 if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: false, reason: 'auto_mode_off' });
                 if (stopListeningRef) stopListeningRef();
                 panel.classList.remove('is-auto-mode');
@@ -5660,7 +5844,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (isAutoMode && !isWaitingForTonyResponse && !tonyAudioPipelineActive()) {
                         startListeningRef();
                     }
-                }, 300);
+                }, VOICE_MIC_REOPEN_DELAY_MS);
             }
         }
 
@@ -5668,13 +5852,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             setTimeout(function() {
                 if (!isAutoMode || isWaitingForTonyResponse || tonyAudioPipelineActive()) return;
                 reopenMicIfAutoMode();
-            }, typeof delayMs === 'number' ? delayMs : 120);
+            }, typeof delayMs === 'number' ? delayMs : VOICE_REOPEN_IDLE_DEFAULT_MS);
         }
 
         var voiceApi = initTonyVoice({
             onPlayEnd: function(opts) {
                 if (opts && opts.isClosingSession) toggleAutoMode(false);
-                else scheduleReopenMicIfIdle(80);
+                else scheduleReopenMicIfIdle(50);
             },
             onPlayStart: function() {
                 if (autoModeTimeout) { clearTimeout(autoModeTimeout); autoModeTimeout = null; }
@@ -5816,6 +6000,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 clearTonyAudioPipeline({ bump: true, reason: 'user_turn' });
             }
             if (opts.fromVoice) {
+                clearVoiceAutoSendTimer();
                 isWaitingForTonyResponse = true;
                 pendingVoiceText = null;
                 if (typeof stopListeningRef === 'function') stopListeningRef();
@@ -6011,6 +6196,18 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     },
                 });
                 if (magSaveIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+                var terSaveIntercept = tryInterceptTerrenoSaveBeforeCf(text, {
+                    appendMessage: appendMessage,
+                    speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
+                    processTonyCommand: processTonyCommand,
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                });
+                if (terSaveIntercept.handled) {
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                     return;
                 }
@@ -6286,7 +6483,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (voiceOpts.fromVoice) {
                     isWaitingForTonyResponse = false;
                     if (voiceOpts.isClosingSession) toggleAutoMode(false);
-                    else scheduleReopenMicIfIdle(400);
+                    else scheduleReopenMicIfIdle(120);
                 }
             }
             if (!opts.proactive && checkFarewellIntent(text)) {
@@ -7132,7 +7329,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 inputEl.disabled = false;
                 var micBtn = document.getElementById('tony-mic');
                 if (micBtn) micBtn.disabled = false;
-                scheduleReopenMicIfIdle(200);
+                scheduleReopenMicIfIdle(80);
                 inputEl.focus();
             }
 
@@ -7210,7 +7407,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 _isSendingMessage = false;
                 if (opts.fromVoice) {
                     isWaitingForTonyResponse = false;
-                    scheduleReopenMicIfIdle(400);
+                    scheduleReopenMicIfIdle(120);
                 }
                 sendBtn.disabled = false;
                 inputEl.disabled = false;
@@ -7334,6 +7531,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         window.__tonyPromptMovimentoSaveLocal = function() {
             promptTonyFormSaveLocal('movimento-form', tonyFormSaveLocalDeps());
         };
+        window.__tonyPromptTerrenoSaveLocal = function() {
+            promptTonyFormSaveLocal('terreno-form', tonyFormSaveLocalDeps());
+        };
         window.__tonyTriggerAskForMissingFields = function(optionalMessage) {
             var defMsg = optionalMessage && String(optionalMessage).trim() ? String(optionalMessage).trim() : 'Form aperto con campi mancanti da compilare';
             tonySendProactiveWhenUnlocked(defMsg);
@@ -7347,6 +7547,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
             if (document.getElementById('preventivo-form') && formReadyForTonySave('preventivo-form')) {
                 window.__tonyPromptPreventivoSaveLocal();
+                return;
+            }
+            var modalTerrenoSave = document.getElementById('terreno-modal');
+            if (modalTerrenoSave && modalTerrenoSave.classList.contains('active') &&
+                terrenoFormReadyForTonySave('terreno-form')) {
+                window.__tonyPromptTerrenoSaveLocal();
                 return;
             }
             var modalProdotto = document.getElementById('prodotto-modal');
@@ -7386,6 +7592,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             recognition.lang = 'it-IT';
 
             recognition.onsoundstart = function() {
+                clearVoiceAutoSendTimer();
                 if (isAutoMode) resetAutoModeTimeout();
             };
             recognition.onresult = function(e) {
@@ -7402,6 +7609,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (lastResult && lastResult.isFinal) {
                         pendingVoiceText = txt;
                         console.log('[Tony] Ho sentito (finale):', pendingVoiceText);
+                        if (isAutoMode) scheduleAutoVoiceSend('final');
                     }
                     if (!isAutoMode) {
                         voiceConfirmEl.style.display = 'flex';
@@ -7416,6 +7624,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
             function startListening() {
                 if (!window.Tony || !window.Tony.isReady()) return;
+                clearVoiceAutoSendTimer();
                 pendingVoiceText = null;
                 voiceConfirmEl.style.display = 'none';
                 try {
@@ -7436,28 +7645,41 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             startListeningRef = startListening;
             stopListeningRef = stopListening;
 
+            function scheduleAutoVoiceSend(reason) {
+                if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse) return;
+                clearVoiceAutoSendTimer();
+                var hasFinalText = !!(pendingVoiceText && String(pendingVoiceText).trim());
+                var delay = hasFinalText ? VOICE_SPEECH_END_COMMIT_FINAL_MS : VOICE_SPEECH_END_COMMIT_MS;
+                voiceAutoSendTimer = setTimeout(function() {
+                    voiceAutoSendTimer = null;
+                    if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse) return;
+                    stopListening();
+                    var textToSend = pendingVoiceText ? String(pendingVoiceText).trim() : '';
+                    pendingVoiceText = null;
+                    if (textToSend) {
+                        console.log('[Tony] Invio testo vocale (' + (reason || 'auto') + '):', textToSend);
+                        resetAutoModeTimeout();
+                        sendMessage(textToSend, { fromVoice: true });
+                    } else {
+                        console.warn('[Tony] Auto-send senza testo (' + (reason || 'auto') + ').');
+                        reopenMicIfAutoMode();
+                    }
+                }, delay);
+            }
+
             recognition.onspeechend = function() {
                 if (tonyAudioPipelineActive() || isWaitingForTonyResponse) {
                     console.log('[Tony] Speechend ignorato: Tony in risposta o TTS attivo.');
                     try { recognition.stop(); } catch (err) {}
+                    clearVoiceAutoSendTimer();
                     pendingVoiceText = null;
                     return;
                 }
                 console.log('[Tony] Fine rilevamento voce, attendo processamento...');
-                setTimeout(function() {
-                    stopListening();
-                    var textToSend = pendingVoiceText ? String(pendingVoiceText).trim() : '';
-                    pendingVoiceText = null;
-                    if (isAutoMode && textToSend) {
-                        console.log('[Tony] Invio testo vocale:', textToSend);
-                        resetAutoModeTimeout();
-                        sendMessage(textToSend, { fromVoice: true });
-                    } else if (isAutoMode && !textToSend) {
-                        console.warn('[Tony] Speechend attivato ma pendingVoiceText è vuoto.');
-                    }
-                }, 1000);
+                scheduleAutoVoiceSend('speechend');
             };
             recognition.onspeechstart = function() {
+                clearVoiceAutoSendTimer();
                 /* Barge-in solo dal click sul microfono (evita eco TTS → troncamento in auto-mode). */
             };
 
@@ -7471,12 +7693,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     return;
                 }
                 if (isAutoMode && autoModeTimeout) {
-                    console.log('[Tony] Fine sessione naturale, riaccendo tra 1 secondo...');
+                    console.log('[Tony] Fine sessione naturale, riaccendo tra ' + VOICE_RECOGNITION_RESTART_MS + ' ms...');
                     setTimeout(function() {
                         if (isAutoMode && autoModeTimeout && !isWaitingForTonyResponse && !tonyAudioPipelineActive()) {
                             try { recognition.start(); } catch (err) {}
                         }
-                    }, 1000);
+                    }, VOICE_RECOGNITION_RESTART_MS);
                 } else {
                     micBtn.classList.remove('tony-mic-active');
                 }
@@ -7484,6 +7706,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
             var speakWithTTSCore = speakWithTTS;
             speakWithTTS = function(text, opts) {
+                clearVoiceAutoSendTimer();
                 pendingVoiceText = null;
                 if (typeof stopListeningRef === 'function') stopListeningRef();
                 return speakWithTTSCore(text, opts);
@@ -8222,16 +8445,13 @@ window.addEventListener('tony-module-updated', function(e) {
                                         enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'movimento-form', formData: fields }, { source: 'pending-after-nav', delayMs: 1200 });
                                     }
                                 } else if (modalId === 'terreno-modal' && typeof window.openTerrenoModal === 'function') {
-                                    window.openTerrenoModal(null).catch(function(e) { console.warn('[Tony] openTerrenoModal fallito:', e); });
-                                    var jq = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null;
-                                    if (jq) { jq('#' + modalId).modal('show'); } else { var el = document.getElementById(modalId); if (el) el.classList.add('active'); }
-                                    if (fields && Object.keys(fields).length > 0) {
-                                        var order = ['terreno-nome', 'terreno-superficie', 'terreno-coltura-categoria', 'terreno-coltura', 'terreno-podere', 'terreno-tipo-possesso', 'terreno-data-scadenza-affitto', 'terreno-canone-affitto', 'terreno-note'];
-                                        order.forEach(function(fk, i) {
-                                            if (fields[fk] != null && fields[fk] !== '') {
-                                                enqueueTonyCommand({ type: 'SET_FIELD', field: fk, value: String(fields[fk]) }, { source: 'pending-after-nav', delayMs: 1800 + (i * 250) });
-                                            }
-                                        });
+                                    window.openTerrenoModal(null).catch(function (e) { console.warn('[Tony] openTerrenoModal fallito:', e); });
+                                    var jqTer = (typeof window.$ === 'function' && window.$.fn && window.$.fn.modal) ? window.$ : null;
+                                    if (jqTer) { jqTer('#' + modalId).modal('show'); } else { var elTer = document.getElementById(modalId); if (elTer) elTer.classList.add('active'); }
+                                    if (fields && Object.keys(fields).length > 0 && window.TonyFormInjector) {
+                                        enqueueTonyCommand({ type: 'INJECT_FORM_DATA', formId: 'terreno-form', formData: fields }, { source: 'pending-after-nav', delayMs: 1500 });
+                                    } else if (!fields || !Object.keys(fields).length) {
+                                        setTimeout(function () { tonyScheduleTerrenoProactiveAfterInject(); }, POST_INJECT_CHECK_DELAY_MS + 200);
                                     }
                                 } else if (modalId === 'quick-hours-form' && window.TonyFormInjector && typeof window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm === 'function') {
                                     var _qhTwPend = tonyResolveQuickHoursWindow();

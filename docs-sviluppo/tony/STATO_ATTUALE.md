@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-06-13 (… **Tony TTS Chirp 3 HD** ✅ `it-IT-Chirp3-HD-Charon` in `getTonyAudio` + cache voice client; … **Hub Manodopera Fase 1** ✅ …)  
+**Data**: 2026-06-14 (… **Tony TTS Chirp 3 HD** ✅ `it-IT-Chirp3-HD-Charon`; **Latenza auto-mode ↓** build `2026-06-14a`; **Terreno** entity parser client + inject coltura/categoria; **tony-service** HTTP callable + SSE abort; **Hub Manodopera Fase 1** ✅ …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -10,14 +10,14 @@
 
 | Fase | Nome | Stato | Criterio done |
 |------|------|-------|---------------|
-| **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo |
+| **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo — **inject atomico + proattivo/save locale** ✅ (2026-06-08); **entity parser terreno** ✅ client + CF early exit (2026-06-14 merge locale); canary E2E browser da fare |
 | **2** | Navigazione cross-page | ✅ Completata | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08); hub Manodopera manager (2026-06-13) |
 | **3** | Context Builder e dati aziendali | ✅ In corso | summaryScadenze ok; **movimentiRecenti** (ultimi 50) + summary in ctx da qualsiasi pagina; summarySottoScorta opzionale |
 | **4** | Iniezione universale | ✅ In corso | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24); **Magazzino** prodotto/movimento + save locale + creazione client-side (entrata/uscita/prodotto) + cross-page dashboard (3b-C15…C19, 2026-06-02), prezzo entrata catalogo; **intervista lavoro** ack tipo stem-only E2E ✅ (2026-06-03); **form-trattamento** concimazioni/trattamenti campo (…); … |
 | **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
-| **6** | Proattività e memoria | ⏳ Parziale | Dashboard scorte/scadenze/guasti + briefing meteo + **saluto dashboard anche senza criticità** (2026-06-09g); **RIASSUNTO client** ops+meteo; **meteo vocale dashboard** cache client (0 CF); chat 8 gg + pianificazione trattamento/**lavorazione terreno** + praticabilità morfologia + **doppia alternativa prima/dopo** (2026-05-22, §19); `condizioniMeteo`; pagina `meteo_dashboard`; **boot dashboard ~861 ms** (snapshot + Tony deferred — 2026-06-06); UI soglie tenant praticabilità da fare |
+| **6** | Proattività e memoria | ⏳ Parziale | Dashboard scorte/scadenze/guasti + briefing meteo + **saluto dashboard anche senza criticità** (2026-06-09g); **RIASSUNTO client** ops+meteo; **meteo vocale dashboard** cache client (0 CF); **latenza auto-mode ↓** costanti mic/TTS build `2026-06-14a`; chat 8 gg + pianificazione trattamento/**lavorazione terreno** + praticabilità morfologia + **doppia alternativa prima/dopo** (2026-05-22, §19); `condizioniMeteo`; pagina `meteo_dashboard`; **boot dashboard ~861 ms** (snapshot + Tony deferred — 2026-06-06); UI soglie tenant praticabilità da fare |
 
-**Performance Tony (track parallelo):** Fase 0–**4** ✅ (rev. 14) — vedi `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §9 Fase 4. **4.2** nav/APRI_PAGINA, FILTER_TABLE, RIASSUNTO deterministico CF ✅ deploy + canary browser 2026-06-03. **4.1** invalidazione cache su write (5 trigger Firestore) ✅ deploy. **4.3** multi-blocco meteo+scorte+scadenze ✅ (traffico produzione da crescere). **4.4** offline ore mobile deferred. Produzione: ~25% `usedGemini=false`, 6 hit B quick Fase 4 su campione stream; p50/p95 formali pending.
+**Performance Tony (track parallelo):** Fase 0–**4** ✅ (rev. 14) — vedi `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §9 Fase 4. **4.2** nav/APRI_PAGINA, FILTER_TABLE, RIASSUNTO deterministico CF ✅ deploy + canary browser 2026-06-03. **4.1** invalidazione cache su write (5 trigger Firestore) ✅ deploy. **4.3** multi-blocco meteo+scorte+scadenze ✅ (traffico produzione da crescere). **4.4** offline ore mobile deferred. Produzione (`tony:perf-review`, ~7 gg, 2026-06): **~31%** `usedGemini=false` su stream; ~10 richieste B con quick Fase 4; **~3 navigazioni B** ancora su Gemini (mappa incompleta). **Backlog e handoff:** `HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`. Obiettivi formali −40% / p50 &lt; 1,5 s: pending.
 
 ---
 
@@ -33,7 +33,7 @@
 | Parser SSE client | `core/services/tony-sse-parse.js` | ✅ **2026-05-25:** `parseTonySseStream` — eventi `chunk`/`done`/`error`; usato da `tony-service._callTonyAskStream` con `response.text()`. |
 | Intent router + tier (Fase 2a→2b) | `functions/tony-intent-router.js`, `functions/tony-context-tier.js` | ✅ Classifica A/B/C + `tierCalculated`/`tierUsed`; fetch tier-aware; meteo operativo → binario A; conservativo T4 su crea lavoro/ambiguo. **Produzione (2026-05-24):** 62/80 log `[Tony Perf]` con `routerTierUsed` ≠ `T4_full`. Test: `tests/tony-intent-router.test.js`, `tests/tony-context-tier.test.js` |
 | Context cache tier-aware | `functions/tony-context-cache.js` | ✅ Hit T4 Firestore → `sliceContextAziendaToTier`; write solo build T4. ✅ **Fase 4.1 (2026-06-03):** `invalidateTonyContextCache`; trigger write su prodotti/movimentiMagazzino/preventivi/tariffe/guasti. **Produzione:** cacheHit ~48–50% (post-invalidazione più `cache=false` attesi) |
-| **Nav / filter quick reply (Fase 4)** | `functions/tony-nav-quick-reply.js`, `functions/tony-filter-table-quick-reply.js` | ✅ Binario B: APRI_PAGINA, RIASSUNTO, FILTER_TABLE ovvio, SUM_COLUMN aggregati; gate moduli; fallback Gemini se ambiguo. Test: `tests/tony-nav-quick-reply.test.js` (5), `tests/tony-filter-table-quick-reply.test.js` (4) |
+| **Nav / filter quick reply (Fase 4)** | `functions/tony-nav-quick-reply.js`, `functions/tony-filter-table-quick-reply.js` | ✅ Binario B: APRI_PAGINA, RIASSUNTO, FILTER_TABLE ovvio, SUM_COLUMN aggregati; gate moduli; fallback Gemini se ambiguo. **~19 target** in `NAV_TARGET_RULES`; gap noti: manodopera, oliveto, ~3 frasi B da log. **Estensione:** `HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` §Priorità 1. Test: `tests/tony-nav-quick-reply.test.js` (5), `tests/tony-filter-table-quick-reply.test.js` (4) |
 | **Multi-blocco quick reply (Fase 4)** | `functions/tony-multi-block-quick-reply.js` | ✅ Meteo + scorte + scadenze concatenati se tutti i blocchi ok. Test: `tests/tony-multi-block-quick-reply.test.js` (2) |
 | Review performance Tony | `scripts/tony-perf-log-review.mjs` | ✅ Smoke 8 scenari router + **3 scenari binario B quick** + log produzione. **`npm run tony:perf-review`** |
 | **Crea lavoro — entity-first (Fase 3b)** | `functions/tony-lavoro-entity-parser.js`, hook `functions/index.js`, patch `core/js/tony-form-injector.js`, gating `core/js/tony/main.js` | ✅ **2026-05-25:** canary browser **3b-C1 PASS** (13 campi, durata=1, luca autonomo, data mercoledì, SSE ~1,8 s); **disambiguazione trattore E2E PASS** (`agrifull`, `t5`) — intercept client-side, alias corti, conferma salvataggio locale, no CF su risposta macchine. Sottocategoria **Tra le File** da coltura terreno (no domanda Tony). Parser `durata 1` breve + **`un giorno`** (2026-06-14); inject patchOnly + retry mezzi. **Perf inject client:** `lavori-form-data-ready` + `loadLavori` differito → inject ~**6,8 s** (da ~10–15 s); gate post-nav 350 ms. Test: `tests/tony-lavoro-entity-parser.test.js`, `tests/tony-lavoro-trattore-disamb.test.js` (3). |
@@ -43,7 +43,7 @@
 | Nuovo Preventivo (tariffe) | `modules/conto-terzi/views/nuovo-preventivo-standalone.html` | ✅ `calcolaTotale`: match tipo lavoro tollerante (strip **meccanico**, prefisso + tipo tariffa più lungo) oltre a coltura/tipo campo/categoria generica (2026-03-27) |
 | Form Injector | `core/js/tony-form-injector.js` | ✅ attivita-form, lavoro-form, **preventivo-form** (`waitForPreventivoPageDataReady`, ordine **cliente → terreno → lavorazione**, disambiguazione terreno con candidati, filari da coltura — 2026-05-24); lavoro-form: ordine terreno→cat→sottocat→tipo; **policy lavorazioni 2026-04-08**: default meccanico, **copertura forzata da coltura terreno** (seminativo=Generale, filari=Tra le File/Sulla Fila — **no disambiguazione chat** su sottocategoria/tipo se terreno valorizzato); auto-selezione trattore/attrezzo solo candidato univoco; **disambiguazione macchine 2026-04-08**: evento `tony-macchine-disambiguation`, filtro CV; **2026-05-25 — risposta utente client-side (trattore):** `applyLavoroMacchineFromUserReply`, `findTrattoreInUserText` (alias `t5`), candidati in `__tonyMacchineDisambTrattoriCandidati`, guard `shouldSkipMacchineDisambiguationReask`, select `in_uso` abilitata temporaneamente; **2026-05-26 — attrezzo multiplo:** `findAttrezzoInUserText`, `buildAttrezzoDisambiguationPayload`, `__tonyMacchineDisambAttrezziCandidati`, `resolveAttrezzoAfterTrattoreKnown`, **`attrezziCompatibiliConTrattoreCv`**; **ordine disamb.:** attrezzo da tipo solo dopo trattore (salvo attrezzo già nel messaggio); `shouldAskAttrezzoDisambigFromTipo`; **2026-05-26 — intervista lavoro client-side:** `buildLavoroInterviewPatch`, `applyLavoroInterviewFromUserReply`, `promptLavoroInterviewMissing`; **2026-05-30 — turn unificato:** `applyLavoroCreationTurn`, `autoFillLavoroNomeIfMissing`, priorità macchine in creation flow, reset sessione all'apertura modal; **disamb. tipo lavoro intervista:** elenco candidati stile macchine (`offerTipoLavoroDisambIfNeeded`, stem-only no auto-pick, follow-up `produzione`/`manuale`); **2 livelli manuale/meccanica** (`parseTipoModoFromText`, `LAVORAZIONI_DEFAULTS_TONY.manualMechChoiceStems` / `manualMechSkipStems`); **squadra:** caposquadra solo su `caposquadraList` + disamb. omonimi; **hint messaggio iniziale:** `stripLavoroCreationIntentPrefix` («crea lavoro per gaia»), `waitForLavoriManodoperaReady`; **2026-05-31 — operaio ambiguo + assign autonomo + gate macchine:** `__tonyLavoroConfirmedAssignMode`, `getConfirmedLavoroInterviewAssignMode`, disamb. persona (`lavoroInterviewPersonDisambPending`, priorità su `__tonyLavoroPendingTipoHint` via `lavoroInterviewCanApplyPendingTipoHint`); cross-page `sanitizeAmbiguousLavoroInterviewFields` + `tony_pending_lavoro_local_intent`; `inferRequiresMachineFromTipo` ← `classifyTipoLavoroModo` + `__tonyLavoroTipoModo`; M/M solo se `lavoroTipoStemNeedsManualMechChoice` (`hasMan && hasMech`); **2026-06-03 — ack stem-only:** `buildLavoroTipoStemOnlyAckMessage`, `prependLavoroTipoStemOnlyAck`; **2026-06-14 — intervista vocale lavoro (hardening):** durata naturale «un giorno»; terreno scoring multi-token + disamb. Sangiovese/Pannelli; **no auto-pick terreno** da cognome operaio («per Luca Fabbri»); correzione «il terreno è …» (`isLavoroTerrenoCorrectionText`, `forceFields` inject); test `tony-lavoro-interview-client.test.js` (**42**); E2E vocale completo → save locale (2026-06-14); canary **3b-C13** PASS; ack E2E browser PASS (Larghetta → trinciare → save); **magazzino** `injectProdottoForm` / `injectMovimentoForm`; **`injectZonaSegmentoForm`**, **`injectSegnaOraForm`**, **`form-trattamento`** (checkbox — 2026-04-09) |
 | Smart Form Filler | `core/js/tony-smart-filler.js` | ✅ deriveCategoriaFromTipo, sottocategoria; **`validateBeforeSave`**: risoluzione submit preferendo `button[type="submit"]` nel form (evita `.btn-primary` tipo «Traccia» prima del Salva su form-trattamento — 2026-04-11) |
-| Voice / TTS | `core/js/tony/voice.js` + **`functions/index.js` (`getTonyAudio`)** | ✅ **Chirp 3 HD Charon (2026-06-13)**; cache MP3 keyed su **testo + voice**; `expandSpokenUnitsForItalianTTS`; **`normalizeTemperaturesForItalianTTS`** (fix «1929 gradi» en-dash — 2026-06-09f); **`prefetchTonyTTS`** warm cache MP3; **`clearTonyAudioPipeline`** + **`__tonyGeneration`** (Fase 1 barge-in — 2026-06-07); **mic off durante TTS** + no barge-in eco auto-mode (2026-06-09e); **`stream-tts-chunk.js`** + hook `main.js` Fase 2 SSE (2026-06-09); **`main.js`** riapertura mic `scheduleReopenMicIfIdle`, addio/chiusura locale (2026-06-09g); test `tony-stream-tts-chunk.test.js`, `tony-voice-pipeline-canary.test.js` |
+| Voice / TTS | `core/js/tony/voice.js` + **`functions/index.js` (`getTonyAudio`)** | ✅ **Chirp 3 HD Charon (2026-06-13)**; cache MP3 keyed su **testo + voice**; `expandSpokenUnitsForItalianTTS`; **`normalizeTemperaturesForItalianTTS`** (fix «1929 gradi» en-dash — 2026-06-09f); **`prefetchTonyTTS`** warm cache MP3; **`clearTonyAudioPipeline`** + **`__tonyGeneration`** (Fase 1 barge-in — 2026-06-07); **mic off durante TTS** + no barge-in eco auto-mode (2026-06-09e); **`stream-tts-chunk.js`** + hook `main.js` Fase 2 SSE (2026-06-09); **`main.js`** riapertura mic `scheduleReopenMicIfIdle`, addio/chiusura locale (2026-06-09g); **latenza auto-mode ↓** build `2026-06-14a`; test `tony-stream-tts-chunk.test.js`, `tony-voice-pipeline-canary.test.js` |
 | **Meteo dashboard quick reply (voce)** | `core/js/tony/meteo-dashboard-quick-reply.js`, `meteo-dashboard-quick-reply-utils.js` | ✅ Domande meteo su **dashboard** → risposta da **cache client** (`fetchMeteoTerreniCached`), 0 CF; **`tonyWantsDashboardRiassunto`**, **`buildDashboardRiassuntoText`** (ops + meteo); test `tony-meteo-dashboard-quick-reply.test.js` (7) — 2026-06-09 |
 | **Briefing meteo dashboard** | `core/js/dashboard-meteo-briefing.js`, `dashboard-standalone.html` (`checkGlobalStatus`) | ✅ Consigli pioggia + **`weatherSummary`** (oggi/domani sede) in `tonyGlobalBriefing`; saluto proattivo anche se `total===0` criticità ops; voce solo Tony Avanzato + manager/admin — 2026-06-09g |
 | Profilo campo (operaio / caposquadra) | `core/js/tony/field-role-guard.js`, `functions/index.js` (tonyAsk `tonyFieldProfile`), `core/mobile/field-workspace-standalone.html` + `field-workspace-controller.js`, `Tony.initContextWithModules(..., { utente_corrente })` su pagine manodopera | ✅ Cloud: senza `buildContextAzienda` se ruoli solo campo; prompt `SYSTEM_INSTRUCTION_TONY_FIELD` (**segna ore «ieri/oggi» / turno** esplicitamente in ambito — 2026-05-06; comandi canone **INJECT_FORM_DATA** / **QUICK_SAVE**, vietato INJECT/SUBMIT — 2026-06-04). Client: whitelist `APRI_PAGINA` / blocco `OPEN_MODAL` ERP; ruoli obbligatori nel contesto (o sessionStorage `gfv_tony_utente_ruoli`) così guard e CF riconoscono il profilo — 2026-04-17. **Workspace capo (2026-05-19):** slide **Valida ore** (tutti i lavori squadra, approva/rifiuta); comunicazioni squadra operaio/capo; ore proprie capo → manager (non in lista validazione capo). **Segna ore inline (2026-06-04):** intervista locale 0 CF (orari elastici, pausa, «ok»/«sì»/«salva»); submit reale `#quick-hours-form` → Firestore → validazione manager (E2E **3b-C21** ✅); display ore nette `formatOreNette` |
@@ -65,7 +65,7 @@
 | guastiAperti | ✅ |
 | summaryScadenze | ✅ Testo con date in italiano (affitti + dettaglio revisione/assicurazione mezzi — 2026-04-11) |
 | summarySottoScorta | ✅ Calcolato in `buildContextAzienda` + `prodottiSottoScorta` (2026-04-11); lettura prodotti con campo Firestore **scortaMinima** (prima era richiesto solo `sogliaMinima`, mai popolato) |
-| **meteo** | ✅ Chat operativa: quick reply trattamento + **lavorazione terreno** (`trinciare`, `erpicare`, …). ✅ **`resolveMeteoModuleActive`**: modulo riconosciuto da Firestore **o** `moduli_attivi` contesto client. ✅ Praticabilità × morfologia + asciugatura + doppia alternativa (§19). ✅ **Priorità intent:** crea lavoro/preventivo **non** intercettato da meteo (`isTonyOperationalCreationIntent`). ✅ **Data su preventivo-form (2026-05-24):** `tryMeteoPreventivoDateQuickReply` — messaggio solo data con `tipo-lavoro` compilato → valutazione meteo (morfologia terreno da archivio se assente nel form); se sconsigliato → alternative senza inject data; «ok/allora facciamo martedì» → Gemini imposta data. Meteo operativo generico richiede giorno/data nel messaggio. Test: `tests/meteo-tony-quick-reply.test.js` (47) |
+| **meteo** | ✅ Chat operativa: quick reply trattamento + **lavorazione terreno** (`trinciare`, `erpicare`, …). ✅ **`resolveMeteoModuleActive`**: modulo riconosciuto da Firestore **o** `moduli_attivi` contesto client. ✅ Praticabilità × morfologia + asciugatura + doppia alternativa (§19). ✅ **Priorità intent:** crea lavoro/preventivo **non** intercettato da meteo (`isTonyOperationalCreationIntent`). ✅ **Typo giorno (2026-06-10):** `mercoldì` ecc. riconosciuti anche in `isTonyMeteoOperationalQuestion` (`fixWeekdayTyposInMsg`). ✅ **Data su preventivo-form (2026-05-24):** `tryMeteoPreventivoDateQuickReply` — messaggio solo data con `tipo-lavoro` compilato → valutazione meteo (morfologia terreno da archivio se assente nel form); se sconsigliato → alternative senza inject data; «ok/allora facciamo martedì» → Gemini imposta data. Meteo operativo generico richiede giorno/data nel messaggio. Test: `tests/meteo-tony-quick-reply.test.js` (47, ancorati `2026-05-21` con fake timers) |
 
 ---
 
@@ -76,7 +76,7 @@
 | APRI_PAGINA | ✅ (**2026-06-13** target `manodopera` / «home manodopera» / «dashboard manodopera» → hub `modules/manodopera/views/manodopera-home-standalone.html`; `gestione operai` / `operai` → pagina operai; deep link `gestione-lavori` invariati) |
 | OPEN_MODAL (attivita-modal, lavoro-modal, terreno-modal, **ora-modal** (segna ore — init `openSegnaOraModal` + inject da fields — 2026-04-18), **prodotto-modal**, **movimento-modal**, **preventivo-form** → pagina / inject) | ✅ |
 | SET_FIELD | ✅ (SmartFormFiller, fallback navigazione se modal assente; prefissi **prodotto-** / **mov-** → modal magazzino – 2026-04-02) |
-| INJECT_FORM_DATA | ✅ attivita-form, lavoro-form, **preventivo-form**, **prodotto-form**, **movimento-form** (2026-04-02), **form-trattamento** (checkbox opzionali — 2026-04-09), **zona-form** (traccia segmento, modal aperto — 2026-04-18), **ora-form** (segna ore, modal aperto — 2026-04-18) |
+| INJECT_FORM_DATA | ✅ attivita-form, lavoro-form, **preventivo-form**, **terreno-form** (`injectTerrenoForm`, gerarchia coltura, affitto — 2026-06-08), **prodotto-form**, **movimento-form** (2026-04-02), **form-trattamento** (checkbox opzionali — 2026-04-09), **zona-form** (traccia segmento, modal aperto — 2026-04-18), **ora-form** (segna ore, modal aperto — 2026-04-18) |
 | SAVE_ACTIVITY | ✅ (saveGuard, fallback) |
 | CLICK_BUTTON | ✅ |
 | FILTER_TABLE | ✅ terreni, attivita, lavori (stato, progresso, caposquadra, terreno, tipo, tipoLavoro, operaio), **`lavori_caposquadra`** (lista campo operaio/caposquadra: stato, terreno, tipoLavoro, progresso, ricerca, reset — handler pagina — 2026-04-18), **`segnatura_ore`** (statoValidazione, statoLavoro, lavoro, ricerca, reset — 2026-04-18), **field_workspace** (log se senza handler; contesto da items — 2026-04-18), **clienti** (stato, ricerca testuale, reset), **preventivi** (stato, cliente, categoriaLavoro, tipoLavoro, categoriaColtura, ricerca, reset), **terreniClienti** (cliente, reset – 2026-03-23), **tariffe** (tipoLavoro, coltura, tipoCampo, attiva, reset – 2026-03-18), **prodotti** (attivo, categoria con normalizzazione sinonimi es. concime→fertilizzanti, ricerca, reset – 2026-04-02), **movimenti** (tipo, prodotto, reset – 2026-04-02), **concimazioni_vigneto** / **concimazioni_frutteto** (vigneto o frutteto, anno, reset – 2026-04-07), **tracciabilita_consumi** (categoria, **terreno**, vista, reset – 2026-04-07) |
@@ -127,6 +127,9 @@
 
 | Voce | Priorità | Note |
 |------|----------|------|
+| **Handoff — estensione nav binario B** | Media | ~3 messaggi da log + gap mappa (`manodopera`, `oliveto`, sinonimi). Guida: **`HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`** §Priorità 1. `npm run tony:perf-review` |
+| **Handoff — metriche client `tony_local_intercept`** | Media | Contare intercept 0 CF (ore, lavori, save). Guida: **`HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`** §Priorità 2 |
+| **Deploy CF terreno entity parser + meteo typo `mercoldì`** | Media | Parser terreno early exit in `functions/index.js` (merge locale 2026-06-14); fix meteo in `meteo-service.js` |
 | **Pattern disamb. client-side — estensioni lavoro** | — | **Completato (2026-06-03):** trattore + attrezzo + intervista campi + tipo 2 livelli + operaio + terreno ambiguo + assign autonomo + **ack tipo stem-only** + save locale; canary **3b-C13** E2E PASS; ack E2E **PASS** (Larghetta → «dobbiamo trinciare» → Luca/fabbri → save, 0 CF follow-up). **Raffinamenti 2026-06-14:** durata «un giorno», terreno multi-token, no auto-pick da cognome operaio, correzione «il terreno è …»; E2E vocale completo Sangiovese pannelli → erpicatura → save. **Escluso:** sottocategoria/tipo lavoro — deterministica da coltura terreno. Vedi §14.4–§14.7 `TONY_DECISIONI_E_REQUISITI.md` |
 | summarySottoScorta in ctx.azienda | — | Implementato (2026-04-11); deploy `functions` necessario |
 | Tony assente in freemium | Bassa | Se si vuole nascondere widget in plan free |
@@ -138,7 +141,22 @@
 
 ---
 
-## 8. Regole operative
+## 8. Handoff per agenti (continuità sviluppo)
+
+Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, backlog, file, comandi):
+
+| Documento | Quando usarlo |
+|-----------|----------------|
+| **`HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`** | Performance Tony, nav quick reply, metriche client, `tony:perf-review`, fix meteo test |
+| **`HANDOFF_TTS_CHIRP3.md`** | Cambio voce Wavenet → Chirp 3 HD (o Neural2), `getTonyAudio`, cache `voice.js` |
+| `PIANO_AUDIO_PIPELINE_BARGEIN.md` | Barge-in, generation token, chunking TTS Fase 2 |
+| `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` | Piano formale Fase 0–4, obiettivi −40% / p50 |
+
+Indice: `docs-sviluppo/tony/README.md`.
+
+---
+
+## 9. Regole operative
 
 - Ogni modifica Tony deve allinearsi al **MASTER_PLAN.md**
 - Non toccare Tony Guida durante lavori su Operativo
@@ -149,15 +167,15 @@
 
 ---
 
-## 9. Riferimento incrociato (moduli non Tony)
+## 10. Riferimento incrociato (moduli non Tony)
 
 Lo stato delle **fasi e dei componenti Tony** in questo file non è cambiato rispetto alla verifica precedente. Per modifiche di codice su **trattamenti Vigneto/Frutteto** (ottimizzazione caricamento liste, flag **superficie da anagrafe terreno**, documentazione utente/sviluppo aggiornata) vedi **`docs-sviluppo/COSA_ABBIAMO_FATTO.md`** (voce **2026-04-05**).
 
 ---
 
-## 10. Piano operativo aggiornamento guida app (Tony Guida + guide utente)
+## 11. Piano operativo aggiornamento guida app (Tony Guida + guide utente)
 
-### 10.1 Contesto e obiettivo
+### 11.1 Contesto e obiettivo
 
 - La guida app e la base conoscenza Tony sono state create mesi fa; il codice ha introdotto nuove sezioni, modalita operative e opzioni UI.
 - Obiettivo: riallineare in modo accurato la guida utente e la conoscenza Tony, riducendo al minimo omissioni e incoerenze.

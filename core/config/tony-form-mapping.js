@@ -446,7 +446,14 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
       'terreno-data-scadenza-affitto': { type: 'date', resolve: 'as_is', description: 'Data scadenza contratto affitto (YYYY-MM-DD). Richiesto se tipo-possesso=affitto.' },
       'terreno-canone-affitto': { type: 'number', resolve: 'as_is', description: 'Canone mensile in euro (opzionale)' },
       'terreno-note': { type: 'text', resolve: 'as_is', description: 'Note aggiuntive' }
-    }
+    },
+    tonyInterviewFieldIds: [
+      'terreno-superficie',
+      'terreno-coltura-categoria',
+      'terreno-coltura',
+      'terreno-podere',
+      'terreno-tipo-campo'
+    ]
   };
 
   /**

@@ -138,6 +138,8 @@
 | 10.9 | Meteo vocale su dashboard da cache client (`tryDashboardMeteoQuickReply`), senza CF | fix voce dashboard 2026-06-09 | implementato | `meteo-dashboard-quick-reply.js` |
 | 10.10 | RIASSUNTO dashboard client: ops + meteo; «sì/ok» solo dopo offerta briefing; addio «grazie» locale senza CF | fix voce dashboard 2026-06-09 | implementato | `buildDashboardRiassuntoText`, `tonyWantsDashboardRiassunto` — build `2026-06-09g` |
 
+---
+
 ## 11. Limitazioni esplicite
 
 | # | Decisione | Fonte | Stato | Note |
@@ -349,6 +351,9 @@ Valori **default**; applicati al **peggior caso / finestra pioggia recente** sul
 | 19.6.9 | Preventivo su colture a **filari** (vite, trebbiano, …): tipo lavoro **Tra le file** + sottocategoria coerente; vietato downgrade a Generale/Trinciatura generica dopo inject o meteo | implementato | `upgradePreventivoLavorazioneFilari` (injector), `upgradePreventivoTipoForFilariCloud` (CF), `tonyStripConflictingPreventivoLavorazione` (widget — 2026-05-24) |
 | 19.6.10 | **Crea lavoro — entity-first (Fase 3b performance):** se il messaggio iniziale contiene operaio, trattore, attrezzo, terreno, data e durata **risolvibili** su elenchi tenant → primo `INJECT_FORM_DATA` **completo**; chiedere in chat **solo** ambiguità reale (match multipli/zero). Vietato chiedere «A chi lo assegno?» se operaio già detto e match univoco; vietato elencare trattori se nome utente matcha **un solo** mezzo. Follow-up: patch campi mancanti, non re-inject totale. Baseline campo: `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §1.3 (2026-05-25) | **implementato** | CF: `tony-lavoro-entity-parser.js` + patchOnly + gating proattivo. **Client follow-up trattore (2026-05-25):** disamb. + risposta breve senza CF — §14.4. Sottocategoria da coltura terreno — §14.5 |
 | 19.6.11 | **Binario B deterministico (Fase 4 performance):** navigazione (`APRI_PAGINA`), `FILTER_TABLE` / `SUM_COLUMN` su richieste ovvie con `page.currentTableData.pageType` noto, `RIASSUNTO` da summary tabella o briefing — **senza Gemini**; moduli dedicati CF (`tony-nav-quick-reply.js`, `tony-filter-table-quick-reply.js`) + gate `tony-module-gate`; in dubbio → Gemini. Invalidazione `tonyContextCache` su write magazzino/conto terzi/guasti (trigger Firestore). Multi-blocco: meteo+scorte+scadenze se tutti i blocchi colpiscono (`tony-multi-block-quick-reply.js`). Offline coda ore: **deferred** | **implementato** | Deploy produzione 2026-06-03; canary E2E + `npm run tony:perf-review`. Vedi `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §9 Fase 4 |
+| 19.6.12 | **Estensione nav binario B residua:** ~3 frasi da log produzione ancora su Gemini; gap `NAV_TARGET_RULES` (manodopera, oliveto, sinonimi verbi). Incrementale, non refactor | HANDOFF_CONTINUITA_PERFORMANCE_NAV §Priorità 1 | **da fare** | `npm run tony:perf-review`; test `tony-nav-quick-reply.test.js` |
+| 19.6.13 | **Metriche client intercept 0 CF** (`tony_local_intercept`): ore, lavori, save locale non visibili in log `[Tony Perf]` | HANDOFF_CONTINUITA_PERFORMANCE_NAV §Priorità 2 | **da fare** | Contatore leggero in `core/js/tony/main.js` |
+| 19.6.14 | **Meteo typo giorno** (`mercoldì` → operativo) + test ancorati `2026-05-21` | meteo-service 2026-06-10 | **implementato** | `tests/meteo-tony-quick-reply.test.js` 47/47; deploy CF se non in prod |
 
 ### 19.8 Flusso valutazione data «dopo la pioggia» (riferimento prodotto)
 

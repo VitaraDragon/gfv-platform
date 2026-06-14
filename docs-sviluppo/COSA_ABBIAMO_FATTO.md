@@ -1,6 +1,6 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (intervista lavoro vocale — durata, terreno, E2E completo).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (intervista lavoro vocale + Chirp 3 HD + terreno entity parser merge locale).**
 
 ## Tony — intervista lavoro vocale: hardening durata + terreno + E2E (2026-06-14)
 
@@ -37,6 +37,31 @@
 **Deploy:** `firebase deploy --only functions:getTonyAudio` — da eseguire per attivare in produzione.
 
 **Verifica manuale:** ascolto frasi meteo/nav/ore; barge-in; piano Free bloccato.
+
+## Tony — latenza dialogo vocale auto-mode ridotta (2026-06-14)
+
+**Build client `2026-06-14a`:** tempi di attesa mic/TTS accorciati in modalità continua.
+
+| Prima | Dopo | Note |
+|-------|------|------|
+| 1000 ms dopo fine parlato | 220 ms (transcript final) / 450 ms (fallback) | `scheduleAutoVoiceSend` unificato su `isFinal` + `onspeechend` |
+| 1000 ms riavvio recognition | 350 ms | `VOICE_RECOGNITION_RESTART_MS` |
+| 300 ms riapertura mic post-TTS | 100 ms | `VOICE_MIC_REOPEN_DELAY_MS` |
+| 120–400 ms idle reopen | 50–120 ms | `scheduleReopenMicIfIdle` |
+
+**File:** `core/js/tony/main.js`, `core/js/tony-widget-standalone.js`.
+
+## Tony — terreno entity parser + tony-service HTTP/SSE (2026-06-14, merge locale)
+
+**Obiettivo:** quick reply «aggiungi terreno …» senza CF; fix init Tony (merge conflict `tony-service.js`); inject coltura con categoria preimpostata.
+
+**Implementazione:**
+- `core/js/tony-terreno-entity-parser.js` + `functions/tony-terreno-entity-parser.js` — parse intent creazione terreno; early exit in `handleTonyAskRequest` prima di `buildContextAzienda`
+- `core/services/tony-service.js` — `_callTonyAskViaHttp`, `_preferCallableOverStream` (localhost), SSE `AbortController`, quick reply client in `ask()`
+- `tony-form-injector.js` — `_ensureTerrenoColturaCategoriaInFormData`, inferenza categoria da coltura
+- `scripts/tony-connectivity-canary.mjs` + `npm run tony:canary`
+
+**Test:** `tests/tony-terreno-entity-parser.test.js`. **Deploy CF:** `npm run deploy:functions` per parser server-side.
 
 ## Manodopera — hub navigazione Fase 1 MVP ✅ (2026-06-13)
 
@@ -89,54 +114,6 @@
 
 **File:** `core/js/tony/main.js`, `voice.js`, `meteo-dashboard-quick-reply*.js`, `dashboard-meteo-briefing.js`, `dashboard-standalone.html`, `tony-widget-standalone.js`, `tony-service.js`. Test: `tony-meteo-dashboard-quick-reply.test.js` (7), `tony-voice-pipeline-canary.test.js`, `tony-stream-tts-chunk.test.js`.
 
-## Tony — riassunto dashboard allineato al briefing iniziale (2026-06-09)
-
-**Problema:** «fammi un riassunto» restituiva solo criticità magazzino/mezzi (o «botte di ferro») senza meteo; «ok grazie» scatenava RIASSUNTO; saluto iniziale assente se nessuna criticità; addio andava in CF.
-
-**Fix (build `2026-06-09g`):**
-- `buildDashboardRiassuntoText` — ops + previsioni oggi/domani + alert pioggia
-- `tonyWantsDashboardRiassunto` — «fammi un riassunto»; «sì/ok» solo dopo offerta briefing
-- Saluto dashboard anche senza criticità (meteo + invito al riassunto)
-- «grazie» / «a posto» → chiusura locale, no CF
-
-**File:** `main.js`, `meteo-dashboard-quick-reply-utils.js`, `dashboard-meteo-briefing.js`, `dashboard-standalone.html`.
-
-## Tony — fix TTS meteo «1929 gradi» (en-dash temperature) (2026-06-09)
-
-**Problema:** risposta meteo corretta in chat ma TTS leggeva «1929 gradi celsius» — `pulisciTestoPerVoce` rimuoveva l'en-dash (`19–29°C` → `1929°C`) prima della normalizzazione temperature.
-
-**Fix (build `2026-06-09f`):**
-- `voice.js` — `normalizeTemperaturesForItalianTTS` eseguita **prima** dello strip Unicode; rete di sicurezza su `1929 gradi`; strip emoji da `\u2016` (preserva trattini)
-- `meteo-dashboard-quick-reply-utils.js` — rimuove range °C ridondante dalla descrizione API
-
-**File:** `core/js/tony/voice.js`, `meteo-dashboard-quick-reply-utils.js`.
-
-## Tony — fix TTS troncato (eco microfono / barge-in falso) (2026-06-09)
-
-**Problema:** briefing e risposte vocali partivano ma venivano **interrotte** (`pipeline cleared barge_in_speech`, `Audio element error`); in auto-mode il microfono captava l'eco del TTS e inviava turni spurii («domani»).
-
-**Fix client-side (build `2026-06-09e`):**
-- Microfono **spento** all'avvio TTS (`speakWithTTS` wrapper + `onPlayStart`); riapertura solo a pipeline idle (`scheduleReopenMicIfIdle`)
-- **Rimosso** barge-in su `onspeechstart` in auto-mode (barge-in solo click microfono)
-- `onspeechend` / `onresult` ignorati durante TTS o attesa CF
-- `voice.js` — stop audio senza `onerror` spurio
-- `tonyFinishLocalVoiceReply` / `onFinally` — non riaprono mic durante coda TTS
-
-**File:** `core/js/tony/main.js`, `voice.js`, `tony-widget-standalone.js`.
-
-## Tony — fix blocco microfono dopo briefing + domanda vocale (2026-06-09)
-
-**Problema:** in dashboard, dopo il briefing TTS, una domanda al microfono veniva trascritta ma Tony non rispondeva (log fermato a `user_turn gen=2`; possibile `Audio element error` su barge-in).
-
-**Fix client-side (no deploy CF obbligatorio):**
-- `meteo-dashboard-quick-reply.js` — su **dashboard**, domande meteo («Com'è il meteo domani») risposte subito da **cache meteo client** (0 CF), voce inclusa
-- `main.js` — retry coda vocale, try/catch, log diagnostici, typing fino a risposta
-- `tony-widget-standalone.js` — cache bust `?v=2026-06-09d`
-- `tony-service.js` — log fetch tonyAskStream + timeout 90 s
-- `voice.js` — fix audio error post-barge-in
-
-**File:** `core/js/tony/main.js`, `voice.js`, `core/services/tony-service.js`.
-
 ## Tony — Fase 2 chunking TTS per frase su SSE (2026-06-09)
 
 **Obiettivo:** Tony inizia a parlare la prima frase completa mentre Gemini genera il resto (latenza vocale percepita ↓), riusando `__tonyGeneration` della Fase 1.
@@ -147,6 +124,7 @@
 - Test: `tests/tony-stream-tts-chunk.test.js` (6), canary voice aggiornato
 
 **File:** `stream-tts-chunk.js`, `main.js`, `voice.js` (prefetch esposto). Piano: `PIANO_AUDIO_PIPELINE_BARGEIN.md` §7.
+
 
 ## Documentazione — SETUP_ALTRO_PC_CURSOR (2026-06-07)
 
