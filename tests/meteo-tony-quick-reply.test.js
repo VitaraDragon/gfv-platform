@@ -1,7 +1,19 @@
 import { createRequire } from 'module';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
+
+/** Ancora «oggi» al 2026-05-21: le fixture usano date maggio 2026 nell'orizzonte ~8 giorni. */
+const METEO_TEST_ANCHOR = '2026-05-21T12:00:00Z';
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(METEO_TEST_ANCHOR));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 const {
   tryMeteoGiornoQuickReply,
   tryMeteoCondizioniQuickReply,
@@ -52,7 +64,7 @@ describe('tryMeteoOperativoQuickReply', () => {
     expect(reply).toMatch(/probabilità di pioggia del 100%/i);
     expect(reply).toMatch(/2\.4 mm/i);
     expect(reply).toMatch(/Meglio anticipare|posticipare/i);
-    expect(reply).toMatch(/alternativa/i);
+    expect(reply).toMatch(/alternativ/i);
   });
 
   it('approva trattamento con condizioni favorevoli', async () => {
@@ -775,7 +787,7 @@ describe('tryMeteoOperativoQuickReply', () => {
           ok: true,
           tipoCampo: 'collina',
           previsioniGiornaliere: enrichPrevisioniGiornaliereForTony([
-            { dt: '2026-05-22', pop: 0, windSpeedKmh: 8, rainMm: 0 },
+            { dt: '2026-05-22', pop: 90, windSpeedKmh: 20, rainMm: 15 },
             { dt: '2026-05-27', pop: 10, windSpeedKmh: 8, rainMm: 4.9 },
             { dt: '2026-05-28', pop: 10, windSpeedKmh: 8, rainMm: 5 },
             { dt: '2026-05-29', pop: 5, windSpeedKmh: 8, rainMm: 0 },

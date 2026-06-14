@@ -2863,6 +2863,258 @@
     return true;
   }
 
+  const DELAYS_TERRENO = {
+    'terreno-coltura-categoria': 350,
+    'terreno-coltura': 280,
+    'terreno-podere': 120,
+    'terreno-tipo-possesso': 80
+  };
+
+  function _normalizeSearchTerreno(s) {
+    return String(s || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function _matchSelectOptionByText(el, rawValue) {
+    if (!el || el.tagName !== 'SELECT' || !rawValue) return null;
+    var search = _normalizeSearchTerreno(rawValue);
+    if (!search) return null;
+    var opts = Array.from(el.options || []);
+    var exact = opts.find(function (o) {
+      if (!(o.value || '').trim() && !(o.text || '').trim()) return false;
+      var t = _normalizeSearchTerreno(o.text || o.value);
+      return t === search;
+    });
+    if (exact) return exact.value || exact.text;
+    var partial = opts.find(function (o) {
+      if (!(o.value || '').trim()) return false;
+      var t = _normalizeSearchTerreno(o.text || o.value);
+      return t && (t.indexOf(search) >= 0 || search.indexOf(t) >= 0);
+    });
+    return partial ? (partial.value || partial.text) : null;
+  }
+
+  /**
+   * Resolver form terreno: categoria/podere da contesto azienda; coltura per nome su select.
+   */
+  function resolveValueTerreno(fieldId, value, context) {
+    if (value === undefined || value === null) return value;
+    var str = String(value).trim();
+    if (!str) return value;
+    context = context || (window.Tony && window.Tony.context) || {};
+    var azienda = context.azienda || {};
+
+    if (fieldId === 'terreno-coltura-categoria') {
+      if (looksLikeFirestoreDocId(str)) return str;
+      var categorie = Array.isArray(azienda.categorie) ? azienda.categorie : [];
+      var catHit = categorie.find(function (c) {
+        var n = _normalizeSearchTerreno(c.nome || '');
+        var s = _normalizeSearchTerreno(str);
+        return n && (n === s || n.indexOf(s) >= 0 || s.indexOf(n) >= 0);
+      });
+      if (catHit && catHit.id) return catHit.id;
+      var catEl = document.getElementById('terreno-coltura-categoria');
+      var domCat = _matchSelectOptionByText(catEl, str);
+      return domCat != null ? domCat : value;
+    }
+
+    if (fieldId === 'terreno-coltura') {
+      var colture = Array.isArray(azienda.colture) ? azienda.colture : [];
+      var colHit = colture.find(function (c) {
+        var n = _normalizeSearchTerreno(c.nome || '');
+        var s = _normalizeSearchTerreno(str);
+        return n && (n === s || n.indexOf(s) >= 0 || s.indexOf(n) >= 0);
+      });
+      if (colHit && colHit.nome) return colHit.nome;
+      var colEl = document.getElementById('terreno-coltura');
+      var domCol = _matchSelectOptionByText(colEl, str);
+      return domCol != null ? domCol : value;
+    }
+
+    if (fieldId === 'terreno-podere') {
+      var poderi = Array.isArray(azienda.poderi) ? azienda.poderi : [];
+      var podHit = poderi.find(function (p) {
+        var n = _normalizeSearchTerreno(p.nome || '');
+        var s = _normalizeSearchTerreno(str);
+        return n && (n === s || n.indexOf(s) >= 0 || s.indexOf(n) >= 0);
+      });
+      if (podHit && podHit.nome) return podHit.nome;
+      var podEl = document.getElementById('terreno-podere');
+      var domPod = _matchSelectOptionByText(podEl, str);
+      return domPod != null ? domPod : value;
+    }
+
+    if (fieldId === 'terreno-tipo-campo' || fieldId === 'terreno-tipo-possesso') {
+      var low = _normalizeSearchTerreno(str);
+      if (fieldId === 'terreno-tipo-campo') {
+        if (low.indexOf('mont') >= 0) return 'montagna';
+        if (low.indexOf('coll') >= 0) return 'collina';
+        if (low.indexOf('pian') >= 0) return 'pianura';
+      }
+      if (fieldId === 'terreno-tipo-possesso') {
+        if (low.indexOf('affit') >= 0) return 'affitto';
+        if (low.indexOf('propri') >= 0) return 'proprieta';
+      }
+    }
+
+    return value;
+  }
+
+  function _resolveTerrenoCategoriaIdFromDom(hintNorm) {
+    if (!hintNorm) return null;
+    var catEl = document.getElementById('terreno-coltura-categoria');
+    if (!catEl) return null;
+    return Array.from(catEl.options || []).reduce(function (found, o) {
+      if (found || !(o.value || '').trim()) return found;
+      var t = _normalizeSearchTerreno(o.text || o.value);
+      if (!t) return found;
+      if (t === hintNorm || t.indexOf(hintNorm) >= 0 || hintNorm.indexOf(t) >= 0) return o.value;
+      return found;
+    }, null);
+  }
+
+  function _findTerrenoCategoriaId(categorie, hintNorm) {
+    if (!hintNorm) return null;
+    var hints = [hintNorm];
+    if (hintNorm.indexOf('vigneto') >= 0 || hintNorm === 'vite') hints.push('vite', 'vigneto', 'vino');
+    if (hintNorm.indexOf('frutteto') >= 0 || hintNorm.indexOf('frutt') >= 0) hints.push('frutteto', 'frutt');
+    if (hintNorm.indexOf('seminativ') >= 0) hints.push('seminativ', 'seminativo');
+    if (hintNorm.indexOf('oliv') >= 0) hints.push('oliv', 'olivo');
+    if (hintNorm.indexOf('ortiv') >= 0) hints.push('ortiv', 'orto');
+    var seen = {};
+    for (var hi = 0; hi < hints.length; hi++) {
+      var hint = hints[hi];
+      if (!hint || seen[hint]) continue;
+      seen[hint] = true;
+      var catHit = (categorie || []).find(function (c) {
+        var n = _normalizeSearchTerreno(c.nome || '');
+        return n && (n === hint || n.indexOf(hint) >= 0 || hint.indexOf(n) >= 0);
+      });
+      if (catHit && catHit.id) return catHit.id;
+      var domId = _resolveTerrenoCategoriaIdFromDom(hint);
+      if (domId) return domId;
+    }
+    return null;
+  }
+
+  function _colturaOptionMatchesName(optionEl, colNameNorm) {
+    if (!optionEl || !(optionEl.value || '').trim() || !colNameNorm) return false;
+    var t = _normalizeSearchTerreno(optionEl.text || optionEl.value);
+    return t === colNameNorm || t.indexOf(colNameNorm) >= 0 || colNameNorm.indexOf(t) >= 0;
+  }
+
+  async function _findTerrenoCategoriaIdByColturaNameInDom(colName) {
+    var colNorm = _normalizeSearchTerreno(colName);
+    if (!colNorm) return null;
+    var catEl = document.getElementById('terreno-coltura-categoria');
+    var colEl = document.getElementById('terreno-coltura');
+    if (!catEl || !colEl) return null;
+    var prevCat = catEl.value || '';
+    var opts = Array.from(catEl.options || []).filter(function (o) { return (o.value || '').trim(); });
+    for (var i = 0; i < opts.length; i++) {
+      catEl.value = opts[i].value;
+      catEl.dispatchEvent(new Event('change', { bubbles: true }));
+      if (typeof window.updateColtureDropdownTerreni === 'function') {
+        window.updateColtureDropdownTerreni();
+      }
+      await delay(60);
+      var match = Array.from(colEl.options || []).find(function (o) {
+        return _colturaOptionMatchesName(o, colNorm);
+      });
+      if (match) {
+        log('Scan DOM terreno: coltura "' + colName + '" in categoria id=' + opts[i].value);
+        return opts[i].value;
+      }
+    }
+    catEl.value = prevCat;
+    catEl.dispatchEvent(new Event('change', { bubbles: true }));
+    if (typeof window.updateColtureDropdownTerreni === 'function') {
+      window.updateColtureDropdownTerreni();
+    }
+    return null;
+  }
+
+  async function _ensureTerrenoColturaCategoriaInFormData(formData, context) {
+    var fd = enrichTerrenoFormDataFromContext(formData, context);
+    if (!fd['terreno-coltura'] || fd['terreno-coltura-categoria']) return fd;
+    await waitForSelectOptions('terreno-coltura-categoria', 2, 12000);
+    fd = enrichTerrenoFormDataFromContext(fd, context);
+    if (fd['terreno-coltura-categoria']) return fd;
+    var colName = String(fd['terreno-coltura']).trim();
+    var scannedId = await _findTerrenoCategoriaIdByColturaNameInDom(colName);
+    if (scannedId) fd['terreno-coltura-categoria'] = scannedId;
+    return fd;
+  }
+
+  function _inferTerrenoCategoriaHintFromText(text) {
+    var colNorm = _normalizeSearchTerreno(text);
+    if (!colNorm) return null;
+    var rules = [
+      { keys: ['vite', 'vino', 'vigneto'], hint: 'vigneto' },
+      { keys: ['frutt', 'albicoc', 'pesc', 'melo', 'pero', 'kaki', 'cilieg', 'nettar'], hint: 'frutteto' },
+      { keys: ['oliv'], hint: 'oliv' },
+      { keys: ['grano', 'mais', 'orzo', 'frumento', 'seminat'], hint: 'seminativ' },
+      { keys: ['orto', 'pomodor', 'insalat', 'zucchin'], hint: 'ortiv' }
+    ];
+    for (var i = 0; i < rules.length; i++) {
+      if (rules[i].keys.some(function (k) { return colNorm.indexOf(k) >= 0; })) return rules[i].hint;
+    }
+    return null;
+  }
+
+  function enrichTerrenoFormDataFromContext(formData, context) {
+    if (!formData || typeof formData !== 'object') return formData;
+    var fd = Object.assign({}, formData);
+    context = context || (window.Tony && window.Tony.context) || {};
+    var colture = (context.azienda && Array.isArray(context.azienda.colture)) ? context.azienda.colture : [];
+    var categorie = (context.azienda && Array.isArray(context.azienda.categorie)) ? context.azienda.categorie : [];
+
+    if (fd['terreno-coltura'] && !fd['terreno-coltura-categoria']) {
+      var colName = String(fd['terreno-coltura']).trim();
+      var colObj = colture.find(function (c) {
+        var n = _normalizeSearchTerreno(c.nome || '');
+        var s = _normalizeSearchTerreno(colName);
+        return n && (n === s || n.indexOf(s) >= 0 || s.indexOf(n) >= 0);
+      });
+      if (colObj && colObj.categoriaId) {
+        fd['terreno-coltura-categoria'] = colObj.categoriaId;
+      }
+      if (!fd['terreno-coltura-categoria']) {
+        var catDirect = categorie.find(function (c) {
+          var n = _normalizeSearchTerreno(c.nome || '');
+          var s = _normalizeSearchTerreno(colName);
+          return n && s && (s.indexOf(n) >= 0 || n.indexOf(s) >= 0);
+        });
+        if (catDirect && catDirect.id) fd['terreno-coltura-categoria'] = catDirect.id;
+      }
+      if (!fd['terreno-coltura-categoria']) {
+        var hintFromColtura = _inferTerrenoCategoriaHintFromText(colName);
+        var catIdFromColtura = _findTerrenoCategoriaId(categorie, hintFromColtura);
+        if (catIdFromColtura) fd['terreno-coltura-categoria'] = catIdFromColtura;
+      }
+    }
+
+    if (!fd['terreno-coltura-categoria'] && fd['terreno-nome']) {
+      var nomeLow = _normalizeSearchTerreno(fd['terreno-nome']);
+      var catByNome = categorie.find(function (c) {
+        var n = _normalizeSearchTerreno(c.nome || '');
+        return n && nomeLow.indexOf(n) >= 0;
+      });
+      if (catByNome && catByNome.id) {
+        fd['terreno-coltura-categoria'] = catByNome.id;
+      } else {
+        var catIdFromNome = _findTerrenoCategoriaId(categorie, nomeLow);
+        if (!catIdFromNome) {
+          var hintFromNome = _inferTerrenoCategoriaHintFromText(fd['terreno-nome']);
+          catIdFromNome = _findTerrenoCategoriaId(categorie, hintFromNome);
+        }
+        if (catIdFromNome) fd['terreno-coltura-categoria'] = catIdFromNome;
+      }
+    }
+
+    if (!fd['terreno-tipo-possesso']) fd['terreno-tipo-possesso'] = 'proprieta';
+    return fd;
+  }
+
   /**
    * Resolver per form magazzino (movimento): mov-prodotto da nome tramite context.azienda.prodotti;
    * mov-lavoro / mov-attivita per testo su option DOM se non è già id.
@@ -3086,6 +3338,59 @@
           await waitForSelectOptionsWithValue('lavoro-attrezzo', 1, lw(6000));
         }
       }
+      if (formId === 'terreno-form' && fieldId === 'terreno-coltura-categoria') {
+        await waitForSelectOptions('terreno-coltura-categoria', 2, 12000);
+        var rawCatTer = formData[fieldId];
+        var rawCatStrTer = rawCatTer != null ? String(rawCatTer).trim() : '';
+        if (rawCatStrTer) {
+          if (looksLikeFirestoreDocId(rawCatStrTer)) {
+            await waitForSelectOptionValue('terreno-coltura-categoria', rawCatStrTer, 10000);
+          } else {
+            await waitForSelectOptionTextOrValue('terreno-coltura-categoria', rawCatStrTer, 10000);
+          }
+        }
+      }
+      if (formId === 'terreno-form' && fieldId === 'terreno-coltura') {
+        var catSelPre = document.getElementById('terreno-coltura-categoria');
+        if (catSelPre && !catSelPre.value) {
+          if (formData['terreno-coltura-categoria']) {
+            await waitForSelectOptions('terreno-coltura-categoria', 2, 10000);
+            setFieldValue('terreno-coltura-categoria', formData['terreno-coltura-categoria'], mapConfig, context);
+            if (typeof window.updateColtureDropdownTerreni === 'function') {
+              window.updateColtureDropdownTerreni();
+            }
+            await delay(280);
+          } else if (formData['terreno-coltura']) {
+            var autoCatId = await _findTerrenoCategoriaIdByColturaNameInDom(String(formData['terreno-coltura']).trim());
+            if (autoCatId) {
+              formData['terreno-coltura-categoria'] = autoCatId;
+              setFieldValue('terreno-coltura-categoria', autoCatId, mapConfig, context);
+              if (typeof window.updateColtureDropdownTerreni === 'function') {
+                window.updateColtureDropdownTerreni();
+              }
+              await delay(280);
+            }
+          }
+        }
+        if (typeof window.updateColtureDropdownTerreni === 'function') {
+          window.updateColtureDropdownTerreni();
+        }
+        await delay(280);
+        await waitForSelectOptions('terreno-coltura', 2, 10000);
+        var rawColTer = formData[fieldId];
+        var rawColStrTer = rawColTer != null ? String(rawColTer).trim() : '';
+        if (rawColStrTer) {
+          await waitForSelectOptionTextOrValue('terreno-coltura', rawColStrTer, 10000);
+        }
+      }
+      if (formId === 'terreno-form' && fieldId === 'terreno-podere') {
+        await waitForSelectOptions('terreno-podere', 2, 8000);
+        var rawPodTer = formData[fieldId];
+        var rawPodStrTer = rawPodTer != null ? String(rawPodTer).trim() : '';
+        if (rawPodStrTer) {
+          await waitForSelectOptionTextOrValue('terreno-podere', rawPodStrTer, 8000);
+        }
+      }
       if (formId === 'movimento-form' && fieldId === 'mov-prodotto') {
         await waitForSelectOptions('mov-prodotto', 2, 12000);
       }
@@ -3120,6 +3425,17 @@
           window.updateColtureDropdownPreventivo();
         }
         await delay(280);
+      }
+      if (formId === 'terreno-form' && fieldId === 'terreno-coltura-categoria') {
+        if (typeof window.updateColtureDropdownTerreni === 'function') {
+          window.updateColtureDropdownTerreni();
+        }
+        await delay(280);
+      }
+      if (formId === 'terreno-form' && fieldId === 'terreno-tipo-possesso') {
+        if (typeof window.toggleDataScadenzaAffitto === 'function') {
+          window.toggleDataScadenzaAffitto();
+        }
       }
 
       var ms = delays[fieldId];
@@ -3707,6 +4023,37 @@
       if (!emitPendingLavoroTrattoreDisambiguation()) {
         /* pending già emesso da reconcile oppure assente */
       }
+    }
+    return ok;
+  }
+
+  /**
+   * Form anagrafica terreno (pagina Terreni).
+   */
+  async function injectTerrenoForm(formData, context) {
+    if (!formData || typeof formData !== 'object') return false;
+    context = context || (window.Tony && window.Tony.context) || {};
+    var tonyMapping = (typeof window !== 'undefined' && window.TONY_FORM_MAPPING && window.TONY_FORM_MAPPING.getFormMap)
+      ? window.TONY_FORM_MAPPING.getFormMap('terreno-form')
+      : null;
+    if (!tonyMapping || !Array.isArray(tonyMapping.injectionOrder)) {
+      log('injectTerrenoForm: mapping mancante');
+      return false;
+    }
+    var fd = await _ensureTerrenoColturaCategoriaInFormData(formData, context);
+    if (fd['terreno-coltura-categoria']) {
+      log('injectTerrenoForm: categoria coltura dedotta=' + fd['terreno-coltura-categoria']);
+    }
+    var mapConfig = {
+      formId: 'terreno-form',
+      injectionOrder: tonyMapping.injectionOrder,
+      fields: tonyMapping.fields || {},
+      delays: DELAYS_TERRENO,
+      resolver: resolveValueTerreno
+    };
+    var ok = await injectForm(fd, mapConfig, context);
+    if (ok && typeof window.toggleDataScadenzaAffitto === 'function') {
+      window.toggleDataScadenzaAffitto();
     }
     return ok;
   }
@@ -6669,7 +7016,9 @@
     isTerrenoDisambQualifierText: isTerrenoDisambQualifierText,
     offerTerrenoDisambResponse: offerTerrenoDisambResponse,
     injectPreventivoForm: injectPreventivoForm,
+    injectTerrenoForm: injectTerrenoForm,
     injectProdottoForm: injectProdottoForm,
+    resolveValueTerreno: resolveValueTerreno,
     injectTrattamentoCampoForm: injectTrattamentoCampoForm,
     suggestTrattamentoCondizioniMeteo: suggestTrattamentoCondizioniMeteo,
     injectMovimentoForm: injectMovimentoForm,

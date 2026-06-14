@@ -16,8 +16,8 @@
  *   onConfirmReset?: () => void,
  * }} TonyFormSaveLocalEntry */
 
-/** Ordine intercept: lavoro → preventivo → prodotto → movimento se più flag pending (improbabile). */
-export const TONY_FORM_SAVE_LOCAL_ORDER = ['lavoro-form', 'preventivo-form', 'prodotto-form', 'movimento-form'];
+/** Ordine intercept: lavoro → preventivo → terreno → prodotto → movimento se più flag pending (improbabile). */
+export const TONY_FORM_SAVE_LOCAL_ORDER = ['lavoro-form', 'preventivo-form', 'terreno-form', 'prodotto-form', 'movimento-form'];
 
 /** @type {Record<string, TonyFormSaveLocalEntry>} */
 export const TONY_FORM_SAVE_LOCAL_CONFIG = {
@@ -54,6 +54,17 @@ export const TONY_FORM_SAVE_LOCAL_CONFIG = {
     speakText: 'Vuoi che salvi il preventivo?',
     isFormActive: function isPreventivoFormActiveForSave() {
       return typeof document !== 'undefined' && !!document.getElementById('preventivo-form');
+    },
+  },
+  'terreno-form': {
+    formId: 'terreno-form',
+    modalId: 'terreno-modal',
+    awaitingFlag: '__tonyAwaitingTerrenoSaveConfirm',
+    saveMessage: 'Vuoi che salvi il terreno?',
+    speakText: 'Vuoi che salvi il terreno?',
+    isFormActive: function isTerrenoFormActiveForSave() {
+      var modal = typeof document !== 'undefined' ? document.getElementById('terreno-modal') : null;
+      return !!modal && modal.classList.contains('active');
     },
   },
   'prodotto-form': {
@@ -145,6 +156,26 @@ export function magazzinoProactiveReadyForSave(formId, hasRequiredEmpty) {
   if (hasRequiredEmpty) return false;
   if (formId === 'movimento-form') return true;
   return magazzinoFormReadyForTonySave(formId);
+}
+
+/**
+ * Form terreno pronto per prompt save locale / timer proattivo.
+ * @param {string} formId
+ * @returns {boolean}
+ */
+export function terrenoFormReadyForTonySave(formId) {
+  if (formId !== 'terreno-form') return false;
+  return formReadyForTonySave(formId);
+}
+
+/**
+ * @param {string} formId
+ * @param {boolean} hasRequiredEmpty
+ * @returns {boolean}
+ */
+export function terrenoProactiveReadyForSave(formId, hasRequiredEmpty) {
+  if (formId !== 'terreno-form' || hasRequiredEmpty) return false;
+  return terrenoFormReadyForTonySave(formId);
 }
 
 /**
@@ -320,6 +351,29 @@ export function tryInterceptQuickHoursSaveBeforeCf(text, handlers) {
   return { handled: true, confirmed: true };
 }
 
+export function tryInterceptTerrenoSaveBeforeCf(text, handlers) {
+  handlers = handlers || {};
+  if (typeof window === 'undefined') return { handled: false };
+
+  var cfg = getTonyFormSaveLocalConfig('terreno-form');
+  if (!cfg || window[cfg.awaitingFlag]) return { handled: false };
+  if (!cfg.isFormActive() || !terrenoFormReadyForTonySave('terreno-form')) return { handled: false };
+
+  if (isTonySaveConfirmText(text)) {
+    if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+    if (typeof handlers.appendMessage === 'function') handlers.appendMessage(cfg.saveMessage, 'tony');
+    if (typeof handlers.speak === 'function' && cfg.speakText) handlers.speak(cfg.speakText);
+    if (typeof handlers.processTonyCommand === 'function') {
+      handlers.processTonyCommand({ type: 'SAVE_ACTIVITY' });
+    }
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('[Tony] Salva terreno-form: conferma utente locale (senza tonyAsk).');
+    }
+    return { handled: true, confirmed: true };
+  }
+  return { handled: false };
+}
+
 export function tryInterceptMagazzinoSaveBeforeCf(text, handlers) {
   handlers = handlers || {};
   if (typeof window === 'undefined') return { handled: false };
@@ -452,6 +506,9 @@ if (typeof window !== 'undefined') {
     quickHoursFormReadyForTonySave: quickHoursFormReadyForTonySave,
     isTonyQuickHoursCfFakeSaveText: isTonyQuickHoursCfFakeSaveText,
     tryInterceptQuickHoursSaveBeforeCf: tryInterceptQuickHoursSaveBeforeCf,
+    tryInterceptTerrenoSaveBeforeCf: tryInterceptTerrenoSaveBeforeCf,
+    terrenoFormReadyForTonySave: terrenoFormReadyForTonySave,
+    terrenoProactiveReadyForSave: terrenoProactiveReadyForSave,
     tryInterceptMagazzinoSaveBeforeCf: tryInterceptMagazzinoSaveBeforeCf,
     isAnyTonyFormSaveConfirmPending: isAnyTonyFormSaveConfirmPending,
     promptTonyFormSaveLocal: promptTonyFormSaveLocal,

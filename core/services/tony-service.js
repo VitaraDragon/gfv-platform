@@ -8,6 +8,7 @@
 import { GUIDA_APP_PER_TONY } from './tony-guida-app.js';
 import { normalizeTonyCommand, resolveTonyUserVisibleText } from '../js/tony/engine.js';
 import { isTonySaveConfirmText, isTonyQuickHoursCfFakeSaveText } from '../js/tony-form-save-local.js';
+import { tryTonyTerrenoEntityParse } from '../js/tony-terreno-entity-parser.js';
 
 /** Blocca QUICK_SAVE CF su workspace Segna ore senza conferma utente («sì»/«salva»). */
 function _blockFieldWorkspaceQuickHoursSaveCommand(command, historyUserText, context) {
@@ -270,6 +271,9 @@ const CHAT_HISTORY_MAX = 8;
 const TONY_CALLABLE_MAX_TABLE_ITEMS = 40;
 /** Timeout client sulla callable (allineato al limite tipico CF ~60–120s). */
 const TONY_CALLABLE_TIMEOUT_MS = 90000;
+/** Timeout connessione SSE: se non arrivano header/byte, fallback su tonyAsk callable. */
+const TONY_STREAM_CONNECT_TIMEOUT_MS = 25000;
+const TONY_STREAM_DISABLED_KEY = 'tony_stream_disabled';
 
 /**
  * Preferisce una tabella lavori campo con items non vuoti: contesto serializzato a volte arriva senza righe
@@ -356,12 +360,38 @@ function _tryFieldWorkspaceEnumerateJobsReply(userPrompt, safeContext, askOption
   );
 }
 
+/**
+ * Aggiunta terreno su pagina Terreni: risposta locale (0 CF) come lavoro entity-first.
+ */
+function _tryTerrenoCreateQuickReply(userPrompt, safeContext, askOptions) {
+  if (askOptions && askOptions.proactive) return null;
+  const parsed = tryTonyTerrenoEntityParse({ message: userPrompt, ctx: safeContext });
+  if (!parsed || !parsed.earlyReturn) return null;
+  return { text: parsed.text, command: parsed.command };
+}
+
+function _emitTerrenoQuickReply(service, historyUserText, terrenoQuick, askOptions) {
+  console.log(
+    '[Tony] Quick reply terreno (0 CF):',
+    terrenoQuick.command && terrenoQuick.command.fields
+      ? Object.keys(terrenoQuick.command.fields).length
+      : 0,
+    'campi'
+  );
+  service._pushChatTurn(historyUserText, terrenoQuick.text, askOptions);
+  if (terrenoQuick.command && terrenoQuick.command.type) {
+    service.triggerAction(terrenoQuick.command.type, terrenoQuick.command);
+  }
+  return { text: terrenoQuick.text, command: terrenoQuick.command || null };
+}
+
 class TonyService {
   constructor() {
     this.model = null;
     this.ai = null;
     this.app = null;
     this._tonyAskCallable = null;
+    this._tonyAskHttpUrl = null;
     this._tonyAskStreamUrl = null;
     this.context = {};
     this.onActionCallbacks = [];
@@ -537,6 +567,7 @@ class TonyService {
             const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
             const functions = getFunctions(app, 'europe-west1');
             this._tonyAskCallable = httpsCallable(functions, 'tonyAsk');
+            this._tonyAskHttpUrl = this._resolveTonyAskCallableUrl(app);
             this._tonyAskStreamUrl = this._resolveTonyAskStreamUrl(app);
             this._useCallable = true;
             this._ready = true;
@@ -1020,15 +1051,47 @@ class TonyService {
    * @param {import('firebase/app').FirebaseApp} app
    * @returns {string|null}
    */
-  _resolveTonyAskStreamUrl(app) {
+  _resolveCfBaseUrl(app) {
     try {
       const opts = app && app.options ? app.options : {};
       const projectId = opts.projectId || (typeof window !== 'undefined' && window.firebaseConfig && window.firebaseConfig.projectId);
       if (!projectId) return null;
-      return `https://europe-west1-${projectId}.cloudfunctions.net/tonyAskStream`;
+      return `https://europe-west1-${projectId}.cloudfunctions.net`;
     } catch (_) {
       return null;
     }
+  }
+
+  _resolveTonyAskCallableUrl(app) {
+    const base = this._resolveCfBaseUrl(app);
+    return base ? `${base}/tonyAsk` : null;
+  }
+
+  _resolveTonyAskStreamUrl(app) {
+    const base = this._resolveCfBaseUrl(app);
+    return base ? `${base}/tonyAskStream` : null;
+  }
+
+  _preferCallableOverStream() {
+    try {
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(TONY_STREAM_DISABLED_KEY) === '1') {
+        return true;
+      }
+      if (typeof window !== 'undefined' && window.location) {
+        const host = String(window.location.hostname || '').toLowerCase();
+        if (host === 'localhost' || host === '127.0.0.1') return true;
+      }
+    } catch (_) { /* ignore */ }
+    return false;
+  }
+
+  _markStreamDisabled(reason) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(TONY_STREAM_DISABLED_KEY, '1');
+      }
+    } catch (_) { /* ignore */ }
+    console.warn('[Tony] SSE disabilitato per questa sessione:', reason || 'fallback');
   }
 
   /**
@@ -1052,10 +1115,18 @@ class TonyService {
     } catch (_) { /* ignore */ }
 
     const started = Date.now();
-    console.log('[Tony] tonyAskStream fetch avviato (~' + payloadKb + ' KB)');
-    const TONY_ASK_STREAM_TIMEOUT_MS = 90000;
-    const res = await Promise.race([
-      fetch(this._tonyAskStreamUrl, {
+    const abortCtrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const abortTimer = abortCtrl
+      ? setTimeout(function () {
+          try {
+            abortCtrl.abort();
+          } catch (_) { /* ignore */ }
+        }, TONY_STREAM_CONNECT_TIMEOUT_MS)
+      : null;
+    console.log('[Tony] tonyAskStream avviata (~' + payloadKb + ' KB)...');
+    let res;
+    try {
+      res = await fetch(this._tonyAskStreamUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1067,17 +1138,24 @@ class TonyService {
           context: payload.context,
           history: payload.history,
         }),
-      }),
-      new Promise((_, reject) => {
-        setTimeout(() => {
-          const err = new Error(
-            'Tony: timeout attesa risposta stream (' + Math.round(TONY_ASK_STREAM_TIMEOUT_MS / 1000) + ' s).'
-          );
-          err.code = 'deadline-exceeded';
-          reject(err);
-        }, TONY_ASK_STREAM_TIMEOUT_MS);
-      }),
-    ]);
+        signal: abortCtrl ? abortCtrl.signal : undefined,
+      });
+    } catch (fetchErr) {
+      if (abortTimer) clearTimeout(abortTimer);
+      const aborted = fetchErr && (fetchErr.name === 'AbortError' || String(fetchErr.message || '').indexOf('aborted') >= 0);
+      if (aborted) {
+        this._markStreamDisabled('timeout connessione SSE');
+        const timeoutErr = new Error(
+          'Tony: timeout connessione stream (' + Math.round(TONY_STREAM_CONNECT_TIMEOUT_MS / 1000) + ' s).'
+        );
+        timeoutErr.code = 'deadline-exceeded';
+        throw timeoutErr;
+      }
+      this._markStreamDisabled(fetchErr && fetchErr.message);
+      throw fetchErr;
+    }
+    if (abortTimer) clearTimeout(abortTimer);
+    console.log('[Tony] tonyAskStream: header HTTP', res.status, 'in', Date.now() - started, 'ms');
 
     if (!res.ok) {
       let errMsg = `tonyAskStream HTTP ${res.status}`;
@@ -1122,6 +1200,84 @@ class TonyService {
   }
 
   /**
+   * Callable tonyAsk via fetch HTTP (evita hang sporadici di httpsCallable SDK in browser).
+   * @param {{ message: string, context: object, history: object[] }} payload
+   * @param {number} started
+   * @returns {Promise<*>}
+   */
+  async _callTonyAskViaHttp(payload, started) {
+    if (!this._tonyAskHttpUrl) {
+      throw new Error('tonyAsk HTTP URL non configurato');
+    }
+    const { getAuth } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+    const auth = getAuth(this.app);
+    const user = auth.currentUser;
+    if (!user) throw new Error('Utente non autenticato');
+    console.log('[Tony] tonyAsk HTTP: richiesta token...');
+    const idToken = await user.getIdToken();
+    console.log('[Tony] tonyAsk HTTP: POST', this._tonyAskHttpUrl);
+
+    const abortCtrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const abortTimer = abortCtrl
+      ? setTimeout(function () {
+          try {
+            abortCtrl.abort();
+          } catch (_) { /* ignore */ }
+        }, TONY_CALLABLE_TIMEOUT_MS)
+      : null;
+    const heartbeat = setInterval(function () {
+      console.log('[Tony] tonyAsk HTTP ancora in attesa...', Math.round((Date.now() - started) / 1000), 's');
+    }, 10000);
+
+    try {
+      const res = await fetch(this._tonyAskHttpUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ data: payload }),
+        signal: abortCtrl ? abortCtrl.signal : undefined,
+      });
+      console.log('[Tony] tonyAsk HTTP: risposta', res.status, 'in', Date.now() - started, 'ms');
+      let json = {};
+      try {
+        json = await res.json();
+      } catch (_) {
+        json = {};
+      }
+      if (!res.ok) {
+        const errMsg =
+          (json && json.error && (json.error.message || json.error.status)) ||
+          `tonyAsk HTTP ${res.status}`;
+        const err = new Error(String(errMsg));
+        if (json && json.error && json.error.status) err.code = String(json.error.status).toLowerCase();
+        throw err;
+      }
+      if (json && json.error) {
+        const err = new Error(String(json.error.message || json.error.status || 'Errore tonyAsk'));
+        if (json.error.status) err.code = String(json.error.status).toLowerCase();
+        throw err;
+      }
+      const data = json.result !== undefined ? json.result : json.data;
+      console.log('[Tony] tonyAsk completata in', Date.now() - started, 'ms (HTTP)');
+      return data;
+    } catch (fetchErr) {
+      if (fetchErr && (fetchErr.name === 'AbortError' || String(fetchErr.message || '').indexOf('aborted') >= 0)) {
+        const timeoutErr = new Error(
+          'Tony: timeout attesa risposta dal server (' + Math.round(TONY_CALLABLE_TIMEOUT_MS / 1000) + ' s).'
+        );
+        timeoutErr.code = 'deadline-exceeded';
+        throw timeoutErr;
+      }
+      throw fetchErr;
+    } finally {
+      clearInterval(heartbeat);
+      if (abortTimer) clearTimeout(abortTimer);
+    }
+  }
+
+  /**
    * @param {{ message: string, context: object, history: object[] }} payload
    * @returns {Promise<*>}
    */
@@ -1134,6 +1290,16 @@ class TonyService {
       console.warn('[Tony] Stima payload callable non riuscita:', e && e.message);
     }
     console.log('[Tony] Invio tonyAsk (~' + payloadKb + ' KB)...');
+
+    if (this._tonyAskHttpUrl) {
+      try {
+        return await this._callTonyAskViaHttp(payload, started);
+      } catch (httpErr) {
+        console.warn('[Tony] tonyAsk HTTP fallita, fallback SDK:', httpErr && httpErr.message);
+        if (!this._tonyAskCallable) throw httpErr;
+      }
+    }
+
     const callPromise = this._tonyAskCallable(payload).then((r) => r.data);
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
@@ -1146,7 +1312,7 @@ class TonyService {
     });
     try {
       const data = await Promise.race([callPromise, timeoutPromise]);
-      console.log('[Tony] tonyAsk completata in', Date.now() - started, 'ms');
+      console.log('[Tony] tonyAsk completata in', Date.now() - started, 'ms (SDK)');
       return data;
     } catch (err) {
       console.error('[Tony] tonyAsk fallita dopo', Date.now() - started, 'ms:', err);
@@ -1255,6 +1421,11 @@ class TonyService {
     if (fieldWorkspaceQuickReply != null && String(fieldWorkspaceQuickReply).trim()) {
       this._pushChatTurn(historyUserText, fieldWorkspaceQuickReply, askOptions);
       return { text: fieldWorkspaceQuickReply, command: null };
+    }
+
+    const terrenoQuickReply = _tryTerrenoCreateQuickReply(userPrompt, safeContext, askOptions);
+    if (terrenoQuickReply) {
+      return _emitTerrenoQuickReply(this, historyUserText, terrenoQuickReply, askOptions);
     }
 
     // IMPORTANTE: context.form.fields (stato attuale del form) deve essere impostato dal widget
@@ -1568,6 +1739,12 @@ class TonyService {
       return { text: fieldQuick, command: null };
     }
 
+    const terrenoQuickStream = _tryTerrenoCreateQuickReply(userPrompt, safeContext, opts);
+    if (terrenoQuickStream) {
+      onChunk(terrenoQuickStream.text);
+      return _emitTerrenoQuickReply(this, historyUserText, terrenoQuickStream, opts);
+    }
+
     const rawData = await this._callTonyAskStream({
       message: userPrompt,
       context: safeContext,
@@ -1651,10 +1828,16 @@ class TonyService {
         ? String(opts.historyUserMessage).trim()
         : String(userPrompt || '').trim();
 
+    if (this._useCallable && this._tonyAskCallable && this._preferCallableOverStream()) {
+      console.log('[Tony] Uso tonyAsk callable (locale o SSE disabilitato in sessione).');
+      return await this.ask(userPrompt, opts);
+    }
+
     if (this._useCallable && this._tonyAskStreamUrl) {
       try {
         return await this._askStreamViaCallable(userPrompt, opts);
       } catch (streamErr) {
+        this._markStreamDisabled(streamErr && streamErr.message);
         console.warn('[Tony] tonyAskStream fallito, fallback ask():', streamErr && streamErr.message);
         return await this.ask(userPrompt, opts);
       }

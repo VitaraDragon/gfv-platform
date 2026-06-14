@@ -1,6 +1,57 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-09 (build client Tony `2026-06-09g`, verifica vocale dashboard).**
+## Tony — latenza dialogo vocale auto-mode ridotta (2026-06-14)
+
+**Build client `2026-06-14a`:** tempi di attesa mic/TTS accorciati in modalità continua.
+
+| Prima | Dopo | Note |
+|-------|------|------|
+| 1000 ms dopo fine parlato | 220 ms (transcript final) / 450 ms (fallback) | `scheduleAutoVoiceSend` unificato su `isFinal` + `onspeechend` |
+| 1000 ms riavvio recognition | 350 ms | `VOICE_RECOGNITION_RESTART_MS` |
+| 300 ms riapertura mic post-TTS | 100 ms | `VOICE_MIC_REOPEN_DELAY_MS` |
+| 120–400 ms idle reopen | 50–120 ms | `scheduleReopenMicIfIdle` |
+
+**File:** `core/js/tony/main.js`, `core/js/tony-widget-standalone.js`.
+
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14.**
+
+## Tony — documentazione obbligatoria allineata agli handoff (2026-06-10)
+
+**Richiesta:** riferimenti nei 4 file canonici ai documenti handoff per continuità agenti.
+
+**Aggiornati:** `STATO_ATTUALE.md` (§8 handoff agenti, backlog §7, metriche perf ~31%), `MASTER_PLAN.md` §11 Riferimenti, `TONY_DECISIONI_E_REQUISITI.md` (§10.5–10.6 Chirp3/Neural2; §19.6.12–19.6.14 nav/metriche/meteo). **Handoff:** `HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`, `HANDOFF_TTS_CHIRP3.md` (indice `tony/README.md`).
+
+## Tony — handoff TTS Chirp 3 HD (2026-06-10)
+
+**Richiesta:** documento per procedere al cambio voce Tony con Google Chirp 3.
+
+**File:** `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md` — stato attuale (`it-IT-Wavenet-D`), confronto Neural2/Chirp3/costi, scelta voce (`it-IT-Chirp3-HD-Charon` candidato), checklist implementazione `getTonyAudio`, cache `voice.js`, test, rollback. Indice in `tony/README.md`. **Non ancora implementato in codice.**
+
+## Tony — handoff continuità performance/nav (2026-06-10)
+
+**Richiesta:** documento per riprendere sviluppo con nuovo agente senza perdere contesto.
+
+**File:** `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` — passato/presente/obiettivi, backlog (nav B, metriche client, TTS opzionale), file chiave, comandi verifica, prompt per nuovo agente. Indice aggiornato in `tony/README.md`.
+
+## Tony meteo — fix test + typo giorno settimana (2026-06-10)
+
+**Problema:** `tests/meteo-tony-quick-reply.test.js` falliva (21/47) perché le fixture usano date maggio 2026 mentre `todayStr` runtime era giugno; inoltre `mercoldì` non attivava il ramo operativo (manca `mercoledi` in `hasDayOrWeather`).
+
+**Fix:** fake timers ancorati al `2026-05-21` nei test; `fixWeekdayTyposInMsg` anche in `isTonyMeteoOperationalQuestion`; assertion e fixture allineate. **47/47** test verdi.
+
+**File:** `functions/meteo-service.js`, `tests/meteo-tony-quick-reply.test.js`.
+
+## Tony — form Terreno inject atomico + save/proattivo locale (2026-06-08)
+
+**Obiettivo:** allineare `terreno-form` al pattern magazzino/preventivo (inject client-side, meno round-trip CF, niente cascata `SET_FIELD`).
+
+**Implementazione:**
+- `injectTerrenoForm` + `resolveValueTerreno` + gerarchia coltura (`updateColtureDropdownTerreni`) in `tony-form-injector.js`
+- `INJECT_FORM_DATA` `terreno-form` / `terreno-modal` in `main.js` (OPEN_MODAL, cross-page pending, timer proattivo campi mancanti / «Vuoi che salvi?»)
+- `TONY_FORM_SAVE_LOCAL_CONFIG` + `tryInterceptTerrenoSaveBeforeCf` in `tony-form-save-local.js`
+- `tonyInterviewFieldIds` su `TERRENO_FORM_MAP`; prompt CF aggiornato (preferenza `fields` / `INJECT_FORM_DATA`)
+
+**File:** `core/js/tony-form-injector.js`, `core/js/tony/main.js`, `core/js/tony-form-save-local.js`, `core/config/tony-form-mapping.js`, `functions/index.js`, `tests/tony-form-save-local.test.js`.
 
 ## Tony — voce dashboard verificata end-to-end (2026-06-09)
 
@@ -24,54 +75,6 @@
 
 **File:** `core/js/tony/main.js`, `voice.js`, `meteo-dashboard-quick-reply*.js`, `dashboard-meteo-briefing.js`, `dashboard-standalone.html`, `tony-widget-standalone.js`, `tony-service.js`. Test: `tony-meteo-dashboard-quick-reply.test.js` (7), `tony-voice-pipeline-canary.test.js`, `tony-stream-tts-chunk.test.js`.
 
-## Tony — riassunto dashboard allineato al briefing iniziale (2026-06-09)
-
-**Problema:** «fammi un riassunto» restituiva solo criticità magazzino/mezzi (o «botte di ferro») senza meteo; «ok grazie» scatenava RIASSUNTO; saluto iniziale assente se nessuna criticità; addio andava in CF.
-
-**Fix (build `2026-06-09g`):**
-- `buildDashboardRiassuntoText` — ops + previsioni oggi/domani + alert pioggia
-- `tonyWantsDashboardRiassunto` — «fammi un riassunto»; «sì/ok» solo dopo offerta briefing
-- Saluto dashboard anche senza criticità (meteo + invito al riassunto)
-- «grazie» / «a posto» → chiusura locale, no CF
-
-**File:** `main.js`, `meteo-dashboard-quick-reply-utils.js`, `dashboard-meteo-briefing.js`, `dashboard-standalone.html`.
-
-## Tony — fix TTS meteo «1929 gradi» (en-dash temperature) (2026-06-09)
-
-**Problema:** risposta meteo corretta in chat ma TTS leggeva «1929 gradi celsius» — `pulisciTestoPerVoce` rimuoveva l'en-dash (`19–29°C` → `1929°C`) prima della normalizzazione temperature.
-
-**Fix (build `2026-06-09f`):**
-- `voice.js` — `normalizeTemperaturesForItalianTTS` eseguita **prima** dello strip Unicode; rete di sicurezza su `1929 gradi`; strip emoji da `\u2016` (preserva trattini)
-- `meteo-dashboard-quick-reply-utils.js` — rimuove range °C ridondante dalla descrizione API
-
-**File:** `core/js/tony/voice.js`, `meteo-dashboard-quick-reply-utils.js`.
-
-## Tony — fix TTS troncato (eco microfono / barge-in falso) (2026-06-09)
-
-**Problema:** briefing e risposte vocali partivano ma venivano **interrotte** (`pipeline cleared barge_in_speech`, `Audio element error`); in auto-mode il microfono captava l'eco del TTS e inviava turni spurii («domani»).
-
-**Fix client-side (build `2026-06-09e`):**
-- Microfono **spento** all'avvio TTS (`speakWithTTS` wrapper + `onPlayStart`); riapertura solo a pipeline idle (`scheduleReopenMicIfIdle`)
-- **Rimosso** barge-in su `onspeechstart` in auto-mode (barge-in solo click microfono)
-- `onspeechend` / `onresult` ignorati durante TTS o attesa CF
-- `voice.js` — stop audio senza `onerror` spurio
-- `tonyFinishLocalVoiceReply` / `onFinally` — non riaprono mic durante coda TTS
-
-**File:** `core/js/tony/main.js`, `voice.js`, `tony-widget-standalone.js`.
-
-## Tony — fix blocco microfono dopo briefing + domanda vocale (2026-06-09)
-
-**Problema:** in dashboard, dopo il briefing TTS, una domanda al microfono veniva trascritta ma Tony non rispondeva (log fermato a `user_turn gen=2`; possibile `Audio element error` su barge-in).
-
-**Fix client-side (no deploy CF obbligatorio):**
-- `meteo-dashboard-quick-reply.js` — su **dashboard**, domande meteo («Com'è il meteo domani») risposte subito da **cache meteo client** (0 CF), voce inclusa
-- `main.js` — retry coda vocale, try/catch, log diagnostici, typing fino a risposta
-- `tony-widget-standalone.js` — cache bust `?v=2026-06-09d`
-- `tony-service.js` — log fetch tonyAskStream + timeout 90 s
-- `voice.js` — fix audio error post-barge-in
-
-**File:** `core/js/tony/main.js`, `voice.js`, `core/services/tony-service.js`.
-
 ## Tony — Fase 2 chunking TTS per frase su SSE (2026-06-09)
 
 **Obiettivo:** Tony inizia a parlare la prima frase completa mentre Gemini genera il resto (latenza vocale percepita ↓), riusando `__tonyGeneration` della Fase 1.
@@ -82,6 +85,7 @@
 - Test: `tests/tony-stream-tts-chunk.test.js` (6), canary voice aggiornato
 
 **File:** `stream-tts-chunk.js`, `main.js`, `voice.js` (prefetch esposto). Piano: `PIANO_AUDIO_PIPELINE_BARGEIN.md` §7.
+
 
 ## Documentazione — SETUP_ALTRO_PC_CURSOR (2026-06-07)
 

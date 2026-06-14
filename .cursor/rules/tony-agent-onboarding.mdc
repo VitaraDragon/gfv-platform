@@ -9,7 +9,8 @@ alwaysApply: true
 
 1. **Leggi** `docs-sviluppo/tony/README.md` – panoramica e link
 2. **Leggi** `docs-sviluppo/tony/MASTER_PLAN.md` – visione, architettura, principi di scalabilità
-3. **Leggi** `docs-sviluppo/tony/STATO_ATTUALE.md` – stato verificato sul codice
+3. **Leggi** `docs-sviluppo/tony/STATO_ATTUALE.md` – stato verificato sul codice (§8 handoff agenti)
+4. **Se continui lavoro in corso** (performance/nav, TTS voce): leggi il handoff pertinente in `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` e/o `HANDOFF_TTS_CHIRP3.md`
 
 **Manodopera / squadre / sostituzioni operai / equipaggio su lavori** (anche senza toccare Tony): leggi **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`** prima di proporre implementazione — è il piano di design versionato in repo (shortlist, disponibilità automatica, policy tenant).
 

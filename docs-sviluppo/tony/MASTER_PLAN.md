@@ -12,7 +12,7 @@
 
 | Fase | Nome | Stato | Criterio done |
 |------|------|-------|---------------|
-| **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo |
+| **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo — **injectTerrenoForm + save/proattivo locale** ✅ (2026-06-08); verifica E2E |
 | **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08) |
 | **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); **summarySottoScorta** + prodottiSottoScorta (2026-04-11) |
 | **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24; **filari + meteo data + disambiguazione terreno** verificati 2026-05-24); **Magazzino** prodotto/movimento + **save locale** + creazione client-side + **cross-page** (3b-C15…**C19** E2E 2026-06-02), dosaggio/carenza obbligatori fitofarmaci, prezzo entrata da catalogo; **intervista lavoro client-side** — ack tipo dopo stem vago E2E ✅ (2026-06-03); **Segna ore workspace campo** intervista + save locale 0 CF + validazione manager E2E ✅ (**3b-C21**, 2026-06-04) |
@@ -215,7 +215,7 @@ Tony non "compila" grafici. Può:
 ## 9. Roadmap di sviluppo
 
 ### Fase 1 – Consolidamento fondamenti ⏳ Parziale
-- Terreno: OPEN_MODAL terreno-modal + fields (non injectTerrenoForm)
+- Terreno: OPEN_MODAL terreno-modal + **INJECT_FORM_DATA terreno-form** via `injectTerrenoForm` (2026-06-08); save/proattivo locale come magazzino
 - Divieto ID Firestore, uso nomi nelle SELECT
 - **Criterio done**: Tony aggiunge terreno da pagina terreni senza essere guidato passo-passo
 
@@ -268,6 +268,9 @@ Tony non "compila" grafici. Può:
 ## 11. Riferimenti
 
 - **Stato attuale**: `docs-sviluppo/tony/STATO_ATTUALE.md`
+- **Handoff agenti — performance / nav quick reply** (backlog nav binario B, metriche client 0 CF, `tony:perf-review`, fix meteo 2026-06-10): `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`
+- **Handoff agenti — voce TTS Chirp 3 HD** (migrazione da `it-IT-Wavenet-D`, costi, implementazione `getTonyAudio`): `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md`
+- **Piano audio barge-in + chunking TTS** (Fase 1 ✅): `docs-sviluppo/tony/PIANO_AUDIO_PIPELINE_BARGEIN.md`
 - **Piano ottimizzazione performance Tony** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
 - **PWA / deploy client**: hook **`pre-commit`** / script **`bump:pwa-cache`** aggiornano **`SW_CACHE_BUILD_ID`** in `service-worker.js` (vedi **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8) — riduce cache stale su app installata

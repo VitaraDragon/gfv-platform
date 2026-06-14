@@ -12,6 +12,7 @@ const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { logTonyPerf, finishTonyAskEarly } = require("./tony-perf");
 const { callGeminiWithRetry, streamGeminiGenerateContent, geminiStreamUrl } = require("./tony-gemini-api");
 const { tryTonyActivityPatterns } = require("./tony-activity-patterns");
+const { tryTonyTerrenoEntityParse } = require("./tony-terreno-entity-parser");
 const {
   tryTonyLavoroEntityParse,
   enrichLavoroCommandFormData,
@@ -1307,10 +1308,10 @@ REGOLE DI RISPOSTA (form e modal):
 5e. TRATTAMENTO / CONCIMAZIONE in campo (modal **modal-trattamento**, form **form-trattamento**): Valore **primario** = **dosaggio ad ettaro** (kg/ha). La **quantità totale** sul campo = dosaggio × ha (il form calcola righe e magazzino). **Due casi**: (A) L'utente dà la dose **per ettaro** (es. «2 qli per ettaro», «200 kg/ha», o risponde a «dosaggio per ettaro» con solo «2 ql»): **dosaggio = ql×100** oppure **kg/ha** indicati — **NON** dividere per la superficie del campo. (B) L'utente dà **quintali o kg totali** sull’intera superficie trattata: **dosaggio = kg_totali / ha** (1 ql = 100 kg). INJECT_FORM_DATA **trattamento-prodotti** = [{ "prodotto", "dosaggio": number kg/ha }, …]. Opzionali trattamento-note, trattamento-superficie, trattamento-copertura-terreno. **Checkbox trattamento-superficie-anagrafe** e **trattamento-registra-scarico-magazzino**: **non** impostarle da sole con il dosaggio; **chiedi conferma** in testo se non sono già chiarite, oppure includile in formData solo su richiesta esplicita dell'utente o risposta a quella domanda. Solo se modal «Completa» già aperto (form-trattamento). Se chiuso: chiedi «Completa» o APRI_PAGINA — non INJECT senza modal.
 6. Se tutti i dati essenziali (Terreno, Lavoro, Data, Ore) ci sono e form è aperto, chiedi conferma e usa SAVE_ACTIVITY. OBBLIGATORIO: quando l'utente dice "salva", "salva l'attività", "conferma", "ok salva" e il form è completo, DEVI includere nel JSON: "command": {"type": "SAVE_ACTIVITY"}. MAI rispondere solo con testo "Attività salvata!" senza il comando: il salvataggio avviene SOLO quando il client riceve SAVE_ACTIVITY. Dopo SAVE_ACTIVITY: NON emettere di nuovo SAVE_ACTIVITY (il modal si chiude). Rispondi solo con testo di conferma: per **prodotto** (path prodotti) "Prodotto salvato!"; per **movimento** (path movimenti) "Movimento registrato!"; per diario attività "Attività salvata!".
 
-AGGIUNTA TERENO (terreno-modal) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni":
-- Puoi APRIRE il form per aggiungere un nuovo terreno con OPEN_MODAL "terreno-modal".
-- Quando l'utente chiede di aggiungere/creare un nuovo terreno (es. "aggiungi un terreno", "nuovo terreno", "crea terreno", "famme vedere come aggiungeresti un terreno"), rispondi SEMPRE con JSON che include command OPEN_MODAL terreno-modal.
-- Usa SET_FIELD con prefisso terreno- per compilare i campi: terreno-nome (OBBLIGATORIO), terreno-superficie, terreno-podere, terreno-coltura-categoria, terreno-coltura, terreno-tipo-possesso (proprieta|affitto), terreno-note.
+AGGIUNTA TERENO (terreno-modal / terreno-form) – quando page.currentTableData?.pageType === 'terreni' o session.current_page.path include "terreni":
+- Puoi APRIRE il form per aggiungere un nuovo terreno con OPEN_MODAL "terreno-modal" oppure INJECT_FORM_DATA formId "terreno-form" se il modal è già aperto sulla pagina terreni.
+- Quando l'utente chiede di aggiungere/creare un nuovo terreno (es. "aggiungi un terreno", "nuovo terreno", "crea terreno", "famme vedere come aggiungeresti un terreno"), rispondi SEMPRE con JSON che include command OPEN_MODAL terreno-modal (o INJECT_FORM_DATA se form già visibile).
+- Preferisci OPEN_MODAL con oggetto "fields" (o INJECT_FORM_DATA con formData) per compilare in un colpo: terreno-nome (OBBLIGATORIO), terreno-superficie, terreno-podere, terreno-coltura-categoria, terreno-coltura, terreno-tipo-campo (pianura|collina|montagna), terreno-tipo-possesso (proprieta|affitto), terreno-note. SET_FIELD terreno-* resta valido ma è più lento.
 - IMPORTANTE: Se l'utente fornisce già dei dati (es. "Aggiungi il terreno vigneto di 2 ettari a Casetti"), invia l'apertura del modal E i campi già compilati in un unico comando: {"text": "Apro il form e compilo i dati.", "command": {"type": "OPEN_MODAL", "id": "terreno-modal", "fields": {"terreno-nome": "Vigneto Casetti", "terreno-superficie": "2", "terreno-podere": "Casetti", "terreno-coltura": "Vite da Vino"}}}.
 - Se l'utente dice solo "aggiungi terreno" senza dettagli, apri il modal vuoto: {"text": "Apro il form. Come vuoi chiamare il terreno?", "command": {"type": "OPEN_MODAL", "id": "terreno-modal"}}.
 - Per podere e coltura: usa i nomi ESATTI. Se [CONTESTO].page.terreni è presente, contiene poderi e colture (array di nomi usati nell'azienda). Altrimenti estraili da page.currentTableData.items. Es. "a Casetti" → terreno-podere "Casetti"; "vigneto" → terreno-coltura "Vite da Vino" (o terreno-coltura-categoria "Vigneto").
@@ -2556,6 +2557,20 @@ async function handleTonyAskRequest(request, streamOpts) {
     if (tonyFieldProfile && isTonyFieldBizDataQuestion(message)) {
       console.log("[Tony Cloud Function] Profilo campo: domanda su dati aziendali — risposta deterministica (no Gemini)");
       return finishTonyAskEarly(tonyPerf, message, { text: TONY_FIELD_BIZ_REFUSAL_TEXT, command: null });
+    }
+
+    const terrenoEntityEarly = tryTonyTerrenoEntityParse({ message, history, ctx });
+    if (terrenoEntityEarly && terrenoEntityEarly.earlyReturn) {
+      tonyPerf.quickReplyHit = terrenoEntityEarly.id;
+      console.log(
+        "[Tony Cloud Function] Terreno entity-first hit:",
+        terrenoEntityEarly.fieldsCount,
+        "campi (pre context builder)"
+      );
+      return finishTonyAskEarly(tonyPerf, message, {
+        text: terrenoEntityEarly.text,
+        command: terrenoEntityEarly.command || null,
+      });
     }
 
     let azienda = {};
