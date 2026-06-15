@@ -96,7 +96,7 @@
 | 7.3 | FILTER_TABLE attivita: terreno, tipoLavoro, coltura, origine, data, dataDa, dataA, ricerca | functions, main.js | implementato | 2026-03-08 |
 | 7.3a | FILTER_TABLE lavori: stato, progresso, caposquadra, terreno, tipo, tipoLavoro, operaio. Match tipo lavoro: case-insensitive, nomi parziali, risoluzione tipoLavoroId (applyFilters riceve tipiLavoroList) | functions, main.js, gestione-lavori-events | implementato | 2026-03-08 |
 | 7.4 | SUM_COLUMN per terreni | functions, main.js | implementato | |
-| 7.5 | RIASSUNTO (tonyGlobalBriefing) | main.js | implementato | |
+| 7.5 | RIASSUNTO (tonyGlobalBriefing) | main.js | implementato | Client 0 CF: `buildDashboardRiassuntoText` + summary ops con **nomi** (2026-06-15); CF binario B invariato |
 | 7.6 | MOSTRA_GRAFICO | MASTER_PLAN | da fare | |
 | 7.7 | Creare: con conferma; Modificare: conferma esplicita; Eliminare: solo su richiesta; Bulk: mai | MASTER_PLAN §6 | — | Regole |
 
@@ -136,7 +136,7 @@
 | 10.7 | Mic spento durante TTS; no barge-in su `onspeechstart` (eco auto-mode); riapertura mic solo a pipeline idle | fix voce dashboard 2026-06-09 | implementato | build `2026-06-09e`; `scheduleReopenMicIfIdle` |
 | 10.8 | Normalizzazione temperature TTS prima strip Unicode (en-dash `19–29°C` → «da 19 a 29 gradi», non «1929 gradi») | fix voce dashboard 2026-06-09 | implementato | `normalizeTemperaturesForItalianTTS` in `voice.js` — build `2026-06-09f` |
 | 10.9 | Meteo vocale su dashboard da cache client (`tryDashboardMeteoQuickReply`), senza CF | fix voce dashboard 2026-06-09 | implementato | `meteo-dashboard-quick-reply.js` |
-| 10.10 | RIASSUNTO dashboard client: ops + meteo; «sì/ok» solo dopo offerta briefing; addio «grazie» locale senza CF | fix voce dashboard 2026-06-09 | implementato | `buildDashboardRiassuntoText`, `tonyWantsDashboardRiassunto` — build `2026-06-09g` |
+| 10.10 | RIASSUNTO dashboard client: ops + meteo; «sì/ok» solo dopo offerta briefing; addio «grazie» locale senza CF | fix voce dashboard 2026-06-09 | implementato | `buildDashboardRiassuntoText`, `tonyWantsDashboardRiassunto` — build `2026-06-09g`; **2026-06-15:** ops con nomi (`formatDashboardOpsBriefingText`, `dashboard-tony-briefing-text.js`) |
 | 10.11 | Latenza dialogo auto-mode: costanti mic/TTS accorciate (`2026-06-14a`: final 220 ms, speechend 450 ms, restart 350 ms, reopen 100 ms) | tuning UX vocale 2026-06-14 | implementato | Baseline stabile post E2E multi-PC; ulteriore riduzione non raccomandata senza test mirati |
 
 ---
@@ -396,9 +396,11 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | # | Decisione | Stato | Note |
 |---|-----------|-------|------|
 | 19.10.1 | Saluto proattivo dashboard anche se scorte/scadenze/guasti = 0 (meteo + invito riassunto) | implementato | `checkGlobalStatus` ramo `total===0` — build `2026-06-09g` |
-| 19.10.2 | RIASSUNTO vocale = criticità ops + `weatherSummary` (oggi/domani sede) + alert pioggia proattivi | implementato | `buildDashboardRiassuntoText`; `loadTonyMeteoBriefingData` espone `weatherSummary` |
+| 19.10.2 | RIASSUNTO vocale/chat = criticità ops (**nomi** prodotti sotto scorta, guasti, scadenze mezzi) + `weatherSummary` + alert pioggia | implementato | `dashboard-tony-briefing-text.js`, snapshot `summary*`; `buildDashboardRiassuntoText`; `loadTonyMeteoBriefingData` — **2026-06-15** nomi client |
 | 19.10.3 | Domanda meteo su dashboard (es. «Com'è il meteo domani») → risposta locale cache, distinta dal RIASSUNTO | implementato | Log client `[Tony] Meteo dashboard: risposta locale` |
 | 19.10.4 | Briefing iniziale ~3 s dopo `checkGlobalStatus`; interazione mic prima del saluto può saltarlo (`barge_in_mic`) | implementato | Comportamento atteso, non bug |
+| 19.10.5 | Mobile/PWA: saluto proattivo dashboard in **chat** (TTS autoplay disattivato); pannello Tony si apre automaticamente | implementato | `tonyDashboardPreferChatBriefing`, `__tonyOpenChatPanel`, `openPanel` su `__tonyDisplayProactive` — 2026-06-15 |
+| 19.10.6 | Messaggio proattivo `_displayOnly` in `chatHistory` così «sì» al riassunto funziona dopo il saluto | implementato | `sendMessage` proactive path — 2026-06-15 |
 
 ### 19.7 Implementazione (riferimento — 2026-05-22)
 
@@ -413,13 +415,15 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | `functions/tony-multi-block-quick-reply.js` | ✅ Fase 4 — multi-blocco meteo/scorte/scadenze |
 | `functions/tony-context-cache.js` | ✅ Cache T4 + **`invalidateTonyContextCache`** (Fase 4.1) |
 | `functions/tony-module-gate.js` | ✅ Gate moduli tenant (quick reply, APRI_PAGINA, ctx.azienda) |
-| `core/js/tony/main.js` | ✅ «sì» nel filo meteo non rubato al briefing; **voce dashboard 2026-06-09g:** RIASSUNTO client, meteo locale, addio locale, mic/TTS; skip proattivo se CF già chiede; **preventivo:** strip downgrade filari, hint terreno vs scheduling (2026-05-24) |
-| `core/js/tony/meteo-dashboard-quick-reply*.js` | ✅ Meteo + RIASSUNTO dashboard client-side; test Vitest (7) — 2026-06-09 |
+| `core/js/tony/main.js` | ✅ «sì» nel filo meteo non rubato al briefing; **voce dashboard 2026-06-09g:** RIASSUNTO client, meteo locale, addio locale, mic/TTS; **2026-06-15:** pannello chat mobile su proattivo, `chatHistory` su `_displayOnly`; skip proattivo se CF già chiede; **preventivo:** strip downgrade filari, hint terreno vs scheduling (2026-05-24) |
+| `core/js/tony/meteo-dashboard-quick-reply*.js` | ✅ Meteo + RIASSUNTO dashboard client-side; **`formatDashboardOpsBriefingText`**; test Vitest (**8**) — 2026-06-09 / **2026-06-15** |
+| `core/js/dashboard-tony-briefing-text.js` | ✅ Summary testuali prodotti sotto scorta, guasti aperti, scadenze mezzi urgenti — 2026-06-15 |
+| `core/js/dashboard-counts-snapshot.js` | ✅ Calcolo `summarySottoScorta` / `summaryGuasti` / `summaryScadenze` al load; **`awaitDashboardCountsSnapshot`** per Tony — 2026-06-15 |
 | `core/js/dashboard-meteo-briefing.js` | ✅ `weatherSummary` in briefing; saluto senza criticità ops — 2026-06-09g |
 | Form terreno | ✅ `terreno-tipo-campo` |
 | Context Builder | ✅ `tipoCampo` su `azienda.terreni` e `meteo.terreni[]` |
 | Tony | ✅ Domanda morfologia; praticabilità; **due date prima/dopo** |
-| Test | ✅ `tests/meteo-tony-quick-reply.test.js`, `tests/tony-meteo-rules.test.js`, `tests/tony-intent-router.test.js`, `tests/tony-module-gate.test.js`, `tests/tony-quick-reply.test.js`, **`tests/tony-nav-quick-reply.test.js`**, **`tests/tony-filter-table-quick-reply.test.js`**, **`tests/tony-multi-block-quick-reply.test.js`**, `tests/tony-context-cache.test.js` (invalidazione) |
+| Test | ✅ `tests/meteo-tony-quick-reply.test.js`, `tests/tony-meteo-rules.test.js`, `tests/tony-intent-router.test.js`, `tests/tony-module-gate.test.js`, `tests/tony-quick-reply.test.js`, **`tests/tony-nav-quick-reply.test.js`**, **`tests/tony-filter-table-quick-reply.test.js`**, **`tests/tony-multi-block-quick-reply.test.js`**, **`tests/dashboard-tony-briefing-text.test.js`**, **`tests/tony-meteo-dashboard-quick-reply.test.js`**, `tests/tony-context-cache.test.js` (invalidazione) |
 | Review log produzione | ✅ `scripts/tony-perf-log-review.mjs` — smoke 8 scenari router + **3 binario B quick**. Produzione 2026-06-03: ~25% `usedGemini=false`, hit nav/filter/riassunto |
 
 ---

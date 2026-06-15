@@ -169,7 +169,8 @@
         import {
             loadDashboardCountsSnapshot,
             applyDashboardCountsToDom,
-            getDashboardCountsSnapshot
+            getDashboardCountsSnapshot,
+            awaitDashboardCountsSnapshot
         } from './js/dashboard-counts-snapshot.js';
         import { 
             loadAmministrazioneStats as loadAmministrazioneStatsModule,
@@ -521,10 +522,14 @@
         function tonyDashboardDeliverBriefing(fullText, speakAllowed) {
             var msg = String(fullText || '').trim();
             if (!msg) return;
-            var useVoice = speakAllowed && !tonyDashboardPreferChatBriefing();
+            var preferChat = tonyDashboardPreferChatBriefing();
+            var useVoice = speakAllowed && !preferChat;
             if (typeof window.__tonyDisplayProactive === 'function') {
-                window.__tonyDisplayProactive(msg, { speak: useVoice });
+                window.__tonyDisplayProactive(msg, { speak: useVoice, openPanel: preferChat });
                 return;
+            }
+            if (preferChat) {
+                if (typeof window.__tonyOpenChatPanel === 'function') window.__tonyOpenChatPanel();
             }
             if (useVoice && window.Tony && typeof window.Tony.speak === 'function') {
                 window.Tony.speak(msg);
@@ -586,7 +591,10 @@
                 const mods = Array.isArray(availableModules) ? availableModules : [];
                 const hasMagazzino = mods.includes('magazzino');
                 const hasParcoMacchine = mods.includes('parcoMacchine');
-                const snap = countsSnapshot || getDashboardCountsSnapshot();
+                const snap =
+                    (await awaitDashboardCountsSnapshot(tenantId)) ||
+                    countsSnapshot ||
+                    getDashboardCountsSnapshot();
                 const meteoBriefingPromise =
                     tonyMeteoBriefingAllowed(mods, ruoliNormalizzati)
                         ? loadTonyMeteoBriefingData(tenantId).catch(function(e) {
@@ -605,6 +613,9 @@
                     sottoScorta: sottoScorta,
                     scadenzeUrgenti: scadenzeUrgenti,
                     guastiAperti: guastiAperti,
+                    summarySottoScorta: snap && snap.summarySottoScorta ? snap.summarySottoScorta : '',
+                    summaryGuasti: snap && snap.summaryGuasti ? snap.summaryGuasti : '',
+                    summaryScadenze: snap && snap.summaryScadenze ? snap.summaryScadenze : '',
                     meteo: meteoBriefing,
                     meteoConsigliCount: meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0,
                     availableModules: mods.slice(),
@@ -654,8 +665,10 @@
                         if (window.tonyMeteoBriefingFired) return;
                         window.tonyMeteoBriefingFired = true;
                         if (typeof window.__tonyDisplayProactive === 'function') {
+                            var preferChatMeteo = tonyDashboardPreferChatBriefing();
                             window.__tonyDisplayProactive(meteoBriefing.proactiveText, {
-                                speak: tonyDashboardBriefingVoiceAllowed() && !tonyDashboardPreferChatBriefing()
+                                speak: tonyDashboardBriefingVoiceAllowed() && !preferChatMeteo,
+                                openPanel: preferChatMeteo
                             });
                         } else if (typeof window.__tonySendProactiveWhenUnlocked === 'function') {
                             window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);

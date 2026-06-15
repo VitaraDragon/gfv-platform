@@ -5,12 +5,14 @@
 
 import { parseLavoroDataInizio } from '../services/manodopera-lavori-scope.js';
 import {
-    loadMagazzinoSottoScortaCount,
-    loadScadenzeUrgentiCount,
-    loadGuastiApertiCount,
     loadAffittiUrgentiCount,
     countOreDaValidareFromLavoriDocs,
 } from './dashboard-data.js';
+import {
+    buildSottoScortaBriefingFromProdotti,
+    buildGuastiApertiBriefingFromGuasti,
+    buildScadenzeUrgentiBriefingFromMacchine,
+} from './dashboard-tony-briefing-text.js';
 import { dashboardPerfAsync } from './dashboard-perf.js';
 
 /** @type {DashboardCountsSnapshot|null} */
@@ -41,6 +43,9 @@ let _loadTenantId = null;
  * @property {boolean} [oreDaValidarePending]
  * @property {DashboardOperativitaOggi} operativitaOggi
  * @property {Promise<void>} [oreRefreshPromise]
+ * @property {string} [summarySottoScorta]
+ * @property {string} [summaryGuasti]
+ * @property {string} [summaryScadenze]
  */
 
 const EMPTY_OPERATIVITA = { programmatiOggi: 0, inCorso: 0, oreDaValidare: 0 };
@@ -86,6 +91,9 @@ function serializeSnapshotForPrefetch(snapshot) {
         oreDaValidare: snapshot.oreDaValidare,
         oreDaValidarePending: !!snapshot.oreDaValidarePending,
         operativitaOggi: Object.assign({}, EMPTY_OPERATIVITA, snapshot.operativitaOggi || {}),
+        summarySottoScorta: snapshot.summarySottoScorta || '',
+        summaryGuasti: snapshot.summaryGuasti || '',
+        summaryScadenze: snapshot.summaryScadenze || '',
     };
 }
 
@@ -203,6 +211,20 @@ async function refreshOreDaValidareInSnapshot(tenantId, lavoriDocs, dependencies
     }
 }
 
+export async function awaitDashboardCountsSnapshot(tenantId) {
+    if (!tenantId) return getDashboardCountsSnapshot();
+    if (_loadPromise && _loadTenantId === tenantId) {
+        try {
+            await _loadPromise;
+        } catch (_) {
+            /* ignore */
+        }
+    }
+    const snap = getDashboardCountsSnapshot();
+    if (snap && snap.tenantId === tenantId) return snap;
+    return null;
+}
+
 /**
  * @param {string} tenantId
  * @param {{ availableModules?: string[], hasManodopera?: boolean, hasContoTerzi?: boolean }} ctx
@@ -292,21 +314,35 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
         })
     );
 
-    if (hasMagazzino) {
+    const { db, collection, getDocs } = dependencies;
+
+    if (hasMagazzino && db && collection && getDocs) {
         tasks.push(
-            loadMagazzinoSottoScortaCount(dependencies, tenantId).then((n) => {
-                result.sottoScorta = n || 0;
+            getDocs(collection(db, 'tenants', tenantId, 'prodotti')).then((snap) => {
+                const briefing = buildSottoScortaBriefingFromProdotti(snap.docs);
+                result.sottoScorta = briefing.count || 0;
+                result.summarySottoScorta = briefing.summarySottoScorta || '';
             })
         );
     }
 
-    if (hasMacchine) {
+    if (hasMacchine && db && collection && getDocs) {
         tasks.push(
-            loadScadenzeUrgentiCount(tenantId, dependencies).then((n) => {
-                result.scadenzeUrgenti = n || 0;
-            }),
-            loadGuastiApertiCount(tenantId, dependencies).then((n) => {
-                result.guastiAperti = n || 0;
+            Promise.all([
+                getDocs(collection(db, 'tenants', tenantId, 'macchine')),
+                getDocs(collection(db, 'tenants', tenantId, 'guasti')),
+            ]).then(function (pair) {
+                const macchineSnap = pair[0];
+                const guastiSnap = pair[1];
+                const macchineList = macchineSnap.docs.map(function (d) {
+                    return Object.assign({ id: d.id }, d.data());
+                });
+                const scadenzeBrief = buildScadenzeUrgentiBriefingFromMacchine(macchineSnap.docs);
+                const guastiBrief = buildGuastiApertiBriefingFromGuasti(guastiSnap.docs, macchineList);
+                result.scadenzeUrgenti = scadenzeBrief.count || 0;
+                result.summaryScadenze = scadenzeBrief.summaryScadenze || '';
+                result.guastiAperti = guastiBrief.count || 0;
+                result.summaryGuasti = guastiBrief.summaryGuasti || '';
             })
         );
     }

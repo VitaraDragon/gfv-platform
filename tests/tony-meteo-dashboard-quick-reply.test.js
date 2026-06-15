@@ -5,6 +5,7 @@ import {
   formatSedeMeteoReply,
   tonyWantsDashboardRiassunto,
   buildDashboardRiassuntoText,
+  formatDashboardOpsBriefingText,
 } from '../core/js/tony/meteo-dashboard-quick-reply-utils.js';
 import { pulisciTestoPerVoce } from '../core/js/tony/voice.js';
 
@@ -65,5 +66,21 @@ describe('meteo-dashboard-quick-reply', () => {
     expect(text).toContain('botte di ferro');
     expect(text).toContain('Domani a Sede');
     expect(text).toContain('pioggia forte');
+  });
+
+  it('formatDashboardOpsBriefingText elenca prodotti e guasti per nome', () => {
+    var ops = formatDashboardOpsBriefingText({
+      availableModules: ['magazzino', 'parcoMacchine'],
+      hasMagazzino: true,
+      hasParcoMacchine: true,
+      sottoScorta: 2,
+      guastiAperti: 1,
+      scadenzeUrgenti: 0,
+      summarySottoScorta: '2 prodotti sotto scorta: Urea, Glifosate.',
+      summaryGuasti: 'C\'è 1 guasto aperto: Trattore T5 (alta).',
+    });
+    expect(ops).toContain('Urea');
+    expect(ops).toContain('Trattore T5');
+    expect(ops).not.toContain('qualche guasto di troppo');
   });
 });
