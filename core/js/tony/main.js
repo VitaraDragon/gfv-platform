@@ -44,7 +44,7 @@ import { applyStreamingTtsChunks, getStreamingTtsRemainder } from './stream-tts-
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-14b';
+export const TONY_CLIENT_BUILD = '2026-06-14c';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -5742,7 +5742,6 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             voiceMicReopenTimer = setTimeout(function () {
                 voiceMicReopenTimer = null;
                 if (!isAutoMode || isWaitingForTonyResponse || tonyAudioPipelineActive()) return;
-                if (Date.now() < voiceMicSuppressOnendUntil - 40) return;
                 resetAutoModeTimeout();
                 if (startListeningRef) startListeningRef();
             }, delay);
@@ -7719,7 +7718,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     console.log('[Tony] In attesa risposta Tony, microfono non riaccendo.');
                     return;
                 }
-                if (isAutoMode && autoModeTimeout) {
+                if (isAutoMode) {
                     if (Date.now() < voiceMicSuppressOnendUntil) return;
                     console.log('[Tony] Fine sessione naturale, riaccendo tra ' + VOICE_RECOGNITION_RESTART_MS + ' ms...');
                     scheduleMicReopenInAutoMode(VOICE_RECOGNITION_RESTART_MS);
