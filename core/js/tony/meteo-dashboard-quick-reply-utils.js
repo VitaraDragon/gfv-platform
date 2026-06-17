@@ -66,6 +66,63 @@ export function buildDashboardRiassuntoText(briefing, opsText) {
   return chunks.join(' ') || ops || 'Non ho dati aggiornati al momento.';
 }
 
+/**
+ * Testo ops per RIASSUNTO dashboard: preferisce summary dettagliate (nomi prodotti/guasti/scadenze).
+ * @param {object|null|undefined} data - window.tonyGlobalBriefing
+ * @returns {string}
+ */
+export function formatDashboardOpsBriefingText(data) {
+  if (!data) return 'Non ho dati aggiornati al momento.';
+
+  var mods = Array.isArray(data.availableModules) ? data.availableModules : [];
+  var hasMagazzino =
+    data.hasMagazzino === true ||
+    (data.hasMagazzino == null && mods.indexOf('magazzino') >= 0);
+  var hasParcoMacchine =
+    data.hasParcoMacchine === true ||
+    (data.hasParcoMacchine == null && mods.indexOf('parcoMacchine') >= 0);
+
+  var s = hasMagazzino ? Number(data.sottoScorta || 0) : 0;
+  var y = hasParcoMacchine ? Number(data.scadenzeUrgenti || 0) : 0;
+  var z = hasParcoMacchine ? Number(data.guastiAperti || 0) : 0;
+
+  var meteoParts = [];
+  if (data.meteo && Array.isArray(data.meteo.consigli) && data.meteo.consigli.length) {
+    data.meteo.consigli.slice(0, 3).forEach(function (c) {
+      if (c && c.motivo) meteoParts.push(c.motivo);
+    });
+  }
+
+  var parts = [];
+
+  if (hasParcoMacchine && z > 0) {
+    var gu = data.summaryGuasti ? String(data.summaryGuasti).trim() : '';
+    parts.push(
+      gu ||
+        ('C\'è qualche guasto di troppo da sistemare' + (z > 1 ? ' (' + z + ')' : ''))
+    );
+  }
+
+  if (hasParcoMacchine && y > 0) {
+    var sc = data.summaryScadenze ? String(data.summaryScadenze).trim() : '';
+    parts.push(
+      sc || ('Occhio alle scadenze dei mezzi' + (y > 1 ? ' (' + y + ')' : ''))
+    );
+  }
+
+  if (hasMagazzino && s > 0) {
+    var st = data.summarySottoScorta ? String(data.summarySottoScorta).trim() : '';
+    parts.push(
+      st || (s === 1 ? 'un prodotto sotto scorta' : s + ' prodotti sotto scorta')
+    );
+  }
+
+  if (meteoParts.length) parts.push('Meteo: ' + meteoParts.join('. '));
+
+  if (!parts.length) return 'Siamo in una botte di ferro, non vedo criticità.';
+  return parts.join('. ') + '.';
+}
+
 function stripTempRangeFromMeteoDescription(desc) {
   if (!desc) return '';
   var s = String(desc).trim();

@@ -41,7 +41,7 @@ import {
 } from '../tony-prodotto-create-local.js';
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
 import { applyStreamingTtsChunks, getStreamingTtsRemainder } from './stream-tts-chunk.js';
-import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText } from './meteo-dashboard-quick-reply-utils.js';
+import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
 export const TONY_CLIENT_BUILD = '2026-06-14b';
@@ -5911,6 +5911,23 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (vc) vc.style.display = 'none';
         });
 
+        function tonyIsCoarsePointerOrMobile() {
+            try {
+                if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+                if (/Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent || '')) return true;
+            } catch (e) { /* ignore */ }
+            return false;
+        }
+
+        function openTonyChatPanel() {
+            if (!panel) return;
+            panel.classList.add('is-open');
+            if (inputEl && typeof inputEl.focus === 'function') {
+                try { inputEl.focus({ preventScroll: true }); } catch (eFocus) { inputEl.focus(); }
+            }
+        }
+        window.__tonyOpenChatPanel = openTonyChatPanel;
+
         function getFriendlyGreeting() {
             var greetings = [
                 'Ehilà!',
@@ -5922,26 +5939,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             return greetings[Math.floor(Math.random() * greetings.length)];
         }
         function formatFriendlyBriefing(data) {
-            if (!data) return 'Non ho dati aggiornati al momento.';
-            var mods = data.availableModules || getModuliAttiviFromTonyContext();
-            var hasMagazzino = data.hasMagazzino === true || (data.hasMagazzino == null && hasActiveModule(mods, 'magazzino'));
-            var hasParcoMacchine = data.hasParcoMacchine === true || (data.hasParcoMacchine == null && hasActiveModule(mods, 'parcoMacchine'));
-            var s = hasMagazzino ? (data.sottoScorta || 0) : 0;
-            var y = hasParcoMacchine ? (data.scadenzeUrgenti || 0) : 0;
-            var z = hasParcoMacchine ? (data.guastiAperti || 0) : 0;
-            var meteoParts = [];
-            if (data.meteo && Array.isArray(data.meteo.consigli) && data.meteo.consigli.length) {
-                data.meteo.consigli.slice(0, 3).forEach(function(c) {
-                    if (c && c.motivo) meteoParts.push(c.motivo);
-                });
-            }
-            if (s === 0 && y === 0 && z === 0 && !meteoParts.length) return 'Siamo in una botte di ferro, non vedo criticità.';
-            var parts = [];
-            if (z > 0) parts.push('C\'è qualche guasto di troppo da sistemare' + (z > 1 ? ' (' + z + ')' : ''));
-            if (y > 0) parts.push('Occhio alle scadenze dei mezzi' + (y > 1 ? ' (' + y + ')' : ''));
-            if (s > 0) parts.push(s === 1 ? 'un prodotto sotto scorta' : s + ' prodotti sotto scorta');
-            if (meteoParts.length) parts.push('Meteo: ' + meteoParts.join('. '));
-            return parts.join('. ') + '.';
+            return formatDashboardOpsBriefingText(data);
         }
         window.getFriendlyGreeting = getFriendlyGreeting;
         window.formatFriendlyBriefing = formatFriendlyBriefing;
@@ -6034,6 +6032,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
             if (opts.proactive && opts._displayOnly) {
                 appendMessage(text, 'tony');
+                if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
+                    window.Tony.chatHistory.push({ role: 'model', parts: [{ text: text }] });
+                }
+                var shouldOpenPanel = opts.openPanel === true ||
+                    (opts.openPanel !== false && tonyIsCoarsePointerOrMobile() && opts.speak === false);
+                if (shouldOpenPanel) openTonyChatPanel();
                 saveTonyState();
                 if (opts.speak !== false && typeof speakWithTTS === 'function') {
                     speakWithTTS(text, {});
@@ -7529,11 +7533,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         window.__tonySendProactiveWhenUnlocked = tonySendProactiveWhenUnlocked;
         window.__tonyDisplayProactive = function(text, options) {
             options = options || {};
-            sendMessage(String(text || '').trim(), {
+            var proactiveOpts = {
                 proactive: true,
                 _displayOnly: true,
                 speak: options.speak !== false
-            });
+            };
+            if (options.openPanel === true) proactiveOpts.openPanel = true;
+            sendMessage(String(text || '').trim(), proactiveOpts);
         };
         window.__tonyPromptLavoroSaveLocal = function() {
             promptTonyFormSaveLocal('lavoro-form', tonyFormSaveLocalDeps());

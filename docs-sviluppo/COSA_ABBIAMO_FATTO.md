@@ -1,6 +1,6 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (build `2026-06-14b` — fix loop microfono auto-mode).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-15 (briefing dashboard PWA + RIASSUNTO nomi ops; fix loop mic `2026-06-14b`).**
 
 ## Tony — fix loop microfono auto-mode mobile/PWA (2026-06-14)
 
@@ -9,6 +9,26 @@
 **Fix (build `2026-06-14b`):** `scheduleMicReopenInAutoMode` unificato con debounce; soppressione `onspeechend` vuoto entro 700 ms dall'ultimo invio; `stopListening` mantiene stato visivo auto-mode; TTS blocca riaperture duplicate per ~1,2 s.
 
 **File:** `core/js/tony/main.js`, `core/js/tony-widget-standalone.js`.
+
+## Tony — RIASSUNTO dashboard con dettaglio prodotti/guasti/scadenze (2026-06-15)
+
+**Problema:** rispondendo «sì» / «fammi un riassunto» dopo il saluto dashboard, Tony riportava solo conteggi generici («3 prodotti sotto scorta», «guasto di troppo») senza nomi.
+
+**Causa:** `formatFriendlyBriefing` in `main.js` usava solo numeri da `tonyGlobalBriefing`; lo snapshot dashboard calcolava i conteggi ma non le summary testuali (mentre il CF le ha in `summarySottoScorta` / `guastiAperti`).
+
+**Fix:** `core/js/dashboard-tony-briefing-text.js` — builder testuali da prodotti/guasti/macchine; `dashboard-counts-snapshot.js` li calcola al load (stesso fetch Firestore dei conteggi); `tonyGlobalBriefing` espone `summarySottoScorta`, `summaryGuasti`, `summaryScadenze`; `formatDashboardOpsBriefingText` in `meteo-dashboard-quick-reply-utils.js` usato da `formatFriendlyBriefing`; `checkGlobalStatus` attende snapshot completo (`awaitDashboardCountsSnapshot`). Test: `dashboard-tony-briefing-text.test.js`, `tony-meteo-dashboard-quick-reply.test.js`.
+
+**Verifica:** dashboard manager → saluto → «sì» o «fammi un riassunto»: elenco nomi prodotti sotto scorta, guasti (mezzo o segnalazione generica) e scadenze mezzi urgenti, poi meteo.
+
+## Tony — briefing dashboard mobile/PWA (2026-06-15)
+
+**Problema:** aprendo la dashboard dalla PWA su telefono il saluto/riassunto proattivo sembrava non partire.
+
+**Cause:** su mobile il TTS automatico è disattivato (`tonyDashboardPreferChatBriefing`) e il messaggio veniva scritto solo nella chat Tony con **pannello chiuso** (FAB visibile ma chat nascosta). Inoltre il messaggio proattivo `_displayOnly` non entrava in `Tony.chatHistory`, quindi «sì» alla domanda «vuoi un riassunto?» non attivava il riassunto dettagliato.
+
+**Fix:** `core/js/tony/main.js` — su mobile/touch apre automaticamente il pannello chat per messaggi proattivi senza voce; salva il turno in `chatHistory`; `window.__tonyOpenChatPanel`. `core/dashboard-standalone.html` — passa `openPanel: true` su mobile a `__tonyDisplayProactive`.
+
+**Verifica:** PWA/mobile → login manager → dashboard: dopo ~3 s si apre la chat Tony con saluto/briefing; rispondere «sì» avvia il riassunto ops+meteo.
 
 ## Tony — merge GitHub + lavoro locale e verifica E2E seconda macchina (2026-06-14)
 
