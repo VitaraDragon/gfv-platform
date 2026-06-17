@@ -138,6 +138,7 @@
 | 10.9 | Meteo vocale su dashboard da cache client (`tryDashboardMeteoQuickReply`), senza CF | fix voce dashboard 2026-06-09 | implementato | `meteo-dashboard-quick-reply.js` |
 | 10.10 | RIASSUNTO dashboard client: ops + meteo; «sì/ok» solo dopo offerta briefing; addio «grazie» locale senza CF | fix voce dashboard 2026-06-09 | implementato | `buildDashboardRiassuntoText`, `tonyWantsDashboardRiassunto` — build `2026-06-09g` |
 | 10.11 | Latenza dialogo auto-mode: costanti mic/TTS accorciate (`2026-06-14a`: final 220 ms, speechend 450 ms, restart 350 ms, reopen 100 ms) | tuning UX vocale 2026-06-14 | implementato | Baseline stabile post E2E multi-PC; ulteriore riduzione non raccomandata senza test mirati |
+| 10.12 | Riapertura microfono auto-mode: scheduler unico `scheduleMicReopenInAutoMode` (debounce onend + TTS + speechend vuoto) | fix loop mic mobile/PWA 2026-06-14 | implementato | build `2026-06-14b`; soppressione speechend vuoto entro 700 ms post-invio |
 
 ---
 

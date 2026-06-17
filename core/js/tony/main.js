@@ -44,7 +44,7 @@ import { applyStreamingTtsChunks, getStreamingTtsRemainder } from './stream-tts-
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-14a';
+export const TONY_CLIENT_BUILD = '2026-06-14b';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -5721,7 +5721,32 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         var VOICE_RECOGNITION_RESTART_MS = 350;
         var VOICE_REOPEN_IDLE_DEFAULT_MS = 60;
         var voiceAutoSendTimer = null;
+        var voiceMicReopenTimer = null;
+        var voiceMicSuppressOnendUntil = 0;
+        var voiceLastSendAt = 0;
         var TONY_SESSION_MAX_AGE_MS = 600000;
+
+        function clearVoiceMicReopenTimer() {
+            if (voiceMicReopenTimer) {
+                clearTimeout(voiceMicReopenTimer);
+                voiceMicReopenTimer = null;
+            }
+        }
+
+        /** Un solo punto di riapertura mic in auto-mode (evita loop onend + TTS + speechend vuoto). */
+        function scheduleMicReopenInAutoMode(delayMs) {
+            if (!isAutoMode) return;
+            var delay = typeof delayMs === 'number' ? delayMs : VOICE_RECOGNITION_RESTART_MS;
+            clearVoiceMicReopenTimer();
+            voiceMicSuppressOnendUntil = Date.now() + delay + 80;
+            voiceMicReopenTimer = setTimeout(function () {
+                voiceMicReopenTimer = null;
+                if (!isAutoMode || isWaitingForTonyResponse || tonyAudioPipelineActive()) return;
+                if (Date.now() < voiceMicSuppressOnendUntil - 40) return;
+                resetAutoModeTimeout();
+                if (startListeningRef) startListeningRef();
+            }, delay);
+        }
 
         function clearVoiceAutoSendTimer() {
             if (voiceAutoSendTimer) {
@@ -5829,6 +5854,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 resetAutoModeTimeout();
             } else {
                 clearVoiceAutoSendTimer();
+                clearVoiceMicReopenTimer();
                 if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: false, reason: 'auto_mode_off' });
                 if (stopListeningRef) stopListeningRef();
                 panel.classList.remove('is-auto-mode');
@@ -5838,21 +5864,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         }
 
         function reopenMicIfAutoMode() {
-            if (isAutoMode && startListeningRef) {
-                resetAutoModeTimeout();
-                setTimeout(function() {
-                    if (isAutoMode && !isWaitingForTonyResponse && !tonyAudioPipelineActive()) {
-                        startListeningRef();
-                    }
-                }, VOICE_MIC_REOPEN_DELAY_MS);
-            }
+            scheduleMicReopenInAutoMode(VOICE_MIC_REOPEN_DELAY_MS);
         }
 
         function scheduleReopenMicIfIdle(delayMs) {
-            setTimeout(function() {
-                if (!isAutoMode || isWaitingForTonyResponse || tonyAudioPipelineActive()) return;
-                reopenMicIfAutoMode();
-            }, typeof delayMs === 'number' ? delayMs : VOICE_REOPEN_IDLE_DEFAULT_MS);
+            scheduleMicReopenInAutoMode(typeof delayMs === 'number' ? delayMs : VOICE_REOPEN_IDLE_DEFAULT_MS);
         }
 
         var voiceApi = initTonyVoice({
@@ -7638,8 +7654,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
             function stopListening() {
                 try { recognition.stop(); } catch (err) {}
-                micBtn.classList.remove('tony-mic-active', 'is-auto-mode');
-                if (!isAutoMode) panel.classList.remove('is-auto-mode');
+                micBtn.classList.remove('tony-mic-active');
+                if (!isAutoMode) {
+                    micBtn.classList.remove('is-auto-mode');
+                    panel.classList.remove('is-auto-mode');
+                }
             }
 
             startListeningRef = startListening;
@@ -7657,12 +7676,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     var textToSend = pendingVoiceText ? String(pendingVoiceText).trim() : '';
                     pendingVoiceText = null;
                     if (textToSend) {
+                        voiceLastSendAt = Date.now();
                         console.log('[Tony] Invio testo vocale (' + (reason || 'auto') + '):', textToSend);
                         resetAutoModeTimeout();
                         sendMessage(textToSend, { fromVoice: true });
                     } else {
-                        console.warn('[Tony] Auto-send senza testo (' + (reason || 'auto') + ').');
-                        reopenMicIfAutoMode();
+                        if (Date.now() - voiceLastSendAt < 700) return;
+                        console.warn('[Tony] Auto-send senza testo (' + (reason || 'auto') + ') — ignorato.');
+                        scheduleMicReopenInAutoMode(VOICE_MIC_REOPEN_DELAY_MS);
                     }
                 }, delay);
             }
@@ -7693,12 +7714,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     return;
                 }
                 if (isAutoMode && autoModeTimeout) {
+                    if (Date.now() < voiceMicSuppressOnendUntil) return;
                     console.log('[Tony] Fine sessione naturale, riaccendo tra ' + VOICE_RECOGNITION_RESTART_MS + ' ms...');
-                    setTimeout(function() {
-                        if (isAutoMode && autoModeTimeout && !isWaitingForTonyResponse && !tonyAudioPipelineActive()) {
-                            try { recognition.start(); } catch (err) {}
-                        }
-                    }, VOICE_RECOGNITION_RESTART_MS);
+                    scheduleMicReopenInAutoMode(VOICE_RECOGNITION_RESTART_MS);
                 } else {
                     micBtn.classList.remove('tony-mic-active');
                 }
@@ -7707,6 +7725,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             var speakWithTTSCore = speakWithTTS;
             speakWithTTS = function(text, opts) {
                 clearVoiceAutoSendTimer();
+                clearVoiceMicReopenTimer();
+                voiceMicSuppressOnendUntil = Date.now() + 1200;
                 pendingVoiceText = null;
                 if (typeof stopListeningRef === 'function') stopListeningRef();
                 return speakWithTTSCore(text, opts);

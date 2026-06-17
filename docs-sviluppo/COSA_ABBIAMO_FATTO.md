@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (merge multi-PC + E2E vocale lavoro su seconda macchina + baseline latenza `2026-06-14a`).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-14 (build `2026-06-14b` — fix loop microfono auto-mode).**
+
+## Tony — fix loop microfono auto-mode mobile/PWA (2026-06-14)
+
+**Problema:** in auto-mode il microfono sembrava aprirsi/chiudersi in loop (soprattutto mobile/PWA dopo salvataggio lavoro). Cause: `recognition.onend`, `reopenMicIfAutoMode` post-TTS e `speechend` senza testo riavviavano il mic in parallelo; `stopListening` toglieva anche la classe `is-auto-mode` pur restando in auto-mode.
+
+**Fix (build `2026-06-14b`):** `scheduleMicReopenInAutoMode` unificato con debounce; soppressione `onspeechend` vuoto entro 700 ms dall'ultimo invio; `stopListening` mantiene stato visivo auto-mode; TTS blocca riaperture duplicate per ~1,2 s.
+
+**File:** `core/js/tony/main.js`, `core/js/tony-widget-standalone.js`.
 
 ## Tony — merge GitHub + lavoro locale e verifica E2E seconda macchina (2026-06-14)
 
