@@ -1,5 +1,7 @@
 # 🚀 Analisi Strategia Lancio - GFV Platform (Nuovo Player)
 
+> **Handoff strategia aggiornato (2026-06-19):** [`STRATEGIA_MARKETING_VENDITA_HANDOFF.md`](STRATEGIA_MARKETING_VENDITA_HANDOFF.md) — decisioni chiuse, funnel, backlog GTM.
+
 **Data**: 2026-01-24  
 **Contesto**: Nuovo player sconosciuto (no sito, no social, no dominio, solo sviluppo)  
 **Obiettivo**: Definire strategia pricing e freemium ottimale per acquisizione utenti e sostenibilità

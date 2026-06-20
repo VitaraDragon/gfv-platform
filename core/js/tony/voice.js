@@ -4,6 +4,8 @@
  */
 
 var lastTTSCache = { text: '', audioBase64: '', voice: '' };
+var ttsInflightFetches = new Map();
+var getTonyAudioCallablePromise = null;
 
     function ttsCacheHit(testoPulito) {
         return testoPulito === lastTTSCache.text
@@ -15,6 +17,85 @@ var lastTTSCache = { text: '', audioBase64: '', voice: '' };
         lastTTSCache.text = testoPulito;
         lastTTSCache.audioBase64 = audioContent;
         lastTTSCache.voice = voice || '';
+    }
+
+    function buildMinimalTtsContextPayload() {
+        try {
+            var ctx = window.Tony && window.Tony.context;
+            if (!ctx) return null;
+            var dash = ctx.dashboard || {};
+            var minimal = {};
+            if (dash.tenantId) {
+                minimal.dashboard = { tenantId: dash.tenantId };
+            }
+            if (dash.plan || dash.piano) {
+                minimal.dashboard = minimal.dashboard || {};
+                minimal.dashboard.plan = dash.plan || dash.piano;
+            }
+            return Object.keys(minimal).length ? minimal : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    async function resolveGetTonyAudioCallable() {
+        if (getTonyAudioCallablePromise) return getTonyAudioCallablePromise;
+        getTonyAudioCallablePromise = (async function() {
+            var firebaseService = await import('../../services/firebase-service.js');
+            var app = firebaseService.getAppInstance && firebaseService.getAppInstance();
+            if (!app) throw new Error('Firebase non pronto');
+            var firebaseFunctions = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
+            var functions = firebaseFunctions.getFunctions(app, 'europe-west1');
+            return firebaseFunctions.httpsCallable(functions, 'getTonyAudio');
+        })();
+        return getTonyAudioCallablePromise;
+    }
+
+    function warmTonyTtsPipeline() {
+        resolveGetTonyAudioCallable().catch(function() {});
+    }
+
+    /**
+     * Fetch MP3 con dedup in-flight (prefetch + speak condividono la stessa Promise).
+     * @param {string} testoPulito
+     * @param {number} genAtStart
+     * @returns {Promise<{ audioContent: string, voice: string }|null>}
+     */
+    async function fetchTonyAudioMp3(testoPulito, genAtStart) {
+        if (ttsCacheHit(testoPulito)) {
+            return { audioContent: lastTTSCache.audioBase64, voice: lastTTSCache.voice };
+        }
+        if (ttsInflightFetches.has(testoPulito)) {
+            return ttsInflightFetches.get(testoPulito);
+        }
+        var fetchPromise = (async function() {
+            try {
+                var getTonyAudio = await resolveGetTonyAudioCallable();
+                var ctxPayload = buildMinimalTtsContextPayload();
+                var payload = ctxPayload
+                    ? { text: testoPulito, context: ctxPayload }
+                    : { text: testoPulito };
+                var TTS_TIMEOUT_MS = 15000;
+                var result = await Promise.race([
+                    getTonyAudio(payload),
+                    new Promise(function(_, reject) {
+                        setTimeout(function() {
+                            reject(new Error('getTonyAudio timeout ' + TTS_TIMEOUT_MS + 'ms'));
+                        }, TTS_TIMEOUT_MS);
+                    })
+                ]);
+                if (genAtStart !== currentGeneration()) return null;
+                if (result.data && result.data.audioContent) {
+                    storeTTSCache(testoPulito, result.data.audioContent, result.data.voice);
+                    return { audioContent: result.data.audioContent, voice: result.data.voice };
+                }
+                return null;
+            } finally {
+                ttsInflightFetches.delete(testoPulito);
+            }
+        })();
+        ttsInflightFetches.set(testoPulito, fetchPromise);
+        return fetchPromise;
     }
 
     /** Trattini usati in range (es. 19–29°C). Va normalizzato prima dello strip Unicode che rimuove U+2013. */
@@ -131,6 +212,25 @@ var lastTTSCache = { text: '', audioBase64: '', voice: '' };
         return s;
     }
 
+    function prepareTextForTTS(testo) {
+        if (!testo) return '';
+        var testoPulito = pulisciTestoPerVoce(testo);
+        if (testoPulito.indexOf('{') >= 0 || testoPulito.indexOf('"text"') >= 0 || /^\s*\{/.test(testoPulito)) {
+            var extracted = extractTextForTTS(testoPulito);
+            if (extracted) testoPulito = extracted;
+        }
+        if (!testoPulito || testoPulito.length < 2) return '';
+        testoPulito = testoPulito.replace(/\s+[}\]]\s*$/g, '').trim();
+        if (testoPulito.length < 15 && (/^(json\s*[}\]]?|[\s}\]]+)$/i.test(testoPulito) || /^\s*[}\]]\s*$/i.test(testoPulito))) {
+            return '';
+        }
+        return testoPulito;
+    }
+
+    function currentGeneration() {
+        return typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0;
+    }
+
 /**
  * Inizializza il modulo voice. Restituisce { speakWithTTS }.
  * @param {{ onPlayEnd?: function(opts), onPlayStart?: function }} options
@@ -146,10 +246,6 @@ export function initTonyVoice(options) {
         window.__tonyIsSpeaking = window.__tonyIsSpeaking || false;
         if (typeof window.__tonyGeneration !== 'number') window.__tonyGeneration = 0;
     }
-
-        function currentGeneration() {
-            return typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0;
-        }
 
         function stopCurrentTonyAudioElement() {
             if (!window.currentTonyAudio) return;
@@ -173,6 +269,7 @@ export function initTonyVoice(options) {
                 lastTTSCache.text = '';
                 lastTTSCache.audioBase64 = null;
                 lastTTSCache.voice = '';
+                ttsInflightFetches.clear();
             }
             window.__tonyAudioQueue = [];
             window.__tonyIsSpeaking = false;
@@ -182,6 +279,42 @@ export function initTonyVoice(options) {
             if (typeof console !== 'undefined' && console.log) {
                 console.log('[Tony Voice] pipeline cleared', options.reason || '', 'gen=' + currentGeneration());
             }
+        }
+
+        function playAudioFromBase64(testoPulito, audioContent, opts, onDone, genAtStart) {
+            opts = opts || {};
+            if (!onDone) onDone = function() {};
+            function isStale() { return genAtStart !== currentGeneration(); }
+
+            var audioSrc = 'data:audio/mp3;base64,' + audioContent;
+            window.currentTonyAudio = new Audio(audioSrc);
+            window.currentTonyAudio.onplay = function() { onPlayStart(); };
+            window.currentTonyAudio.onerror = function(e) {
+                console.error('[Tony] Audio element error:', e);
+                window.currentTonyAudio = null;
+                onDone();
+            };
+            window.currentTonyAudio.onended = function() {
+                window.currentTonyAudio = null;
+                onPlayEnd(opts);
+                onDone();
+            };
+            if (isStale()) { onDone(); return; }
+            window.currentTonyAudio.play().catch(function(e) {
+                if (e && e.name === 'NotAllowedError') {
+                    window.currentTonyAudio = null;
+                    window.__tonyAudioQueue = window.__tonyAudioQueue || [];
+                    window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts, gen: genAtStart });
+                    window.__tonyIsSpeaking = false;
+                    schedulePlayOnFirstInteraction();
+                    if (typeof console !== 'undefined' && console.log) {
+                        console.log('[Tony] Audio rinviato: riproduzione al primo click (policy browser).');
+                    }
+                    return;
+                }
+                console.error('[Tony] Errore play():', e);
+                onDone();
+            });
         }
 
         function processNextAudio() {
@@ -225,89 +358,17 @@ export function initTonyVoice(options) {
             if (opts.forceInterrupt) clearTonyAudioPipeline({ bump: false, reason: 'force_interrupt' });
             if (isStale()) { onDone(); return; }
 
-            if (testoPulito === lastTTSCache.text && lastTTSCache.audioBase64) {
-                var audioSrc = 'data:audio/mp3;base64,' + lastTTSCache.audioBase64;
-                window.currentTonyAudio = new Audio(audioSrc);
-                window.currentTonyAudio.onplay = function() { onPlayStart(); };
-                window.currentTonyAudio.onerror = function(e) {
-                    console.error('[Tony] Audio cached error:', e);
-                    window.currentTonyAudio = null;
-                    onDone();
-                };
-                window.currentTonyAudio.onended = function() {
-                    window.currentTonyAudio = null;
-                    onPlayEnd(opts);
-                    onDone();
-                };
-                if (isStale()) { onDone(); return; }
-                window.currentTonyAudio.play().catch(function(e) {
-                    if (e && e.name === 'NotAllowedError') {
-                        window.currentTonyAudio = null;
-                        window.__tonyAudioQueue = window.__tonyAudioQueue || [];
-                        window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts, gen: genAtStart });
-                        window.__tonyIsSpeaking = false;
-                        schedulePlayOnFirstInteraction();
-                        if (typeof console !== 'undefined' && console.log) console.log('[Tony] Audio rinviato: riproduzione al primo click (policy browser).');
-                        return;
-                    }
-                    console.error('[Tony] Errore play cached:', e);
-                    onDone();
-                });
+            if (ttsCacheHit(testoPulito)) {
+                playAudioFromBase64(testoPulito, lastTTSCache.audioBase64, opts, onDone, genAtStart);
                 return;
             }
 
             (async function() {
-                var TTS_TIMEOUT_MS = 15000;
                 try {
-                    var firebaseService = await import('../../services/firebase-service.js');
-                    var app = firebaseService.getAppInstance && firebaseService.getAppInstance();
-                    if (!app) throw new Error('Firebase non pronto');
-                    var firebaseFunctions = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
-                    var functions = firebaseFunctions.getFunctions(app, 'europe-west1');
-                    var getTonyAudio = firebaseFunctions.httpsCallable(functions, 'getTonyAudio');
-                    var ctxPayload = null;
-                    try {
-                        if (window.Tony && window.Tony.context) {
-                            ctxPayload = JSON.parse(JSON.stringify(window.Tony.context));
-                        }
-                    } catch (eCtx) {}
-                    var result = await Promise.race([
-                        getTonyAudio({ text: testoPulito, context: ctxPayload }),
-                        new Promise(function(_, reject) {
-                            setTimeout(function() { reject(new Error('getTonyAudio timeout ' + TTS_TIMEOUT_MS + 'ms')); }, TTS_TIMEOUT_MS);
-                        })
-                    ]);
+                    var audioResult = await fetchTonyAudioMp3(testoPulito, genAtStart);
                     if (isStale()) { onDone(); return; }
-                    if (result.data && result.data.audioContent) {
-                        storeTTSCache(testoPulito, result.data.audioContent, result.data.voice);
-                        if (isStale()) { onDone(); return; }
-                        var audioSrc = 'data:audio/mp3;base64,' + result.data.audioContent;
-                        window.currentTonyAudio = new Audio(audioSrc);
-                        window.currentTonyAudio.onplay = function() { onPlayStart(); };
-                        window.currentTonyAudio.onerror = function(e) {
-                            console.error('[Tony] Audio element error:', e);
-                            window.currentTonyAudio = null;
-                            onDone();
-                        };
-                        window.currentTonyAudio.onended = function() {
-                            window.currentTonyAudio = null;
-                            onPlayEnd(opts);
-                            onDone();
-                        };
-                        if (isStale()) { onDone(); return; }
-                        window.currentTonyAudio.play().catch(function(e) {
-                            if (e && e.name === 'NotAllowedError') {
-                                window.currentTonyAudio = null;
-                                window.__tonyAudioQueue = window.__tonyAudioQueue || [];
-                                window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts, gen: genAtStart });
-                                window.__tonyIsSpeaking = false;
-                                schedulePlayOnFirstInteraction();
-                                if (typeof console !== 'undefined' && console.log) console.log('[Tony] Audio rinviato: riproduzione al primo click (policy browser).');
-                                return;
-                            }
-                            console.error('[Tony] Errore play():', e);
-                            onDone();
-                        });
+                    if (audioResult && audioResult.audioContent) {
+                        playAudioFromBase64(testoPulito, audioResult.audioContent, opts, onDone, genAtStart);
                     } else {
                         onPlayEnd(opts);
                         onDone();
@@ -326,17 +387,8 @@ export function initTonyVoice(options) {
                 onPlayEnd(opts);
                 return;
             }
-            var testoPulito = pulisciTestoPerVoce(testo);
-            if (testoPulito.indexOf('{') >= 0 || testoPulito.indexOf('"text"') >= 0 || /^\s*\{/.test(testoPulito)) {
-                var extracted = extractTextForTTS(testoPulito);
-                if (extracted) testoPulito = extracted;
-            }
-            if (!testoPulito || testoPulito.length < 2) {
-                onPlayEnd(opts);
-                return;
-            }
-            testoPulito = testoPulito.replace(/\s+[}\]]\s*$/g, '').trim();
-            if (testoPulito.length < 15 && (/^(json\s*[}\]]?|[\s}\]]+)$/i.test(testoPulito) || /^\s*[}\]]\s*$/i.test(testoPulito))) {
+            var testoPulito = prepareTextForTTS(testo);
+            if (!testoPulito) {
                 onPlayEnd(opts);
                 return;
             }
@@ -350,44 +402,58 @@ export function initTonyVoice(options) {
         function prefetchTonyTTS(testo, genOverride) {
             if (!testo || typeof testo !== 'string') return;
             var genAtStart = genOverride != null ? genOverride : currentGeneration();
-            var testoPulito = pulisciTestoPerVoce(testo);
-            if (testoPulito.indexOf('{') >= 0 || testoPulito.indexOf('"text"') >= 0) {
-                var extracted = extractTextForTTS(testoPulito);
-                if (extracted) testoPulito = extracted;
-            }
-            if (!testoPulito || testoPulito.length < 2) return;
+            var testoPulito = prepareTextForTTS(testo);
+            if (!testoPulito) return;
             if (ttsCacheHit(testoPulito)) return;
-            (async function() {
-                try {
-                    var firebaseService = await import('../../services/firebase-service.js');
-                    var app = firebaseService.getAppInstance && firebaseService.getAppInstance();
-                    if (!app) return;
-                    var firebaseFunctions = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
-                    var functions = firebaseFunctions.getFunctions(app, 'europe-west1');
-                    var getTonyAudio = firebaseFunctions.httpsCallable(functions, 'getTonyAudio');
-                    var ctxPayload = null;
-                    try {
-                        if (window.Tony && window.Tony.context) {
-                            ctxPayload = JSON.parse(JSON.stringify(window.Tony.context));
-                        }
-                    } catch (eCtx) {}
-                    var result = await getTonyAudio({ text: testoPulito, context: ctxPayload });
-                    if (genAtStart !== currentGeneration()) return;
-                    if (result.data && result.data.audioContent) {
-                        storeTTSCache(testoPulito, result.data.audioContent, result.data.voice);
-                    }
-                } catch (e) {
-                    /* prefetch best-effort */
-                }
-            })();
+            fetchTonyAudioMp3(testoPulito, genAtStart).catch(function() {
+                /* prefetch best-effort */
+            });
         }
 
         if (typeof window !== 'undefined') {
             window.__tonyPrefetchTTS = prefetchTonyTTS;
             window.__tonyClearAudioPipeline = clearTonyAudioPipeline;
+            window.__tonyWarmTTS = warmTonyTtsPipeline;
+            window.__tonyTtsCanary = function runTonyTtsCanary(options) {
+                options = options || {};
+                var manifest = {
+                    loaderBuild: window.__TONY_LOADER_BUILD || null,
+                    clientBuild: window.__TONY_CLIENT_BUILD || null,
+                    generation: currentGeneration(),
+                    warmTts: typeof window.__tonyWarmTTS === 'function',
+                    prefetchTts: typeof window.__tonyPrefetchTTS === 'function',
+                    cacheText: lastTTSCache.text ? lastTTSCache.text.slice(0, 48) : null,
+                    speakingRateNote: '1.05 default server (serve deploy CF getTonyAudio)',
+                    features: {
+                        callableCached: !!getTonyAudioCallablePromise,
+                        inflightDedup: true,
+                        minimalContext: true,
+                        warmOnInit: true,
+                        warmOnTyping: true
+                    }
+                };
+                console.log('[Tony TTS Canary] manifest', manifest);
+                if (typeof console.table === 'function') console.table(manifest.features);
+                if (options.speakTest === true && typeof prefetchTonyTTS === 'function' && typeof speakWithTTS === 'function') {
+                    var sample = 'Prova voce Tony. Uno due tre.';
+                    var t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+                    warmTonyTtsPipeline();
+                    prefetchTonyTTS(sample);
+                    speakWithTTS(sample, { _canary: true });
+                    var syncMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0;
+                    console.log('[Tony TTS Canary] sample queued in ' + syncMs.toFixed(1) + ' ms (audio async via getTonyAudio)');
+                }
+                return manifest;
+            };
+            warmTonyTtsPipeline();
         }
 
-    return { speakWithTTS: speakWithTTS, prefetchTonyTTS: prefetchTonyTTS, clearTonyAudioPipeline: clearTonyAudioPipeline };
+    return {
+        speakWithTTS: speakWithTTS,
+        prefetchTonyTTS: prefetchTonyTTS,
+        clearTonyAudioPipeline: clearTonyAudioPipeline,
+        warmTonyTtsPipeline: warmTonyTtsPipeline
+    };
 }
 
 export { expandSpokenUnitsForItalianTTS, normalizeTemperaturesForItalianTTS, pulisciTestoPerVoce };

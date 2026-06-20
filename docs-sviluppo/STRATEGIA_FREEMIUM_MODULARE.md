@@ -1,5 +1,9 @@
 # 💰 Strategia Freemium Modulare - GFV Platform
 
+> **⚠️ Documento storico (2026-01-24).** Prezzi piani Starter/Pro/Enterprise e listini moduli **non** riflettono il codice attuale.  
+> **Fonte canonica prezzi:** `core/config/subscription-plans.js`  
+> **Strategia vendita unificata + backlog GTM (2026-06-19):** [`STRATEGIA_MARKETING_VENDITA_HANDOFF.md`](STRATEGIA_MARKETING_VENDITA_HANDOFF.md)
+
 **Data**: 2026-01-24  
 **Obiettivo**: Definire strategia monetizzazione con Free come acquisition tool + modello modulare pay-per-module  
 **Target**: Aziende agricole italiane (piccole-medie)

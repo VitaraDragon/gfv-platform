@@ -1,7 +1,7 @@
 # Handoff — Cambio voce Tony: Google Chirp 3 HD
 
 **Creato:** 2026-06-10  
-**Stato:** ✅ **Implementato in codice** — deploy `getTonyAudio` + ascolto manuale da completare  
+**Stato:** ✅ **Implementato in codice** — voce Chirp 3 HD Charon; **latenza TTS 2026-06-19** (build client `2026-06-19a`, `speakingRate` 1.05)  
 **Scopo:** guida completa per un nuovo agente/sviluppatore: stato attuale, scelta voce, implementazione, costi, test, rollback.
 
 **Documenti correlati:**
@@ -49,12 +49,15 @@ Risposta Tony (testo)
 
 | Elemento | Valore / file |
 |----------|----------------|
-| Cloud Function | `exports.getTonyAudio` in `functions/index.js` (~riga 4024) |
+| Cloud Function | `exports.getTonyAudio` in `functions/index.js` |
 | SDK | `@google-cloud/text-to-speech` ^5.x |
-| Voce | **`it-IT-Wavenet-D`** (maschile, tono profondo — «capocantiere») |
-| `audioConfig` | `MP3`, **`pitch: -3.0`**, **`speakingRate: 0.95`** |
+| Voce | **`it-IT-Chirp3-HD-Charon`** (env `TONY_TTS_VOICE`) |
+| `audioConfig` | `MP3`, **`speakingRate: 1.05`** default (env `TONY_TTS_SPEAKING_RATE`); **no pitch** (Wavenet legacy rimosso) |
 | Gate piano | Piano **Free** → `permission-denied`; Base+ ok |
-| Client | `core/js/tony/voice.js` — coda, cache locale `lastTTSCache`, timeout 15 s |
+| Client | `core/js/tony/voice.js` — coda, cache `lastTTSCache` (testo+voice), **callable cached**, **dedup in-flight**, **warm init/typing**, timeout 15 s |
+| Chunking | `core/js/tony/stream-tts-chunk.js` — `speakTextInSentenceChunks` su risposte complete e SSE |
+| Build client | **`2026-06-19a`** (`TONY_CLIENT_BUILD` in `main.js`, loader widget) |
+| Canary | `npm run tony:tts-canary`; browser `__tonyTtsCanary()` |
 | Pulizia testo | `pulisciTestoPerVoce`, espansione q.li/ha/litri/kg (italiano agricolo) |
 | API GCP | **Cloud Text-to-Speech API** abilitata sul progetto Firebase |
 
@@ -114,7 +117,7 @@ Chirp 3 espone molte voci; per Tony (assistente agricolo, tono **sicuro, maschil
 
 Femminili (se si cambia persona Tony): Kore, Leda, Zephyr, Aoede, …
 
-**Raccomandazione implementazione:** partire da **`it-IT-Chirp3-HD-Charon`**, `speakingRate: 0.95`–`1.0`; **non** copiare `pitch: -3.0` di Wavenet senza ascolto (Chirp ha timbro diverso).
+**Raccomandazione implementazione:** partire da **`it-IT-Chirp3-HD-Charon`**, `speakingRate` **1.05** (2026-06-19; range 0.95–1.1); **non** copiare `pitch: -3.0` di Wavenet.
 
 ### Ascolto prima del deploy
 
@@ -153,7 +156,7 @@ Femminili (se si cambia persona Tony): Kore, Leda, Zephyr, Aoede, …
 // Esempio target — adattare al pattern env del progetto
 const TONY_TTS_VOICE =
   process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
-const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "0.95");
+const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.05");
 // pitch: opzionale solo se test Chirp lo supporta
 ```
 
@@ -247,7 +250,7 @@ Oppure revert commit su `functions/index.js` e deploy.
 | Costo TTS raddoppiato per carattere | Impatto basso su MRR; monitor billing GCP TTS |
 | Errore API voce non trovata | `list_voices` CLI; fallback env a Wavenet-D |
 | Cache client audio vecchio | Fase B — includere `voice` in cache key |
-| Latenza percepita | Prefetch già in `prefetchTonyTTS`; Fase 2 chunking |
+| Latenza percepita | Prefetch + **dedup in-flight** + **warm typing** (2026-06-19); chunking frasi (`speakTextInSentenceChunks`); canary `npm run tony:tts-canary` |
 | Pitch Wavenet non replicabile | Non forzare `pitch: -3`; scegliere voce maschile Chirp adeguata |
 
 ---
@@ -270,7 +273,9 @@ gcloud text-to-speech voices list --filter="languageCodes:it-IT" --format="table
 ## 10. Criteri di accettazione
 
 - [x] `getTonyAudio` usa `it-IT-Chirp3-HD-*` (o env equivalente)
-- [ ] Ascolto approvato su frasi meteo, navigazione, conferme ore
+- [x] Pipeline latenza client (callable cached, payload minimale, dedup, warm) — build `2026-06-19a`
+- [x] Chunking TTS frasi su risposte complete
+- [ ] Ascolto approvato su frasi meteo, navigazione, conferme ore (post `speakingRate` 1.05)
 - [ ] Nessuna regressione barge-in / chiusura pannello Tony
 - [ ] Piano Free ancora bloccato
 - [x] Cache client coerente con voce (Fase B)

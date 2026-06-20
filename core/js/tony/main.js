@@ -40,11 +40,11 @@ import {
     tryRecoverProdottoCfFakeSave,
 } from '../tony-prodotto-create-local.js';
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
-import { applyStreamingTtsChunks, getStreamingTtsRemainder } from './stream-tts-chunk.js';
+import { applyStreamingTtsChunks, getStreamingTtsRemainder, speakTextInSentenceChunks } from './stream-tts-chunk.js';
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-14c';
+export const TONY_CLIENT_BUILD = '2026-06-19a';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -6058,6 +6058,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (!opts.proactive) {
                 tonyEarlyTypingTimer = setTimeout(function() {
                     appendMessage('Sto controllando...', 'typing');
+                    if (typeof window.__tonyWarmTTS === 'function') {
+                        try { window.__tonyWarmTTS(); } catch (eWarm) { /* ignore */ }
+                    }
                 }, 150);
             }
             saveTonyState();
@@ -6803,12 +6806,16 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         }
                         return;
                     }
-                    if (prefetchTonyTTS) {
-                        try { prefetchTonyTTS(out, ttsGen); } catch (ePf) { /* ignore */ }
-                    } else if (typeof window.__tonyPrefetchTTS === 'function') {
-                        try { window.__tonyPrefetchTTS(out, ttsGen); } catch (ePf2) { /* ignore */ }
+                    var chunkPrefetch = prefetchTonyTTS;
+                    if (!chunkPrefetch && typeof window.__tonyPrefetchTTS === 'function') {
+                        chunkPrefetch = window.__tonyPrefetchTTS;
                     }
-                    speakWithTTS(out, Object.assign({}, speakOpts, ttsGen != null ? { gen: ttsGen } : {}));
+                    speakTextInSentenceChunks(out, {
+                        gen: ttsGen,
+                        opts: speakOpts,
+                        prefetch: chunkPrefetch,
+                        speak: speakWithTTS
+                    });
                 }
 
                 function onComplete(response) {
@@ -7418,9 +7425,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 var out = String(replyText || '').trim();
                 if (!out) return;
                 appendMessage(out, 'tony');
-                if (window.Tony && typeof window.Tony.speak === 'function') {
-                    window.Tony.speak(out);
-                }
+                speakTextInSentenceChunks(out, {
+                    opts: opts,
+                    prefetch: prefetchTonyTTS,
+                    speak: speakWithTTS
+                });
                 saveTonyState();
                 clearVoiceTurnGuard();
                 _isSendingMessage = false;

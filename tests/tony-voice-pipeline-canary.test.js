@@ -97,6 +97,19 @@ describe('Tony voice pipeline canary (Fase 1 barge-in)', () => {
     const stalePrefetchGen = genBefore;
     expect(stalePrefetchGen).not.toBe(window.__tonyGeneration);
   });
+
+  it('espone warm pipeline TTS e dedup fetch in-flight', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const voiceSrc = fs.readFileSync(
+      path.join(process.cwd(), 'core/js/tony/voice.js'),
+      'utf8'
+    );
+    expect(voiceSrc).toMatch(/warmTonyTtsPipeline/);
+    expect(voiceSrc).toMatch(/ttsInflightFetches/);
+    expect(voiceSrc).toMatch(/buildMinimalTtsContextPayload/);
+    expect(typeof api.warmTonyTtsPipeline).toBe('function');
+  });
 });
 
 describe('Tony parlato — pulizia testo TTS (canary)', () => {
@@ -149,7 +162,7 @@ describe('Tony Fase 2 chunking TTS — wiring main.js (canary)', () => {
       path.join(process.cwd(), 'core/js/tony/main.js'),
       'utf8'
     );
-    expect(mainSrc).toMatch(/import \{ applyStreamingTtsChunks, getStreamingTtsRemainder \}/);
+    expect(mainSrc).toMatch(/import \{ applyStreamingTtsChunks, getStreamingTtsRemainder, speakTextInSentenceChunks \}/);
     expect(mainSrc).toMatch(/applyStreamingTtsChunks\(daMostrare, streamTtsState/);
     expect(mainSrc).toMatch(/getStreamingTtsRemainder\(out, streamTtsState\)/);
     expect(mainSrc).toMatch(/function tonySpeakAssistantText/);

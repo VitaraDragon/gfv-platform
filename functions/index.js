@@ -47,6 +47,11 @@ const {
   sanitizeTonyResultForModules,
   TONY_MODULI_ATTIVI_RULE,
 } = require("./tony-module-gate");
+const {
+  buildModuleRecommendationHints,
+  tryTonyModuleAdvisorQuickReply,
+  TONY_MODULE_RECOMMENDATION_RULES,
+} = require("./tony-module-recommendations");
 const { classifyTonyIntentShadow } = require("./tony-intent-router");
 const textToSpeech = require("@google-cloud/text-to-speech");
 const admin = require("firebase-admin");
@@ -76,7 +81,7 @@ const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 /** Voce TTS Tony (override: env TONY_TTS_VOICE). Rollback: it-IT-Wavenet-D */
 const TONY_TTS_VOICE = process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
 /** Velocità parlato (override: env TONY_TTS_SPEAKING_RATE). */
-const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "0.95");
+const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.05");
 
 /** Piano tenant: Tony è assente in freemium; enforcement anche lato callable. */
 function normalizeSubscriptionPlanId(raw) {
@@ -2722,6 +2727,14 @@ async function handleTonyAskRequest(request, streamOpts) {
     delete ctxStripped.azienda;
     const ctxBase = tonyFieldProfile ? sanitizeContextForTonyField(ctxStripped) : ctxStripped;
     const aziendaFiltered = filterAziendaByModuliAttivi(azienda, moduliAttiviEarly, { buildSummaryScadenze });
+    const moduleRecPack =
+      subscriptionPlanId !== "free" && !tonyFieldProfile
+        ? buildModuleRecommendationHints(azienda, moduliAttiviEarly)
+        : { hints: [], signalsSummary: "" };
+    if (moduleRecPack.hints && moduleRecPack.hints.length > 0) {
+      aziendaFiltered.consigliModuli = moduleRecPack.hints;
+      aziendaFiltered.segnaliAziendaModuli = moduleRecPack.signalsSummary;
+    }
     const ctxFinal = {
       ...ctxBase,
       azienda: aziendaFiltered,
@@ -2742,6 +2755,16 @@ async function handleTonyAskRequest(request, streamOpts) {
     }
 
     // PREVENTIVO_LIST_ACTION + quick reply binario A (prima di Gemini)
+    if (!tonyFieldProfile && subscriptionPlanId !== "free") {
+      const modAdvQuick = tryTonyModuleAdvisorQuickReply(message, azienda, moduliAttiviEarly);
+      if (modAdvQuick) {
+        tonyPerf.quickReplyHit = modAdvQuick.id;
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: modAdvQuick.text,
+          command: null,
+        });
+      }
+    }
     if (isTonyAdvancedEarly && !tonyFieldProfile) {
       if (detectPreventivoListActionVerb(message)) {
         const prevDet = resolvePreventivoListActionDeterministic(message, ctxFinal);
@@ -2889,6 +2912,17 @@ async function handleTonyAskRequest(request, streamOpts) {
         needsFullPrompt);
 
     let extraBlocks = "";
+    if (subscriptionPlanId !== "free" && !tonyFieldProfile) {
+      extraBlocks += TONY_MODULE_RECOMMENDATION_RULES;
+      if (moduleRecPack.hints && moduleRecPack.hints.length > 0) {
+        extraBlocks +=
+          "\nazienda.consigliModuli (suggerimenti precalcolati, usa questi): " +
+          JSON.stringify(moduleRecPack.hints) +
+          ". Segnali: " +
+          (moduleRecPack.signalsSummary || "") +
+          "\n";
+      }
+    }
     if (!tonyFieldProfile && routerBinario !== "A") {
       extraBlocks += TONY_PIANIFICAZIONE_CONTESTO_RULE;
       if (pagePath.includes("/vigneto/")) {

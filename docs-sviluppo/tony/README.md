@@ -1,7 +1,7 @@
 # Tony – Documentazione consolidata
 
 **Cartella**: `docs-sviluppo/tony/`  
-**Ultimo aggiornamento**: 2026-06-10
+**Ultimo aggiornamento**: 2026-06-19
 
 Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la documentazione consolidata per riferimento rapido e sviluppo.
 
@@ -16,9 +16,15 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | **PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md** | Design (non ancora implementato): sostituzioni operai, equipaggio minimo, shortlist, policy tenant, Tony. Da leggere prima di lavorare su manodopera/squadre/lavori. |
 | **PLAN_OTTIMIZZAZIONE_PERFORMANCE.md** | Piano performance Tony (rev. 3, 2026-05-24): Fase 0–2b implementate; tier enforcement + meteo preventivo-data; validazione produzione pending; Fase 3 streaming/form. |
 | **HANDOFF_CONTINUITA_PERFORMANCE_NAV.md** | **Handoff agenti** (2026-06-10): dove eravamo / siamo / arriviamo — nav quick reply, metriche client, perf review, fix meteo; prompt e backlog prioritizzato. |
-| **HANDOFF_TTS_CHIRP3.md** | **Handoff voce Tony** (2026-06-10): migrazione Wavenet-D → **Chirp 3 HD** — scelta voce, costi, implementazione `getTonyAudio`, cache client, test, rollback. |
+| **HANDOFF_TTS_CHIRP3.md** | **Handoff voce Tony** (2026-06-19): Chirp 3 HD Charon, `speakingRate` 1.05, latenza pipeline, canary TTS. |
 | **PIANO_AUDIO_PIPELINE_BARGEIN.md** | 📋 Piano Fase 1: `clearTonyAudioPipeline` + generation token (prerequisito chunking TTS); specifica per agenti. |
 | **README.md** | Questo file – panoramica e link. |
+
+**Fuori cartella Tony (marketing/commerciale):**
+
+| File | Contenuto |
+|------|-----------|
+| **`../STRATEGIA_MARKETING_VENDITA_HANDOFF.md`** | Handoff strategia vendita: funnel Free→Base→moduli, Tony consigliere, backlog GTM, checklist agente. |
 
 ---
 
@@ -31,6 +37,9 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | **Context Builder** | `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md` – struttura ctx.azienda |
 | **currentTableData + FILTER_TABLE** | `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md` – pattern per tabelle, keyToId, estensione |
 | **Changelog** | `docs-sviluppo/COSA_ABBIAMO_FATTO.md` – modifiche con date |
+| **Strategia marketing / vendita** | `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md` – funnel, Tony consigliere, GTM backlog |
+| **Consigliere moduli (config)** | `functions/config/tony-module-recommendations.json`, `functions/tony-module-recommendations.js` |
+| **Canary TTS** | `npm run tony:tts-canary`; browser `__tonyTtsCanary()` |
 | **Trattamenti Vigneto/Frutteto** (performance lista, superficie da anagrafe terreno; non Tony) | `COSA_ABBIAMO_FATTO.md` §2026-04-05; guide `docs-sviluppo/guida-app/moduli/vigneto.md` e `frutteto.md` |
 | **Magazzino – roadmap ipotesi (Gemini/fotocamera, DDT/fattura)** | `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` |
 | **Manodopera – sostituzioni / equipaggio / shortlist** (design) | `docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md` |
@@ -43,7 +52,8 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | Ruolo | Path |
 |-------|------|
 | Widget + comandi | `core/js/tony/main.js` |
-| Cloud Function | `functions/index.js` (tonyAsk, buildContextAzienda) |
+| Cloud Function | `functions/index.js` (tonyAsk, buildContextAzienda, getTonyAudio) |
+| Consigliere moduli | `functions/tony-module-recommendations.js` |
 | Form mapping | `core/config/tony-form-mapping.js` |
 | Form injector | `core/js/tony-form-injector.js` |
 | Service | `core/services/tony-service.js` |

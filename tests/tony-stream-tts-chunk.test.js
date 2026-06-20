@@ -4,6 +4,7 @@ import {
   consumeCompleteStreamingSentences,
   getStreamingTtsRemainder,
   applyStreamingTtsChunks,
+  speakTextInSentenceChunks,
 } from '../core/js/tony/stream-tts-chunk.js';
 
 describe('stream-tts-chunk (Fase 2)', () => {
@@ -52,5 +53,15 @@ describe('stream-tts-chunk (Fase 2)', () => {
     expect(spoken.map((x) => x.t)).toEqual(['Uno.', 'Due.']);
     expect(prefetched.map((x) => x.t)).toEqual(['Uno.', 'Due.']);
     expect(spoken[0].o.gen).toBe(7);
+  });
+
+  it('speakTextInSentenceChunks spezza risposte complete', () => {
+    var spoken = [];
+    var count = speakTextInSentenceChunks('Intro breve. Modulo uno. Modulo due.', {
+      gen: 3,
+      speak: (t, o) => spoken.push({ t, o }),
+    });
+    expect(count).toBe(3);
+    expect(spoken.map((x) => x.t)).toEqual(['Intro breve.', 'Modulo uno.', 'Modulo due.']);
   });
 });

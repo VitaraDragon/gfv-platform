@@ -1,6 +1,58 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-15 (briefing dashboard PWA + RIASSUNTO nomi ops; fix loop mic `2026-06-14b`).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-19 (Tony consigliere, TTS, handoff marketing).**
+
+## Strategia marketing e vendita — handoff agenti (2026-06-19)
+
+**File:** `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md` — decisioni chiuse (Free/Base/Tony consigliere/Operativo), funnel, stato codice vs backlog GTM (limiti Free, Stripe, card Abbonamento), pacchetti commerciali, checklist agente. Riferimento unico per agenti su vendita/conversione moduli.
+
+## Tony — consigliere moduli (Tony Guida, piano Base) (2026-06-19)
+
+**Obiettivo:** Tony Guida suggerisce moduli da attivare (e complementi dopo moduli già attivi) in base a segnali azienda, senza catalogare tipi di azienda rigidi.
+
+**Implementazione:** config `functions/config/tony-module-recommendations.json` (+ mirror `core/config/`); motore `functions/tony-module-recommendations.js` (`buildModuleRecommendationHints`, `tryTonyModuleAdvisorQuickReply`); Context Builder espone `azienda.consigliModuli` e `segnaliAziendaModuli`; prompt `TONY_MODULE_RECOMMENDATION_RULES` in `tonyAsk` (solo piano Base, non Free). Tony Avanzato escluso da `skipModuleIds`.
+
+**Deploy:** richiede deploy **Cloud Functions** (`tonyAsk` + dipendenze).
+
+**Test:** `tests/tony-module-recommendations.test.js` (9).
+
+## Tony — consigliere moduli: segnali gated + riattivazione (2026-06-19)
+
+**Problema:** con Conto Terzi disattivato ma clienti ancora in Firestore, Tony consigliava il modulo come se l'utente «avesse clienti» (motivo corretto solo per riattivazione). Un utente nuovo senza modulo non può avere quei dati.
+
+**Fix:** trigger «scoperta» ignorano clienti/preventivi/macchine/prodotti se il modulo non è attivo; hint `reactivate` se dati legacy in archivio; summary prompt allineato a `filterAziendaByModuliAttivi`.
+
+**Test:** `tests/tony-module-recommendations.test.js` (9).
+
+## Tony — TTS a frasi anche su risposte complete (2026-06-19)
+
+**Problema:** testo chat immediato ma voce tardiva (es. consigliere moduli, quick reply CF) — un solo `getTonyAudio` su tutto il paragrafo.
+
+**Fix client:** `speakTextInSentenceChunks` in `stream-tts-chunk.js`; `tonySpeakAssistantText` in `main.js` usa chunking come lo stream SSE. **Fix server:** testo consigliere moduli con frasi brevi separate (intro + moduli + chiusura).
+
+**Test:** `tony-stream-tts-chunk.test.js` (+1).
+
+## Tony — TTS latenza avvio + velocità parlato (2026-06-19)
+
+**Problema:** voce ancora lenta a partire dopo risposta testo; percezione di parlato più lento del resto dell'app.
+
+**Cause:** `speakingRate` default **0.95** (5% sotto normale); ogni frase re-importava Firebase + inviava tutto `Tony.context` a `getTonyAudio`; prefetch e speak lanciavano **due CF parallele** per lo stesso testo.
+
+**Fix:** default `speakingRate` **1.05** (`functions/index.js`, override env `TONY_TTS_SPEAKING_RATE`); `voice.js` — callable Firebase cached, payload TTS minimale (`tenantId`/`plan`), dedup fetch in-flight prefetch↔speak, warm pipeline all'init e su «Sto controllando…»; chunking frasi (`speakTextInSentenceChunks`) su risposte complete.
+
+**Build client:** `TONY_CLIENT_BUILD` / loader **`2026-06-19a`**.
+
+**Deploy:** **hosting** (voice.js, main.js, widget loader) + **CF** `getTonyAudio` (speakingRate).
+
+**Test:** `tony-voice-pipeline-canary.test.js`, `tony-stream-tts-chunk.test.js`, `tony-tts-latency-canary.test.js` (5).
+
+## Tony — canary TTS eseguibile (2026-06-19)
+
+**CLI:** `npm run tony:tts-canary` — verifica build `2026-06-19a`, `speakingRate` 1.05, wiring voice/main/chunk, bundle locale.
+
+**Browser:** `__tonyTtsCanary()` (manifest); `__tonyTtsCanary({ speakTest: true })` (prova voce).
+
+**Test:** `tests/tony-tts-latency-canary.test.js` (5).
 
 ## Tony — fix loop microfono auto-mode mobile/PWA (2026-06-14)
 

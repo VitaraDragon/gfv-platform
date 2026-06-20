@@ -121,3 +121,38 @@ export function applyStreamingTtsChunks(cleanText, state, handlers) {
     spokeCount: spokeCount,
   };
 }
+
+/**
+ * TTS a frasi per risposte complete (quick reply, ask non-stream, onComplete stream).
+ * @param {string} text
+ * @param {{ prefetch?: function, speak?: function, opts?: object, gen?: number }} handlers
+ * @returns {number} frasi inviate a speak
+ */
+export function speakTextInSentenceChunks(text, handlers) {
+  handlers = handlers || {};
+  var clean = text != null ? String(text).trim() : '';
+  if (!clean || clean.length < 2) return 0;
+  var gen = handlers.gen;
+  var ttsOpts = Object.assign({}, handlers.opts || {}, gen != null ? { gen: gen } : {});
+  var chunkResult = applyStreamingTtsChunks(clean, { consumedLength: 0, gen: gen }, {
+    gen: gen,
+    opts: ttsOpts,
+    prefetch: handlers.prefetch,
+    speak: handlers.speak,
+  });
+  var remainder = getStreamingTtsRemainder(clean, chunkResult.state);
+  if (remainder && remainder.length >= 2) {
+    if (typeof handlers.prefetch === 'function') {
+      try {
+        handlers.prefetch(remainder, gen);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    if (typeof handlers.speak === 'function') {
+      handlers.speak(remainder, ttsOpts);
+      return chunkResult.spokeCount + 1;
+    }
+  }
+  return chunkResult.spokeCount;
+}

@@ -1,6 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
+**Ultimo aggiornamento**: 2026-06-19 (consigliere moduli, TTS latenza, handoff marketing)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -17,6 +18,12 @@
 | 1.4 | Tony Guida e Tony Operativo sono due esperienze diverse; Guida non deve essere impattata da refactor Operativo | GUIDA_OPERATIVO | implementato | |
 | 1.5 | In piano free Tony deve essere totalmente escluso: niente widget, niente endpoint, niente fallback guida | GUIDA_OPERATIVO §7 | non implementato | Widget sempre caricato; CF sempre callable |
 | 1.6 | Modulo Tony: €5/mese, attivazione da pagina Abbonamento | TONY_MODULO_SEPARATO | implementato | subscription-plans.js |
+| 1.7 | **Tony consigliere moduli**: solo piano Base (Tony Guida); segnali azienda + complementi; non Free; non promuove Tony Avanzato | prodotto 2026-06-19 | implementato | `tony-module-recommendations.js`, `azienda.consigliModuli` in tonyAsk; gating legacy + `reactivate` |
+| 1.8 | **Tony consigliere — tono non invasivo**: max 1–2 moduli per turno; no upsell su domande tabella; una frase + «da Abbonamento» | prodotto 2026-06-19 | implementato | `TONY_MODULE_RECOMMENDATION_RULES` in `functions/index.js` |
+| 1.9 | **TTS `speakingRate` default 1.05** (override env); latenza: callable cached, payload minimale, dedup prefetch/speak, warm typing | prodotto 2026-06-19 | implementato | `functions/index.js` `getTonyAudio`; `core/js/tony/voice.js`; build client `2026-06-19a` |
+| 1.10 | **Handoff strategia marketing** unificato (Free/Base/moduli, GTM backlog) | prodotto 2026-06-19 | implementato (doc) | `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md` |
+| 1.11 | **Card statica Abbonamento (Free)** con hint moduli da segnali, senza LLM | STRATEGIA_MARKETING §8 | pianificato | Stesse regole di `tony-module-recommendations.json` |
+| 1.12 | **Chip/banner dashboard** «Tony suggerisce…» dismissible | STRATEGIA_MARKETING §8 | pianificato | Da `consigliModuli` lato client |
 
 ---
 
@@ -84,6 +91,7 @@
 | 6.3 | summarySottoScorta in ctx.azienda | CONTEXT_BUILDER | implementato | `summarySottoScorta` + `prodottiSottoScorta`; prodotti con `scortaMinima`/`giacenza` (2026-04-11) |
 | 6.4 | tenantId dal client obbligatorio per Context Builder | CONTEXT_BUILDER | implementato | |
 | 6.5 | Prodotti con giacenza, scortaMinima/sogliaMinima per sotto scorta | CONTEXT_BUILDER | implementato | prodotti in ctx + summarySottoScorta / prodottiSottoScorta |
+| 6.6 | **consigliModuli**, **segnaliAziendaModuli** in ctx.azienda (Tony Guida Base) | tony-module-recommendations 2026-06-19 | implementato | Solo piano Base in tonyAsk; trigger gated per moduli disattivi |
 
 ---
 
@@ -416,6 +424,9 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | `functions/tony-multi-block-quick-reply.js` | ✅ Fase 4 — multi-blocco meteo/scorte/scadenze |
 | `functions/tony-context-cache.js` | ✅ Cache T4 + **`invalidateTonyContextCache`** (Fase 4.1) |
 | `functions/tony-module-gate.js` | ✅ Gate moduli tenant (quick reply, APRI_PAGINA, ctx.azienda) |
+| `functions/tony-module-recommendations.js` | ✅ **Consigliere moduli Tony Guida (Base)** — segnali, complementi, quick reply, gating legacy (2026-06-19) |
+| `core/js/tony/voice.js` | ✅ TTS pipeline — Chirp 3, **speakingRate 1.05**, callable cached, dedup, warm typing, **`__tonyTtsCanary()`** (2026-06-19) |
+| `core/js/tony/stream-tts-chunk.js` | ✅ **`speakTextInSentenceChunks`** — TTS a frasi su risposte complete (2026-06-19) |
 | `core/js/tony/main.js` | ✅ «sì» nel filo meteo non rubato al briefing; **voce dashboard 2026-06-09g:** RIASSUNTO client, meteo locale, addio locale, mic/TTS; **2026-06-15:** pannello chat mobile su proattivo, `chatHistory` su `_displayOnly`; skip proattivo se CF già chiede; **preventivo:** strip downgrade filari, hint terreno vs scheduling (2026-05-24) |
 | `core/js/tony/meteo-dashboard-quick-reply*.js` | ✅ Meteo + RIASSUNTO dashboard client-side; **`formatDashboardOpsBriefingText`**; test Vitest (**8**) — 2026-06-09 / **2026-06-15** |
 | `core/js/dashboard-tony-briefing-text.js` | ✅ Summary testuali prodotti sotto scorta, guasti aperti, scadenze mezzi urgenti — 2026-06-15 |
@@ -424,7 +435,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | Form terreno | ✅ `terreno-tipo-campo` |
 | Context Builder | ✅ `tipoCampo` su `azienda.terreni` e `meteo.terreni[]` |
 | Tony | ✅ Domanda morfologia; praticabilità; **due date prima/dopo** |
-| Test | ✅ `tests/meteo-tony-quick-reply.test.js`, `tests/tony-meteo-rules.test.js`, `tests/tony-intent-router.test.js`, `tests/tony-module-gate.test.js`, `tests/tony-quick-reply.test.js`, **`tests/tony-nav-quick-reply.test.js`**, **`tests/tony-filter-table-quick-reply.test.js`**, **`tests/tony-multi-block-quick-reply.test.js`**, **`tests/dashboard-tony-briefing-text.test.js`**, **`tests/tony-meteo-dashboard-quick-reply.test.js`**, `tests/tony-context-cache.test.js` (invalidazione) |
+| Test | ✅ … **`tests/tony-module-recommendations.test.js` (9)**, **`tests/tony-tts-latency-canary.test.js` (5)**, `tests/tony-stream-tts-chunk.test.js`, `tests/tony-voice-pipeline-canary.test.js` |
 | Review log produzione | ✅ `scripts/tony-perf-log-review.mjs` — smoke 8 scenari router + **3 binario B quick**. Produzione 2026-06-03: ~25% `usedGemini=false`, hit nav/filter/riassunto |
 
 ---

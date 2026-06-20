@@ -1,7 +1,7 @@
 # Master Plan – Tony Assistente Universale
 
-**Versione**: 1.4  
-**Data**: 2026-04-04  
+**Versione**: 1.5  
+**Data**: 2026-06-19  
 **Stato**: Documento di riferimento – tutte le modifiche a Tony devono allinearsi a questo piano.
 
 *Consolidato da `docs-sviluppo/MASTER_PLAN_TONY_UNIVERSAL.md`*
@@ -14,10 +14,10 @@
 |------|------|-------|---------------|
 | **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo — **injectTerrenoForm + save/proattivo locale** ✅ (2026-06-08); **entity parser terreno client/CF** ✅ (2026-06-14 merge locale) |
 | **2** | Navigazione cross-page | ✅ **Completata** | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08); **hub Manodopera manager** (2026-06-13) |
-| **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); **summarySottoScorta** + prodottiSottoScorta (2026-04-11) |
+| **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); **summarySottoScorta** + prodottiSottoScorta (2026-04-11); **`consigliModuli` / segnali moduli** per Tony Guida Base (2026-06-19) |
 | **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields + **entity parser** 2026-06-14), **Nuovo Preventivo** (preventivo-form, 2026-03-24; **filari + meteo data + disambiguazione terreno** verificati 2026-05-24); **Magazzino** prodotto/movimento + **save locale** + creazione client-side + **cross-page** (3b-C15…**C19** E2E 2026-06-02), dosaggio/carenza obbligatori fitofarmaci, prezzo entrata da catalogo; **intervista lavoro client-side** — ack tipo dopo stem vago E2E ✅ (2026-06-03); **intervista lavoro vocale E2E** ✅ multi-PC (2026-06-14); **Segna ore workspace campo** intervista + save locale 0 CF + validazione manager E2E ✅ (**3b-C21**, 2026-06-04) |
 | **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
-| **6** | Proattività e memoria | ⏳ Parziale | Dashboard + Guasti ok; briefing meteo + **voce dashboard** (saluto, meteo locale, RIASSUNTO client — 2026-06-09g; **PWA chat + nomi ops** — 2026-06-15) + **Chirp 3 HD** (2026-06-13) + **latenza auto-mode baseline** `2026-06-14a` (220/450/350/100 ms, E2E verificata); **chat 8 giorni** + **pianificazione trattamento/lavorazione** (quick reply CF); **praticabilità + asciugatura + doppia alternativa** (§19 TONY_DECISIONI); `condizioniMeteo` trattamento; **boot dashboard ~861 ms** (Fasi perf 0–4, 2026-06-06); "Ho notato X" cross-modulo da fare |
+| **6** | Proattività e memoria | ⏳ Parziale | Dashboard + Guasti ok; briefing meteo + voce dashboard (2026-06-09g; PWA + RIASSUNTO nomi — 2026-06-15); **Chirp 3 HD** + **TTS chunking/latency** build `2026-06-19a`; **Tony consigliere moduli** (upsell soft moduli verticali, solo Base — 2026-06-19); latenza auto-mode `2026-06-14a`; meteo operativo §19; boot dashboard ~861 ms; "Ho notato X" cross-modulo oltre meteo da fare |
 
 ---
 
@@ -250,8 +250,10 @@ Tony non "compila" grafici. Può:
 - Parziale: briefing/dashboard (scorte, scadenze, guasti), **briefing meteo operativo** con modulo `meteo` + Tony Avanzato (2026-05-21), **chat meteo ~8 giorni** e **pianificazione trattamento/lavoro** (quick reply CF + soglie vento/pioggia), **suggerimento `condizioniMeteo`** su form trattamento campo (conferma utente prima del salvataggio)
 - **Implementato (2026-06-09, build client `2026-06-09g`):** flusso **voce dashboard** — saluto proattivo anche senza criticità ops; domanda meteo → cache client (0 CF); «fammi un riassunto» / «sì» dopo offerta → `buildDashboardRiassuntoText`; addio vocale locale; TTS senza troncamento (mic off durante parlato, no eco `barge_in_speech`); temperature TTS «da X a Y gradi»
 - **Implementato (2026-06-15):** **PWA/mobile** — saluto in chat con apertura pannello Tony (no TTS autoplay); turno proattivo in `chatHistory` per conferma «sì»; **RIASSUNTO** con **nomi** prodotti sotto scorta, guasti e scadenze mezzi (`dashboard-tony-briefing-text.js` + summary nello snapshot dashboard)
+- **Implementato (2026-06-19):** **Tony consigliere moduli** — Tony Guida (solo Base) suggerisce moduli e complementi da segnali azienda; gating legacy; vedi `STRATEGIA_MARKETING_VENDITA_HANDOFF.md`
+- **Implementato (2026-06-19):** **TTS latenza** — chunking frasi risposte complete; `speakingRate` 1.05; pipeline voice cached/dedup; build `2026-06-19a`; canary `npm run tony:tts-canary`
 - **Implementato (2026-05-22):** praticabilità terreno per **morfologia** (pianura/collina/montagna), soglie mm lookback, **asciugatura post-pioggia** per lavorazioni terreno, **doppia alternativa** (prima/dopo giorno scartato), select `tipoCampo`, quick reply Tony (morfologia + praticabilità + due date) — v. `TONY_DECISIONI_E_REQUISITI.md` §19.8–§19.9; **UI Impostazioni** override soglie tenant ancora da fare (default hardcoded)
-- Da fare: frasi tipo "Ho notato X, vuoi che...?" cross-modulo oltre meteo; confronti temporali strutturati dove i dati sono disponibili
+- Da fare: frasi tipo "Ho notato X, vuoi che...?" cross-modulo oltre meteo; **card/chip Abbonamento** da `consigliModuli` (backlog marketing §8 handoff)
 - Backlog operativo concordato: flusso "campioni" con mappa punti georeferenziati (raccolta/profilazione maturazione), su pattern GPS opzionale riusabile e non bloccante
 - **Criterio done (obiettivo)**: Tony segnala proattivamente scadenze e sotto scorta in modo uniforme sui moduli + memoria/confronti ove previsto
 
@@ -271,7 +273,8 @@ Tony non "compila" grafici. Può:
 
 - **Stato attuale**: `docs-sviluppo/tony/STATO_ATTUALE.md`
 - **Handoff agenti — performance / nav quick reply** (backlog nav binario B, metriche client 0 CF, `tony:perf-review`, fix meteo 2026-06-10): `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`
-- **Handoff agenti — voce TTS Chirp 3 HD** (migrazione da `it-IT-Wavenet-D`, costi, implementazione `getTonyAudio`): `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md`
+- **Handoff agenti — voce TTS Chirp 3 HD** (migrazione, latenza 2026-06-19, `speakingRate` 1.05): `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md`
+- **Strategia marketing / vendita / Tony consigliere moduli** (funnel Free→Base→moduli, backlog GTM): `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md`
 - **Piano audio barge-in + chunking TTS** (Fase 1 ✅): `docs-sviluppo/tony/PIANO_AUDIO_PIPELINE_BARGEIN.md`
 - **Piano ottimizzazione performance Tony** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
