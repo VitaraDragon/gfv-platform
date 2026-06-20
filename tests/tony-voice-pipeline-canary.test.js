@@ -98,6 +98,17 @@ describe('Tony voice pipeline canary (Fase 1 barge-in)', () => {
     expect(stalePrefetchGen).not.toBe(window.__tonyGeneration);
   });
 
+  it('voice.js: completeTtsClip — onPlayEnd non prima di onDone in onended', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const voiceSrc = fs.readFileSync(
+      path.join(process.cwd(), 'core/js/tony/voice.js'),
+      'utf8'
+    );
+    expect(voiceSrc).toMatch(/function completeTtsClip/);
+    expect(voiceSrc).not.toMatch(/onPlayEnd\(opts\);\s*\n\s*onDone\(\)/);
+  });
+
   it('espone warm pipeline TTS e dedup fetch in-flight', async () => {
     const fs = await import('fs');
     const path = await import('path');
@@ -164,9 +175,10 @@ describe('Tony Fase 2 chunking TTS — wiring main.js (canary)', () => {
     );
     expect(mainSrc).toMatch(/consumeCompleteStreamingSentences/);
     expect(mainSrc).toMatch(/earlyVoiceSpoken/);
-    expect(mainSrc).toMatch(/getStreamingTtsRemainder\(voiceTtsSource, streamTtsState\)/);
+    expect(mainSrc).toMatch(/getStreamingTtsRemainder\(ttsSource, streamTtsState\)/);
     expect(mainSrc).toMatch(/streamTtsState\.lastCleanText/);
-    expect(mainSrc).toMatch(/tonyAudioPipelineActive\(\) \|\| _isSendingMessage/);
+    expect(mainSrc).toMatch(/tonyAudioPipelineHasPendingAudio/);
+    expect(mainSrc).toMatch(/logVoiceAuto/);
     expect(mainSrc).toMatch(/function tonySpeakAssistantText/);
   });
 });

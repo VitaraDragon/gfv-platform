@@ -1,7 +1,7 @@
 # Master Plan – Tony Assistente Universale
 
 **Versione**: 1.5  
-**Data**: 2026-06-19  
+**Data**: 2026-06-20  
 **Stato**: Documento di riferimento – tutte le modifiche a Tony devono allinearsi a questo piano.
 
 *Consolidato da `docs-sviluppo/MASTER_PLAN_TONY_UNIVERSAL.md`*
@@ -252,6 +252,7 @@ Tony non "compila" grafici. Può:
 - **Implementato (2026-06-15):** **PWA/mobile** — saluto in chat con apertura pannello Tony (no TTS autoplay); turno proattivo in `chatHistory` per conferma «sì»; **RIASSUNTO** con **nomi** prodotti sotto scorta, guasti e scadenze mezzi (`dashboard-tony-briefing-text.js` + summary nello snapshot dashboard)
 - **Implementato (2026-06-19):** **Tony consigliere moduli** — Tony Guida (solo Base) suggerisce moduli e complementi da segnali azienda; gating legacy; vedi `STRATEGIA_MARKETING_VENDITA_HANDOFF.md`
 - **Implementato (2026-06-19):** **TTS latenza** — chunking frasi risposte complete; `speakingRate` 1.05; pipeline voice cached/dedup; build `2026-06-19a`; canary `npm run tony:tts-canary`
+- **Implementato (2026-06-20, build client `2026-06-20r`, verificato utente):** **modalità vocale continua** — mic reopen affidabile post-TTS (`completeTtsClip`); whitelist spegnimento auto-mode; reconcile TTS stream su clip lette (testo voce = testo chat); segnale acustico turno; **STT** con `?` su domande (`applyItalianVoiceQuestionPunctuation`); distinzione saluto/congedo vocale
 - **Implementato (2026-05-22):** praticabilità terreno per **morfologia** (pianura/collina/montagna), soglie mm lookback, **asciugatura post-pioggia** per lavorazioni terreno, **doppia alternativa** (prima/dopo giorno scartato), select `tipoCampo`, quick reply Tony (morfologia + praticabilità + due date) — v. `TONY_DECISIONI_E_REQUISITI.md` §19.8–§19.9; **UI Impostazioni** override soglie tenant ancora da fare (default hardcoded)
 - Da fare: frasi tipo "Ho notato X, vuoi che...?" cross-modulo oltre meteo; **card/chip Abbonamento** da `consigliModuli` (backlog marketing §8 handoff)
 - Backlog operativo concordato: flusso "campioni" con mappa punti georeferenziati (raccolta/profilazione maturazione), su pattern GPS opzionale riusabile e non bloccante

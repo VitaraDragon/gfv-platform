@@ -1,6 +1,55 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 (mic spento al reload).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 — sessione voce **verificata utente** (build `2026-06-20r`).**
+
+## Tony — voce: riepilogo sessione 2026-06-20 (✅ test utente OK)
+
+Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale** e **trascrizione STT**. Nessun deploy Functions/Hosting richiesto per i fix client (cache-bust `tony-widget-standalone.js` → `main.js?v=…`).
+
+| Build | Cosa | File principali |
+|-------|------|-----------------|
+| **o** | `toggleAutoMode(false)` solo con motivo whitelist (`user-mic`, `panel-close`, `inactivity`, `voice-farewell`); congedo TTS solo `voiceFarewellEnd`; `checkFarewellIntent` con word boundary | `core/js/tony/main.js` |
+| **p** | `completeTtsClip` — `onPlayEnd` solo a pipeline TTS vuota (fix mic che non si riapriva); log `[Tony Voice Auto]` | `core/js/tony/voice.js`, `main.js` |
+| **q** | Reconcile TTS su clip **effettivamente** lette (`spokenTtsTexts` + coda), non solo conteggio frasi; saluto «Ciao Tony tutto bene» ≠ congedo | `stream-tts-chunk.js`, `main.js` |
+| **r** | `?` automatico su domande STT (euristica italiano) in anteprima, bolla chat e testo inviato a CF | `core/js/tony/engine.js` (`applyItalianVoiceQuestionPunctuation`), `main.js` |
+
+**Comportamento atteso (verificato):**
+- Tap mic → modalità continua; beep acustico (`playMicTurnCue`) a ogni riapertura; multi-turn senza ritoccare il mic.
+- Risposta lunga a voce = stesso testo in chat (niente frasi saltate).
+- «Ciao Tony tutto bene» → risposta normale; «Ok grazie» → chiusura locale + `(voice-farewell)`.
+- Domande vocali con `?` in trascrizione (es. «Come sarà il tempo oggi?»).
+
+**Test automatici:** `tests/tony-voice-pipeline-canary.test.js`, `tests/tony-stream-tts-chunk.test.js`, `tests/tony-voice-transcript-punctuation.test.js`.
+
+**Build client corrente:** `TONY_CLIENT_BUILD` / `TONY_LOADER_BUILD` = **`2026-06-20r`**.
+
+---
+
+## Tony — voce: «?» automatico nelle domande STT (2026-06-20)
+
+**Fix (build `2026-06-20r`):** `applyItalianVoiceQuestionPunctuation` + `isItalianLikelyQuestion` in `engine.js` — euristica italiano su trascrizione Web Speech (il browser non mette punteggiatura); `?` in anteprima «Hai detto…», bolla utente e payload verso Tony/CF. Saluti e affermazioni esclusi («Ciao Tony tutto bene», «Ok grazie»).
+
+## Tony — voce: modalità continua protetta da spegnimenti spurii (2026-06-20)
+
+**Problema:** dopo ogni risposta CF compariva ancora `auto_mode_off` / «Modalità continua disattivata» nonostante build `2026-06-20n`.
+
+**Fix (build `2026-06-20q`):** TTS stream — `reconcileUnspokenVoiceSegments` confronta testo finale con clip **effettivamente** inviate (`spokenTtsTexts` + coda), non solo conteggio frasi; saluto «Ciao Tony tutto bene» non è più congedo.
+
+**Fix (build `2026-06-20p`):** `onPlayEnd`/`completeTtsClip` in `voice.js` — callback solo a pipeline TTS completamente vuota (prima bloccato da `__tonyIsSpeaking`); log diagnostici `[Tony Voice Auto]` su reopen/CF/TTS.
+
+**Fix (build `2026-06-20o`):** `toggleAutoMode(false)` accettato solo con motivo esplicito (`user-mic`, `panel-close`, `inactivity`, `voice-farewell`); congedo TTS solo con `voiceFarewellEnd`; `checkFarewellIntent` con word boundary (no falsi positivi su «infine»); clip TTS vuote non chiamano più `onPlayEnd`.
+
+## Tony — voce: modalità continua e segnale turno (2026-06-20)
+
+**Problema:** dopo ogni risposta CF compareva `auto_mode_off` / «Modalità continua disattivata» — il microfono non si riapriva e mancava il segnale acustico del turno utente.
+
+**Fix (build `2026-06-20n`):** TTS con `copyVoiceTtsOpts` + chiusura sessione solo su `farewellSession` esplicito; `toggleAutoMode(false)` non richiama sync reopen; `playMicTurnCue()` alla riapertura mic in auto-mode; reopen differito se `onPlayEnd` arriva durante `onFinally`.
+
+## Tony — voce: mic bloccato dopo risposta (2026-06-20)
+
+**Problema:** dopo la prima risposta Tony non accettava più input vocale — `isWaitingForTonyResponse` restava true se TTS interrotto (chiusura pannello, auto-mode off) senza `onPlayEnd`.
+
+**Fix (build `2026-06-20m`):** `syncVoiceSessionAfterPipelineIdle` dopo clear pipeline; reset waiting su toggle auto-mode off / chiusura pannello / riaccensione auto-mode.
 
 ## Tony — dashboard: briefing iniziale ripristinato (2026-06-20)
 

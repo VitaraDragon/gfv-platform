@@ -147,6 +147,11 @@
 | 10.10 | RIASSUNTO dashboard client: ops + meteo; «sì/ok» solo dopo offerta briefing; addio «grazie» locale senza CF | fix voce dashboard 2026-06-09 | implementato | `buildDashboardRiassuntoText`, `tonyWantsDashboardRiassunto` — build `2026-06-09g`; **2026-06-15:** ops con nomi (`formatDashboardOpsBriefingText`, `dashboard-tony-briefing-text.js`) |
 | 10.11 | Latenza dialogo auto-mode: costanti mic/TTS accorciate (`2026-06-14a`: final 220 ms, speechend 450 ms, restart 350 ms, reopen 100 ms) | tuning UX vocale 2026-06-14 | implementato | Baseline stabile post E2E multi-PC; ulteriore riduzione non raccomandata senza test mirati |
 | 10.12 | Riapertura microfono auto-mode: scheduler unico `scheduleMicReopenInAutoMode` (debounce onend + TTS + speechend vuoto) | fix loop mic mobile/PWA 2026-06-14 | implementato | build `2026-06-14b`; soppressione speechend vuoto entro 700 ms post-invio |
+| 10.13 | Spegnimento auto-mode solo con motivo esplicito (`user-mic`, `panel-close`, `inactivity`, `voice-farewell`) | fix loop auto-mode 2026-06-20 | implementato | build `2026-06-20o`; `AUTO_MODE_OFF_REASONS` |
+| 10.14 | `onPlayEnd` TTS solo a pipeline completamente idle (`completeTtsClip`) | fix mic bloccato post-risposta 2026-06-20 | implementato | build `2026-06-20p`; `core/js/tony/voice.js` |
+| 10.15 | Reconcile TTS fine stream: confronto testo finale con clip lette (`spokenTtsTexts`), non solo conteggio frasi | fix frase saltata a voce 2026-06-20 | implementato | build `2026-06-20q`; `reconcileUnspokenVoiceSegments` |
+| 10.16 | Saluto vocale ≠ congedo («Ciao Tony tutto bene» non chiude sessione; «Ok grazie» sì) | fix false positive farewell 2026-06-20 | implementato | `checkFarewellIntent` + `greetingHints` — build `2026-06-20q` |
+| 10.17 | Trascrizione STT: `?` automatico su domande (euristica italiano, Web Speech senza punteggiatura) | UX voce 2026-06-20 | implementato | `applyItalianVoiceQuestionPunctuation` in `engine.js` — build `2026-06-20r`; test `tony-voice-transcript-punctuation.test.js` |
 
 ---
 
@@ -435,7 +440,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | Form terreno | ✅ `terreno-tipo-campo` |
 | Context Builder | ✅ `tipoCampo` su `azienda.terreni` e `meteo.terreni[]` |
 | Tony | ✅ Domanda morfologia; praticabilità; **due date prima/dopo** |
-| Test | ✅ … **`tests/tony-module-recommendations.test.js` (9)**, **`tests/tony-tts-latency-canary.test.js` (5)**, `tests/tony-stream-tts-chunk.test.js`, `tests/tony-voice-pipeline-canary.test.js` |
+| Test | ✅ … **`tests/tony-module-recommendations.test.js` (9)**, **`tests/tony-tts-latency-canary.test.js` (5)**, **`tests/tony-voice-transcript-punctuation.test.js` (4)**, `tests/tony-stream-tts-chunk.test.js`, `tests/tony-voice-pipeline-canary.test.js` |
 | Review log produzione | ✅ `scripts/tony-perf-log-review.mjs` — smoke 8 scenari router + **3 binario B quick**. Produzione 2026-06-03: ~25% `usedGemini=false`, hit nav/filter/riassunto |
 
 ---

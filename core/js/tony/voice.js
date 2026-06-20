@@ -321,7 +321,6 @@ export function initTonyVoice(options) {
             };
             window.currentTonyAudio.onended = function() {
                 window.currentTonyAudio = null;
-                onPlayEnd(opts);
                 onDone();
             };
             if (isStale()) { onDone(); return; }
@@ -340,6 +339,20 @@ export function initTonyVoice(options) {
                 console.error('[Tony] Errore play():', e);
                 onDone();
             });
+        }
+
+        /** Fine clip TTS: avanza coda o notifica idle (onPlayEnd) solo a pipeline vuota. */
+        function completeTtsClip(clipOpts) {
+            window.__tonyIsSpeaking = false;
+            if (window.__tonyAudioQueue && window.__tonyAudioQueue.length > 0) {
+                processNextAudio();
+                return;
+            }
+            try {
+                var a = window.currentTonyAudio;
+                if (a && !a.ended && !a.paused) return;
+            } catch (_) { /* ignore */ }
+            onPlayEnd(clipOpts || {});
         }
 
         function processNextAudio() {
@@ -361,10 +374,7 @@ export function initTonyVoice(options) {
                     }
                 });
             }
-            playOneTTS(item.text, item.opts || {}, function() {
-                window.__tonyIsSpeaking = false;
-                processNextAudio();
-            }, item.gen);
+            playOneTTS(item.text, item.opts || {}, item.gen);
         }
 
         function schedulePlayOnFirstInteraction() {
@@ -382,33 +392,31 @@ export function initTonyVoice(options) {
             window.addEventListener('keydown', once, { once: true });
         }
 
-        function playOneTTS(testoPulito, opts, onDone, genFromQueue) {
+        function playOneTTS(testoPulito, opts, genFromQueue) {
             opts = opts || {};
-            if (!onDone) onDone = function() {};
             var genAtStart = genFromQueue != null ? genFromQueue : (opts.gen != null ? opts.gen : currentGeneration());
             function isStale() { return genAtStart !== currentGeneration(); }
+            function afterClipDone() { completeTtsClip(opts); }
             if (opts.forceInterrupt) clearTonyAudioPipeline({ bump: false, reason: 'force_interrupt' });
-            if (isStale()) { onDone(); return; }
+            if (isStale()) { completeTtsClip(opts); return; }
 
             if (ttsCacheHit(testoPulito)) {
-                playAudioFromBase64(testoPulito, lastTTSCache.audioBase64, opts, onDone, genAtStart);
+                playAudioFromBase64(testoPulito, lastTTSCache.audioBase64, opts, afterClipDone, genAtStart);
                 return;
             }
 
             (async function() {
                 try {
                     var audioResult = await fetchTonyAudioMp3(testoPulito, genAtStart);
-                    if (isStale()) { onDone(); return; }
+                    if (isStale()) { completeTtsClip(opts); return; }
                     if (audioResult && audioResult.audioContent) {
-                        playAudioFromBase64(testoPulito, audioResult.audioContent, opts, onDone, genAtStart);
+                        playAudioFromBase64(testoPulito, audioResult.audioContent, opts, afterClipDone, genAtStart);
                     } else {
-                        onPlayEnd(opts);
-                        onDone();
+                        completeTtsClip(opts);
                     }
                 } catch (err) {
                     console.error('[Tony] Errore critico getTonyAudio:', err);
-                    onPlayEnd(opts);
-                    onDone();
+                    completeTtsClip(opts);
                 }
             })();
         }
@@ -416,12 +424,10 @@ export function initTonyVoice(options) {
         function speakWithTTS(testo, opts) {
             opts = opts || {};
             if (!testo) {
-                onPlayEnd(opts);
                 return;
             }
             var testoPulito = prepareTextForTTS(testo);
             if (!testoPulito) {
-                onPlayEnd(opts);
                 return;
             }
             var gen = opts.gen != null ? opts.gen : currentGeneration();

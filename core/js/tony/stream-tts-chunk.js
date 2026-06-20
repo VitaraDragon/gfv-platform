@@ -179,17 +179,34 @@ export function isTtsSegmentPending(seg, pendingTexts) {
  * @param {string[]} [pendingQueueTexts]
  * @returns {string[]}
  */
-export function reconcileUnspokenVoiceSegments(finalText, state, pendingQueueTexts) {
+export function reconcileUnspokenVoiceSegments(finalText, state, coveredTexts) {
   state = state || {};
-  pendingQueueTexts = pendingQueueTexts || [];
-  var segments = extractAllTtsSegments(finalText);
+  coveredTexts = coveredTexts || [];
+  var clean = finalText != null ? String(finalText).trim() : '';
+  if (!clean || clean.length < 2) return [];
+
+  var segments = extractAllTtsSegments(clean);
   if (!segments.length) return [];
-  if (!state.earlyVoiceSpoken) return segments;
-  var spoken = typeof state.sentencesSpokenCount === 'number' ? state.sentencesSpokenCount : 0;
-  var unspoken = segments.slice(Math.min(spoken, segments.length));
-  return unspoken.filter(function(seg) {
-    return !isTtsSegmentPending(seg, pendingQueueTexts);
+
+  var uncovered = segments.filter(function (seg) {
+    return !isTtsSegmentPending(seg, coveredTexts);
   });
+  if (uncovered.length) return uncovered;
+
+  if (!state.earlyVoiceSpoken) return [];
+
+  var syncedState = Object.assign({}, state, { lastCleanText: clean });
+  if (typeof syncedState.consumedLength === 'number' && syncedState.consumedLength > clean.length) {
+    syncedState.consumedLength = clean.length;
+  }
+  var remainder = getStreamingTtsRemainder(clean, syncedState);
+  if (remainder && remainder.length >= 2) {
+    return extractAllTtsSegments(remainder).filter(function (seg) {
+      return !isTtsSegmentPending(seg, coveredTexts);
+    });
+  }
+
+  return [];
 }
 
 /**

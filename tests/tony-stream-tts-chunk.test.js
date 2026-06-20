@@ -106,17 +106,28 @@ describe('stream-tts-chunk (Fase 2)', () => {
   it('reconcileUnspokenVoiceSegments: recupera frasi mancanti a fine stream', () => {
     var finalText =
       'Primo. Secondo importante. Terzo finale.';
-    var state = { earlyVoiceSpoken: true, sentencesSpokenCount: 1 };
-    var unspoken = reconcileUnspokenVoiceSegments(finalText, state, []);
-    expect(unspoken.length).toBe(2);
+    var state = { earlyVoiceSpoken: true, sentencesSpokenCount: 3 };
+    var unspoken = reconcileUnspokenVoiceSegments(finalText, state, ['Primo.', 'Terzo finale.']);
+    expect(unspoken.length).toBe(1);
     expect(unspoken[0]).toContain('Secondo');
-    expect(unspoken[1]).toContain('Terzo');
   });
 
-  it('reconcileUnspokenVoiceSegments: non duplica segmenti già in coda', () => {
+  it('reconcileUnspokenVoiceSegments: non duplica segmenti già in coda o già letti', () => {
     var finalText = 'Uno. Due. Tre.';
     var state = { earlyVoiceSpoken: true, sentencesSpokenCount: 1 };
-    var pending = ['Due. Tre.'];
-    expect(reconcileUnspokenVoiceSegments(finalText, state, pending)).toEqual([]);
+    var covered = ['Uno.', 'Due. Tre.'];
+    expect(reconcileUnspokenVoiceSegments(finalText, state, covered)).toEqual([]);
+  });
+
+  it('reconcileUnspokenVoiceSegments: risposta lunga stile meteo (4 frasi, gap centrale)', () => {
+    var finalText =
+      'Con il modulo attivo, vedi le previsioni. Ti fornirebbe alert su vento e pioggia. Al momento non è attivo. Attivalo da Abbonamento.';
+    var covered = [
+      'Con il modulo attivo, vedi le previsioni.',
+      'Al momento non è attivo. Attivalo da Abbonamento.',
+    ];
+    var unspoken = reconcileUnspokenVoiceSegments(finalText, { earlyVoiceSpoken: true }, covered);
+    expect(unspoken.length).toBe(1);
+    expect(unspoken[0]).toContain('alert su vento');
   });
 });

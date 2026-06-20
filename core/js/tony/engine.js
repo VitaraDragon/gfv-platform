@@ -286,6 +286,66 @@ export function normalizeTonyTextWhitespace(s) {
 }
 
 /**
+ * Euristica: frase utente (STT) probabilmente interrogativa in italiano.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isItalianLikelyQuestion(text) {
+    if (!text || typeof text !== 'string') return false;
+    var t = text.trim();
+    if (!t) return false;
+    if (/[?!]$/.test(t)) return t.endsWith('?');
+    if (/[.!]$/.test(t)) return false;
+
+    var lower = t.toLowerCase();
+
+    if (/^(ciao|salve|buongiorno|buonasera|hey)\b/.test(lower) &&
+        /\b(tutto bene|tutto ok|come stai)\b/.test(lower)) return false;
+    if (/^che\s+(bello|bella|brutto|bene|male|fortuna|figura|schifo|noia|pazzesco|grosso|grossa)\b/.test(lower)) return false;
+
+    if (/^(come|cosa|che\s+cosa|che|chi|dove|quando|quale|quali|quanto|quanta|quanti|quante|perch[eé]|perche)\b/.test(lower)) {
+        return true;
+    }
+
+    if (/\b(quale|quali|quanto|quanta|quanti|quante|chi|dove|quando|perch[eé]|perche|cosa|come)\b/.test(lower)) {
+        return true;
+    }
+
+    if (/\b(come|cosa|dove|quando|perch[eé]|perche)\s+(è|e'|e|sono|sta|stanno|stai|state|far[eò]|faccio|fai|fa|facciamo|fate|fanno|sar[aà]|sara|saro|sera|era|erano|posso|puoi|puo|può|devo|devi|deve)\b/i.test(lower)) {
+        return true;
+    }
+
+    if (/\b(puoi|può|puo|potresti|potrebbe|sai|conosci|mi\s+dici|mi\s+spieghi|mi\s+consigli|sai\s+dirmi|c'è|ci\s+sono)\b/i.test(lower)) {
+        return true;
+    }
+    if (/^[eèé]\s+possibile\b/i.test(lower)) return true;
+    if (/^puoi\b/i.test(lower)) return true;
+
+    if (/\bche\s+cosa\s+(posso|puoi|possiamo|devo|faccio|significa|sono)\b/i.test(lower)) return true;
+    if (/\bcosa\s+(posso|puoi|possiamo|faccio|devo|significa|sono|fai|fa)\b/i.test(lower)) return true;
+    if (/\b(quanto|quanti|quante|quanta)\s+(costa|costano|è|e|sono|ne|tempo|dura)\b/i.test(lower)) return true;
+
+    if (/\b(vero|giusto)\s*$/i.test(lower)) return true;
+
+    return false;
+}
+
+/**
+ * Aggiunge "?" alla trascrizione vocale se manca punteggiatura e la frase sembra una domanda.
+ * @param {string} text
+ * @returns {string}
+ */
+export function applyItalianVoiceQuestionPunctuation(text) {
+    if (text == null || typeof text !== 'string') return text;
+    var t = text.trim();
+    if (!t) return text;
+    if (/[?!]$/.test(t)) return t;
+    if (/[.!]$/.test(t)) return t;
+    if (isItalianLikelyQuestion(t)) return t + '?';
+    return t;
+}
+
+/**
  * Rimuove residui JSON dal testo (graffe, virgolette, virgole finali) per display e TTS.
  */
 export function cleanTextFromJsonResidue(s) {
