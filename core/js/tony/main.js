@@ -44,7 +44,7 @@ import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamin
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-20k';
+export const TONY_CLIENT_BUILD = '2026-06-20l';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -8212,6 +8212,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     
                     function logProntoIfNeeded() {
                         if (_tonyProntoLogged) return;
+                        if (!window.Tony || typeof window.Tony.isReady !== 'function' || !window.Tony.isReady()) return;
+                        if (typeof window.__tonyDisplayProactive !== 'function') return;
                         _tonyProntoLogged = true;
                         console.log('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'build:', window.__TONY_CLIENT_BUILD || '?');
                         try {
@@ -8407,7 +8409,8 @@ window.addEventListener('tony-module-updated', function(e) {
                         };
                     }
                     
-                    // Pronto: dopo dati dashboard (evento) o al massimo 2.5s per non bloccare
+                    // Pronto: dopo init Tony + API proattiva widget (evento) o fallback
+                    logProntoIfNeeded();
                     setTimeout(function() { logProntoIfNeeded(); }, 2500);
                     if (typeof window.__tonyRestoreSession === 'function') window.__tonyRestoreSession();
                     (function checkTnyNotifyGreeting() {

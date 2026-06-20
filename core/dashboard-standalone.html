@@ -519,21 +519,35 @@
             return false;
         }
 
-        function tonyDashboardDeliverBriefing(fullText, speakAllowed) {
+        function tonyDashboardDeliverBriefing(fullText, speakAllowed, onDelivered) {
             var msg = String(fullText || '').trim();
             if (!msg) return;
             var useVoice = !!speakAllowed;
             var openPanel = !useVoice && tonyDashboardIsMobile();
-            if (typeof window.__tonyDisplayProactive === 'function') {
-                window.__tonyDisplayProactive(msg, { speak: useVoice, openPanel: openPanel });
-                return;
+            var attempts = 0;
+            function markDelivered() {
+                if (typeof onDelivered === 'function') onDelivered();
             }
-            if (openPanel && typeof window.__tonyOpenChatPanel === 'function') {
-                window.__tonyOpenChatPanel();
+            function tryDeliver() {
+                if (typeof window.__tonyDisplayProactive === 'function') {
+                    window.__tonyDisplayProactive(msg, { speak: useVoice, openPanel: openPanel });
+                    markDelivered();
+                    return;
+                }
+                if (useVoice && window.Tony && typeof window.Tony.speak === 'function' &&
+                    typeof window.Tony.isReady === 'function' && window.Tony.isReady()) {
+                    window.Tony.speak(msg);
+                    markDelivered();
+                    return;
+                }
+                attempts += 1;
+                if (attempts < 50) {
+                    setTimeout(tryDeliver, 300);
+                    return;
+                }
+                console.warn('[Tony] briefing dashboard: widget non pronto, messaggio omesso:', msg.slice(0, 80));
             }
-            if (useVoice && window.Tony && typeof window.Tony.speak === 'function') {
-                window.Tony.speak(msg);
-            }
+            tryDeliver();
         }
 
         // Carica contesto vigneto per Tony (produzione per anno) se modulo attivo
@@ -636,7 +650,6 @@
                 if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony) {
                     setTimeout(function() {
                         if (total <= 0 || window.tonyDashboardBriefingFired) return;
-                        window.tonyDashboardBriefingFired = true;
                         var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
                         var opsAttention = (hasMagazzino && sottoScorta > 0) || (hasParcoMacchine && (scadenzeUrgenti + guastiAperti) > 0);
                         var speakCore =
@@ -653,7 +666,8 @@
                                 : '';
                         tonyDashboardDeliverBriefing(
                             greeting + speakCore + speakMeteo,
-                            tonyDashboardBriefingVoiceAllowed()
+                            tonyDashboardBriefingVoiceAllowed(),
+                            function() { window.tonyDashboardBriefingFired = true; }
                         );
                     }, 3000);
                 } else if (
@@ -677,14 +691,14 @@
                 } else if (!window.tonyDashboardBriefingFired && window.Tony) {
                     setTimeout(function() {
                         if (window.tonyDashboardBriefingFired) return;
-                        window.tonyDashboardBriefingFired = true;
                         var greetingIdle = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
                         var weatherIdle = meteoBriefing && meteoBriefing.weatherSummary
                             ? ' ' + meteoBriefing.weatherSummary
                             : ' Tutto sotto controllo in azienda.';
                         tonyDashboardDeliverBriefing(
                             greetingIdle + weatherIdle + ' Chiedimi un riassunto dettagliato quando vuoi.',
-                            tonyDashboardBriefingVoiceAllowed()
+                            tonyDashboardBriefingVoiceAllowed(),
+                            function() { window.tonyDashboardBriefingFired = true; }
                         );
                     }, 3000);
                 }

@@ -2,6 +2,12 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 (mic spento al reload).**
 
+## Tony — dashboard: briefing iniziale ripristinato (2026-06-20)
+
+**Problema:** il riepilogo proattivo in dashboard non compariva — race tra `checkGlobalStatus` (~4 s) e init Tony (guide Meteo + widget).
+
+**Fix (build `2026-06-20l`):** `tonyDashboardDeliverBriefing` con retry fino a `__tonyDisplayProactive`; flag `tonyDashboardBriefingFired` solo dopo consegna; `tony-widget-ready` solo con `Tony.isReady()` + API proattiva.
+
 ## Tony — voce: mic spento al reload pagina (2026-06-20)
 
 **Problema:** dopo reload il microfono si riattivava da solo (`Ripristino sessione vocale attiva…`) perché `isAutoMode` era in `sessionStorage`.
