@@ -1,6 +1,8 @@
 # Manodopera — Guida per Manager e Amministratore
 
-Questa guida è per chi **gestisce l’azienda** con ruolo **manager** o **amministratore** e ha il **modulo Manodopera attivo**. Userai soprattutto la **versione desktop** (computer): dashboard completa, pagine di amministrazione e controllo.
+Questa guida è per chi **gestisce l’azienda** con ruolo **manager** o **amministratore** e ha il **modulo Manodopera attivo**. Userai soprattutto la **versione desktop** (computer): dashboard con menu **Moduli**, **home Manodopera** (hub del modulo) e pagine di amministrazione e controllo.
+
+Con Manodopera attivo la dashboard **non** elenca più tutte le funzioni in grandi card in pagina: il punto di partenza abituale è la **home Manodopera**, raggiungibile da **Moduli** o da **Per te oggi**.
 
 **Caposquadra** e **operai** hanno interfacce **più semplici** e vedono solo ciò che serve al loro ruolo in campo (versione mobile e poche card). Per il dettaglio su come usano l’app loro, nella **documentazione Manodopera online** puoi aprire le schede **Caposquadra** e **Operaio** nella barra in alto (accanto a Introduzione e Manager): lì trovi le guide dedicate passo passo.
 
@@ -8,9 +10,10 @@ Questa guida è per chi **gestisce l’azienda** con ruolo **manager** o **ammin
 
 ## Percorso consigliato
 
+0. Orientarsi nella **home Manodopera** e sapere come entrarci dalla dashboard. **[Impara qui](#mini-guida-home-manodopera)**  
 1. Far entrare le persone giuste e impostare i **ruoli**: **Invita collaboratore** e **Gestisci utenti**. **[Impara qui](#mini-guida-invito-collaboratori-e-gestione-utenti)**  
 2. Organizzare **squadre** e **anagrafica operai** prima di assegnare i lavori. **[Impara qui](#mini-guida-gestione-squadre)** · **[Impara qui](#mini-guida-gestione-operai)**  
-3. Usare il punto unico **Amministrazione** per utenti, squadre, operai, compensi e abbonamento. **[Impara qui](#mini-guida-pagina-amministrazione)**  
+3. Usare **Amministrazione** (da **Moduli**) per utenti, abbonamento e voci amministrative trasversali. **[Impara qui](#mini-guida-pagina-amministrazione)**  
 4. Creare e seguire i **lavori** (assegnazioni, stati, date). **[Impara qui](#mini-guida-gestione-lavori)**  
 5. Controllare e **accettare le ore** (validazione). **[Impara qui](#mini-guida-validazione-ore-accettazione)**  
 6. Tenere d’occhio **statistiche** e **compensi** quando servono a bilanci e paghe. **[Impara qui](#mini-guida-statistiche-manodopera)** · **[Impara qui](#mini-guida-compensi-operai)**  
@@ -23,6 +26,7 @@ Questa guida è per chi **gestisce l’azienda** con ruolo **manager** o **ammin
 
 | Argomento | Vai alla sezione |
 |-----------|------------------|
+| Home Manodopera (hub modulo) | [Impara qui](#mini-guida-home-manodopera) |
 | Invito collaboratori e Gestisci utenti | [Impara qui](#mini-guida-invito-collaboratori-e-gestione-utenti) |
 | Pagina Amministrazione | [Impara qui](#mini-guida-pagina-amministrazione) |
 | Gestione squadre | [Impara qui](#mini-guida-gestione-squadre) |
@@ -38,6 +42,43 @@ Questa guida è per chi **gestisce l’azienda** con ruolo **manager** o **ammin
 
 ---
 
+## Mini-guida home Manodopera
+
+La **home Manodopera** è la pagina principale del modulo: lì trovi numeri aggiornati e scorciatoie verso lavori, persone e controllo.
+
+### Come entrarci
+
+1. Dalla **dashboard** tocca **Moduli** e scegli **Manodopera** (👷 — «Lavori, squadre e ore»).  
+2. In alternativa: sezione **Per te oggi** → «Manodopera: lavori, squadre e ore».  
+3. Se hai configurato **I miei accessi**, può esserci una scorciatoia diretta.  
+4. Gli alert in **Richiede attenzione** (ore da validare, lavori da pianificare, …) portano spesso alla pagina giusta con un clic.  
+5. Con **Tony Avanzato** puoi chiedere di **aprire Manodopera**.
+
+### Cosa vedi in home
+
+**In alto** — titolo **Manodopera** e pulsante **← Dashboard** (torna alla dashboard principale dell’app).
+
+**Panoramica numerica** (i numeri sono cliccabili):
+
+| Indicatore | Cosa significa |
+|------------|----------------|
+| **Programmati oggi** | Lavori previsti per oggi |
+| **In corso** | Lavori attivi adesso |
+| **Ore da validare** | Ore segnate in campo in attesa di approvazione |
+| **Da pianificare** | Solo se avete **Conto terzi**: lavori da completare in pianificazione |
+
+**Tre sezioni con card** (tocca una card per aprire la funzione):
+
+1. **Pianificazione e lavori** — Gestione lavori, Da pianificare (se visibile), Validazione ore.  
+2. **Persone** — Gestione operai, Gestione squadre, Gestisci utenti.  
+3. **Controllo e analisi** — Compensi operai, Statistiche manodopera.
+
+### Tornare indietro dalle pagine interne
+
+Quando apri Gestione lavori, Validazione ore, Gestione squadre e simili, in alto compare **← Manodopera**: riporta alla **home del modulo**, non alla dashboard generale. Per la dashboard usa **← Dashboard** dalla home Manodopera.
+
+---
+
 ## Mini-guida invito collaboratori e gestione utenti
 
 Senza persone registrate con il **ruolo giusto**, squadre e lavori non possono funzionare bene.
@@ -45,7 +86,7 @@ Senza persone registrate con il **ruolo giusto**, squadre e lavori non possono f
 ### Da dove si parte
 
 1. **Dashboard**: in alto a destra può comparire il pulsante **Invita collaboratore**. Compare quando il **modulo Manodopera è attivo** e il tuo account ha i **permessi** per invitare.  
-2. Premendo **Invita collaboratore** si apre in genere il percorso verso **Gestisci utenti** (stessa cosa che aprire la card **Amministrazione** e scegliere **Gestisci Utenti**).
+2. Premendo **Invita collaboratore** si apre in genere **Gestisci utenti** (stesso risultato: **Moduli** → **Amministrazione** → **Gestisci Utenti**, oppure **home Manodopera** → **Gestisci utenti**).
 
 ### Cosa fai nella pagina Gestisci utenti
 
@@ -73,8 +114,8 @@ Senza persone registrate con il **ruolo giusto**, squadre e lavori non possono f
 ### Errori frequenti negli inviti (e come evitarli)
 
 - **Invito inviato ma utente non operativo**: spesso manca il ruolo corretto o manca l’inserimento in squadra.  
-- **Caposquadra che non vede i membri**: in genere la squadra non e stata salvata con i componenti aggiornati.  
-- **Operaio che non vede lavori in mobile**: di solito il lavoro non e assegnato a lui o alla sua squadra, oppure e in stato non coerente.
+- **Caposquadra che non vede i membri**: in genere la squadra non è stata salvata con i componenti aggiornati.  
+- **Operaio che non vede lavori in mobile**: di solito il lavoro non è assegnato a lui o alla sua squadra, oppure è in stato non coerente.
 
 ### Controlli utili
 
@@ -85,12 +126,14 @@ Senza persone registrate con il **ruolo giusto**, squadre e lavori non possono f
 
 ## Mini-guida pagina Amministrazione
 
-È il **centro di comando** amministrativo: un solo posto da cui aprire le sotto-pagine principali.
+È il **centro amministrativo trasversale** dell’app: utenti, abbonamento e altre voci di servizio. Con **Manodopera** attivo non compare come grande card in pagina sulla dashboard: si apre da **Moduli** → **Amministrazione** (👑).
+
+Per **lavori, squadre, operai, validazione ore, compensi e statistiche** usa soprattutto la **home Manodopera** (sezioni Pianificazione / Persone / Controllo).
 
 ### Come entrare
 
-1. Dalla **Dashboard**, individua la card **Amministrazione** (titolo con icona a **corona**).  
-2. Clic sulla card: si apre la pagina **Amministrazione**.
+1. **Moduli** → **Amministrazione**, oppure  
+2. **Home Manodopera** → **Gestisci utenti** (solo per inviti/ruoli; le altre voci amministrative restano in Amministrazione).
 
 ### Cosa vedi nella pagina
 
@@ -100,13 +143,13 @@ Sotto, una griglia di **funzioni** con titoli chiari. Quelli tipici sono:
 | Voce sulla pagina | Uso pratico |
 |-------------------|-------------|
 | **Gestisci Utenti** | Inviti, ruoli, accessi (collegato a **Invita collaboratore**). |
-| **Gestione Squadre** | Crei le squadre, scegli il **caposquadra**, metti gli **operai** nella squadra. |
-| **Gestione Operai** | Scheda operai, contratti e scadenze dove previsto. |
-| **Compensi Operai** | Compensi legati a ore validate e tariffe. |
+| **Gestione Squadre** | Crei le squadre, scegli il **caposquadra**, metti gli **operai** nella squadra (scorciatoia anche da home Manodopera). |
+| **Gestione Operai** | Scheda operai, contratti e scadenze dove previsto (scorciatoia anche da home Manodopera). |
+| **Compensi Operai** | Compensi legati a ore validate e tariffe (scorciatoia anche da home Manodopera). |
 | **Gestione Macchine** | Compare se il modulo **Parco Macchine** è attivo (mezzi, guasti, manutenzioni). |
 | **Abbonamento** | Piano dell’azienda e **attivazione moduli** (senza Manodopera molte funzioni manodopera non esistono). |
 
-Per tornare alla **Dashboard** usa il pulsante **Indietro** o il link verso la dashboard in alto nella pagina Amministrazione.
+Per tornare alla **dashboard principale** usa **Indietro** o il link in alto. Dalle pagine operative manodopera (**Gestione lavori**, **Validazione ore**, …) preferisci **← Manodopera** per la home del modulo.
 
 ---
 
@@ -116,7 +159,7 @@ Solo il **manager** (o ruoli equivalenti con permesso) definisce **chi è in qua
 
 ### Passi
 
-1. **Dashboard** → **Amministrazione** → **Gestione Squadre** (oppure card diretta **Gestione Squadre** se presente sulla dashboard).  
+1. **Home Manodopera** → **Gestione squadre** (sezione **Persone**), oppure **Moduli** → **Amministrazione** → **Gestione Squadre**.  
 2. **Crea una nuova squadra** (o modifica una esistente): assegna un **nome** chiaro all’equipe.  
 3. Indica il **caposquadra**: deve essere un utente che nell’anagrafica ha ruolo **caposquadra** per la tua azienda.  
 4. Aggiungi gli **operai** alla squadra spuntandoli dall’elenco o con il meccanismo previsto in pagina.  
@@ -135,7 +178,7 @@ Qui curi le **schede operai** (dati anagrafici, tipo contratto, scadenze dove il
 
 ### Passi
 
-1. **Amministrazione** → **Gestione Operai**.  
+1. **Home Manodopera** → **Gestione operai**, oppure **Moduli** → **Amministrazione** → **Gestione Operai**.  
 2. **Nuovo operaio** o selezione di una riga esistente per **modifica**.  
 3. Compila i campi richiesti (nome, recapiti, date, tipo contratto, ecc. secondo la tua schermata).  
 4. **Salva**.
@@ -153,7 +196,7 @@ Qui curi le **schede operai** (dati anagrafici, tipo contratto, scadenze dove il
 
 ### Passi tipici per un nuovo lavoro
 
-1. Dalla **Dashboard** apri **Gestione Lavori** (card nella parte manager o percorso equivalente).  
+1. **Home Manodopera** → **Gestione lavori** (sezione **Pianificazione e lavori**), oppure **Moduli** → **Manodopera** → **Gestione lavori**. Puoi anche partire da un alert in **Richiede attenzione** sulla dashboard.  
 2. **Nuovo lavoro** (o pulsante simile).  
 3. Compila almeno: **nome** del lavoro (o titolo riconoscibile), **terreno**, **tipo di lavoro** / categoria come richiesto dal form, **data di inizio**, **durata prevista** (giorni).  
 4. **Assegnazione**:  
@@ -165,7 +208,7 @@ Qui curi le **schede operai** (dati anagrafici, tipo contratto, scadenze dove il
 
 ### Stati e avanzamento (come funziona davvero)
 
-Nel flusso standard molti passaggi sono gia guidati dal sistema:
+Nel flusso standard molti passaggi sono già guidati dal sistema:
 
 - se un lavoro era **da pianificare** e completi i dati minimi, passa in automatico a **assegnato**;
 - il caposquadra, quando chiude il lavoro dal suo flusso operativo, lo manda in **completato da approvare**;
@@ -183,9 +226,9 @@ Il lavoro salvato e assegnato correttamente è quello che **operaio** e **caposq
 2. **Periodo corretto**: data inizio e durata realistiche per evitare stati incoerenti in dashboard/mappa.  
 3. **Terreno corretto**: il lavoro deve puntare al terreno effettivo, altrimenti mappa e indicatori risultano falsati.  
 4. **Categoria coerente**: scegliere la tipologia giusta aiuta statistiche, filtri e report ore.  
-5. **Stato aggiornato**: un lavoro lasciato in stato errato puo non comparire nei flussi operativi.
+5. **Stato aggiornato**: un lavoro lasciato in stato errato può non comparire nei flussi operativi.
 
-### Modificare un lavoro gia creato (procedura breve)
+### Modificare un lavoro già creato (procedura breve)
 
 1. In **Gestione Lavori** trova la riga con filtri per periodo, terreno o stato.  
 2. Apri **Modifica**.  
@@ -206,7 +249,7 @@ Le ore che gli operatori registrano (versione mobile o altri canali previsti) po
 
 ### Passi
 
-1. **Dashboard** → **Validazione ore** (card o voce menu).  
+1. **Home Manodopera** → **Validazione ore**, oppure alert **Ore da validare** in **Richiede attenzione** sulla dashboard.  
 2. Imposta i **filtri** se la pagina li offre (periodo, persona, lavoro, stato).  
 3. Per ogni riga in attesa leggi **data**, **orari**, **ore nette**, **lavoro**, **operaio**.  
 4. Usa **Approva** o **Rifiuta** (o etichette equivalenti).  
@@ -220,11 +263,12 @@ Senza validazione le **statistiche** e i **compensi** possono restare incompleti
 
 ## Mini-guida segnatura ore da ufficio
 
-Oltre alla versione mobile in campo, esiste una pagina **Segnatura ore** pensata per uso da **computer** (digitazione da ufficio, casi particolari).
+Oltre alla versione mobile in campo, esiste una pagina **Segnatura ore** per digitazione da **computer** (casi particolari, integrazione da ufficio).
 
-1. **Dashboard** → **Segnatura ore**.  
-2. Compila **lavoro**, **data**, **orari**, **pause**, **note** come richiesto.  
-3. **Salva**.
+**Nota:** con **Manodopera** attivo la pagina **non** compare nella **home Manodopera**. Per aprirla:
+
+1. Chiedi a **Tony** «apri segnatura ore» (serve **Tony Avanzato**), oppure  
+2. Usa un segnalibro o un link che l’ufficio ha già salvato, se lo usate spesso.
 
 Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te.
 
@@ -232,7 +276,7 @@ Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pa
 
 ## Mini-guida statistiche manodopera
 
-1. **Dashboard** → **Statistiche manodopera** (o **Statistiche ore**, secondo l’etichetta della tua dashboard).  
+1. **Home Manodopera** → **Statistiche manodopera** (sezione **Controllo e analisi**), oppure **Moduli** → **Statistiche** (con Manodopera attivo apre le statistiche manodopera).  
 2. Imposta **periodo** e altri filtri disponibili.  
 3. Leggi totali, ripartizioni per tipo di lavoro o per persona secondo quanto mostra la pagina.
 
@@ -242,7 +286,7 @@ Serve per controllo di gestione e verifiche con amministrazione o HR.
 
 ## Mini-guida compensi operai
 
-1. **Amministrazione** → **Compensi Operai**.  
+1. **Home Manodopera** → **Compensi operai**, oppure **Moduli** → **Amministrazione** → **Compensi Operai**.  
 2. Verifica **tariffe** e parametri già impostati (se presenti nella tua installazione).  
 3. Usa le funzioni di **calcolo** o **esportazione** come previsto in pagina, in genere legate alle **ore validate**.
 
@@ -254,14 +298,14 @@ Operazioni sensibili: allineale alle decisioni interne su paghe e contratti.
 
 La **manodopera** non è il modulo officina: i **guasti** su trattori e attrezzi dipendono dal modulo **Parco Macchine** quando è attivo.
 
-### Cosa trovi di solito sulla Dashboard
+### Cosa trovi di solito sulla dashboard
 
-- Può comparire un riquadro o un **contatore** dei **guasti aperti** con link verso l’**elenco guasti** (lista dove vedere priorità e stato).  
-- Da lì si può passare alla **segnalazione** o alla gestione del singolo guasto secondo le voci del modulo macchine.
+- Nella sezione **Richiede attenzione** può comparire un avviso sui **guasti aperti** con link verso l’**elenco guasti**.  
+- Da **Moduli** → **Parco Macchine** (se attivo) raggiungi mezzi e guasti.
 
 ### Passi generali (da adattare alle etichette in schermata)
 
-1. **Dashboard**: se vedi avvisi sui guasti, apri il link **Vedi tutti i guasti** o la card **Parco Macchine** / **Guasti**.  
+1. **Dashboard**: se in **Richiede attenzione** vedi avvisi sui guasti, apri il link indicato, oppure **Moduli** → **Parco Macchine** / voce **Guasti**.  
 2. Per una **nuova segnalazione** usa la pagina indicata dal modulo (spesso **Segnalazione guasti**), compilando **mezzo**, **descrizione**, **gravità** se richiesta.  
 3. Assegna il follow-up come fate di consueto in azienda (officina interna o esterna).
 
@@ -278,10 +322,10 @@ La **manodopera** non è il modulo officina: i **guasti** su trattori e attrezzi
 ### Gestione manager dei guasti aperti
 
 1. Apri l’elenco guasti e ordina per **stato** o **priorita**.  
-2. Dai precedenza ai guasti che impattano lavori gia pianificati.  
-3. Il punto chiave del manager e la decisione operativa:
+2. Dai precedenza ai guasti che impattano lavori già pianificati.  
+3. Il punto chiave del manager è la decisione operativa:
    - **guasto non grave**: puoi approvare la continuazione del lavoro;
-   - **guasto grave**: puoi sospendere il lavoro finche non e risolto.  
+   - **guasto grave**: puoi sospendere il lavoro finché non è risolto.  
 4. Dopo la risoluzione tecnica, verifica che il lavoro sia allineato alla decisione manageriale (ripartenza o ulteriore stop).
 
 ### Buona pratica organizzativa
@@ -321,7 +365,8 @@ Oltre ai poligoni dei campi, la stessa area offre strumenti extra:
 
 1. **Modulo Manodopera** attivo in **Abbonamento**?  
 2. Il tuo utente è **manager** o **amministratore** per questa azienda?  
-3. Per **mappa** e **lavori**: terreni con **confini** tracciati e lavori con **assegnazioni** corrette?  
-4. Per **ore**: ci sono davvero righe **da validare** dopo che il team ha salvato?
+3. Cerchi **Gestione lavori** o **Validazione ore** sulla dashboard in pagina? Con Manodopera attivo sono in **Moduli** → **Manodopera** (home del modulo) o negli alert **Richiede attenzione** — non è un errore se non vedi card sparse.  
+4. Per **mappa** e **lavori**: terreni con **confini** tracciati e lavori con **assegnazioni** corrette?  
+5. Per **ore**: ci sono davvero righe **da validare** dopo che il team ha salvato?
 
-Per l’uso generale dell’app (oltre alla manodopera), consulta anche la **guida Core** nella documentazione utente.
+Per l’uso generale dell’app (dashboard, Moduli, abbonamento), consulta anche la **guida Core**.

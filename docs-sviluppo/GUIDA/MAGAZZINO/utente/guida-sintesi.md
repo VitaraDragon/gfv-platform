@@ -4,7 +4,7 @@ Modulo **Magazzino** attivo sull'azienda. Linguaggio allineato alla guida utente
 
 ## In sintesi
 
-- **Dashboard** → **Prodotti e Magazzino** → **home magazzino**: riepilogo (prodotti, giacenza, sotto scorta), azioni rapide verso **Anagrafica prodotti**, **Movimenti**, **Tracciabilità consumi**.
+- **Moduli** → **Magazzino** → **home magazzino**: riepilogo (prodotti, giacenza, sotto scorta), azioni rapide verso **Anagrafica prodotti**, **Movimenti**, **Tracciabilità consumi**. Ingresso anche da **I miei accessi** o alert **Richiede attenzione** (sotto scorta); riquadro in fondo dashboard solo **senza** Manodopera.
 - **Anagrafica prodotti**: filtri stato/categoria/ricerca; **Nuovo prodotto** / **Modifica** / **Elimina**; nome, categoria, unità di misura, scorta minima, prezzo; per **fitofarmaci** campi aggiuntivi (es. giorni di carenza) come in schermata; **Salva**.
 - **Movimenti**: **Entrata** / **Uscita**; prodotto, data, quantità; collegamento opzionale a lavoro o attività; **Salva** aggiorna giacenze.
 - **Tracciabilità consumi**: consultazione con filtri (categoria, terreno, vista raggruppata o dettaglio); dipende da movimenti e scarichi registrati; aggiornare i filtri prima di leggere i totali.

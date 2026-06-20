@@ -8,19 +8,32 @@ Fonti codice prioritarie: [`core/config/subscription-plans.js`](../../../../core
 
 ## Moduli (id `AVAILABLE_MODULES`)
 
-`manodopera`, `parcoMacchine`, `contoTerzi`, `vigneto`, `frutteto`, `oliveto` (non disponibile), `magazzino`, `tony` (Tony Avanzato operativo), `report`.
+`manodopera`, `parcoMacchine`, `contoTerzi`, `vigneto`, `frutteto`, `oliveto` (non disponibile), `magazzino`, `tony` (Tony Avanzato operativo), `report`, `meteo`.
 
 Senza questi id in `tenants.modules`, le relative card/azioni non devono essere documentate come disponibili nell’esperienza Core-only.
 
 ---
 
-## Dashboard (`dashboard-controller.js` / `dashboard-sections.js`)
+## Dashboard (`dashboard-controller.js` / `dashboard-sections.js` / `dashboard-hub.js`)
 
-- `hasOnlyCoreModules(availableModules)` → true se nessun modulo “avanzato” (tutto fuori `core` nel filter — vedi `dashboard-utils.js`).
-- Manager/Admin **senza** `manodopera`: layout top-row con `createTerreniCard`, `createDiarioAttivitaCard`, `createAffittiScadenzaCard`, `createStatisticheCard(false)`, `createAbbonamentoCard`; mappa `createMappaAziendaleSection`; card modulo solo se `includes` modulo.
-- Sezione Manager “Gestione Operativa” (`createManagerSection`) per core-only mostra solo Terreni, Diario, Statistiche nelle azioni rapide — **nessuna** Gestione Lavori in quel blocco quando `isCoreOnly`.
-- `hasAdvancedModules` false → non montare sezioni Manodopera (manager manodopera, diario da lavori, caposquadra, operaio).
-- **Invita collaboratore** (header): inteso legato a Manodopera + ruolo manager/admin — da nascondere con solo base (allineamento prodotto in corso).
+Layout **panoramica** (manager/admin, non solo operaio/caposquadra):
+
+- `createDashboardModuleSidebar` — pulsante **Moduli** + pannello; variant `core` (Terreni, Diario, Statistiche, Abbonamento + tile moduli attivi) vs `manodopera` (+ Amministrazione, Statistiche manodopera, Manodopera, …).
+- `createDashboardPanoramaHubSection` — **Richiede attenzione** (`refreshAttention` in `dashboard-hub.js`: sotto scorta, guasti, scadenze mezzi, affitti, da pianificare CT+manodopera, ore da validare), **Per te oggi**, **Accessi rapidi** (pin ★ + recenti per `userId` in localStorage).
+- `createDashboardQuickBarSection` — **I miei accessi** (5 slot, modale **Configura**, catalogo in `dashboard-quick-bar.js`).
+- `createDashboardDeadlinesRow` — **Scadenze amministrazione** + **In arrivo**.
+- `createDashboardMeteoSection` — widget riga `.dashboard-meteo-row`; visibile se `planId !== 'free'`; titolo **Meteo sede** vs **Meteo** se modulo `meteo`; sede da Impostazioni (`dashboard-meteo.js`).
+- Pin tile: `wrapTilesWithPinShells` + stella su `.dashboard-module-tile` (anche voci nel menu Moduli).
+
+**Rami layout (`renderDashboard`):**
+
+- Manager/admin **senza** Manodopera: `dashboard-panorama-layout` (menu + hub + quick bar + scadenze + meteo se Base).
+- Manager/admin **con** Manodopera: stesso blocco panoramica (variant menu `manodopera`); **non** monta `createManagerSection` sotto.
+- Manager **con** moduli avanzati **senza** Manodopera: panoramica **+** tile modulo in `container` (`createVignetoCard`, `createMagazzinoCard`, …).
+- Operaio/caposquadra soli: `createCoreBaseSection` o sezioni ruolo; messaggio se Manodopera assente.
+- Header: **Invita collaboratore** se `hasManodopera` + manager/admin; **Mappa** se manager/admin.
+
+Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone — sostituiti da hub/scadenze dove possibile.
 
 ---
 
@@ -43,16 +56,18 @@ Senza questi id in `tenants.modules`, le relative card/azioni non devono essere 
 
 ## Piani (`SUBSCRIPTION_PLANS`)
 
-- `free`: `maxTerreni`, `maxAttivitaMese`, `maxModules: 0` → nessun modulo acquistabile finché non si passa a Base.
-- `base`: moduli pay-per-use (`calculateTotalPrice`, `canActivateModule`).
+- `free`: `maxTerreni` 5, `maxAttivitaMese` 30, `maxModules: 0` → nessun modulo acquistabile; Tony bloccato (`applyTonyFreemiumGate` in `main.js`); meteo dashboard nascosto.
+- `base`: terreni/attività illimitati; moduli pay-per-use (`calculateTotalPrice`, `canActivateModule`); **Tony Guida** (widget + `tonyAsk`); consigli moduli (`tony-module-recommendations.js`, solo Base, non Free/Avanzato).
+- Modulo `tony` in `AVAILABLE_MODULES`: **Tony Avanzato** (automazioni), separato da Tony Guida del Base.
 
 ---
 
-## Tony: comportamento atteso Core-only
+## Tony: comportamento atteso Core-only / Base
 
-- Widget presente globalmente.
-- Modulo `tony` (Tony Avanzato): abilita navigazione operativa (`APRI_PAGINA`), form injection, comandi — vedi messaggi blocco in `main.js` quando modulo non attivo.
-- **Intent prodotto documentato:** con solo base, Tony **guida** senza azioni su dati tenant né navigazione forzata né compilazione — allineare istruzioni sistema / CF se divergenza.
+- **Free:** widget nascosto; CF rifiutano richieste.
+- **Base:** widget visibile; **Tony Guida** — spiegazioni + `consigliModuli` / `tryTonyModuleAdvisorQuickReply`; **senza** modulo `tony` → no navigazione/form injection (`isTonyAdvancedActive` false).
+- Modulo `tony`: Tony Avanzato — `APRI_PAGINA`, form injection, filtri; briefing vocale dashboard (`tonyDashboardBriefingVoiceAllowed` richiede modulo `tony`).
+- Intent prodotto: con solo Base, Tony **guida** e suggerisce moduli; automazioni solo con modulo `tony`.
 
 ---
 
@@ -78,5 +93,6 @@ Pagine core che espongono tabelle: `terreni`, `attivita` (vedi canone `table-dat
 
 ## Note implementazione
 
-- Allineare visibilità **Invita** e assenza **Tour** in header con guida utente Core.
-- Ogni nuova card dashboard modulare: documentare sotto `GUIDA/<MODULO>/utente` e `tony`, non sotto Core.
+- Hub attenzione e scadenze condividono snapshot `dashboard-counts-snapshot.js`.
+- Nuove tile o voci menu Moduli: documentare sotto `GUIDA/<MODULO>/utente` e `tony`; aggiornare `MODULE_CATALOG` in `dashboard-hub.js` se serve pin/accessi rapidi.
+- Ogni nuova card dashboard modulare: documentare sotto `GUIDA/<MODULO>/utente` e `tony`, non sotto Core (salvo panoramica trasversale qui).

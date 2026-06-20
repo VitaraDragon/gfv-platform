@@ -9,9 +9,10 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 ## Percorso consigliato quando inizi
 
 1. **Imposta prima i dati dell’azienda** (nome, recapiti, eventuale logo, tariffa proprietario o liste personalizzate se vi servono) e, se usate i **poderi**, createli prima di riempire i terreni: così nei moduli troverete già i nomi giusti nei menu. **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
-2. Poi **Terreni** (scheda completa e confini sulla mappa). **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
-3. Poi **Diario attività** per le giornate in campo. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
-4. Usa la **mappa in dashboard** per vedere tutto d’un colpo e **Statistiche** per i grafici e i totali filtrati. **[Impara qui: Mappa dashboard](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**
+2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, menu Moduli, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
+3. Poi **Terreni** (scheda completa e confini sulla mappa). **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
+4. Poi **Diario attività** per le giornate in campo. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
+5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**
 
 ---
 
@@ -27,12 +28,15 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 
 | Argomento | Dove andare |
 |-----------|-------------|
+| Dashboard per manager e amministratore | [Impara qui](#mini-guida-dashboard-per-manager-e-amministratore) |
 | Dati azienda e poderi | [Impara qui](#prima-cosa-dati-aziendali-e-poderi) |
 | Scegliere una voce dai menu dell’app | [Impara qui](#elenchi-cliccabili-menu-con-la-freccetta) |
 | Aggiungere o modificare un terreno (anche confini sulla mappa) | [Impara qui](#mini-guida-aggiungere-o-modificare-un-terreno) |
 | Compilare il diario attività | [Impara qui](#mini-guida-compilare-il-diario-attivita) |
-| La mappa nella dashboard | [Impara qui](#mini-guida-la-mappa-in-dashboard) |
+| La mappa aziendale | [Impara qui](#mini-guida-la-mappa-in-dashboard) |
 | Statistiche e filtri | [Impara qui](#mini-guida-statistiche-e-filtri) |
+| Abbonamento e piani | [Impara qui](#abbonamento-e-piani) |
+| Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
 
 ---
 
@@ -55,29 +59,73 @@ La **dashboard cambia** in base al ruolo: non aspettarti le stesse scorciatoie s
 
 ---
 
-## La dashboard quando hai solo l’app base
+## Mini-guida: dashboard per manager e amministratore
 
-Dopo il login arrivi alla **dashboard**. Quello che vedi dipende da tre cose insieme:
+Questa sezione vale se, dopo il login, vedi la **dashboard completa** da ufficio (non la versione mobile semplificata per operaio o caposquadra). Quello che compare dipende da **ruolo**, **piano** e **moduli attivi** sull’abbonamento.
 
-1. **Chi sei** (ruolo).
-2. **Che piano ha l’azienda** (per esempio limiti su quanti terreni o quante attività al mese).
-3. **Quali moduli sono attivi** — senza moduli extra, le card “di squadra”, “lavori avanzati”, “macchine” e simili **non compaiono**: non è un errore, è così finché non attivate quei servizi.
+### Intestazione in alto
 
-### Cosa trovi di solito (manager o amministratore, solo base)
+Oltre al titolo dell’azienda, di solito trovi:
 
-- **Terreni** — per creare e gestire i tuoi campi, tracciare i confini sulla mappa e avere superfici coerenti.
-- **Diario attività** — per segnare cosa è successo in campagna giorno per giorno (interventi, orari, note).
-- **Statistiche** — riepiloghi su quello che avete registrato, nel modo previsto per il piano base.
-- **Abbonamento** — per vedere il piano e, quando serve, attivare moduli aggiuntivi.
-- Spesso una **mappa** con i terreni e, dove previsto, un riquadro sugli **affitti in scadenza** così non vi scappa una data importante.
+- **Impostazioni** — dati azienda, poderi, account personale (vedi sezione dedicata).
+- **Guide** — apre la documentazione utente nel browser (moduli attivi + Core).
+- **Mappa** — collegamento rapido alla **mappa satellitare** terreni (e lavori, se i moduli lo prevedono).
+- **Invita collaboratore** — compare con il **modulo Manodopera** attivo e permessi da manager/amministratore.
 
-### Amministrazione
+### Panoramica (tre sezioni)
 
-Da qui gestisci ciò che l’azienda ha deciso di rendere disponibile: in genere **utenti** e **abbonamento**. Altre voci (squadre, operai, mezzi) possono comparire solo quando il relativo **modulo** è attivo: se non le vedi, non sono parte del tuo pacchetto in questo momento.
+Subito sotto il pulsante **Moduli** (e il meteo, se attivo), la **panoramica** è divisa in **tre sezioni** affiancate:
 
-### Caposquadra e operaio senza modulo squadre/lavori
+1. **Richiede attenzione** — elenco automatico di situazioni da controllare (es. prodotti sotto scorta, guasti o scadenze mezzi, affitti in scadenza, ore da validare, lavori da pianificare). Ogni voce è **cliccabile** e ti porta alla schermata giusta. Se tutto è a posto, compare un messaggio di conferma.
+2. **Per te oggi** — collegamenti fissi verso mappa, diario, statistiche e, se avete Manodopera, l’area lavori/squadre/ore.
+3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo**. Per fissare un modulo: apri il menu **Moduli** (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.
 
-Se il modulo per squadre e lavori strutturati **non** è attivo, potresti vedere un messaggio che ti invita ad attivarlo o un accesso limitato. Non è un bug: serve quel modulo per quelle funzioni.
+### **I miei accessi**
+
+Sotto la panoramica c’è la barra **I miei accessi**: fino a **cinque scorciatoie** verso pagine che usi spesso. Tocca **Configura** per scegliere le voci e **Salva**. Le preferenze restano **solo su questo browser**.
+
+### Meteo sede
+
+Con il **piano Base** (a pagamento), compare **Meteo sede** con previsioni per l’indirizzo dell’azienda in **Impostazioni**. Sul **piano gratuito** non compare.  
+Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Senza indirizzo sede, l’app vi invita a compilarlo in Impostazioni.
+
+### Scadenze e «In arrivo»
+
+Due sezioni affiancate:
+
+- **Scadenze amministrazione** — affitti, revisioni, assicurazioni con data imminente o superata.
+- **In arrivo** — manutenzioni mezzi, lavori da pianificare, ore da validare (secondo i moduli attivi).
+
+### Menu **Moduli** — come entri in Vigneto, Magazzino, ecc.
+
+Il pulsante **Moduli** (con un **numero** accanto, es. «Moduli 8») è il modo **principale** per aprire qualsiasi sezione.
+
+1. Tocca **Moduli**.
+2. Si apre un **elenco a tendina** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
+3. Tocca la voce che ti serve: si apre quella pagina e il menu si chiude.
+
+Nell’elenco trovi sempre almeno **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**.
+
+**Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **I miei accessi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal menu — ed è normale.
+
+### Riquadri modulo in fondo alla pagina (solo in alcuni casi)
+
+**Cosa sono:** **riquadri** bianchi, larghi quasi tutta la pagina, con icona a sinistra (es. 🍇) e titolo **Vigneto** (o **Prodotti e Magazzino**, **Conto Terzi**, …) — **stesso aspetto** delle voci dentro **Moduli**, ma **scritti direttamente nella pagina**, **sotto** Scadenze e In arrivo, se **scorri fino in fondo**. Non vanno confusi con le **tre sezioni** della panoramica (Richiede attenzione, Per te oggi, Accessi rapidi).
+
+**Quando li vedi:** solo se avete **moduli opzionali attivi** (Vigneto, Magazzino, …) e **non** avete il **modulo Manodopera**. Servono da scorciatoia: un clic e entri nel modulo senza riaprire **Moduli**.
+
+**Quando non li vedi:** se avete **Manodopera** attivo (caso più comune in aziende con squadre e ore). I moduli restano nel menu **Moduli**; non manca nulla.
+
+**In sintesi:** per aprire un modulo → **Moduli** → tocca la voce. I riquadri in fondo pagina sono un’**extra** opzionale, non obbligatoria, e molti utenti **non li vedono mai**.
+
+### Solo app base (nessun modulo opzionale)
+
+Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …), **non** è un errore se non vedete quelle voci: restano disponibili **Terreni**, **Diario attività**, **Statistiche** e **Abbonamento** dal menu Moduli e da **Per te oggi**. Squadre, lavori strutturati e macchine richiedono i rispettivi moduli.
+
+### Caposquadra e operaio
+
+Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in genere la **versione mobile** o sezioni dedicate al campo, non questa panoramica da ufficio. Senza **modulo Manodopera** attivo può comparire un avviso che invita ad attivarlo.
 
 ---
 
@@ -128,7 +176,7 @@ Se un podere o una coltura non compare, quasi sempre il dato non è stato ancora
 **Icone Vigneto e Frutteto (solo se i moduli sono attivi sull’azienda)**
 
 - Nella **lista** dei terreni possono comparire, sulla riga, due pulsanti piccoli: **grappolo** e **mela**.
-- **Grappolo:** non è un «gioco»: serve ad aprire l’**anagrafica vigneti** del modulo Vigneto già **legata a quel terreno** (il link apre direttamente la scheda vigneti collegata al campo che stavi guardando). Da lì gestisci i vigneti di quel campo; per il **riepilogo viola** del modulo (numeri, vendemmie, azioni rapide) usa il pulsante **Dashboard** che trovi in quella pagina oppure la card **Vigneto** dalla dashboard principale.
+- **Grappolo:** non è un «gioco»: serve ad aprire l’**anagrafica vigneti** del modulo Vigneto già **legata a quel terreno** (il link apre direttamente la scheda vigneti collegata al campo che stavi guardando). Da lì gestisci i vigneti di quel campo; per il **riepilogo viola** del modulo (numeri, vendemmie, azioni rapide) usa il pulsante **Dashboard** che trovi in quella pagina oppure la voce **Vigneto** dal menu **Moduli** (tocca **Moduli** → **Vigneto** nella lista).
 - **Mela:** stesso schema per il modulo **Frutteto**, aprendo l’**anagrafica frutteti** per quel terreno.
 
 **Compilare i campi principali**
@@ -182,13 +230,19 @@ Se più avanti attivate altri moduli, nella stessa pagina possono comparire sezi
 
 ## Mini-guida: la mappa in dashboard
 
-Nella dashboard, la sezione **Vista mappa aziendale** mostra i terreni che hanno **già i confini tracciati** sulla mappa dei Terreni. Se non hai ancora disegnato nessun contorno, può comparire un messaggio che ti invita ad andare in Terreni: **[come tracciare](#mini-guida-aggiungere-o-modificare-un-terreno)**.
+La **mappa aziendale** mostra i terreni che hanno **già i confini tracciati** in Terreni. Puoi aprirla da:
+
+- il link **Mappa** in intestazione (manager/amministratore);
+- **Per te oggi** → «Mappa satellitare terreni e lavori»;
+- la pagina dedicata se la trovi nel menu **Moduli** o in **I miei accessi**.
+
+Se non hai ancora disegnato nessun contorno, compare un invito ad andare in Terreni: **[come tracciare](#mini-guida-aggiungere-o-modificare-un-terreno)**.
 
 **Con solo app base (senza modulo squadre/lavori avanzato):** di solito vedi la **mappa satellitare** con i poligoni dei campi. Naviga zoomando e trascinando come su una mappa normale.
 
-**Se la tua azienda ha anche il modulo dedicato a squadre e lavori:** nella stessa area possono comparire **filtri** per podere e coltura e pulsanti come «Zone lavorate» e «Indicatori lavori». Servono a focalizzare cosa vedi sulla mappa; il dettaglio è nella guida di quel modulo.
+**Se la vostra azienda ha il modulo Manodopera (o lavori strutturati):** possono comparire **filtri** per podere e coltura e pulsanti come «Zone lavorate» e «Indicatori lavori». Il dettaglio è nella guida **Manodopera**.
 
-Per usare bene la mappa in dashboard, conviene avere **nome e confini** dei terreni già a posto nella pagina Terreni.
+Per usare bene la mappa, conviene avere **nome e confini** dei terreni già a posto nella pagina Terreni.
 
 ---
 
@@ -210,22 +264,48 @@ Se cambiate filtro e non succede nulla, controlla di aver premuto **Applica filt
 
 ## Abbonamento e piani
 
-Nella pagina **Abbonamento** vedi il piano corrente e cosa include.
+Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano corrente** e i **moduli** che potete attivare.
 
-- Con il piano gratuito di solito ci sono **limiti** (per esempio numero di terreni o di attività al mese): quando ti avvicini al limite, conviene pianificare un upgrade o l’attivazione del piano completo, secondo le regole del tuo contratto.
-- Con il piano che consente i **moduli a pagamento**, potete attivare solo ciò che vi serve (vigneto, manodopera, magazzino…): ogni modulo aggiunge strumenti sulla dashboard e nuove pagine.
+### Piano gratuito (Free)
 
-**Non devi capire nulla di tecnologia:** pensa al piano come al “pacchetto servizi” della tua azienda.
+- Di solito **limiti** su terreni (es. massimo 5) e attività al mese (es. 30).
+- **Nessun modulo** opzionale acquistabile finché non passate al piano Base.
+- **Nessun assistente Tony** in chat (il pulsante non compare o il servizio non è disponibile).
+
+### Piano Base (a pagamento)
+
+- Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
+- **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
+- I **moduli verticali** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, …) si **attivano a parte**, ciascuno con il suo prezzo mensile: ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
+- Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi. È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
+
+### Cosa fare in pratica
+
+- Avvicinati ai limiti del Free → valuta il passaggio a **Base**.
+- Con Base attivo → attivate **solo i moduli** che vi servono (non dovete prendere tutto).
+- Per capire Tony (chat, voce, differenza Guida/Avanzato) apri la **guida modulo Tony** dalla raccolta Guide.
+
+**Non devi capire nulla di tecnologia:** pensa al piano come al “pacchetto servizi” della tua azienda e ai moduli come optionali à la carte.
 
 ---
 
 ## Tony: l’assistente in chat
 
-Puoi scrivere in chat quando ti serve aiuto per **orientarti** (dove trovare una voce, cosa significa un’etichetta, quale passo fare dopo).
+### Chi lo vede
 
-Le azioni concrete — aprire una pagina, leggere elenchi e numeri, compilare e salvare un modulo — dipendono dal **piano**, dal **modulo Tony** (Tony Avanzato) attivo sull’abbonamento e dal **tuo ruolo**: a volte la chat le propone e le esegue per te, altre volte ti guida passo passo mentre le fai tu a mano.
+- **Piano gratuito:** di solito **non** c’è il pulsante chat (Tony non è incluso).
+- **Piano Base:** **Tony Guida** — spiega l’app, risponde su passi e termini, può suggerire **moduli** utili in base a come usate l’azienda (senza pressione commerciale).
+- **Modulo Tony Avanzato** (attivabile in Abbonamento): aggiunge **azioni** nell’interfaccia (aprire sezioni, compilare moduli, filtrare tabelle), oltre alla guida testuale.
 
-Per una **guida dedicata al modulo Tony** (chi è, cosa fa, esempi, voce, piano free, operaio e manager, briefing in dashboard), apri la documentazione utente del **modulo Tony** dalla raccolta guide: stesso stile delle guide Magazzino, Manodopera e Conto terzi.
+### Cosa puoi chiedere (esempi)
+
+- «Dove aggiungo un terreno?» — percorsi e passi in linguaggio semplice.
+- «Cosa significa questo stato?» — spiegazione di etichette in schermata.
+- Con **Tony Avanzato**: «Portami al diario», «Mostrami solo i terreni in affitto» (se sei sulla lista giusta), e flussi guidati descritti nella guida Tony.
+
+Le azioni automatiche dipendono dal **modulo Tony**, dal **ruolo** e dalla **pagina** in cui ti trovi: a volte Tony ti guida a mano invece di premere al posto tuo.
+
+Per **voce**, **briefing in dashboard**, **esempi completi** e **operaio/caposquadra**, apri la documentazione del **modulo Tony** dal pulsante **Guide** (stesso stile delle guide Magazzino, Manodopera, Conto terzi).
 
 ---
 

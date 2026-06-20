@@ -4,7 +4,7 @@ Modulo **Parco macchine** attivo nell’**abbonamento** (scheda moduli per l’a
 
 ## In sintesi
 
-- **Dashboard** → **Parco Macchine** → hub con statistiche e **azioni rapide** (trattori, attrezzi, flotta, gestione macchine, scadenze, officina/guasti).
+- **Moduli** → **Parco Macchine** → hub con statistiche e **azioni rapide** (trattori, attrezzi, flotta, gestione macchine, scadenze, officina/guasti). Ingresso anche da **I miei accessi** o alert **Richiede attenzione** (scadenze/guasti); riquadro in fondo dashboard solo **senza** Manodopera.
 - **Liste rapide** (Trattori / Attrezzi / Flotta): solo **creazione** rapida (**Nuovo** → campi minimi → **Salva**); **modifica / elimina / stato completo** da **Gestione macchine**.
 - **Trattori:** nome + **CV** obbligatori alla creazione rapida; colonna **Stato** (Disponibile, In uso, Manutenzione, Guasto).
 - **Attrezzi:** nome, **categoria** (elenco), **CV minimi** obbligatori — servono per **compatibilità** con il trattore (CV trattore ≥ CV minimi attrezzo); Stato spesso Disponibile / In uso.
@@ -14,4 +14,4 @@ Modulo **Parco macchine** attivo nell’**abbonamento** (scheda moduli per l’a
 - **Guasti:** filtro Solo aperti / Tutti; **Segnala guasto** → pagina dedicata; **Segna risolto** + note; può aggiornare stato macchina collegata.
 - **Diario attività:** trattore / attrezzo / ore macchina **opzionali**; combinazioni rispettano CV.
 
-Senza modulo **non** mostrare card né istruzioni come se il parco esistesse.
+Senza modulo **non** dare istruzioni come se il parco esistesse (né voce in **Moduli**).

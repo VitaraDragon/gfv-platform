@@ -2,13 +2,13 @@
 
 Questa guida è per chi usa il modulo **Conto Terzi**: clienti esterni, **terreni dei clienti**, **tariffe**, **preventivi** e collegamento ai **lavori** e al **Diario attività** per l’esecuzione in campo.
 
-Il modulo va **attivato sull’abbonamento** dell’azienda. Se non vedi la card **Conto Terzi** in dashboard, verifica **Abbonamento** o chiedi all’**amministratore**. Le schermate principali del modulo sono in genere pensate per **manager** e **amministratore**.
+Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Conto Terzi** nel menu **Moduli**, verifica **Abbonamento** o chiedi all’**amministratore**. Le schermate principali del modulo sono in genere pensate per **manager** e **amministratore**.
 
 ---
 
 ## Percorso consigliato
 
-1. Entrare nella **home Conto Terzi** e leggere la **panoramica** (numeri e collegamenti rapidi). **[Impara qui](#mini-guida-home-conto-terzi-e-panoramica)**  
+1. Entrare in **Conto Terzi** (**Moduli** → **Conto Terzi**) e leggere la **panoramica** (numeri e collegamenti rapidi). **[Impara qui](#mini-guida-home-conto-terzi-e-panoramica)**  
 2. Costruire o aggiornare l’**anagrafica clienti** (dati anagrafici e contatti). **[Impara qui](#mini-guida-anagrafica-clienti)**  
 3. Registrare i **terreni dei clienti** (podere, superficie, collegamento al cliente). **[Impara qui](#mini-guida-terreni-clienti)**  
 4. Consultare la **mappa clienti** per orientamento geografico. **[Impara qui](#mini-guida-mappa-clienti)**  
@@ -45,9 +45,10 @@ Il modulo va **attivato sull’abbonamento** dell’azienda. Se non vedi la card
 
 ### Come entrare
 
-1. Dalla **dashboard principale** apri la card **Conto Terzi** (titolo e colori legati al modulo).  
-2. Arrivi alla **home del modulo**: titolo di tipo **Conto Terzi** con sottotitolo sul gestire clienti e lavori esterni.  
-3. Il pulsante per tornare alla **dashboard principale** è in alto nella pagina.
+1. Dalla **dashboard principale** apri **Moduli** e tocca **Conto Terzi** (🤝). Se hai configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard puoi trovare un **riquadro** **Conto Terzi**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su **lavori da pianificare** che aprono il modulo.
+3. Arrivi alla **home del modulo**: titolo di tipo **Conto Terzi** con sottotitolo sul gestire clienti e lavori esterni.
+4. Il pulsante **← Dashboard** in alto riporta alla home generale.
 
 ### Cosa mostra la panoramica
 
@@ -284,7 +285,7 @@ Il cliente riceve un messaggio con un **link dedicato**: da lì può **accettare
 1. In **Preventivi**, individua una riga in stato **Accettato** (email o manager).  
 2. Premi **Pianifica** (o equivalente).  
 3. Il sistema crea un **lavoro** collegato, in genere con stato **da pianificare** o simile: significa che mancano ancora assegnazioni operative (squadra, date, macchine, ecc.) da completare nella schermata **Gestione lavori**.  
-4. Apri **Gestione lavori** (dalla home Conto Terzi tramite **Lavori da pianificare** o dalla dashboard generale, sezione lavori).  
+4. Apri **Gestione lavori** (dalla home Conto Terzi tramite **Lavori da pianificare**, da **Moduli** → **Manodopera** se attivo, o da **Per te oggi**).  
 5. Trova il lavoro collegato al cliente conto terzi, **modifica** e completa: **terreno**, **tipo lavoro**, **date**, **assegnazione** (squadra o operaio autonomo secondo modulo Manodopera), eventuali **macchine** se il modulo Parco Macchine è attivo, **note**.  
 6. **Salva** finché il lavoro non risulta **assegnato** o **in corso** come da vostra prassi.
 
@@ -318,8 +319,10 @@ Quando il lavoro in campo è terminato e validato secondo le vostre regole, il c
 
 | Problema | Cosa controllare |
 |----------|------------------|
-| Non vedo **Conto Terzi** in dashboard | Modulo non attivo sull’**abbonamento**; ruolo senza accesso. |
-| **Totale preventivo** a zero o errore tariffe | Voce mancante o nome tipo lavoro non allineato in **Tariffe**. |
+| Non vedo **Conto Terzi** in **Moduli** | Modulo non attivo sull’**abbonamento**; ruolo senza accesso. |
+| **Totale preventivo** a zero o errore tariffe | Voce mancante o nome tipo lavoro non allineato in **Tariffe**; verifica anche **tipo campo** (pianura/collina/montagna) e coltura vs tariffa generica. |
+| **Crea per tutte le morfologie** non crea nulla | Le tre combinazioni esistono già (messaggio di skip); oppure campi obbligatori mancanti (tipo lavoro, tariffa base, categoria coltura). |
+| Coefficienti «strani» su collina/montagna | In **Impostazioni**, sezione **Coefficienti morfologia (Conto Terzi)**: controlla le **percentuali** salvate (diventano coefficiente 1 + percentuale/100, con pianura fissa a 1,0). |
 | Non posso **Pianifica** | Il preventivo non è in stato **accettato**; completare il passo precedente. |
 | **Terreno** vuoto nel preventivo | Creare il terreno in **Terreni clienti** legato al cliente. |
 | Lista **lavori da pianificare** vuota | Nessun preventivo accettato ancora da pianificare, oppure filtri attivi in **Gestione lavori**. |

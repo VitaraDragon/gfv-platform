@@ -1,6 +1,6 @@
 # Guida modulo Frutteto
 
-Questa guida è per chi ha **attivato il modulo Frutteto** sull’azienda. Senza quel modulo non vedrete la card in dashboard né queste pagine.
+Questa guida è per chi ha **attivato il modulo Frutteto** sull’azienda. Senza quel modulo non troverete **Frutteto** nel menu **Moduli** né queste pagine.
 
 Verificate **Abbonamento** o chiedete all’amministratore se il modulo non compare.
 
@@ -8,7 +8,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Percorso consigliato
 
-1. **Dashboard** → **Frutteto** → **Dashboard Frutteto** (numeri, filtri, azioni rapide, raccolte e lavori). **[Impara qui](#da-dove-si-entra)**
+1. **Moduli** → **Frutteto** → **Dashboard Frutteto** (numeri, filtri, azioni rapide, raccolte e lavori). **[Impara qui](#da-dove-si-entra)**
 2. **Anagrafica frutteti** come base: terreno, specie, impianto, **stato impianto**. **[Impara qui](#mini-guida-anagrafica-frutteti)**
 3. Registri di campo: **trattamenti**, **concimazioni**, **potatura**, **raccolta frutta** — per i primi tre, le righe in elenco **ci sono solo dopo** un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno con la **categoria** corretta; poi si completano i dettagli nel modulo. **[Impara qui](#mini-guida-registri-di-campo)**
 4. **Statistiche**; **Pianifica nuovo impianto** e **Calcolo materiali** (strumenti condivisi con il modulo Vigneto, già impostati per il frutteto). **[Impara qui](#statistiche-pianificazione-e-calcolo-materiali)**
@@ -38,15 +38,16 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Da dove si entra
 
-1. Dalla **dashboard principale** aprite la card **Frutteto**.
-2. Arrivate alla **Dashboard Frutteto**: titolo e colori arancio, **filtri** in alto (frutteto e anno), **Panoramica** con numeri (produzione kg, resa, spese, numero frutteti, raccolte anno), **Azioni rapide** verso tutte le pagine del modulo.
-3. In basso due blocchi: **Raccolte recenti** (tabella) e **Lavori frutteto** (tabella) — significato distinto, vedi **[sotto](#raccolte-recenti-e-lavori-frutteto-in-dashboard)**.
+1. Dalla **dashboard principale** aprite **Moduli** e toccate **Frutteto**. Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Frutteto**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie: è normale non vedere il riquadro.
+3. Arrivate alla **Dashboard Frutteto**: titolo e colori arancio, **filtri** in alto (frutteto e anno), **Panoramica** con numeri (produzione kg, resa, spese, numero frutteti, raccolte anno), **Azioni rapide** verso tutte le pagine del modulo.
+4. In basso due blocchi: **Raccolte recenti** (tabella) e **Lavori frutteto** (tabella) — significato distinto, vedi **[sotto](#raccolte-recenti-e-lavori-frutteto-in-dashboard)**. Il pulsante **← Dashboard** riporta alla home generale.
 
 ---
 
 ## Da Terreni: icona mela
 
-Se avete la pagina **Terreni** e il modulo **Frutteto** è attivo, sulla riga del terreno compare spesso il pulsante **mela**: apre l’**Anagrafica frutteti** con quel **terreno già prescelto**, per vedere o creare gli impianti legati al campo. Per la **Dashboard Frutteto** (riepilogo arancio con le statistiche) usate la card **Frutteto** dalla home o il link **Dashboard** / **← Dashboard** dalla sezione modulo.
+Se avete la pagina **Terreni** e il modulo **Frutteto** è attivo, sulla riga del terreno compare spesso il pulsante **mela**: apre l’**Anagrafica frutteti** con quel **terreno già prescelto**, per vedere o creare gli impianti legati al campo. Per la **Dashboard Frutteto** (riepilogo arancio con le statistiche) usate **Moduli** → **Frutteto** oppure il link **Dashboard** / **← Dashboard** dalla sezione modulo.
 
 L’icona **grappolo** resta legata al modulo **Vigneto** (vedi guida Vigneto).
 
@@ -200,7 +201,7 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** sull’abbonamento → niente card Frutteto.
+- **Modulo non attivo** sull’abbonamento → niente voce **Frutteto** in **Moduli** (né riquadro in fondo pagina).
 - **Lista vuota** → create **terreni** e **frutteti** in anagrafica.
 - **Trattamenti / Concimazioni / Potatura: elenco vuoto** → è normale se non avete ancora creato un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno del frutteto con categoria **Trattamenti**, **Concimazione** o **Potatura**; verificate anche **anno** e **frutteto** nei filtri della pagina.
 - **Strumenti pianificazione** non si aprono → verificate che il percorso dal modulo sia quello previsto (a volte passa dalla cartella del modulo Vigneto perché lo strumento è condiviso).

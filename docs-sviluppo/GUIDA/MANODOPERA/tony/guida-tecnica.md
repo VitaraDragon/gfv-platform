@@ -6,9 +6,11 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 
 | Area | File |
 |------|------|
+| **Home hub modulo** | `modules/manodopera/views/manodopera-home-standalone.html` |
 | Versione mobile campo | `mobile/field-workspace-standalone.html` |
 | Segnatura ore (desktop) | `segnatura-ore-standalone.html` |
 | Validazione ore | `admin/validazione-ore-standalone.html` |
+| Gestione lavori | `admin/gestione-lavori-standalone.html` |
 | I miei lavori (dettaglio / zone) | `admin/lavori-caposquadra-standalone.html` |
 | Statistiche manodopera (manager) | `admin/statistiche-manodopera-standalone.html` |
 | Gestione squadre | `admin/gestione-squadre-standalone.html` |
@@ -16,7 +18,13 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 | Compensi operai | `admin/compensi-operai-standalone.html` |
 | Statistiche lavoratore (embed mobile) | `mobile/statistiche-lavoratore-standalone.html` |
 
-`page.pagePath` è il pathname corrente (es. contiene `field-workspace`, `segnatura-ore`, `validazione-ore`, `gestione-operai`, …).
+Navigazione admin → hub: `core/config/manodopera-hub-nav.js` (`wireManagerHomeLink`, label **← Manodopera** se `hasManodopera`).
+
+Dashboard ingresso hub: `MODULE_CATALOG.manodopera` in `dashboard-hub.js`; tile `createManodoperaCard()` in `dashboard-sections.js` (menu **Moduli**, variant `manodopera`); **Per te oggi** → href hub; quick bar `manodoperaHome` in `dashboard-quick-bar.js`.
+
+Con **Manodopera** attivo il controller **non** monta `createManagerSection` sotto la panoramica (card sparse legacy).
+
+`page.pagePath` è il pathname corrente (es. contiene `manodopera-home`, `field-workspace`, `segnatura-ore`, `validazione-ore`, `gestione-operai`, …).
 
 ## Versione mobile (`field-workspace-standalone.html`)
 
@@ -29,7 +37,7 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 
 ## Target motore (`core/js/tony/engine.js`)
 
-Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore**, **lavori caposquadra** / **i miei lavori**, **statistiche manodopera** / **statistiche ore**, **gestione squadre** / **squadre**, **gestione operai** / **operai**, **compensi operai** / **compensi**, **manodopera** (hub → gestione operai in mapping storico).
+Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore**, **lavori caposquadra** / **i miei lavori**, **statistiche manodopera** / **statistiche ore**, **gestione squadre** / **squadre**, **gestione operai** / **operai**, **compensi operai** / **compensi**, **manodopera** / **home manodopera** / **dashboard manodopera** → hub `manodopera-home-standalone.html`.
 
 ## pageType / Tony
 

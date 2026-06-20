@@ -1,6 +1,6 @@
 # Guida Parco Macchine
 
-Questa guida è per chi ha **attivato il modulo Parco Macchine** sull’azienda. Senza quel modulo non vedrete la card in dashboard né queste pagine: è normale.
+Questa guida è per chi ha **attivato il modulo Parco Macchine** sull’azienda. Senza quel modulo non troverete **Parco Macchine** nel menu **Moduli** né queste pagine: è normale.
 
 Se non sapete se è attivo, controllate **Abbonamento** o chiedete all’amministratore.
 
@@ -8,7 +8,7 @@ Se non sapete se è attivo, controllate **Abbonamento** o chiedete all’amminis
 
 ## Percorso consigliato
 
-1. **Dashboard** → **Parco Macchine** → **hub** con numeri e azioni rapide. **[Impara qui: entrata](#da-dove-si-entra)**
+1. **Moduli** → **Parco Macchine** → **hub** con numeri e azioni rapide. **[Impara qui: entrata](#da-dove-si-entra)**
 2. Per **censire in fretta** un trattore, un attrezzo o un mezzo di flotta usate le rispettive **elenchi** dal hub (pulsante **Nuovo** / **Nuova**). **[Trattori](#mini-guida-trattori-elenco-e-creazione-rapida)** · **[Attrezzi](#mini-guida-attrezzi-elenco-e-creazione-rapida)** · **[Flotta](#mini-guida-flotta-aziendale)**
 3. Per **modificare**, **cancellare**, cambiare **stato** o compilare **tutti i dettagli** (marca, targa, ore, manutenzioni, costo orario…): usate **Gestione macchine**. **[Impara qui](#mini-guida-gestione-macchine-anagrafica-completa)**
 4. **Scadenze** (date e ore limite) e **Guasti** (segnalazioni e chiusure) quando servono. **[Scadenze](#mini-guida-scadenze)** · **[Guasti](#mini-guida-officina-e-guasti)**
@@ -33,8 +33,9 @@ Se non sapete se è attivo, controllate **Abbonamento** o chiedete all’amminis
 
 ## Da dove si entra
 
-1. Dalla **dashboard** aprite la card **Parco Macchine**.
-2. Arrivate alla **pagina hub** «Gestione Parco Macchine»: **Panoramica** con conteggi (trattori, attrezzature, flotta, manutenzioni, scadenze, officina/guasti) e **Azioni rapide** verso le singole pagine.
+1. Dalla **dashboard** aprite **Moduli** e toccate **Parco Macchine** (🚜). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Parco Macchine**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su **scadenze** o **guasti** che aprono il modulo.
+3. Arrivate alla **pagina hub** «Gestione Parco Macchine»: **Panoramica** con conteggi (trattori, attrezzature, flotta, manutenzioni, scadenze, officina/guasti) e **Azioni rapide** verso le singole pagine. Il pulsante **← Dashboard** riporta alla home generale.
 
 Da smartphone i passi sono gli stessi; i pulsanti possono andare a capo.
 
@@ -211,7 +212,7 @@ Con **Manodopera** attiva, gli stessi mezzi restano collegati anche ai flussi or
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** → niente card Parco Macchine.
+- **Modulo non attivo** → niente voce **Parco Macchine** in **Moduli** (né riquadro in fondo pagina).
 - **Ruolo** → **Gestione macchine** e alcune azioni sono per chi ha permessi da manager/amministratore.
 - **Lista vuota** → create prima i mezzi da **Nuovo** negli elenchi o da **Gestione macchine**.
 - **Attrezzo non selezionabile con un trattore** → controllate **CV del trattore** e **CV minimi** dell’attrezzo in anagrafica.

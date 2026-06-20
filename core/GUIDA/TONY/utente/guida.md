@@ -13,11 +13,13 @@ Se cerchi solo una riga su «cos’è quella icona», vedi anche la **guida Core
 1. Capire **chi è Tony** e **cosa può fare** nel tuo caso (piano e modulo). **[Impara qui](#mini-guida-chi-e-tony-e-cosa-puo-fare-per-te)**  
 2. Trovare il **widget** (pulsante chat), aprirlo e scrivere o usare la **voce** dove previsto. **[Impara qui](#mini-guida-come-aprire-tony-e-usare-chat-e-voce)**  
 3. Distinguere **Tony Guida** (domande e orientamento) da **Tony Avanzato** (azioni sull’app). **[Impara qui](#mini-guida-tony-guida-e-tony-avanzato)**  
-4. Imparare a **chiedere bene**: cosa funziona al primo colpo e quando serve **conferma**. **[Impara qui](#mini-guida-come-parlare-a-tony-esempi)**  
-5. Sapere cosa succede **sulle liste** (terreni, preventivi, prodotti…) quando Tony «legge la tabella». **[Impara qui](#mini-guida-tony-e-i-dati-in-lista)**  
-6. Ruoli **operaio** e **caposquadra**: limiti e utilità in campo. **[Impara qui](#mini-guida-tony-per-operaio-e-caposquadra)**  
-7. **Dashboard manager**: promemoria vocali su scorte, scadenze e guasti (solo con Tony Avanzato). **[Impara qui](#mini-guida-briefing-in-dashboard)**  
-8. Se qualcosa **non va** o non compare. **[Impara qui](#se-qualcosa-non-va)**  
+4. Sapere quando Tony ti **consiglia moduli** utili (solo piano Base, senza Tony Avanzato). **[Impara qui](#mini-guida-consigliere-moduli)**  
+5. Imparare a **chiedere bene**: cosa funziona al primo colpo e quando serve **conferma**. **[Impara qui](#mini-guida-come-parlare-a-tony-esempi)**  
+6. Sapere cosa succede **sulle liste** (terreni, preventivi, prodotti…) quando Tony «legge la tabella». **[Impara qui](#mini-guida-tony-e-i-dati-in-lista)**  
+7. Ruoli **operaio** e **caposquadra**: limiti e utilità in campo. **[Impara qui](#mini-guida-tony-per-operaio-e-caposquadra)**  
+8. **Dashboard manager**: promemoria su scorte, scadenze, guasti e meteo; voce o chat a seconda del dispositivo. **[Impara qui](#mini-guida-briefing-in-dashboard)**  
+9. **Creazione lavoro e ore a voce** (Tony Avanzato, dove previsto). **[Impara qui](#mini-guida-intervista-vocale-lavori-e-ore)**  
+10. Se qualcosa **non va** o non compare. **[Impara qui](#se-qualcosa-non-va)**  
 
 ---
 
@@ -28,10 +30,12 @@ Se cerchi solo una riga su «cos’è quella icona», vedi anche la **guida Core
 | Chi è Tony e cosa può fare | [Impara qui](#mini-guida-chi-e-tony-e-cosa-puo-fare-per-te) |
 | Aprire Tony, chat e voce | [Impara qui](#mini-guida-come-aprire-tony-e-usare-chat-e-voce) |
 | Tony Guida e Tony Avanzato | [Impara qui](#mini-guida-tony-guida-e-tony-avanzato) |
+| Consigliere moduli (piano Base) | [Impara qui](#mini-guida-consigliere-moduli) |
 | Come parlare a Tony (esempi) | [Impara qui](#mini-guida-come-parlare-a-tony-esempi) |
 | Tony e i dati in lista | [Impara qui](#mini-guida-tony-e-i-dati-in-lista) |
 | Tony per operaio e caposquadra | [Impara qui](#mini-guida-tony-per-operaio-e-caposquadra) |
 | Briefing in dashboard | [Impara qui](#mini-guida-briefing-in-dashboard) |
+| Intervista vocale lavori e ore | [Impara qui](#mini-guida-intervista-vocale-lavori-e-ore) |
 | Se qualcosa non va | [Impara qui](#se-qualcosa-non-va) |
 
 ---
@@ -45,13 +49,14 @@ Tony è il **capocantiere digitale** dell’app: parla in modo **semplice e dire
 - **Spiegare** dove andare e cosa premere (**Tony Guida** — disponibile sul piano che include l’assistente testuale, con i limiti del tuo contratto).  
 - **Eseguire azioni** nell’interfaccia quando hai **Tony Avanzato** attivato come **modulo** sull’abbonamento: aprire una pagina, aprire una scheda (modale), **compilare campi**, proporre **filtri** sulle tabelle, in linea con le regole di sicurezza del tuo **ruolo**.
 
-### Le «tre anime» in linguaggio utente
+### Le «anime» in linguaggio utente
 
-1. **Operativo** — «Ho potato sei ore nel Sangiovese» → Tony può aiutarti ad aprire il **Diario** o la **segna ore** e a compilare, dove previsto, senza rifare tutti i clic a mano.  
-2. **Navigatore** — «Portami ai preventivi» o «Apri il magazzino» → con Tony Avanzato Tony può **aprire la pagina** giusta (se il modulo c’è e il tuo ruolo lo consente).  
-3. **Consulente sui dati** — «Quanti terreni in affitto?» o «Cosa c’è in questa lista?» → Tony usa i **dati** che l’app gli passa (elenchi visibili, riepiloghi, dati azienda per i manager), senza inventare numeri.
+1. **Operativo** — «Ho potato sei ore nel Sangiovese» → Tony può aiutarti ad aprire il **Diario** o la **segna ore** e a compilare, dove previsto, senza rifare tutti i clic a mano (serve **Tony Avanzato**).  
+2. **Navigatore** — «Portami ai preventivi» o «Apri Manodopera» → con Tony Avanzato Tony può **aprire la pagina** giusta (se il modulo c’è e il tuo ruolo lo consente).  
+3. **Consulente sui dati** — «Quanti terreni in affitto?» o «Cosa c’è in questa lista?» → Tony usa i **dati** che l’app gli passa (elenchi visibili, riepiloghi, dati azienda per i manager), senza inventare numeri.  
+4. **Consigliere moduli** (solo **piano Base**, **Tony Guida**) — «Quali moduli mi servono?» → Tony suggerisce **uno o due moduli** in base a terreni, colture e uso reale dell’app; ti indica **Abbonamento** per attivarli. **Non** promuove Tony Avanzato e **non** interrompe le domande su una lista già aperta.
 
-Non tutte le funzioni sono al **massimo livello** in ogni versione dell’app: conta il **piano**, il **modulo Tony** e il **ruolo**.
+Non tutte le funzioni sono al **massimo livello** in ogni versione: conta il **piano**, il **modulo Tony** e il **ruolo**.
 
 ---
 
@@ -71,38 +76,70 @@ Di solito trovi un **pulsante flottante** (icona / bolla) sul bordo dello scherm
 
 ### Voce (TTS e microfono)
 
-Su molte pagine Tony può **leggere ad alta voce** le risposte (sintesi vocale): dipende dal browser e dalle autorizzazioni audio.
+Su molte pagine Tony può **leggere ad alta voce** le risposte (sintesi vocale): dipende dal browser e dalle autorizzazioni audio. Le risposte lunghe vengono lette **a frasi**, così la voce parte prima.
 
 - Il **microfono** (quando presente) serve a **dettare** o parlare invece di scrivere: in ambienti rumorosi può essere comodo **scrivere**.  
-- Se l’audio è occupato dalla lettura, il microfono può restare **in pausa** fino alla fine del messaggio: è un comportamento normale.
+- In **modalità continua** (auto), dopo che Tony ha parlato il microfono può **riaprirsi** da solo per il turno successivo — aspetta che finisca il messaggio prima di parlare di nuovo.  
+- Se l’audio è occupato dalla lettura, il microfono può restare **in pausa**: è normale.
 
 ---
 
 ## Mini-guida: Tony Guida e Tony Avanzato
 
-### Tony Guida (base)
+### Tony Guida (piano Base)
 
-Con il **piano** che include l’uso dell’assistente in modalità guida, puoi chiedere:
+Con il **piano Base** (a pagamento) hai **Tony Guida** nel widget:
 
 - **Dove** si trova una funzione («Dove segno le ore?»).  
 - **Come** si compila un modulo a grandi linee.  
-- **Cosa significa** uno stato o un pulsante.
+- **Cosa significa** uno stato o un pulsante.  
+- **Quali moduli** potrebbero servirti, se chiedi esplicitamente o se manca un modulo per completare un flusso (vedi [Consigliere moduli](#mini-guida-consigliere-moduli)).
 
-Tony usa le **guide interne** del prodotto (testi aggiornati dai moduli: Core, Magazzino, Vigneto, …) e non deve **inventare** schermate che non esistono nel tuo pacchetto.
+Tony usa le **guide interne** del prodotto (Core, Magazzino, Manodopera, …) e non deve **inventare** schermate che non esistono nel tuo pacchetto.
 
-### Tony Avanzato (modulo attivabile in abbonamento)
+**Tony Guida non esegue azioni** nell’interfaccia (niente «apri pagina» o compilazione automatica): per quello serve **Tony Avanzato**.
 
-Quando l’**amministratore** attiva il **modulo Tony** (talvolta indicato in abbonamento come «Tony Avanzato» o simile), Tony può anche:
+### Tony Avanzato (modulo attivabile in Abbonamento)
 
-- Eseguire **APRI PAGINA** (navigazione verso una sezione prevista).  
+Quando l’**amministratore** attiva il **modulo Tony Avanzato** in **Abbonamento** (icona 🤖, separato dal piano Base), Tony può anche:
+
+- Eseguire **APRI PAGINA** (navigazione verso una sezione prevista, es. home **Manodopera**, magazzino, gestione lavori).  
 - Aprire **schede** (Diario, Nuovo lavoro, Nuovo preventivo, Prodotto in magazzino, …) con i **campi** già compilati quando capisce cosa chiedi.  
-- Applicare **filtri** sulle **tabelle** già aperte (es. «mostrami solo le bozze» sulla lista preventivi), dove la pagina lo supporta.
+- Applicare **filtri** sulle **tabelle** già aperte (es. «mostrami solo le bozze» sulla lista preventivi), dove la pagina lo supporta.  
+- Guidarti con **interviste vocali** per creare un **lavoro** o segnare **ore** (vedi sezione dedicata).
 
-Se chiedi un’azione automatica e Tony risponde che serve il **modulo Tony**, significa che **non** è attivo sull’**abbonamento** della tua azienda: puoi comunque usare i **menu** dell’app a mano o chiedere all’amministratore di attivarlo.
+Se chiedi un’azione automatica e Tony risponde che serve il **modulo Tony** / **Tony Avanzato**, significa che **non** è attivo sull’**abbonamento** della tua azienda: puoi usare i **menu** a mano o chiedere all’amministratore di attivarlo in **Abbonamento**.
 
 ### Piano gratuito
 
-Sul **piano gratuito** di solito **non** è disponibile l’assistente Tony (il widget può non comparire e il servizio lato server può rifiutare le richieste). Per usare Tony serve passare a un **piano a pagamento** previsto dal prodotto (vedi **Abbonamento**).
+Sul **piano gratuito** **non** è disponibile Tony: il **pulsante chat non compare** e il servizio non risponde. Per usare Tony serve il **piano Base** (Tony Guida) e, per le automazioni, il **modulo Tony Avanzato**.
+
+---
+
+## Mini-guida: consigliere moduli
+
+### Quando entra in gioco
+
+Con **piano Base** e **Tony Guida** (senza obbligo di Tony Avanzato), Tony può suggerirti **moduli opzionali** da attivare in **Abbonamento** — ad esempio **Vigneto** se hai molti terreni a vite, **Conto terzi** se lavori per clienti, **Manodopera** se gestisci squadre e ore.
+
+### Quando chiedere
+
+- «**Quali moduli mi servono?**»  
+- «**Cosa mi conviene attivare?**»  
+- «Come **sfrutto meglio** l’app?»
+
+Tony risponde con **al massimo uno o due moduli** per volta, spiegando **perché** (in base ai dati reali della tua azienda, non a supposizioni).
+
+### Cosa aspettarti
+
+- Se hai già un modulo attivo, **non** te lo suggerisce di nuovo.  
+- Se un modulo era **disattivato** ma restano dati in archivio, Tony può invitarti a **riattivarlo** (non a «scoprirlo» da zero).  
+- Tony **non** usa i consigli moduli mentre rispondi a domande sul **contenuto di una lista** già aperta («quanti preventivi in bozza?»).  
+- Tony **non** ti propone **Tony Avanzato** come modulo da attivare in questo flusso: è un’opzione **separata** per le automazioni.
+
+### Cosa fare dopo
+
+Apri **Abbonamento** (da **Moduli** → **Amministrazione** o dal percorso indicato da Tony) e attiva il modulo che ti serve. I prezzi mensili sono quelli mostrati in pagina.
 
 ---
 
@@ -114,7 +151,9 @@ Sul **piano gratuito** di solito **non** è disponibile l’assistente Tony (il 
 |-------------------|-------------------|
 | «Ho trinciato otto ore oggi nel campo X» | Tony apre il **Diario attività** (o il flusso ore previsto per il tuo ruolo) e inizia a **compilare** tipo lavoro, ore, terreno se li riconosce; può chiederti cosa manca. |
 | «Crea un preventivo per erpicatura al cliente Rossi» | Tony avvia il **Nuovo preventivo** e può proporre **cliente** e **tipo lavoro**; se ci sono più terreni per quel cliente, chiede **quale terreno**. |
-| «Portami alla gestione lavori» | Tony **apre** la pagina lavori, se il tuo ruolo lo consente. |
+| «Portami alla gestione lavori» / «Apri Manodopera» | Tony **apre** la pagina prevista per il tuo ruolo (es. home **Manodopera** o gestione lavori). |
+| «Crea un lavoro per l’operaio Rossi nel Sangiovese» | Tony avvia un’**intervista** passo passo (chi, terreno, tipo, date…) e poi apre o compila la scheda lavoro. |
+| «Segniamo le ore» (senza orari precisi) | Tony fa domande su **lavoro**, **data** e **orari** prima di compilare. |
 | «Mostrami solo i prodotti attivi» (mentre sei già sulla pagina prodotti) | Tony può applicare un **filtro** sulla lista già visibile. |
 
 ### Conferme
@@ -126,7 +165,8 @@ Per azioni che **cambiano dati** o **navigano**, Tony spesso chiede una **confer
 | Tu dici | Tony fa |
 |--------|---------|
 | «Come si aggiunge un terreno?» | Ti descrive i passi (Impostazioni poderi, poi Terreni, …) in linguaggio semplice. |
-| «Dove trovo le tariffe conto terzi?» | Ti indica il percorso dalla **home Conto terzi** o dalla **dashboard**, secondo i moduli attivi. |
+| «Dove trovo le tariffe conto terzi?» | Ti indica il percorso dalla **home Conto terzi** o da **Moduli**, secondo i moduli attivi. |
+| «Quali moduli mi servono?» | Tony elenca **1–2 moduli** consigliati e rimanda ad **Abbonamento** (solo piano Base). |
 
 ### Cosa evitare
 
@@ -174,16 +214,45 @@ Il profilo **campo** è pensato per **sicurezza e semplicità**:
 
 ### Solo manager / amministratore
 
-Se sei **manager** o **amministratore** e hai il **modulo Tony** attivo, dopo il caricamento della **dashboard** il sistema può controllare in automatico:
+Dopo il login, sulla **dashboard** (manager o amministratore), il sistema può controllare in automatico:
 
 - prodotti **sotto scorta** (se usi il magazzino),  
 - **scadenze** urgenti nel parco macchine (se attivo),  
-- **guasti** aperti (se attivo).
+- **guasti** aperti (se attivo),  
+- **meteo** e suggerimenti operativi (se avete il modulo **Meteo** e Tony Avanzato).
 
-Se c’è almeno un **allarme**, dopo qualche secondo Tony può **parlarti** con un saluto e una frase del tipo: ho visto alcune cose da controllare, vuoi un **riassunto**?
+### Voce vs chat
 
-- Il **browser** può richiedere un **click** o un’interazione prima di far partire l’audio: se non senti nulla, apri il widget Tony o interagisci una volta con la pagina.  
-- Se **non** hai il modulo Tony, i dati possono comunque esserci in dashboard, ma **non** parte il messaggio vocale automatico.
+| Situazione | Comportamento |
+|------------|----------------|
+| **Computer** + **Tony Avanzato** attivo | Dopo qualche secondo Tony può **parlarti** (saluto + invito al riassunto). Il browser può chiedere un **click** prima dell’audio. |
+| **Telefono / tablet** (touch) | Di solito **niente voce automatica**: si **apre il pannello chat** con lo stesso messaggio scritto. |
+| **Base** con Tony Guida, **senza** Tony Avanzato | I dati restano in dashboard (**Richiede attenzione**, KPI…), ma **non** parte il messaggio proattivo di Tony. |
+
+### Riassunto dettagliato
+
+Se Tony chiede «vuoi un **riassunto**?» e rispondi **«Sì»**, **«Ok»** o simile, espande il punto con operatività (scorte, guasti, scadenze) e, se previsto, **meteo** per oggi/domani.
+
+---
+
+## Mini-guida: intervista vocale lavori e ore
+
+### Cosa è
+
+Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e flussi **ore**), puoi **parlare a turni** invece di compilare tutto a mano: Tony fa **domande brevi** (chi lavora, quale terreno, tipo di lavoro, date, macchina…) e compila la scheda quando ha abbastanza informazioni.
+
+### Esempio tipico (lavoro)
+
+1. Sei in **Gestione lavori** (o chiedi ad Tony di portarti lì).  
+2. Dici: «**Crea un lavoro** per l’operaio … nel terreno …».  
+3. Tony chiede ciò che manca (tipo lavoro, inizio, durata, macchina se serve).  
+4. Confermi con **«Sì»** / **«Salva»** quando propone il riepilogo.
+
+### Suggerimenti pratici
+
+- **Un’informazione alla volta** se Tony chiede chiarimenti (es. più terreni con nome simile).  
+- Se il terreno è ambiguo («Sangiovese» da solo), Tony può chiedere **quale appezzamento** — rispondi con il nome completo che vedi in app.  
+- Per le **ore**, se non indichi orari Tony chiede **data**, **inizio**, **fine** e **pause** prima di salvare.
 
 ---
 
@@ -191,10 +260,13 @@ Se c’è almeno un **allarme**, dopo qualche secondo Tony può **parlarti** con
 
 | Problema | Cosa controllare |
 |----------|------------------|
-| **Non vedo** il pulsante Tony | Piano **free** o assistente non incluso; pagina ancora in caricamento; chiedere all’**amministratore**. |
-| Tony dice che serve il **modulo Tony** | L’automazione (apri pagina, compila, filtri) richiede **Tony Avanzato** attivo sull’abbonamento. |
+| **Non vedo** il pulsante Tony | Piano **Free** — Tony non incluso; pagina in caricamento; chiedere all’**amministratore** di passare a **Base**. |
+| Tony dice che serve **Tony Avanzato** | Automazioni (apri pagina, compila, filtri, intervista vocale) richiedono il **modulo Tony** attivo in **Abbonamento**. |
+| **Nessun consiglio moduli** | Consigliere attivo solo su **piano Base**; chiedi esplicitamente («quali moduli…»); servono abbastanza dati azienda (terreni, uso app). |
 | «**Non ho i dati** della lista» | Sei sulla pagina giusta? La tabella è caricata? Prova a **rifare la domanda** dopo che i dati compaiono. |
-| **Voce** assente o microfono muto | Permessi del browser; altoparlante; aspetta che finisca il messaggio precedente; prova a **scrivere** in chat. |
+| **Briefing** assente | Serve ruolo **manager/admin**; messaggio proattivo solo con **Tony Avanzato**; su **mobile** controlla la **chat** (può aprirsi da sola). |
+| **Voce** assente o microfono muto | Permessi browser; altoparlante; su mobile spesso solo **testo**; aspetta fine messaggio; prova a **scrivere**. |
+| Intervista lavoro **si ferma** | Ripeti l’ultima risposta; specifica terreno/lavoro con nome **completo**; conferma con «sì» esplicito. |
 | Risposta **generica** | Riformula con **contesto** («sono nella lista preventivi, …») o una richiesta alla volta. |
 
 ---

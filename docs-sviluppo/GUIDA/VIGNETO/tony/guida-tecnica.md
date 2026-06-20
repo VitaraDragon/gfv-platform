@@ -25,6 +25,8 @@ Altre pagine vigneto possono non esporre ancora `currentTableData`: non presumer
 
 ## Contesto dashboard principale
 
+Ingresso utente: menu **Moduli** → **Vigneto** (`vigneto` in `MODULE_CATALOG` / `core/js/dashboard-hub.js`). Riquadro modulo in fondo pagina solo senza Manodopera (`core/js/dashboard-sections.js`).
+
 Con modulo attivo, `core/dashboard-standalone.html` può arricchire il contesto Tony con riepilogo produzione/vigneti (`setContext('vigneto', …)` via `vigneto-statistiche-service`).
 
 ## Terreni (core) → modulo

@@ -3,7 +3,7 @@
 ## Modulo
 
 - **Id tenant:** `parcoMacchine` (vedi `AVAILABLE_MODULES` / `core/config`, contesto dashboard).
-- **Senza questo id** in `tenants.modules`: nascondere card Parco Macchine e non documentare flussi macchina come disponibili.
+- **Senza questo id** in `tenants.modules`: nessuna voce **Parco Macchine** in **Moduli** (`dashboard-hub.js`); non documentare flussi macchina come disponibili.
 
 ## Pagine principali (standalone)
 

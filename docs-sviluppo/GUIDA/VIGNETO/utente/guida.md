@@ -1,6 +1,6 @@
 # Guida modulo Vigneto
 
-Questa guida è per chi ha **attivato il modulo Vigneto** sull’azienda. Senza quel modulo non vedrete la card in dashboard né queste pagine.
+Questa guida è per chi ha **attivato il modulo Vigneto** sull’azienda. Senza quel modulo non troverete **Vigneto** nel menu **Moduli** né queste pagine.
 
 Verificate **Abbonamento** o chiedete all’amministratore se il modulo non compare.
 
@@ -8,7 +8,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Percorso consigliato
 
-1. **Dashboard** → **Vigneto** → **Dashboard Vigneto** (numeri, azioni rapide, ultime vendemmie e lavori). **[Impara qui](#da-dove-si-entra)**
+1. **Moduli** → **Vigneto** → **Dashboard Vigneto** (numeri, azioni rapide, ultime vendemmie e lavori). **[Impara qui](#da-dove-si-entra)**
 2. **Anagrafica vigneti** come base: terreno, varietà, impianto. **[Impara qui](#mini-guida-anagrafica-vigneti)**
 3. Registri di campo: **trattamenti**, **concimazioni**, **potatura**, **vendemmia** — per **trattamenti**, **concimazioni** e **potatura**, le righe in elenco **ci sono solo dopo** un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno con la **categoria** corretta; poi si completano i dettagli nel modulo. La **vendemmia** si registra in genere **direttamente** da **Gestione vendemmia**, con collegamento opzionale al lavoro. **[Impara qui](#mini-guida-registri-di-campo)**
 4. **Statistiche**; **Pianifica nuovo impianto** e **Calcolo materiali** (stesso strumento condiviso con altri moduli colturali; dalla dashboard vigneto è già orientato al **vigneto**). **[Impara qui](#statistiche-pianificazione-e-calcolo-materiali)**
@@ -40,10 +40,11 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Da dove si entra
 
-1. Dalla **dashboard principale** aprite la card **Vigneto**.
-2. Arrivate alla **Dashboard Vigneto**: riepilogo economico/produzione (anno selezionabile), numero vigneti, vendemmie, **azioni rapide** verso tutte le pagine del modulo.
-3. **Permesso importante:** la **Dashboard Vigneto** è pensata per **Manager** e **Amministratore**. Se il vostro ruolo non è tra questi, l’app può riportarvi alla dashboard principale o bloccare l’accesso — è una scelta di sicurezza del progetto.
-4. Altre pagine del modulo (anagrafica vigneti, trattamenti, ecc.) possono essere raggiunte anche dai link della dashboard vigneto o dal menu, secondo come è configurata la vostra installazione.
+1. Dalla **dashboard principale** aprite **Moduli** e toccate **Vigneto** (🍇). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Vigneto** (stessa voce del menu): è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie (**Per te oggi**, **Accessi rapidi**, **I miei accessi**): è normale non vedere il riquadro.
+3. Arrivate alla **Dashboard Vigneto**: riepilogo economico/produzione (anno selezionabile), numero vigneti, vendemmie, **azioni rapide** verso tutte le pagine del modulo.
+4. **Permesso importante:** la **Dashboard Vigneto** è pensata per **Manager** e **Amministratore**. Se il vostro ruolo non è tra questi, l’app può riportarvi alla dashboard principale o bloccare l’accesso — è una scelta di sicurezza del progetto.
+5. Altre pagine del modulo (anagrafica vigneti, trattamenti, ecc.) si raggiungono dalle azioni rapide della dashboard vigneto o dal menu del modulo. Il pulsante **← Dashboard** riporta alla home generale.
 
 ---
 
@@ -68,7 +69,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 Se avete già la pagina **Terreni** (Core) e sulla vostra azienda sono attivi il modulo **Vigneto** e/o il modulo **Frutteto**, in elenco compare spesso un pulsante **grappolo** sulla riga del terreno e, dove previsto, un pulsante **mela**.
 
-- **Grappolo:** apre l’**Anagrafica Vigneti** con quel **terreno già prescelto**, così vedete subito i vigneti legati al campo. **Non** è il pulsante che porta alla **Dashboard Vigneto** (la pagina riassuntiva con i numeri grandi): da qui gestite i singoli impianti; per il riepilogo viola usate poi il link **Dashboard** / **← Dashboard** in quella sezione oppure la card **Vigneto** dalla home.
+- **Grappolo:** apre l’**Anagrafica Vigneti** con quel **terreno già prescelto**, così vedete subito i vigneti legati al campo. **Non** è il pulsante che porta alla **Dashboard Vigneto** (la pagina riassuntiva con i numeri grandi): da qui gestite i singoli impianti; per il riepilogo viola usate il link **Dashboard** in quella sezione oppure **Moduli** → **Vigneto**.
 - **Mela:** apre l’**Anagrafica Frutteti** per lo stesso terreno, con lo stesso tipo di collegamento diretto al campo.
 
 Se il modulo non è attivo o non avete permessi, l’app può mostrare un avviso e proporre **Abbonamento**.
@@ -244,7 +245,7 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** e usate
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** sull’abbonamento → niente card Vigneto.
+- **Modulo non attivo** sull’abbonamento → niente voce **Vigneto** in **Moduli** (né riquadro in fondo pagina).
 - **Ruolo** → la **Dashboard Vigneto** richiede di solito **Manager** o **Amministratore**; il resto del modulo può variare.
 - **Lista vuota** in anagrafica → create prima **terreni** e **vigneti**.
 - **Trattamenti / Concimazioni / Potatura: elenco vuoto** → create prima un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno del vigneto con categoria **Trattamenti**, **Concimazione** o **Potatura**; controllate **anno** e **vigneto** nei filtri della pagina.
