@@ -1,6 +1,70 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 (fix TTS doppio mobile/PWA).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 (mic spento al reload).**
+
+## Tony — voce: mic spento al reload pagina (2026-06-20)
+
+**Problema:** dopo reload il microfono si riattivava da solo (`Ripristino sessione vocale attiva…`) perché `isAutoMode` era in `sessionStorage`.
+
+**Fix (build `2026-06-20k`):** non persistere più la modalità vocale continua; al reload resta solo la cronologia chat. Tap sul microfono per riattivare. `saveTonyState` anche quando si spegne auto-mode.
+
+## Tony — voce: niente salti frasi (2026-06-20)
+
+**Problema:** più veloce ma saltava pezzi rispetto al testo in chat — stream TTS usava testo diverso dal finale (`cleanTextFromJsonResidue`) e a fine SSE il remainder risultava vuoto.
+
+**Fix (build `2026-06-20j`):** TTS voce sullo stesso testo pulito del finale; `sentencesSpokenCount` + `reconcileUnspokenVoiceSegments` a fine risposta (solo segmenti non già in coda); riallineamento offset se il buffer stream si accorcia.
+
+## Tony — voce: coda remainder durante stream (2026-06-20)
+
+**Problema:** pausa lunga **dopo** la prima frase — il resto veniva accodato a TTS solo a fine SSE (~5 s), non mentre suonava la prima.
+
+**Fix (build `2026-06-20i`):** in modalità voce, dopo la prima frase `applyStreamingTtsChunks` accoda batch di frasi durante lo stream; `voice.js` prefetcha clip accodati mentre l'audio è in riproduzione; a fine risposta solo la coda incompleta (se resta).
+
+## Tony — voce: remainder dopo prima frase (2026-06-20)
+
+**Problema:** in modalità voce Tony leggeva la prima frase durante lo stream SSE, poi si fermava — il resto della risposta non veniva letto.
+
+**Causa:** `lastCleanText` restava al testo parziale del primo chunk; a fine risposta `getStreamingTtsRemainder` restituiva stringa vuota.
+
+**Fix (build `2026-06-20h`):** `resolveVoiceTtsRemainder(finalText, state)` ricalcola il remainder sul testo finale in chat; aggiornamento `lastCleanText` a ogni chunk dopo la prima frase; prefetch del remainder durante stream. Test: `tony-stream-tts-chunk.test.js`.
+
+## Tony — voce: mic off fino a fine TTS (2026-06-20)
+
+**Problema:** parlato interrotto — mic si riaccendeva in `onFinally` (~80 ms dopo CF) mentre TTS ancora attivo (prima frase + remainder); eco → speechend → caos auto-mode.
+
+**Fix (build `2026-06-20g`):** riapertura mic solo quando pipeline audio idle e CF completata; `onFinally` voce non sblocca mic se TTS in coda; guard `_isSendingMessage` su recognition/onend.
+
+## Tony — voce: SSE forzato + no blocco localhost (2026-06-20)
+
+**Problema:** pausa iniziale parlato lunga — in console `Uso tonyAsk callable (locale…)` ~4 s senza chunk; la voce anticipata non partiva.
+
+**Causa:** `_preferCallableOverStream` forzava `tonyAsk` HTTP su localhost e ignorava `onChunk`/prima frase TTS.
+
+**Fix (build `2026-06-20f`):** `forceStream: true` in modalità voce; rimosso bypass localhost; fallback callable emette `onChunk` con testo completo.
+
+## Tony — TTS voce: prima frase anticipata (2026-06-20)
+
+**Problema:** pausa troppo lunga tra testo in chat e inizio parlato (voce aspettava risposta completa).
+
+**Fix (build `2026-06-20e`):** in modalità voce legge la **prima frase** appena completa durante lo stream; a fine risposta il **resto in un clip** (prefetch del remainder durante stream). Ritmo centrale invariato.
+
+## Tony — TTS voce: un clip + spazi normalizzati (2026-06-20)
+
+**Ipotesi utente:** pause lunghe ai punti per spazi extra dopo «.» — nel testo pulito di solito c’è un solo spazio; il sospetto maggiore era **a capo** o **doppi spazi** durante lo stream (non normalizzati fino a fine risposta).
+
+**Fix (build `2026-06-20d`):** `normalizeTonyTextWhitespace` (engine + TTS); in **modalità voce** niente TTS a chunk durante SSE — prefetch progressivo e **un solo clip** a fine risposta (pause uniformi ai punti, senza gap rete tra batch).
+
+## Tony — TTS ritmo: punti naturali, coppie di frasi, velocità 1.0 (2026-06-20)
+
+**Problema:** batch con virgole troppo veloce e pause ai punti irregolari (troppo corte in coppia, troppo lunghe tra un blocco e l’altro).
+
+**Fix (build `2026-06-20c`):** clip da **2 frasi** con **punti conservati** (pause prosodiche Chirp3); prefetch del clip successivo mentre suona il corrente; **`speakingRate` default 1.0** (da 1.05, deploy CF `getTonyAudio`). Resta normalizzazione `c'è`→`ci è`.
+
+## Tony — TTS: pause più corte e pronuncia «c'è» (2026-06-20)
+
+**Problema:** pause eccessive ai punti (un clip TTS per frase + pausa Chirp3); «c'è» / «C'E'» letto come «cì».
+
+**Fix client (build `2026-06-20b`):** `stream-tts-chunk.js` raggruppa fino a 3 frasi per clip con virgole al posto dei punti interni; `voice.js` espande `c'è`/`c'e`/`C'E'` → `ci è` (e `c'era`/`c'erano`). Test: `tony-stream-tts-chunk.test.js`, `tony-voice-italian-tts.test.js`.
 
 ## Tony — fix TTS doppio su mobile/PWA (2026-06-20)
 

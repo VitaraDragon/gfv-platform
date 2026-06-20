@@ -5,7 +5,7 @@
 
 import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts } from './engine.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import {
     getTonyFieldProfileFromContext,
@@ -40,11 +40,11 @@ import {
     tryRecoverProdottoCfFakeSave,
 } from '../tony-prodotto-create-local.js';
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
-import { applyStreamingTtsChunks, getStreamingTtsRemainder, speakTextInSentenceChunks } from './stream-tts-chunk.js';
+import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamingTtsRemainder, resolveVoiceTtsRemainder, reconcileUnspokenVoiceSegments, batchSentencesForTts, joinSentencesForItalianTts, speakTextInSentenceChunks } from './stream-tts-chunk.js';
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-20a';
+export const TONY_CLIENT_BUILD = '2026-06-20k';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -5741,7 +5741,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             voiceMicSuppressOnendUntil = Date.now() + delay + 80;
             voiceMicReopenTimer = setTimeout(function () {
                 voiceMicReopenTimer = null;
-                if (!isAutoMode || isWaitingForTonyResponse || tonyAudioPipelineActive()) return;
+                if (!isAutoMode || isWaitingForTonyResponse || _isSendingMessage || tonyAudioPipelineActive()) return;
                 resetAutoModeTimeout();
                 if (startListeningRef) startListeningRef();
             }, delay);
@@ -5759,7 +5759,6 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 var chatHistory = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
                 var state = {
                     chatHistory: chatHistory,
-                    isAutoMode: isAutoMode,
                     lastPath: window.location.pathname,
                     timestamp: Date.now()
                 };
@@ -5800,22 +5799,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     }
                 }
 
-                if (state.isAutoMode) {
-                    console.log('[Tony] Ripristino sessione vocale attiva...');
-                    isAutoMode = true;
-                    panel.classList.add('is-auto-mode');
-                    if (state.lastPath !== window.location.pathname) {
-                        var skipRestoreGreeting = (window.location.search || '').indexOf('tnyNotify=') >= 0;
-                        if (!skipRestoreGreeting) {
-                            var pageTitle = (document.title || '').replace(/^GFV Platform\s*[-–]\s*/i, '').trim() || 'questa sezione';
-                            setTimeout(function() {
-                                speakWithTTS('Eccoci qui nella sezione ' + pageTitle + '. Come posso aiutarti ora?', { fromVoice: true });
-                            }, 1500);
-                        }
-                    } else {
-                        toggleAutoMode(true);
-                    }
-                }
+                /* Modalità vocale continua: non ripristinare al reload (serve tap mic = gesto utente). */
             } catch (e) { console.warn('[Tony] restoreTonyState:', e); }
         }
 
@@ -5860,6 +5844,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 micBtn.classList.remove('tony-mic-active', 'is-auto-mode');
                 console.log('[Tony] Modalità continua disattivata.');
             }
+            saveTonyState();
         }
 
         function reopenMicIfAutoMode() {
@@ -5872,14 +5857,40 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
         var voiceApi = initTonyVoice({
             onPlayEnd: function(opts) {
-                if (opts && opts.isClosingSession) toggleAutoMode(false);
-                else scheduleReopenMicIfIdle(50);
+                if (opts && opts.isClosingSession) {
+                    toggleAutoMode(false);
+                    isWaitingForTonyResponse = false;
+                    return;
+                }
+                if (tonyAudioPipelineActive() || _isSendingMessage) return;
+                isWaitingForTonyResponse = false;
+                scheduleReopenMicIfIdle(50);
             },
             onPlayStart: function() {
                 if (autoModeTimeout) { clearTimeout(autoModeTimeout); autoModeTimeout = null; }
                 if (typeof stopListeningRef === 'function') stopListeningRef();
             }
         });
+        function getTonyPendingQueueTexts() {
+            var q = window.__tonyAudioQueue || [];
+            return q.map(function(item) {
+                return item && item.text ? String(item.text) : '';
+            }).filter(function(t) { return !!t; });
+        }
+
+        function speakUnspokenVoiceSegments(segments, speakOpts, genOverride) {
+            if (!segments || !segments.length) return;
+            var voiceGen = genOverride != null ? genOverride : (typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : undefined);
+            batchSentencesForTts(segments).forEach(function(batch) {
+                var ttsText = joinSentencesForItalianTts(batch);
+                if (!ttsText || ttsText.length < 2) return;
+                if (prefetchTonyTTS) {
+                    try { prefetchTonyTTS(ttsText, voiceGen); } catch (ePfUnspoken) { /* ignore */ }
+                }
+                speakWithTTS(ttsText, Object.assign({}, speakOpts || {}, voiceGen != null ? { gen: voiceGen } : {}));
+            });
+        }
+
         var speakWithTTS = voiceApi.speakWithTTS;
         var prefetchTonyTTS = voiceApi.prefetchTonyTTS;
         var clearTonyAudioPipeline = voiceApi.clearTonyAudioPipeline;
@@ -6794,6 +6805,23 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 function tonySpeakAssistantText(out, speakOpts) {
                     speakOpts = speakOpts || opts;
                     var ttsGen = typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : undefined;
+                    if (speakOpts.fromVoice && out && String(out).trim().length >= 2) {
+                        var normalizedOut = normalizeTonyTextWhitespace(out);
+                        if (streamTtsState && streamTtsState.earlyVoiceSpoken) {
+                            streamTtsState.lastCleanText = normalizedOut;
+                            var pendingQueue = getTonyPendingQueueTexts();
+                            var unspokenSegments = reconcileUnspokenVoiceSegments(normalizedOut, streamTtsState, pendingQueue);
+                            streamTtsState.active = false;
+                            if (unspokenSegments.length) {
+                                var voiceRemGen = streamTtsState.gen != null ? streamTtsState.gen : ttsGen;
+                                speakUnspokenVoiceSegments(unspokenSegments, speakOpts, voiceRemGen);
+                            }
+                            return;
+                        }
+                        if (streamTtsState) streamTtsState.active = false;
+                        speakWithTTS(normalizedOut, speakOpts);
+                        return;
+                    }
                     if (streamTtsState && streamTtsState.active) {
                         var ttsSource =
                             streamTtsState.lastCleanText && String(streamTtsState.lastCleanText).trim()
@@ -7368,12 +7396,21 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     clearTimeout(window.__tonySendWatchdogId);
                     window.__tonySendWatchdogId = null;
                 }
-                isWaitingForTonyResponse = false;
+                if (opts.fromVoice) {
+                    if (tonyAudioPipelineActive()) {
+                        isWaitingForTonyResponse = true;
+                    } else {
+                        isWaitingForTonyResponse = false;
+                        scheduleReopenMicIfIdle(VOICE_MIC_REOPEN_DELAY_MS);
+                    }
+                } else {
+                    isWaitingForTonyResponse = false;
+                    scheduleReopenMicIfIdle(80);
+                }
                 sendBtn.disabled = false;
                 inputEl.disabled = false;
                 var micBtn = document.getElementById('tony-mic');
                 if (micBtn) micBtn.disabled = false;
-                scheduleReopenMicIfIdle(80);
                 inputEl.focus();
             }
 
@@ -7384,7 +7421,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
                 var tonyAskOpts = {
                     skipUserHistory: !!opts.proactive,
-                    proactive: !!opts.proactive
+                    proactive: !!opts.proactive,
+                    forceStream: !!opts.fromVoice
                 };
                 if (!opts.proactive && text && String(textForTony) !== String(text)) {
                     tonyAskOpts.historyUserMessage = text;
@@ -7396,6 +7434,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         consumedLength: 0,
                         active: false,
                         spokeCount: 0,
+                        sentencesSpokenCount: 0,
+                        earlyVoiceSpoken: false,
                         lastCleanText: '',
                         gen: typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0
                     };
@@ -7406,7 +7446,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         onChunk: function(chunk) {
                             try {
                                 streamingAccum += chunk;
-                                var daMostrare = nascondiJsonDaStreaming(streamingAccum);
+                                var daMostrare = normalizeTonyTextWhitespace(nascondiJsonDaStreaming(streamingAccum));
+                                var daMostrareVoice = normalizeTonyTextWhitespace(cleanTextFromJsonResidue(daMostrare));
                                 if (!streamingMsgEl) {
                                     removeTyping();
                                     streamingMsgEl = document.createElement('div');
@@ -7416,14 +7457,61 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                                 streamingMsgEl.textContent = daMostrare;
                                 messagesEl.scrollTop = messagesEl.scrollHeight;
-                                var ttsChunkResult = applyStreamingTtsChunks(daMostrare, streamTtsState, {
-                                    gen: streamTtsState.gen,
-                                    opts: opts,
-                                    prefetch: prefetchTonyTTS,
-                                    speak: speakWithTTS
-                                });
-                                streamTtsState = ttsChunkResult.state;
-                                streamTtsState.spokeCount = (streamTtsState.spokeCount || 0) + ttsChunkResult.spokeCount;
+                                if (opts.fromVoice) {
+                                    if (!streamTtsState.earlyVoiceSpoken) {
+                                        var earlyVoiceParse = consumeCompleteStreamingSentences(daMostrareVoice, streamTtsState);
+                                        if (earlyVoiceParse.sentences.length >= 1) {
+                                            var firstVoiceSentence = earlyVoiceParse.sentences[0];
+                                            if (prefetchTonyTTS) {
+                                                try { prefetchTonyTTS(firstVoiceSentence, streamTtsState.gen); } catch (ePfFirst) { /* ignore */ }
+                                            }
+                                            speakWithTTS(firstVoiceSentence, opts);
+                                            streamTtsState = Object.assign({}, earlyVoiceParse.state, {
+                                                active: true,
+                                                earlyVoiceSpoken: true,
+                                                spokeCount: 1,
+                                                sentencesSpokenCount: 1,
+                                                gen: streamTtsState.gen
+                                            });
+                                            var voiceSameChunk = applyStreamingTtsChunks(daMostrareVoice, streamTtsState, {
+                                                gen: streamTtsState.gen,
+                                                opts: opts,
+                                                prefetch: prefetchTonyTTS,
+                                                speak: speakWithTTS
+                                            });
+                                            streamTtsState = Object.assign({}, voiceSameChunk.state, {
+                                                active: true,
+                                                earlyVoiceSpoken: true,
+                                                spokeCount: 1 + voiceSameChunk.spokeCount,
+                                                sentencesSpokenCount: 1 + (voiceSameChunk.sentencesQueued || 0),
+                                                gen: streamTtsState.gen
+                                            });
+                                        }
+                                    } else {
+                                        var voiceStreamChunks = applyStreamingTtsChunks(daMostrareVoice, streamTtsState, {
+                                            gen: streamTtsState.gen,
+                                            opts: opts,
+                                            prefetch: prefetchTonyTTS,
+                                            speak: speakWithTTS
+                                        });
+                                        streamTtsState = Object.assign({}, voiceStreamChunks.state, {
+                                            active: true,
+                                            earlyVoiceSpoken: true,
+                                            spokeCount: (streamTtsState.spokeCount || 0) + voiceStreamChunks.spokeCount,
+                                            sentencesSpokenCount: (streamTtsState.sentencesSpokenCount || 0) + (voiceStreamChunks.sentencesQueued || 0),
+                                            gen: streamTtsState.gen
+                                        });
+                                    }
+                                } else {
+                                    var ttsChunkResult = applyStreamingTtsChunks(daMostrare, streamTtsState, {
+                                        gen: streamTtsState.gen,
+                                        opts: opts,
+                                        prefetch: prefetchTonyTTS,
+                                        speak: speakWithTTS
+                                    });
+                                    streamTtsState = ttsChunkResult.state;
+                                    streamTtsState.spokeCount = (streamTtsState.spokeCount || 0) + ttsChunkResult.spokeCount;
+                                }
                             } catch (eChunk) {
                                 console.warn('[Tony] onChunk stream/TTS:', eChunk);
                             }
@@ -7647,7 +7735,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (isAutoMode) resetAutoModeTimeout();
             };
             recognition.onresult = function(e) {
-                if (tonyAudioPipelineActive() || isWaitingForTonyResponse) return;
+                if (tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) return;
                 if (isAutoMode) resetAutoModeTimeout();
                 var transcript = '';
                 for (var i = e.resultIndex; i < e.results.length; i++) {
@@ -7700,13 +7788,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             stopListeningRef = stopListening;
 
             function scheduleAutoVoiceSend(reason) {
-                if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse) return;
+                if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) return;
                 clearVoiceAutoSendTimer();
                 var hasFinalText = !!(pendingVoiceText && String(pendingVoiceText).trim());
                 var delay = hasFinalText ? VOICE_SPEECH_END_COMMIT_FINAL_MS : VOICE_SPEECH_END_COMMIT_MS;
                 voiceAutoSendTimer = setTimeout(function() {
                     voiceAutoSendTimer = null;
-                    if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse) return;
+                    if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) return;
                     stopListening();
                     var textToSend = pendingVoiceText ? String(pendingVoiceText).trim() : '';
                     pendingVoiceText = null;
@@ -7724,7 +7812,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
 
             recognition.onspeechend = function() {
-                if (tonyAudioPipelineActive() || isWaitingForTonyResponse) {
+                if (tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) {
                     console.log('[Tony] Speechend ignorato: Tony in risposta o TTS attivo.');
                     try { recognition.stop(); } catch (err) {}
                     clearVoiceAutoSendTimer();
@@ -7744,7 +7832,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     console.log('[Tony] TTS in corso, microfono resta spento.');
                     return;
                 }
-                if (isWaitingForTonyResponse) {
+                if (isWaitingForTonyResponse || _isSendingMessage) {
                     console.log('[Tony] In attesa risposta Tony, microfono non riaccendo.');
                     return;
                 }

@@ -81,7 +81,7 @@ const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 /** Voce TTS Tony (override: env TONY_TTS_VOICE). Rollback: it-IT-Wavenet-D */
 const TONY_TTS_VOICE = process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
 /** Velocità parlato (override: env TONY_TTS_SPEAKING_RATE). */
-const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.05");
+const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.0");
 
 /** Piano tenant: Tony è assente in freemium; enforcement anche lato callable. */
 function normalizeSubscriptionPlanId(raw) {

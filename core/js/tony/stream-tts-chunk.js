@@ -5,6 +5,8 @@
  */
 
 export const STREAM_TTS_MIN_SENTENCE_LEN = 3;
+/** Frasi per clip TTS: punti conservati (pause naturali Chirp3), meno gap rete tra clip. */
+export const STREAM_TTS_BATCH_MAX_SENTENCES = 2;
 
 /**
  * Indice (esclusivo) fine prima frase completa da fromIndex, o -1.
@@ -47,14 +49,14 @@ export function consumeCompleteStreamingSentences(text, state) {
   state = state || {};
   var consumed = typeof state.consumedLength === 'number' ? state.consumedLength : 0;
   if (clean.length < consumed) {
-    // Testo visibile accorciato (JSON nascosto a metà stream): non rileggere frasi già inviate a TTS.
-    return {
-      sentences: [],
-      state: {
-        consumedLength: consumed,
-        lastCleanText: clean,
-      },
-    };
+    // Buffer visibile accorciato (JSON nascosto): riallinea l'offset, non resettare a zero.
+    var prev = state.lastCleanText != null ? String(state.lastCleanText) : '';
+    if (prev && prev.indexOf(clean) === 0) {
+      consumed = Math.min(consumed, clean.length);
+    } else {
+      var realigned = consumeCompleteStreamingSentences(clean, { consumedLength: 0 });
+      consumed = realigned.state.consumedLength;
+    }
   }
 
   var sentences = [];
@@ -101,6 +103,124 @@ export function getStreamingTtsRemainder(text, state) {
 }
 
 /**
+ * Remainder voce dopo prima frase in stream: usa testo finale CF (non buffer parziale).
+ * @param {string} finalText — testo pulito mostrato in chat
+ * @param {{ consumedLength?: number, earlyVoiceSpoken?: boolean, spokeCount?: number }} state
+ * @returns {string}
+ */
+export function resolveVoiceTtsRemainder(finalText, state) {
+  state = state || {};
+  var clean = finalText != null ? String(finalText).trim() : '';
+  if (!clean || clean.length < 2) return '';
+  if (!state.earlyVoiceSpoken) return clean;
+  var remainder = getStreamingTtsRemainder(clean, state);
+  if (remainder && remainder.length >= 2) return remainder;
+  var reparsed = consumeCompleteStreamingSentences(clean, { consumedLength: 0 });
+  if (reparsed.sentences.length > 1) {
+    return joinSentencesForItalianTts(reparsed.sentences.slice(1));
+  }
+  if ((state.spokeCount || 0) > 0 && reparsed.sentences.length === 1) {
+    var first = reparsed.sentences[0];
+    var idx = clean.indexOf(first);
+    if (idx >= 0) {
+      var tail = clean.slice(idx + first.length).trim();
+      if (tail.length >= 2) return tail;
+    }
+  }
+  return '';
+}
+
+/**
+ * Tutti i segmenti TTS (frasi complete + coda senza punto finale).
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function extractAllTtsSegments(text) {
+  var clean = text != null ? String(text).trim() : '';
+  if (!clean || clean.length < 2) return [];
+  var parsed = consumeCompleteStreamingSentences(clean, { consumedLength: 0 });
+  var segments = parsed.sentences.slice();
+  var tail = getStreamingTtsRemainder(clean, parsed.state);
+  if (tail && tail.length >= 2) segments.push(tail);
+  return segments;
+}
+
+/**
+ * @param {string} seg
+ * @returns {string}
+ */
+export function normalizeTtsSegmentKey(seg) {
+  return String(seg).replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+/**
+ * Segmento già in coda audio (match fuzzy su batch multi-frase).
+ * @param {string} seg
+ * @param {string[]} pendingTexts
+ * @returns {boolean}
+ */
+export function isTtsSegmentPending(seg, pendingTexts) {
+  if (!seg || !pendingTexts || !pendingTexts.length) return false;
+  var key = normalizeTtsSegmentKey(seg);
+  if (!key) return false;
+  for (var i = 0; i < pendingTexts.length; i++) {
+    var qt = normalizeTtsSegmentKey(pendingTexts[i]);
+    if (!qt) continue;
+    if (qt === key || qt.indexOf(key) >= 0 || key.indexOf(qt) >= 0) return true;
+    if (key.length > 24 && qt.indexOf(key.slice(0, 24)) >= 0) return true;
+  }
+  return false;
+}
+
+/**
+ * Segmenti voce non ancora letti rispetto al testo finale CF (no salti se stream ≠ finale).
+ * @param {string} finalText
+ * @param {{ earlyVoiceSpoken?: boolean, sentencesSpokenCount?: number }} state
+ * @param {string[]} [pendingQueueTexts]
+ * @returns {string[]}
+ */
+export function reconcileUnspokenVoiceSegments(finalText, state, pendingQueueTexts) {
+  state = state || {};
+  pendingQueueTexts = pendingQueueTexts || [];
+  var segments = extractAllTtsSegments(finalText);
+  if (!segments.length) return [];
+  if (!state.earlyVoiceSpoken) return segments;
+  var spoken = typeof state.sentencesSpokenCount === 'number' ? state.sentencesSpokenCount : 0;
+  var unspoken = segments.slice(Math.min(spoken, segments.length));
+  return unspoken.filter(function(seg) {
+    return !isTtsSegmentPending(seg, pendingQueueTexts);
+  });
+}
+
+/**
+ * @param {string[]} sentences
+ * @returns {string}
+ */
+export function joinSentencesForItalianTts(sentences) {
+  if (!sentences || !sentences.length) return '';
+  return sentences
+    .map(function(s) { return String(s).trim(); })
+    .filter(function(s) { return s.length > 0; })
+    .join(' ');
+}
+
+/**
+ * @param {string[]} sentences
+ * @param {{ maxSentences?: number }} [options]
+ * @returns {string[][]}
+ */
+export function batchSentencesForTts(sentences, options) {
+  options = options || {};
+  var max = options.maxSentences != null ? options.maxSentences : STREAM_TTS_BATCH_MAX_SENTENCES;
+  if (!sentences || !sentences.length) return [];
+  var batches = [];
+  for (var i = 0; i < sentences.length; i += max) {
+    batches.push(sentences.slice(i, i + max));
+  }
+  return batches;
+}
+
+/**
  * Applica chunk TTS su testo stream pulito (prefetch + speak per ogni nuova frase).
  * @param {string} cleanText
  * @param {{ consumedLength?: number, lastCleanText?: string, active?: boolean, gen?: number }} state
@@ -114,12 +234,14 @@ export function applyStreamingTtsChunks(cleanText, state, handlers) {
   var ttsOpts = Object.assign({}, handlers.opts || {}, gen != null ? { gen: gen } : {});
   var spokeCount = 0;
 
-  result.sentences.forEach(function(sentence) {
+  batchSentencesForTts(result.sentences).forEach(function(batch) {
+    var ttsText = joinSentencesForItalianTts(batch);
+    if (!ttsText || ttsText.length < 2) return;
     if (typeof handlers.prefetch === 'function') {
-      try { handlers.prefetch(sentence, gen); } catch (_) { /* ignore */ }
+      try { handlers.prefetch(ttsText, gen); } catch (_) { /* ignore */ }
     }
     if (typeof handlers.speak === 'function') {
-      handlers.speak(sentence, ttsOpts);
+      handlers.speak(ttsText, ttsOpts);
       spokeCount += 1;
     }
   });
@@ -130,6 +252,7 @@ export function applyStreamingTtsChunks(cleanText, state, handlers) {
       gen: gen != null ? gen : (state && state.gen),
     }),
     spokeCount: spokeCount,
+    sentencesQueued: result.sentences.length,
   };
 }
 

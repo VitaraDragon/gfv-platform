@@ -5,6 +5,11 @@ import {
   getStreamingTtsRemainder,
   applyStreamingTtsChunks,
   speakTextInSentenceChunks,
+  resolveVoiceTtsRemainder,
+  extractAllTtsSegments,
+  reconcileUnspokenVoiceSegments,
+  joinSentencesForItalianTts,
+  batchSentencesForTts,
 } from '../core/js/tony/stream-tts-chunk.js';
 
 describe('stream-tts-chunk (Fase 2)', () => {
@@ -46,14 +51,19 @@ describe('stream-tts-chunk (Fase 2)', () => {
     expect(getStreamingTtsRemainder('Testo finale più corto.', state)).toBe('');
   });
 
-  it('non rilegge frasi se il buffer visibile si accorcia durante lo stream', () => {
+  it('riallinea consumed se il buffer visibile si accorcia (prefisso)', () => {
     var state = { consumedLength: 25, lastCleanText: 'Prima frase completa. Seconda' };
     var r = consumeCompleteStreamingSentences('Prima frase', state);
     expect(r.sentences).toEqual([]);
-    expect(r.state.consumedLength).toBe(25);
+    expect(r.state.consumedLength).toBe(11);
   });
 
-  it('applyStreamingTtsChunks invoca prefetch e speak', () => {
+  it('joinSentencesForItalianTts: mantiene i punti tra le frasi', () => {
+    expect(joinSentencesForItalianTts(['Prima frase.', 'Seconda frase.'])).toBe('Prima frase. Seconda frase.');
+    expect(joinSentencesForItalianTts(['Come va?', 'Bene.'])).toBe('Come va? Bene.');
+  });
+
+  it('applyStreamingTtsChunks raggruppa 2 frasi per clip con punti', () => {
     var spoken = [];
     var prefetched = [];
     var state = { consumedLength: 0, gen: 7 };
@@ -62,18 +72,51 @@ describe('stream-tts-chunk (Fase 2)', () => {
       prefetch: (t, g) => prefetched.push({ t, g }),
       speak: (t, o) => spoken.push({ t, o }),
     });
-    expect(spoken.map((x) => x.t)).toEqual(['Uno.', 'Due.']);
-    expect(prefetched.map((x) => x.t)).toEqual(['Uno.', 'Due.']);
+    expect(spoken.map((x) => x.t)).toEqual(['Uno. Due.']);
+    expect(prefetched.map((x) => x.t)).toEqual(['Uno. Due.']);
     expect(spoken[0].o.gen).toBe(7);
   });
 
-  it('speakTextInSentenceChunks spezza risposte complete', () => {
+  it('speakTextInSentenceChunks raggruppa a coppie di frasi', () => {
     var spoken = [];
     var count = speakTextInSentenceChunks('Intro breve. Modulo uno. Modulo due.', {
       gen: 3,
       speak: (t, o) => spoken.push({ t, o }),
     });
-    expect(count).toBe(3);
-    expect(spoken.map((x) => x.t)).toEqual(['Intro breve.', 'Modulo uno.', 'Modulo due.']);
+    expect(count).toBe(2);
+    expect(spoken.map((x) => x.t)).toEqual(['Intro breve. Modulo uno.', 'Modulo due.']);
+  });
+
+  it('batchSentencesForTts spezza oltre il max frasi', () => {
+    var batches = batchSentencesForTts(['A.', 'B.', 'C.', 'D.'], { maxSentences: 2 });
+    expect(batches.length).toBe(2);
+    expect(batches[0]).toEqual(['A.', 'B.']);
+    expect(batches[1]).toEqual(['C.', 'D.']);
+  });
+
+  it('resolveVoiceTtsRemainder: testo finale completo dopo prima frase stream', () => {
+    var finalText =
+      'Primo vantaggio del magazzino. Secondo vantaggio importante. Terzo punto finale.';
+    var state = { consumedLength: 28, earlyVoiceSpoken: true, spokeCount: 1, lastCleanText: 'Primo vantaggio del magazzino.' };
+    var rem = resolveVoiceTtsRemainder(finalText, state);
+    expect(rem).toContain('Secondo vantaggio');
+    expect(rem).toContain('Terzo punto');
+  });
+
+  it('reconcileUnspokenVoiceSegments: recupera frasi mancanti a fine stream', () => {
+    var finalText =
+      'Primo. Secondo importante. Terzo finale.';
+    var state = { earlyVoiceSpoken: true, sentencesSpokenCount: 1 };
+    var unspoken = reconcileUnspokenVoiceSegments(finalText, state, []);
+    expect(unspoken.length).toBe(2);
+    expect(unspoken[0]).toContain('Secondo');
+    expect(unspoken[1]).toContain('Terzo');
+  });
+
+  it('reconcileUnspokenVoiceSegments: non duplica segmenti già in coda', () => {
+    var finalText = 'Uno. Due. Tre.';
+    var state = { earlyVoiceSpoken: true, sentencesSpokenCount: 1 };
+    var pending = ['Due. Tre.'];
+    expect(reconcileUnspokenVoiceSegments(finalText, state, pending)).toEqual([]);
   });
 });

@@ -59,6 +59,8 @@ const GUIDA_LOAD_ENTRIES = [
   { path: 'MANODOPERA/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
   { path: 'CONTO_TERZI/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
   { path: 'CONTO_TERZI/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'METEO/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'METEO/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
   { path: 'moduli/terreni.md', bases: ['../guida-app/', '../../docs-sviluppo/guida-app/'] },
   { path: 'moduli/lavori-attivita.md', bases: ['../guida-app/', '../../docs-sviluppo/guida-app/'] }
 ];
@@ -184,6 +186,21 @@ async function loadGuidaSintesiMagazzino() {
   return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_MAGAZZINO_ENTRY);
 }
 
+/** Riassunto modulo Meteo (fetch da METEO/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_METEO_ENTRY = {
+  path: 'METEO/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_METEO_FALLBACK = `
+Meteo (sintesi): piano Free = nessun meteo. Base senza modulo = Meteo sede in dashboard (Impostazioni sede). Modulo meteo attivo = Moduli → Meteo, mappa campi, pageType meteo_dashboard con currentTableData. Tony briefing con Avanzato.
+`.trim();
+
+async function loadGuidaSintesiMeteo() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_METEO_ENTRY);
+}
+
 /** Riassunto modulo Manodopera (fetch da MANODOPERA/utente/guida-sintesi.md). */
 const GUIDA_SINTESI_MANODOPERA_ENTRY = {
   path: 'MANODOPERA/utente/guida-sintesi.md',
@@ -255,11 +272,11 @@ Regole operative:
 2. Info mancanti? Indica il modulo corretto.
 3. Domande "Come fare": Spiega passi -> Chiedi "Aprire pagina?" -> Includi { "action": "APRI_PAGINA" } SOLO dopo conferma utente ("sì", "apri").
 4. Richieste esplicite ("Vai a..."): Includi subito { "action": "APRI_PAGINA", "params": {"target": "..."} }.
-5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, pianificazione impianto frutteto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali vigneto → calcolo materiali; calcolo materiali frutteto → calcolo materiali frutteto; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo; **pianifica nuovo impianto / calcolo materiali**: strumento condiviso tra moduli coltura; usa **page.pagePath** (o titolo pagina): se contiene vigneto → Dashboard Vigneto e target pianificazione impianto / calcolo materiali; se contiene frutteto → Dashboard Frutteto e target pianificazione impianto frutteto / calcolo materiali frutteto; se non è chiaro, una frase generica sullo strumento condiviso e chiedi vigneto o frutteto. Non applicare la checklist dell'altro modulo. (g) SE segnare ore / registrare ore: esegui SUBITO OPEN_MODAL (attivita-modal o ora-modal) e poi chiedi i dati. Non chiedere prima i dati e poi aprire; apri il modal subito, poi chiedi terreno, data, ecc.
+5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, meteo, previsioni meteo, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, pianificazione impianto frutteto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali vigneto → calcolo materiali; calcolo materiali frutteto → calcolo materiali frutteto; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo; **pianifica nuovo impianto / calcolo materiali**: strumento condiviso tra moduli coltura; usa **page.pagePath** (o titolo pagina): se contiene vigneto → Dashboard Vigneto e target pianificazione impianto / calcolo materiali; se contiene frutteto → Dashboard Frutteto e target pianificazione impianto frutteto / calcolo materiali frutteto; se non è chiaro, una frase generica sullo strumento condiviso e chiedi vigneto o frutteto. Non applicare la checklist dell'altro modulo. (g) SE segnare ore / registrare ore: esegui SUBITO OPEN_MODAL (attivita-modal o ora-modal) e poi chiedi i dati. Non chiedere prima i dati e poi aprire; apri il modal subito, poi chiedi terreno, data, ecc.; (h) meteo / previsioni: target **meteo** solo se modulo meteo attivo; altrimenti spiega **Meteo sede** in dashboard (piano Base) e Impostazioni sede.
 6. Altre azioni (SEGNA_ORE, GUASTO): Conferma + JSON azione.
 7. MEMORIA VOCALE: Se l'utente risponde con poche parole (es. "Sì", "Vai", "Ok apri"), guarda l'ultimo messaggio che hai scritto per capire a cosa si riferisce e agisci di conseguenza.
 8. DATI IN TABELLA: Se il contesto include page.currentTableData o page.tableDataSummary, usa SOLO quelli per rispondere a domande sui dati visibili (es. "Cosa scade?", "Quali trattori ci sono?", "Ci sono guasti aperti?"). Rispondi in base a summary e/o items; non inventare dati. Se tableDataSummary è "Caricamento dati in corso..." rispondi: "Sto ancora leggendo i dati della lista, dammi un attimo di pazienza." Se tableDataSummary è "Dati non disponibili" o mancano page.currentTableData e page.tableDataSummary, NON dire "Non ho le competenze": rispondi invece: "In questa pagina non vedo dati in tabella, riprova tra un secondo o controlla se la lista è vuota."
-9. Guida "come fare": nel JSON usa context.guida_sintesi per il **Core** (app base), context.guida_sintesi_parco_macchine per **Parco Macchine** (mezzi, scadenze, guasti), context.guida_sintesi_vigneto per **Vigneto**, context.guida_sintesi_frutteto per **Frutteto**, context.guida_sintesi_magazzino per **Magazzino**, context.guida_sintesi_manodopera per **Manodopera**, context.guida_sintesi_conto_terzi per **Conto Terzi** e context.guida_sintesi_tony per **come funziona Tony** (widget, piani, Tony Guida vs Avanzato, voce, profilo campo, briefing) se presenti; per **pianificazione impianto / calcolo materiali** privilegia la sintesi del modulo coerente con **page.pagePath** (vigneto vs frutteto) e non mischiare le due se il path è chiaro; su **/magazzino/** privilegia **guida_sintesi_magazzino** per anagrafica, movimenti e tracciabilità; su pagine **manodopera** (path con segnatura-ore, validazione-ore, gestione-operai, gestione-squadre, compensi-operai, statistiche-manodopera, lavori-caposquadra, field-workspace, ecc.) privilegia **guida_sintesi_manodopera** per segnatura, validazione, squadre, operai e compensi; su **/conto-terzi/** privilegia **guida_sintesi_conto_terzi** per clienti, terreni clienti, tariffe, preventivi e flusso pianifica lavoro; se l'utente chiede cos'è Tony o cosa può fare **in generale** privilegia **guida_sintesi_tony**; integra con moduli attivi nel tenant e pagina corrente; non inventare schermate assenti. La guida lunga context.guida_app è nel contesto completo soprattutto al primo messaggio quando caricata da file.
+9. Guida "come fare": nel JSON usa context.guida_sintesi per il **Core** (app base), context.guida_sintesi_parco_macchine per **Parco Macchine** (mezzi, scadenze, guasti), context.guida_sintesi_vigneto per **Vigneto**, context.guida_sintesi_frutteto per **Frutteto**, context.guida_sintesi_magazzino per **Magazzino**, context.guida_sintesi_manodopera per **Manodopera**, context.guida_sintesi_conto_terzi per **Conto Terzi**, context.guida_sintesi_meteo per **Meteo** (sede vs modulo, mappa campi) e context.guida_sintesi_tony per **come funziona Tony** (widget, piani, Tony Guida vs Avanzato, voce, profilo campo, briefing) se presenti; per **pianificazione impianto / calcolo materiali** privilegia la sintesi del modulo coerente con **page.pagePath** (vigneto vs frutteto) e non mischiare le due se il path è chiaro; su **/magazzino/** privilegia **guida_sintesi_magazzino** per anagrafica, movimenti e tracciabilità; su pagine **manodopera** (path con segnatura-ore, validazione-ore, gestione-operai, gestione-squadre, compensi-operai, statistiche-manodopera, lavori-caposquadra, field-workspace, ecc.) privilegia **guida_sintesi_manodopera** per segnatura, validazione, squadre, operai e compensi; su **/conto-terzi/** privilegia **guida_sintesi_conto_terzi** per clienti, terreni clienti, tariffe, preventivi e flusso pianifica lavoro; su **/meteo/** o **pageType meteo_dashboard** privilegia **guida_sintesi_meteo** e **page.currentTableData** (campi, pop, alert); se l'utente chiede cos'è Tony o cosa può fare **in generale** privilegia **guida_sintesi_tony**; integra con moduli attivi nel tenant e pagina corrente; non inventare schermate assenti. La guida lunga context.guida_app è nel contesto completo soprattutto al primo messaggio quando caricata da file.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -438,6 +455,7 @@ class TonyService {
     this.context.guida_sintesi_magazzino = GUIDA_SINTESI_MAGAZZINO_FALLBACK;
     this.context.guida_sintesi_manodopera = GUIDA_SINTESI_MANODOPERA_FALLBACK;
     this.context.guida_sintesi_conto_terzi = GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
+    this.context.guida_sintesi_meteo = GUIDA_SINTESI_METEO_FALLBACK;
     this.context.guida_sintesi_tony = GUIDA_SINTESI_TONY_FALLBACK;
     this._initPromise = (async () => {
       try {
@@ -539,6 +557,19 @@ class TonyService {
         this.context.guida_sintesi_conto_terzi = GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
       }
       try {
+        const sintesiMeteoRaw = await loadGuidaSintesiMeteo();
+        const sintesiMeteo =
+          sintesiMeteoRaw && String(sintesiMeteoRaw).trim().length > 60
+            ? String(sintesiMeteoRaw).trim()
+            : GUIDA_SINTESI_METEO_FALLBACK;
+        this.context.guida_sintesi_meteo = sintesiMeteo;
+        if (sintesiMeteoRaw && String(sintesiMeteoRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Meteo caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_meteo = GUIDA_SINTESI_METEO_FALLBACK;
+      }
+      try {
         const sintesiTonyRaw = await loadGuidaSintesiTony();
         const sintesiTony =
           sintesiTonyRaw && String(sintesiTonyRaw).trim().length > 60
@@ -622,6 +653,7 @@ class TonyService {
       'guida_sintesi_magazzino',
       'guida_sintesi_manodopera',
       'guida_sintesi_conto_terzi',
+      'guida_sintesi_meteo',
       'guida_sintesi_tony'
     ];
     const out = {};
@@ -1072,14 +1104,11 @@ class TonyService {
     return base ? `${base}/tonyAskStream` : null;
   }
 
-  _preferCallableOverStream() {
+  _preferCallableOverStream(opts = {}) {
+    if (opts && opts.forceStream === true) return false;
     try {
       if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(TONY_STREAM_DISABLED_KEY) === '1') {
         return true;
-      }
-      if (typeof window !== 'undefined' && window.location) {
-        const host = String(window.location.hostname || '').toLowerCase();
-        if (host === 'localhost' || host === '127.0.0.1') return true;
       }
     } catch (_) { /* ignore */ }
     return false;
@@ -1812,6 +1841,22 @@ class TonyService {
   }
 
   /**
+   * Fallback ask() con emissione onChunk (testo completo) per UI/TTS quando SSE non disponibile.
+   */
+  async _askStreamCallableFallback(userPrompt, opts = {}) {
+    const onChunk = opts.onChunk || (() => {});
+    const result = await this.ask(userPrompt, opts);
+    let text = '';
+    if (result && typeof result === 'object' && result.text != null) {
+      text = String(result.text);
+    } else if (result != null) {
+      text = String(result);
+    }
+    if (text.trim()) onChunk(text);
+    return result;
+  }
+
+  /**
    * Invia una domanda a Tony con streaming. Emette chunk via onChunk; restituisce il testo completo finale.
    * Se usa Cloud Function (callable), fa fallback su ask() senza streaming.
    * @param {string} userPrompt - Testo dell'utente
@@ -1828,9 +1873,9 @@ class TonyService {
         ? String(opts.historyUserMessage).trim()
         : String(userPrompt || '').trim();
 
-    if (this._useCallable && this._tonyAskCallable && this._preferCallableOverStream()) {
-      console.log('[Tony] Uso tonyAsk callable (locale o SSE disabilitato in sessione).');
-      return await this.ask(userPrompt, opts);
+    if (this._useCallable && this._tonyAskCallable && this._preferCallableOverStream(opts)) {
+      console.log('[Tony] Uso tonyAsk callable (SSE disabilitato in sessione).');
+      return await this._askStreamCallableFallback(userPrompt, opts);
     }
 
     if (this._useCallable && this._tonyAskStreamUrl) {
@@ -1839,12 +1884,12 @@ class TonyService {
       } catch (streamErr) {
         this._markStreamDisabled(streamErr && streamErr.message);
         console.warn('[Tony] tonyAskStream fallito, fallback ask():', streamErr && streamErr.message);
-        return await this.ask(userPrompt, opts);
+        return await this._askStreamCallableFallback(userPrompt, opts);
       }
     }
 
     if (this._useCallable && this._tonyAskCallable) {
-      return await this.ask(userPrompt, opts);
+      return await this._askStreamCallableFallback(userPrompt, opts);
     }
 
     if (!this.model) {

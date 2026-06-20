@@ -3,6 +3,8 @@
  * @module core/js/tony/voice
  */
 
+import { normalizeTonyTextWhitespace } from './engine.js';
+
 var lastTTSCache = { text: '', audioBase64: '', voice: '' };
 var ttsInflightFetches = new Map();
 var getTonyAudioCallablePromise = null;
@@ -169,6 +171,27 @@ var getTonyAudioCallablePromise = null;
         return s;
     }
 
+    /**
+     * Contrazioni con apostrofo che Chirp3 legge male (es. c'è → "cì").
+     * Espande in forma parlata esplicita prima della sintesi.
+     * @param {string} testo
+     * @returns {string}
+     */
+    function normalizeItalianContractionsForTTS(testo) {
+        if (!testo || typeof testo !== 'string') return testo;
+        var apos = "['\u2019`\u00B4]";
+        var s = testo;
+        s = s.replace(new RegExp('\\b([Cc])' + apos + '?\\s*([eéèEÉÈ])(?:' + apos + ')?(?=[\\s.,;:!?]|$)', 'g'), function(_m, c1) {
+            return (c1 === 'C' ? 'Ci' : 'ci') + ' è';
+        });
+        s = s.replace(new RegExp("\\bC'E'\\b", 'g'), 'Ci è');
+        s = s.replace(new RegExp("\\bc'e'\\b", 'gi'), 'ci è');
+        s = s.replace(new RegExp('\\bc' + apos + '?(era|erano)\\b', 'gi'), function(_m, tail) {
+            return 'ci ' + String(tail).toLowerCase();
+        });
+        return s;
+    }
+
     function pulisciTestoPerVoce(testo) {
         if (!testo || typeof testo !== 'string') return '';
         var t = testo;
@@ -185,6 +208,8 @@ var getTonyAudioCallablePromise = null;
         t = t.replace(/\s{2,}/g, ' ').trim();
         t = t.replace(/\s*[{}]+\s*$/g, '').trim();
         t = expandSpokenUnitsForItalianTTS(t);
+        t = normalizeItalianContractionsForTTS(t);
+        t = normalizeTonyTextWhitespace(t);
         return t;
     }
 
@@ -329,6 +354,13 @@ export function initTonyVoice(options) {
                 return;
             }
             window.__tonyIsSpeaking = true;
+            if (window.__tonyAudioQueue && window.__tonyAudioQueue.length > 0) {
+                window.__tonyAudioQueue.forEach(function(queued) {
+                    if (queued && queued.text) {
+                        fetchTonyAudioMp3(queued.text, queued.gen != null ? queued.gen : currentGeneration()).catch(function() {});
+                    }
+                });
+            }
             playOneTTS(item.text, item.opts || {}, function() {
                 window.__tonyIsSpeaking = false;
                 processNextAudio();
@@ -395,6 +427,9 @@ export function initTonyVoice(options) {
             var gen = opts.gen != null ? opts.gen : currentGeneration();
             window.__tonyAudioQueue = window.__tonyAudioQueue || [];
             window.__tonyAudioQueue.push({ text: testoPulito, opts: opts, gen: gen });
+            if (window.__tonyIsSpeaking) {
+                fetchTonyAudioMp3(testoPulito, gen).catch(function() {});
+            }
             processNextAudio();
         }
 
@@ -423,7 +458,7 @@ export function initTonyVoice(options) {
                     warmTts: typeof window.__tonyWarmTTS === 'function',
                     prefetchTts: typeof window.__tonyPrefetchTTS === 'function',
                     cacheText: lastTTSCache.text ? lastTTSCache.text.slice(0, 48) : null,
-                    speakingRateNote: '1.05 default server (serve deploy CF getTonyAudio)',
+                    speakingRateNote: '1.0 default server (serve deploy CF getTonyAudio)',
                     features: {
                         callableCached: !!getTonyAudioCallablePromise,
                         inflightDedup: true,
@@ -456,4 +491,4 @@ export function initTonyVoice(options) {
     };
 }
 
-export { expandSpokenUnitsForItalianTTS, normalizeTemperaturesForItalianTTS, pulisciTestoPerVoce };
+export { expandSpokenUnitsForItalianTTS, normalizeTemperaturesForItalianTTS, normalizeItalianContractionsForTTS, pulisciTestoPerVoce };

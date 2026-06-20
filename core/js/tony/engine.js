@@ -275,6 +275,19 @@ function stripLeakedTonyCommandsArrayTail(t) {
 /**
  * Rimuove residui JSON dal testo (graffe, virgolette, virgole finali) per display e TTS.
  */
+export function normalizeTonyTextWhitespace(s) {
+    if (s == null || typeof s !== 'string') return '';
+    var t = s;
+    t = t.replace(/[\u00a0\u2000-\u200b\u202f\u205f\u3000]/g, ' ');
+    t = t.replace(/\r\n?|\n+/g, ' ');
+    t = t.replace(/([.!?])\s+/g, '$1 ');
+    t = t.replace(/\s{2,}/g, ' ');
+    return t.trim();
+}
+
+/**
+ * Rimuove residui JSON dal testo (graffe, virgolette, virgole finali) per display e TTS.
+ */
 export function cleanTextFromJsonResidue(s) {
     if (s == null || typeof s !== 'string') return '';
     var t = s.trim();
@@ -294,7 +307,7 @@ export function cleanTextFromJsonResidue(s) {
     while (/^\s*Tony\s*:\s*/i.test(t)) {
         t = t.replace(/^\s*Tony\s*:\s*/i, '').trim();
     }
-    return t.replace(/\s{2,}/g, ' ').trim();
+    return normalizeTonyTextWhitespace(t);
 }
 
 /**

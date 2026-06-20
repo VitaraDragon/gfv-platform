@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const ROOT = process.cwd();
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
 
-const EXPECTED_BUILD = '2026-06-20a';
+const EXPECTED_BUILD = '2026-06-20g';
 
 describe('Tony TTS latency canary (2026-06-19a)', () => {
   it('voice.js — pipeline ottimizzata senza context JSON completo', () => {
@@ -33,9 +33,9 @@ describe('Tony TTS latency canary (2026-06-19a)', () => {
     expect(src).toMatch(new RegExp(`TONY_LOADER_BUILD = '${EXPECTED_BUILD}'`));
   });
 
-  it('getTonyAudio — speakingRate default 1.05', () => {
+  it('getTonyAudio — speakingRate default 1.0', () => {
     const src = read('functions/index.js');
-    expect(src).toMatch(/TONY_TTS_SPEAKING_RATE = Number\(process\.env\.TONY_TTS_SPEAKING_RATE \|\| "1\.05"\)/);
+    expect(src).toMatch(/TONY_TTS_SPEAKING_RATE = Number\(process\.env\.TONY_TTS_SPEAKING_RATE \|\| "1\.0"\)/);
   });
 
   it('script canary eseguibile presente', () => {

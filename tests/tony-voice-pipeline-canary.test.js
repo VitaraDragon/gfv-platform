@@ -162,10 +162,11 @@ describe('Tony Fase 2 chunking TTS — wiring main.js (canary)', () => {
       path.join(process.cwd(), 'core/js/tony/main.js'),
       'utf8'
     );
-    expect(mainSrc).toMatch(/import \{ applyStreamingTtsChunks, getStreamingTtsRemainder, speakTextInSentenceChunks \}/);
-    expect(mainSrc).toMatch(/applyStreamingTtsChunks\(daMostrare, streamTtsState/);
-    expect(mainSrc).toMatch(/getStreamingTtsRemainder\(ttsSource, streamTtsState\)/);
+    expect(mainSrc).toMatch(/consumeCompleteStreamingSentences/);
+    expect(mainSrc).toMatch(/earlyVoiceSpoken/);
+    expect(mainSrc).toMatch(/getStreamingTtsRemainder\(voiceTtsSource, streamTtsState\)/);
     expect(mainSrc).toMatch(/streamTtsState\.lastCleanText/);
+    expect(mainSrc).toMatch(/tonyAudioPipelineActive\(\) \|\| _isSendingMessage/);
     expect(mainSrc).toMatch(/function tonySpeakAssistantText/);
   });
 });
