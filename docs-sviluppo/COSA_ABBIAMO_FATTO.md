@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-19 (Tony consigliere, TTS, handoff marketing).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 (fix TTS doppio mobile/PWA).**
+
+## Tony — fix TTS doppio su mobile/PWA (2026-06-20)
+
+**Problema:** con PWA installata su smartphone, Tony rispondeva correttamente in chat ma **ripeteva a voce l’intera risposta due volte** (streaming SSE + chiusura turno).
+
+**Causa:** durante lo stream TTS leggeva le frasi man mano; a fine risposta `getStreamingTtsRemainder` resettava `consumed` se il testo finale sanitizzato era più corto del buffer stream, quindi rileggeva tutto. Stesso rischio se il testo visibile si accorciava a metà stream (JSON nascosto).
+
+**Fix:** `core/js/tony/stream-tts-chunk.js` — remainder vuoto se testo più corto; niente reset consumed in `consumeCompleteStreamingSentences`. `core/js/tony/main.js` — remainder calcolato su `streamTtsState.lastCleanText` (buffer stream), tracking `spokeCount`. Build client **`2026-06-20a`**.
+
+**Test:** `tests/tony-stream-tts-chunk.test.js` (9), `tests/tony-voice-pipeline-canary.test.js` (10).
 
 ## Strategia marketing e vendita — handoff agenti (2026-06-19)
 

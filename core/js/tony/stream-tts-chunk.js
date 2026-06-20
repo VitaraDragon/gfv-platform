@@ -46,7 +46,16 @@ export function consumeCompleteStreamingSentences(text, state) {
   var clean = text != null ? String(text) : '';
   state = state || {};
   var consumed = typeof state.consumedLength === 'number' ? state.consumedLength : 0;
-  if (clean.length < consumed) consumed = 0;
+  if (clean.length < consumed) {
+    // Testo visibile accorciato (JSON nascosto a metà stream): non rileggere frasi già inviate a TTS.
+    return {
+      sentences: [],
+      state: {
+        consumedLength: consumed,
+        lastCleanText: clean,
+      },
+    };
+  }
 
   var sentences = [];
   var pos = consumed;
@@ -85,7 +94,9 @@ export function consumeCompleteStreamingSentences(text, state) {
 export function getStreamingTtsRemainder(text, state) {
   var clean = text != null ? String(text) : '';
   var consumed = state && typeof state.consumedLength === 'number' ? state.consumedLength : 0;
-  if (clean.length < consumed) consumed = 0;
+  // Testo finale (post-sanitizer) più corto del buffer stream: non resettare consumed
+  // (altrimenti si rilegge l'intera risposta a voce — bug mobile/PWA).
+  if (clean.length < consumed) return '';
   return clean.slice(consumed).trim();
 }
 

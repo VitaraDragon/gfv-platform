@@ -44,7 +44,7 @@ import { applyStreamingTtsChunks, getStreamingTtsRemainder, speakTextInSentenceC
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-19a';
+export const TONY_CLIENT_BUILD = '2026-06-20a';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -6795,7 +6795,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     speakOpts = speakOpts || opts;
                     var ttsGen = typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : undefined;
                     if (streamTtsState && streamTtsState.active) {
-                        var remainder = getStreamingTtsRemainder(out, streamTtsState);
+                        var ttsSource =
+                            streamTtsState.lastCleanText && String(streamTtsState.lastCleanText).trim()
+                                ? String(streamTtsState.lastCleanText)
+                                : String(out || '');
+                        var remainder = getStreamingTtsRemainder(ttsSource, streamTtsState);
+                        var spokeDuringStream =
+                            (streamTtsState.spokeCount || 0) > 0 ||
+                            (typeof streamTtsState.consumedLength === 'number' && streamTtsState.consumedLength > 0);
                         streamTtsState.active = false;
                         if (remainder && remainder.length >= 2) {
                             var remGen = streamTtsState.gen != null ? streamTtsState.gen : ttsGen;
@@ -6803,6 +6810,17 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 try { prefetchTonyTTS(remainder, remGen); } catch (ePf) { /* ignore */ }
                             }
                             speakWithTTS(remainder, Object.assign({}, speakOpts, remGen != null ? { gen: remGen } : {}));
+                        } else if (!spokeDuringStream && out && String(out).trim().length >= 2) {
+                            var chunkPrefetchFallback = prefetchTonyTTS;
+                            if (!chunkPrefetchFallback && typeof window.__tonyPrefetchTTS === 'function') {
+                                chunkPrefetchFallback = window.__tonyPrefetchTTS;
+                            }
+                            speakTextInSentenceChunks(out, {
+                                gen: ttsGen,
+                                opts: speakOpts,
+                                prefetch: chunkPrefetchFallback,
+                                speak: speakWithTTS
+                            });
                         }
                         return;
                     }
@@ -7377,6 +7395,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     streamTtsState = {
                         consumedLength: 0,
                         active: false,
+                        spokeCount: 0,
+                        lastCleanText: '',
                         gen: typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0
                     };
                     if (opts.fromVoice) {
@@ -7403,6 +7423,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     speak: speakWithTTS
                                 });
                                 streamTtsState = ttsChunkResult.state;
+                                streamTtsState.spokeCount = (streamTtsState.spokeCount || 0) + ttsChunkResult.spokeCount;
                             } catch (eChunk) {
                                 console.warn('[Tony] onChunk stream/TTS:', eChunk);
                             }

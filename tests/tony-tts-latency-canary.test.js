@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const ROOT = process.cwd();
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
 
-const EXPECTED_BUILD = '2026-06-19a';
+const EXPECTED_BUILD = '2026-06-20a';
 
 describe('Tony TTS latency canary (2026-06-19a)', () => {
   it('voice.js — pipeline ottimizzata senza context JSON completo', () => {

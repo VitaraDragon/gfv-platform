@@ -17,7 +17,7 @@ const args = Object.fromEntries(
 );
 
 const LOCAL_PORT = Number(args['local-port'] || 8000);
-const EXPECTED_BUILD = '2026-06-19a';
+const EXPECTED_BUILD = '2026-06-20a';
 const EXPECTED_SPEAKING_RATE = '1.05';
 
 const results = [];

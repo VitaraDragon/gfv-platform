@@ -41,6 +41,18 @@ describe('stream-tts-chunk (Fase 2)', () => {
     expect(getStreamingTtsRemainder('Ok. Quasi finito', r.state)).toBe('Quasi finito');
   });
 
+  it('remainder vuoto se testo finale più corto del buffer stream (no doppio TTS)', () => {
+    var state = { consumedLength: 120, lastCleanText: 'Frase lunga già letta a voce durante lo stream SSE.' };
+    expect(getStreamingTtsRemainder('Testo finale più corto.', state)).toBe('');
+  });
+
+  it('non rilegge frasi se il buffer visibile si accorcia durante lo stream', () => {
+    var state = { consumedLength: 25, lastCleanText: 'Prima frase completa. Seconda' };
+    var r = consumeCompleteStreamingSentences('Prima frase', state);
+    expect(r.sentences).toEqual([]);
+    expect(r.state.consumedLength).toBe(25);
+  });
+
   it('applyStreamingTtsChunks invoca prefetch e speak', () => {
     var spoken = [];
     var prefetched = [];
