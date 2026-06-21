@@ -8,7 +8,58 @@
 /**
  * Configurazione piani abbonamento
  * Struttura semplificata: Free (acquisizione) + Base (€5) + Moduli pay-per-use
+ *
+ * Fatturazione: prezzi espressi al mese (confronto); addebito solo annuale (Stripe).
  */
+export const BILLING = {
+  /** Unico intervallo di addebito per piani/moduli/bundle a pagamento */
+  chargeInterval: 'year',
+  monthsPerCharge: 12,
+  chargeIntervalLabel: 'anno',
+  /** Prezzi in UI = equivalente mensile di riferimento */
+  displayUnit: 'month',
+  displayUnitLabel: 'mese',
+  /** Piano Free: nessun pagamento */
+  freeExcluded: true,
+  /** Stripe: usare Checkout Sessions + Billing; Price.recurring.interval = 'year' */
+  stripe: {
+    integration: 'checkout_sessions',
+    recurringInterval: 'year',
+    /** unit_amount (centesimi) = monthlyReference * monthsPerCharge * 100 */
+    unitAmountFromMonthly: (monthly) => Math.round(monthly * 12 * 100)
+  },
+  note: 'Piani e moduli a pagamento: fatturazione annuale anticipata. Il valore del gestionale si costruisce nel tempo con i dati in piattaforma.'
+};
+
+/**
+ * Equivalente annuale da prezzo mensile di riferimento.
+ * @param {number} monthlyPrice
+ * @returns {number}
+ */
+export function monthlyToAnnual(monthlyPrice) {
+  const n = Number(monthlyPrice);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.round(n * BILLING.monthsPerCharge * 100) / 100;
+}
+
+/**
+ * Etichetta prezzo per UI: riferimento mensile + addebito annuale.
+ * @param {number} monthlyPrice
+ * @returns {{ monthlyReference: number, annualCharge: number, labelShort: string, labelFull: string }}
+ */
+export function formatBillingDisplay(monthlyPrice) {
+  const monthlyReference = Number(monthlyPrice) || 0;
+  const annualCharge = monthlyToAnnual(monthlyReference);
+  return {
+    monthlyReference,
+    annualCharge,
+    labelShort: `€${monthlyReference}/${BILLING.displayUnitLabel}`,
+    labelFull: monthlyReference > 0
+      ? `€${monthlyReference}/${BILLING.displayUnitLabel} · fatturato €${annualCharge}/${BILLING.chargeIntervalLabel}`
+      : `€0`
+  };
+}
+
 export const SUBSCRIPTION_PLANS = {
   free: {
     id: 'free',
@@ -47,7 +98,9 @@ export const SUBSCRIPTION_PLANS = {
       'Export Excel'
     ],
     support: 'Email',
-    badge: '💚'
+    badge: '💚',
+    /** Prezzo Stripe annuale — v. STRIPE_PRICE_IDS */
+    stripePlan: true
   }
 };
 
@@ -149,61 +202,166 @@ export const AVAILABLE_MODULES = [
 ];
 
 /**
- * Bundle strategici - Risparmio + Upsell moderato
- * I bundle devono far risparmiare sui moduli scelti e suggerire moduli aggiuntivi utili
+ * ID di tutti i moduli attualmente acquistabili (esclusi "prossimamente").
+ */
+export const ALL_AVAILABLE_MODULE_IDS = AVAILABLE_MODULES
+  .filter(m => m.available)
+  .map(m => m.id);
+
+/**
+ * Bundle strategici — allineati alle intersezioni moduli (tony-module-recommendations / intersezioni-moduli).
+ * Prezzo singoli, risparmio e sconto %: calcolati con getBundleBreakdown().
  */
 export const BUNDLES = [
   {
+    id: 'vigneto-operativo',
+    name: 'Viticoltore Operativo',
+    modules: ['vigneto', 'manodopera', 'magazzino'],
+    price: 10, // €3 + €6 + €3 = €12
+    description: 'Vigneto, squadre vendemmia e scarico prodotti da trattamenti/concimazioni',
+    suggestedFor: ['vigneto', 'manodopera'],
+    upsellModules: ['magazzino']
+  },
+  {
     id: 'operativo-vigneto',
-    name: 'Operativo Vigneto',
-    modules: ['manodopera', 'vigneto', 'parcoMacchine'],
-    price: 10, // Manodopera (€6) + Vigneto (€3) + Parco Macchine (€3) = €12 → €10 (sconto €2)
-    discount: 17,
-    description: 'Perfetto per viticoltori: gestione squadre, vigneti e macchine',
-    suggestedFor: ['manodopera', 'vigneto'], // Suggerito se utente ha questi moduli
-    upsellModules: ['parcoMacchine'] // Modulo aggiuntivo suggerito
+    name: 'Viticoltore Campo',
+    modules: ['vigneto', 'manodopera', 'parcoMacchine'],
+    price: 10, // €3 + €6 + €3 = €12
+    description: 'Vigneto, squadre e parco macchine per lavori in campo',
+    suggestedFor: ['vigneto', 'manodopera'],
+    upsellModules: ['parcoMacchine']
+  },
+  {
+    id: 'frutteto-operativo',
+    name: 'Frutteto Operativo',
+    modules: ['frutteto', 'manodopera', 'magazzino'],
+    price: 10, // €3 + €6 + €3 = €12
+    description: 'Frutteto, squadre raccolta e magazzino prodotti per trattamenti',
+    suggestedFor: ['frutteto', 'manodopera'],
+    upsellModules: ['magazzino']
+  },
+  {
+    id: 'frutticoltore-campo',
+    name: 'Frutticoltore Campo',
+    modules: ['frutteto', 'manodopera', 'parcoMacchine'],
+    price: 10, // €3 + €6 + €3 = €12
+    description: 'Frutteto, squadre e parco macchine per lavori in campo',
+    suggestedFor: ['frutteto', 'manodopera'],
+    upsellModules: ['parcoMacchine']
+  },
+  {
+    id: 'conto-terzi-operativo',
+    name: 'Servizi Conto Terzi',
+    modules: ['contoTerzi', 'manodopera', 'report'],
+    price: 14, // €6 + €6 + €5 = €17
+    description: 'Preventivi e clienti → lavori → ore squadra → report costi',
+    suggestedFor: ['contoTerzi'],
+    upsellModules: ['manodopera', 'report']
+  },
+  {
+    id: 'business-completo',
+    name: 'Business Conto Terzi',
+    modules: ['contoTerzi', 'report'],
+    price: 9, // €6 + €5 = €11
+    description: 'Preventivi, clienti e report costi (senza manodopera)',
+    suggestedFor: ['contoTerzi'],
+    upsellModules: ['report']
   },
   {
     id: 'operativo-completo',
     name: 'Operativo Completo',
     modules: ['manodopera', 'parcoMacchine', 'report'],
-    price: 12, // Manodopera (€6) + Parco Macchine (€3) + Report (€5) = €14 → €12 (sconto €2)
-    discount: 14,
-    description: 'Gestione completa operazioni quotidiane con report',
+    price: 12, // €6 + €3 + €5 = €14
+    description: 'Squadre, macchine e report operativi',
     suggestedFor: ['manodopera', 'parcoMacchine'],
     upsellModules: ['report']
   },
   {
-    id: 'colture-specializzate',
-    name: 'Colture Specializzate',
-    modules: ['vigneto', 'frutteto', 'oliveto'],
-    price: 8, // Vigneto (€3) + Frutteto (€3) + Oliveto (€3) = €9 → €8 (sconto €1)
-    discount: 11,
-    description: 'Gestione completa tutte le colture specializzate',
-    suggestedFor: ['vigneto', 'frutteto', 'oliveto'],
-    upsellModules: [] // Tutti i moduli sono ugualmente importanti
+    id: 'coltura-meteo',
+    name: 'Colture e Meteo',
+    modules: ['vigneto', 'frutteto', 'meteo'],
+    price: 6, // €3 + €3 + €1 = €7
+    description: 'Vigneto e frutteto con meteo per pianificare trattamenti e lavori',
+    suggestedFor: ['vigneto', 'frutteto'],
+    upsellModules: ['meteo']
   },
   {
-    id: 'business-completo',
-    name: 'Business Completo',
-    modules: ['contoTerzi', 'report'],
-    price: 9, // Conto Terzi (€6) + Report (€5) = €11 → €9 (sconto €2)
-    discount: 18,
-    description: 'Preventivi, clienti e report costi',
-    suggestedFor: ['contoTerzi'],
-    upsellModules: ['report']
-  },
-  {
-    id: 'vigneto-completo',
-    name: 'Vigneto Completo',
-    modules: ['vigneto', 'manodopera'],
-    price: 8, // Vigneto (€3) + Manodopera (€6) = €9 → €8 (sconto €1)
-    discount: 11,
-    description: 'Gestione vigneti e squadre vendemmia',
-    suggestedFor: ['vigneto', 'manodopera'],
+    id: 'gfv-completo',
+    name: 'GFV Completo',
+    modules: ALL_AVAILABLE_MODULE_IDS,
+    price: 30, // singoli €35 → risparmio €5 (~14%)
+    isComplete: true,
+    description: 'Tutti i moduli disponibili: colture, manodopera, conto terzi, magazzino, meteo, report e Tony Avanzato',
+    suggestedFor: ALL_AVAILABLE_MODULE_IDS,
     upsellModules: []
   }
 ];
+
+/**
+ * Somma prezzi mensili dei moduli (solo moduli available).
+ * @param {Array<string>} moduleIds
+ * @returns {number}
+ */
+export function sumModulePrices(moduleIds = []) {
+  return moduleIds.reduce((sum, moduleId) => {
+    const mod = getModuleConfig(moduleId);
+    return sum + (mod && mod.available ? mod.price : 0);
+  }, 0);
+}
+
+/**
+ * Dettaglio prezzi bundle: singoli, totale, risparmio, sconto %.
+ * @param {Object} bundle - Voce da BUNDLES
+ * @returns {Object}
+ */
+export function getBundleBreakdown(bundle) {
+  if (!bundle || !Array.isArray(bundle.modules)) {
+    return {
+      items: [],
+      singlesTotal: 0,
+      bundlePrice: 0,
+      savings: 0,
+      discountPercent: 0,
+      allAvailable: false
+    };
+  }
+
+  const items = bundle.modules.map(moduleId => {
+    const mod = getModuleConfig(moduleId);
+    if (!mod) return null;
+    return {
+      id: mod.id,
+      name: mod.name,
+      icon: mod.icon,
+      price: mod.available ? mod.price : 0,
+      available: mod.available
+    };
+  }).filter(Boolean);
+
+  const allAvailable = bundle.modules.every(moduleId => {
+    const mod = getModuleConfig(moduleId);
+    return mod && mod.available;
+  });
+
+  const singlesTotal = sumModulePrices(bundle.modules);
+  const bundlePrice = bundle.price || 0;
+  const savings = allAvailable ? singlesTotal - bundlePrice : 0;
+  const discountPercent = allAvailable && singlesTotal > 0 && savings > 0
+    ? Math.round((savings / singlesTotal) * 100)
+    : 0;
+
+  return {
+    items,
+    singlesTotal,
+    bundlePrice,
+    savings,
+    discountPercent,
+    allAvailable,
+    singlesTotalAnnual: monthlyToAnnual(singlesTotal),
+    bundlePriceAnnual: monthlyToAnnual(bundlePrice),
+    savingsAnnual: monthlyToAnnual(savings)
+  };
+}
 
 /**
  * Ottieni configurazione piano per ID
@@ -325,7 +483,7 @@ export function canActivateModule(planId, moduleId, currentModules = []) {
   
   // Piano Free: nessun modulo disponibile
   if (planId === 'free') {
-    return { canActivate: false, reason: 'Piano Free non include moduli. Upgrade al piano Base (€5/mese) per attivare moduli.' };
+    return { canActivate: false, reason: 'Piano Free non include moduli. Passa al piano Base (€5/mese, fatturato €60/anno) per attivare moduli.' };
   }
   
   // Piano Base: tutti i moduli disponibili (pay-per-use)
@@ -394,16 +552,76 @@ export function getSuggestedBundles(selectedModules = []) {
   return suggestions.sort((a, b) => b.savings - a.savings);
 }
 
+/**
+ * Price ID Stripe per piano (allineare a functions/config/stripe-prices.json).
+ * @type {Record<string, Record<string, string>>}
+ */
+export const STRIPE_PRICE_IDS = {
+  test: {
+    base: 'price_1TkUNZ3nOKBd0FguKWYZhq1R',
+    manodopera: 'price_1Tkf0L3nOKBd0FguETZtJzOD',
+    parcoMacchine: 'price_1Tkf0L3nOKBd0FguPAhLJ6a8',
+    contoTerzi: 'price_1Tkf0M3nOKBd0FguQGTqs7f2',
+    vigneto: 'price_1Tkf0M3nOKBd0FguugiLQvPB',
+    frutteto: 'price_1Tkf0N3nOKBd0FgucJZM0u4U',
+    magazzino: 'price_1Tkf0N3nOKBd0Fgu7GJL6cXm',
+    tony: 'price_1Tkf0O3nOKBd0FguXdsS260m',
+    report: 'price_1Tkf0O3nOKBd0FgutP7Cv0kt',
+    meteo: 'price_1Tkf0P3nOKBd0Fgu3CsFEIfx',
+    'vigneto-operativo': 'price_1Tkf0P3nOKBd0FguXw5iE6Qf',
+    'operativo-vigneto': 'price_1Tkf0Q3nOKBd0FguAqHLXltB',
+    'frutteto-operativo': 'price_1Tkf0R3nOKBd0FguaTNuwJa6',
+    'frutticoltore-campo': 'price_1Tkf0R3nOKBd0Fguw2lEffqg',
+    'conto-terzi-operativo': 'price_1Tkf0S3nOKBd0Fgut46XUrnM',
+    'business-completo': 'price_1Tkf0S3nOKBd0FgudtZoUkW4',
+    'operativo-completo': 'price_1Tkf0T3nOKBd0FguXHtxN18H',
+    'coltura-meteo': 'price_1Tkf0T3nOKBd0FguKK9mtdQb',
+    'gfv-completo': 'price_1Tkf0U3nOKBd0Fgu6SKqV78F'
+  },
+  live: {}
+};
+
+/**
+ * @param {string} catalogId — piano, modulo o bundle (chiave STRIPE_PRICE_IDS)
+ * @param {'test'|'live'} [env='test']
+ * @returns {string|null}
+ */
+export function getStripePriceId(catalogId, env = 'test') {
+  const map = STRIPE_PRICE_IDS[env] || {};
+  const id = map[catalogId];
+  return typeof id === 'string' && id.length > 0 ? id : null;
+}
+
+/**
+ * Piano a pagamento con checkout Stripe configurato.
+ * @param {string} planId
+ * @param {'test'|'live'} [env='test']
+ * @returns {boolean}
+ */
+export function planRequiresStripePayment(planId, env = 'test') {
+  const plan = getPlanConfig(planId);
+  return !!(plan && plan.price > 0 && getStripePriceId(planId, env));
+}
+
 // Export default
 export default {
+  BILLING,
   SUBSCRIPTION_PLANS,
   AVAILABLE_MODULES,
+  ALL_AVAILABLE_MODULE_IDS,
   BUNDLES,
+  STRIPE_PRICE_IDS,
   getPlanConfig,
   getAllPlans,
   getModuleConfig,
   getAllModules,
   calculateTotalPrice,
   canActivateModule,
-  getSuggestedBundles
+  getSuggestedBundles,
+  sumModulePrices,
+  getBundleBreakdown,
+  monthlyToAnnual,
+  formatBillingDisplay,
+  getStripePriceId,
+  planRequiresStripePayment
 };

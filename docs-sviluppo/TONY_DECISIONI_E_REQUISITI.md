@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-06-19 (consigliere moduli, TTS latenza, handoff marketing)
+**Ultimo aggiornamento**: 2026-06-20 (consigliere bundle, stacking, Stripe checkout moduli)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -24,6 +24,11 @@
 | 1.10 | **Handoff strategia marketing** unificato (Free/Base/moduli, GTM backlog) | prodotto 2026-06-19 | implementato (doc) | `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md` |
 | 1.11 | **Card statica Abbonamento (Free)** con hint moduli da segnali, senza LLM | STRATEGIA_MARKETING §8 | pianificato | Stesse regole di `tony-module-recommendations.json` |
 | 1.12 | **Chip/banner dashboard** «Tony suggerisce…» dismissible | STRATEGIA_MARKETING §8 | pianificato | Da `consigliModuli` lato client |
+| 1.13 | **Tony consigliere bundle**: suggerimenti pacchetto + `consigliBundle`; quick reply bundle/singoli/`module_add`/`stacked_bundle`; prezzi «X euro al mese» | prodotto 2026-06-20 | implementato | `tony-bundles-catalog.json`, `buildBundleRecommendationHints`, `tryTonyModuleAdvisorQuickReply` |
+| 1.14 | **Bundle già attivo — no pacchetti gemelli** (es. Operativo ↔ Campo): messaggio «risparmio bundle ce l'hai già» | prodotto 2026-06-20 | implementato | `BUNDLE_ALTERNATIVES`, `formatSingoliVsBundleReply` |
+| 1.15 | **Secondo bundle — confronto margine**: proporre singoli se moduli mancanti costano meno del prezzo pacchetto aggiuntivo | prodotto 2026-06-20 | implementato | `formatStackedBundleAdvisorReply`; filtro expand in `buildBundleRecommendationHints` |
+| 1.16 | **Domande abbonamento con «meteo»** non devono usare guida dashboard meteo | prodotto 2026-06-20 | implementato | `isModuleAdvisorQuestion` in `index.js` prima di meteo quick reply |
+| 1.17 | **Stripe Checkout** moduli e bundle (annuale); disattivazione Firestore diretta v1 | prodotto 2026-06-20 | implementato (parziale billing) | `functions/stripe-billing.js`, `abbonamento-standalone.html` |
 
 ---
 
@@ -91,7 +96,7 @@
 | 6.3 | summarySottoScorta in ctx.azienda | CONTEXT_BUILDER | implementato | `summarySottoScorta` + `prodottiSottoScorta`; prodotti con `scortaMinima`/`giacenza` (2026-04-11) |
 | 6.4 | tenantId dal client obbligatorio per Context Builder | CONTEXT_BUILDER | implementato | |
 | 6.5 | Prodotti con giacenza, scortaMinima/sogliaMinima per sotto scorta | CONTEXT_BUILDER | implementato | prodotti in ctx + summarySottoScorta / prodottiSottoScorta |
-| 6.6 | **consigliModuli**, **segnaliAziendaModuli** in ctx.azienda (Tony Guida Base) | tony-module-recommendations 2026-06-19 | implementato | Solo piano Base in tonyAsk; trigger gated per moduli disattivi |
+| 6.6 | **consigliModuli**, **consigliBundle**, **segnaliAziendaModuli** in ctx.azienda (Tony Guida Base) | tony-module-recommendations 2026-06-19, **bundle 2026-06-20** | implementato | Solo piano Base in tonyAsk; trigger gated; quick reply advisor; merge moduli client+tenant |
 
 ---
 
@@ -429,7 +434,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | `functions/tony-multi-block-quick-reply.js` | ✅ Fase 4 — multi-blocco meteo/scorte/scadenze |
 | `functions/tony-context-cache.js` | ✅ Cache T4 + **`invalidateTonyContextCache`** (Fase 4.1) |
 | `functions/tony-module-gate.js` | ✅ Gate moduli tenant (quick reply, APRI_PAGINA, ctx.azienda) |
-| `functions/tony-module-recommendations.js` | ✅ **Consigliere moduli Tony Guida (Base)** — segnali, complementi, quick reply, gating legacy (2026-06-19) |
+| `functions/tony-module-recommendations.js` | ✅ **Consigliere moduli+bundle Tony Guida (Base)** — segnali, complementi, bundle hints, stacking, gemelli (2026-06-19, **2026-06-20**) |
 | `core/js/tony/voice.js` | ✅ TTS pipeline — Chirp 3, **speakingRate 1.05**, callable cached, dedup, warm typing, **`__tonyTtsCanary()`** (2026-06-19) |
 | `core/js/tony/stream-tts-chunk.js` | ✅ **`speakTextInSentenceChunks`** — TTS a frasi su risposte complete (2026-06-19) |
 | `core/js/tony/main.js` | ✅ «sì» nel filo meteo non rubato al briefing; **voce dashboard 2026-06-09g:** RIASSUNTO client, meteo locale, addio locale, mic/TTS; **2026-06-15:** pannello chat mobile su proattivo, `chatHistory` su `_displayOnly`; skip proattivo se CF già chiede; **preventivo:** strip downgrade filari, hint terreno vs scheduling (2026-05-24) |

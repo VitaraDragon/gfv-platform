@@ -243,4 +243,5 @@ async function handleSendTransactionalEmail(db, apiKey, request) {
 module.exports = {
   RESEND_FROM,
   handleSendTransactionalEmail,
+  assertManagerOrAdminForTenant,
 };

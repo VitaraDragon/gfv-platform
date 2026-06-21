@@ -352,6 +352,7 @@
             <div>
                 <h1>💳 Abbonamento</h1>
                 <p style="opacity: 0.9; margin-top: 5px;">Gestisci il tuo piano e i moduli attivi</p>
+                <p style="opacity: 0.85; margin-top: 8px; font-size: 13px; max-width: 640px;">Prezzi al mese per confronto · <strong>fatturazione annuale anticipata</strong> (pagamento con Stripe). Il piano Free resta gratuito.</p>
             </div>
             <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
         </div>
@@ -393,7 +394,7 @@
                         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2E8B57;">
                             <div style="font-size: 14px; color: #666; margin-bottom: 8px;"><strong>Con il Piano Base puoi:</strong></div>
                             <ul style="margin: 0; padding-left: 20px; color: #333; font-size: 14px; line-height: 1.8;">
-                                <li>Attivare <strong>qualsiasi modulo</strong> che ti serve (€3-6/mese ciascuno)</li>
+                                <li>Attivare <strong>qualsiasi modulo</strong> che ti serve (da €1/mese, fatturati annualmente)</li>
                                 <li>Gestire <strong>terreni e attività illimitati</strong></li>
                                 <li>Risparmiare con i <strong>bundle ottimizzati</strong></li>
                                 <li>Personalizzare completamente la tua app in base alle tue esigenze</li>
@@ -403,6 +404,7 @@
                             <div>
                                 <div style="font-size: 12px; color: #666;">A partire da</div>
                                 <div style="font-size: 32px; font-weight: bold; color: #2E8B57;">€5<span style="font-size: 18px; color: #666;">/mese</span></div>
+                                <div style="font-size: 13px; color: #555; margin-top: 4px;">Fatturato <strong>€60/anno</strong></div>
                             </div>
                             <button class="btn btn-primary" onclick="selectPlan('base')" style="padding: 12px 30px; font-size: 16px; font-weight: bold;">
                                 ✨ Passa al Piano Base
@@ -452,7 +454,7 @@
             <!-- Sezione: Bundle Disponibili -->
             <div class="card" style="grid-column: 1 / -1;">
                 <h2>🎁 Bundle Disponibili</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Risparmia con combinazioni di moduli ottimizzate</p>
+                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Risparmia con combinazioni di moduli ottimizzate · addebito annuale</p>
                 
                 <div id="bundles-section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
                     <!-- Bundle verranno renderizzati dinamicamente -->
@@ -469,16 +471,6 @@
                 </div>
             </div>
 
-            <!-- Sezione: Suggerimenti Intelligenti -->
-            <div class="card" id="suggestions-section" style="grid-column: 1 / -1; background: linear-gradient(135deg, #fffbf0 0%, #fff8e1 100%); border: 2px solid #ffc107; display: none;">
-                <h2 style="color: #ff9800; margin-bottom: 15px;">💡 Suggerimenti per Completare la Tua App</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Moduli e bundle consigliati per ottimizzare la tua esperienza</p>
-                
-                <div id="suggestions-content">
-                    <!-- Suggerimenti verranno renderizzati dinamicamente -->
-                </div>
-            </div>
-
             <!-- Moduli Disponibili -->
             <div class="card modules-section">
                 <h2>🔧 Moduli Disponibili</h2>
@@ -491,7 +483,7 @@
                 </div>
 
                 <div class="info-box">
-                    <strong>ℹ️ Nota:</strong> Attiva o disattiva i moduli in base alle tue esigenze. Le modifiche vengono salvate immediatamente.
+                    <strong>ℹ️ Nota:</strong> L'attivazione di moduli e bundle passa da Stripe (addebito annuale). La disattivazione è immediata da questa pagina.
                 </div>
             </div>
         </div>
@@ -541,13 +533,16 @@
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import { getHttpsCallable } from '../services/firebase-service.js';
         import { 
             initializeTenantService,
             getCurrentTenantId, 
             getCurrentTenant, 
-            getUserRolesForTenant 
+            getUserRolesForTenant,
+            clearCurrentTenantCache
         } from '../services/tenant-service.js';
         import { 
+            BILLING,
             SUBSCRIPTION_PLANS, 
             AVAILABLE_MODULES, 
             BUNDLES,
@@ -557,7 +552,10 @@
             getModuleConfig,
             calculateTotalPrice,
             canActivateModule,
-            getSuggestedBundles
+            getBundleBreakdown,
+            monthlyToAnnual,
+            formatBillingDisplay,
+            planRequiresStripePayment
         } from '../config/subscription-plans.js';
 
         initializeFirebase(firebaseConfig);
@@ -572,6 +570,57 @@
         let currentTenantData = null;
         let activeModules = [];
         let activeBundles = [];
+
+        function billingPriceHtml(monthly, options = {}) {
+            const { large = false, annualOnly = false } = options;
+            const annual = monthlyToAnnual(monthly);
+            if (!monthly || monthly <= 0) {
+                return '<span>€0</span>';
+            }
+            if (annualOnly) {
+                return `<span>€${annual}<span style="font-size: ${large ? '16px' : '12px'}; color: #666;">/anno</span></span>`;
+            }
+            const annualSize = large ? '14px' : '12px';
+            return `<span>€${monthly}<span style="font-size: ${large ? '18px' : '14px'}; color: #666;">/mese</span></span>` +
+                `<div style="font-size: ${annualSize}; color: #555; margin-top: ${large ? '4px' : '2px'};">Fatturato €${annual}/anno</div>`;
+        }
+
+        function billingSavingsHtml(monthlySavings, discountPercent) {
+            if (!monthlySavings || monthlySavings <= 0) return '';
+            const annual = monthlyToAnnual(monthlySavings);
+            const pct = discountPercent ? ` (−${discountPercent}%)` : '';
+            return `<div style="font-size: 11px; color: #2E8B57; font-weight: bold; margin-top: 8px;">Risparmi €${monthlySavings}/mese · €${annual}/anno${pct}</div>`;
+        }
+
+        function renderBundlePricingBlock(bundle, breakdown) {
+            const { items, singlesTotal, bundlePrice, savings, discountPercent, allAvailable, singlesTotalAnnual, bundlePriceAnnual, savingsAnnual } = breakdown;
+            const itemsHtml = items.map(item => `
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #555; padding: 2px 0; border-bottom: 1px dashed #eee;">
+                    <span>${item.icon} ${item.name}</span>
+                    <span>€${item.price}/mese · €${monthlyToAnnual(item.price)}/anno</span>
+                </div>
+            `).join('');
+
+            const savingsHtml = allAvailable && savings > 0
+                ? billingSavingsHtml(savings, discountPercent)
+                : (bundle.isComplete
+                    ? `<div style="font-size: 11px; color: #666; margin-top: 8px;">Pacchetto completo · fatturazione annuale</div>`
+                    : '');
+
+            return `
+                <div style="background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                    <div style="font-size: 11px; font-weight: bold; color: #888; margin-bottom: 6px; text-transform: uppercase;">Dettaglio moduli (listino singolo)</div>
+                    ${itemsHtml}
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; color: #666; padding-top: 8px; margin-top: 4px; border-top: 1px solid #ddd;">
+                        <span>Totale singoli</span>
+                        <span style="text-decoration: line-through;">€${singlesTotal}/mese · €${singlesTotalAnnual}/anno</span>
+                    </div>
+                </div>
+                ${billingPriceHtml(bundlePrice, { large: true })}
+                <div style="font-size: 12px; color: #666; margin-top: 2px;">Prezzo bundle (riferimento mensile)</div>
+                ${savingsHtml}
+            `;
+        }
 
         // Verifica autenticazione e carica dati
         onAuthStateChanged(auth, async (user) => {
@@ -643,49 +692,17 @@
 
                 // Carica dati tenant e moduli
                 await loadTenantData();
-                
-                // Inizializza context Tony con i moduli attivi caricati
+                await syncStripeFromServerIfNeeded();
+                await handleCheckoutReturn();
+
+                refreshSubscriptionUi();
+
                 if (window.Tony && typeof window.Tony.setContext === 'function') {
                     window.Tony.setContext('dashboard', {
                         info_azienda: { moduli_attivi: activeModules },
                         moduli_attivi: activeModules
                     });
-                    console.log('[Abbonamento] Context Tony inizializzato all\'avvio con moduli:', activeModules);
-                } else {
-                    // Retry se Tony non è ancora disponibile
-                    var initTonyContext = function(retries) {
-                        retries = retries || 0;
-                        if (window.Tony && typeof window.Tony.setContext === 'function') {
-                            window.Tony.setContext('dashboard', {
-                                info_azienda: { moduli_attivi: activeModules },
-                                moduli_attivi: activeModules
-                            });
-                            console.log('[Abbonamento] Context Tony inizializzato (retry) con moduli:', activeModules);
-                        } else if (retries < 10) {
-                            setTimeout(function() {
-                                initTonyContext(retries + 1);
-                            }, 500);
-                        }
-                    };
-                    initTonyContext();
                 }
-                
-                // Verifica scadenza abbonamento
-                checkExpiryStatus();
-                
-                // Calcola planId da currentTenantData (dopo loadTenantData)
-                let planId = currentTenantData?.plan || currentTenantData?.piano || 'base';
-                if (['starter', 'professional', 'enterprise'].includes(planId)) {
-                    planId = 'base';
-                }
-                const planConfig = getPlanConfig(planId);
-                
-                renderActiveModules();
-                renderModules();
-                renderUpgradeSection();
-                renderBundles();
-                renderSuggestions();
-                updateSubscriptionSummary(planConfig);
             } catch (error) {
                 console.error('Errore:', error);
                 showAlert('Errore caricamento dati: ' + error.message, 'error');
@@ -693,24 +710,60 @@
             }
         });
 
-        // Carica dati tenant
+        function resolvePlanIdFromTenant(tenantData) {
+            let planId = tenantData?.plan || tenantData?.piano || 'base';
+            if (['starter', 'professional', 'enterprise'].includes(planId)) {
+                planId = 'base';
+            }
+            return planId;
+        }
+
+        function refreshSubscriptionUi() {
+            if (!currentTenantData) return;
+            const planId = resolvePlanIdFromTenant(currentTenantData);
+            const planConfig = getPlanConfig(planId) || getPlanConfig('base');
+            updateCurrentPlanUI(planConfig, currentTenantData);
+            renderActiveModules();
+            renderModules();
+            renderUpgradeSection();
+            renderBundles();
+            updateSubscriptionSummary(planConfig);
+            checkExpiryStatus();
+        }
+
+        function tenantExpiryIsPast(tenantData) {
+            const expiry = tenantData && tenantData.expiryDate;
+            if (!expiry) return true;
+            const date = expiry.toDate ? expiry.toDate() : new Date(expiry);
+            return date <= new Date();
+        }
+
+        /** Allinea scadenza da Stripe se c'è abbonamento ma data locale obsoleta. */
+        async function syncStripeFromServerIfNeeded() {
+            if (!currentTenantId || !currentTenantData?.stripeSubscriptionId) return;
+            if (!tenantExpiryIsPast(currentTenantData)) return;
+            try {
+                const sync = getHttpsCallable('syncStripeSubscription');
+                await sync({ tenantId: currentTenantId });
+                clearCurrentTenantCache();
+                await loadTenantData();
+            } catch (error) {
+                console.warn('[Abbonamento] syncStripeSubscription:', error.message || error);
+            }
+        }
+
+        // Carica dati tenant (sempre da Firestore — evita cache stale dopo Stripe)
         async function loadTenantData() {
             if (!currentTenantId) return;
 
             try {
-                // Usa tenant-service per ottenere dati tenant
-                currentTenantData = await getCurrentTenant();
-                
-                if (!currentTenantData) {
-                    // Fallback: carica direttamente da Firestore
-                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                    if (tenantDoc.exists()) {
-                        currentTenantData = tenantDoc.data();
-                    } else {
-                        showAlert('Tenant non trovato', 'error');
-                        return;
-                    }
+                clearCurrentTenantCache();
+                const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                if (!tenantDoc.exists()) {
+                    showAlert('Tenant non trovato', 'error');
+                    return;
                 }
+                currentTenantData = tenantDoc.data();
                 
                 activeModules = currentTenantData.modules || [];
                 activeBundles = currentTenantData.activeBundles || [];
@@ -721,17 +774,13 @@
                 console.log('[Abbonamento] DEBUG - currentTenantData.modules:', currentTenantData.modules);
                 
                 // Aggiorna piano corrente (supporta sia 'plan' che 'piano' per retrocompatibilità)
-                // Retrocompatibilità: se trova 'starter'/'professional'/'enterprise', migra a 'base'
-                let planId = currentTenantData.plan || currentTenantData.piano || 'base';
-                if (['starter', 'professional', 'enterprise'].includes(planId)) {
-                    planId = 'base'; // Migra a piano base
-                }
+                let planId = resolvePlanIdFromTenant(currentTenantData);
                 const planConfig = getPlanConfig(planId);
                 
-                // Se non c'è expiryDate, inizializzala (1 mese da oggi)
-                if (!currentTenantData.expiryDate) {
+                // Scadenza manuale solo se non c'è abbonamento Stripe
+                if (!currentTenantData.expiryDate && !currentTenantData.stripeSubscriptionId) {
                     const defaultExpiry = new Date();
-                    defaultExpiry.setMonth(defaultExpiry.getMonth() + 1);
+                    defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
                     
                     try {
                         await updateDoc(doc(db, 'tenants', currentTenantId), {
@@ -762,12 +811,15 @@
                 planConfig = getPlanConfig('base'); // Default
             }
             
-            // Nome piano
-            document.getElementById('current-plan-name').textContent = planConfig.name;
+            // Nome piano (+ indicatore pagamento Stripe se presente)
+            const planLabel = tenantData.stripeSubscriptionId
+                ? `${planConfig.name} · pagamento attivo`
+                : planConfig.name;
+            document.getElementById('current-plan-name').textContent = planLabel;
             
             // Prezzo (calcola totale: piano + moduli/bundle)
             const totalPrice = calculateTotalPrice(planConfig.id, activeModules, activeBundles);
-            document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
+            document.getElementById('current-plan-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
             
             // Scadenza (se disponibile)
             const expiryDate = tenantData.expiryDate;
@@ -778,9 +830,11 @@
                 document.getElementById('current-plan-expiry').textContent = 'Non impostata';
             }
             
-            // Stato (calcolato anche in base a scadenza)
+            // Stato (calcolato anche in base a scadenza; Stripe ha priorità se pagamento attivo)
             let status = tenantData.status || 'active';
-            if (expiryDate) {
+            if (tenantData.stripeSubscriptionId && status === 'active') {
+                // Con abbonamento Stripe attivo, non marcare scaduto finché Stripe non lo segnala
+            } else if (expiryDate) {
                 const date = expiryDate.toDate ? expiryDate.toDate() : new Date(expiryDate);
                 const now = new Date();
                 if (date < now) {
@@ -851,8 +905,9 @@
             }, 0);
             
             let html = `
-                <div style="font-size: 14px; color: #666; margin-bottom: 8px;">Totale Mensile</div>
-                <div style="font-size: 28px; font-weight: bold; color: #2E8B57; margin-bottom: 15px;">€${totalPrice}/mese</div>
+                <div style="font-size: 14px; color: #666; margin-bottom: 8px;">Totale (riferimento mensile)</div>
+                <div style="font-size: 28px; font-weight: bold; color: #2E8B57; margin-bottom: 4px;">€${totalPrice}/mese</div>
+                <div style="font-size: 14px; color: #555; margin-bottom: 15px;">Fatturato <strong>€${monthlyToAnnual(totalPrice)}/anno</strong></div>
             `;
             
             // Bundle attivi con risparmio
@@ -860,8 +915,8 @@
                 html += `
                     <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #2E8B57;">
                         <div style="font-size: 12px; font-weight: bold; color: #2E8B57; margin-bottom: 5px;">🎁 Bundle (${activeBundlesList.length})</div>
-                        <div style="font-size: 16px; font-weight: bold; color: #2E8B57;">€${bundlesPrice}/mese</div>
-                        ${totalSavings > 0 ? `<div style="font-size: 11px; color: #155724; margin-top: 3px;">💰 Risparmi €${totalSavings}/mese</div>` : ''}
+                        <div style="font-size: 16px; font-weight: bold; color: #2E8B57;">€${bundlesPrice}/mese · €${monthlyToAnnual(bundlesPrice)}/anno</div>
+                        ${totalSavings > 0 ? `<div style="font-size: 11px; color: #155724; margin-top: 3px;">💰 Risparmi €${totalSavings}/mese · €${monthlyToAnnual(totalSavings)}/anno</div>` : ''}
                     </div>
                 `;
             }
@@ -871,7 +926,7 @@
                 html += `
                     <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #ff9800;">
                         <div style="font-size: 12px; font-weight: bold; color: #ff9800; margin-bottom: 5px;">🔧 Singoli (${singleModules.length})</div>
-                        <div style="font-size: 16px; font-weight: bold; color: #ff9800;">€${singleModulesPrice}/mese</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #ff9800;">€${singleModulesPrice}/mese · €${monthlyToAnnual(singleModulesPrice)}/anno</div>
                     </div>
                 `;
             }
@@ -1080,7 +1135,7 @@
                         </div>
                         <div class="module-price" style="font-size: 12px; margin-top: 5px;">${module.description}</div>
                         <div style="margin-top: 5px; font-size: 11px; color: #666;">
-                            ${module.available ? `€${module.price}/mese` : 'Prossimamente'}
+                            ${module.available ? `€${module.price}/mese · €${monthlyToAnnual(module.price)}/anno` : 'Prossimamente'}
                         </div>
                         <div style="margin-top: 10px; font-size: 12px; color: #666;">
                             ${module.available ? 'Clicca per attivare' : 'Prossimamente'}
@@ -1111,217 +1166,44 @@
             }
         }
         
-        // Renderizza suggerimenti intelligenti
-        function renderSuggestions() {
-            const container = document.getElementById('suggestions-content');
-            const section = document.getElementById('suggestions-section');
-            if (!container || !section) return;
-            
-            const suggestions = [];
-            
-            // Trova tutti i moduli già attivi (sia come singoli che in bundle)
-            const allActiveModules = new Set(activeModules);
-            
-            // Trova anche i moduli coperti da bundle attivi
-            activeBundles.forEach(bundleId => {
-                const bundle = BUNDLES.find(b => b.id === bundleId);
-                if (bundle) {
-                    bundle.modules.forEach(modId => allActiveModules.add(modId));
-                }
-            });
-            
-            // Trova bundle migliorativi (che aggiungono almeno un modulo nuovo)
-            BUNDLES.forEach(bundle => {
-                if (activeBundles.includes(bundle.id)) return; // Skip bundle già attivi
-                
-                // Un bundle è "migliorativo" se ha almeno un modulo che NON è ancora attivo
-                const newModules = bundle.modules.filter(modId => !allActiveModules.has(modId));
-                const existingModules = bundle.modules.filter(modId => allActiveModules.has(modId));
-                
-                // Suggerisci solo se ha almeno un modulo nuovo (bundle migliorativo)
-                // NON suggerire se tutti i moduli sono già attivi (non aggiunge valore)
-                if (newModules.length > 0) {
-                    const bundleModulesPrice = bundle.modules.reduce((sum, modId) => {
-                        const mod = getModuleConfig(modId);
-                        return sum + (mod && mod.available ? mod.price : 0);
-                    }, 0);
-                    const savings = bundleModulesPrice - bundle.price;
-                    
-                    if (savings > 0) {
-                        suggestions.push({
-                            type: 'bundle',
-                            bundle,
-                            activeModules: existingModules,
-                            missingModules: newModules,
-                            savings
-                        });
-                    }
-                }
-            });
-            
-            // Trova moduli correlati (stessa categoria dei moduli attivi)
-            const activeModuleCategories = new Set();
-            allActiveModules.forEach(modId => {
-                const mod = getModuleConfig(modId);
-                if (mod) activeModuleCategories.add(mod.category);
-            });
-            
-            const relatedModules = getAllModules(false).filter(module => {
-                return !allActiveModules.has(module.id) && 
-                       activeModuleCategories.has(module.category) &&
-                       module.available;
-            });
-            
-            if (relatedModules.length > 0) {
-                suggestions.push({
-                    type: 'modules',
-                    modules: relatedModules.slice(0, 3) // Max 3 moduli correlati
-                });
-            }
-            
-            if (suggestions.length === 0) {
-                section.style.display = 'none';
-                return;
-            }
-            
-            section.style.display = 'block';
-            
-            let html = '';
-            
-            suggestions.forEach(suggestion => {
-                if (suggestion.type === 'bundle') {
-                    const { bundle, activeModules: activeMods, missingModules, savings } = suggestion;
-                    const activeNames = activeMods.map(modId => {
-                        const mod = getModuleConfig(modId);
-                        return mod ? mod.name : modId;
-                    }).join(', ');
-                    const missingNames = missingModules.map(modId => {
-                        const mod = getModuleConfig(modId);
-                        return mod ? mod.name : modId;
-                    }).join(', ');
-                    
-                    html += `
-                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                                <div>
-                                    <h3 style="margin: 0; color: #ff9800; font-size: 16px;">🎁 ${bundle.name}</h3>
-                                    <p style="font-size: 13px; color: #666; margin-top: 5px;">${bundle.description}</p>
-                                </div>
-                                <span style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">Risparmia €${savings}/mese</span>
-                            </div>
-                            <div style="background: #f0f8f4; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">✓ Moduli già attivi: <strong>${activeNames}</strong></div>
-                                <div style="font-size: 12px; color: #666;">+ Moduli da aggiungere: <strong>${missingNames}</strong></div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-size: 12px; color: #999; text-decoration: line-through;">€${bundle.modules.reduce((sum, modId) => {
-                                        const mod = getModuleConfig(modId);
-                                        return sum + (mod && mod.available ? mod.price : 0);
-                                    }, 0)}/mese (singoli)</div>
-                                    <div style="font-size: 20px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
-                                </div>
-                                <button class="btn btn-primary" onclick="selectBundle('${bundle.id}')" style="padding: 8px 20px;">Attiva Bundle</button>
-                            </div>
-                        </div>
-                    `;
-                } else if (suggestion.type === 'modules') {
-                    html += `
-                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
-                            <h3 style="margin: 0 0 10px 0; color: #ff9800; font-size: 16px;">🔗 Moduli Correlati</h3>
-                            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Completa la tua suite con questi moduli della stessa categoria:</p>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                    `;
-                    
-                    suggestion.modules.forEach(module => {
-                        html += `
-                            <div style="background: #fff3e0; padding: 12px; border-radius: 6px; border: 1px solid #ff9800; cursor: pointer;" onclick="toggleModule('${module.id}')">
-                                <div style="font-size: 20px; margin-bottom: 5px;">${module.icon}</div>
-                                <div style="font-weight: bold; color: #ff9800; font-size: 14px; margin-bottom: 3px;">${module.name}</div>
-                                <div style="font-size: 11px; color: #666; margin-bottom: 5px;">${module.description}</div>
-                                <div style="font-size: 14px; font-weight: bold; color: #ff9800;">€${module.price}/mese</div>
-                            </div>
-                        `;
-                    });
-                    
-                    html += `</div></div>`;
-                }
-            });
-            
-            container.innerHTML = html;
-        }
-        
-        // Renderizza bundle disponibili (solo migliorativi - che aggiungono moduli)
+        // Renderizza bundle disponibili (catalogo: tutti i bundle non ancora attivati come bundle)
         function renderBundles() {
             const container = document.getElementById('bundles-section');
             
-            // Trova tutti i moduli già attivi (sia come singoli che in bundle)
-            const allActiveModules = new Set(activeModules);
-            
-            // Filtra bundle NON attivi E che hanno almeno un modulo NON ancora attivo (bundle migliorativi)
-            const availableBundles = BUNDLES.filter(bundle => {
-                // Escludi bundle già attivi
-                if (activeBundles.includes(bundle.id)) return false;
-                
-                // Un bundle è "migliorativo" se ha almeno un modulo che NON è ancora attivo
-                const hasNewModule = bundle.modules.some(modId => !allActiveModules.has(modId));
-                
-                return hasNewModule;
-            });
+            const availableBundles = BUNDLES.filter(bundle => !activeBundles.includes(bundle.id));
             
             if (availableBundles.length === 0) {
-                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">🎉 Non ci sono bundle disponibili che aggiungano nuovi moduli rispetto a quelli già attivi!</div>';
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">🎉 Hai già attivato tutti i bundle disponibili!</div>';
                 return;
             }
             
             const html = availableBundles.map(bundle => {
-                // Calcola prezzo singoli moduli (solo disponibili)
-                const availableModules = bundle.modules.filter(modId => {
-                    const mod = getModuleConfig(modId);
-                    return mod && mod.available;
-                });
-                
-                const singlePrice = availableModules.reduce((sum, modId) => {
-                    const mod = getModuleConfig(modId);
-                    return sum + (mod ? mod.price : 0);
-                }, 0);
-                
-                // Verifica se tutti i moduli del bundle sono disponibili
-                const allModulesAvailable = bundle.modules.every(modId => {
-                    const mod = getModuleConfig(modId);
-                    return mod && mod.available;
-                });
-                
-                // Se non tutti i moduli sono disponibili, mostra solo quelli disponibili
-                const savings = allModulesAvailable ? (singlePrice - bundle.price) : 0;
-                
-                // Verifica quali moduli sono già attivi
+                const breakdown = getBundleBreakdown(bundle);
+                const { singlesTotal, savings, discountPercent, allAvailable } = breakdown;
+
                 const activeInBundle = bundle.modules.filter(modId => activeModules.includes(modId));
                 const notActiveInBundle = bundle.modules.filter(modId => !activeModules.includes(modId));
                 
                 const isFullyActive = activeInBundle.length === bundle.modules.length;
                 const isPartiallyActive = activeInBundle.length > 0 && activeInBundle.length < bundle.modules.length;
                 const isBundleActive = activeBundles.includes(bundle.id);
+                const discountBadge = discountPercent > 0
+                    ? `<span class="bundle-discount">−${discountPercent}%</span>`
+                    : (bundle.isComplete ? '<span class="bundle-discount" style="background:#1F2937;">Completo</span>' : '');
                 
                 return `
-                    <div class="bundle-card ${isBundleActive ? 'bundle-active' : ''}" style="${isBundleActive ? 'border: 3px solid #2E8B57; background: linear-gradient(135deg, #f0f8f4 0%, #e8f5e9 100%);' : ''}">
+                    <div class="bundle-card ${isBundleActive ? 'bundle-active' : ''} ${bundle.isComplete ? 'bundle-complete' : ''}" style="position: relative; ${isBundleActive ? 'border: 3px solid #2E8B57; background: linear-gradient(135deg, #f0f8f4 0%, #e8f5e9 100%);' : ''} ${bundle.isComplete ? 'border: 2px solid #1F2937;' : ''}">
                         ${isBundleActive ? '<div style="position: absolute; top: 10px; right: 10px; background: #2E8B57; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;">✓ ATTIVO</div>' : ''}
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
                             <h3 style="margin: 0; color: #2E8B57;">${bundle.name}</h3>
-                            <span class="bundle-discount">-${bundle.discount}%</span>
+                            ${discountBadge}
                         </div>
                         <p style="font-size: 13px; color: #666; margin-bottom: 15px;">${bundle.description}</p>
-                        <div style="margin-bottom: 10px;">
-                            ${allModulesAvailable ? `
-                                <div style="font-size: 12px; color: #999; text-decoration: line-through;">€${singlePrice}/mese (singoli)</div>
-                                <div style="font-size: 20px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
-                                <div style="font-size: 11px; color: ${savings > 0 ? '#2E8B57' : '#dc3545'}; font-weight: bold;">Risparmi €${savings}/mese</div>
-                            ` : `
-                                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Alcuni moduli non ancora disponibili</div>
-                                <div style="font-size: 20px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
-                                <div style="font-size: 11px; color: #ff9800;">Prossimamente</div>
-                            `}
-                        </div>
+                        ${allAvailable ? renderBundlePricingBlock(bundle, breakdown) : `
+                            <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Alcuni moduli non ancora disponibili</div>
+                            <div style="font-size: 20px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
+                            <div style="font-size: 11px; color: #ff9800;">Prossimamente</div>
+                        `}
                         <div style="font-size: 12px; margin-bottom: 10px;">
                             <strong>Moduli inclusi:</strong>
                             <div style="margin-top: 5px;">
@@ -1335,8 +1217,8 @@
                         ${isBundleActive ? 
                             '<div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; border: 1px solid #2E8B57; margin-bottom: 10px;">✓ Bundle Attivo - €' + bundle.price + '/mese</div>' +
                             `<button class="btn btn-secondary" style="width: 100%; background: #dc3545; color: white; border: none;" onclick="event.stopPropagation(); deactivateBundle('${bundle.id}')">❌ Disattiva Bundle</button>` : 
-                            (isFullyActive ? 
-                                '<div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; font-size: 12px; text-align: center; border: 1px solid #ffc107; margin-bottom: 10px;">⚠️ Tutti i moduli sono attivi ma il bundle non è applicato<br><small>Attiva il bundle per risparmiare €' + (singlePrice - bundle.price) + '/mese</small></div>' +
+                            (isFullyActive && savings > 0 ? 
+                                '<div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; font-size: 12px; text-align: center; border: 1px solid #ffc107; margin-bottom: 10px;">⚠️ Tutti i moduli sono attivi singolarmente<br><small>Attiva il bundle per risparmiare €' + savings + '/mese</small></div>' +
                                 `<button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="event.stopPropagation(); selectBundle('${bundle.id}')">Attiva Bundle e Risparmia</button>` :
                                 `<button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="event.stopPropagation(); selectBundle('${bundle.id}')">${isPartiallyActive ? 'Completa Bundle (' + notActiveInBundle.length + ' moduli mancanti)' : 'Attiva Bundle'}</button>`
                             )
@@ -1407,7 +1289,7 @@
             const totalPrice = basePrice + modulesPrice;
             
             // Aggiorna UI
-            document.getElementById('custom-total-price').innerHTML = `€${totalPrice}<span style="font-size: 14px; color: #666;">/mese</span>`;
+            document.getElementById('custom-total-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
             
             // Suggerimento piano
             const planConfig = getPlanConfig(suggestedPlan);
@@ -1419,15 +1301,6 @@
                 }
             }
             document.getElementById('custom-plan-suggestion').innerHTML = suggestion;
-            
-            // Aggiorna suggerimenti bundle
-            updateCustomPlanBundleSuggestions(selectedModules);
-        };
-        
-        // Aggiorna suggerimenti bundle nel costruttore piano
-        function updateCustomPlanBundleSuggestions(selectedModules) {
-            const suggestions = getSuggestedBundles(selectedModules);
-            // TODO: Mostrare suggerimenti bundle anche nel costruttore
         };
         
         // Applica piano personalizzato
@@ -1497,8 +1370,6 @@
                 renderModules();
                 renderUpgradeSection();
                 renderBundles();
-                renderSuggestions();
-                
                 showAlert('Piano personalizzato applicato con successo!', 'success');
                 
                 // Chiudi costruttore
@@ -1533,7 +1404,7 @@
                 return sum + (mod && mod.available ? mod.price : 0);
             }, 0);
             
-            if (!confirm(`Disattivare il bundle "${bundle.name}"?\n\n⚠️ I moduli del bundle (${bundleModulesNames}) verranno disattivati.\n\n📅 Dal mese prossimo i moduli saranno disattivati e non ci sarà il rinnovo del pagamento.\n\nIl prezzo passerà da €${bundle.price}/mese a €0/mese per questi moduli.`)) {
+            if (!confirm(`Disattivare il bundle "${bundle.name}"?\n\n⚠️ I moduli del bundle (${bundleModulesNames}) verranno disattivati.\n\n📅 Alla scadenza annuale non verrà rinnovato (€${monthlyToAnnual(bundle.price)}/anno).\n\nRiferimento mensile attuale: €${bundle.price}/mese.`)) {
                 return;
             }
             
@@ -1557,12 +1428,11 @@
                 
                 const planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
                 const totalPrice = calculateTotalPrice(planId, updatedModules, updatedBundles);
-                document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
+                document.getElementById('current-plan-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
                 
                 renderActiveModules();
                 renderModules();
                 renderBundles();
-                renderSuggestions();
                 updateSubscriptionSummary(getPlanConfig(planId));
                 
                 showAlert(`Bundle "${bundle.name}" disattivato.\n\n📅 Dal mese prossimo i moduli (${bundleModulesNames}) saranno disattivati e non ci sarà il rinnovo del pagamento.`, 'success');
@@ -1573,135 +1443,57 @@
             }
         };
         
-        // Seleziona bundle
+        // Seleziona bundle (pagamento Stripe)
         window.selectBundle = async function(bundleId) {
             const bundle = BUNDLES.find(b => b.id === bundleId);
             if (!bundle) return;
-            
-            // Se il bundle è già attivo, non fare nulla (la disattivazione è gestita da deactivateBundle)
+
             if (activeBundles.includes(bundleId)) {
                 return;
             }
-            
-            // Verifica quali moduli sono già attivi
+
+            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
+            if (['starter', 'professional', 'enterprise'].includes(planId)) planId = 'base';
+            if (planId === 'free') {
+                showAlert('Attiva prima il piano Base prima di acquistare un bundle.', 'error');
+                return;
+            }
+
             const newModules = bundle.modules.filter(modId => {
                 const mod = getModuleConfig(modId);
                 return mod && mod.available;
             });
-            
             const alreadyActive = newModules.filter(modId => activeModules.includes(modId));
             const toActivate = newModules.filter(modId => !activeModules.includes(modId));
-            
-            // Calcola risparmio
+
             const singlePrice = bundle.modules.reduce((sum, modId) => {
                 const mod = getModuleConfig(modId);
                 return sum + (mod && mod.available ? mod.price : 0);
             }, 0);
             const savings = singlePrice - bundle.price;
-            
-            // Se tutti i moduli sono già attivi, permette di attivare il bundle per risparmiare
+
+            let confirmMessage;
             if (toActivate.length === 0 && alreadyActive.length === newModules.length) {
-                // Tutti i moduli sono già attivi come singoli - converti a bundle
                 const currentSinglesPrice = alreadyActive.reduce((sum, modId) => {
                     const mod = getModuleConfig(modId);
                     return sum + (mod && mod.available ? mod.price : 0);
                 }, 0);
-                
-                if (!confirm(`Attivare il bundle "${bundle.name}"?\n\nTutti i moduli sono già attivi come singoli (€${currentSinglesPrice}/mese).\n\nAttivando il bundle risparmierai €${savings}/mese (da €${currentSinglesPrice}/mese a €${bundle.price}/mese).`)) {
-                    return;
-                }
-                
-                try {
-                    // I moduli rimangono attivi, ma ora sono coperti dal bundle
-                    // Assicuriamoci che TUTTI i moduli del bundle (solo disponibili) siano in activeModules
-                    const availableBundleModules = bundle.modules.filter(modId => {
-                        const mod = getModuleConfig(modId);
-                        return mod && mod.available;
-                    });
-                    const allBundleModules = new Set([...activeModules, ...availableBundleModules]);
-                    const updatedModules = Array.from(allBundleModules);
-                    const updatedBundles = [...activeBundles, bundleId];
-                    
-                    await updateDoc(doc(db, 'tenants', currentTenantId), {
-                        modules: updatedModules,
-                        activeBundles: updatedBundles,
-                        updatedAt: serverTimestamp()
-                    });
-                    
-                    activeModules = updatedModules;
-                    activeBundles = updatedBundles;
-                    currentTenantData.modules = updatedModules;
-                    currentTenantData.activeBundles = updatedBundles;
-                    
-                    const planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
-                    const totalPrice = calculateTotalPrice(planId, updatedModules, updatedBundles);
-                    document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
-                    
-                    renderActiveModules();
-                    renderModules();
-                    renderBundles();
-                    renderSuggestions();
-                    updateSubscriptionSummary(getPlanConfig(planId));
-                    
-                    showAlert(`Bundle "${bundle.name}" attivato! Risparmi €${savings}/mese rispetto ai moduli singoli.`, 'success');
-                    
-                } catch (error) {
-                    console.error('Errore attivazione bundle:', error);
-                    showAlert(`Errore: ${error.message}`, 'error');
-                }
-                return;
-            }
-            
-            // Caso normale: alcuni moduli non sono attivi
-            const moduleNames = toActivate.map(modId => {
-                const mod = getModuleConfig(modId);
-                return mod ? mod.name : modId;
-            }).join(', ');
-            
-            if (!confirm(`Attivare il bundle "${bundle.name}"?\n\nVerranno attivati: ${moduleNames}\n\nRisparmio: €${savings}/mese`)) {
-                return;
-            }
-            
-            try {
-                // Assicuriamoci che TUTTI i moduli del bundle (solo disponibili) siano in activeModules
-                const availableBundleModules = bundle.modules.filter(modId => {
+                confirmMessage = `Attivare il bundle "${bundle.name}"?\n\nTutti i moduli sono già attivi come singoli (€${currentSinglesPrice}/mese · €${monthlyToAnnual(currentSinglesPrice)}/anno).\n\nCon il bundle: €${bundle.price}/mese · €${monthlyToAnnual(bundle.price)}/anno (risparmio €${monthlyToAnnual(savings)}/anno).\n\nVerrai reindirizzato a Stripe per il pagamento annuale anticipato.`;
+            } else {
+                const moduleNames = toActivate.map(modId => {
                     const mod = getModuleConfig(modId);
-                    return mod && mod.available;
-                });
-                const allBundleModules = new Set([...activeModules, ...availableBundleModules]);
-                const updatedModules = Array.from(allBundleModules);
-                
-                // Aggiungi bundle agli attivi se non già presente
-                const updatedBundles = activeBundles.includes(bundleId) 
-                    ? activeBundles 
-                    : [...activeBundles, bundleId];
-                
-                await updateDoc(doc(db, 'tenants', currentTenantId), {
-                    modules: updatedModules,
-                    activeBundles: updatedBundles,
-                    updatedAt: serverTimestamp()
-                });
-                
-                activeModules = updatedModules;
-                activeBundles = updatedBundles;
-                currentTenantData.modules = updatedModules;
-                currentTenantData.activeBundles = updatedBundles;
-                
-                const planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
-                const totalPrice = calculateTotalPrice(planId, updatedModules, updatedBundles);
-                document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
-                
-                renderActiveModules();
-                renderModules();
-                renderBundles();
-                renderSuggestions();
-                updateSubscriptionSummary(getPlanConfig(planId));
-                
-                showAlert(`Bundle "${bundle.name}" attivato con successo! Moduli attivati: ${moduleNames}`, 'success');
-                
+                    return mod ? mod.name : modId;
+                }).join(', ');
+                confirmMessage = `Attivare il bundle "${bundle.name}"?\n\nVerranno attivati: ${moduleNames}\n\n€${bundle.price}/mese · fatturato €${monthlyToAnnual(bundle.price)}/anno\nRisparmio stimato: €${monthlyToAnnual(savings)}/anno\n\nVerrai reindirizzato a Stripe per il pagamento annuale anticipato.`;
+            }
+
+            if (!confirm(confirmMessage)) return;
+
+            try {
+                await startStripeCheckout('bundle', bundleId);
             } catch (error) {
-                console.error('Errore attivazione bundle:', error);
-                showAlert(`Errore: ${error.message}`, 'error');
+                console.error('Errore Stripe Checkout bundle:', error);
+                showAlert(`Impossibile avviare il pagamento: ${error.message || error}`, 'error');
             }
         };
         
@@ -1723,30 +1515,38 @@
             
             // Se stai attivando, verifica permessi e limiti
             if (!isActive) {
-                // Verifica se modulo può essere attivato
+                if (planId === 'free') {
+                    showAlert('Attiva prima il piano Base prima di acquistare moduli.', 'error');
+                    return;
+                }
+
                 const canActivate = canActivateModule(planId, moduleId, activeModules);
                 if (!canActivate.canActivate) {
                     showAlert(canActivate.reason, 'error');
                     return;
                 }
-                
-                // Verifica limite moduli
-                const planConfig = getPlanConfig(planId);
-                // Nessuna limitazione moduli (tutti pay-per-use)
-                
-                // Calcola nuovo prezzo totale
+
                 const currentPrice = calculateTotalPrice(planId, activeModules, activeBundles);
                 const newPrice = calculateTotalPrice(planId, [...activeModules, moduleId], activeBundles);
                 const priceIncrease = newPrice - currentPrice;
-                
+
                 const confirmMessage = `Attivare il modulo "${module.name}"?\n\n` +
-                    `Prezzo modulo: €${module.price}/mese\n` +
+                    `Prezzo modulo: €${module.price}/mese · €${monthlyToAnnual(module.price)}/anno\n` +
                     `Prezzo totale nuovo: €${newPrice}/mese\n` +
-                    `(Aumento: +€${priceIncrease}/mese)`;
-                
+                    `(Aumento: +€${priceIncrease}/mese)\n\n` +
+                    `Verrai reindirizzato a Stripe per il pagamento annuale anticipato.`;
+
                 if (!confirm(confirmMessage)) {
                     return;
                 }
+
+                try {
+                    await startStripeCheckout('module', moduleId);
+                } catch (error) {
+                    console.error('Errore Stripe Checkout modulo:', error);
+                    showAlert(`Impossibile avviare il pagamento: ${error.message || error}`, 'error');
+                }
+                return;
             } else {
                 if (!confirm(`Sei sicuro di voler disattivare il modulo "${module.name}"?\n\nLe funzionalità associate non saranno più disponibili.`)) {
                     return;
@@ -1754,56 +1554,40 @@
             }
 
             try {
-                // Aggiorna array moduli
                 let newModules = [...activeModules];
                 let newBundles = [...activeBundles];
-                
-                if (isActive) {
-                    // Rimuovi modulo
-                    newModules = newModules.filter(m => m !== moduleId);
-                    
-                    // Se il modulo faceva parte di un bundle, rimuovi il bundle
-                    newBundles = newBundles.filter(bundleId => {
-                        const bundle = BUNDLES.find(b => b.id === bundleId);
-                        if (bundle && bundle.modules.includes(moduleId)) {
-                            // Verifica se tutti i moduli del bundle sono ancora attivi
-                            const allModulesActive = bundle.modules.every(modId => 
-                                modId === moduleId || newModules.includes(modId)
-                            );
-                            return allModulesActive; // Mantieni bundle solo se tutti i moduli sono ancora attivi
-                        }
-                        return true;
-                    });
-                } else {
-                    // Aggiungi modulo
-                    if (!newModules.includes(moduleId)) {
-                        newModules.push(moduleId);
-                    }
-                }
 
-                // Salva in Firestore
+                // Disattivazione: aggiornamento diretto Firestore (nessun rimborso Stripe in v1)
+                newModules = newModules.filter(m => m !== moduleId);
+                newBundles = newBundles.filter(bundleId => {
+                    const bundle = BUNDLES.find(b => b.id === bundleId);
+                    if (bundle && bundle.modules.includes(moduleId)) {
+                        const allModulesActive = bundle.modules.every(modId =>
+                            modId === moduleId || newModules.includes(modId)
+                        );
+                        return allModulesActive;
+                    }
+                    return true;
+                });
+
                 await updateDoc(doc(db, 'tenants', currentTenantId), {
                     modules: newModules,
                     activeBundles: newBundles,
-                    plan: planId, // Assicura che 'plan' esista (fix inconsistenza)
+                    plan: planId,
                     updatedAt: serverTimestamp()
                 });
 
-                // Aggiorna stato locale
                 activeModules = newModules;
                 activeBundles = newBundles;
                 currentTenantData.modules = newModules;
                 currentTenantData.activeBundles = newBundles;
-                
-                // Ricalcola e aggiorna prezzo totale
+
                 const totalPrice = calculateTotalPrice(planId, newModules, newBundles);
-                document.getElementById('current-plan-price').innerHTML = `€${totalPrice}<span>/mese</span>`;
-                
-                // Rerenderizza moduli
+                document.getElementById('current-plan-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
+
                 renderActiveModules();
                 renderModules();
                 renderBundles();
-                renderSuggestions();
                 updateSubscriptionSummary(getPlanConfig(planId));
                 
                 showAlert(
@@ -1865,6 +1649,89 @@
             }, 5000);
         }
 
+        function checkoutReturnUrl() {
+            const origin = window.location.origin;
+            const path = window.location.pathname || '/';
+            if (/^https:\/\//i.test(origin)) return origin + path;
+            if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin + path;
+            return 'https://vitaradragon.github.io/gfv-platform/core/admin/abbonamento-standalone.html';
+        }
+
+        async function startStripeCheckout(checkoutType, catalogId) {
+            const payload = {
+                tenantId: currentTenantId,
+                checkoutType,
+                catalogId,
+                successUrl: checkoutReturnUrl(),
+                cancelUrl: checkoutReturnUrl()
+            };
+            if (checkoutType === 'plan') payload.planId = catalogId;
+            if (checkoutType === 'module') payload.moduleId = catalogId;
+            if (checkoutType === 'bundle') payload.bundleId = catalogId;
+            const createCheckout = getHttpsCallable('createStripeCheckoutSession');
+            const result = await createCheckout(payload);
+            const url = result.data && result.data.url;
+            if (!url) throw new Error('URL checkout non ricevuto');
+            window.location.href = url;
+        }
+
+        function checkoutSuccessMessage(fulfillResult) {
+            const data = fulfillResult && fulfillResult.data ? fulfillResult.data : {};
+            const type = data.checkoutType || 'plan';
+            const id = data.catalogId || data.planId || '';
+            if (type === 'module') {
+                const mod = getModuleConfig(id);
+                return `Pagamento completato! Modulo "${mod ? mod.name : id}" attivato.`;
+            }
+            if (type === 'bundle') {
+                const bundle = BUNDLES.find(b => b.id === id);
+                return `Pagamento completato! Bundle "${bundle ? bundle.name : id}" attivato.`;
+            }
+            return 'Pagamento completato! Il piano Base è attivo.';
+        }
+
+        // Ritorno da Stripe Checkout (?checkout=success&session_id=...)
+        async function handleCheckoutReturn() {
+            const params = new URLSearchParams(window.location.search);
+            const checkoutState = params.get('checkout');
+            if (!checkoutState) {
+                if (currentTenantData?.stripeSubscriptionId && resolvePlanIdFromTenant(currentTenantData) === 'base') {
+                    console.log('[Abbonamento] Abbonamento Stripe già attivo:', currentTenantData.stripeSubscriptionId);
+                }
+                return;
+            }
+
+            const cleanUrl = window.location.pathname;
+            if (checkoutState === 'cancelled') {
+                showAlert('Pagamento annullato. Nessuna modifica al piano.', 'info');
+                window.history.replaceState({}, '', cleanUrl);
+                return;
+            }
+
+            if (checkoutState !== 'success') return;
+            const sessionId = params.get('session_id');
+            if (!sessionId) {
+                showAlert('Sessione pagamento non trovata nell\'URL.', 'error');
+                window.history.replaceState({}, '', cleanUrl);
+                return;
+            }
+
+            try {
+                showAlert('Verifica pagamento in corso…', 'info');
+                const fulfill = getHttpsCallable('fulfillStripeCheckout');
+                const fulfillResult = await fulfill({ tenantId: currentTenantId, sessionId });
+                clearCurrentTenantCache();
+                await loadTenantData();
+                refreshSubscriptionUi();
+                showAlert(checkoutSuccessMessage(fulfillResult), 'success');
+            } catch (error) {
+                console.error('Errore fulfillStripeCheckout:', error);
+                const msg = error.message || 'Verifica pagamento non riuscita.';
+                showAlert(msg, 'error');
+            }
+            window.history.replaceState({}, '', cleanUrl);
+        }
+
         // Cambio piano completo
         window.selectPlan = async function(planId) {
             // Retrocompatibilità: migra piani vecchi
@@ -1897,14 +1764,28 @@
             const priceDiff = newPrice - currentPrice;
             
             // Mostra conferma con dettagli
+            const stripeNote = (planRequiresStripePayment(planId) && currentPlanId === 'free')
+                ? '\n\nVerrai reindirizzato a Stripe per il pagamento annuale anticipato.'
+                : '';
             const confirmMessage = `Vuoi cambiare piano da ${currentPlanConfig.name} a ${newPlanConfig.name}?\n\n` +
                 `Prezzo attuale: €${currentPrice}/mese\n` +
                 `Prezzo nuovo: €${newPrice}/mese\n` +
                 `${priceDiff >= 0 ? 'Aumento' : 'Riduzione'}: €${Math.abs(priceDiff)}/mese\n\n` +
                 `I moduli attivi verranno mantenuti.\n\n` +
-                `Confermi il cambio piano?`;
+                `Confermi il cambio piano?${stripeNote}`;
             
             if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            // Upgrade a piano a pagamento: Stripe Checkout (Free → Base)
+            if (planRequiresStripePayment(planId) && currentPlanId === 'free') {
+                try {
+                    await startStripeCheckout('plan', planId);
+                } catch (error) {
+                    console.error('Errore Stripe Checkout:', error);
+                    showAlert(`Impossibile avviare il pagamento: ${error.message || error}`, 'error');
+                }
                 return;
             }
             
@@ -1953,7 +1834,6 @@
                 renderModules();
                 renderUpgradeSection();
                 renderBundles();
-                renderSuggestions();
                 updateSubscriptionSummary(newPlanConfig);
                 
                 showAlert(

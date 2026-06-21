@@ -572,6 +572,13 @@ export function clearUserTenantsCache() {
   userTenantsCache = null;
 }
 
+/**
+ * Invalida cache dati tenant corrente (es. dopo pagamento Stripe / cambio piano).
+ */
+export function clearCurrentTenantCache() {
+  tenantCache = null;
+}
+
 // Export default
 export default {
   initializeTenantService,
@@ -592,6 +599,7 @@ export default {
   switchTenant,
   userBelongsToTenant,
   getDefaultTenant,
-  clearUserTenantsCache
+  clearUserTenantsCache,
+  clearCurrentTenantCache
 };
 

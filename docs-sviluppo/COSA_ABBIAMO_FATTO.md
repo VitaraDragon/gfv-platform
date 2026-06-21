@@ -1,5 +1,64 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 — Tony consigliere moduli **e bundle** (stacking, routing meteo, Stripe checkout).**
+
+## Tony — consigliere moduli e bundle v2 (2026-06-20)
+
+Estensione del consigliere abbonamento (Tony Guida, piano Base): moduli **e** bundle, con regole anti-confusione quando il tenant ha già un pacchetto attivo.
+
+| Componente | Dettaglio |
+|------------|-----------|
+| **Motore** | `functions/tony-module-recommendations.js` — `buildBundleRecommendationHints`, `tryTonyModuleAdvisorQuickReply`, `formatStackedBundleAdvisorReply` |
+| **Catalogo bundle** | `functions/config/tony-bundles-catalog.json` (+ mirror `core/config/tony-bundles-catalog.json`) |
+| **Context Builder** | `azienda.consigliModuli`, `azienda.consigliBundle`, `segnaliAziendaModuli` in `tonyAsk` |
+| **Merge moduli** | `mergeActiveModuleIds(client, tenantModules)` — conversione bundle anche se il client manda moduli incompleti |
+| **Quick reply** | `module` / `bundle` / `singoli_vs_bundle` / `module_add` / **`stacked_bundle`** (confronto margine: singoli mancanti vs secondo bundle) |
+| **Pacchetti gemelli** | `BUNDLE_ALTERNATIVES` — es. con Viticoltore Operativo attivo **non** si propone Viticoltore Campo |
+| **Expand filtrato** | Con bundle già attivo, niente secondo bundle se i **soli moduli mancanti** costano meno del prezzo pacchetto |
+| **Routing meteo** | In `functions/index.js`: domande abbonamento con parola «meteo» **non** intercettate da `TONY_GUIDA_METEO_REPLY`; advisor **prima** del blocco meteo |
+| **Prezzi TTS** | Sempre «X euro al mese» (`formatEuroPerMonth`) |
+| **Test** | `tests/tony-module-recommendations.test.js` (**22**) |
+
+**UI Abbonamento:** rimossa card «Suggerimenti per completare la tua app» (ridondante); attivazione moduli/bundle via **Stripe Checkout** (`abbonamento-standalone.html`, `functions/stripe-billing.js`).
+
+**Deploy:** `npm run deploy:functions`.
+
+**Esempio risposta validata (tenant con Viticoltore Operativo):** «Hai già Viticoltore Operativo attivo: il risparmio bundle ce l'hai già…» + riattivazioni archivio; **no** Frutticoltore Campo come expand fuorviante.
+
+**Esempio stacked_bundle:** «Frutticoltore Campo… ti mancano Frutteto e Parco Macchine: 6 euro al mese in più vs 20 con secondo bundle → conviene singoli».
+
+---
+
+## Tony — fix routing meteo vs consigli abbonamento (2026-06-20)
+
+(Vedi voce consolidata sopra — stesso rilascio.)
+
+---
+
+## Abbonamento — Tony consigliere bundle + rimozione card suggerimenti (2026-06-20)
+
+**Tony:** `buildBundleRecommendationHints` in `tony-module-recommendations.js`; catalogo `functions/config/tony-bundles-catalog.json` (+ mirror `core/config/`). Context Builder espone `azienda.consigliBundle`; prompt aggiornato per moduli **e** bundle (piano Base+, Tony Guida e Tony Avanzato).
+
+**Abbonamento:** rimossa sezione «Suggerimenti per completare la tua app» (ridondante: catalogo moduli/bundle + consigli Tony). Nota UI aggiornata (attivazione via Stripe).
+
+**Deploy:** `npm run deploy:functions` per consigli bundle lato cloud.
+
+---
+
+## Abbonamento — Stripe Checkout moduli e bundle (2026-06-20)
+
+Esteso il flusso pagamento oltre Free → Base: **attivazione moduli singoli** e **bundle** passa da Stripe Checkout (abbonamento annuale per price ID).
+
+| Componente | Dettaglio |
+|------------|-----------|
+| **Cloud Functions** | `createStripeCheckoutSession` accetta `checkoutType` (`plan` \| `module` \| `bundle`) + `catalogId`; `fulfillStripeCheckout` attiva moduli/bundle su tenant (`stripeAddons` per tracciare subscription addon) |
+| **Config server** | `functions/config/bundles-catalog.json` (moduli per bundle, allineato a `subscription-plans.js`) |
+| **Client** | `abbonamento-standalone.html`: `startStripeCheckout()`, `selectBundle` e attivazione modulo → redirect Stripe; disattivazione modulo resta Firestore diretto (v1, no rimborso) |
+
+**Deploy richiesto:** `npm run deploy:functions` dopo pull.
+
+---
+
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 — sessione voce **verificata utente** (build `2026-06-20r`).**
 
 ## Tony — voce: riepilogo sessione 2026-06-20 (✅ test utente OK)
@@ -130,6 +189,18 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 **Fix:** `core/js/tony/stream-tts-chunk.js` — remainder vuoto se testo più corto; niente reset consumed in `consumeCompleteStreamingSentences`. `core/js/tony/main.js` — remainder calcolato su `streamTtsState.lastCleanText` (buffer stream), tracking `spokeCount`. Build client **`2026-06-20a`**.
 
 **Test:** `tests/tony-stream-tts-chunk.test.js` (9), `tests/tony-voice-pipeline-canary.test.js` (10).
+
+## Bundle abbonamento + fatturazione annuale (2026-06-20)
+
+**File:** `core/config/subscription-plans.js`, UI `core/admin/abbonamento-standalone.html`
+
+**Fatturazione:** `BILLING` — prezzi al mese in UI; addebito **solo annuale** (Stripe Checkout Sessions, `interval: year`). Helper `monthlyToAnnual()`, `formatBillingDisplay()`. Scadenza tenant simulata a 12 mesi.
+
+**Bundle (9):** Viticoltore Operativo, Viticoltore Campo, Frutteto Operativo, Frutticoltore Campo, Servizi Conto Terzi, Business Conto Terzi, Operativo Completo, Colture e Meteo, GFV Completo (€30/mese · €360/anno moduli). Dettaglio singoli/risparmio: `getBundleBreakdown()`.
+
+**Nota:** Base €5/mese (€60/anno) separato dai bundle moduli.
+
+---
 
 ## Strategia marketing e vendita — handoff agenti (2026-06-19)
 

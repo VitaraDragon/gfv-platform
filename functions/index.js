@@ -22,6 +22,11 @@ const {
 const { defineSecret } = require("firebase-functions/params");
 const { handleSendTransactionalEmail } = require("./email-resend");
 const {
+  handleCreateStripeCheckoutSession,
+  handleFulfillStripeCheckout,
+  handleSyncStripeSubscription,
+} = require("./stripe-billing");
+const {
   handleGetMeteoSede,
   handleGetMeteoSedeAvanzato,
   handleGetMeteoTerreni,
@@ -49,7 +54,9 @@ const {
 } = require("./tony-module-gate");
 const {
   buildModuleRecommendationHints,
+  mergeActiveModuleIds,
   tryTonyModuleAdvisorQuickReply,
+  isModuleAdvisorQuestion,
   TONY_MODULE_RECOMMENDATION_RULES,
 } = require("./tony-module-recommendations");
 const { classifyTonyIntentShadow } = require("./tony-intent-router");
@@ -67,6 +74,9 @@ const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
 
 /** Gemini — solo server; impostare con: firebase functions:secrets:set GEMINI_API_KEY */
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
+/** Stripe — solo server; impostare con: firebase functions:secrets:set STRIPE_SECRET_KEY */
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
@@ -93,24 +103,37 @@ function normalizeSubscriptionPlanId(raw) {
   return "base";
 }
 
-async function resolveTenantSubscriptionPlan(dashboard, ctx, tenantIdHint) {
+async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
   let raw =
     (dashboard && (dashboard.plan || dashboard.piano)) ||
     (ctx && (ctx.plan || ctx.piano)) ||
     null;
+  let activeBundles = [];
+  let tenantModules = [];
   const tid = tenantIdHint ? String(tenantIdHint) : null;
-  if ((!raw || String(raw).trim() === "") && tid) {
+  if (tid) {
     try {
       const snap = await db.collection("tenants").doc(tid).get();
       if (snap.exists) {
         const td = snap.data();
         raw = (td && (td.plan || td.piano)) || raw;
+        activeBundles = Array.isArray(td.activeBundles) ? td.activeBundles : [];
+        tenantModules = Array.isArray(td.modules) ? td.modules : [];
       }
     } catch (e) {
-      console.warn("[Tony] resolveTenantSubscriptionPlan:", e.message);
+      console.warn("[Tony] resolveTenantSubscription:", e.message);
     }
   }
-  return normalizeSubscriptionPlanId(raw);
+  return {
+    planId: normalizeSubscriptionPlanId(raw),
+    activeBundles,
+    tenantModules,
+  };
+}
+
+async function resolveTenantSubscriptionPlan(dashboard, ctx, tenantIdHint) {
+  const sub = await resolveTenantSubscription(dashboard, ctx, tenantIdHint);
+  return sub.planId;
 }
 
 async function resolveTenantIdForTony(authUid, dashboard, ctx) {
@@ -2312,7 +2335,7 @@ function neutralPreventivoReplyWhenTerrenoStripped() {
 function shouldBuildTonyMeteoContext(message, pageType, tenantData, moduliAttiviFromRequest) {
   if (!resolveMeteoModuleActive(tenantData, moduliAttiviFromRequest)) return false;
   if (String(pageType || "") === "meteo_dashboard") return true;
-  if (isTonyMeteoQuestion(message)) return true;
+  if (isTonyMeteoQuestion(message) && !isModuleAdvisorQuestion(message)) return true;
   return false;
 }
 
@@ -2488,7 +2511,9 @@ async function handleTonyAskRequest(request, streamOpts) {
     const dashboard = ctx.dashboard != null ? ctx.dashboard : {};
 
     const tenantIdForTonyPlan = await resolveTenantIdForTony(request.auth.uid, dashboard, ctx);
-    const subscriptionPlanId = await resolveTenantSubscriptionPlan(dashboard, ctx, tenantIdForTonyPlan);
+    const tenantSubscription = await resolveTenantSubscription(dashboard, ctx, tenantIdForTonyPlan);
+    const subscriptionPlanId = tenantSubscription.planId;
+    const tenantActiveBundles = tenantSubscription.activeBundles;
     if (subscriptionPlanId === "free") {
       throw new HttpsError(
         "permission-denied",
@@ -2525,6 +2550,10 @@ async function handleTonyAskRequest(request, streamOpts) {
           : Array.isArray(ctx.info_azienda?.moduli_attivi)
             ? ctx.info_azienda.moduli_attivi
             : [];
+    const modulesForAdvisor = mergeActiveModuleIds(
+      moduliAttiviEarly,
+      tenantSubscription.tenantModules
+    );
     const isTonyAdvancedEarly =
       Array.isArray(moduliAttiviEarly) &&
       moduliAttiviEarly.some((m) => String(m).toLowerCase() === "tony");
@@ -2541,7 +2570,12 @@ async function handleTonyAskRequest(request, streamOpts) {
       usedGemini: false,
     };
 
-    if (!tonyFieldProfile && !isTonyAdvancedEarly && isTonyMeteoQuestion(message)) {
+    if (
+      !tonyFieldProfile &&
+      !isTonyAdvancedEarly &&
+      isTonyMeteoQuestion(message) &&
+      !isModuleAdvisorQuestion(message)
+    ) {
       return finishTonyAskEarly(tonyPerf, message, { text: TONY_GUIDA_METEO_REPLY, command: null });
     }
 
@@ -2664,6 +2698,21 @@ async function handleTonyAskRequest(request, streamOpts) {
         }
       }
     }
+
+    // Consigli moduli/bundle prima del meteo: «meteo» in lista moduli ≠ domanda previsioni
+    if (!tonyFieldProfile && subscriptionPlanId !== "free" && isModuleAdvisorQuestion(message)) {
+      const modAdvQuickEarly = tryTonyModuleAdvisorQuickReply(message, azienda, modulesForAdvisor, {
+        activeBundles: tenantActiveBundles,
+      });
+      if (modAdvQuickEarly) {
+        tonyPerf.quickReplyHit = modAdvQuickEarly.id;
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: modAdvQuickEarly.text,
+          command: null,
+        });
+      }
+    }
+
     const preventivoDateMeteoEval =
       isTonyPreventivoDateMeteoEval(message, ctx) &&
       azienda.meteo &&
@@ -2676,6 +2725,7 @@ async function handleTonyAskRequest(request, streamOpts) {
       !isTonyPreventivoFormFieldCorrection(message, ctx) &&
       azienda.meteo &&
       azienda.meteo.disponibile &&
+      !isModuleAdvisorQuestion(message) &&
       (preventivoDateMeteoEval || isTonyMeteoQuestion(message))
     ) {
       const quickMeteoOpts = {
@@ -2729,11 +2779,16 @@ async function handleTonyAskRequest(request, streamOpts) {
     const aziendaFiltered = filterAziendaByModuliAttivi(azienda, moduliAttiviEarly, { buildSummaryScadenze });
     const moduleRecPack =
       subscriptionPlanId !== "free" && !tonyFieldProfile
-        ? buildModuleRecommendationHints(azienda, moduliAttiviEarly)
-        : { hints: [], signalsSummary: "" };
+        ? buildModuleRecommendationHints(azienda, modulesForAdvisor, {
+            activeBundles: tenantActiveBundles,
+          })
+        : { hints: [], bundleHints: [], signalsSummary: "" };
     if (moduleRecPack.hints && moduleRecPack.hints.length > 0) {
       aziendaFiltered.consigliModuli = moduleRecPack.hints;
       aziendaFiltered.segnaliAziendaModuli = moduleRecPack.signalsSummary;
+    }
+    if (moduleRecPack.bundleHints && moduleRecPack.bundleHints.length > 0) {
+      aziendaFiltered.consigliBundle = moduleRecPack.bundleHints;
     }
     const ctxFinal = {
       ...ctxBase,
@@ -2754,17 +2809,6 @@ async function handleTonyAskRequest(request, streamOpts) {
       ctxFinal.attivita.colture_con_filari = ["Vite", "Frutteto", "Olivo"];
     }
 
-    // PREVENTIVO_LIST_ACTION + quick reply binario A (prima di Gemini)
-    if (!tonyFieldProfile && subscriptionPlanId !== "free") {
-      const modAdvQuick = tryTonyModuleAdvisorQuickReply(message, azienda, moduliAttiviEarly);
-      if (modAdvQuick) {
-        tonyPerf.quickReplyHit = modAdvQuick.id;
-        return finishTonyAskEarly(tonyPerf, message, {
-          text: modAdvQuick.text,
-          command: null,
-        });
-      }
-    }
     if (isTonyAdvancedEarly && !tonyFieldProfile) {
       if (detectPreventivoListActionVerb(message)) {
         const prevDet = resolvePreventivoListActionDeterministic(message, ctxFinal);
@@ -2920,6 +2964,12 @@ async function handleTonyAskRequest(request, streamOpts) {
           JSON.stringify(moduleRecPack.hints) +
           ". Segnali: " +
           (moduleRecPack.signalsSummary || "") +
+          "\n";
+      }
+      if (moduleRecPack.bundleHints && moduleRecPack.bundleHints.length > 0) {
+        extraBlocks +=
+          "\nazienda.consigliBundle (bundle consigliati, usa questi): " +
+          JSON.stringify(moduleRecPack.bundleHints) +
           "\n";
       }
     }
@@ -4228,6 +4278,42 @@ exports.sendTransactionalEmail = onCall(
   async (request) => {
     const apiKey = process.env.RESEND_API_KEY;
     return handleSendTransactionalEmail(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: avvia Stripe Checkout (abbonamento annuale piano Base).
+ * Body: { tenantId, planId, successUrl, cancelUrl }
+ */
+exports.createStripeCheckoutSession = onCall(
+  { region: "europe-west1", secrets: [stripeSecretKey] },
+  async (request) => {
+    const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+    return handleCreateStripeCheckoutSession(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: conferma pagamento dopo redirect da Checkout (session_id in URL).
+ * Body: { tenantId, sessionId }
+ */
+exports.fulfillStripeCheckout = onCall(
+  { region: "europe-west1", secrets: [stripeSecretKey] },
+  async (request) => {
+    const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+    return handleFulfillStripeCheckout(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: allinea scadenza/stato tenant con abbonamento Stripe esistente.
+ * Body: { tenantId }
+ */
+exports.syncStripeSubscription = onCall(
+  { region: "europe-west1", secrets: [stripeSecretKey] },
+  async (request) => {
+    const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+    return handleSyncStripeSubscription(db, apiKey, request);
   }
 );
 

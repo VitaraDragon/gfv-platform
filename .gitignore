@@ -27,6 +27,7 @@ firestore-debug.log
 .env
 .env.local
 .secret.local
+functions/.stripe-secret.tmp
 
 # Build
 dist/

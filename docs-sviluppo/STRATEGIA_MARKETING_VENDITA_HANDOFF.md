@@ -23,7 +23,7 @@ GFV Platform è un **ERP agricolo modulare italiano** per PMI (viticoltura, frut
 
 **Posizionamento:** non “siamo più economici di xFarm”, ma **ERP modulare + assistente sui dati reali dell’azienda — paghi solo ciò che usi**.
 
-**Gap principale oggi:** avete una **strategia di pricing** e parte del **motore consigli moduli**; mancano **enforcement Free**, **pagamenti reali**, **canale di acquisizione** e **messaggio commerciale semplificato** (pacchetti oltre al menu à la carte).
+**Gap principale oggi:** avete **motore consigli moduli+bundle** e **Stripe Checkout** (moduli/bundle); mancano **enforcement Free**, validazione conversione pagamenti in produzione e **canale di acquisizione** sistematico.
 
 ---
 
@@ -72,25 +72,36 @@ Queste decisioni sono state prese esplicitamente con il product owner (giugno 20
 
 **Bundle:** `BUNDLES` in stesso file (es. Operativo Vigneto €10, Business Completo €9, …). Usati da pagina Abbonamento (`getSuggestedBundles()`).
 
-### 3.2 Tony consigliere moduli — **implementato**
+### 3.2 Tony consigliere moduli e bundle — **implementato**
 
 | Componente | Path |
 |------------|------|
 | Config segnali → moduli | `functions/config/tony-module-recommendations.json` (+ mirror `core/config/`) |
+| Catalogo bundle (prezzi, moduli) | `functions/config/tony-bundles-catalog.json` (+ mirror `core/config/`) |
 | Motore hint + quick reply | `functions/tony-module-recommendations.js` |
-| Integrazione tonyAsk | `functions/index.js` — `azienda.consigliModuli`, `segnaliAziendaModuli`, `TONY_MODULE_RECOMMENDATION_RULES` |
+| Integrazione tonyAsk | `functions/index.js` — `consigliModuli`, `consigliBundle`, `TONY_MODULE_RECOMMENDATION_RULES`; advisor **prima** meteo |
+| Pagamenti | `functions/stripe-billing.js` — Checkout piano/modulo/bundle |
 | Gating piano | Solo se `subscriptionPlanId !== 'free'` |
-| Test | `tests/tony-module-recommendations.test.js` |
+| Test | `tests/tony-module-recommendations.test.js` (**22**) |
 
-**Comportamento chiave:**
+**Comportamento chiave (moduli — 2026-06-19):**
 
 - **Trigger “scoperta”:** segnali da terreni (share coltura), clienti, macchine, trattamenti, ecc.
 - **Complementi:** dopo modulo attivo, suggerisce moduli collegati (grafo in config).
-- **Gating dati legacy:** se Conto Terzi **disattivo**, clienti/preventivi **non** contano per “scoperta” (evita falsi positivi); hint **`reactivate`** se dati archivio esistono.
+- **Gating dati legacy:** se Conto Terzi **disattivo**, clienti/preventivi **non** contano per “scoperta”; hint **`reactivate`** se dati archivio esistono.
 - **Quick reply deterministica** su domande esplicite (“quali moduli mi servono?”) prima di Gemini.
 - **`skipModuleIds`:** include `tony` — non suggerire Tony Avanzato come modulo da attivare via consigliere.
 
-**Decisione registrata:** `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §1.7 (stato: implementato).
+**Comportamento chiave (bundle — 2026-06-20):**
+
+- **`consigliBundle`:** conversione da singoli (`bundle_convert`), espansione (`bundle_expand`), risparmio vs catalogo.
+- **Bundle già attivo:** messaggio «risparmio bundle ce l'hai già»; **no pacchetti gemelli** (`BUNDLE_ALTERNATIVES`: Operativo ↔ Campo, Frutteto Operativo ↔ Frutticoltore Campo).
+- **Secondo bundle:** non proporre expand se **solo i moduli mancanti** costano meno del prezzo pacchetto (es. Operativo + Frutteto + Parco Macchine singoli **16 €/mese** vs +Frutticoltore Campo **20 €/mese**).
+- **`stacked_bundle`:** domande «conviene attivare bundle X avendo Y?» → confronto margine esplicito (totale indicativo, moduli che restano attivi).
+- **Routing:** intent abbonamento (anche con parola «meteo» in lista moduli) **non** intercettato da guida meteo dashboard.
+- **Prezzi in risposta:** sempre «X euro al mese» (TTS-friendly).
+
+**Decisioni registrate:** `TONY_DECISIONI_E_REQUISITI.md` §1.7–§1.16.
 
 ### 3.3 Cosa NON è ancora implementato (critico per marketing)
 
@@ -98,7 +109,7 @@ Queste decisioni sono state prese esplicitamente con il product owner (giugno 20
 |------|--------|---------------------|
 | **Limiti Free enforced** | Solo in config (`maxTerreni`, `maxAttivitaMese`) — **non applicati** in CRUD operativo | Free de facto illimitato → nessuna spinta a Base |
 | **Allineamento utenti Free** | Config dice “Utenti illimitati”; strategia doc dice “1 admin” | Trigger upgrade debole |
-| **Pagamenti reali (Stripe)** | Abbonamenti **simulati** (`COME_FAR_PROVARE_APP.md`) | Strategia non validata |
+| **Pagamenti reali (Stripe)** | **Checkout** piano Base + moduli + bundle implementato (`stripe-billing.js`); limiti Free e churn da validare | Funnel pagamento aperto; enforcement Free ancora debole |
 | **Go-to-market** | Nessun sito/canale sistematico | Freemium senza funnel |
 | **Card statica Free su Abbonamento** | Opzionale discussa, **non fatta** | Free→Base senza hint visivi da segnali |
 | **Chip dashboard “Tony suggerisce…”** | Opzionale discussa, **non fatta** | Consigli solo in chat Tony |
@@ -169,6 +180,19 @@ Esempi segnale → modulo:
 | Molti terreni + lavori clienti | Manodopera |
 | Domande meteo operative | Meteo |
 
+### 5.5 Bundle — regole Tony (2026-06-20)
+
+| Situazione | Cosa dice Tony |
+|------------|----------------|
+| Moduli singoli, stesso set di un bundle | Invita al **bundle_convert** (risparmio vs singoli) |
+| Bundle già attivo | «Risparmio bundle ce l'hai già»; moduli extra → **singoli** o bundle più grande (GFV Completo) |
+| Pacchetto gemello (Operativo vs Campo) | **Non** invitare a passare all'altro |
+| Secondo bundle + moduli già coperti altrove | Confronto **marginale** (solo moduli mancanti), non risparmio catalogo intero |
+| Dati archivio modulo disattivo | Hint **`reactivate`**, non «scoperta» |
+
+Copy esempio (stacking):  
+«Con Viticoltore Operativo attivo tieni il Magazzino. Per Frutteto e Parco Macchine conviene attivarli singoli (6 euro al mese in più), non Frutticoltore Campo come secondo bundle.»
+
 ---
 
 ## 6. Posizionamento e messaggio esterno
@@ -193,17 +217,42 @@ Esempi segnale → modulo:
 
 ---
 
-## 7. Offerta commerciale semplificata (da implementare in marketing)
+## Fatturazione — solo annuale (2026-06-20)
 
-Oltre al modulare à la carte (resta per power user), vendere **2–3 pacchetti** in landing / sales:
+**Decisione:** prezzi **espressi al mese** (confronto); **addebito esclusivamente annuale** anticipato (Stripe Checkout Sessions + Billing, `interval: year`). Niente semestrale/mensile a pagamento — il gestionale richiede dati accumulati nel tempo.
 
-| Pacchetto | Contenuto indicativo | Prezzo target | Target |
-|-----------|----------------------|---------------|--------|
-| **Viticoltore** | Base + Vigneto + Manodopera (+ opz. Meteo) | ~€12–15/mese | Cantine, viticoltori |
-| **Servizi / Conto terzi** | Base + Conto Terzi + Report | ~€14–16/mese | Imprese servizi |
-| **Operativo campo** | Base + Manodopera + Parco Macchine | ~€12–14/mese | Squadre + mezzi |
+| Voce | Riferimento UI | Addebito Stripe |
+|------|----------------|-----------------|
+| Base | €5/mese | €60/anno |
+| Modulo es. Vigneto | €3/mese | €36/anno |
+| Bundle Viticoltore Campo | €10/mese moduli | €120/anno moduli |
+| **Free** | €0 | nessun pagamento |
 
-**Nota:** i bundle esistono già in `BUNDLES`; il lavoro marketing è **packaging e copy**, non ricalcolo prezzi da zero.
+**Config:** `BILLING`, `monthlyToAnnual()`, `formatBillingDisplay()` in `core/config/subscription-plans.js`. UI Abbonamento: doppia riga mese + anno.
+
+**Price lock pluriennale (idea):** compatibile — es. 3 anni prepagati o subscription annuale con metadata `priceLockUntil` su tenant.
+
+---
+
+## 7. Offerta commerciale — bundle implementati (2026-06-20)
+
+Oltre al modulare à la carte (power user), in **`BUNDLES`** (`subscription-plans.js`) e pagina Abbonamento:
+
+| Bundle | Moduli | Prezzo bundle | Singoli | Risparmio |
+|--------|--------|---------------|---------|-----------|
+| Viticoltore Operativo | Vigneto + Manodopera + Magazzino | €10 | €12 | €2 |
+| Viticoltore Campo | Vigneto + Manodopera + Parco Macchine | €10 | €12 | €2 |
+| Frutteto Operativo | Frutteto + Manodopera + Magazzino | €10 | €12 | €2 |
+| Frutticoltore Campo | Frutteto + Manodopera + Parco Macchine | €10 | €12 | €2 |
+| Servizi Conto Terzi | Conto Terzi + Manodopera + Report | €14 | €17 | €3 |
+| Business Conto Terzi | Conto Terzi + Report | €9 | €11 | €2 |
+| Operativo Completo | Manodopera + Parco Macchine + Report | €12 | €14 | €2 |
+| Colture e Meteo | Vigneto + Frutteto + Meteo | €6 | €7 | €1 |
+| **GFV Completo** | Tutti i moduli available | **€30** | €35 | €5 |
+
+**UI:** ogni card bundle in Abbonamento elenca prezzo singolo per modulo, totale singoli, prezzo bundle, risparmio. Helper `getBundleBreakdown()`.
+
+**Piano Base (€5)** resta separato da tutti i bundle (moduli only).
 
 ---
 
@@ -214,7 +263,7 @@ Oltre al modulare à la carte (resta per power user), vendere **2–3 pacchetti*
 1. **5–10 pilot** reali (viticoltori, conto terzi, squadre) — feedback + prezzo accettato
 2. **Enforcement limiti Free** (5 terreni, 30 attività/mese) + messaggi chiari al limite
 3. **Allineare Free tier utenti** (1 admin vs illimitati — decidere e implementare)
-4. **Stripe (o equivalente)** — abbonamenti non simulati
+4. **Stripe (o equivalente)** — ~~abbonamenti non simulati~~ **Checkout moduli/bundle attivo** (2026-06-20); validare conversione reale e gestione rinnovi
 5. Metriche: registrazioni, attivazione Base, moduli per tenant, churn
 
 ### Fase 1 — Conversione in-app (prodotto)
@@ -277,7 +326,8 @@ Pianificare scenari:
 | Prezzi, moduli, bundle | `core/config/subscription-plans.js` |
 | Pagina Abbonamento UI | `modules/abbonamento/` (standalone) |
 | Consigliere moduli config | `functions/config/tony-module-recommendations.json` |
-| Motore consigli | `functions/tony-module-recommendations.js` |
+| Motore consigli | `functions/tony-module-recommendations.js`, `functions/config/tony-bundles-catalog.json` |
+| Stripe billing | `functions/stripe-billing.js`, `core/config/stripe-config.js` |
 | Gate piano Free / moduli | `functions/index.js`, `functions/tony-module-gate.js` |
 | Flussi cross-modulo (copy) | `core/guida-app/intersezioni-moduli.md` |
 | Tony widget / Guida vs Avanzato | `core/js/tony/main.js`, `functions/index.js` (SYSTEM_INSTRUCTION_BASE/ADVANCED) |
@@ -316,9 +366,13 @@ Finché non risposte, agente marketing deve **non inventare** — implementare F
 
 | Data | Autore | Nota |
 |------|--------|------|
+| 2026-06-20 | Tony consigliere **bundle v2** | Stacking margine, gemelli, routing meteo; Stripe checkout; card Suggerimenti rimossa da Abbonamento |
+| 2026-06-20 | Stripe Checkout moduli/bundle | `createStripeCheckoutSession`, fulfill tenant |
+| 2026-06-20 | Fatturazione annuale | `BILLING` in subscription-plans; UI Abbonamento mese+anno; solo addebito annuale (Stripe) |
+| 2026-06-20 | Bundle abbonamento v2 | + Frutticoltore Campo; GFV Completo €30 |
 | 2026-06-19 | Sessione strategia + implementazione Tony consigliere | Creazione handoff post-allineamento Free/Base/consigliere; stato codice verificato |
 | 2026-06-19 | Allineamento documentazione obbligatoria | COSA_ABBIAMO_FATTO, STATO_ATTUALE, MASTER_PLAN, TONY_DECISIONI; HANDOFF_TTS, README Tony, banner STRATEGIA_FREEMIUM |
 
 ---
 
-*Per aggiornamenti tecnici Tony consigliere: `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (voci 2026-06-19). Questo file va aggiornato quando cambiano decisioni commerciali chiuse (§2) o il modello piani in `subscription-plans.js`.*
+*Per aggiornamenti tecnici Tony consigliere: `docs-sviluppo/COSA_ABBIAMO_FATTO.md` (voci 2026-06-19, **2026-06-20 bundle**). Questo file va aggiornato quando cambiano decisioni commerciali chiuse (§2) o il modello piani in `subscription-plans.js`.*
