@@ -277,6 +277,7 @@ Tony non "compila" grafici. Può:
 - **Handoff agenti — performance / nav quick reply** (backlog nav binario B, metriche client 0 CF, `tony:perf-review`, fix meteo 2026-06-10): `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`
 - **Handoff agenti — voce TTS Chirp 3 HD** (migrazione, latenza 2026-06-19, `speakingRate` 1.05): `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md`
 - **Strategia marketing / vendita / Tony consigliere moduli** (funnel Free→Base→moduli, backlog GTM): `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md`
+- **Billing v2 Abbonamento / Stripe** (Fase 1 ✅ deploy+verifica 2026-06-21; Fasi 2–4 coterm/converti bundle): `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`
 - **Piano audio barge-in + chunking TTS** (Fase 1 ✅): `docs-sviluppo/tony/PIANO_AUDIO_PIPELINE_BARGEIN.md`
 - **Piano ottimizzazione performance Tony** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`

@@ -25,7 +25,10 @@ const {
   handleCreateStripeCheckoutSession,
   handleFulfillStripeCheckout,
   handleSyncStripeSubscription,
+  handleCancelStripeAddon,
+  handleReactivateStripeAddon,
 } = require("./stripe-billing");
+const { handleStripeWebhookRequest } = require("./stripe-webhooks");
 const {
   handleGetMeteoSede,
   handleGetMeteoSedeAvanzato,
@@ -77,6 +80,9 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 /** Stripe — solo server; impostare con: firebase functions:secrets:set STRIPE_SECRET_KEY */
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+
+/** Stripe webhook — firebase functions:secrets:set STRIPE_WEBHOOK_SECRET */
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
@@ -4314,6 +4320,43 @@ exports.syncStripeSubscription = onCall(
   async (request) => {
     const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
     return handleSyncStripeSubscription(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: disattiva modulo/bundle a fine periodo (cancel_at_period_end).
+ * Body: { tenantId, addonId, addonType?: 'module'|'bundle' }
+ */
+exports.cancelStripeAddon = onCall(
+  { region: "europe-west1", secrets: [stripeSecretKey] },
+  async (request) => {
+    const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+    return handleCancelStripeAddon(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: annulla disattivazione programmata prima della scadenza.
+ * Body: { tenantId, addonId, addonType?: 'module'|'bundle' }
+ */
+exports.reactivateStripeAddon = onCall(
+  { region: "europe-west1", secrets: [stripeSecretKey] },
+  async (request) => {
+    const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+    return handleReactivateStripeAddon(db, apiKey, request);
+  }
+);
+
+/**
+ * Webhook Stripe: subscription updated/deleted, invoice payment failed.
+ * URL da registrare in Stripe Dashboard → endpoint di questo deploy.
+ */
+exports.stripeWebhook = onRequest(
+  { region: "europe-west1", secrets: [stripeSecretKey, stripeWebhookSecret], cors: false },
+  async (req, res) => {
+    const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
+    const whSecret = (process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+    return handleStripeWebhookRequest(db, apiKey, whSecret, req, res);
   }
 );
 

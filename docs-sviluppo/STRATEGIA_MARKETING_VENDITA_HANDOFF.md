@@ -324,6 +324,7 @@ Pianificare scenari:
 | Obiettivo | File |
 |-----------|------|
 | Prezzi, moduli, bundle | `core/config/subscription-plans.js` |
+| **Billing v2 (coterm, target)** | `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` |
 | Pagina Abbonamento UI | `modules/abbonamento/` (standalone) |
 | Consigliere moduli config | `functions/config/tony-module-recommendations.json` |
 | Motore consigli | `functions/tony-module-recommendations.js`, `functions/config/tony-bundles-catalog.json` |
@@ -366,6 +367,7 @@ Finché non risposte, agente marketing deve **non inventare** — implementare F
 
 | Data | Autore | Nota |
 |------|--------|------|
+| 2026-06-20 | Handoff billing v2 | Coterm su anniversario Base, no rimborso, converti bundle — `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` |
 | 2026-06-20 | Tony consigliere **bundle v2** | Stacking margine, gemelli, routing meteo; Stripe checkout; card Suggerimenti rimossa da Abbonamento |
 | 2026-06-20 | Stripe Checkout moduli/bundle | `createStripeCheckoutSession`, fulfill tenant |
 | 2026-06-20 | Fatturazione annuale | `BILLING` in subscription-plans; UI Abbonamento mese+anno; solo addebito annuale (Stripe) |

@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-06-20 (… **Tony consigliere moduli+bundle v2** — stacking, gemelli, routing meteo; **sessione voce** build **`2026-06-20r`**; …)  
+**Data**: 2026-06-21 (… **billing v2 Fase 1** — disattivazione Stripe a fine periodo, webhook deploy; **Tony consigliere moduli+bundle v2** — 2026-06-20; **sessione voce** build **`2026-06-20r`**; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -27,6 +27,7 @@
 |------------|------|-------|
 | Tony Service | `core/services/tony-service.js` | ✅ **Modello Gemini (2026-06-03):** `gemini-2.5-flash`. ✅ **Streaming (2026-05-25):** `askStream` → CF SSE; fallback `ask()`. ✅ **Robustezza client (2026-06-14):** `_callTonyAskViaHttp` (fetch diretto `tonyAsk`, evita hang SDK); `_preferCallableOverStream` + `sessionStorage` su localhost; SSE con `AbortController` + `_markStreamDisabled`; quick reply terreno client in `ask()` / `askStream`. ✅ **`historyUserMessage`**, `skipUserHistory`, `proactive`, guard magazzino, routing preventivo, blocco ```json → INJECT_FORM_DATA` (dettaglio storico in commit precedenti) |
 | Cloud Function **sendTransactionalEmail** | `functions/index.js` + `functions/email-resend.js` | ✅ Invio **inviti** e **preventivi** via **Resend** (mittente `no-reply@globalfarmview.net`), auth + ruolo manager/admin sul tenant; segreto `RESEND_API_KEY`; client `preventivi-standalone` / `gestisci-utenti-standalone` (2026-04-10). **Link registrazione negli inviti**: `APP_BASE_URL` in `gestisci-utenti-standalone` → GitHub Pages finché l’ERP non è su `globalfarmview.net` (solo landing lì). |
+| **Stripe billing (Abbonamento)** | `functions/stripe-billing.js`, `functions/stripe-webhooks.js`, `functions/index.js` | ✅ **2026-06-20:** Checkout Base/modulo/bundle. ✅ **2026-06-21 Fase 1:** `cancelStripeAddon`, `reactivateStripeAddon`, `stripeWebhook`; UI `abbonamento-standalone.html`; secret `STRIPE_WEBHOOK_SECRET`; verifica manuale disattivazione bundle. Handoff Fasi 2–4: `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`. Test: `tests/stripe-billing-deactivation.test.js` |
 | Cloud Function **getTonyAudio** | `functions/index.js` | ✅ Google Cloud TTS MP3 base64; voce **`it-IT-Chirp3-HD-Charon`** (Chirp 3 HD — 2026-06-13); env **`TONY_TTS_VOICE`** / **`TONY_TTS_SPEAKING_RATE`** (default **1.05** — 2026-06-19); gate piano Free |
 | Cloud Function tonyAsk | `functions/index.js` | ✅ **Modello Gemini (2026-06-03):** `gemini-2.5-flash`. ✅ **Fase 4 (2026-06-03):** `tryTonyNavQuickReply`, `tryTonyFilterTableQuickReply`, `tryTonyMultiBlockQuickReply` prima di pattern attività/Gemini; log `quickReplyHit` nav/filter_table/riassunto_*/multi_block. ✅ **Fase 3 streaming (2026-05-25):** `handleTonyAskRequest` + `tonyAskStream`; pattern attività; Treasure Map. ✅ Preventivo / tier 2b / meteo / module gate. ✅ **Performance Fase 0–1:** cache Firestore + quick reply A + `PREVENTIVO_LIST_ACTION`. Pipeline: router → build tier → quick A → **nav → filter → multi-blocco** → pattern attività → lavoro entity → meteo → Gemini |
 | Cloud Function tonyAskStream | `functions/tony-ask-stream.js` | ✅ **Fase 3 (2026-05-25):** SSE `POST` + Bearer token; delega a `handleTonyAskRequest` con `stream: true`. ✅ **Fix modello + env (2026-06-03):** `gemini-2.5-flash` — risolve 404 su navigazione/chat; **`GEMINI_API_KEY`** e opz. **`GEMINI_MODEL`** su revisione Cloud Run **`tonyaskstream`**. Canary crea lavoro — `streamUsed=true`, ttfc ~5 s, form lavoro iniettato. |
@@ -142,6 +143,8 @@
 | Free | Completamente assente (desiderato) | ❌ Non implementato – widget sempre caricato |
 | Base (senza modulo tony) | Tony Guida – solo spiegazioni | ✅ SYSTEM_INSTRUCTION_BASE |
 | Modulo Tony attivo | Tony Operativo – tutte le funzioni | ✅ SYSTEM_INSTRUCTION_ADVANCED |
+
+**Pagina Abbonamento / Stripe (2026-06-21):** Checkout Base/moduli/bundle ✅; disattivazione **a fine periodo** (`cancelStripeAddon` / `reactivateStripeAddon`) ✅ verificata in UI; webhook `stripeWebhook` + `STRIPE_WEBHOOK_SECRET` deployati. Handoff Fasi 2–4 (coterm, converti bundle): `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`.
 
 ---
 

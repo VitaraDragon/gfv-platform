@@ -1,6 +1,43 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-20 — Tony consigliere moduli **e bundle** (stacking, routing meteo, Stripe checkout).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-21 — billing v2 Fase 1 deploy + verifica manuale.**
+
+## Abbonamento — billing v2 Fase 1: deploy e verifica (2026-06-21)
+
+Completato deploy produzione/sandbox e **verifica manuale OK** (disattivazione bundle «Viticoltore Operativo»: copy «Resta attivo fino al …», annulla disattivazione).
+
+| Componente | Dettaglio |
+|------------|-----------|
+| **Callable** | `cancelStripeAddon`, `reactivateStripeAddon` — deploy `europe-west1` |
+| **Webhook** | `stripeWebhook` → `https://europe-west1-gfv-platform.cloudfunctions.net/stripeWebhook` |
+| **Stripe Workbench** | Destinazione eventi (es. «GFV Abbonamenti»); eventi: `customer.subscription.created/updated/deleted`, `invoice.payment_failed` |
+| **Secret Manager** | `STRIPE_WEBHOOK_SECRET` v2 (`whsec_…` da Stripe); redeploy automatico `stripeWebhook` via CLI |
+| **UI** | `abbonamento-standalone.html` — policy D5 in confirm; badge «Disattivazione programmata»; **Annulla disattivazione** |
+| **Legacy** | Addon senza `subscriptionId` → disattivazione immediata Firestore (messaggio esplicito) |
+| **Test automatici** | `tests/stripe-billing-deactivation.test.js` |
+
+**Prossimo (handoff §6 Fase 2):** coterm (`renewalAnchor`), proration mid-cycle, scadenza unica in UI.
+
+---
+
+## Abbonamento — billing v2 Fase 1: implementazione codice (2026-06-21)
+
+Prima fase del handoff **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**: disattivazione moduli/bundle allineata a Stripe e policy prodotto (D5).
+
+| Componente | Dettaglio |
+|------------|-----------|
+| **Server** | `functions/stripe-billing.js`, `functions/stripe-webhooks.js`, export in `functions/index.js` |
+| **Secret** | `STRIPE_SECRET_KEY` (già presente) + `STRIPE_WEBHOOK_SECRET` |
+
+---
+
+## Abbonamento — handoff billing v2 (decisioni prodotto, 2026-06-20)
+
+Documento per agenti: **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**
+
+Decisioni chiuse: rinnovo **unico** (anniversario piano Base / coterm), proration su moduli mid-cycle, **nessun rimborso** annuale, disattivazione a **fine periodo** + sync Stripe, flusso **converti singoli → bundle**. Stato v1 (subscription separate, disattiva solo Firestore) vs target v2 descritti nel handoff.
+
+---
 
 ## Tony — consigliere moduli e bundle v2 (2026-06-20)
 

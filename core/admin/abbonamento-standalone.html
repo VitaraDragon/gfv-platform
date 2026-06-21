@@ -483,7 +483,7 @@
                 </div>
 
                 <div class="info-box">
-                    <strong>ℹ️ Nota:</strong> L'attivazione di moduli e bundle passa da Stripe (addebito annuale). La disattivazione è immediata da questa pagina.
+                    <strong>ℹ️ Nota:</strong> L'attivazione di moduli e bundle passa da Stripe (addebito annuale). La disattivazione resta attiva fino alla data di rinnovo già pagata e non viene rinnovata (nessun rimborso). Puoi annullare la disattivazione prima della scadenza.
                 </div>
             </div>
         </div>
@@ -570,6 +570,40 @@
         let currentTenantData = null;
         let activeModules = [];
         let activeBundles = [];
+
+        function getStripeAddonRecord(addonId) {
+            return (currentTenantData && currentTenantData.stripeAddons && currentTenantData.stripeAddons[addonId]) || null;
+        }
+
+        function addonPendingDeactivation(addonId) {
+            const rec = getStripeAddonRecord(addonId);
+            return !!(rec && rec.pendingDeactivation);
+        }
+
+        function formatDeactivationDate(unixSeconds) {
+            if (!unixSeconds) return 'la prossima scadenza';
+            const d = new Date(Number(unixSeconds) * 1000);
+            return formatDateLikeToItalianLongLocal(d);
+        }
+
+        function deactivationPolicyMessage(deactivatesAtUnix) {
+            const dateStr = formatDeactivationDate(deactivatesAtUnix);
+            return `Resta attivo fino al ${dateStr}. Non verrà rinnovato. Nessun rimborso per la parte non utilizzata.`;
+        }
+
+        function renderAddonActionButtons(addonId, addonType, deactivateHandler, reactivateHandler) {
+            if (addonPendingDeactivation(addonId)) {
+                return `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #2E8B57; color: white; border: none;" onclick="${reactivateHandler}">Annulla disattivazione</button>`;
+            }
+            return `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #dc3545; color: white; border: none;" onclick="${deactivateHandler}">Disattiva</button>`;
+        }
+
+        function renderPendingDeactivationBadge(addonId) {
+            if (!addonPendingDeactivation(addonId)) return '';
+            const rec = getStripeAddonRecord(addonId);
+            const when = formatDeactivationDate(rec && (rec.deactivatesAt || rec.periodEnd));
+            return `<div style="font-size: 11px; color: #856404; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; padding: 6px 8px; margin-top: 8px;">⏳ Disattivazione programmata il ${when}</div>`;
+        }
 
         function billingPriceHtml(monthly, options = {}) {
             const { large = false, annualOnly = false } = options;
@@ -729,6 +763,12 @@
             renderBundles();
             updateSubscriptionSummary(planConfig);
             checkExpiryStatus();
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('dashboard', {
+                    info_azienda: { moduli_attivi: activeModules },
+                    moduli_attivi: activeModules
+                });
+            }
         }
 
         function tenantExpiryIsPast(tenantData) {
@@ -1022,9 +1062,10 @@
                         <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #2E8B57;">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                                 <h4 style="margin: 0; color: #2E8B57; font-size: 14px;">✓ ${bundle.name}</h4>
-                                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #dc3545; color: white; border: none;" onclick="deactivateBundle('${bundle.id}')">Disattiva</button>
+                                ${renderAddonActionButtons(bundle.id, 'bundle', `deactivateBundle('${bundle.id}')`, `reactivateBundle('${bundle.id}')`)}
                             </div>
                             <div style="font-size: 12px; color: #666; margin-bottom: 5px;">${bundleModules}</div>
+                            ${renderPendingDeactivationBadge(bundle.id)}
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                                 <div>
                                     <div style="font-size: 18px; font-weight: bold; color: #2E8B57;">€${bundle.price}/mese</div>
@@ -1068,10 +1109,11 @@
                                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
                                         ${mod.id === 'frutteto' ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #2E8B57; color: white; border: none;" onclick="window.location.href='../../modules/frutteto/views/frutteti-standalone.html'">Apri</button>` : ''}
                                         ${mod.id === 'report' ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #1F2937; color: white; border: none;" onclick="window.location.href='../../modules/report/views/report-dashboard-standalone.html'">Apri Report</button>` : ''}
-                                        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #dc3545; color: white; border: none;" onclick="toggleModule('${mod.id}')">Disattiva</button>
+                                        ${renderAddonActionButtons(mod.id, 'module', `toggleModule('${mod.id}')`, `reactivateModule('${mod.id}')`)}
                                     </div>
                                 </div>
                                 <div style="font-size: 12px; color: #666; margin-bottom: 5px;">${mod.description}</div>
+                                ${renderPendingDeactivationBadge(mod.id)}
                                 <div style="font-size: 16px; font-weight: bold; color: #ff9800;">€${mod.price}/mese</div>
                             </div>
                         `;
@@ -1216,7 +1258,10 @@
                         </div>
                         ${isBundleActive ? 
                             '<div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 13px; text-align: center; border: 1px solid #2E8B57; margin-bottom: 10px;">✓ Bundle Attivo - €' + bundle.price + '/mese</div>' +
-                            `<button class="btn btn-secondary" style="width: 100%; background: #dc3545; color: white; border: none;" onclick="event.stopPropagation(); deactivateBundle('${bundle.id}')">❌ Disattiva Bundle</button>` : 
+                            renderPendingDeactivationBadge(bundle.id) +
+                            (addonPendingDeactivation(bundle.id) ?
+                                `<button class="btn btn-secondary" style="width: 100%; background: #2E8B57; color: white; border: none;" onclick="event.stopPropagation(); reactivateBundle('${bundle.id}')">↩ Annulla disattivazione</button>` :
+                                `<button class="btn btn-secondary" style="width: 100%; background: #dc3545; color: white; border: none;" onclick="event.stopPropagation(); deactivateBundle('${bundle.id}')">❌ Disattiva Bundle</button>`) : 
                             (isFullyActive && savings > 0 ? 
                                 '<div style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; font-size: 12px; text-align: center; border: 1px solid #ffc107; margin-bottom: 10px;">⚠️ Tutti i moduli sono attivi singolarmente<br><small>Attiva il bundle per risparmiare €' + savings + '/mese</small></div>' +
                                 `<button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="event.stopPropagation(); selectBundle('${bundle.id}')">Attiva Bundle e Risparmia</button>` :
@@ -1382,7 +1427,7 @@
             }
         };
         
-        // Disattiva bundle
+        // Disattiva bundle (a fine periodo via Stripe)
         window.deactivateBundle = async function(bundleId) {
             const bundle = BUNDLES.find(b => b.id === bundleId);
             if (!bundle) return;
@@ -1391,54 +1436,70 @@
                 showAlert('Il bundle non è attivo', 'info');
                 return;
             }
+
+            if (addonPendingDeactivation(bundleId)) {
+                showAlert('Disattivazione già programmata per questo bundle.', 'info');
+                return;
+            }
             
-            // Calcola moduli del bundle che devono essere disattivati
-            const bundleModules = bundle.modules;
-            const bundleModulesNames = bundleModules.map(modId => {
+            const bundleModulesNames = bundle.modules.map(modId => {
                 const mod = getModuleConfig(modId);
                 return mod ? mod.name : modId;
             }).join(', ');
+
+            const addonRec = getStripeAddonRecord(bundleId);
+            const previewDate = addonRec && (addonRec.periodEnd || addonRec.deactivatesAt);
             
-            const bundleModulesPrice = bundleModules.reduce((sum, modId) => {
-                const mod = getModuleConfig(modId);
-                return sum + (mod && mod.available ? mod.price : 0);
-            }, 0);
-            
-            if (!confirm(`Disattivare il bundle "${bundle.name}"?\n\n⚠️ I moduli del bundle (${bundleModulesNames}) verranno disattivati.\n\n📅 Alla scadenza annuale non verrà rinnovato (€${monthlyToAnnual(bundle.price)}/anno).\n\nRiferimento mensile attuale: €${bundle.price}/mese.`)) {
+            if (!confirm(`Disattivare il bundle "${bundle.name}"?\n\n${deactivationPolicyMessage(previewDate)}\n\nModuli inclusi: ${bundleModulesNames}\n\nRiferimento: €${bundle.price}/mese · €${monthlyToAnnual(bundle.price)}/anno`)) {
                 return;
             }
             
             try {
-                // Rimuovi bundle dagli attivi
-                const updatedBundles = activeBundles.filter(bId => bId !== bundleId);
-                
-                // Rimuovi anche i moduli del bundle dagli attivi
-                const updatedModules = activeModules.filter(modId => !bundleModules.includes(modId));
-                
-                await updateDoc(doc(db, 'tenants', currentTenantId), {
-                    activeBundles: updatedBundles,
-                    modules: updatedModules,
-                    updatedAt: serverTimestamp()
+                const cancelFn = getHttpsCallable('cancelStripeAddon');
+                const result = await cancelFn({
+                    tenantId: currentTenantId,
+                    addonId: bundleId,
+                    addonType: 'bundle'
                 });
-                
-                activeBundles = updatedBundles;
-                activeModules = updatedModules;
-                currentTenantData.activeBundles = updatedBundles;
-                currentTenantData.modules = updatedModules;
-                
-                const planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
-                const totalPrice = calculateTotalPrice(planId, updatedModules, updatedBundles);
-                document.getElementById('current-plan-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
-                
-                renderActiveModules();
-                renderModules();
-                renderBundles();
-                updateSubscriptionSummary(getPlanConfig(planId));
-                
-                showAlert(`Bundle "${bundle.name}" disattivato.\n\n📅 Dal mese prossimo i moduli (${bundleModulesNames}) saranno disattivati e non ci sarà il rinnovo del pagamento.`, 'success');
-                
+                clearCurrentTenantCache();
+                await loadTenantData();
+                refreshSubscriptionUi();
+
+                const data = result.data || {};
+                if (data.immediate) {
+                    showAlert(`Bundle "${bundle.name}" disattivato (nessun abbonamento Stripe collegato).`, 'success');
+                } else {
+                    showAlert(`Disattivazione programmata per "${bundle.name}".\n\n${deactivationPolicyMessage(data.deactivatesAt)}`, 'success');
+                }
             } catch (error) {
                 console.error('Errore disattivazione bundle:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+
+        window.reactivateBundle = async function(bundleId) {
+            const bundle = BUNDLES.find(b => b.id === bundleId);
+            if (!bundle) return;
+            if (!addonPendingDeactivation(bundleId)) {
+                showAlert('Nessuna disattivazione programmata per questo bundle.', 'info');
+                return;
+            }
+            if (!confirm(`Annullare la disattivazione del bundle "${bundle.name}"?\n\nIl bundle resterà attivo e verrà rinnovato alla scadenza.`)) {
+                return;
+            }
+            try {
+                const reactivateFn = getHttpsCallable('reactivateStripeAddon');
+                await reactivateFn({
+                    tenantId: currentTenantId,
+                    addonId: bundleId,
+                    addonType: 'bundle'
+                });
+                clearCurrentTenantCache();
+                await loadTenantData();
+                refreshSubscriptionUi();
+                showAlert(`Disattivazione annullata. Il bundle "${bundle.name}" resta attivo.`, 'success');
+            } catch (error) {
+                console.error('Errore riattivazione bundle:', error);
                 showAlert(`Errore: ${error.message}`, 'error');
             }
         };
@@ -1548,87 +1609,63 @@
                 }
                 return;
             } else {
-                if (!confirm(`Sei sicuro di voler disattivare il modulo "${module.name}"?\n\nLe funzionalità associate non saranno più disponibili.`)) {
+                if (addonPendingDeactivation(moduleId)) {
+                    showAlert('Disattivazione già programmata per questo modulo.', 'info');
+                    return;
+                }
+                const addonRec = getStripeAddonRecord(moduleId);
+                const previewDate = addonRec && (addonRec.periodEnd || addonRec.deactivatesAt);
+                if (!confirm(`Disattivare il modulo "${module.name}"?\n\n${deactivationPolicyMessage(previewDate)}`)) {
                     return;
                 }
             }
 
             try {
-                let newModules = [...activeModules];
-                let newBundles = [...activeBundles];
-
-                // Disattivazione: aggiornamento diretto Firestore (nessun rimborso Stripe in v1)
-                newModules = newModules.filter(m => m !== moduleId);
-                newBundles = newBundles.filter(bundleId => {
-                    const bundle = BUNDLES.find(b => b.id === bundleId);
-                    if (bundle && bundle.modules.includes(moduleId)) {
-                        const allModulesActive = bundle.modules.every(modId =>
-                            modId === moduleId || newModules.includes(modId)
-                        );
-                        return allModulesActive;
-                    }
-                    return true;
+                const cancelFn = getHttpsCallable('cancelStripeAddon');
+                const result = await cancelFn({
+                    tenantId: currentTenantId,
+                    addonId: moduleId,
+                    addonType: 'module'
                 });
+                clearCurrentTenantCache();
+                await loadTenantData();
+                refreshSubscriptionUi();
 
-                await updateDoc(doc(db, 'tenants', currentTenantId), {
-                    modules: newModules,
-                    activeBundles: newBundles,
-                    plan: planId,
-                    updatedAt: serverTimestamp()
-                });
-
-                activeModules = newModules;
-                activeBundles = newBundles;
-                currentTenantData.modules = newModules;
-                currentTenantData.activeBundles = newBundles;
-
-                const totalPrice = calculateTotalPrice(planId, newModules, newBundles);
-                document.getElementById('current-plan-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
-
-                renderActiveModules();
-                renderModules();
-                renderBundles();
-                updateSubscriptionSummary(getPlanConfig(planId));
-                
-                showAlert(
-                    `Modulo "${module.name}" ${isActive ? 'disattivato' : 'attivato'} con successo!`,
-                    'success'
-                );
-
-                // Aggiorna context Tony con i nuovi moduli attivi (con retry)
-                var updateTonyContext = function(retries) {
-                    retries = retries || 0;
-                    if (window.Tony && typeof window.Tony.setContext === 'function') {
-                        window.Tony.setContext('dashboard', {
-                            info_azienda: { moduli_attivi: newModules },
-                            moduli_attivi: newModules
-                        });
-                        console.log('[Abbonamento] Context Tony aggiornato con moduli:', newModules);
-                    } else if (retries < 5) {
-                        // Retry dopo 500ms se Tony non è ancora disponibile
-                        setTimeout(function() {
-                            updateTonyContext(retries + 1);
-                        }, 500);
-                    }
-                };
-                updateTonyContext();
-                
-                // Emetti evento per notificare altri componenti (es. widget Tony)
-                setTimeout(function() {
-                    window.dispatchEvent(new CustomEvent('tony-module-updated', {
-                        detail: { modules: newModules }
-                    }));
-                    console.log('[Abbonamento] Evento tony-module-updated emesso con moduli:', newModules);
-                }, 100);
-
-                // Se hai disattivato Manodopera, avvisa che alcune pagine non saranno più accessibili
-                if (isActive && moduleId === 'manodopera') {
-                    setTimeout(() => {
-                        showAlert('⚠️ Ricorda: con Manodopera disattivato, le pagine "Gestisci Utenti" e "Gestione Squadre" non saranno più accessibili.', 'info');
-                    }, 2000);
+                const data = result.data || {};
+                if (data.immediate) {
+                    showAlert(`Modulo "${module.name}" disattivato (nessun abbonamento Stripe collegato).`, 'success');
+                } else {
+                    showAlert(`Disattivazione programmata per "${module.name}".\n\n${deactivationPolicyMessage(data.deactivatesAt)}`, 'success');
                 }
             } catch (error) {
-                console.error('Errore aggiornamento modulo:', error);
+                console.error('Errore disattivazione modulo:', error);
+                showAlert(`Errore: ${error.message}`, 'error');
+            }
+        };
+
+        window.reactivateModule = async function(moduleId) {
+            const module = getModuleConfig(moduleId);
+            if (!module) return;
+            if (!addonPendingDeactivation(moduleId)) {
+                showAlert('Nessuna disattivazione programmata per questo modulo.', 'info');
+                return;
+            }
+            if (!confirm(`Annullare la disattivazione del modulo "${module.name}"?\n\nIl modulo resterà attivo e verrà rinnovato alla scadenza.`)) {
+                return;
+            }
+            try {
+                const reactivateFn = getHttpsCallable('reactivateStripeAddon');
+                await reactivateFn({
+                    tenantId: currentTenantId,
+                    addonId: moduleId,
+                    addonType: 'module'
+                });
+                clearCurrentTenantCache();
+                await loadTenantData();
+                refreshSubscriptionUi();
+                showAlert(`Disattivazione annullata. Il modulo "${module.name}" resta attivo.`, 'success');
+            } catch (error) {
+                console.error('Errore riattivazione modulo:', error);
                 showAlert(`Errore: ${error.message}`, 'error');
             }
         };
