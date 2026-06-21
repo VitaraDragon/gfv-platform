@@ -12,7 +12,7 @@ Allineare pagamenti Stripe, scadenze e attivazione/disattivazione moduli/bundle 
 
 - **Una data di rinnovo** per tenant (= anniversario attivazione **piano Base**)
 - **Nessun rimborso** pro-rata su annuale già pagato
-- **Disattivazione** = uso fino a scadenza, poi stop rinnovo
+- **Disattivazione** = accesso app **off subito**; riattivazione **gratuita** fino a scadenza già pagata; poi stop rinnovo
 - **Passaggio singoli → bundle** senza doppio pagamento
 - Tony consigliere già allineato al **costo marginale** (non al risparmio catalogo fuorviante)
 
@@ -28,7 +28,7 @@ Questo documento descrive **da dove partiamo (v1)**, **dove arrivare (v2)** e **
 | D2 | **Data rinnovo unica per tenant** = data attivazione / rinnovo del **piano Base** (coterm). Esempio: Base il 15 marzo → tutto ciò che resta attivo rinnova il **15 marzo**, anche moduli aggiunti a novembre |
 | D3 | Modulo/bundle aggiunto **a metà ciclo** → **proration Stripe** (quota fino alla prossima scadenza Base), poi rinnovo unificato |
 | D4 | **Nessun rimborso** cash per disattivazione anticipata su annuale (policy standard B2B). Eventuali eccezioni solo commerciale/manuale, fuori dal flusso automatico |
-| D5 | **Disattivazione** modulo/bundle → **`cancel_at_period_end`** su Stripe; in app resta **attivo fino a `periodEnd`**, poi off e non rinnova |
+| D5 | **Disattivazione** modulo/bundle → **`cancel_at_period_end`** su Stripe; in app l’accesso si **revoca subito** (`modules[]` / `activeBundles[]`); **`stripeAddons`** resta con `pendingDeactivation` fino a `periodEnd`. **Riattivazione gratuita** fino a scadenza pagata (`reactivateStripeAddon`); poi off e non rinnova |
 | D6 | **Bundle gemelli** (stessa base, terzo modulo diverso): es. Viticoltore Operativo ↔ Viticoltore Campo — **non** sostituzione automatica; Tony **non** invita al gemello se l’altro è attivo (`BUNDLE_ALTERNATIVES`) |
 | D7 | **Converti in bundle**: se l’utente ha moduli singoli **coperti** da un bundle, il flusso deve **sostituire** le voci di fatturazione (non aggiungere bundle + lasciare i singoli su Stripe) |
 | D8 | Piano **Free** → moduli/bundle solo dopo **Base** attivo (invariato) |
@@ -149,21 +149,20 @@ Flusso dedicato UI: **«Passa al bundle»** (non solo «Attiva bundle» generico
 
 #### E) Disattivazione modulo
 
-1. Conferma utente con testo chiaro: *«Resta attivo fino al [data]. Non verrà rinnovato. Nessun rimborso.»*  
+1. Conferma utente con testo chiaro: *«Smette subito di funzionare. Puoi riattivarlo gratuitamente fino al [data] (periodo già pagato). Non verrà rinnovato. Nessun rimborso.»*  
 2. Stripe: `cancel_at_period_end` sull’item (o remove at period end)  
-3. Firestore: flag `pendingDeactivation` + `deactivatesAt` fino a webhook; **non** rimuovere subito da `modules[]` se policy D5 (accesso fino a scadenza)  
-   - **Nota:** v1 rimuove subito — v2 deve **cambiare** questo comportamento se si adotta D5 alla lettera
+3. Firestore: flag `pendingDeactivation` + `deactivatesAt`; **rimuovere subito** da `modules[]` / `activeBundles[]` (accesso app off); `stripeAddons` resta fino a webhook finale
 
 #### F) Disattivazione bundle
 
 - Stesso schema (E) per la voce bundle  
-- Moduli: rimuovere da accesso app **a scadenza bundle**, non immediatamente (salvo eccezione «disattiva subito» solo admin)
+- Moduli inclusi: rimossi dall’accesso app **subito** alla disattivazione; riattivazione bundle ripristina tutti fino a scadenza pagata
 
 ### 4.4 Policy rimborsi (copy legale / UX)
 
 Testo tipo da usare in conferme e FAQ:
 
-> Abbonamento annuale. In caso di disattivazione, il modulo resta utilizzabile fino alla data di rinnovo già pagata e non sarà rinnovato. Non sono previsti rimborsi per la parte non utilizzata.
+> Abbonamento annuale. In caso di disattivazione, il modulo smette subito di funzionare. Puoi riattivarlo gratuitamente fino alla data già pagata; non sarà rinnovato. Non sono previsti rimborsi per la parte non utilizzata.
 
 ---
 
@@ -185,7 +184,7 @@ Testo tipo da usare in conferme e FAQ:
 ### Fase 1 — Sicurezza v1 (quick win) ✅ 2026-06-21
 
 - [x] Alla disattivazione UI: chiamare CF `cancelStripeAddon` con `cancel_at_period_end: true` usando `stripeAddons[id].subscriptionId`
-- [x] Allineare **copy UI** al comportamento reale — policy **D5**: attivo fino a scadenza, nessun rimborso; `reactivateStripeAddon` per annullare prima della scadenza
+- [x] Allineare **copy UI** al comportamento reale — policy **D5**: accesso off subito, riattivazione gratuita fino a scadenza, nessun rimborso
 - [x] Webhook minimi: `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed` (`stripeWebhook` + secret `STRIPE_WEBHOOK_SECRET`)
 
 ### Fase 2 — Coterm
@@ -227,7 +226,7 @@ Testo tipo da usare in conferme e FAQ:
 
 1. Base giorno 1 → anchor T0+1y  
 2. Modulo a T0+3m → proration corretta; stesso rinnovo T0+1y  
-3. Disattiva modulo a T0+5m → attivo fino T0+1y; non in fattura successiva  
+3. Disattiva modulo a T0+5m → **off subito** in app; riattivabile fino T0+1y; non in fattura successiva  
 4. 3 singoli → converti Operativo → una voce bundle; niente 4 subscription al rinnovo  
 5. Webhook: subscription deleted → Firestore coerente  
 6. Tony: stessi 22 test + nessuna regressione consigli bundle
@@ -248,7 +247,7 @@ node scripts/repair-stripe-expiry.js   # v1 — da rivedere in v2
 |-----------|-----------|
 | `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md` | Funnel Free/Base, bundle commerciali, Tony consigliere |
 | `docs-sviluppo/COSA_ABBIAMO_FATTO.md` | Storico implementazione Stripe + Tony bundle advisor |
-| `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` | §1.13–1.17 consigliere/bundle |
+| `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` | §1.13–1.19 consigliere/bundle/billing D5 |
 | `docs-sviluppo/tony/STATO_ATTUALE.md` | Stato componenti Tony |
 | `.cursor/rules/tony-agent-onboarding.md` | Regole agenti Tony (non mischiare billing con prompt Tony senza necessità) |
 
@@ -259,7 +258,7 @@ node scripts/repair-stripe-expiry.js   # v1 — da rivedere in v2
 - Non promettere rimborso pro-rata in UI o in Tony senza policy esplicita  
 - Non creare seconda subscription bundle se i singoli coperti restano attivi su Stripe  
 - Non usare `expiryDate` singola ignorando addon — in v2 Stripe/webhook è source of truth  
-- Non disattivare Firestore **subito** se la policy approvata è «attivo fino a scadenza» (D5)  
+- Alla disattivazione: revocare subito `modules[]` / `activeBundles[]`; mantenere `stripeAddons` con `pendingDeactivation` per riattivazione fino a scadenza (D5)  
 - Non suggerire pacchetti gemelli in Tony (già vietato in codice)
 
 ---
@@ -268,7 +267,8 @@ node scripts/repair-stripe-expiry.js   # v1 — da rivedere in v2
 
 | Data | Nota |
 |------|------|
-| 2026-06-21 | Fase 1 verificata in produzione/sandbox: deploy functions, Stripe Workbench destinazione + `whsec_`, test UI disattivazione/annulla bundle OK |
+| 2026-06-21 | **Policy D5 rivista:** accesso app revocato subito alla disattivazione; riattivazione gratuita fino a scadenza pagata; UI sezione «Disattivati (riattivabili)»; verifica utente OK |
+| 2026-06-21 | Fase 1 verificata in produzione/sandbox: deploy functions, Stripe Workbench destinazione + `whsec_`, test UI disattivazione/riattivazione OK |
 | 2026-06-21 | Fase 1 implementata: cancelStripeAddon, reactivateStripeAddon, stripeWebhook, UI abbonamento |
 | 2026-06-20 | Creazione handoff da sessione product: coterm su anniversario Base, no rimborso, converti bundle, gap v1 documentati |
 

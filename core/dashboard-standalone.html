@@ -483,31 +483,56 @@
             return r.some((x) => x === 'manager' || x === 'amministratore');
         }
 
-        /** Voce / briefing automatico in dashboard solo con modulo Tony Avanzato attivo sul tenant (come il widget). */
-        function tonyDashboardBriefingVoiceAllowed() {
+        function tonyHasTonyAdvancedModule(modules) {
+            var hasTony = function(arr) {
+                return Array.isArray(arr) && arr.some(function(m) {
+                    return String(m).toLowerCase() === 'tony';
+                });
+            };
+            if (hasTony(modules)) return true;
+            if (window.__gfvTenantData && hasTony(window.__gfvTenantData.modules)) return true;
             try {
-                var hasTony = function(arr) {
-                    return Array.isArray(arr) && arr.some(function(m) {
-                        return String(m).toLowerCase() === 'tony';
-                    });
-                };
-                if (window.__gfvTenantData && hasTony(window.__gfvTenantData.modules)) {
+                if (typeof window.__tonyIsAdvancedActive === 'function' && window.__tonyIsAdvancedActive()) {
                     return true;
                 }
+            } catch (e) { /* ignore */ }
+            return false;
+        }
+
+        /** Voce / briefing automatico in dashboard solo con modulo Tony Avanzato attivo sul tenant (come il widget). */
+        function tonyDashboardBriefingVoiceAllowed(modules) {
+            try {
+                if (typeof window.__tonyCheckModuleStatus === 'function') {
+                    window.__tonyCheckModuleStatus();
+                }
+                if (tonyHasTonyAdvancedModule(modules)) return true;
                 var ctx = window.Tony && window.Tony.context;
                 if (!ctx) return false;
                 var mods = [];
                 if (ctx.dashboard && Array.isArray(ctx.dashboard.moduli_attivi)) {
                     mods = ctx.dashboard.moduli_attivi;
+                } else if (ctx.dashboard && ctx.dashboard.info_azienda && Array.isArray(ctx.dashboard.info_azienda.moduli_attivi)) {
+                    mods = ctx.dashboard.info_azienda.moduli_attivi;
                 } else if (ctx.info_azienda && Array.isArray(ctx.info_azienda.moduli_attivi)) {
                     mods = ctx.info_azienda.moduli_attivi;
                 } else if (Array.isArray(ctx.moduli_attivi)) {
                     mods = ctx.moduli_attivi;
                 }
-                return hasTony(mods);
+                return tonyHasTonyAdvancedModule(mods);
             } catch (e) {
                 return false;
             }
+        }
+
+        function tonyDashboardPrefetchBriefingVoice(text) {
+            var t = String(text || '').trim();
+            if (!t) return;
+            try {
+                if (typeof window.__tonyWarmTTS === 'function') window.__tonyWarmTTS();
+            } catch (eW) { /* ignore */ }
+            try {
+                if (typeof window.__tonyPrefetchTTS === 'function') window.__tonyPrefetchTTS(t);
+            } catch (eP) { /* ignore */ }
         }
 
         /** Mobile / touch (solo fallback testo se voce non disponibile). */
@@ -523,20 +548,31 @@
             var msg = String(fullText || '').trim();
             if (!msg) return;
             var useVoice = !!speakAllowed;
-            var openPanel = !useVoice && tonyDashboardIsMobile();
+            // Con voce attiva apri anche su desktop (testo + TTS allineati); senza voce solo mobile.
+            var openPanel = useVoice || tonyDashboardIsMobile();
+            if (useVoice) {
+                tonyDashboardPrefetchBriefingVoice(msg);
+            }
             var attempts = 0;
             function markDelivered() {
                 if (typeof onDelivered === 'function') onDelivered();
             }
             function tryDeliver() {
                 if (typeof window.__tonyDisplayProactive === 'function') {
-                    window.__tonyDisplayProactive(msg, { speak: useVoice, openPanel: openPanel });
+                    window.__tonyDisplayProactive(msg, {
+                        speak: useVoice,
+                        openPanel: openPanel,
+                        dashboardBriefing: true
+                    });
                     markDelivered();
                     return;
                 }
                 if (useVoice && window.Tony && typeof window.Tony.speak === 'function' &&
                     typeof window.Tony.isReady === 'function' && window.Tony.isReady()) {
                     window.Tony.speak(msg);
+                    if (openPanel && typeof window.__tonyOpenChatPanel === 'function') {
+                        window.__tonyOpenChatPanel();
+                    }
                     markDelivered();
                     return;
                 }
@@ -647,57 +683,72 @@
                     scadenzeUrgenti +
                     guastiAperti +
                     (meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0);
-                if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony) {
+                const tonyBriefingEnabled = tonyHasTonyAdvancedModule(mods);
+                if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony && tonyBriefingEnabled) {
+                    var greetingOps = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                    var opsAttentionPre =
+                        (hasMagazzino && sottoScorta > 0) || (hasParcoMacchine && (scadenzeUrgenti + guastiAperti) > 0);
+                    var speakCorePre =
+                        opsAttentionPre
+                            ? ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione' +
+                              (hasMagazzino && hasParcoMacchine ? ' tra scorte, scadenze e guasti' :
+                               hasMagazzino ? ' sulle scorte' :
+                               ' su scadenze e guasti') +
+                              '. Vuoi che ti faccia un riassunto o preferisci procedere tu?'
+                            : '';
+                    var speakMeteoPre =
+                        meteoBriefing && meteoBriefing.proactiveText
+                            ? ' ' + meteoBriefing.proactiveText
+                            : '';
+                    var briefingOpsText = greetingOps + speakCorePre + speakMeteoPre;
+                    if (tonyDashboardBriefingVoiceAllowed(mods)) {
+                        tonyDashboardPrefetchBriefingVoice(briefingOpsText);
+                    }
                     setTimeout(function() {
                         if (total <= 0 || window.tonyDashboardBriefingFired) return;
-                        var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
-                        var opsAttention = (hasMagazzino && sottoScorta > 0) || (hasParcoMacchine && (scadenzeUrgenti + guastiAperti) > 0);
-                        var speakCore =
-                            opsAttention
-                                ? ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione' +
-                                  (hasMagazzino && hasParcoMacchine ? ' tra scorte, scadenze e guasti' :
-                                   hasMagazzino ? ' sulle scorte' :
-                                   ' su scadenze e guasti') +
-                                  '. Vuoi che ti faccia un riassunto o preferisci procedere tu?'
-                                : '';
-                        var speakMeteo =
-                            meteoBriefing && meteoBriefing.proactiveText
-                                ? ' ' + meteoBriefing.proactiveText
-                                : '';
                         tonyDashboardDeliverBriefing(
-                            greeting + speakCore + speakMeteo,
-                            tonyDashboardBriefingVoiceAllowed(),
+                            briefingOpsText,
+                            tonyDashboardBriefingVoiceAllowed(mods),
                             function() { window.tonyDashboardBriefingFired = true; }
                         );
                     }, 3000);
                 } else if (
                     meteoBriefing &&
                     meteoBriefing.proactiveText &&
-                    !window.tonyMeteoBriefingFired
+                    !window.tonyMeteoBriefingFired &&
+                    tonyBriefingEnabled
                 ) {
+                    if (tonyDashboardBriefingVoiceAllowed(mods)) {
+                        tonyDashboardPrefetchBriefingVoice(meteoBriefing.proactiveText);
+                    }
                     setTimeout(function() {
                         if (window.tonyMeteoBriefingFired) return;
                         window.tonyMeteoBriefingFired = true;
                         if (typeof window.__tonyDisplayProactive === 'function') {
-                            var voiceAllowedMeteo = tonyDashboardBriefingVoiceAllowed();
+                            var voiceAllowedMeteo = tonyDashboardBriefingVoiceAllowed(mods);
                             window.__tonyDisplayProactive(meteoBriefing.proactiveText, {
                                 speak: voiceAllowedMeteo,
-                                openPanel: !voiceAllowedMeteo && tonyDashboardIsMobile()
+                                openPanel: voiceAllowedMeteo || tonyDashboardIsMobile(),
+                                dashboardBriefing: true
                             });
                         } else if (typeof window.__tonySendProactiveWhenUnlocked === 'function') {
                             window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
                         }
                     }, 3500);
-                } else if (!window.tonyDashboardBriefingFired && window.Tony) {
+                } else if (!window.tonyDashboardBriefingFired && window.Tony && tonyBriefingEnabled) {
+                    var greetingIdlePre = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                    var weatherIdlePre = meteoBriefing && meteoBriefing.weatherSummary
+                        ? ' ' + meteoBriefing.weatherSummary
+                        : ' Tutto sotto controllo in azienda.';
+                    var briefingIdleText = greetingIdlePre + weatherIdlePre + ' Chiedimi un riassunto dettagliato quando vuoi.';
+                    if (tonyDashboardBriefingVoiceAllowed(mods)) {
+                        tonyDashboardPrefetchBriefingVoice(briefingIdleText);
+                    }
                     setTimeout(function() {
                         if (window.tonyDashboardBriefingFired) return;
-                        var greetingIdle = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
-                        var weatherIdle = meteoBriefing && meteoBriefing.weatherSummary
-                            ? ' ' + meteoBriefing.weatherSummary
-                            : ' Tutto sotto controllo in azienda.';
                         tonyDashboardDeliverBriefing(
-                            greetingIdle + weatherIdle + ' Chiedimi un riassunto dettagliato quando vuoi.',
-                            tonyDashboardBriefingVoiceAllowed(),
+                            briefingIdleText,
+                            tonyDashboardBriefingVoiceAllowed(mods),
                             function() { window.tonyDashboardBriefingFired = true; }
                         );
                     }, 3000);

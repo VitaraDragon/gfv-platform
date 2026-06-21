@@ -447,6 +447,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
 
     if (variant === 'manodopera') {
         appendCard(S.createAmministrazioneCard());
+        appendCard(S.createAbbonamentoCard());
         appendCard(S.createStatisticheCard(true));
         if (mods.includes('manodopera')) appendCard(S.createManodoperaCard());
         appendCard(S.createTerreniCard());

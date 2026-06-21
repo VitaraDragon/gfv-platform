@@ -426,9 +426,58 @@ function modulesStillCoveredByOtherAddons(modules, activeBundles, stripeAddons, 
   });
   Object.entries(stripeAddons || {}).forEach(([id, addon]) => {
     if (id === excludeAddonId) return;
+    if (addon && addon.pendingDeactivation) return;
     if (addon && addon.type === "module") covered.add(id);
   });
   return covered;
+}
+
+/**
+ * Rimuove modulo/bundle da accesso app (modules / activeBundles) senza cancellare stripeAddons.
+ * Usato alla disattivazione: accesso off subito, riattivazione possibile fino a periodEnd pagato.
+ */
+function computeAccessAfterRevokeAddon(existing, addonId, addonType) {
+  const stripeAddons = existing.stripeAddons || {};
+  let modules = Array.isArray(existing.modules) ? [...existing.modules] : [];
+  let activeBundles = Array.isArray(existing.activeBundles) ? [...existing.activeBundles] : [];
+
+  if (addonType === "bundle") {
+    activeBundles = activeBundles.filter((id) => id !== addonId);
+    const bundle = BUNDLES_CATALOG[addonId];
+    if (bundle && Array.isArray(bundle.modules)) {
+      const stillCovered = modulesStillCoveredByOtherAddons(modules, activeBundles, stripeAddons, addonId);
+      modules = modules.filter((modId) => !bundle.modules.includes(modId) || stillCovered.has(modId));
+    }
+  } else {
+    modules = modules.filter((modId) => modId !== addonId);
+    activeBundles = activeBundles.filter((bundleId) => {
+      const bundle = BUNDLES_CATALOG[bundleId];
+      if (!bundle || !Array.isArray(bundle.modules)) return true;
+      return bundle.modules.every((modId) => modId === addonId || modules.includes(modId));
+    });
+  }
+
+  return { modules, activeBundles };
+}
+
+/** Ripristina accesso app per addon ancora pagato (riattivazione prima di scadenza). */
+function computeAccessAfterRestoreAddon(existing, addonId, addonType) {
+  let modules = Array.isArray(existing.modules) ? [...existing.modules] : [];
+  let activeBundles = Array.isArray(existing.activeBundles) ? [...existing.activeBundles] : [];
+
+  if (addonType === "bundle") {
+    const bundle = BUNDLES_CATALOG[addonId];
+    if (bundle && Array.isArray(bundle.modules)) {
+      bundle.modules.forEach((m) => {
+        if (!modules.includes(m)) modules.push(m);
+      });
+    }
+    if (!activeBundles.includes(addonId)) activeBundles.push(addonId);
+  } else if (!modules.includes(addonId)) {
+    modules.push(addonId);
+  }
+
+  return { modules, activeBundles };
 }
 
 /**
@@ -490,8 +539,12 @@ async function markAddonPendingDeactivation(db, tenantId, addonId, addonType, de
     updatedAt: Date.now(),
   });
 
+  const { modules, activeBundles } = computeAccessAfterRevokeAddon(existing, addonId, addonType);
+
   await tenantRef.update({
     stripeAddons,
+    modules,
+    activeBundles,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
@@ -499,6 +552,9 @@ async function markAddonPendingDeactivation(db, tenantId, addonId, addonType, de
     ok: true,
     addonId,
     addonType,
+    accessRevoked: true,
+    modules,
+    activeBundles,
     deactivatesAt: deactivatesAtUnix,
     deactivatesAtIso: deactivatesAtUnix ? new Date(deactivatesAtUnix * 1000).toISOString() : null,
   };
@@ -522,12 +578,16 @@ async function clearAddonPendingDeactivation(db, tenantId, addonId, addonType, p
     updatedAt: Date.now(),
   });
 
+  const { modules, activeBundles } = computeAccessAfterRestoreAddon(existing, addonId, addonType);
+
   await tenantRef.update({
     stripeAddons,
+    modules,
+    activeBundles,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  return { ok: true, addonId };
+  return { ok: true, addonId, accessRestored: true, modules, activeBundles };
 }
 
 function resolveAddonStripeRecord(tenant, addonId, addonType) {
@@ -637,7 +697,7 @@ async function handleCancelStripeAddon(db, stripeApiKey, request) {
     deactivatesAtUnix
   );
 
-  return Object.assign({ ok: true, immediate: false }, result);
+  return Object.assign({ ok: true, immediate: false, accessRevoked: true }, result);
 }
 
 /**
@@ -802,6 +862,8 @@ module.exports = {
   syncAddonFromStripeSubscription,
   handleStripeInvoicePaymentFailed,
   finalizeAddonDeactivation,
+  computeAccessAfterRevokeAddon,
+  computeAccessAfterRestoreAddon,
   applyPlanToTenant,
   applyModulePurchaseToTenant,
   applyBundlePurchaseToTenant,

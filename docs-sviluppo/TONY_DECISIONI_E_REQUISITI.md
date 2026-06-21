@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-06-21 (billing v2 Fase 1 deploy + verifica)
+**Ultimo aggiornamento**: 2026-06-21 (policy D5: accesso off subito + riattivazione fino a scadenza — verifica OK)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -29,7 +29,7 @@
 | 1.15 | **Secondo bundle — confronto margine**: proporre singoli se moduli mancanti costano meno del prezzo pacchetto aggiuntivo | prodotto 2026-06-20 | implementato | `formatStackedBundleAdvisorReply`; filtro expand in `buildBundleRecommendationHints` |
 | 1.16 | **Domande abbonamento con «meteo»** non devono usare guida dashboard meteo | prodotto 2026-06-20 | implementato | `isModuleAdvisorQuestion` in `index.js` prima di meteo quick reply |
 | 1.17 | **Stripe Checkout** moduli e bundle (annuale) | prodotto 2026-06-20 | implementato | `createStripeCheckoutSession`, `fulfillStripeCheckout`, `abbonamento-standalone.html` |
-| 1.18 | **Disattivazione addon a fine periodo (D5)**: `cancel_at_period_end`, accesso fino a scadenza, no rimborso, **Annulla disattivazione**, sync webhook | prodotto 2026-06-20 | **implementato** (2026-06-21) | `cancelStripeAddon`, `reactivateStripeAddon`, `stripeWebhook`; verifica manuale bundle OK |
+| 1.18 | **Disattivazione addon (D5)**: `cancel_at_period_end` su Stripe; **accesso app revocato subito** (`modules[]` / `activeBundles[]`); riattivazione **gratuita** fino a scadenza pagata (`reactivateStripeAddon`); no rimborso; sync webhook | prodotto 2026-06-20, revisione 2026-06-21 | **implementato** | `markAddonPendingDeactivation` / `clearAddonPendingDeactivation` + `computeAccessAfterRevokeAddon` / `RestoreAddon`; UI sezione «Disattivati (riattivabili)»; verifica utente OK |
 | 1.19 | **Billing v2 — coterm e converti bundle** (Fasi 2–3 handoff): rinnovo unico Base, proration mid-cycle, «Passa al bundle», migrazione doppie subscription | prodotto 2026-06-20 | **pianificato** | `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` §6 Fasi 2–4 |
 
 ---

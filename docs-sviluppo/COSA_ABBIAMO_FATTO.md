@@ -1,10 +1,51 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-21 — billing v2 Fase 1 deploy + verifica manuale.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-21 — disattivazione addon accesso immediato + riattivazione fino a scadenza (verifica utente OK).**
+
+## Abbonamento — disattivazione: accesso off subito, riattivazione fino a scadenza (2026-06-21)
+
+**Richiesta prodotto:** alla disattivazione Tony/moduli/bundle non devono più funzionare; l’utente può **riattivare gratuitamente** fino alla data già pagata.
+
+**Implementazione:**
+
+| Aspetto | Comportamento |
+|---------|----------------|
+| Disattiva | Stripe `cancel_at_period_end`; Firestore rimuove subito da `modules[]` / `activeBundles[]`; `stripeAddons[id].pendingDeactivation` resta fino a webhook |
+| Riattiva | Stripe annulla `cancel_at_period_end`; ripristino `modules[]` / `activeBundles[]` |
+| UI Abbonamento | Sezione «Disattivati (riattivabili)»; copy aggiornato; `notifyClientModulesChanged` + evento `tony-module-updated` |
+
+| File | Dettaglio |
+|------|-----------|
+| `functions/stripe-billing.js` | `computeAccessAfterRevokeAddon`, `computeAccessAfterRestoreAddon`; `markAddonPendingDeactivation` / `clearAddonPendingDeactivation` aggiornano accesso app |
+| `core/admin/abbonamento-standalone.html` | Sezione revoked-pending, messaggi, sync moduli client |
+| `tests/stripe-billing-deactivation.test.js` | Test revoke/restore accesso |
+| `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` | Policy **D5** aggiornata |
+
+**Verifica:** flusso confermato OK in produzione/sandbox (disattiva → moduli/Tony off; riattiva → ripristino fino a scadenza pagata).
+
+**Deploy:** Cloud Functions + hosting Abbonamento (già in uso se verifica OK).
+
+---
+
+## Tony — briefing dashboard: voce + chat allineati (2026-06-21)
+
+**Problema:** saluto proattivo in dashboard visibile solo in chat Tony, senza TTS (Tony Avanzato attivo).
+
+**Fix (build `2026-06-21a`):** briefing solo con modulo **`tony`**; prefetch/warm TTS ~3 s prima della consegna; pannello chat aperto anche su desktop quando la voce è attiva; `__tonyIsAdvancedActive` + rilevamento moduli da `availableModules`; path proattivo con `speak === true` esplicito.
+
+| File | Dettaglio |
+|------|-----------|
+| `core/dashboard-standalone.html` | `tonyHasTonyAdvancedModule`, prefetch, gate briefing |
+| `core/js/tony/main.js` | `dashboardBriefing` in proattivo, build `2026-06-21a` |
+| `core/js/tony-widget-standalone.js` | loader `2026-06-21a` |
+
+**Deploy:** hosting (cache-bust JS); Functions invariate.
+
+---
 
 ## Abbonamento — billing v2 Fase 1: deploy e verifica (2026-06-21)
 
-Completato deploy produzione/sandbox e **verifica manuale OK** (disattivazione bundle «Viticoltore Operativo»: copy «Resta attivo fino al …», annulla disattivazione).
+Completato deploy produzione/sandbox e **verifica manuale OK** (disattivazione: accesso off subito; sezione «Disattivati (riattivabili)»; riattivazione gratuita fino a scadenza).
 
 | Componente | Dettaglio |
 |------------|-----------|
@@ -12,9 +53,9 @@ Completato deploy produzione/sandbox e **verifica manuale OK** (disattivazione b
 | **Webhook** | `stripeWebhook` → `https://europe-west1-gfv-platform.cloudfunctions.net/stripeWebhook` |
 | **Stripe Workbench** | Destinazione eventi (es. «GFV Abbonamenti»); eventi: `customer.subscription.created/updated/deleted`, `invoice.payment_failed` |
 | **Secret Manager** | `STRIPE_WEBHOOK_SECRET` v2 (`whsec_…` da Stripe); redeploy automatico `stripeWebhook` via CLI |
-| **UI** | `abbonamento-standalone.html` — policy D5 in confirm; badge «Disattivazione programmata»; **Annulla disattivazione** |
+| **UI** | `abbonamento-standalone.html` — policy D5: off subito + riattivazione; sezione revoked-pending; sync `tony-module-updated` |
 | **Legacy** | Addon senza `subscriptionId` → disattivazione immediata Firestore (messaggio esplicito) |
-| **Test automatici** | `tests/stripe-billing-deactivation.test.js` |
+| **Test automatici** | `tests/stripe-billing-deactivation.test.js` (revoke/restore accesso) |
 
 **Prossimo (handoff §6 Fase 2):** coterm (`renewalAnchor`), proration mid-cycle, scadenza unica in UI.
 
@@ -22,7 +63,7 @@ Completato deploy produzione/sandbox e **verifica manuale OK** (disattivazione b
 
 ## Abbonamento — billing v2 Fase 1: implementazione codice (2026-06-21)
 
-Prima fase del handoff **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**: disattivazione moduli/bundle allineata a Stripe e policy prodotto (D5).
+Prima fase del handoff **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**: disattivazione moduli/bundle allineata a Stripe e policy prodotto (D5 — accesso revocato subito, riattivazione fino a scadenza pagata).
 
 | Componente | Dettaglio |
 |------------|-----------|
@@ -35,7 +76,7 @@ Prima fase del handoff **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**: di
 
 Documento per agenti: **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**
 
-Decisioni chiuse: rinnovo **unico** (anniversario piano Base / coterm), proration su moduli mid-cycle, **nessun rimborso** annuale, disattivazione a **fine periodo** + sync Stripe, flusso **converti singoli → bundle**. Stato v1 (subscription separate, disattiva solo Firestore) vs target v2 descritti nel handoff.
+Decisioni chiuse: rinnovo **unico** (anniversario piano Base / coterm), proration su moduli mid-cycle, **nessun rimborso** annuale, disattivazione con **accesso off subito** + riattivazione gratuita fino a scadenza + sync Stripe, flusso **converti singoli → bundle**. Stato v1 (subscription separate, disattiva solo Firestore) vs target v2 descritti nel handoff.
 
 ---
 

@@ -44,7 +44,7 @@ import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamin
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-20r';
+export const TONY_CLIENT_BUILD = '2026-06-21a';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -6164,8 +6164,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     (opts.openPanel !== false && tonyIsCoarsePointerOrMobile() && opts.speak === false);
                 if (shouldOpenPanel) openTonyChatPanel();
                 saveTonyState();
-                if (opts.speak !== false && typeof speakWithTTS === 'function') {
+                if (opts.speak === true && typeof speakWithTTS === 'function') {
+                    speakWithTTS(text, { dashboardBriefing: true });
+                } else if (opts.speak !== false && typeof speakWithTTS === 'function') {
                     speakWithTTS(text, {});
+                } else if (opts.speak === true && window.Tony && typeof window.Tony.speak === 'function') {
+                    window.Tony.speak(text);
                 }
                 if (opts.fromVoice) isWaitingForTonyResponse = false;
                 return;
@@ -7791,6 +7795,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 speak: options.speak !== false
             };
             if (options.openPanel === true) proactiveOpts.openPanel = true;
+            if (options.dashboardBriefing === true) proactiveOpts.dashboardBriefing = true;
             sendMessage(String(text || '').trim(), proactiveOpts);
         };
         window.__tonyPromptLavoroSaveLocal = function() {
@@ -8332,6 +8337,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         applyTonyFreemiumGate();
                     } catch (eInitFg) {}
                     window.__tonyCheckModuleStatus = checkTonyModuleStatus;
+                    window.__tonyIsAdvancedActive = function() { return isTonyAdvancedActive; };
                     
                     var statusCheckCount = 0;
                     var statusCheckInterval = setInterval(function() {
