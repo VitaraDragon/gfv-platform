@@ -65,17 +65,9 @@
     return null;
   }
 
-  /** Inietta Tony (CSS + script) usando percorsi risolti da import.meta.url */
-  function injectTony() {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = new URL('../styles/tony-widget.css', import.meta.url).href;
-    document.head.appendChild(link);
-
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = new URL('tony-widget-standalone.js', import.meta.url).href;
-    document.body.appendChild(script);
+  /** Carica shell standalone (alert toast + Tony gated) */
+  function loadStandaloneShell() {
+    return loadScript(new URL('gfv-standalone-shell.js', import.meta.url).href);
   }
 
   const promise = new Promise((resolve, reject) => {
@@ -114,6 +106,9 @@
           throw new Error(step('import firebase-service failed: ' + (err && err.message ? err.message : String(err))));
         });
         firebaseService.initializeFirebase(firebaseConfig);
+        if (typeof firebaseService.awaitFirebaseEmulatorConnect === 'function') {
+          await firebaseService.awaitFirebaseEmulatorConnect();
+        }
 
         // 5) Tenant Service: init e attesa primo stato auth (così getCurrentTenantId/getCurrentTenant sono pronti)
         const tenantService = await import('../services/tenant-service.js').catch((err) => {
@@ -125,9 +120,11 @@
         }
 
         // 6) Recupera dati azienda (tenant doc con modules) e rendili disponibili globalmente
+        let moduli = [];
         const tenantData = await waitForTenantData(tenantService, firebaseService);
         if (tenantData) {
-          const moduli = Array.isArray(tenantData.modules) ? tenantData.modules : [];
+          const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+          moduli = resolveEffectiveModules(tenantData);
           window.__gfvTenantData = tenantData;
           window.__gfvModuliAttivi = moduli;
           window.tenantConfig = { modules: moduli, moduli_attivi: moduli };
@@ -138,9 +135,12 @@
             p === 'free' || p === 'freemium' ? 'free' : p === 'base' ? 'base' : ['starter', 'professional', 'enterprise'].includes(p) ? 'base' : 'base';
         }
 
-        // 7) Tony: solo piani a pagamento (non Free / freemium)
-        if (window.__gfvSubscriptionPlanId !== 'free') {
-          injectTony();
+        // 7) Shell standalone: toast alert + Tony (solo se piano ≠ Free o modulo Tony attivo)
+        await loadStandaloneShell().catch((err) => {
+          console.warn(step('gfv-standalone-shell load failed:'), err);
+        });
+        if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+          window.gfvTryLoadTonyWidgetWhenReady();
         }
 
         resolve();

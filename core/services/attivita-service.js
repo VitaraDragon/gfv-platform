@@ -14,6 +14,7 @@ import {
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { Attivita } from '../models/Attivita.js';
+import { assertCanCreateAttivita } from './plan-limits-service.js';
 
 const COLLECTION_NAME = 'attivita';
 
@@ -176,6 +177,11 @@ export async function createAttivita(attivitaData) {
     const validation = attivita.validate();
     if (!validation.valid) {
       throw new Error(`Validazione fallita: ${validation.errors.join(', ')}`);
+    }
+
+    const limitCheck = await assertCanCreateAttivita(attivitaData.data, tenantId);
+    if (!limitCheck.ok) {
+      throw new Error(limitCheck.message);
     }
     
     // Salva

@@ -381,6 +381,12 @@ export async function handleSaveTerreno(
             await setDoc(terrenoRef, cleanedData, { merge: true });
             showAlert('Terreno aggiornato con successo!', 'success');
         } else {
+            const { assertCanCreateTerreno } = await import('../services/plan-limits-service.js');
+            const limitCheck = await assertCanCreateTerreno(state.currentTenantId);
+            if (!limitCheck.ok) {
+                showAlert(limitCheck.message, 'error');
+                return;
+            }
             // Crea
             cleanedData.createdAt = serverTimestamp();
             await addDoc(terreniCollection, cleanedData);

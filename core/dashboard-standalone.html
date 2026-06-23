@@ -63,21 +63,19 @@
         </div>
     </div>
 
-    <!-- Tony: widget globale (FAB + chat) – URL assoluti su GitHub Pages per evitare problemi online -->
+    <!-- GFV: alert toast + Tony gated (loader in head, attivazione dopo init tenant) -->
     <script>
     (function() {
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
       var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
       var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
-      var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
-      document.body.appendChild(s);
+      var alertScript = document.createElement('script');
+      alertScript.src = (base ? base + sep : '') + 'js/standalone-alert-global.js';
+      document.head.appendChild(alertScript);
+      var tonyLoader = document.createElement('script');
+      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js';
+      document.head.appendChild(tonyLoader);
     })();
     </script>
 
@@ -212,6 +210,7 @@
         // Inizializza Firebase usando il service condiviso (tutto da firebase-service = stesso SDK 11)
         const {
             initializeFirebase,
+            awaitFirebaseEmulatorConnect,
             getAuthInstance,
             getDb,
             signOut,
@@ -231,7 +230,10 @@
             Timestamp,
             onSnapshot
         } = await import('./services/firebase-service.js');
+        const { withEmulatorQuery } = await import('./js/firebase-emulator-dev.js');
+        const loginPageUrl = () => withEmulatorQuery('./auth/login-standalone.html');
         initializeFirebase(firebaseConfig);
+        await awaitFirebaseEmulatorConnect();
         const auth = getAuthInstance();
         const db = getDb();
         console.log('[Tony] Firebase OK. Tony widget caricato da tony-widget-standalone.js.');
@@ -841,6 +843,17 @@
         }
 
         async function finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user) {
+            const planId = window.__gfvSubscriptionPlanId || 'base';
+            const hasTonyModule = Array.isArray(availableModules) && availableModules.some(function(m) {
+                return String(m).toLowerCase() === 'tony';
+            });
+            if (planId !== 'free' || hasTonyModule) {
+                if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+                    window.gfvTryLoadTonyWidgetWhenReady();
+                } else if (typeof window.gfvLoadTonyWidget === 'function') {
+                    window.gfvLoadTonyWidget();
+                }
+            }
             updateDocumentationGuideLink(availableModules, userDataNormalized);
             if (window.Tony && Tony.isReady()) {
                 Tony.setContext('dashboard', {
@@ -979,7 +992,7 @@
             if (!user) {
                 // Non autenticato, redirect a login
                 sessionStorage.removeItem('gfv_expected_user_id');
-                window.location.href = './auth/login-standalone.html';
+                window.location.href = loginPageUrl();
                 return;
             }
             
@@ -992,7 +1005,7 @@
                     const { signOut } = await import('./services/firebase-service.js');
                     await signOut(auth);
                     sessionStorage.removeItem('gfv_expected_user_id');
-                    window.location.href = './auth/login-standalone.html';
+                    window.location.href = loginPageUrl();
                     return;
                 } else {
                     // Questa scheda è appena stata usata per registrazione, aggiorna l'utente previsto
@@ -1121,14 +1134,19 @@
                                         getDoc(doc(db, 'tenants', currentTenantId)));
                                     if (tenantDoc.exists()) {
                                         tenantDataSnapshot = tenantDoc.data();
-                                        availableModules = tenantDataSnapshot.modules || [];
+                                        const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                                        availableModules = resolveEffectiveModules(tenantDataSnapshot);
                                     }
                                 } catch (e) {
                                     console.warn('Errore caricamento moduli tenant:', e);
                                 }
                             }
                             const planNormalized = normalizeGfvPlanId(tenantDataSnapshot ? (tenantDataSnapshot.plan || tenantDataSnapshot.piano) : 'base');
-                            window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, { modules: availableModules });
+                            window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, {
+                                modules: availableModules,
+                                plan: planNormalized,
+                                piano: planNormalized
+                            });
                             window.__gfvSubscriptionPlanId = planNormalized;
                             try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
                             
@@ -1220,14 +1238,19 @@
                                 getDoc(doc(db, 'tenants', currentTenantId)));
                             if (tenantDoc.exists()) {
                                 tenantDataSnapshot = tenantDoc.data();
-                                availableModules = tenantDataSnapshot.modules || [];
+                                const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                                availableModules = resolveEffectiveModules(tenantDataSnapshot);
                             }
                         } catch (error) {
                             console.warn('Errore caricamento moduli tenant:', error);
                         }
                     }
                     const planNormalized = normalizeGfvPlanId(tenantDataSnapshot ? (tenantDataSnapshot.plan || tenantDataSnapshot.piano) : 'base');
-                    window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, { modules: availableModules });
+                    window.__gfvTenantData = Object.assign({}, tenantDataSnapshot || {}, {
+                        modules: availableModules,
+                        plan: planNormalized,
+                        piano: planNormalized
+                    });
                     window.__gfvSubscriptionPlanId = planNormalized;
                     try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
                     
@@ -1356,7 +1379,7 @@
                 sessionStorage.removeItem('gfv_expected_user_id');
                 sessionStorage.removeItem('gfv_user_just_registered');
                 await signOut(auth);
-                window.location.href = './auth/login-standalone.html';
+                window.location.href = loginPageUrl();
             } catch (error) {
                 console.error('Errore logout:', error);
                 alert('Errore durante il logout');

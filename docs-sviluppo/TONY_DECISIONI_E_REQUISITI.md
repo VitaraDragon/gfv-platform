@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-06-21 (policy D5: accesso off subito + riattivazione fino a scadenza — verifica OK)
+**Ultimo aggiornamento**: 2026-06-22 (freemium E2E verificato; FAB Tony Base post-Stripe; alert toast)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -12,11 +12,11 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 1.1 | **Freemium (free)**: Tony completamente assente – né widget, né endpoint, né guida | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | non implementato | Bootstrap inietta sempre Tony; nessun check plan |
-| 1.2 | **Base a pagamento**: Tony Guida presente – solo spiegazioni, nessuna azione operativa | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | implementato | SYSTEM_INSTRUCTION_BASE, moduli_attivi |
+| 1.1 | **Freemium (free)**: Tony completamente assente – né widget, né endpoint, né guida | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** | `gfv-tony-loader.js` + `gfv-standalone-shell.js`; script non caricato su Free; build `2026-06-22d` |
+| 1.2 | **Base a pagamento**: Tony Guida presente – solo spiegazioni, nessuna azione operativa | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** | SYSTEM_INSTRUCTION_BASE; FAB verificato post-Stripe Checkout |
 | 1.3 | **Modulo Tony attivo** (`moduli_attivi.includes('tony')`): Tony Operativo – tutte le funzioni | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | implementato | SYSTEM_INSTRUCTION_ADVANCED |
 | 1.4 | Tony Guida e Tony Operativo sono due esperienze diverse; Guida non deve essere impattata da refactor Operativo | GUIDA_OPERATIVO | implementato | |
-| 1.5 | In piano free Tony deve essere totalmente escluso: niente widget, niente endpoint, niente fallback guida | GUIDA_OPERATIVO §7 | non implementato | Widget sempre caricato; CF sempre callable |
+| 1.5 | In piano free Tony deve essere totalmente escluso: niente widget, niente endpoint, niente fallback guida | GUIDA_OPERATIVO §7 | **implementato** | Loader non carica widget; CF rifiutano; verifica E2E 2026-06-22 |
 | 1.6 | Modulo Tony: €5/mese, attivazione da pagina Abbonamento | TONY_MODULO_SEPARATO | implementato | subscription-plans.js |
 | 1.7 | **Tony consigliere moduli**: solo piano Base (Tony Guida); segnali azienda + complementi; non Free; non promuove Tony Avanzato | prodotto 2026-06-19 | implementato | `tony-module-recommendations.js`, `azienda.consigliModuli` in tonyAsk; gating legacy + `reactivate` |
 | 1.8 | **Tony consigliere — tono non invasivo**: max 1–2 moduli per turno; no upsell su domande tabella; una frase + «da Abbonamento» | prodotto 2026-06-19 | implementato | `TONY_MODULE_RECOMMENDATION_RULES` in `functions/index.js` |
@@ -31,6 +31,8 @@
 | 1.17 | **Stripe Checkout** moduli e bundle (annuale) | prodotto 2026-06-20 | implementato | `createStripeCheckoutSession`, `fulfillStripeCheckout`, `abbonamento-standalone.html` |
 | 1.18 | **Disattivazione addon (D5)**: `cancel_at_period_end` su Stripe; **accesso app revocato subito** (`modules[]` / `activeBundles[]`); riattivazione **gratuita** fino a scadenza pagata (`reactivateStripeAddon`); no rimborso; sync webhook | prodotto 2026-06-20, revisione 2026-06-21 | **implementato** | `markAddonPendingDeactivation` / `clearAddonPendingDeactivation` + `computeAccessAfterRevokeAddon` / `RestoreAddon`; UI sezione «Disattivati (riattivabili)»; verifica utente OK |
 | 1.19 | **Billing v2 — coterm e converti bundle** (Fasi 2–3 handoff): rinnovo unico Base, proration mid-cycle, «Passa al bundle», migrazione doppie subscription | prodotto 2026-06-20 | **pianificato** | `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` §6 Fasi 2–4 |
+| 1.20 | **Prova gratuita moduli 30 giorni** (scelta utente, **anche Free**): 1 modulo in prova contemporaneo; 1 trial per modulo per tenant; dati conservati; conversione Stripe | prodotto 2026-06-22 | **implementato** | `functions/module-trial.js`, `core/utils/module-access-resolver.js`, UI Abbonamento |
+| 1.21 | **Freemium default + limiti Free** (5 terreni, 30 attività/mese): registrazione `piano: free`; enforcement CRUD terreni/attività | prodotto 2026-06-22 | **implementato** | `plan-limits-service.js`, toast sopra modal; upgrade Base via Stripe verificato |
 
 ---
 
@@ -239,7 +241,7 @@
 
 | # | Voce | Fonte | Azione |
 |---|------|-------|--------|
-| 16.1 | Tony completamente assente in freemium (widget + endpoint) | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | ✅ Verificato: non implementato (widget sempre caricato) |
+| 16.1 | Tony completamente assente in freemium (widget + endpoint) | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | ✅ **Implementato** (2026-06-22d): loader + shell; E2E Free→Base verificato |
 | 16.2 | Regola FORM PRONTO nel system prompt | ANALISI_SUBAGENT | ✅ Implementato in CF |
 | 16.3 | Guard form pronto in processTonyCommand | ANALISI_SUBAGENT | Parziale: fallback navigazione |
 | 16.4 | currentTableData attivita: DOBBIAMO dice "da dotare" | DOBBIAMO_ANCORA_FARE | ✅ attivita-controller.js popola; DOBBIAMO obsoleto |

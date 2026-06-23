@@ -1,0 +1,47 @@
+[
+  {
+    "runId": "927d50bb-93a7-42bf-a99a-df0dd8104e66",
+    "templateId": "solo-titolare-viticola",
+    "tenantId": "sim_az_agr_ricci_146413",
+    "userId": "5pJFgjNdIq21SJELXt1odFUfP7a0",
+    "email": "sim+ricci_1782231146413@gfv.local",
+    "aziendaNome": "Az. Agr. Ricci",
+    "createdAt": "2026-06-23T16:12:26.527Z"
+  },
+  {
+    "runId": "0eab37fd-b29f-4d0b-98ec-18a2ad303819",
+    "templateId": "solo-titolare-viticola",
+    "tenantId": "sim_cascina_colombo_288202",
+    "userId": "Pxf2HbRoiPW1dWfq8DRDHbQevVna",
+    "email": "sim+colombo_1782231288202@gfv.local",
+    "aziendaNome": "Cascina Colombo",
+    "createdAt": "2026-06-23T16:14:48.303Z"
+  },
+  {
+    "runId": "e4c1984e-bdc8-44eb-a3c9-3bc9079f8d68",
+    "templateId": "solo-titolare-viticola",
+    "tenantId": "sim_podere_conti_291386",
+    "userId": "d9Jf9oikWQdgQfMF0TIWXJMUZL63",
+    "email": "sim+conti_1782231291386@gfv.local",
+    "aziendaNome": "Podere Conti",
+    "createdAt": "2026-06-23T16:14:51.478Z"
+  },
+  {
+    "runId": "270ef75a-07f9-44ae-be0e-931bd22a0482",
+    "templateId": "solo-titolare-viticola",
+    "tenantId": "sim_azienda_vitivinicola_gallo_294505",
+    "userId": "RUky4JLcWROfzyyGVhMvGEswH7FI",
+    "email": "sim+gallo_1782231294505@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo",
+    "createdAt": "2026-06-23T16:14:54.595Z"
+  },
+  {
+    "runId": "e802e406-d430-4e7a-848f-806a27b5ae9e",
+    "templateId": "solo-titolare-viticola",
+    "tenantId": "sim_azienda_vitivinicola_gallo_745575",
+    "userId": "aD7mYp6Yae1Ve8BlydE8HaE8kHu2",
+    "email": "sim+gallo_1782236745575@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo",
+    "createdAt": "2026-06-23T17:45:45.665Z"
+  }
+]

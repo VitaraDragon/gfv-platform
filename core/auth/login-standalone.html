@@ -451,6 +451,8 @@
             getDocs
         } = await import('../services/firebase-service.js');
         initializeFirebase(firebaseConfig);
+        const { connectFirebaseEmulatorsIfDev } = await import('../js/firebase-emulator-dev.js');
+        await connectFirebaseEmulatorsIfDev({ getAuthInstance, getDb });
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();

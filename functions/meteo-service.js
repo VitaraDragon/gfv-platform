@@ -23,6 +23,7 @@ const {
   isTonyPreventivoFormFieldCorrection,
 } = require("./tony-quick-replies");
 const { localizeMeteoAlerts, translateMeteoAlertEvent } = require("./meteo-alert-i18n");
+const { resolveEffectiveModules } = require("./module-trial");
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const MAX_TERRENI_METEO = 30;
@@ -52,16 +53,7 @@ function windMsToKmh(ms) {
 }
 
 function tenantHasMeteoModule(tenantData) {
-  const lists = [
-    tenantData.modules,
-    tenantData.moduli_attivi,
-    tenantData.info_azienda && tenantData.info_azienda.moduli_attivi,
-  ];
-  for (const list of lists) {
-    if (!Array.isArray(list)) continue;
-    if (list.some((m) => String(m || "").toLowerCase() === "meteo")) return true;
-  }
-  return false;
+  return resolveEffectiveModules(tenantData || {}).includes("meteo");
 }
 
 /** Firestore tenant + moduli_attivi inviati dal client (Tony context). */

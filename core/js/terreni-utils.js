@@ -1,4 +1,5 @@
 import { formatDateLikeToItalianLongLocal } from './date-format-it.js';
+import { showStandaloneAlert } from './standalone-alert.js';
 
 /**
  * Terreni Utils - Funzioni utility per gestione terreni
@@ -16,20 +17,7 @@ import { formatDateLikeToItalianLongLocal } from './date-format-it.js';
  * @param {string} type - Tipo alert: 'success', 'error', 'warning', 'info' (default: 'success')
  */
 export function showAlert(message, type = 'success') {
-    const container = document.getElementById('alert-container');
-    if (!container) {
-        console.warn('Container alert non trovato');
-        return;
-    }
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    container.appendChild(alert);
-    
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
+    showStandaloneAlert(message, type);
 }
 
 /**

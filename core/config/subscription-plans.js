@@ -481,9 +481,9 @@ export function canActivateModule(planId, moduleId, currentModules = []) {
     return { canActivate: false, reason: 'Modulo non ancora disponibile' };
   }
   
-  // Piano Free: nessun modulo disponibile
+  // Piano Free: acquisto moduli richiede Base; prova gratuita gestita separatamente (module-trial).
   if (planId === 'free') {
-    return { canActivate: false, reason: 'Piano Free non include moduli. Passa al piano Base (€5/mese, fatturato €60/anno) per attivare moduli.' };
+    return { canActivate: false, reason: 'Piano Free: usa la prova gratuita di 30 giorni oppure passa al piano Base per acquistare moduli.' };
   }
   
   // Piano Base: tutti i moduli disponibili (pay-per-use)
@@ -603,6 +603,35 @@ export function planRequiresStripePayment(planId, env = 'test') {
   return !!(plan && plan.price > 0 && getStripePriceId(planId, env));
 }
 
+/**
+ * Normalizza piano tenant (Firestore / legacy) → id canonico `free` | `base`.
+ * @param {string|null|undefined} raw
+ * @returns {'free'|'base'}
+ */
+export function normalizeSubscriptionPlanId(raw) {
+  if (raw == null || raw === '') return 'base';
+  const p = String(raw).trim().toLowerCase();
+  if (p === 'free' || p === 'freemium') return 'free';
+  if (p === 'base') return 'base';
+  if (['starter', 'professional', 'enterprise'].includes(p)) return 'base';
+  return 'base';
+}
+
+/**
+ * Limiti operativi del piano (null = illimitato).
+ * @param {string|null|undefined} rawPlan
+ * @returns {{ planId: 'free'|'base', maxTerreni: number|null, maxAttivitaMese: number|null }}
+ */
+export function getPlanOperationalLimits(rawPlan) {
+  const planId = normalizeSubscriptionPlanId(rawPlan);
+  const plan = getPlanConfig(planId);
+  return {
+    planId,
+    maxTerreni: plan && plan.maxTerreni != null ? plan.maxTerreni : null,
+    maxAttivitaMese: plan && plan.maxAttivitaMese != null ? plan.maxAttivitaMese : null
+  };
+}
+
 // Export default
 export default {
   BILLING,
@@ -623,5 +652,7 @@ export default {
   monthlyToAnnual,
   formatBillingDisplay,
   getStripePriceId,
-  planRequiresStripePayment
+  planRequiresStripePayment,
+  normalizeSubscriptionPlanId,
+  getPlanOperationalLimits
 };

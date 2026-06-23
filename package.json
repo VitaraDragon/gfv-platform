@@ -25,7 +25,14 @@
     "tony:perf-review": "node scripts/tony-perf-log-review.mjs",
     "dashboard:perf-smoke": "vitest run tests/dashboard-perf-slo.test.js",
     "tony:canary": "node scripts/tony-connectivity-canary.mjs",
-    "tony:tts-canary": "node scripts/tony-tts-canary.mjs"
+    "tony:tts-canary": "node scripts/tony-tts-canary.mjs",
+    "sim:emulators": "node ./node_modules/firebase-tools/lib/bin/firebase.js emulators:start --only auth,firestore",
+    "sim:smoke": "node simulator/smoke-test.js",
+    "sim:run": "node simulator/orchestrator.js",
+    "sim:run:verbose": "node simulator/orchestrator.js --verbose",
+    "sim:setup": "node simulator/orchestrator.js --setup-only",
+    "sim:inspect": "node simulator/inspect-tenant.js",
+    "sim:migrate-terreni": "node simulator/migrate-terreni-seed.js"
   },
   "keywords": [
     "agriculture",

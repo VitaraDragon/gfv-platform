@@ -339,18 +339,8 @@
         }
 
         function showAlert(msg, type) {
-            const c = document.getElementById('alert-container');
-            c.innerHTML = `<div class="alert alert-${type === 'error' ? 'error' : 'success'}">${msg}</div>`;
-            setTimeout(() => { c.innerHTML = ''; }, 5000);
-        }
-
-        const TONY_PAGE_TYPE_LISTA = 'concimazioni_frutteto';
-
-        function pushTonyListContext(summary, items) {
-            window.currentTableData = {
-                pageType: TONY_PAGE_TYPE_LISTA,
-                summary: summary || '',
-                items: Array.isArray(items) ? items : []
+                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
             };
             const page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
             if (window.Tony && typeof window.Tony.setContext === 'function') {
@@ -1920,21 +1910,15 @@
         }
         init();
     </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- GFV standalone shell: alert toast + Tony gated -->
     <script>
     (function() {
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
       var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
       var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
       var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
       document.body.appendChild(s);
     })();
     </script>

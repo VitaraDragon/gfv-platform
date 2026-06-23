@@ -661,7 +661,7 @@
             <!-- Moduli Disponibili -->
             <div class="card modules-section">
                 <h2>🔧 Moduli Disponibili</h2>
-                <p style="color: #666; margin-bottom: 20px;">Attiva i moduli che vuoi utilizzare</p>
+                <p style="color: #666; margin-bottom: 20px;">Attiva i moduli che vuoi utilizzare oppure avvia una <strong>prova gratuita di 30 giorni</strong> (anche con piano Free, un modulo alla volta).</p>
                 
                 <div id="alert-container" style="margin-bottom: 20px;"></div>
                 
@@ -670,7 +670,7 @@
                 </div>
 
                 <div class="info-box">
-                    <strong>ℹ️ Nota:</strong> L'attivazione di moduli e bundle passa da Stripe (addebito annuale). Alla disattivazione il modulo smette subito di funzionare; puoi riattivarlo gratuitamente fino alla data già pagata (non verrà rinnovato, nessun rimborso).
+                    <strong>ℹ️ Nota:</strong> La prova gratuita dura 30 giorni, senza carta. L'attivazione a pagamento passa da Stripe (addebito annuale). Alla disattivazione il modulo smette subito di funzionare; puoi riattivarlo gratuitamente fino alla data già pagata (non verrà rinnovato, nessun rimborso).
                 </div>
             </div>
         </div>
@@ -740,7 +740,9 @@
             getCurrentTenantId, 
             getCurrentTenant, 
             getUserRolesForTenant,
-            clearCurrentTenantCache
+            clearCurrentTenantCache,
+            resolveTenantIdForUser,
+            setCurrentTenantId
         } from '../services/tenant-service.js';
         import { 
             BILLING,
@@ -756,21 +758,50 @@
             getBundleBreakdown,
             monthlyToAnnual,
             formatBillingDisplay,
-            planRequiresStripePayment
+            planRequiresStripePayment,
+            normalizeSubscriptionPlanId
         } from '../config/subscription-plans.js';
+        import {
+            MODULE_TRIAL_DAYS,
+            resolveEffectiveModules,
+            getPaidModuleIds,
+            getActiveTrialModuleIds,
+            canStartModuleTrial,
+            isModuleOnTrial,
+            formatTrialEndDate
+        } from '../utils/module-access-resolver.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
 
-        initializeTenantService();
+        const tenantReady = initializeTenantService();
 
         let currentUser = null;
+        let authBootstrapDone = false;
         let currentTenantId = null;
         let currentTenantData = null;
-        let activeModules = [];
+        let paidModules = [];
+        let effectiveModules = [];
+        let trialModuleIds = [];
         let activeBundles = [];
+
+        function refreshModuleAccessFromTenant() {
+            if (!currentTenantData) {
+                paidModules = [];
+                effectiveModules = [];
+                trialModuleIds = [];
+                return;
+            }
+            paidModules = getPaidModuleIds(currentTenantData);
+            trialModuleIds = getActiveTrialModuleIds(currentTenantData.moduleTrials);
+            effectiveModules = resolveEffectiveModules(currentTenantData);
+        }
+
+        function getPurchasableModuleIds() {
+            return getAllModules(true).filter(function(m) { return m.available; }).map(function(m) { return m.id; });
+        }
 
         function getStripeAddonRecord(addonId) {
             return (currentTenantData && currentTenantData.stripeAddons && currentTenantData.stripeAddons[addonId]) || null;
@@ -785,7 +816,7 @@
         function isRevokedPendingAddon(addonId, addonType) {
             if (!addonPendingDeactivation(addonId)) return false;
             if (addonType === 'bundle') return !activeBundles.includes(addonId);
-            return !activeModules.includes(addonId);
+            return !paidModules.includes(addonId);
         }
 
         function listRevokedPendingAddons() {
@@ -834,17 +865,17 @@
 
         function notifyClientModulesChanged() {
             if (typeof window.syncTonyModules === 'function') {
-                window.syncTonyModules(activeModules);
+                window.syncTonyModules(effectiveModules);
                 return;
             }
             if (window.Tony && typeof window.Tony.setContext === 'function') {
                 window.Tony.setContext('dashboard', {
-                    info_azienda: { moduli_attivi: activeModules },
-                    moduli_attivi: activeModules
+                    info_azienda: { moduli_attivi: effectiveModules },
+                    moduli_attivi: effectiveModules
                 });
             }
             try {
-                window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: activeModules } }));
+                window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: effectiveModules } }));
             } catch (e) {}
         }
 
@@ -902,34 +933,34 @@
         // Verifica autenticazione e carica dati
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
+                if (!authBootstrapDone) {
+                    authBootstrapDone = true;
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                    if (auth.currentUser) return;
+                }
                 window.location.href = '../auth/login-standalone.html';
                 return;
             }
 
+            authBootstrapDone = true;
             currentUser = user;
             
             try {
-                // Aspetta un attimo per permettere al tenant service di inizializzarsi
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // Usa tenant-service per ottenere tenant corrente (supporta multi-tenant membership)
-                currentTenantId = getCurrentTenantId();
-                
-                // Se non c'è tenantId dal servizio, prova a caricarlo direttamente da Firestore (retrocompatibilità)
-                if (!currentTenantId) {
-                    console.warn('Tenant ID non trovato dal tenant-service, provo caricamento diretto...');
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        // Prova tenantId deprecato o primo tenant da tenantMemberships
-                        if (userData.tenantId) {
-                            currentTenantId = userData.tenantId;
-                        } else if (userData.tenantMemberships && Object.keys(userData.tenantMemberships).length > 0) {
-                            currentTenantId = Object.keys(userData.tenantMemberships)[0];
-                        }
-                    }
+                await tenantReady;
+
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    showAlert('Profilo utente non trovato. Completa la registrazione.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '../auth/registrazione-standalone.html';
+                    }, 2000);
+                    return;
                 }
-                
+
+                const userData = userDoc.data();
+                const justRegistered = sessionStorage.getItem('gfv_user_just_registered') === 'true';
+                currentTenantId = resolveTenantIdForUser(userData, { useExpectedTenant: justRegistered });
+
                 if (!currentTenantId) {
                     console.error('Nessun tenant disponibile per l\'utente');
                     showAlert('Nessun tenant disponibile. Contatta l\'amministratore.', 'error');
@@ -939,24 +970,15 @@
                     return;
                 }
 
-                // Verifica permessi usando tenant-service (supporta multi-tenant)
+                setCurrentTenantId(currentTenantId);
+
                 const ruoli = await getUserRolesForTenant(currentTenantId, user.uid);
-                
-                // Se non ci sono ruoli dal servizio, prova a caricarli direttamente (retrocompatibilità)
-                let hasAdminRole = false;
-                if (ruoli && ruoli.length > 0) {
-                    hasAdminRole = ruoli.includes('amministratore');
-                } else {
-                    // Fallback: carica ruoli direttamente
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        if (userData.tenantMemberships && userData.tenantMemberships[currentTenantId]) {
-                            hasAdminRole = userData.tenantMemberships[currentTenantId].ruoli?.includes('amministratore') || false;
-                        } else if (userData.tenantId === currentTenantId && userData.ruoli) {
-                            hasAdminRole = userData.ruoli.includes('amministratore');
-                        }
-                    }
+                let hasAdminRole = Array.isArray(ruoli) && ruoli.includes('amministratore');
+                if (!hasAdminRole && userData.tenantId === currentTenantId && Array.isArray(userData.ruoli)) {
+                    hasAdminRole = userData.ruoli.includes('amministratore');
+                }
+                if (!hasAdminRole && userData.tenantMemberships?.[currentTenantId]?.ruoli) {
+                    hasAdminRole = userData.tenantMemberships[currentTenantId].ruoli.includes('amministratore');
                 }
                 
                 if (!hasAdminRole) {
@@ -969,6 +991,8 @@
 
                 // Carica dati tenant e moduli
                 await loadTenantData();
+                await syncModuleTrialsFromServer();
+                await loadTenantData();
                 await syncStripeFromServerIfNeeded();
                 await handleCheckoutReturn();
 
@@ -976,8 +1000,8 @@
 
                 if (window.Tony && typeof window.Tony.setContext === 'function') {
                     window.Tony.setContext('dashboard', {
-                        info_azienda: { moduli_attivi: activeModules },
-                        moduli_attivi: activeModules
+                        info_azienda: { moduli_attivi: effectiveModules },
+                        moduli_attivi: effectiveModules
                     });
                 }
             } catch (error) {
@@ -988,16 +1012,24 @@
         });
 
         function resolvePlanIdFromTenant(tenantData) {
-            let planId = tenantData?.plan || tenantData?.piano || 'base';
-            if (['starter', 'professional', 'enterprise'].includes(planId)) {
-                planId = 'base';
-            }
-            return planId;
+            return normalizeSubscriptionPlanId(tenantData?.plan || tenantData?.piano);
         }
 
         function refreshSubscriptionUi() {
             if (!currentTenantData) return;
             const planId = resolvePlanIdFromTenant(currentTenantData);
+            window.__gfvSubscriptionPlanId = planId;
+            window.__gfvTenantData = Object.assign({}, currentTenantData, {
+                plan: planId,
+                piano: planId,
+                modules: effectiveModules
+            });
+            try {
+                window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planId } }));
+            } catch (ePlan) {}
+            if (planId === 'base' && typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+                window.gfvTryLoadTonyWidgetWhenReady();
+            }
             const planConfig = getPlanConfig(planId) || getPlanConfig('base');
             updateCurrentPlanUI(planConfig, currentTenantData);
             renderActiveModules();
@@ -1031,6 +1063,16 @@
             }
         }
 
+        async function syncModuleTrialsFromServer() {
+            if (!currentTenantId) return;
+            try {
+                const syncFn = getHttpsCallable('syncModuleTrials');
+                await syncFn({ tenantId: currentTenantId });
+            } catch (error) {
+                console.warn('[Abbonamento] syncModuleTrials:', error.message || error);
+            }
+        }
+
         // Carica dati tenant (sempre da Firestore — evita cache stale dopo Stripe)
         async function loadTenantData() {
             if (!currentTenantId) return;
@@ -1044,13 +1086,12 @@
                 }
                 currentTenantData = tenantDoc.data();
                 
-                activeModules = currentTenantData.modules || [];
                 activeBundles = currentTenantData.activeBundles || [];
+                refreshModuleAccessFromTenant();
                 
-                // DEBUG: Verifica moduli nel database
-                console.log('[Abbonamento] DEBUG - Moduli dal database:', activeModules);
-                console.log('[Abbonamento] DEBUG - Modulo "tony" presente?', activeModules.includes('tony'));
-                console.log('[Abbonamento] DEBUG - currentTenantData.modules:', currentTenantData.modules);
+                console.log('[Abbonamento] Moduli pagati:', paidModules);
+                console.log('[Abbonamento] Moduli in prova:', trialModuleIds);
+                console.log('[Abbonamento] Moduli effettivi:', effectiveModules);
                 
                 // Aggiorna piano corrente (supporta sia 'plan' che 'piano' per retrocompatibilità)
                 let planId = resolvePlanIdFromTenant(currentTenantData);
@@ -1097,7 +1138,7 @@
             document.getElementById('current-plan-name').textContent = planLabel;
             
             // Prezzo (calcola totale: piano + moduli/bundle)
-            const totalPrice = calculateTotalPrice(planConfig.id, activeModules, activeBundles);
+            const totalPrice = calculateTotalPrice(planConfig.id, paidModules, activeBundles);
             document.getElementById('current-plan-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
             
             // Scadenza (se disponibile)
@@ -1151,7 +1192,7 @@
             const container = document.getElementById('subscription-summary');
             if (!container) return;
             
-            const totalPrice = calculateTotalPrice(planConfig.id, activeModules, activeBundles);
+            const totalPrice = calculateTotalPrice(planConfig.id, paidModules, activeBundles);
             const basePrice = planConfig.price;
             
             // Calcola moduli coperti da bundle
@@ -1177,7 +1218,7 @@
             });
             
             // Moduli singoli (non in bundle)
-            const singleModules = activeModules.filter(modId => !modulesCoveredByBundles.has(modId));
+            const singleModules = paidModules.filter(modId => !modulesCoveredByBundles.has(modId));
             const singleModulesPrice = singleModules.reduce((sum, modId) => {
                 const mod = getModuleConfig(modId);
                 return sum + (mod && mod.available ? mod.price : 0);
@@ -1250,8 +1291,7 @@
             if (!container || !section) return;
             
             // DEBUG: Verifica stato moduli prima del rendering
-            console.log('[Abbonamento] DEBUG renderActiveModules - activeModules:', activeModules);
-            console.log('[Abbonamento] DEBUG renderActiveModules - Modulo "tony" presente?', activeModules.includes('tony'));
+            console.log('[Abbonamento] renderActiveModules - effectiveModules:', effectiveModules);
             
             // Trova moduli coperti da bundle
             const modulesCoveredByBundles = new Set();
@@ -1265,7 +1305,7 @@
             });
             
             // Moduli singoli attivi (non in bundle)
-            const singleActiveModules = activeModules.filter(modId => !modulesCoveredByBundles.has(modId));
+            const singleActiveModules = effectiveModules.filter(modId => !modulesCoveredByBundles.has(modId));
             
             // Se non ci sono moduli né bundle attivi, nascondi la sezione
             if (activeBundlesList.length === 0 && singleActiveModules.length === 0) {
@@ -1334,26 +1374,30 @@
                 singleActiveModules.forEach(modId => {
                     const mod = getModuleConfig(modId);
                     if (mod) {
-                        // DEBUG: Log per ogni modulo renderizzato
-                        if (modId === 'tony') {
-                            console.log('[Abbonamento] DEBUG renderActiveModules - Rendering modulo TONY:', modId, mod);
-                        }
+                        const onTrial = isModuleOnTrial(currentTenantData, modId);
+                        const trialRecord = currentTenantData && currentTenantData.moduleTrials && currentTenantData.moduleTrials[modId];
+                        const actionHtml = onTrial
+                            ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #2E8B57; color: white; border: none;" onclick="toggleModule('${mod.id}')">Attiva abbonamento</button>`
+                            : renderAddonActionButtons(mod.id, 'module', `toggleModule('${mod.id}')`, `reactivateModule('${mod.id}')`);
+                        const priceHtml = onTrial
+                            ? `<div style="font-size: 12px; color: #155724; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 6px 8px; margin-top: 8px;">🎁 Prova gratuita · scade il ${escapeConfirmHtml(formatTrialEndDate(trialRecord))}</div>`
+                            : `<div style="font-size: 16px; font-weight: bold; color: #ff9800;">€${mod.price}/mese</div>`;
                         html += `
-                            <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid #ff9800;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid ${onTrial ? '#2E8B57' : '#ff9800'};">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                                     <div>
                                         <div style="font-size: 20px; margin-bottom: 5px;">${mod.icon}</div>
-                                        <div style="font-weight: bold; color: #ff9800; font-size: 14px;">${mod.name}</div>
+                                        <div style="font-weight: bold; color: ${onTrial ? '#2E8B57' : '#ff9800'}; font-size: 14px;">${mod.name}${onTrial ? ' <span style="font-size:11px;">(prova)</span>' : ''}</div>
                                     </div>
                                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
                                         ${mod.id === 'frutteto' ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #2E8B57; color: white; border: none;" onclick="window.location.href='../../modules/frutteto/views/frutteti-standalone.html'">Apri</button>` : ''}
                                         ${mod.id === 'report' ? `<button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; background: #1F2937; color: white; border: none;" onclick="window.location.href='../../modules/report/views/report-dashboard-standalone.html'">Apri Report</button>` : ''}
-                                        ${renderAddonActionButtons(mod.id, 'module', `toggleModule('${mod.id}')`, `reactivateModule('${mod.id}')`)}
+                                        ${actionHtml}
                                     </div>
                                 </div>
                                 <div style="font-size: 12px; color: #666; margin-bottom: 5px;">${mod.description}</div>
-                                ${renderPendingDeactivationBadge(mod.id)}
-                                <div style="font-size: 16px; font-weight: bold; color: #ff9800;">€${mod.price}/mese</div>
+                                ${onTrial ? '' : renderPendingDeactivationBadge(mod.id)}
+                                ${priceHtml}
                             </div>
                         `;
                     }
@@ -1432,11 +1476,7 @@
                 return;
             }
             
-            // Retrocompatibilità: migra piani vecchi a 'base'
-            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
-            if (['starter', 'professional', 'enterprise'].includes(planId)) {
-                planId = 'base';
-            }
+            const planId = resolvePlanIdFromTenant(currentTenantData);
             const planConfig = getPlanConfig(planId);
 
             // Trova moduli coperti da bundle
@@ -1449,27 +1489,36 @@
             });
             
             // Filtra solo moduli NON attivi e NON in attesa di riattivazione (quelli sono in sezione dedicata)
+            const purchasableIds = getPurchasableModuleIds();
             const availableModules = modules.filter(function(module) {
-                if (activeModules.includes(module.id)) return false;
+                if (effectiveModules.includes(module.id)) return false;
                 if (isRevokedPendingAddon(module.id, 'module')) return false;
                 return true;
             });
             
             if (availableModules.length === 0) {
-                container.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #666;">🎉 Tutti i moduli disponibili sono già attivi!</div>';
+                container.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #666;">🎉 Tutti i moduli disponibili sono già attivi o in prova!</div>';
                 return;
             }
             
             const html = availableModules.map(module => {
-                const canActivate = canActivateModule(planConfig.id, module.id, activeModules);
-                const isDisabled = !module.available || !canActivate.canActivate;
+                const trialCheck = canStartModuleTrial(currentTenantData, module.id, {
+                    availableModuleIds: purchasableIds,
+                    bundleCatalog: BUNDLES
+                });
+                const canPurchase = canActivateModule(planConfig.id, module.id, paidModules).canActivate;
+                const canTrial = trialCheck.canStart;
+                const isDisabled = !module.available || (!canTrial && !canPurchase);
+                const actionHint = canTrial
+                    ? 'Clicca per prova 30 giorni'
+                    : (canPurchase ? 'Clicca per attivare' : (trialCheck.reason || canActivateModule(planConfig.id, module.id, paidModules).reason));
                 
                 return `
                     <div class="module-card ${isDisabled ? 'disabled' : ''}" 
                          data-module-id="${module.id}" 
                          onclick="${isDisabled ? '' : `toggleModule('${module.id}')`}"
                          style="${isDisabled ? 'opacity: 0.6; cursor: not-allowed;' : 'cursor: pointer;'}"
-                         title="${isDisabled ? (module.available ? canActivate.reason : 'Modulo non ancora disponibile') : ''}">
+                         title="${isDisabled ? (module.available ? actionHint : 'Modulo non ancora disponibile') : actionHint}">
                         <div class="module-icon">${module.icon}</div>
                         <div class="module-name">
                             ${module.name} 
@@ -1479,8 +1528,8 @@
                         <div style="margin-top: 5px; font-size: 11px; color: #666;">
                             ${module.available ? `€${module.price}/mese · €${monthlyToAnnual(module.price)}/anno` : 'Prossimamente'}
                         </div>
-                        <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                            ${module.available ? 'Clicca per attivare' : 'Prossimamente'}
+                        <div style="margin-top: 10px; font-size: 12px; color: ${canTrial ? '#2E8B57' : '#666'};">
+                            ${module.available ? actionHint : 'Prossimamente'}
                         </div>
                     </div>
                 `;
@@ -1495,10 +1544,7 @@
             if (!upgradeSection) return;
             
             // Retrocompatibilità: migra piani vecchi a 'base'
-            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
-            if (['starter', 'professional', 'enterprise'].includes(planId)) {
-                planId = 'base';
-            }
+            const planId = resolvePlanIdFromTenant(currentTenantData);
             
             // Mostra solo se piano Free
             if (planId === 'free') {
@@ -1525,8 +1571,8 @@
                 const breakdown = getBundleBreakdown(bundle);
                 const { singlesTotal, savings, discountPercent, allAvailable } = breakdown;
 
-                const activeInBundle = bundle.modules.filter(modId => activeModules.includes(modId));
-                const notActiveInBundle = bundle.modules.filter(modId => !activeModules.includes(modId));
+                const activeInBundle = bundle.modules.filter(modId => effectiveModules.includes(modId));
+                const notActiveInBundle = bundle.modules.filter(modId => !effectiveModules.includes(modId));
                 
                 const isFullyActive = activeInBundle.length === bundle.modules.length;
                 const isPartiallyActive = activeInBundle.length > 0 && activeInBundle.length < bundle.modules.length;
@@ -1553,7 +1599,7 @@
                             <div style="margin-top: 5px;">
                                 ${bundle.modules.map(modId => {
                                     const mod = getModuleConfig(modId);
-                                    const isActive = activeModules.includes(modId);
+                                    const isActive = effectiveModules.includes(modId);
                                     return mod ? `<span style="display: inline-block; background: ${isActive ? '#d4edda' : '#f0f8f4'}; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 11px;">${mod.icon} ${mod.name} ${isActive ? '✓' : ''}</span>` : '';
                                 }).join('')}
                             </div>
@@ -1599,7 +1645,7 @@
             const modules = getAllModules(false); // Solo moduli disponibili
             
             const html = modules.map(module => {
-                const isSelected = activeModules.includes(module.id);
+                const isSelected = effectiveModules.includes(module.id);
                 return `
                     <label class="custom-module-checkbox">
                         <input type="checkbox" value="${module.id}" ${isSelected ? 'checked' : ''} onchange="updateCustomPlanPrice()">
@@ -1708,8 +1754,7 @@
                 currentTenantData.plan = planId;
                 currentTenantData.modules = modulesToApply;
                 currentTenantData.activeBundles = bundlesToKeep;
-                activeModules = modulesToApply;
-                activeBundles = bundlesToKeep;
+                refreshModuleAccessFromTenant();
                 
                 // Ricalcola e aggiorna UI
                 updateCurrentPlanUI(planConfig, currentTenantData);
@@ -1850,8 +1895,8 @@
                 const mod = getModuleConfig(modId);
                 return mod && mod.available;
             });
-            const alreadyActive = newModules.filter(modId => activeModules.includes(modId));
-            const toActivate = newModules.filter(modId => !activeModules.includes(modId));
+            const alreadyActive = newModules.filter(modId => effectiveModules.includes(modId));
+            const toActivate = newModules.filter(modId => !effectiveModules.includes(modId));
 
             const singlePrice = bundle.modules.reduce((sum, modId) => {
                 const mod = getModuleConfig(modId);
@@ -1901,36 +1946,69 @@
         };
         
 
-        // Toggle modulo
+        // Toggle modulo (prova gratuita o acquisto Stripe)
         window.toggleModule = async function(moduleId) {
             const module = getModuleConfig(moduleId);
             if (!module) {
                 showAlert('Modulo non trovato', 'error');
                 return;
             }
-            
-            const isActive = activeModules.includes(moduleId);
-            // Retrocompatibilità: migra piani vecchi
+
+            const isEffectiveActive = effectiveModules.includes(moduleId);
+            const isPaid = paidModules.includes(moduleId);
+            const onTrial = isModuleOnTrial(currentTenantData, moduleId);
             let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
             if (['starter', 'professional', 'enterprise'].includes(planId)) {
                 planId = 'base';
             }
-            
-            // Se stai attivando, verifica permessi e limiti
-            if (!isActive) {
-                if (planId === 'free') {
-                    showAlert('Attiva prima il piano Base prima di acquistare moduli.', 'error');
+
+            if (!isEffectiveActive) {
+                const trialCheck = canStartModuleTrial(currentTenantData, moduleId, {
+                    availableModuleIds: getPurchasableModuleIds(),
+                    bundleCatalog: BUNDLES
+                });
+
+                if (trialCheck.canStart) {
+                    const confirmed = await showConfirmDialog({
+                        title: 'Avviare la prova gratuita?',
+                        icon: '🎁',
+                        variant: 'success',
+                        confirmLabel: 'Avvia prova',
+                        bodyHtml:
+                            '<p class="confirm-lead"><strong>' + escapeConfirmHtml(module.name) + '</strong></p>' +
+                            '<p>Prova gratuita per <strong>' + MODULE_TRIAL_DAYS + ' giorni</strong>, senza carta.</p>' +
+                            '<p>Puoi attivare un solo modulo in prova alla volta. I dati inseriti restano salvati dopo la scadenza.</p>'
+                    });
+                    if (!confirmed) return;
+
+                    try {
+                        const startFn = getHttpsCallable('startModuleTrial');
+                        await startFn({ tenantId: currentTenantId, moduleId });
+                        clearCurrentTenantCache();
+                        await loadTenantData();
+                        refreshSubscriptionUi();
+                        showAlert('Prova gratuita attivata per "' + module.name + '".', 'success');
+                        notifyClientModulesChanged();
+                    } catch (error) {
+                        console.error('Errore startModuleTrial:', error);
+                        showAlert('Errore: ' + (error.message || error), 'error');
+                    }
                     return;
                 }
 
-                const canActivate = canActivateModule(planId, moduleId, activeModules);
+                if (planId === 'free') {
+                    showAlert(trialCheck.reason || 'Attiva il piano Base per acquistare moduli.', 'error');
+                    return;
+                }
+
+                const canActivate = canActivateModule(planId, moduleId, paidModules);
                 if (!canActivate.canActivate) {
                     showAlert(canActivate.reason, 'error');
                     return;
                 }
 
-                const currentPrice = calculateTotalPrice(planId, activeModules, activeBundles);
-                const newPrice = calculateTotalPrice(planId, [...activeModules, moduleId], activeBundles);
+                const currentPrice = calculateTotalPrice(planId, paidModules, activeBundles);
+                const newPrice = calculateTotalPrice(planId, [...paidModules, moduleId], activeBundles);
                 const priceIncrease = newPrice - currentPrice;
 
                 const confirmed = await showConfirmDialog({
@@ -1956,28 +2034,67 @@
                     showAlert(`Impossibile avviare il pagamento: ${error.message || error}`, 'error');
                 }
                 return;
-            } else {
-                if (isRevokedPendingAddon(moduleId, 'module')) {
-                    await reactivateModule(moduleId);
+            }
+
+            if (onTrial && !isPaid) {
+                if (planId === 'free') {
+                    const upgradeConfirmed = await showConfirmDialog({
+                        title: 'Attivare piano Base e modulo?',
+                        icon: '💚',
+                        variant: 'default',
+                        confirmLabel: 'Vai a Stripe',
+                        bodyHtml:
+                            '<p>Per mantenere <strong>' + escapeConfirmHtml(module.name) + '</strong> dopo la prova serve il piano Base e il modulo.</p>' +
+                            '<p>Verrai reindirizzato a Stripe per il pagamento annuale.</p>'
+                    });
+                    if (!upgradeConfirmed) return;
+                    try {
+                        await startStripeCheckout('plan', 'base');
+                    } catch (error) {
+                        showAlert(`Impossibile avviare il pagamento: ${error.message || error}`, 'error');
+                    }
                     return;
                 }
-                if (addonPendingDeactivation(moduleId)) {
-                    showAlert('Disattivazione già in corso per questo modulo.', 'info');
-                    return;
-                }
-                const addonRec = getStripeAddonRecord(moduleId);
-                const previewDate = addonRec && (addonRec.periodEnd || addonRec.deactivatesAt);
+
                 const confirmed = await showConfirmDialog({
-                    title: 'Disattivare il modulo?',
-                    icon: '⚠️',
-                    variant: 'danger',
-                    confirmLabel: 'Disattiva',
+                    title: 'Attivare abbonamento modulo?',
+                    icon: '🔧',
+                    variant: 'default',
+                    confirmLabel: 'Vai a Stripe',
                     bodyHtml:
                         '<p class="confirm-lead"><strong>' + escapeConfirmHtml(module.name) + '</strong></p>' +
-                        '<div class="confirm-policy">' + escapeConfirmHtml(deactivationPolicyMessage(previewDate)) + '</div>'
+                        '<p>La prova scade il ' + escapeConfirmHtml(formatTrialEndDate(currentTenantData.moduleTrials[moduleId])) + '.</p>' +
+                        '<p>Attiva l\'abbonamento annuale per continuare senza interruzioni.</p>'
                 });
                 if (!confirmed) return;
+                try {
+                    await startStripeCheckout('module', moduleId);
+                } catch (error) {
+                    showAlert(`Impossibile avviare il pagamento: ${error.message || error}`, 'error');
+                }
+                return;
             }
+
+            if (isRevokedPendingAddon(moduleId, 'module')) {
+                await reactivateModule(moduleId);
+                return;
+            }
+            if (addonPendingDeactivation(moduleId)) {
+                showAlert('Disattivazione già in corso per questo modulo.', 'info');
+                return;
+            }
+            const addonRec = getStripeAddonRecord(moduleId);
+            const previewDate = addonRec && (addonRec.periodEnd || addonRec.deactivatesAt);
+            const confirmed = await showConfirmDialog({
+                title: 'Disattivare il modulo?',
+                icon: '⚠️',
+                variant: 'danger',
+                confirmLabel: 'Disattiva',
+                bodyHtml:
+                    '<p class="confirm-lead"><strong>' + escapeConfirmHtml(module.name) + '</strong></p>' +
+                    '<div class="confirm-policy">' + escapeConfirmHtml(deactivationPolicyMessage(previewDate)) + '</div>'
+            });
+            if (!confirmed) return;
 
             try {
                 const cancelFn = getHttpsCallable('cancelStripeAddon');
@@ -2043,18 +2160,8 @@
 
         // Mostra alert
         function showAlert(message, type = 'info') {
-            const container = document.getElementById('alert-container');
-            const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
-            const alert = document.createElement('div');
-            alert.className = `alert ${alertClass}`;
-            alert.style.cssText = 'padding: 12px; border-radius: 6px; margin-bottom: 10px;';
-            alert.textContent = message;
-            container.innerHTML = '';
-            container.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
         }
 
         let confirmDialogResolver = null;
@@ -2251,8 +2358,8 @@
             const isDowngrade = !isUpgrade;
             
             // Calcola differenza prezzo
-            const currentPrice = calculateTotalPrice(currentPlanId, activeModules, activeBundles);
-            const newPrice = calculateTotalPrice(planId, activeModules, activeBundles);
+            const currentPrice = calculateTotalPrice(currentPlanId, paidModules, activeBundles);
+            const newPrice = calculateTotalPrice(planId, paidModules, activeBundles);
             const priceDiff = newPrice - currentPrice;
             
             // Mostra conferma con dettagli
@@ -2289,7 +2396,7 @@
             
             try {
                 // Mantieni tutti i moduli (nessuna limitazione)
-                let modulesToKeep = [...activeModules];
+                let modulesToKeep = [...paidModules];
                 
                 // Calcola nuova data scadenza (1 mese da oggi)
                 const newExpiryDate = new Date();
@@ -2323,8 +2430,7 @@
                 currentTenantData.modules = modulesToKeep;
                 currentTenantData.activeBundles = bundlesToKeep;
                 currentTenantData.expiryDate = Timestamp.fromDate(newExpiryDate);
-                activeModules = modulesToKeep;
-                activeBundles = bundlesToKeep;
+                refreshModuleAccessFromTenant();
                 
                 // Ricalcola e aggiorna UI
                 updateCurrentPlanUI(newPlanConfig, currentTenantData);
@@ -2345,21 +2451,15 @@
             }
         };
     </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- GFV standalone shell: alert toast + Tony gated -->
     <script>
     (function() {
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
       var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
       var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
       var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
       document.body.appendChild(s);
     })();
     </script>

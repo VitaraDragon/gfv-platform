@@ -113,8 +113,11 @@ service cloud.firestore {
     
     // Collection: tenants (globale)
     match /tenants/{tenantId} {
-      // Lettura: solo membri del tenant (pagina pubblica preventivo usa Cloud Functions, non Firestore client)
-      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      // Lettura: membri del tenant, oppure creatore durante/completamento registrazione (prima del doc users)
+      allow read: if isAuthenticated() && (
+        belongsToTenant(tenantId) ||
+        (resource.data.keys().hasAny(['creatoDa']) && resource.data.creatoDa == request.auth.uid)
+      );
       
       // Scrittura: 
       // - Manager/admin del tenant possono scrivere (operazioni normali)

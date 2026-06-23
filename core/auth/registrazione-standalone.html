@@ -567,29 +567,15 @@
                     tenantIdBase = 'azienda_' + Date.now();
                 }
                 
-                // Verifica se esiste già un tenant con questo ID
-                tenantId = tenantIdBase;
-                let suffix = 1;
-                let tenantExists = true;
-                
-                while (tenantExists) {
-                    const tenantCheck = await getDoc(doc(db, 'tenants', tenantId));
-                    if (!tenantCheck.exists()) {
-                        tenantExists = false;
-                    } else {
-                        // Se esiste, aggiungi un suffisso numerico
-                        tenantId = `${tenantIdBase}_${suffix}`;
-                        suffix++;
-
-                    }
-                }
+                // ID tenant univoco senza lettura Firestore (durante registrazione non si può leggere tenants/ altrui)
+                tenantId = `${tenantIdBase}_${firebaseUser.uid.substring(0, 8)}`;
 
 // Crea tenant
                 const tenantData = {
                     nome: aziendaNome,
                     creatoDa: firebaseUser.uid,
                     creatoIl: serverTimestamp(),
-                    piano: 'starter', // Piano base (solo core)
+                    piano: 'free', // Piano freemium (limiti terreni/attività; upgrade da Abbonamento)
                     moduli: [], // Nessun modulo avanzato, solo core base
                     stato: 'attivo'
                 };
@@ -615,20 +601,6 @@
                     throw new Error(`Errore durante creazione tenant: ${tenantError.message || tenantError}`);
                 }
                 
-                // Verifica che il tenant sia stato salvato
-
-                try {
-                    const tenantCheck = await getDoc(doc(db, 'tenants', tenantId));
-                    if (!tenantCheck.exists()) {
-                        console.error('❌ ERRORE: Tenant non trovato dopo il salvataggio!');
-                        throw new Error('Errore: tenant non salvato correttamente - documento non trovato');
-                    }
-
-} catch (verifyError) {
-                    console.error('❌ ERRORE durante verifica tenant:', verifyError);
-                    throw new Error(`Errore durante verifica tenant: ${verifyError.message}`);
-                }
-
                 // Crea documento utente in Firestore
                 // Assicurati che ruoli sia un array esplicito
                 const ruoliArray = ['amministratore'];
@@ -719,6 +691,7 @@ ruoliSalvati = savedData2.ruoli;
                 sessionStorage.setItem('gfv_user_just_registered', 'true');
                 sessionStorage.setItem('gfv_expected_user_id', firebaseUser.uid);
                 sessionStorage.setItem('gfv_expected_tenant_id', tenantId);
+                sessionStorage.setItem('gfv_current_tenant_id', tenantId);
                 
                 // Attendi più tempo per assicurarsi che tutto sia salvato e propagato in Firestore
 
@@ -784,6 +757,9 @@ ruoliSalvati = savedData2.ruoli;
                 } else if (error.code === 'auth/weak-password') {
                     errorMessage = 'Password troppo debole';
                     showError('password', errorMessage);
+                } else if (error.code === 'permission-denied' || (error.message && error.message.includes('permission'))) {
+                    errorMessage = 'Permessi Firestore insufficienti. Se il problema persiste, contatta il supporto.';
+                    showError('email', errorMessage);
                 } else if (error.message && error.message.includes('tenant')) {
                     // Errore relativo al tenant
                     errorMessage = `Errore creazione azienda: ${error.message}`;

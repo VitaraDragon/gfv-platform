@@ -842,6 +842,7 @@
         // Inizializza Firebase con il service condiviso (stesso SDK 11 di dashboard e servizi)
         const {
             initializeFirebase,
+            awaitFirebaseEmulatorConnect,
             getAuthInstance,
             getDb,
             getAppInstance,
@@ -861,7 +862,10 @@
             serverTimestamp,
             Timestamp
         } = await import('./services/firebase-service.js');
+        const { withEmulatorQuery } = await import('./js/firebase-emulator-dev.js');
+        const loginPageUrl = () => withEmulatorQuery('./auth/login-standalone.html');
         initializeFirebase(firebaseConfig);
+        await awaitFirebaseEmulatorConnect();
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -1141,6 +1145,20 @@
                 const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
                 hasVignetoModule = modules.includes('vigneto');
                 hasFruttetoModule = modules.includes('frutteto');
+
+                const rawPlan = tenantData?.plan || tenantData?.piano || 'free';
+                const p = String(rawPlan).trim().toLowerCase();
+                const planId = (p === 'free' || p === 'freemium') ? 'free'
+                    : (p === 'base' ? 'base' : (['starter', 'professional', 'enterprise'].includes(p) ? 'base' : 'base'));
+                window.__gfvSubscriptionPlanId = planId;
+                window.__gfvTenantData = Object.assign({}, tenantData, { plan: planId, piano: planId });
+                window.__gfvModuliAttivi = modules;
+                try {
+                    window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planId } }));
+                } catch (ePlan) { /* ignore */ }
+                if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+                    window.gfvTryLoadTonyWidgetWhenReady();
+                }
                 
                 // Inizializza context Tony con i moduli attivi usando helper
                 if (window.Tony && window.Tony.initContextWithModules) {
@@ -1505,7 +1523,7 @@
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                window.location.href = './auth/login-standalone.html';
+                window.location.href = loginPageUrl();
                 return;
             }
 
@@ -1566,7 +1584,7 @@
         document.getElementById('user-info').parentElement.addEventListener('click', async (e) => {
             if (e.target.id === 'logout-button') {
                 await signOut(auth);
-                window.location.href = './auth/login-standalone.html';
+                window.location.href = loginPageUrl();
             }
         });
 
@@ -1868,20 +1886,15 @@
             });
         }
     </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- GFV standalone shell: alert toast + Tony gated -->
     <script>
     (function() {
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
       var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
       var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
       var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
       document.body.appendChild(s);
     })();
     </script>

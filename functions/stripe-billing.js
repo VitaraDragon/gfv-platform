@@ -8,6 +8,7 @@ const { assertManagerOrAdminForTenant } = require("./email-resend");
 /** Allineare a core/config/subscription-plans.js (STRIPE_PRICE_IDS). */
 const STRIPE_PRICE_IDS = require("./config/stripe-prices.json");
 const BUNDLES_CATALOG = require("./config/bundles-catalog.json");
+const { markModuleTrialConverted, markBundleTrialsConverted } = require("./module-trial");
 const STRIPE_ENV = process.env.STRIPE_ENV || "test";
 
 function getStripeClient(apiKey) {
@@ -131,6 +132,7 @@ async function applyModulePurchaseToTenant(db, tenantId, moduleId, stripeInfo = 
   const updates = {
     modules,
     stripeAddons,
+    moduleTrials: markModuleTrialConverted(existing.moduleTrials, moduleId),
     status: "active",
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
@@ -170,6 +172,7 @@ async function applyBundlePurchaseToTenant(db, tenantId, bundleId, stripeInfo = 
     modules: Array.from(modules),
     activeBundles,
     stripeAddons,
+    moduleTrials: markBundleTrialsConverted(existing.moduleTrials, bundle.modules),
     status: "active",
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };

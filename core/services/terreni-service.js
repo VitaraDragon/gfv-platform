@@ -14,6 +14,7 @@ import {
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { Terreno } from '../models/Terreno.js';
+import { assertCanCreateTerreno } from './plan-limits-service.js';
 
 const COLLECTION_NAME = 'terreni';
 
@@ -147,6 +148,11 @@ export async function createTerreno(terrenoData) {
     const validation = terreno.validate();
     if (!validation.valid) {
       throw new Error(`Validazione fallita: ${validation.errors.join(', ')}`);
+    }
+
+    const limitCheck = await assertCanCreateTerreno(tenantId);
+    if (!limitCheck.ok) {
+      throw new Error(limitCheck.message);
     }
     
     // Salva

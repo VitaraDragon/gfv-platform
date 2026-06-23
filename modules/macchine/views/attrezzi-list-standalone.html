@@ -124,11 +124,12 @@
             const { getCollectionData } = await import('../../../core/services/firebase-service.js');
             const { getAllMacchine, createMacchina } = await import('../../parco-macchine/services/macchine-service.js');
             initializeFirebase(firebaseConfig);
-            (function loadTonyAfterFirebase() {
+            (function loadGfvStandaloneShell() {
                 var base = (window.location.pathname||'').indexOf('/gfv-platform/') >= 0 ? (window.location.origin + '/gfv-platform/core') : '../../../core';
                 var sep = (base && !base.endsWith('/')) ? '/' : '';
-                var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = base + sep + 'styles/tony-widget.css'; document.head.appendChild(l);
-                var s = document.createElement('script'); s.type = 'module'; s.src = base + sep + 'js/tony-widget-standalone.js'; document.body.appendChild(s);
+                var s = document.createElement('script');
+                s.src = base + sep + 'js/gfv-standalone-shell.js';
+                document.body.appendChild(s);
             })();
             const auth = getAuthInstance();
             const db = getDb();
@@ -140,9 +141,8 @@
 
             function escapeHtml(s) { if (s == null) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
             function showAlert(msg, type) {
-                const c = document.getElementById('alert-container');
-                c.innerHTML = '<div class="alert alert-' + type + '">' + escapeHtml(msg) + '</div>';
-                setTimeout(() => c.innerHTML = '', 4000);
+                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
             }
             function statoBadge(s) {
                 const v = (s || '').toLowerCase();

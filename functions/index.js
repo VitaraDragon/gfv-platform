@@ -28,7 +28,10 @@ const {
   handleCancelStripeAddon,
   handleReactivateStripeAddon,
 } = require("./stripe-billing");
-const { handleStripeWebhookRequest } = require("./stripe-webhooks");
+const {
+  handleStartModuleTrial,
+  handleSyncModuleTrials,
+} = require("./module-trial");
 const {
   handleGetMeteoSede,
   handleGetMeteoSedeAvanzato,
@@ -4344,6 +4347,28 @@ exports.reactivateStripeAddon = onCall(
   async (request) => {
     const apiKey = (process.env.STRIPE_SECRET_KEY || "").trim();
     return handleReactivateStripeAddon(db, apiKey, request);
+  }
+);
+
+/**
+ * Callable: avvia prova gratuita modulo (30 giorni, anche piano Free).
+ * Body: { tenantId, moduleId }
+ */
+exports.startModuleTrial = onCall(
+  { region: "europe-west1" },
+  async (request) => {
+    return handleStartModuleTrial(db, request);
+  }
+);
+
+/**
+ * Callable: allinea trial scaduti e restituisce moduli effettivi.
+ * Body: { tenantId }
+ */
+exports.syncModuleTrials = onCall(
+  { region: "europe-west1" },
+  async (request) => {
+    return handleSyncModuleTrials(db, request);
   }
 );
 

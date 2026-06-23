@@ -133,6 +133,77 @@ function getUserTenantsFromData(userData) {
 }
 
 /**
+ * Verifica se userData consente l'accesso a un tenant.
+ * @param {Object|null|undefined} userData
+ * @param {string|null|undefined} tenantId
+ * @returns {boolean}
+ */
+export function userHasAccessToTenant(userData, tenantId) {
+  if (!userData || !tenantId) return false;
+  if (userData.tenantId === tenantId) return true;
+  const membership = userData.tenantMemberships && userData.tenantMemberships[tenantId];
+  if (!membership) return false;
+  return membership.stato == null || membership.stato === 'attivo';
+}
+
+/**
+ * Allinea tenant corrente al documento utente (ignora sessionStorage stale).
+ * @param {Object|null|undefined} userData
+ * @param {{ useExpectedTenant?: boolean }} [options]
+ * @returns {string|null}
+ */
+export function resolveTenantIdForUser(userData, options = {}) {
+  if (!userData) return null;
+
+  const candidates = [];
+  if (typeof sessionStorage !== 'undefined') {
+    const stored = sessionStorage.getItem(STORAGE_KEY_TENANT);
+    if (stored) candidates.push(stored);
+    if (options.useExpectedTenant) {
+      const expected = sessionStorage.getItem('gfv_expected_tenant_id');
+      if (expected) candidates.push(expected);
+    }
+  }
+  if (userData.tenantId) candidates.push(userData.tenantId);
+
+  for (const tenantId of candidates) {
+    if (userHasAccessToTenant(userData, tenantId)) {
+      setCurrentTenantId(tenantId);
+      return tenantId;
+    }
+  }
+
+  if (userData.tenantMemberships && typeof userData.tenantMemberships === 'object') {
+    const entries = Object.entries(userData.tenantMemberships);
+    const active = entries.find(([, m]) => m && (m.stato == null || m.stato === 'attivo'));
+    if (active) {
+      setCurrentTenantId(active[0]);
+      return active[0];
+    }
+    const preferred = entries.find(([, m]) => m && m.tenantIdPredefinito);
+    if (preferred) {
+      setCurrentTenantId(preferred[0]);
+      return preferred[0];
+    }
+    if (entries.length === 1) {
+      setCurrentTenantId(entries[0][0]);
+      return entries[0][0];
+    }
+    if (entries.length > 1) {
+      setCurrentTenantId(entries[0][0]);
+      return entries[0][0];
+    }
+  }
+
+  if (userData.tenantId) {
+    setCurrentTenantId(userData.tenantId);
+    return userData.tenantId;
+  }
+
+  return null;
+}
+
+/**
  * Ottieni ID del tenant corrente
  * Legge da sessionStorage se disponibile, altrimenti usa cache in memoria
  * @returns {string|null} ID del tenant o null se non disponibile
@@ -224,14 +295,14 @@ export function getTenantCollection(collectionName) {
  * Crea un nuovo tenant
  * @param {Object} tenantData - Dati del tenant
  * @param {string} tenantData.name - Nome del tenant/azienda
- * @param {string} tenantData.plan - Piano abbonamento ('starter' | 'professional' | 'enterprise')
+ * @param {string} tenantData.plan - Piano abbonamento ('free' | 'base')
  * @param {Array<string>} tenantData.modules - Array di moduli attivi
  * @param {string} createdBy - ID utente che crea il tenant
  * @returns {Promise<string>} ID del tenant creato
  */
 export async function createTenant(tenantData, createdBy) {
   try {
-    const { name, plan = 'starter', modules = [] } = tenantData;
+    const { name, plan = 'free', modules = [] } = tenantData;
     
     if (!name || name.trim().length === 0) {
       throw new Error('Nome tenant obbligatorio');
@@ -285,13 +356,9 @@ export async function hasModuleAccess(moduleName) {
   if (!tenant) {
     return false;
   }
-  
-  // Modulo 'core' è sempre disponibile
-  if (moduleName === 'core') {
-    return true;
-  }
-  
-  return tenant.modules && tenant.modules.includes(moduleName);
+
+  const { hasModuleAccessFromTenant } = await import('../utils/module-access-resolver.js');
+  return hasModuleAccessFromTenant(tenant, moduleName);
 }
 
 /**
@@ -303,8 +370,9 @@ export async function getAvailableModules() {
   if (!tenant) {
     return ['core']; // Almeno core è sempre disponibile
   }
-  
-  return ['core', ...(tenant.modules || [])];
+
+  const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+  return ['core', ...resolveEffectiveModules(tenant)];
 }
 
 /**
@@ -600,6 +668,8 @@ export default {
   userBelongsToTenant,
   getDefaultTenant,
   clearUserTenantsCache,
-  clearCurrentTenantCache
+  clearCurrentTenantCache,
+  userHasAccessToTenant,
+  resolveTenantIdForUser
 };
 

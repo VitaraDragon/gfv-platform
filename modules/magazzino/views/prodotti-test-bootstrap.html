@@ -220,13 +220,8 @@
         let prodotti = [];
 
         function showAlert(message, type) {
-            const container = document.getElementById('alert-container');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            container.innerHTML = '';
-            container.appendChild(alert);
-            setTimeout(() => alert.remove(), 5000);
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type || 'info'); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
         }
 
         onAuthStateChanged(auth, async (user) => {

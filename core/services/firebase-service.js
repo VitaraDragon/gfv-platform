@@ -56,6 +56,8 @@ let firebaseConfig = null;
 let app = null;
 let db = null;
 let auth = null;
+/** Promise connessione emulator (dev/simulatore); risolta prima di onAuthStateChanged */
+let emulatorConnectPromise = null;
 
 /**
  * Inizializza Firebase con la configurazione fornita
@@ -64,13 +66,25 @@ let auth = null;
 export function initializeFirebase(config) {
   if (app) {
     console.warn('Firebase già inizializzato');
-    return;
+    return { app, db, auth };
   }
   
   firebaseConfig = config;
   app = initializeApp(config);
   db = getFirestore(app);
   auth = getAuth(app);
+
+  if (typeof window !== 'undefined') {
+    emulatorConnectPromise = (async () => {
+      try {
+        const { connectFirebaseEmulatorsIfDev } = await import('../js/firebase-emulator-dev.js');
+        await connectFirebaseEmulatorsIfDev({ getAuthInstance, getDb });
+      } catch (e) {
+        console.warn('[firebase-service] Connessione emulator non disponibile:', e);
+      }
+    })();
+  }
+
   try {
     if (typeof window !== 'undefined') {
       window.__firebaseReady = true;
@@ -78,6 +92,14 @@ export function initializeFirebase(config) {
     }
   } catch (e) { /* ignore */ }
   return { app, db, auth };
+}
+
+/**
+ * Attende connessione emulator se attiva (?emulator=1 / localStorage).
+ * Chiamare dopo initializeFirebase() e prima di onAuthStateChanged.
+ */
+export async function awaitFirebaseEmulatorConnect() {
+  if (emulatorConnectPromise) await emulatorConnectPromise;
 }
 
 /**

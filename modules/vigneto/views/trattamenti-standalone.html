@@ -374,25 +374,8 @@
         }
 
         function showAlert(msg, type) {
-            const c = document.getElementById('alert-container');
-            c.innerHTML = `<div class="alert alert-${type === 'error' ? 'error' : 'success'}">${msg}</div>`;
-            setTimeout(() => { c.innerHTML = ''; }, 5000);
-        }
-
-        /**
-         * @param {string} vignetoId
-         * @param {string} currentTrattamentoId
-         * @param {{ filterLavoroId?: string|null }} [options] - Se impostato (ripresa da lavoro sospeso), solo il trattamento legato a quel lavoro
-         */
-        async function populateTrattamentiPrecedentiSelect(vignetoId, currentTrattamentoId, options = {}) {
-            const sel = document.getElementById('trattamento-precedente-id');
-            if (!sel || !vignetoId) return;
-            const filterLavoroId = options.filterLavoroId || null;
-            const hintEl = document.querySelector('#trattamento-precedente-wrap small');
-            if (hintEl) {
-                hintEl.textContent = filterLavoroId
-                    ? 'Solo il trattamento collegato al lavoro sospeso. Scegli quello elencato: i prodotti si possono compilare automaticamente dal trattamento padre.'
-                    : 'Collega al documento lasciato aperto; utile per tracciabilità e magazzino.';
+                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
             }
             sel.innerHTML = '';
             const opt0 = document.createElement('option');
@@ -1916,21 +1899,15 @@
         }
         init();
     </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- GFV standalone shell: alert toast + Tony gated -->
     <script>
     (function() {
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
       var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
       var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
       var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
       document.body.appendChild(s);
     })();
     </script>

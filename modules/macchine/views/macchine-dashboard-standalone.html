@@ -323,11 +323,12 @@
             const { initializeFirebase, getAuthInstance, getDb, getDoc, doc } = await import('../../../core/services/firebase-service.js');
             const { getCurrentTenantId, getCurrentTenant, setCurrentTenantId, initializeTenantService } = await import('../../../core/services/tenant-service.js');
             initializeFirebase(firebaseConfig);
-            (function loadTonyAfterFirebase() {
+            (function loadGfvStandaloneShell() {
                 var base = (function(){ var p = (window.location.pathname||'').replace(/\\/g,'/'); return p.indexOf('/gfv-platform/') >= 0 ? (window.location.origin + '/gfv-platform/core') : '../../../core'; })();
                 var sep = (base && !base.endsWith('/')) ? '/' : '';
-                var link = document.createElement('link'); link.rel = 'stylesheet'; link.href = base + sep + 'styles/tony-widget.css'; document.head.appendChild(link);
-                var s = document.createElement('script'); s.type = 'module'; s.src = base + sep + 'js/tony-widget-standalone.js'; document.body.appendChild(s);
+                var s = document.createElement('script');
+                s.src = base + sep + 'js/gfv-standalone-shell.js';
+                document.body.appendChild(s);
             })();
             const auth = getAuthInstance();
             const db = getDb();

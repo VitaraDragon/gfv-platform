@@ -4,6 +4,8 @@
  * @module core/js/attivita-utils
  */
 
+import { showStandaloneAlert } from './standalone-alert.js';
+
 // ============================================
 // FUNZIONI UTILITY GENERICHE
 // ============================================
@@ -14,20 +16,7 @@
  * @param {string} type - Tipo alert: 'success', 'error', 'warning', 'info' (default: 'success')
  */
 export function showAlert(message, type = 'success') {
-    const container = document.getElementById('alert-container');
-    if (!container) {
-        console.warn('Container alert non trovato');
-        return;
-    }
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    container.appendChild(alert);
-    
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
+    showStandaloneAlert(message, type);
 }
 
 /**

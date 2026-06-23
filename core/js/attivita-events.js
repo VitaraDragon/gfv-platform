@@ -1149,6 +1149,12 @@ export async function handleSaveAttivita(params) {
             await updateDoc(attivitaRef, attivitaData);
             showAlert('Attività aggiornata con successo!', 'success');
         } else {
+            const { assertCanCreateAttivita } = await import('../services/plan-limits-service.js');
+            const limitCheck = await assertCanCreateAttivita(data, currentTenantId);
+            if (!limitCheck.ok) {
+                showAlert(limitCheck.message, 'error');
+                return;
+            }
             // Crea
             attivitaData.createdAt = serverTimestamp();
             const attivitaDocRef = await addDoc(attivitaCollection, attivitaData);
@@ -1534,6 +1540,13 @@ export async function salvaAttivitaRapida({
         // Aggiungi campi macchina se presenti
         if (macchinaId) attivitaData.macchinaId = macchinaId;
         if (attrezzoId) attivitaData.attrezzoId = attrezzoId;
+
+        const { assertCanCreateAttivita } = await import('../services/plan-limits-service.js');
+        const limitCheck = await assertCanCreateAttivita(data, currentTenantId);
+        if (!limitCheck.ok) {
+            showAlert(limitCheck.message, 'error');
+            return;
+        }
         
         // Salva attività
         const attivitaCollection = getAttivitaCollection(currentTenantId, db);

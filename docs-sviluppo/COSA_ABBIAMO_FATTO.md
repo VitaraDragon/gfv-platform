@@ -1,6 +1,95 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-21 — disattivazione addon accesso immediato + riattivazione fino a scadenza (verifica utente OK).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-23 — GFV Farm Simulator v1.1 (CLI + UI emulator verificati).**
+
+## GFV Farm Simulator v1 — implementazione iniziale (2026-06-23)
+
+**Cartella:** `simulator/` — generatore locale aziende test su Firebase Emulator (Auth + Firestore).
+
+**Implementato:** Fase 0–3 (guard produzione, Admin SDK + `firestore-write`, setup tenant, populate terreni/macchine/vigneti/prodotti, 20 attività su 4 settimane, manifest, report). Template `solo-titolare-viticola`. Script: `npm run sim:emulators`, `sim:smoke`, `sim:run`, `sim:setup`.
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`, `simulator/README.md`.
+
+**Verifica locale:** Java + emulator; smoke/run OK.
+
+## GFV Farm Simulator v1.1 — seed terreni, UI emulator, migrazione (2026-06-23)
+
+**Verifica UI manuale OK:** pagina dev → login → dashboard → terreni (coltura, podere, morfologia) → attività → magazzino sotto scorta.
+
+**Login emulator:** `firebase-service.js` (`awaitFirebaseEmulatorConnect`); dashboard, terreni, attività collegati all’emulator prima di `onAuthStateChanged`. Pagina `core/dev/simulator-dev-standalone.html` (badge Seed completo / Seed vecchio).
+
+**Seed v2 terreni:** `simulator/lib/seed-reference-data.js` (categorie colture, colture catalogo, podere); terreni con `Vite da Vino`, `podere`, `tipoCampo`, `polygonCoords`. Manifest: `seedVersion: 2`.
+
+**Comandi aggiuntivi:** `npm run sim:inspect`, `npm run sim:migrate-terreni` (patch aziende manifest pre-v2 senza rigenerare tutto).
+
+**URL dev:** `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1` (+ `npm start` + `npm run sim:emulators`).
+
+## Freemium E2E verificato + FAB Tony su Base (2026-06-22)
+
+**Verificato manualmente:** piano Free (no FAB, limiti 5 terreni / 30 attività·mese, trial moduli ok) → Checkout Stripe Base → Abbonamento attivo → terreni illimitati → **FAB Tony Guida visibile** su Dashboard/Terreni.
+
+**Fix FAB post-upgrade (build `2026-06-22d`):** `gfv-tony-loader.js` (gate piano + evento `gfv-subscription-plan` + Stripe attivo); `main.js` **inietta sempre il FAB** quando lo script Tony è caricato (gate Free = hide CSS, non UI noop); `applyTonyFreemiumGate` mostra FAB su Base; Dashboard allinea `plan`/`piano` in `__gfvTenantData`.
+
+**Copy limiti:** messaggio upgrade in `plan-limits-service.js` — «Passa al piano Base dalla pagina Abbonamento per terreni e attività senza limiti.»
+
+## UX alert + Tony loader centralizzato (2026-06-22)
+
+**Alert:** `standalone-alert-global.js` + toast fisso (`#gfv-standalone-toast-layer`, z-index 11050) in `responsive-standalone.css`; `gfv-standalone-shell.js` su ~54 pagine standalone; `showAlert` inline e utils (terreni, attività, lavori, macchine) → `window.gfvShowAlert`.
+
+**Tony Free:** `gfv-tony-loader.js` carica `tony-widget-standalone.js` solo se piano ≠ Free (o modulo `tony` in prova/attivo); su Free lo script Tony **non** viene caricato (CF `tonyAsk` già rifiutano Free).
+
+## Freemium — Tony assente su Free (2026-06-22)
+
+**Problema:** su piano Free compariva il FAB Tony (plan non risolto → default Base); chat in errore.
+
+**Fix:** `main.js` skip inject + gate; Abbonamento senza widget Tony; evento `gfv-subscription-plan`; build `2026-06-22a`.
+
+**Trial moduli:** restano attivabili anche su piano Free (30 giorni, un modulo alla volta) — decisione prodotto confermata.
+
+## Freemium — Tony assente su Free + trial moduli solo con Base (2026-06-22) — REVERT trial
+
+Voce trial-only-Base annullata: ripristinato comportamento «prova anche su Free».
+
+## Freemium — registrazione default Free + limiti enforced (2026-06-22)
+
+**Problema:** nuovi tenant partivano con `piano: starter` (normalizzato a Base); limiti Free (5 terreni, 30 attività/mese) erano solo in config.
+
+**Implementazione:**
+
+| Aspetto | Comportamento |
+|---------|----------------|
+| Registrazione | `registrazione-standalone.html` crea tenant con `piano: 'free'` |
+| Normalizzazione | `normalizeSubscriptionPlanId` / `getPlanOperationalLimits` in `subscription-plans.js` |
+| Enforcement | `plan-limits-service.js` — blocca creazione terreno/attività oltre limite (servizi + `terreni-events` / `attivita-events`) |
+| Tony su Free | Dashboard carica widget Tony solo se piano ≠ free (o modulo `tony` in prova/attivo); CF già rifiutano `tonyAsk` su free |
+| Test | `tests/plan-limits.test.js` |
+
+**Nota account esistenti:** tenant già creati con `starter` restano Base finché non si aggiorna `piano`/`plan` in Firestore o si passa da Abbonamento.
+
+## Abbonamento — prova gratuita moduli 30 giorni (2026-06-22)
+
+**Decisione prodotto:** ogni tenant può avviare **una prova gratuita di 30 giorni** per **un modulo a scelta** (scelta utente, non calendario globale), **anche su piano Free**; un solo modulo in prova contemporaneo; una prova per modulo per tenant (non ripetibile).
+
+**Implementazione:**
+
+| Aspetto | Comportamento |
+|---------|----------------|
+| Avvio | Callable `startModuleTrial` (admin/manager); Firestore `moduleTrials.{moduleId}` |
+| Accesso | `resolveEffectiveModules` = `modules[]` pagati + trial attivi; client `tenant-service`, dashboard, bootstrap |
+| Scadenza | Callable `syncModuleTrials` marca `expired`; accesso revocato lazy alla scadenza |
+| Conversione | Checkout Stripe modulo/bundle → `status: converted` su trial |
+| UI | `abbonamento-standalone.html` — card «Prova 30 giorni», badge prova attiva, CTA attiva abbonamento |
+
+| File | Dettaglio |
+|------|-----------|
+| `functions/module-trial.js` | Logica trial + callables |
+| `core/utils/module-access-resolver.js` | Risoluzione accesso client |
+| `functions/index.js` | `startModuleTrial`, `syncModuleTrials` |
+| `tests/module-trial.test.js` | Test regole anti-abuso |
+
+**Deploy:** Cloud Functions + hosting Abbonamento + pagine che usano `standalone-bootstrap` / dashboard.
+
+---
 
 ## Abbonamento — disattivazione: accesso off subito, riattivazione fino a scadenza (2026-06-21)
 

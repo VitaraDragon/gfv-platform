@@ -5,6 +5,7 @@
  */
 
 import { formatDateLikeToItalianLongLocal } from '../../js/date-format-it.js';
+import { showStandaloneAlert } from '../../js/standalone-alert.js';
 
 // ============================================
 // FUNZIONI UTILITY GENERICHE
@@ -16,21 +17,7 @@ import { formatDateLikeToItalianLongLocal } from '../../js/date-format-it.js';
  * @param {string} type - Tipo alert: 'success', 'error', 'warning', 'info' (default: 'info')
  */
 export function showAlert(message, type = 'info') {
-    const container = document.getElementById('alert-container');
-    if (!container) {
-        console.warn('Container alert non trovato');
-        return;
-    }
-    
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    container.innerHTML = '';
-    container.appendChild(alert);
-    
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
+    showStandaloneAlert(message, type);
 }
 
 /**

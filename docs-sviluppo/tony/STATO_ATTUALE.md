@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-06-21 (… **billing v2 Fase 1** — disattivazione: accesso off subito, riattivazione fino a scadenza, webhook deploy; **Tony consigliere moduli+bundle v2** — 2026-06-20; **sessione voce** build **`2026-06-20r`**; …)  
+**Data**: 2026-06-22 (… **freemium E2E + FAB Base post-Stripe** — 2026-06-22d; **alert toast sopra modali** — 2026-06-22; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -27,7 +27,7 @@
 |------------|------|-------|
 | Tony Service | `core/services/tony-service.js` | ✅ **Modello Gemini (2026-06-03):** `gemini-2.5-flash`. ✅ **Streaming (2026-05-25):** `askStream` → CF SSE; fallback `ask()`. ✅ **Robustezza client (2026-06-14):** `_callTonyAskViaHttp` (fetch diretto `tonyAsk`, evita hang SDK); `_preferCallableOverStream` + `sessionStorage` su localhost; SSE con `AbortController` + `_markStreamDisabled`; quick reply terreno client in `ask()` / `askStream`. ✅ **`historyUserMessage`**, `skipUserHistory`, `proactive`, guard magazzino, routing preventivo, blocco ```json → INJECT_FORM_DATA` (dettaglio storico in commit precedenti) |
 | Cloud Function **sendTransactionalEmail** | `functions/index.js` + `functions/email-resend.js` | ✅ Invio **inviti** e **preventivi** via **Resend** (mittente `no-reply@globalfarmview.net`), auth + ruolo manager/admin sul tenant; segreto `RESEND_API_KEY`; client `preventivi-standalone` / `gestisci-utenti-standalone` (2026-04-10). **Link registrazione negli inviti**: `APP_BASE_URL` in `gestisci-utenti-standalone` → GitHub Pages finché l’ERP non è su `globalfarmview.net` (solo landing lì). |
-| **Stripe billing (Abbonamento)** | `functions/stripe-billing.js`, `functions/stripe-webhooks.js`, `functions/index.js` | ✅ **2026-06-20:** Checkout Base/modulo/bundle. ✅ **2026-06-21 Fase 1:** `cancelStripeAddon`, `reactivateStripeAddon`, `stripeWebhook`; UI `abbonamento-standalone.html` (sezione disattivati riattivabili, sync moduli client); secret `STRIPE_WEBHOOK_SECRET`; **D5:** revoca accesso immediata + riattivazione fino a scadenza — verifica OK. Handoff Fasi 2–4: `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`. Test: `tests/stripe-billing-deactivation.test.js` |
+| **Stripe billing (Abbonamento)** | `functions/stripe-billing.js`, `functions/stripe-webhooks.js`, `functions/module-trial.js`, `functions/index.js` | ✅ **2026-06-20:** Checkout Base/modulo/bundle. ✅ **2026-06-21 Fase 1:** `cancelStripeAddon`, `reactivateStripeAddon`, `stripeWebhook`; UI `abbonamento-standalone.html` (sezione disattivati riattivabili, sync moduli client); secret `STRIPE_WEBHOOK_SECRET`; **D5:** revoca accesso immediata + riattivazione fino a scadenza — verifica OK. ✅ **2026-06-22:** **prova gratuita moduli 30 giorni** (`startModuleTrial`, `syncModuleTrials`, `moduleTrials` Firestore, `core/utils/module-access-resolver.js`); anche piano Free; 1 modulo in prova contemporaneo. Handoff Fasi 2–4: `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`. Test: `tests/stripe-billing-deactivation.test.js`, `tests/module-trial.test.js` |
 | Cloud Function **getTonyAudio** | `functions/index.js` | ✅ Google Cloud TTS MP3 base64; voce **`it-IT-Chirp3-HD-Charon`** (Chirp 3 HD — 2026-06-13); env **`TONY_TTS_VOICE`** / **`TONY_TTS_SPEAKING_RATE`** (default **1.05** — 2026-06-19); gate piano Free |
 | Cloud Function tonyAsk | `functions/index.js` | ✅ **Modello Gemini (2026-06-03):** `gemini-2.5-flash`. ✅ **Fase 4 (2026-06-03):** `tryTonyNavQuickReply`, `tryTonyFilterTableQuickReply`, `tryTonyMultiBlockQuickReply` prima di pattern attività/Gemini; log `quickReplyHit` nav/filter_table/riassunto_*/multi_block. ✅ **Fase 3 streaming (2026-05-25):** `handleTonyAskRequest` + `tonyAskStream`; pattern attività; Treasure Map. ✅ Preventivo / tier 2b / meteo / module gate. ✅ **Performance Fase 0–1:** cache Firestore + quick reply A + `PREVENTIVO_LIST_ACTION`. Pipeline: router → build tier → quick A → **nav → filter → multi-blocco** → pattern attività → lavoro entity → meteo → Gemini |
 | Cloud Function tonyAskStream | `functions/tony-ask-stream.js` | ✅ **Fase 3 (2026-05-25):** SSE `POST` + Bearer token; delega a `handleTonyAskRequest` con `stream: true`. ✅ **Fix modello + env (2026-06-03):** `gemini-2.5-flash` — risolve 404 su navigazione/chat; **`GEMINI_API_KEY`** e opz. **`GEMINI_MODEL`** su revisione Cloud Run **`tonyaskstream`**. Canary crea lavoro — `streamUsed=true`, ttfc ~5 s, form lavoro iniettato. |
@@ -140,11 +140,13 @@
 
 | Piano | Tony | Stato |
 |-------|------|-------|
-| Free | Completamente assente (desiderato) | ❌ Non implementato – widget sempre caricato |
-| Base (senza modulo tony) | Tony Guida – solo spiegazioni | ✅ SYSTEM_INSTRUCTION_BASE |
+| Free | Completamente assente (desiderato) | ✅ **`gfv-tony-loader.js`** + **`gfv-standalone-shell.js`** (~54 pagine); script Tony non caricato su Free; CF `tonyAsk`/`getTonyAudio` rifiutano Free |
+| Base (senza modulo tony) | Tony Guida – solo spiegazioni | ✅ FAB + chat verificati post-Stripe (2026-06-22d); `SYSTEM_INSTRUCTION_BASE` |
 | Modulo Tony attivo | Tony Operativo – tutte le funzioni | ✅ SYSTEM_INSTRUCTION_ADVANCED |
 
-**Pagina Abbonamento / Stripe (2026-06-21):** Checkout Base/moduli/bundle ✅; disattivazione **accesso off subito** + **riattivazione gratuita** fino a scadenza pagata (`cancelStripeAddon` / `reactivateStripeAddon`) ✅ verificata; webhook `stripeWebhook` + `STRIPE_WEBHOOK_SECRET` deployati. Tony e moduli gated su `tenant.modules[]` — disattivazione rimuove subito l’accesso; riattivazione ripristina fino a `periodEnd`. Handoff Fasi 2–4 (coterm, converti bundle): `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`.
+**Freemium prodotto (2026-06-22):** registrazione `piano: free`; limiti **5 terreni** / **30 attività·mese** enforced; **prova moduli 30 gg anche su Free**; upgrade Base via Stripe (`fulfillStripeCheckout`) → limiti levati + Tony Guida. Alert errori: toast **`gfvShowAlert`** sopra modali.
+
+**Pagina Abbonamento / Stripe (2026-06-22):** Checkout Base/moduli/bundle ✅ **verificato E2E** (redirect Stripe → fulfill → piano Base in UI); **prova gratuita moduli 30 giorni** (anche Free) ✅; disattivazione accesso off + riattivazione fino a scadenza ✅. Handoff Fasi 2–4: `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`.
 
 ---
 
@@ -157,7 +159,7 @@
 | **Deploy CF terreno entity parser + meteo typo `mercoldì`** | Media | Parser terreno early exit in `functions/index.js` (merge locale 2026-06-14); fix meteo in `meteo-service.js` |
 | **Pattern disamb. client-side — estensioni lavoro** | — | **Completato (2026-06-03):** trattore + attrezzo + intervista campi + tipo 2 livelli + operaio + terreno ambiguo + assign autonomo + **ack tipo stem-only** + save locale; canary **3b-C13** E2E PASS; ack E2E **PASS** (Larghetta → «dobbiamo trinciare» → Luca/fabbri → save, 0 CF follow-up). **Raffinamenti 2026-06-14:** durata «un giorno», terreno multi-token, no auto-pick da cognome operaio, correzione «il terreno è …»; E2E vocale completo Sangiovese pannelli → erpicatura → save. **Escluso:** sottocategoria/tipo lavoro — deterministica da coltura terreno. Vedi §14.4–§14.7 `TONY_DECISIONI_E_REQUISITI.md` |
 | summarySottoScorta in ctx.azienda | — | Implementato (2026-04-11); deploy `functions` necessario |
-| Tony assente in freemium | Bassa | Se si vuole nascondere widget in plan free |
+| Tony assente in freemium | — | ✅ Loader + shell (2026-06-22d); verifica E2E Free/Base ok; eventuali pagine che includono ancora `tony-widget-standalone.js` senza shell = debito minore |
 | segnala-guasto-form, macchina-form INJECT | Bassa | Subagent Meccanico |
 | MOSTRA_GRAFICO | Bassa | |
 | Proattività "Ho notato X, vuoi che...?" | Media | Fase 6 |

@@ -4,6 +4,8 @@
  * @module core/admin/js/gestione-lavori-utils
  */
 
+import { showStandaloneAlert } from '../../js/standalone-alert.js';
+
 // ============================================
 // FUNZIONI UTILITY GENERICHE
 // ============================================
@@ -14,21 +16,7 @@
  * @param {string} type - Tipo alert: 'success', 'error', 'warning', 'info' (default: 'info')
  */
 export function showAlert(message, type = 'info') {
-    const container = document.getElementById('alert-container');
-    if (!container) {
-        console.warn('Container alert non trovato');
-        return;
-    }
-    
-    const alertClass = `alert-${type}`;
-    const alert = document.createElement('div');
-    alert.className = `alert ${alertClass}`;
-    alert.textContent = message;
-    container.appendChild(alert);
-    
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
+    showStandaloneAlert(message, type);
 }
 
 /**

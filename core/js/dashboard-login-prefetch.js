@@ -45,7 +45,9 @@ export function startDashboardPrefetchFromLogin(db, tenantId) {
   void (async () => {
     try {
       const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
-      const modules = tenantDoc.exists() ? tenantDoc.data().modules || [] : [];
+      const tenantData = tenantDoc.exists() ? tenantDoc.data() : {};
+      const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+      const modules = resolveEffectiveModules(tenantData);
       const { prefetchDashboardCountsSnapshot } = await import('./dashboard-counts-snapshot.js');
       await prefetchDashboardCountsSnapshot(tenantId, buildCountsCtx(modules), buildDashboardPrefetchDependencies(db));
     } catch (e) {

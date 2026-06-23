@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev — Aziende simulatore GFV</title>
+  <link rel="stylesheet" href="../styles/responsive-standalone.css">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f5; margin: 0; padding: 24px; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { color: #2E8B57; margin-bottom: 8px; }
+    .hint { color: #666; font-size: 14px; margin-bottom: 24px; }
+    .card { background: #fff; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .card.card-new { border: 2px solid #2E8B57; }
+    .card.card-old { opacity: 0.85; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+    .badge-new { background: #d4edda; color: #155724; }
+    .badge-old { background: #fff3cd; color: #856404; }
+    .card h2 { margin: 0 0 4px; font-size: 18px; }
+    .meta { font-size: 13px; color: #555; margin-bottom: 12px; word-break: break-all; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    button, a.btn { border: none; border-radius: 8px; padding: 10px 14px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary { background: #2E8B57; color: #fff; }
+    .btn-secondary { background: #e8f5ee; color: #2E8B57; }
+    .status { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 14px; display: none; }
+    .status.show { display: block; }
+    .status.ok { background: #d4edda; color: #155724; }
+    .status.err { background: #f8d7da; color: #721c24; }
+    .empty { padding: 24px; text-align: center; color: #888; }
+  </style>
+  <script>try{localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+  <script type="module" src="../js/standalone-bootstrap.js" data-config-base=".."></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Aziende simulatore (emulator)</h1>
+    <p class="hint">Richiede <code>npm run sim:emulators</code> attivo. Password: <strong>SimGFV2026!</strong><br>
+    Usa le aziende con badge <strong>Seed completo</strong>. Per aggiornare quelle vecchie: <code>npm run sim:migrate-terreni</code></p>
+    <div id="list" class="empty">Caricamento manifest…</div>
+    <div id="status" class="status"></div>
+  </div>
+  <script type="module">
+    const PASSWORD = 'SimGFV2026!';
+    const statusEl = document.getElementById('status');
+    const listEl = document.getElementById('list');
+
+    function showStatus(msg, ok) {
+      statusEl.textContent = msg;
+      statusEl.className = 'status show ' + (ok ? 'ok' : 'err');
+    }
+
+    function page(path) {
+      const q = localStorage.getItem('gfv_firebase_emulator') === '1' ? '?emulator=1' : '';
+      return path + q;
+    }
+
+    async function enterCompany(entry) {
+      await window.GFVStandaloneReady;
+      const firebaseService = await import('../services/firebase-service.js');
+      const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+      const auth = firebaseService.getAuthInstance();
+      const { setCurrentTenantId } = await import('../services/tenant-service.js');
+
+      showStatus('Accesso in corso…', true);
+      await signInWithEmailAndPassword(auth, entry.email, PASSWORD);
+      setCurrentTenantId(entry.tenantId);
+      sessionStorage.setItem('gfv_current_tenant_id', entry.tenantId);
+      sessionStorage.setItem('gfv_expected_user_id', entry.userId);
+      showStatus('Accesso OK — ' + entry.aziendaNome, true);
+    }
+
+    async function loadManifest() {
+      localStorage.setItem('gfv_firebase_emulator', '1');
+      const res = await fetch('../../simulator/manifest.json');
+      if (!res.ok) throw new Error('manifest non trovato — esegui npm run sim:run');
+      return res.json();
+    }
+
+    const SEED_VERSION = 2;
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      try {
+        return new Date(iso).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
+      } catch (_) {
+        return iso;
+      }
+    }
+
+    function render(entries) {
+      if (!entries.length) {
+        listEl.innerHTML = '<p class="empty">Nessuna azienda in manifest. Esegui <code>npm run sim:run</code>.</p>';
+        return;
+      }
+      const sorted = [...entries].sort((a, b) => {
+        const ta = Date.parse(a.createdAt || 0);
+        const tb = Date.parse(b.createdAt || 0);
+        return tb - ta;
+      });
+      listEl.innerHTML = '';
+      sorted.forEach((entry, index) => {
+        const isNewSeed = (entry.seedVersion || 0) >= SEED_VERSION;
+        const card = document.createElement('div');
+        card.className = 'card' + (index === 0 && isNewSeed ? ' card-new' : (!isNewSeed ? ' card-old' : ''));
+        const badge = isNewSeed
+          ? '<span class="badge badge-new">Seed completo</span>'
+          : '<span class="badge badge-old">Seed vecchio — migra o rigenera</span>';
+        card.innerHTML = `
+          <h2>${entry.aziendaNome}${badge}</h2>
+          <div class="meta">${entry.email}<br>Tenant: ${entry.tenantId}<br>Creato: ${formatDate(entry.createdAt)}</div>
+          <div class="actions"></div>
+        `;
+        const actions = card.querySelector('.actions');
+
+        const btnLogin = document.createElement('button');
+        btnLogin.className = 'btn-primary';
+        btnLogin.textContent = 'Entra (dashboard)';
+        btnLogin.onclick = async () => {
+          try {
+            await enterCompany(entry);
+            window.location.href = page('../dashboard-standalone.html');
+          } catch (e) {
+            showStatus(e.message || String(e), false);
+          }
+        };
+
+        const links = [
+          ['Terreni', '../terreni-standalone.html'],
+          ['Attività', '../attivita-standalone.html'],
+          ['Login classico', '../auth/login-standalone.html']
+        ];
+        actions.appendChild(btnLogin);
+        links.forEach(([label, href]) => {
+          const a = document.createElement('a');
+          a.className = 'btn-secondary';
+          a.textContent = label;
+          a.href = '#';
+          a.onclick = async (ev) => {
+            ev.preventDefault();
+            try {
+              await enterCompany(entry);
+              window.location.href = page(href);
+            } catch (e) {
+              showStatus(e.message || String(e), false);
+            }
+          };
+          actions.appendChild(a);
+        });
+        listEl.appendChild(card);
+      });
+    }
+
+    (async () => {
+      try {
+        await window.GFVStandaloneReady;
+        const entries = await loadManifest();
+        render(entries);
+      } catch (e) {
+        listEl.innerHTML = '';
+        showStatus(e.message || String(e), false);
+      }
+    })();
+  </script>
+</body>
+</html>

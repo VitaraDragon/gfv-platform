@@ -44,7 +44,7 @@ import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamin
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-21a';
+export const TONY_CLIENT_BUILD = '2026-06-22d';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -5050,8 +5050,49 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     // Variabile globale per tracciare se il modulo Tony Avanzato è attivo
     var isTonyAdvancedActive = false;
 
+    function resolvePlanForWidgetGate() {
+        var fromWindow = null;
+        var fromTenant = null;
+        try {
+            if (window.__gfvSubscriptionPlanId != null && window.__gfvSubscriptionPlanId !== '') {
+                fromWindow = normalizeTonyPlanClient(window.__gfvSubscriptionPlanId);
+            }
+            var td = window.__gfvTenantData;
+            if (td && (td.plan || td.piano)) {
+                fromTenant = normalizeTonyPlanClient(td.plan || td.piano);
+            }
+            if (fromTenant !== 'base' && fromWindow !== 'base' && td && td.stripeSubscriptionId) {
+                var st = td.status ? String(td.status).toLowerCase() : 'active';
+                if (st === 'active' || st === 'trialing' || st === 'expiring') {
+                    return 'base';
+                }
+            }
+        } catch (eGate) {}
+        if (fromTenant === 'base' || fromWindow === 'base') return 'base';
+        if (fromTenant === 'free' || fromWindow === 'free') return 'free';
+        return fromWindow || fromTenant || null;
+    }
+
+    var _tonyNoopUi = {
+        appendMessage: function() {},
+        removeTyping: function() {},
+        showMessageInChat: function() {},
+        setSendHandler: function() {},
+        setCloseHandler: function() {},
+        getMessagesEl: function() { return null; },
+        getInputEl: function() { return null; }
+    };
+
+    var _initialPlanGate = resolvePlanForWidgetGate();
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
+    window.__tonyFreemiumBlocked = _initialPlanGate === 'free';
+    if (_initialPlanGate === 'free') {
+        var _fabHideInit = document.getElementById('tony-fab');
+        var _panelHideInit = document.getElementById('tony-panel');
+        if (_fabHideInit) _fabHideInit.style.display = 'none';
+        if (_panelHideInit) _panelHideInit.style.display = 'none';
+    }
 
     /**
      * Profilo campo: blocco APRI_PAGINA / OPEN_MODAL — messaggio in chat (e TTS), senza alert nativo.
@@ -8196,36 +8237,38 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     }
                     var _tonyWidgetInitTime = Date.now();
 
-                    function normalizeTonyPlanClient(raw) {
-                        if (raw == null || raw === '') return 'base';
-                        var p = String(raw).trim().toLowerCase();
-                        if (p === 'free' || p === 'freemium') return 'free';
-                        if (p === 'starter' || p === 'professional' || p === 'enterprise') return 'base';
-                        return p === 'base' ? 'base' : 'base';
-                    }
+    function normalizeTonyPlanClient(raw) {
+        if (raw == null || raw === '') return null;
+        var p = String(raw).trim().toLowerCase();
+        if (p === 'free' || p === 'freemium') return 'free';
+        if (p === 'starter' || p === 'professional' || p === 'enterprise') return 'base';
+        return p === 'base' ? 'base' : 'base';
+    }
                     function getTonyResolvedPlanId() {
                         try {
-                            if (window.__gfvSubscriptionPlanId != null && window.__gfvSubscriptionPlanId !== '') {
-                                return normalizeTonyPlanClient(window.__gfvSubscriptionPlanId);
-                            }
+                            var fromGate = resolvePlanForWidgetGate();
+                            var fromDash = null;
                             var d = Tony.context && Tony.context.dashboard;
-                            if (d && (d.plan || d.piano)) return normalizeTonyPlanClient(d.plan || d.piano);
-                            var t = window.__gfvTenantData;
-                            if (t && (t.plan || t.piano)) return normalizeTonyPlanClient(t.plan || t.piano);
+                            if (d && (d.plan || d.piano)) fromDash = normalizeTonyPlanClient(d.plan || d.piano);
+                            if (fromGate === 'base' || fromDash === 'base') return 'base';
+                            if (fromGate === 'free' || fromDash === 'free') return 'free';
+                            return fromGate || fromDash || null;
                         } catch (e) {}
                         return null;
                     }
                     function applyTonyFreemiumGate() {
                         var plan = getTonyResolvedPlanId();
-                        if (plan !== 'free') {
-                            window.__tonyFreemiumBlocked = false;
-                            return;
-                        }
-                        window.__tonyFreemiumBlocked = true;
                         var fabEl = document.getElementById('tony-fab');
                         var panelEl = document.getElementById('tony-panel');
-                        if (fabEl) fabEl.style.display = 'none';
-                        if (panelEl) panelEl.style.display = 'none';
+                        if (plan === 'free') {
+                            window.__tonyFreemiumBlocked = true;
+                            if (fabEl) fabEl.style.display = 'none';
+                            if (panelEl) panelEl.style.display = 'none';
+                            return;
+                        }
+                        window.__tonyFreemiumBlocked = false;
+                        if (fabEl) fabEl.style.display = '';
+                        if (panelEl && panelEl.classList.contains('open')) panelEl.style.display = '';
                     }
 
                     window.setTonyContext = function(payload) {
@@ -8259,9 +8302,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         try {
                             var td = window.__gfvTenantData;
                             if (td && window.Tony && typeof window.Tony.setContext === 'function') {
-                                var pid = normalizeTonyPlanClient(td.plan || td.piano || 'base');
-                                window.__gfvSubscriptionPlanId = pid;
-                                window.Tony.setContext('dashboard', { plan: pid, piano: pid });
+                                var pid = (td.plan || td.piano) ? normalizeTonyPlanClient(td.plan || td.piano) : null;
+                                if (pid) {
+                                    window.__gfvSubscriptionPlanId = pid;
+                                    window.Tony.setContext('dashboard', { plan: pid, piano: pid });
+                                    applyTonyFreemiumGate();
+                                }
                             }
                             var moduliBoot = null;
                             if (window.__gfvTenantData && Array.isArray(window.__gfvTenantData.modules)) {
@@ -8278,6 +8324,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             }
                         } catch (e) {}
                     })();
+                    try { applyTonyFreemiumGate(); } catch (eGateInit) {}
 
                     var checkTonyModuleStatus = function(force) {
                         var now = Date.now();

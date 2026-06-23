@@ -1331,35 +1331,19 @@
 
             // Funzione showAlert
             function showAlert(message, type) {
-                const container = document.getElementById('alert-container');
-                const alert = document.createElement('div');
-                alert.className = `alert alert-${type} show`;
-                alert.textContent = message;
-                container.innerHTML = '';
-                container.appendChild(alert);
-                
-                setTimeout(() => {
-                    alert.classList.remove('show');
-                    setTimeout(() => container.removeChild(alert), 300);
-                }, 5000);
-            }
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type || 'info'); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
         }
     </script>
-    <!-- Tony widget (assistente su tutte le pagine) -->
-    <!-- Tony widget (assistente su tutte le pagine) -->
+    <!-- GFV standalone shell: alert toast + Tony gated -->
     <script>
     (function() {
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
       var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
       var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-      document.head.appendChild(link);
       var s = document.createElement('script');
-      s.type = 'module';
-      s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js';
+      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
       document.body.appendChild(s);
     })();
     </script>
