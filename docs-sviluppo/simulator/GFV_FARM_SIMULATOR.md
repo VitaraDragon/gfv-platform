@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.1  
-**Data:** 2026-06-23  
-**Stato:** v1 implementato — smoke/run OK; verifica UI emulator OK (login dev, terreni seed v2)  
+**Versione:** 1.4  
+**Data:** 2026-06-24  
+**Stato:** v1.4 — batch multi-azienda + backfill + auto-login UI + magazzino/tracciabilità verificati  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -140,9 +140,10 @@ Il simulatore v1 scrive dati via **Admin SDK**; la verifica manuale in browser u
 
 | Componente | Ruolo |
 | ---------- | ----- |
-| `core/js/firebase-emulator-dev.js` | Attivo con `?emulator=1` o `localStorage gfv_firebase_emulator=1` |
-| `core/services/firebase-service.js` | `awaitFirebaseEmulatorConnect()` **prima** di `onAuthStateChanged` |
-| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, pulsante **Entra**, link Terreni/Attività |
+| `core/js/firebase-emulator-dev.js` | Connessione **sincrona** Auth/Firestore emulator (`?emulator=1` o `localStorage gfv_firebase_emulator=1`) |
+| `core/services/firebase-service.js` | `awaitFirebaseEmulatorConnect()` + `awaitAuthStateReady()` prima del controllo auth |
+| `core/js/simulator-browser-auth.js` | Auto-login cross-page da pagina dev (`storeSimPendingLogin` / `ensureSimulatorSession`) |
+| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, **Entra**, link Terreni / Attività / Movimenti |
 | `npm start` | `http-server` porta **8000** (richiesto per servire HTML + manifest) |
 
 **URL pagina dev:**
@@ -154,6 +155,9 @@ Il simulatore v1 scrive dati via **Admin SDK**; la verifica manuale in browser u
 1. `npm run sim:emulators`
 2. `npm start`
 3. Aprire URL dev → **Entra** su azienda con badge **Seed completo**
+4. Verificare **Magazzino → Movimenti** (link rapido in pagina dev): uscite collegate ad attività, tracciabilità OK
+
+**Auto-login (v1.4):** la pagina dev salva credenziali in `sessionStorage`; le pagine target rifanno login sull’emulator se la sessione non persiste al cambio URL. Connessione emulator avviene **subito** dopo `getAuth()` (no race con Auth produzione).
 
 **Limiti noti UI locale:**
 
@@ -184,21 +188,31 @@ simulator/
     seed-reference-data.js           # categorie colture, colture, poderi (seed v2)
     report.js                        # resoconto testuale
     manifest.js                      # append manifest + seedVersion
+    tenant-inspect.js                # inspectTenantSeed (seed v2)
+    cleanup-tenant.js                # deleteSimulatedTenant
+    run-simulation.js                # runFullSimulation
+    emulator-available.js            # isEmulatorAvailable
   phases/
     01-setup-tenant.js               # tenant, utente, moduli, piano
     02-populate-assets.js            # ref data + terreni, macchine, vigneti, prodotti
     03-simulate-attivita.js          # 4 settimane diario attività
+    04-simulate-magazzino.js         # scarichi magazzino su trattamenti/concimazioni
   orchestrator.js                    # entry point
   smoke-test.js                      # Fase 0
   inspect-tenant.js                  # ispezione terreni su emulator
-  migrate-terreni-seed.js            # patch terreni manifest pre seed v2
+  integration-test.js                # test integrazione CLI (sim:test)
+  run-batch.js                     # N aziende in sequenza (sim:run:batch)
+  backfill-existing.js             # aggiorna manifest senza nuovo tenant
+  cleanup.js                         # rimuove tenant sim_* da manifest/emulator
+  refresh-dates.js                   # ricalcolo date attività/movimenti
   manifest.json                      # elenco run/tenant creati (append)
 
 core/dev/
   simulator-dev-standalone.html      # UI: elenco aziende + Entra (emulator)
 
 core/js/
-  firebase-emulator-dev.js           # ?emulator=1 / localStorage → Auth+Firestore emulator
+  firebase-emulator-dev.js           # connessione sync emulator
+  simulator-browser-auth.js          # auto-login da pagina dev
 
 docs-sviluppo/simulator/
   GFV_FARM_SIMULATOR.md              # questo file
@@ -210,10 +224,16 @@ Script npm (root `package.json`):
 "sim:emulators": "firebase emulators:start --only auth,firestore",
 "sim:smoke": "node simulator/smoke-test.js",
 "sim:run": "node simulator/orchestrator.js",
+"sim:run:batch": "node simulator/run-batch.js [--count=N] [--verbose]",
 "sim:run:verbose": "node simulator/orchestrator.js --verbose",
 "sim:setup": "node simulator/orchestrator.js --setup-only",
+"sim:backfill": "node simulator/backfill-existing.js",
 "sim:inspect": "node simulator/inspect-tenant.js [tenantId]",
-"sim:migrate-terreni": "node simulator/migrate-terreni-seed.js"
+"sim:refresh-dates": "node simulator/refresh-dates.js [tenantId] | --all",
+"sim:migrate-terreni": "node simulator/migrate-terreni-seed.js",
+"sim:cleanup": "node simulator/cleanup.js [--keep N] [--dry-run]",
+"sim:test": "node simulator/integration-test.js",
+"sim:test:vitest": "vitest run tests/simulator/solo-titolare-viticola.test.js"
 ```
 
 ---
@@ -334,7 +354,7 @@ Ordine consigliato (rispetta dipendenze):
 4. **Prodotti magazzino** — fitosanitari, concimi, materiali vigneto
   - Riferimento: `modules/magazzino/services/prodotti-service.js`, `Prodotto.js`
 
-**v1:** popolamento anagrafiche; **non** obbligatorio creare movimenti magazzino né potature/trattamenti vigneto se non necessari al criterio successo (attività diario). Estensione v1.1 opzionale.
+**v1:** popolamento anagrafiche + **fase 4 magazzino** (12 uscite collegate alle attività fitosanitarie/concimazione). Potature/trattamenti vigneto modulo restano fuori scope v1.
 
 ### Fase 3 — Simula 4 settimane (`03-simulate-attivita.js`)
 
@@ -362,7 +382,14 @@ Campi minimi (`core/models/Attivita.js`):
 
 **Tipi lavoro suggeriti v1** (rotazione): Potatura, Trattamento, Erpicatura, Concimazione, Controllo fitosanitario — verificare valori accettati dall’app (liste/categorie in `core/services/categorie-service.js`, `tipi-lavoro-service.js`).
 
-### Fase 4 — Report (`lib/report.js`)
+### Fase 4 — Magazzino (`04-simulate-magazzino.js`)
+
+- Scarichi **uscita** in `movimentiMagazzino` per attività **Trattamento**, **Concimazione**, **Controllo fitosanitario**
+- Collegamento `attivitaId`, data allineata all’attività
+- Aggiornamento `giacenza` su `prodotti` (campo canonico app, non `quantitaDisponibile`)
+- Obiettivo demo: almeno un prodotto **sotto scorta minima** dopo i run
+
+### Fase 5 — Report (`lib/report.js`)
 
 Output esempio:
 
@@ -411,6 +438,7 @@ In caso di errore: **prima eccezione**, fase, entità, messaggio; exit code 1.
 | Security rules       | `firestore.rules` (emulator usa le stesse)                                  |
 | Codice simulatore    | `simulator/` (README, orchestrator, phases, inspect, migrate)               |
 | Pagina dev emulator  | `core/dev/simulator-dev-standalone.html`                                      |
+| Auto-login emulator    | `core/js/simulator-browser-auth.js`                                           |
 | Connessione emulator | `core/js/firebase-emulator-dev.js`, `firebase-service.js`                     |
 
 
@@ -463,13 +491,16 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 
 **Done quando:** criterio successo §2 soddisfatto.
 
-### Fase 4 — Consolidamento (parziale) 🟡
+### Fase 4 — Consolidamento ✅
 
-- [x] Pagina dev browser + connessione emulator (`simulator-dev-standalone.html`, `awaitFirebaseEmulatorConnect`)
-- [x] `sim:inspect`, `sim:migrate-terreni`
-- [x] Verifica UI manuale: login dev → dashboard → terreni (campi popolati) → attività → magazzino
+- [x] Pagina dev browser + connessione emulator (`simulator-dev-standalone.html`, connessione sync + `awaitAuthStateReady`)
+- [x] Auto-login cross-page (`simulator-browser-auth.js`) su dashboard, terreni, attività, movimenti, bootstrap
+- [x] `sim:inspect`, `sim:migrate-terreni`, `sim:cleanup`, `sim:test`, `sim:refresh-dates`, **`sim:backfill`**, **`sim:run:batch`**
+- [x] Fase magazzino (movimenti + giacenza + sotto scorta + tracciabilità attività)
+- [x] Test integrazione `tests/simulator/solo-titolare-viticola.test.js` (+ `npm run sim:test:vitest`)
+- [x] Verifica UI manuale: login dev → dashboard → terreni → attività → magazzino (anagrafica, uscite, tracciabilità)
+- [x] Batch **10 aziende** su emulator: 10/10 OK (4 terreni, 20 attività, 12 movimenti ciascuna)
 - [x] Voce in `docs-sviluppo/COSA_ABBIAMO_FATTO.md`
-- [ ] Test integrazione `tests/simulator/solo-titolare-viticola.test.js` (opzionale)
 
 ---
 
@@ -491,7 +522,8 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 
 | Versione | Contenuto                                                     |
 | -------- | ------------------------------------------------------------- |
-| **v1.1** | Potature/trattamenti vigneto; movimenti magazzino             |
+| **v1.1** | ~~Movimenti magazzino~~ (implementato v1.3); potature/trattamenti vigneto |
+| **v1.4** | ~~Batch multi-azienda (`sim:run:batch`)~~; ~~backfill manifest (`sim:backfill`)~~ |
 | **v2**   | Scenario «Mario Rossi» con operai/squadre (modulo manodopera) |
 | **v2**   | Template conto terzi, frutteto, mista, solo titolare oliveto… |
 | **v3**   | Errori battitura/concetto + recovery                          |
@@ -509,10 +541,11 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | --- | ---------------------------------- | ---------------------------------------------------------------- |
 | 1   | Password utenti sim in emulator    | Fissa `SimGFV2026!` documentata in README locale (solo emulator) |
 | 2   | Weekend nelle 4 settimane          | Esclusi — solo lun–ven                                           |
-| 3   | Movimenti magazzino in v1          | No — solo anagrafica prodotti                                    |
+| 3   | Movimenti magazzino in v1          | **Sì** — fase 4: 12 uscite + tracciabilità attività (v1.3+) |
 | 4   | Potature/trattamenti vigneto in v1 | No — solo attività diario core                                   |
 | 5   | Uso CI                             | Posticipato — run manuale locale                                 |
-| 6   | `sim:cleanup`                      | v2 — comando che elimina tenant `sim_`* da manifest              |
+| 6   | `sim:cleanup`                      | **Implementato** v1.2 — `--keep N`, `--dry-run`                  |
+| 7   | Run batch N aziende                | **Implementato** v1.4 — `sim:run:batch --count=N`                |
 
 
 L’utente ha indicato che il punto 8 (uso test vs demo vs CI) non è ancora deciso; **persistenza per riuso** è confermata — il manifest traccia le aziende create.
@@ -529,12 +562,23 @@ npm run sim:emulators
 
 # Terminale 2
 npm run sim:smoke          # opzionale — sanity check
-npm run sim:run            # nuova azienda completa
+npm run sim:run            # nuova azienda completa (1)
+npm run sim:run:batch -- --count=10   # 10 aziende in sequenza
+npm run sim:backfill       # aggiorna tutte le entry del manifest (no nuovo tenant)
 npm run sim:inspect        # ultima azienda in manifest — verifica terreni
 npm run sim:migrate-terreni  # patch terreni vecchi nel manifest (seed pre-v2)
+npm run sim:refresh-dates    # ricalcola date attività/movimenti (ultima azienda)
+npm run sim:refresh-dates -- --all
+npm run sim:cleanup        # rimuove tutte le aziende del manifest
+npm run sim:cleanup -- --keep 10  # mantiene le ultime 10
+npm run sim:cleanup -- --dry-run
+npm run sim:test           # test integrazione (richiede emulator)
+npm run sim:test:vitest    # stesso test via vitest
 ```
 
-Verificare su Emulator UI (`http://127.0.0.1:4000`): Auth user, tenant `sim_*`, collections terreni/macchine/vigneti/prodotti/attivita.
+**Audit rapido manifest (tutte le aziende):** loop `sim:inspect` su ogni `tenantId` in `manifest.json`, oppure ispezionare conteggi attesi — 4 terreni, 20 attività, 12 movimenti, seed terreni v2 OK.
+
+Verificare su Emulator UI (`http://127.0.0.1:4000`): Auth user, tenant `sim_*`, collections terreni/macchine/vigneti/prodotti/attivita/movimentiMagazzino.
 
 **Ispezione terreno (seed v2 OK):** ogni terreno deve avere `coltura: "Vite da Vino"`, `podere`, `tipoCampo`, `polygonCoords` (≥3 vertici).
 
@@ -547,13 +591,14 @@ npm start
 
 Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 
-- Scegli azienda con badge **Seed completo** (o esegui migrate prima)
-- **Entra (dashboard)** → resta loggato (non redirect login)
-- **Terreni** → modifica terreno: coltura, podere, morfologia valorizzati
-- **Attività** → ~20 record; **Magazzino** → prodotti con scorta sotto minimo
+- Scegli azienda con badge **Seed completo** (o esegui migrate/backfill prima)
+- **Entra (dashboard)** → resta loggato (auto-login emulator)
+- **Terreni** → coltura, podere, morfologia valorizzati
+- **Attività** → ~20 record
+- **Movimenti** (link dev o modulo magazzino) → 12 uscite, tracciabilità prodotto↔attività; prodotti con eventuale sotto scorta
 
 Password emulator: **`SimGFV2026!`**
 
 ---
 
-*Fine guida v1.1 — prossimo agente: estensioni v1.1 (§11) o test integrazione opzionale.*
+*Fine guida v1.4 — prossimo agente: nuovi template (§11) o CI opzionale.*

@@ -1299,6 +1299,7 @@
         const {
             initializeFirebase,
             awaitFirebaseEmulatorConnect,
+            awaitAuthStateReady,
             getAuthInstance,
             getDb,
             getAppInstance,
@@ -1320,8 +1321,11 @@
         const loginPageUrl = () => withEmulatorQuery('./auth/login-standalone.html');
         initializeFirebase(firebaseConfig);
         await awaitFirebaseEmulatorConnect();
+        await awaitAuthStateReady();
         const app = getAppInstance();
         const auth = getAuthInstance();
+        const { ensureSimulatorSession } = await import('./js/simulator-browser-auth.js');
+        await ensureSimulatorSession(auth);
         const db = getDb();
 
         // ============================================
@@ -1503,6 +1507,13 @@
         let currentUserData = null;
         
         onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                await awaitAuthStateReady();
+                user = auth.currentUser;
+            }
+            if (!user) {
+                user = await ensureSimulatorSession(auth);
+            }
             if (!user) {
                 window.location.href = loginPageUrl();
                 return;

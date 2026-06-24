@@ -21,11 +21,19 @@ export function formatSuccessReport(result) {
     `  attrezzi: ${result.counts.attrezzi}`,
     `  vigneti: ${result.counts.vigneti}`,
     `  prodotti: ${result.counts.prodotti}`,
-    `  attività: ${result.counts.attivita}${result.dateRange ? ` (${result.dateRange.from} → ${result.dateRange.to})` : ''}`,
+    `  attività: ${result.counts.attivita}${result.dateRange ? ` (${result.dateRange.from} → ${result.dateRange.to})` : ''}`
+  ];
+  if (result.counts.movimentiMagazzino != null) {
+    lines.push(`  movimenti magazzino: ${result.counts.movimentiMagazzino}`);
+  }
+  if (result.counts.prodottiSottoScorta != null) {
+    lines.push(`  prodotti sotto scorta: ${result.counts.prodottiSottoScorta}`);
+  }
+  lines.push(
     '',
     `Durata: ${(result.durationMs / 1000).toFixed(1)}s`,
     'Manifest: simulator/manifest.json'
-  ];
+  );
   return lines.join('\n');
 }
 

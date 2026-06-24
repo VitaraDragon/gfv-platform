@@ -109,6 +109,14 @@
         if (typeof firebaseService.awaitFirebaseEmulatorConnect === 'function') {
           await firebaseService.awaitFirebaseEmulatorConnect();
         }
+        if (typeof firebaseService.awaitAuthStateReady === 'function') {
+          await firebaseService.awaitAuthStateReady();
+        }
+        const authAfterInit = firebaseService.getAuthInstance();
+        if (authAfterInit) {
+          const { ensureSimulatorSession } = await import('../js/simulator-browser-auth.js');
+          await ensureSimulatorSession(authAfterInit);
+        }
 
         // 5) Tenant Service: init e attesa primo stato auth (così getCurrentTenantId/getCurrentTenant sono pronti)
         const tenantService = await import('../services/tenant-service.js').catch((err) => {

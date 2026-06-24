@@ -4,6 +4,9 @@
  * @module core/js/firebase-emulator-dev
  */
 
+import { connectAuthEmulator } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
 const AUTH_EMULATOR_URL = 'http://127.0.0.1:9099';
 const FIRESTORE_HOST = '127.0.0.1';
 const FIRESTORE_PORT = 8080;
@@ -24,16 +27,15 @@ export function shouldUseFirebaseEmulator() {
 }
 
 /**
+ * Collegamento sincrono subito dopo getAuth/getFirestore (prima di qualsiasi operazione auth).
  * @param {{ getAuthInstance: Function, getDb: Function }} firebaseService
+ * @returns {boolean}
  */
-export async function connectFirebaseEmulatorsIfDev(firebaseService) {
+export function connectFirebaseEmulatorsIfDev(firebaseService) {
   if (_connected || !shouldUseFirebaseEmulator()) return false;
 
   const auth = firebaseService.getAuthInstance();
   const db = firebaseService.getDb();
-
-  const { connectAuthEmulator } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
-  const { connectFirestoreEmulator } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js');
 
   connectAuthEmulator(auth, AUTH_EMULATOR_URL, { disableWarnings: true });
   connectFirestoreEmulator(db, FIRESTORE_HOST, FIRESTORE_PORT);

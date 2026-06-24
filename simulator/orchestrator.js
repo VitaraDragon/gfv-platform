@@ -7,6 +7,7 @@
 import { runSetupTenant } from './phases/01-setup-tenant.js';
 import { runPopulateAssets } from './phases/02-populate-assets.js';
 import { runSimulateAttivita } from './phases/03-simulate-attivita.js';
+import { runSimulateMagazzino } from './phases/04-simulate-magazzino.js';
 import { formatErrorReport, formatSuccessReport, printReport } from './lib/report.js';
 
 const args = process.argv.slice(2);
@@ -43,6 +44,10 @@ async function main() {
     const simulation = await runSimulateAttivita(assets);
     if (verbose) console.log(`[sim] Attività create: ${simulation.counts.attivita}`);
 
+    phase = '04-simulate-magazzino';
+    const magazzino = await runSimulateMagazzino({ attivitaIds: simulation.attivitaIds });
+    if (verbose) console.log(`[sim] Movimenti magazzino: ${magazzino.counts.movimenti}, sotto scorta: ${magazzino.sottoScorta}`);
+
     printReport(formatSuccessReport({
       templateId: setup.templateId,
       runId: setup.runId,
@@ -53,7 +58,9 @@ async function main() {
       password: setup.password,
       counts: {
         ...assets.counts,
-        attivita: simulation.counts.attivita
+        attivita: simulation.counts.attivita,
+        movimentiMagazzino: magazzino.counts.movimenti,
+        prodottiSottoScorta: magazzino.sottoScorta
       },
       dateRange: simulation.dateRange,
       durationMs: Date.now() - started

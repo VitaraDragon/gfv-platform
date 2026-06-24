@@ -28,7 +28,15 @@ export function appendManifestEntry(entry) {
     seedVersion: SEED_VERSION,
     createdAt: new Date().toISOString()
   });
+  writeManifest(list);
+}
+
+export function writeManifest(list) {
   writeFileSync(MANIFEST_PATH, `${JSON.stringify(list, null, 2)}\n`, 'utf-8');
+}
+
+export function clearManifest() {
+  writeManifest([]);
 }
 
 export { SEED_VERSION };

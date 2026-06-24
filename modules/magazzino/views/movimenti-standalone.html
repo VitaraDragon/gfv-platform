@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movimenti Magazzino - Prodotti e Magazzino - GFV Platform</title>
@@ -171,8 +172,10 @@
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { suggestMovPrezzoInDom } from '../../../core/js/movimento-prezzo-catalogo.js';
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
+        import { initializeFirebase, getAuthInstance, getDb, awaitFirebaseEmulatorConnect, awaitAuthStateReady } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
+        import { withEmulatorQuery } from '../../../core/js/firebase-emulator-dev.js';
+        import { ensureSimulatorSession } from '../../../core/js/simulator-browser-auth.js';
         import { collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
 
         function waitForConfig() {
@@ -192,8 +195,12 @@
             window.currentTableData = { pageType: 'movimenti', summary: 'Caricamento dati in corso...', items: [] };
         }
         initializeFirebase(firebaseConfig);
+        await awaitFirebaseEmulatorConnect();
+        await awaitAuthStateReady();
         const auth = getAuthInstance();
+        await ensureSimulatorSession(auth);
         const db = getDb();
+        const loginPageUrl = () => withEmulatorQuery('../../../core/auth/login-standalone.html');
         let currentTenantId = null;
         let prodotti = [];
         let movimenti = [];
@@ -226,10 +233,17 @@
         }
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+            if (!user) {
+                await awaitAuthStateReady();
+                user = auth.currentUser;
+            }
+            if (!user) {
+                user = await ensureSimulatorSession(auth);
+            }
+            if (!user) { window.location.href = loginPageUrl(); return; }
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (!userDoc.exists()) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                if (!userDoc.exists()) { window.location.href = loginPageUrl(); return; }
                 const userData = userDoc.data();
                 currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
                 const ruoli = userData.ruoli || [];

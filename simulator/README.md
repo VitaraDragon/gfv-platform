@@ -24,23 +24,45 @@ npm run sim:emulators
 # Smoke test infrastruttura (Fase 0)
 npm run sim:smoke
 
-# Run completo v1 (setup + populate + 4 settimane attività)
+# Run completo v1 — una azienda (setup + populate + attività + magazzino)
 npm run sim:run
+
+# Run batch — N aziende in sequenza (default 10)
+npm run sim:run:batch
+npm run sim:run:batch -- --count=5
+npm run sim:run:batch -- --count=10 --verbose
 
 # Solo creazione tenant/utente
 npm run sim:setup
 
-# Log dettagliati
+# Log dettagliati (singolo run)
 npm run sim:run:verbose
+
+# Aggiorna aziende già nel manifest (prodotti, movimenti mancanti, date)
+npm run sim:backfill
 
 # Ispeziona terreni ultima azienda in manifest
 npm run sim:inspect
 
 # Ispeziona tenant specifico
-npm run sim:inspect -- sim_az_agr_ricci_146413
+npm run sim:inspect -- sim_cascina_colombo_671742
 
 # Aggiorna terreni vecchi (manifest senza seedVersion 2)
 npm run sim:migrate-terreni
+
+# Pulizia tenant simulati
+npm run sim:cleanup              # rimuove tutte le entry del manifest
+npm run sim:cleanup -- --keep 10 # mantiene le ultime 10 aziende
+npm run sim:cleanup -- --dry-run
+
+# Test integrazione (emulator attivo)
+npm run sim:test
+npm run sim:test:vitest
+
+# Ricalcola date attività (e movimenti collegati) fino a oggi
+npm run sim:refresh-dates
+npm run sim:refresh-dates -- --all
+npm run sim:refresh-dates -- sim_azienda_vitivinicola_gallo_745575
 ```
 
 ## Verifica UI in browser
@@ -56,14 +78,27 @@ Pagina dev aziende simulate:
 **http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1**
 
 - Password: **`SimGFV2026!`**
-- Usare aziende con badge **Seed completo** (in cima alla lista)
-- Se vedi **Seed vecchio**: `npm run sim:migrate-terreni` oppure `npm run sim:run`
+- **Entra (dashboard)** — auto-login emulator (non redirect al login)
+- Link rapidi: **Terreni**, **Attività**, **Movimenti**
+- Preferire aziende con badge **Seed completo** (`seedVersion: 2` nel manifest)
+- Se vedi **Seed vecchio**: `npm run sim:migrate-terreni`, `npm run sim:backfill`, oppure `npm run sim:run`
 
 ## Credenziali emulator
 
 Password fissa per tutti gli utenti simulati: **`SimGFV2026!`**
 
 Email e tenant ID sono nel report a fine run e in `simulator/manifest.json` (campo `seedVersion: 2` = terreni completi).
+
+## Cosa crea ogni azienda (template `solo-titolare-viticola`)
+
+| Risorsa | Quantità |
+|---------|----------|
+| Terreni | 4 |
+| Trattori + attrezzi | 1 + 3 |
+| Vigneti | 4 |
+| Prodotti magazzino | 5 |
+| Attività (4 settimane) | 20 |
+| Movimenti magazzino (uscite) | 12 |
 
 ## Seed terreni (v2)
 
@@ -72,7 +107,7 @@ Ogni nuova azienda include:
 - Catalogo colture + categorie + podere (nome azienda)
 - Terreni con `coltura: "Vite da Vino"`, `podere`, `tipoCampo`, `polygonCoords`
 
-Le aziende create **prima** del seed v2 restano nell’emulator finché non si esegue `sim:migrate-terreni` o un nuovo `sim:run`.
+Le aziende create **prima** del seed v2 restano nell’emulator finché non si esegue `sim:migrate-terreni`, `sim:backfill` o un nuovo `sim:run`.
 
 ## Sicurezza
 

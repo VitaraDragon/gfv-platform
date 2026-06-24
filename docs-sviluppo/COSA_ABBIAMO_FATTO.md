@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-23 — GFV Farm Simulator v1.1 (CLI + UI emulator verificati).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-24 — GFV Farm Simulator v1.4.**
+
+## GFV Farm Simulator v1.4 — batch, backfill, auto-login UI (2026-06-24)
+
+**Batch:** `npm run sim:run:batch -- --count=10` crea N aziende complete (setup + asset + attività + magazzino) in un solo comando; verificato **10/10 OK** (~5 s) con inspect seed v2 su ogni tenant.
+
+**Backfill aziende esistenti:** `npm run sim:backfill` normalizza prodotti legacy (`giacenza`, categorie), crea movimenti se assenti, ricalcola date — senza rigenerare tenant.
+
+**Auto-login pagina dev:** `core/js/simulator-browser-auth.js` — credenziali in `sessionStorage` + `ensureSimulatorSession()` su dashboard, terreni, attività, movimenti e `standalone-bootstrap`; connessione emulator **sincrona** subito dopo `getAuth()` (`firebase-emulator-dev.js`).
+
+**Verifica UI manuale OK:** anagrafica prodotti, movimenti in uscita, tracciabilità attività↔prodotto↔movimento (modulo magazzino).
+
+**Pagina dev:** link rapido **Movimenti**; badge Seed completo per entry con `seedVersion: 2`.
+
+**File:** `simulator/run-batch.js`, `simulator/backfill-existing.js`, `core/js/simulator-browser-auth.js`.
+
+**Comandi:** `sim:run:batch`, `sim:backfill` (oltre a `sim:run`, `sim:test`, `sim:cleanup`, …).
 
 ## GFV Farm Simulator v1 — implementazione iniziale (2026-06-23)
 
@@ -23,6 +39,29 @@
 **Comandi aggiuntivi:** `npm run sim:inspect`, `npm run sim:migrate-terreni` (patch aziende manifest pre-v2 senza rigenerare tutto).
 
 **URL dev:** `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1` (+ `npm start` + `npm run sim:emulators`).
+
+## GFV Farm Simulator v1.3 — refresh date + movimenti magazzino (2026-06-23)
+
+**Fase 4 magazzino:** scarichi `movimentiMagazzino` (uscita) collegati ad attività Trattamento/Concimazione/Controllo fitosanitario; aggiornamento `giacenza` prodotti; alert sotto scorta in UI.
+
+**Prodotti:** categorie allineate app (`fitofarmaci`, `fertilizzanti`), campo `giacenza` (non più `quantitaDisponibile`).
+
+**Refresh date:** `npm run sim:refresh-dates` ricalcola le ultime N settimane lavorative sulle attività del manifest (e movimenti con `attivitaId`).
+
+**Comando:** `npm run sim:refresh-dates` (ultima azienda), `--all`, oppure tenantId esplicito.
+
+## GFV Farm Simulator v1.2 — test integrazione + cleanup (2026-06-23)
+
+**Test automatico:** `npm run sim:test`, `npm run sim:test:vitest`.
+
+**Cleanup:** `npm run sim:cleanup` (opz. `--keep N`, `--dry-run`).
+
+
+**Test automatico:** `npm run sim:test` (run completo + inspect seed v2, cleanup tenant di test); `npm run sim:test:vitest` (vitest, skip se emulator assente).
+
+**Cleanup:** `npm run sim:cleanup` elimina tenant `sim_*` del manifest da Firestore/Auth emulator; `--keep N` mantiene le ultime N aziende.
+
+**Librerie:** `simulator/lib/tenant-inspect.js`, `run-simulation.js`, `cleanup-tenant.js`, `emulator-available.js`.
 
 ## Freemium E2E verificato + FAB Tony su Base (2026-06-22)
 

@@ -115,7 +115,7 @@ export async function runPopulateAssets() {
   for (const p of prodottiData) {
     const id = await addTenantDocument(db, tenantId, 'prodotti', {
       ...p,
-      quantitaDisponibile: 20,
+      giacenza: 12,
       creatoDa: userId
     });
     prodotti.push({ id, nome: p.nome });

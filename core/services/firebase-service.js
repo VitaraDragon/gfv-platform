@@ -30,6 +30,7 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
+import { connectFirebaseEmulatorsIfDev } from '../js/firebase-emulator-dev.js';
 
 // Re-export per moduli che importano da firebase-service (stesso SDK, niente "different Firestore SDK")
 export { signOut, onAuthStateChanged };
@@ -75,14 +76,12 @@ export function initializeFirebase(config) {
   auth = getAuth(app);
 
   if (typeof window !== 'undefined') {
-    emulatorConnectPromise = (async () => {
-      try {
-        const { connectFirebaseEmulatorsIfDev } = await import('../js/firebase-emulator-dev.js');
-        await connectFirebaseEmulatorsIfDev({ getAuthInstance, getDb });
-      } catch (e) {
-        console.warn('[firebase-service] Connessione emulator non disponibile:', e);
-      }
-    })();
+    try {
+      connectFirebaseEmulatorsIfDev({ getAuthInstance, getDb });
+    } catch (e) {
+      console.warn('[firebase-service] Connessione emulator non disponibile:', e);
+    }
+    emulatorConnectPromise = Promise.resolve();
   }
 
   try {
@@ -100,6 +99,14 @@ export function initializeFirebase(config) {
  */
 export async function awaitFirebaseEmulatorConnect() {
   if (emulatorConnectPromise) await emulatorConnectPromise;
+}
+
+/** Attende il primo stato auth (evita redirect al login durante restore sessione emulator). */
+export async function awaitAuthStateReady() {
+  const a = getAuthInstance();
+  if (a && typeof a.authStateReady === 'function') {
+    await a.authStateReady();
+  }
 }
 
 /**

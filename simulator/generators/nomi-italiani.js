@@ -11,12 +11,12 @@ const VARIETA = ['Sangiovese', 'Merlot', 'Glera', 'Pinot Grigio', 'Barbera', 'Tr
 const MARCHE_TRATTORI = ['Same', 'John Deere', 'New Holland', 'Massey Ferguson', 'Fendt'];
 const MARCHE_ATTREZZI = ['Maschio', 'Kuhn', 'Amazone', 'Berti', 'Forigo'];
 const PRODOTTI = [
-  { nome: 'Rame ossicloruro', categoria: 'fitosanitario' },
-  { nome: 'Zolfo bagnabile', categoria: 'fitosanitario' },
-  { nome: 'Concime NPK 15-15-15', categoria: 'concime' },
-  { nome: 'Olio paraffinico', categoria: 'fitosanitario' },
-  { nome: 'Calcio foliar', categoria: 'concime' },
-  { nome: 'Rame metallo', categoria: 'fitosanitario' }
+  { nome: 'Rame ossicloruro', categoria: 'fitofarmaci' },
+  { nome: 'Zolfo bagnabile', categoria: 'fitofarmaci' },
+  { nome: 'Concime NPK 15-15-15', categoria: 'fertilizzanti' },
+  { nome: 'Olio paraffinico', categoria: 'fitofarmaci' },
+  { nome: 'Calcio foliar', categoria: 'fertilizzanti' },
+  { nome: 'Rame metallo', categoria: 'fitofarmaci' }
 ];
 
 function pick(list, index) {

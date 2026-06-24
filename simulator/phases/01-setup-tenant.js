@@ -25,7 +25,7 @@ function loadTemplate(templateId) {
 }
 
 /**
- * @param {{ templateId?: string, seed?: number }} [options]
+ * @param {{ templateId?: string, seed?: number, appendManifest?: boolean }} [options]
  */
 export async function runSetupTenant(options = {}) {
   const templateId = options.templateId || 'solo-titolare-viticola';
@@ -85,14 +85,16 @@ export async function runSetupTenant(options = {}) {
     profile: { ...profile, password, templateId, template }
   });
 
-  appendManifestEntry({
-    runId,
-    templateId,
-    tenantId,
-    userId: authUser.uid,
-    email: profile.email,
-    aziendaNome: profile.aziendaNome
-  });
+  if (options.appendManifest !== false) {
+    appendManifestEntry({
+      runId,
+      templateId,
+      tenantId,
+      userId: authUser.uid,
+      email: profile.email,
+      aziendaNome: profile.aziendaNome
+    });
+  }
 
   return {
     runId,

@@ -57,12 +57,17 @@
     async function enterCompany(entry) {
       await window.GFVStandaloneReady;
       const firebaseService = await import('../services/firebase-service.js');
+      const { storeSimPendingLogin } = await import('../js/simulator-browser-auth.js');
       const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
       const auth = firebaseService.getAuthInstance();
       const { setCurrentTenantId } = await import('../services/tenant-service.js');
 
+      storeSimPendingLogin(entry, PASSWORD);
       showStatus('Accesso in corso…', true);
       await signInWithEmailAndPassword(auth, entry.email, PASSWORD);
+      if (typeof auth.authStateReady === 'function') {
+        await auth.authStateReady();
+      }
       setCurrentTenantId(entry.tenantId);
       sessionStorage.setItem('gfv_current_tenant_id', entry.tenantId);
       sessionStorage.setItem('gfv_expected_user_id', entry.userId);
@@ -127,6 +132,7 @@
         const links = [
           ['Terreni', '../terreni-standalone.html'],
           ['Attività', '../attivita-standalone.html'],
+          ['Movimenti', '../../modules/magazzino/views/movimenti-standalone.html'],
           ['Login classico', '../auth/login-standalone.html']
         ];
         actions.appendChild(btnLogin);

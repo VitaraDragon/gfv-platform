@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
     <script>window.GFV_TOUR_DISABLED = true;</script>
+    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Terreni - GFV Platform</title>
@@ -843,6 +844,7 @@
         const {
             initializeFirebase,
             awaitFirebaseEmulatorConnect,
+            awaitAuthStateReady,
             getAuthInstance,
             getDb,
             getAppInstance,
@@ -866,8 +868,11 @@
         const loginPageUrl = () => withEmulatorQuery('./auth/login-standalone.html');
         initializeFirebase(firebaseConfig);
         await awaitFirebaseEmulatorConnect();
+        await awaitAuthStateReady();
         const app = getAppInstance();
         const auth = getAuthInstance();
+        const { ensureSimulatorSession } = await import('./js/simulator-browser-auth.js');
+        await ensureSimulatorSession(auth);
         const db = getDb();
 
         // ============================================
@@ -1522,6 +1527,13 @@
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                await awaitAuthStateReady();
+                user = auth.currentUser;
+            }
+            if (!user) {
+                user = await ensureSimulatorSession(auth);
+            }
             if (!user) {
                 window.location.href = loginPageUrl();
                 return;
