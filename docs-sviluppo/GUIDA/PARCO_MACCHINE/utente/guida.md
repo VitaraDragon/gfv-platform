@@ -10,8 +10,8 @@ Se non sapete se è attivo, controllate **Abbonamento** o chiedete all’amminis
 
 1. **Moduli** → **Parco Macchine** → **hub** con numeri e azioni rapide. **[Impara qui: entrata](#da-dove-si-entra)**
 2. Per **censire in fretta** un trattore, un attrezzo o un mezzo di flotta usate le rispettive **elenchi** dal hub (pulsante **Nuovo** / **Nuova**). **[Trattori](#mini-guida-trattori-elenco-e-creazione-rapida)** · **[Attrezzi](#mini-guida-attrezzi-elenco-e-creazione-rapida)** · **[Flotta](#mini-guida-flotta-aziendale)**
-3. Per **modificare**, **cancellare**, cambiare **stato** o compilare **tutti i dettagli** (marca, targa, ore, manutenzioni, costo orario…): usate **Gestione macchine**. **[Impara qui](#mini-guida-gestione-macchine-anagrafica-completa)**
-4. **Scadenze** (date e ore limite) e **Guasti** (segnalazioni e chiusure) quando servono. **[Scadenze](#mini-guida-scadenze)** · **[Guasti](#mini-guida-officina-e-guasti)**
+3. Per **modificare**, **cancellare**, cambiare **stato** o compilare **tutti i dettagli** (marca, targa, contatore, manutenzioni, costo orario…): usate **Gestione macchine**. **[Impara qui](#mini-guida-gestione-macchine-anagrafica-completa)**
+4. **Scadenze** (date, tagliandi km per flotta, ore limite per trattori/attrezzi) e **Guasti** (segnalazioni e chiusure) quando servono. **[Scadenze](#mini-guida-scadenze)** · **[Guasti](#mini-guida-officina-e-guasti)**
 
 ---
 
@@ -24,7 +24,7 @@ Se non sapete se è attivo, controllate **Abbonamento** o chiedete all’amminis
 | Attrezzi: CV minimi e categoria | [Impara qui](#mini-guida-attrezzi-elenco-e-creazione-rapida) |
 | Flotta aziendale | [Impara qui](#mini-guida-flotta-aziendale) |
 | Gestione macchine (modifica, elimina, stato, form completo) | [Impara qui](#mini-guida-gestione-macchine-anagrafica-completa) |
-| Scadenze (manutenzioni / ore) | [Impara qui](#mini-guida-scadenze) |
+| Scadenze (manutenzioni, tagliandi km, revisione, assicurazione) | [Impara qui](#mini-guida-scadenze) |
 | Officina e guasti | [Impara qui](#mini-guida-officina-e-guasti) |
 | Diario attività e mezzi | [Impara qui](#diario-attivita-e-mezzi) |
 | Se qualcosa non compare | [Impara qui](#se-qualcosa-non-compara) |
@@ -43,7 +43,7 @@ Da smartphone i passi sono gli stessi; i pulsanti possono andare a capo.
 
 ## Cosa trovi nell'hub
 
-- **Panoramica:** numeri riassuntivi per capire quanti mezzi avete registrato e se ci sono **scadenze** o **guasti** da tenere d’occhio.
+- **Panoramica:** numeri riassuntivi per capire quanti mezzi avete registrato e se ci sono **scadenze** o **guasti** da tenere d’occhio. Per la **flotta aziendale** compare anche il totale **km** (non ore).
 - **Azioni rapide:** collegamenti a **Elenco Trattori**, **Elenco Attrezzature**, **Flotta aziendale**, **Gestione macchine**, **Scadenze**, **Officina & Guasti**.
 
 ---
@@ -111,6 +111,8 @@ Il campo **Cavalli minimi richiesti (CV)** indica **quanta potenza deve avere al
 
 Pagina **Flotta aziendale** per **automezzi, veicoli, furgoni** (non trattori agricoli nel senso dell’elenco trattori).
 
+**Cosa vedete:** tabella con **Nome**, **Tipo**, **Targa**, **Km** (contatore chilometrico), **Stato**. I mezzi di flotta si gestiscono a **chilometri**, non a ore: tagliandi e contatore sono in km come in officina stradale.
+
 **Aggiungere un mezzo**
 
 1. **Nuovo Mezzo (Flotta)** (o titolo equivalente).
@@ -118,7 +120,7 @@ Pagina **Flotta aziendale** per **automezzi, veicoli, furgoni** (non trattori ag
 3. **Tipo:** scegliete dall’elenco tra **Automezzo**, **Veicolo**, **Furgone**.
 4. **Salva**.
 
-Dettagli aggiuntivi (targa, ore, stato, …): **Gestione macchine**.
+Dettagli aggiuntivi (targa, km attuali, prossimo tagliando, revisione, assicurazione, stato, …): **Gestione macchine**.
 
 ---
 
@@ -129,7 +131,7 @@ Pagina **Gestione Macchine** (dal hub **Gestione macchine** o dal menu amministr
 ### Filtri in alto
 
 - **Filtra per Stato:** Tutti, Disponibile, In uso, In manutenzione, Guasto, Dismesso — per concentrarvi sui mezzi che vi interessano.
-- **Filtra per Tipo:** Tutti, Trattori, Attrezzi (per attrezzi può comparire anche il filtro per **categoria**).
+- **Filtra per Tipo:** Tutti, Trattori, Attrezzi, **Flotta** (per attrezzi può comparire anche il filtro per **categoria**).
 - **Mostra solo Attive:** **Tutte** oppure **Solo attive** (utile per nascondere i dismessi se non volete vederli sempre).
 - **Pulisci filtri** riporta i filtri a una vista larga.
 
@@ -140,19 +142,20 @@ Ogni riga è un mezzo. Troverete pulsanti del tipo **Modifica** e **Elimina** (i
 ### Aggiungere una macchina nuova (form completo)
 
 1. Cliccate **Nuova Macchina** (o equivalente).
-2. **Tipo macchina:** scegliete **Trattore** oppure **Attrezzo** (opzione obbligatoria).
+2. **Tipo macchina:** scegliete **Trattore**, **Attrezzo** oppure **Mezzo aziendale** (flotta: furgone, automezzo, veicolo).
 3. **Nome macchina** (obbligatorio): nome che riconoscete in azienda.
 4. **Stato** (obbligatorio): uno tra Disponibile, In uso, In manutenzione, Guasto, Dismesso — scegliete dalla situazione reale.
-5. Se avete scelto **Trattore:** compare **Potenza (CV)** — obbligatoria per il trattore.
-6. Se avete scelto **Attrezzo:** compaiono **Categoria principale** (elenco cliccabile; potete aggiungere una categoria con **Nuova** se il sistema lo consente), eventuale **Sottocategoria**, e **Cavalli minimi richiesti (CV)** — obbligatori per l’attrezzo.
-7. Opzionali ma utili: **Marca**, **Modello**, **Targa / numero identificativo**, **Numero telaio**, **Data acquisto**, **Ore iniziali**, **Ore attuali**, **Costo orario** (€/h), **Prossima manutenzione** (data e/o ore limite), **Note**.
-8. Cliccate **Salva** per registrare. **Annulla** chiude senza applicare le modifiche se non avete ancora salvato.
+5. Se avete scelto **Trattore:** compare **Potenza (CV)** — obbligatoria; contatore in **ore** (iniziali, attuali, prossima manutenzione per ore e/o data); opzionali **Prossima revisione** e **Scadenza assicurazione**.
+6. Se avete scelto **Attrezzo:** compaiono **Categoria principale** (elenco cliccabile; potete aggiungere una categoria con **Nuova** se il sistema lo consente), eventuale **Sottocategoria**, e **Cavalli minimi richiesti (CV)** — obbligatori; contatore e manutenzione in **ore**.
+7. Se avete scelto **Mezzo aziendale (flotta):** scegliete il sottotipo (**Furgone**, **Automezzo**, **Veicolo**); contatore in **km** (iniziali e attuali), **Prossimo tagliando (km)**, più **Prossima revisione**, **Scadenza assicurazione** e **Prossima manutenzione** (data) se vi servono. Non compaiono ore né costo orario — la flotta non usa il contatore ore.
+8. Opzionali comuni (trattore/attrezzo): **Marca**, **Modello**, **Targa / numero identificativo**, **Numero telaio**, **Data acquisto**, **Costo orario** (€/h, solo mezzi agricoli), **Note**.
+9. Cliccate **Salva** per registrare. **Annulla** chiude senza applicare le modifiche se non avete ancora salvato.
 
 ### Modificare una macchina esistente
 
 1. Trovate il mezzo nell’elenco (usate i filtri se serve).
 2. Cliccate **Modifica** sulla riga.
-3. Si riapre lo stesso modulo con i dati già presenti: cambiate ciò che serve (stato, ore, prossima manutenzione, ecc.).
+3. Si riapre lo stesso modulo con i dati già presenti: cambiate ciò che serve (stato, ore o km, prossima manutenzione/tagliando, revisione, assicurazione, ecc.).
 4. **Salva**.
 
 ### Eliminare una macchina
@@ -168,16 +171,19 @@ Per una macchina già salvata, in modifica può comparire uno **storico guasti**
 
 ## Mini-guida: scadenze
 
-Pagina **Scadenze** (dal hub). Qui vedete **cosa sta per scadere o è già scaduto** in base alle **date** e alle **ore** che avete registrato in anagrafica (prossima manutenzione per data o per ore contatore).
+Pagina **Scadenze** (dal hub). Qui vedete **cosa sta per scadere o è già scaduto** in base ai dati registrati in anagrafica:
+
+- **Trattori e attrezzi:** prossima manutenzione per **data** e/o per **ore** contatore.
+- **Flotta aziendale** (furgone, automezzo, veicolo): **tagliando (km)** — confronto tra km attuali e soglia km del prossimo tagliando; in più **revisione** e **assicurazione** per **data** (come per i trattori).
 
 **Filtro Stato:** **Tutti** oppure **Solo scaduti** per concentrarvi sulle urgenze.
 
-**Tabella:** per ogni riga di solito vedete il **mezzo**, il **tipo** di scadenza (per **data** o per **ore**), la situazione con **colori / puntini** (rosso = molto vicino o scaduto, giallo = attenzione, verde = ok — i testi esatti sono in schermata).
+**Tabella:** per ogni riga vedete il **mezzo**, il **tipo** di scadenza (Manutenzione, **Tagliando (km)**, Manutenzione (ore), Revisione, Assicurazione…), la situazione con **colori / puntini** (rosso = molto vicino o scaduto, giallo = attenzione, verde = ok — i testi esatti sono in schermata). Per i tagliandi km, l’urgenza segue i km rimanenti (es. meno di 500 km o superamento soglia).
 
 **Aggiornare una scadenza (rinnovo)**
 
 1. Cercate l’icona o il pulsante per **rinnovare** / **aggiornare** sulla riga (spesso un simbolo di aggiornamento).
-2. Si apre un modulo: potete inserire la **nuova data** di scadenza **oppure** le **nuove ore limite** per la prossima manutenzione, a seconda del tipo di riga.
+2. Si apre un modulo: inserite la **nuova data** (manutenzione, revisione, assicurazione), le **nuove ore limite** (trattori/attrezzi) **oppure** il **nuovo limite km** del tagliando (flotta), a seconda del tipo di riga.
 3. **Salva** conferma. **Annulla** chiude senza salvare.
 
 Dopo il salvataggio, i dati del mezzo in **Gestione macchine** si aggiornano in modo coerente.
