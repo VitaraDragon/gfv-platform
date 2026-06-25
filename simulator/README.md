@@ -135,7 +135,7 @@ Le aziende create **prima** del seed v2 restano nell’emulator finché non si e
 Workflow **GFV Farm Simulator CI** (`.github/workflows/simulator-ci.yml`):
 
 - **Trigger:** push su `main` e pull request che toccano `simulator/`, `tests/simulator/`, `firebase.json`, dipendenze root; anche **Run workflow** manuale.
-- **Ambiente:** Ubuntu, Node 20, Java 17 (Firestore Emulator).
+- **Ambiente:** Ubuntu, Node 22, Java 21 (Firestore Emulator).
 - **Comando:** `npm run sim:test:ci` → `firebase emulators:exec --only auth,firestore` + `sim:test` + `sim:test:vitest`.
 
 In locale, stesso comando della CI (Java obbligatorio): `npm run sim:test:ci`.
