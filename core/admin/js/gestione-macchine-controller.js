@@ -413,7 +413,11 @@ export function filterMacchine(state, renderMacchineCallback) {
         // Filtro tipo (supporta sia tipoMacchina che tipo per retrocompatibilità)
         if (filterTipo !== 'tutti') {
             const tipoMacchina = macchina.tipoMacchina || macchina.tipo;
-            if (tipoMacchina !== filterTipo) {
+            if (filterTipo === 'flotta') {
+                if (!['automezzo', 'veicolo', 'furgone'].includes(tipoMacchina)) {
+                    return false;
+                }
+            } else if (tipoMacchina !== filterTipo) {
                 return false;
             }
         }
@@ -510,7 +514,7 @@ export function renderMacchine(macchineList, state, maybeAutoStartMacchineTourCa
                     <th>Marca/Modello</th>
                     <th>Dettagli</th>
                     <th>Stato</th>
-                    <th>Ore</th>
+                    <th>Contatore</th>
                     <th>Prossima Manutenzione</th>
                     <th>Azioni</th>
                 </tr>
@@ -520,12 +524,27 @@ export function renderMacchine(macchineList, state, maybeAutoStartMacchineTourCa
 
     macchineList.forEach(macchina => {
         const tipoMacchina = macchina.tipoMacchina || macchina.tipo || '';
-        const oreUtilizzate = macchina.oreAttuali && macchina.oreIniziali 
-            ? (macchina.oreAttuali - macchina.oreIniziali).toFixed(1) 
-            : '-';
-        const oreAttuali = macchina.oreAttuali !== null && macchina.oreAttuali !== undefined 
-            ? macchina.oreAttuali.toFixed(1) 
-            : '-';
+        const isFlotta = ['furgone', 'automezzo', 'veicolo'].includes(tipoMacchina);
+        let contatoreHTML = '-';
+        if (isFlotta) {
+            const kmAttuali = macchina.kmAttuali != null ? macchina.kmAttuali : macchina.kmIniziali;
+            const kmUtilizzati = kmAttuali != null && macchina.kmIniziali != null
+                ? (kmAttuali - macchina.kmIniziali).toFixed(0)
+                : '-';
+            contatoreHTML = kmAttuali != null
+                ? `${Number(kmAttuali).toLocaleString('it-IT')} km${kmUtilizzati !== '-' ? `<br><small style="color: #666;">(${Number(kmUtilizzati).toLocaleString('it-IT')} percorsi)</small>` : ''}`
+                : '-';
+        } else {
+            const oreUtilizzate = macchina.oreAttuali && macchina.oreIniziali 
+                ? (macchina.oreAttuali - macchina.oreIniziali).toFixed(1) 
+                : '-';
+            const oreAttuali = macchina.oreAttuali !== null && macchina.oreAttuali !== undefined 
+                ? macchina.oreAttuali.toFixed(1) 
+                : '-';
+            contatoreHTML = oreAttuali !== '-'
+                ? `${oreAttuali} ore${oreUtilizzate !== '-' ? `<br><small style="color: #666;">(${oreUtilizzate} utilizzate)</small>` : ''}`
+                : '-';
+        }
         
         const manutenzioneScaduta = isManutenzioneScaduta(macchina);
         const manutenzioneInScadenza = isManutenzioneInScadenza(macchina);
@@ -556,10 +575,32 @@ export function renderMacchine(macchineList, state, maybeAutoStartMacchineTourCa
                     : `<div><small style="color: #dc3545;">⚠️ Nessun trattore compatibile</small></div>`
                 }
             `;
+        } else if (['furgone', 'automezzo', 'veicolo'].includes(tipoMacchina)) {
+            const scadenzeExtra = [];
+            if (macchina.prossimaRevisione) scadenzeExtra.push(`Rev. ${formattaData(macchina.prossimaRevisione)}`);
+            if (macchina.prossimaAssicurazione) scadenzeExtra.push(`Ass. ${formattaData(macchina.prossimaAssicurazione)}`);
+            dettagliHTML = `
+                <div><strong>Targa:</strong> ${escapeHtml(macchina.targa || '-')}</div>
+                ${scadenzeExtra.length ? `<div><small style="color: #666;">${escapeHtml(scadenzeExtra.join(' · '))}</small></div>` : ''}
+            `;
         }
         
-        const tipoIcon = tipoMacchina === 'trattore' ? '🚜' : tipoMacchina === 'attrezzo' ? '⚙️' : '';
-        const tipoLabel = tipoMacchina === 'trattore' ? 'Trattore' : tipoMacchina === 'attrezzo' ? 'Attrezzo' : tipoMacchina || '-';
+        const tipoIcons = {
+            trattore: '🚜',
+            attrezzo: '⚙️',
+            furgone: '🚐',
+            automezzo: '🛻',
+            veicolo: '🚗'
+        };
+        const tipoLabels = {
+            trattore: 'Trattore',
+            attrezzo: 'Attrezzo',
+            furgone: 'Furgone',
+            automezzo: 'Automezzo',
+            veicolo: 'Veicolo'
+        };
+        const tipoIcon = tipoIcons[tipoMacchina] || '';
+        const tipoLabel = tipoLabels[tipoMacchina] || tipoMacchina || '-';
         
         html += `
             <tr>
@@ -568,13 +609,11 @@ export function renderMacchine(macchineList, state, maybeAutoStartMacchineTourCa
                 <td>${escapeHtml(marcaModello)}</td>
                 <td>${dettagliHTML}</td>
                 <td>${statoNames[macchina.stato] || escapeHtml(macchina.stato || '-')}</td>
-                <td>
-                    ${oreAttuali} ore
-                    ${oreUtilizzate !== '-' ? `<br><small style="color: #666;">(${oreUtilizzate} utilizzate)</small>` : ''}
-                </td>
+                <td>${contatoreHTML}</td>
                 <td>
                     ${macchina.prossimaManutenzione ? formattaData(macchina.prossimaManutenzione) : '-'}
-                    ${macchina.oreProssimaManutenzione ? `<br><small style="color: #666;">${macchina.oreProssimaManutenzione} ore</small>` : ''}
+                    ${isFlotta && macchina.kmProssimaManutenzione ? `<br><small style="color: #666;">${Number(macchina.kmProssimaManutenzione).toLocaleString('it-IT')} km</small>` : ''}
+                    ${!isFlotta && macchina.oreProssimaManutenzione ? `<br><small style="color: #666;">${macchina.oreProssimaManutenzione} ore</small>` : ''}
                     ${manutenzioneBadge}
                 </td>
                 <td>

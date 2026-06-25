@@ -11,6 +11,7 @@ import {
 } from './dashboard-data.js';
 import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-snapshot.js';
 import { dashboardPerfAsync } from './dashboard-perf.js';
+import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 
 const MAX_RIGHE = 8;
 
@@ -41,6 +42,19 @@ export function calcolaUrgenzaData(dataScadenza) {
     if (giorni <= 30) return { colore: 'yellow', testo: `${giorni} gg`, giorni, priorita: 2 };
     if (giorni <= 180) return { colore: 'green', testo: `~${Math.floor(giorni / 30)} mesi`, giorni, priorita: 3 };
     return { colore: 'green', testo: `~${Math.floor(giorni / 30)} mesi`, giorni, priorita: 3 };
+}
+
+function calcolaUrgenzaKm(kmAttuali, sogliaKm) {
+    const km = kmAttuali != null ? parseFloat(kmAttuali) : 0;
+    const soglia = sogliaKm != null ? parseFloat(sogliaKm) : null;
+    if (soglia == null || isNaN(soglia)) {
+        return { colore: 'green', testo: '—', giorni: null, priorita: 3 };
+    }
+    const rimanenti = soglia - km;
+    if (rimanenti <= 0) return { colore: 'black', testo: 'Superato', giorni: 0, priorita: 0 };
+    if (rimanenti < 500) return { colore: 'red', testo: '< 500 km', giorni: rimanenti, priorita: 1 };
+    if (rimanenti < 2000) return { colore: 'yellow', testo: '< 2.000 km', giorni: rimanenti, priorita: 2 };
+    return { colore: 'green', testo: 'Ok', giorni: rimanenti, priorita: 3 };
 }
 
 function calcolaUrgenzaOre(oreAttuali, sogliaOre) {
@@ -181,6 +195,8 @@ export async function fetchInArrivoItems(tenantId, opts, dependencies, countsSna
             macchineSnap.forEach((docSnap) => {
                 const m = docSnap.data();
                 const label = nomeMacchina(m);
+                const tipoMacchina = m.tipoMacchina || m.tipo || '';
+                const flotta = isTipoFlotta(tipoMacchina);
 
                 if (m.prossimaManutenzione != null) {
                     const urg = calcolaUrgenzaData(m.prossimaManutenzione);
@@ -194,7 +210,19 @@ export async function fetchInArrivoItems(tenantId, opts, dependencies, countsSna
                         href: '../modules/macchine/views/scadenze-list-standalone.html'
                     });
                 }
-                if (m.oreProssimaManutenzione != null) {
+                if (flotta && m.kmProssimaManutenzione != null) {
+                    const kmAttuali = m.kmAttuali != null ? m.kmAttuali : m.kmIniziali;
+                    const urg = calcolaUrgenzaKm(kmAttuali, m.kmProssimaManutenzione);
+                    items.push({
+                        priorita: urg.priorita,
+                        giorniSort: urg.giorni,
+                        colore: urg.colore,
+                        tipoLabel: 'Tagliando km',
+                        titolo: label,
+                        dettaglio: `Soglia ${Number(m.kmProssimaManutenzione).toLocaleString('it-IT')} km · attuali ${kmAttuali != null ? Number(kmAttuali).toLocaleString('it-IT') : '—'} km (${urg.testo})`,
+                        href: '../modules/macchine/views/scadenze-list-standalone.html'
+                    });
+                } else if (!flotta && m.oreProssimaManutenzione != null) {
                     const urg = calcolaUrgenzaOre(m.oreAttuali, m.oreProssimaManutenzione);
                     items.push({
                         priorita: urg.priorita,

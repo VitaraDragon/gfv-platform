@@ -133,8 +133,8 @@ export function generaFlotta(count, seed = 0) {
       modello,
       targa,
       stato: 'disponibile',
-      oreIniziali: 32000 + i * 8500,
-      oreAttuali: 32000 + i * 8500,
+      kmIniziali: 32000 + i * 8500,
+      kmAttuali: 32000 + i * 8500,
       note: 'Mezzo aziendale simulato — flotta GFV Farm Simulator'
     };
   });

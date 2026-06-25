@@ -1,6 +1,32 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-24 — simulatore parco macchine (flotta + scadenze) v1.6.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-24 — flotta parco macchine: manutenzione a km (tagliando).**
+
+## Parco Macchine — flotta: manutenzione a km (2026-06-24)
+
+**Obiettivo:** furgoni, pickup e veicoli aziendali hanno tagliandi ogni tot km (non ore come trattori/attrezzi).
+
+**Implementazione:**
+- `modules/parco-macchine/lib/macchine-tipo-utils.js` — `isTipoFlotta()`, soglie urgenza km
+- `modules/parco-macchine/models/Macchina.js` — campi `kmIniziali`, `kmAttuali`, `kmProssimaManutenzione`; scadenze manutenzione per flotta su km
+- Form Gestione macchine — contatore km + prossimo tagliando km (nascosti ore/costo ora su flotta)
+- Liste/dashboard/scadenze — colonna km, «Tagliando (km)», widget «In arrivo» e briefing Tony
+- `simulator/generators/nomi-italiani.js` + `seed-parco-macchine-details.js` — seed/backfill flotta con km; migrazione ore→km su tenant esistenti
+
+**Verifica:** Gestione macchine → mezzo flotta; Scadenze → «Tagliando (km)»; dashboard Parco Macchine → km totali flotta.
+
+## Parco Macchine — form Gestione macchine completo (2026-06-24)
+
+**Obiettivo:** modificare da UI revisione, assicurazione e mezzi flotta (prima solo in seed/dashboard).
+
+**Implementazione:**
+- `core/admin/gestione-macchine-standalone.html` — tipo **Mezzo aziendale** (furgone/automezzo/veicolo); campi **Prossima revisione** e **Scadenza assicurazione** (trattori + flotta)
+- `core/admin/js/gestione-macchine-events.js` — load/save/validazione dinamica per flotta e scadenze
+- `core/admin/js/gestione-macchine-controller.js` — filtro Flotta, rendering targa/scadenze
+- `modules/parco-macchine/models/Macchina.js` — `prossimaRevisione`, `prossimaAssicurazione`, `isFlotta()`, `toFirestore`
+- `modules/macchine/views/scadenze-list-standalone.html` — rinnovo scadenza aggiorna il campo corretto (manutenzione/revisione/assicurazione)
+
+**Verifica:** Impostazioni → Gestione macchine (o hub Parco Macchine → Gestione macchine); modifica un mezzo simulato con scadenze.
 
 ## GFV Farm Simulator v1.6 — parco macchine completo (flotta + scadenze) (2026-06-24)
 

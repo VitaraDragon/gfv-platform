@@ -9,6 +9,14 @@
 // ============================================
 import { showAlert, escapeHtml } from './gestione-macchine-utils.js';
 import { formatDateTimeItalianReadable } from '../../js/date-format-it.js';
+import { isTipoFlotta } from '../../../modules/parco-macchine/lib/macchine-tipo-utils.js';
+
+function dateInputValue(val) {
+    if (!val) return '';
+    const d = val.toDate ? val.toDate() : new Date(val);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString().split('T')[0];
+}
 
 // ============================================
 // FUNZIONI SETUP HANDLERS
@@ -22,23 +30,40 @@ import { formatDateTimeItalianReadable } from '../../js/date-format-it.js';
 export function setupFormDinamico(populateSottocategorieCallback, filterMacchineCallback) {
     const tipoTrattore = document.getElementById('tipo-trattore');
     const tipoAttrezzo = document.getElementById('tipo-attrezzo');
+    const tipoFlotta = document.getElementById('tipo-flotta');
     const campoCavalli = document.getElementById('campo-cavalli-group');
     const campoCategoria = document.getElementById('campo-categoria-group');
+    const campoSottocategoria = document.getElementById('campo-sottocategoria-group');
     const campoCavalliMinimi = document.getElementById('campo-cavalli-minimi-group');
+    const campoFlottaSottotipo = document.getElementById('campo-flotta-sottotipo-group');
+    const scadenzeAmminGroup = document.getElementById('scadenze-ammin-group');
+    const gruppoContatoreOre = document.getElementById('gruppo-contatore-ore');
+    const gruppoContatoreKm = document.getElementById('gruppo-contatore-km');
+    const gruppoCostoOra = document.getElementById('gruppo-costo-ora');
+    const gruppoManutenzioneOre = document.getElementById('gruppo-manutenzione-ore');
+    const gruppoManutenzioneKm = document.getElementById('gruppo-manutenzione-km');
     
     function updateFormFields() {
         const isTrattore = tipoTrattore?.checked || false;
         const isAttrezzo = tipoAttrezzo?.checked || false;
+        const isFlotta = tipoFlotta?.checked || false;
         
-        // Mostra/nascondi campi
         if (campoCavalli) campoCavalli.style.display = isTrattore ? 'block' : 'none';
         if (campoCategoria) campoCategoria.style.display = isAttrezzo ? 'block' : 'none';
+        if (campoSottocategoria) campoSottocategoria.style.display = isAttrezzo ? 'block' : 'none';
         if (campoCavalliMinimi) campoCavalliMinimi.style.display = isAttrezzo ? 'block' : 'none';
+        if (campoFlottaSottotipo) campoFlottaSottotipo.style.display = isFlotta ? 'block' : 'none';
+        if (scadenzeAmminGroup) scadenzeAmminGroup.style.display = (isTrattore || isFlotta) ? 'grid' : 'none';
+        if (gruppoContatoreOre) gruppoContatoreOre.style.display = isFlotta ? 'none' : 'grid';
+        if (gruppoContatoreKm) gruppoContatoreKm.style.display = isFlotta ? 'grid' : 'none';
+        if (gruppoCostoOra) gruppoCostoOra.style.display = isFlotta ? 'none' : 'block';
+        if (gruppoManutenzioneOre) gruppoManutenzioneOre.style.display = isFlotta ? 'none' : 'block';
+        if (gruppoManutenzioneKm) gruppoManutenzioneKm.style.display = isFlotta ? 'block' : 'none';
         
-        // Aggiorna required
         const cavalliInput = document.getElementById('macchina-cavalli');
         const categoriaSelect = document.getElementById('macchina-categoria-principale');
         const cavalliMinimiInput = document.getElementById('macchina-cavalli-minimi');
+        const flottaSelect = document.getElementById('macchina-tipo-flotta');
         
         if (cavalliInput) {
             cavalliInput.required = isTrattore;
@@ -52,10 +77,14 @@ export function setupFormDinamico(populateSottocategorieCallback, filterMacchine
             cavalliMinimiInput.required = isAttrezzo;
             if (!isAttrezzo) cavalliMinimiInput.value = '';
         }
+        if (flottaSelect) {
+            flottaSelect.required = isFlotta;
+        }
     }
     
     if (tipoTrattore) tipoTrattore.addEventListener('change', updateFormFields);
     if (tipoAttrezzo) tipoAttrezzo.addEventListener('change', updateFormFields);
+    if (tipoFlotta) tipoFlotta.addEventListener('change', updateFormFields);
     updateFormFields();
     
     // Event listener per cambio categoria principale (mostra sottocategorie)
@@ -163,6 +192,7 @@ export async function openMacchinaModal(macchinaId, state, populateSottocategori
     const macchinaIdInput = document.getElementById('macchina-id');
     const tipoTrattore = document.getElementById('tipo-trattore');
     const tipoAttrezzo = document.getElementById('tipo-attrezzo');
+    const tipoFlottaRadio = document.getElementById('tipo-flotta');
     
     if (form) form.reset();
     if (macchinaIdInput) macchinaIdInput.value = macchinaId || '';
@@ -170,6 +200,7 @@ export async function openMacchinaModal(macchinaId, state, populateSottocategori
     // Reset radio buttons
     if (tipoTrattore) tipoTrattore.checked = false;
     if (tipoAttrezzo) tipoAttrezzo.checked = false;
+    if (tipoFlottaRadio) tipoFlottaRadio.checked = false;
 
     if (macchinaId) {
         const macchina = macchine.find(m => m.id === macchinaId);
@@ -186,6 +217,11 @@ export async function openMacchinaModal(macchinaId, state, populateSottocategori
         } else if (tipoMacchina === 'attrezzo' && tipoAttrezzo) {
             tipoAttrezzo.checked = true;
             tipoAttrezzo.dispatchEvent(new Event('change', { bubbles: true }));
+        } else if (isTipoFlotta(tipoMacchina) && tipoFlottaRadio) {
+            tipoFlottaRadio.checked = true;
+            tipoFlottaRadio.dispatchEvent(new Event('change', { bubbles: true }));
+            const flottaSelect = document.getElementById('macchina-tipo-flotta');
+            if (flottaSelect) flottaSelect.value = tipoMacchina;
         }
         
         // Popola campi form
@@ -261,23 +297,30 @@ export async function openMacchinaModal(macchinaId, state, populateSottocategori
         
         const oreInizialiInput = document.getElementById('macchina-ore-iniziali');
         const oreAttualiInput = document.getElementById('macchina-ore-attuali');
+        const kmInizialiInput = document.getElementById('macchina-km-iniziali');
+        const kmAttualiInput = document.getElementById('macchina-km-attuali');
         const costoOraInput = document.getElementById('macchina-costo-ora');
         const prossimaManutenzioneInput = document.getElementById('macchina-prossima-manutenzione');
         const oreProssimaManutenzioneInput = document.getElementById('macchina-ore-prossima-manutenzione');
+        const kmProssimaManutenzioneInput = document.getElementById('macchina-km-prossima-manutenzione');
+        const prossimaRevisioneInput = document.getElementById('macchina-prossima-revisione');
+        const prossimaAssicurazioneInput = document.getElementById('macchina-prossima-assicurazione');
         const noteTextarea = document.getElementById('macchina-note');
         
-        if (oreInizialiInput) oreInizialiInput.value = macchina.oreIniziali || 0;
-        if (oreAttualiInput) oreAttualiInput.value = macchina.oreAttuali || '';
+        if (oreInizialiInput) oreInizialiInput.value = macchina.oreIniziali ?? 0;
+        if (oreAttualiInput) oreAttualiInput.value = macchina.oreAttuali ?? '';
+        if (kmInizialiInput) kmInizialiInput.value = macchina.kmIniziali ?? macchina.kmAttuali ?? 0;
+        if (kmAttualiInput) kmAttualiInput.value = macchina.kmAttuali ?? '';
         if (costoOraInput) costoOraInput.value = macchina.costoOra || '';
         
-        if (macchina.prossimaManutenzione) {
-            if (prossimaManutenzioneInput) {
-                const prossimaManutenzione = macchina.prossimaManutenzione.toDate ? macchina.prossimaManutenzione.toDate() : new Date(macchina.prossimaManutenzione);
-                prossimaManutenzioneInput.value = prossimaManutenzione.toISOString().split('T')[0];
-            }
+        if (prossimaManutenzioneInput) {
+            prossimaManutenzioneInput.value = dateInputValue(macchina.prossimaManutenzione);
         }
         
-        if (oreProssimaManutenzioneInput) oreProssimaManutenzioneInput.value = macchina.oreProssimaManutenzione || '';
+        if (oreProssimaManutenzioneInput) oreProssimaManutenzioneInput.value = macchina.oreProssimaManutenzione ?? '';
+        if (kmProssimaManutenzioneInput) kmProssimaManutenzioneInput.value = macchina.kmProssimaManutenzione ?? '';
+        if (prossimaRevisioneInput) prossimaRevisioneInput.value = dateInputValue(macchina.prossimaRevisione);
+        if (prossimaAssicurazioneInput) prossimaAssicurazioneInput.value = dateInputValue(macchina.prossimaAssicurazione);
         if (noteTextarea) noteTextarea.value = macchina.note || '';
         
         // Carica storico guasti
@@ -329,6 +372,7 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
     const nomeInput = document.getElementById('macchina-nome');
     const tipoTrattore = document.getElementById('tipo-trattore');
     const tipoAttrezzo = document.getElementById('tipo-attrezzo');
+    const tipoFlottaRadio = document.getElementById('tipo-flotta');
     const statoSelect = document.getElementById('macchina-stato');
     const marcaInput = document.getElementById('macchina-marca');
     const modelloInput = document.getElementById('macchina-modello');
@@ -337,31 +381,59 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
     const dataAcquistoInput = document.getElementById('macchina-data-acquisto');
     const oreInizialiInput = document.getElementById('macchina-ore-iniziali');
     const oreAttualiInput = document.getElementById('macchina-ore-attuali');
+    const kmInizialiInput = document.getElementById('macchina-km-iniziali');
+    const kmAttualiInput = document.getElementById('macchina-km-attuali');
     const costoOraInput = document.getElementById('macchina-costo-ora');
     const prossimaManutenzioneInput = document.getElementById('macchina-prossima-manutenzione');
     const oreProssimaManutenzioneInput = document.getElementById('macchina-ore-prossima-manutenzione');
+    const kmProssimaManutenzioneInput = document.getElementById('macchina-km-prossima-manutenzione');
+    const prossimaRevisioneInput = document.getElementById('macchina-prossima-revisione');
+    const prossimaAssicurazioneInput = document.getElementById('macchina-prossima-assicurazione');
     const noteTextarea = document.getElementById('macchina-note');
 
     const macchinaId = macchinaIdInput?.value || '';
     const nome = nomeInput?.value.trim() || '';
     const tipoTrattoreChecked = tipoTrattore?.checked || false;
     const tipoAttrezzoChecked = tipoAttrezzo?.checked || false;
-    const tipoMacchina = tipoTrattoreChecked ? 'trattore' : tipoAttrezzoChecked ? 'attrezzo' : null;
+    const tipoFlottaChecked = tipoFlottaRadio?.checked || false;
+    let tipoMacchina = null;
+    if (tipoTrattoreChecked) tipoMacchina = 'trattore';
+    else if (tipoAttrezzoChecked) tipoMacchina = 'attrezzo';
+    else if (tipoFlottaChecked) {
+        tipoMacchina = document.getElementById('macchina-tipo-flotta')?.value || 'automezzo';
+    }
     const stato = statoSelect?.value || 'disponibile';
     const marca = marcaInput?.value.trim() || null;
     const modello = modelloInput?.value.trim() || null;
     const targa = targaInput?.value.trim() || null;
     const numeroTelaio = numeroTelaioInput?.value.trim() || null;
     const dataAcquisto = dataAcquistoInput?.value || null;
-    const oreIniziali = parseFloat(oreInizialiInput?.value) || 0;
+    const isFlottaTipo = isTipoFlotta(tipoMacchina);
+    const oreIniziali = isFlottaTipo ? null : (parseFloat(oreInizialiInput?.value) || 0);
     const oreAttualiInputValue = oreAttualiInput?.value || '';
-    const oreAttuali = oreAttualiInputValue ? parseFloat(oreAttualiInputValue) : oreIniziali;
+    const oreAttuali = isFlottaTipo
+        ? null
+        : (oreAttualiInputValue ? parseFloat(oreAttualiInputValue) : oreIniziali);
+    const kmIniziali = isFlottaTipo ? (parseFloat(kmInizialiInput?.value) || 0) : null;
+    const kmAttualiInputValue = kmAttualiInput?.value || '';
+    const kmAttuali = isFlottaTipo
+        ? (kmAttualiInputValue ? parseFloat(kmAttualiInputValue) : kmIniziali)
+        : null;
     const costoOraInputValue = costoOraInput?.value || '';
-    const costoOra = costoOraInputValue ? parseFloat(costoOraInputValue) : null;
+    const costoOra = isFlottaTipo ? null : (costoOraInputValue ? parseFloat(costoOraInputValue) : null);
     const prossimaManutenzione = prossimaManutenzioneInput?.value || null;
     const oreProssimaManutenzioneInputValue = oreProssimaManutenzioneInput?.value || '';
-    const oreProssimaManutenzione = oreProssimaManutenzioneInputValue ? parseFloat(oreProssimaManutenzioneInputValue) : null;
+    const oreProssimaManutenzione = isFlottaTipo
+        ? null
+        : (oreProssimaManutenzioneInputValue ? parseFloat(oreProssimaManutenzioneInputValue) : null);
+    const kmProssimaManutenzioneInputValue = kmProssimaManutenzioneInput?.value || '';
+    const kmProssimaManutenzione = isFlottaTipo
+        ? (kmProssimaManutenzioneInputValue ? parseFloat(kmProssimaManutenzioneInputValue) : null)
+        : null;
+    const prossimaRevisione = prossimaRevisioneInput?.value || null;
+    const prossimaAssicurazione = prossimaAssicurazioneInput?.value || null;
     const note = noteTextarea?.value.trim() || null;
+    const includeScadenzeAmmin = tipoMacchina === 'trattore' || isTipoFlotta(tipoMacchina);
 
     // Validazione
     if (!nome || nome.length < 3) {
@@ -370,7 +442,7 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
     }
 
     if (!tipoMacchina) {
-        if (showAlertCallback) showAlertCallback('Seleziona un tipo macchina (Trattore o Attrezzo)', 'error');
+        if (showAlertCallback) showAlertCallback('Seleziona un tipo macchina (Trattore, Attrezzo o Mezzo aziendale)', 'error');
         return;
     }
 
@@ -421,8 +493,13 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
         }
     }
 
-    if (oreAttuali < oreIniziali) {
+    if (!isFlottaTipo && oreAttuali != null && oreIniziali != null && oreAttuali < oreIniziali) {
         if (showAlertCallback) showAlertCallback('Le ore attuali non possono essere inferiori alle ore iniziali', 'error');
+        return;
+    }
+
+    if (isFlottaTipo && kmAttuali != null && kmIniziali != null && kmAttuali < kmIniziali) {
+        if (showAlertCallback) showAlertCallback('I km attuali non possono essere inferiori ai km iniziali', 'error');
         return;
     }
 
@@ -437,10 +514,17 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
             targa,
             numeroTelaio,
             dataAcquisto: dataAcquisto ? Timestamp.fromDate(new Date(dataAcquisto)) : null,
-            oreIniziali,
-            oreAttuali,
+            oreIniziali: isFlottaTipo ? null : oreIniziali,
+            oreAttuali: isFlottaTipo ? null : oreAttuali,
+            kmIniziali: isFlottaTipo ? kmIniziali : null,
+            kmAttuali: isFlottaTipo ? kmAttuali : null,
             prossimaManutenzione: prossimaManutenzione ? Timestamp.fromDate(new Date(prossimaManutenzione)) : null,
-            oreProssimaManutenzione,
+            oreProssimaManutenzione: isFlottaTipo ? null : oreProssimaManutenzione,
+            kmProssimaManutenzione: isFlottaTipo ? kmProssimaManutenzione : null,
+            prossimaRevisione: includeScadenzeAmmin && prossimaRevisione
+                ? Timestamp.fromDate(new Date(prossimaRevisione)) : null,
+            prossimaAssicurazione: includeScadenzeAmmin && prossimaAssicurazione
+                ? Timestamp.fromDate(new Date(prossimaAssicurazione)) : null,
             costoOra,
             note,
             creatoDa: userId
@@ -451,17 +535,31 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
             const cavalliInput = document.getElementById('macchina-cavalli');
             macchinaData.cavalli = parseFloat(cavalliInput?.value);
             macchinaData.categoriaId = null;
-            macchinaData.categoriaFunzione = null; // Mantenuto per retrocompatibilità
+            macchinaData.categoriaFunzione = null;
             macchinaData.cavalliMinimiRichiesti = null;
-        }
-        
-        // Campi specifici attrezzo
-        if (tipoMacchina === 'attrezzo') {
+            macchinaData.kmIniziali = null;
+            macchinaData.kmAttuali = null;
+            macchinaData.kmProssimaManutenzione = null;
+        } else if (tipoMacchina === 'attrezzo') {
             macchinaData.categoriaId = categoriaId;
             macchinaData.categoriaFunzione = categoriaId; // Mantenuto per retrocompatibilità
             const cavalliMinimiInput = document.getElementById('macchina-cavalli-minimi');
             macchinaData.cavalliMinimiRichiesti = parseFloat(cavalliMinimiInput?.value);
             macchinaData.cavalli = null;
+            macchinaData.prossimaRevisione = null;
+            macchinaData.prossimaAssicurazione = null;
+            macchinaData.kmIniziali = null;
+            macchinaData.kmAttuali = null;
+            macchinaData.kmProssimaManutenzione = null;
+        } else if (isTipoFlotta(tipoMacchina)) {
+            macchinaData.cavalli = null;
+            macchinaData.categoriaId = null;
+            macchinaData.categoriaFunzione = null;
+            macchinaData.cavalliMinimiRichiesti = null;
+            macchinaData.costoOra = null;
+            macchinaData.oreIniziali = null;
+            macchinaData.oreAttuali = null;
+            macchinaData.oreProssimaManutenzione = null;
         }
 
         if (macchinaId) {

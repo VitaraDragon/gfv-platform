@@ -41,31 +41,43 @@ export function enrichAttrezzoPayload(m, index = 0) {
 }
 
 export function enrichFlottaPayload(m, index = 0) {
-  const oreAttuali = m.oreAttuali ?? m.oreIniziali ?? 45000;
+  const kmBase = m.kmAttuali ?? m.kmIniziali ?? m.oreAttuali ?? m.oreIniziali ?? 45000;
+  const kmIniziali = m.kmIniziali ?? m.oreIniziali ?? kmBase;
   const profiles = [
     {
       stato: 'disponibile',
-      oreAttuali,
+      kmAttuali: kmBase,
+      kmProssimaManutenzione: kmBase + 800,
       prossimaManutenzione: addDaysFromToday(12),
       prossimaRevisione: addDaysFromToday(6),
       prossimaAssicurazione: addDaysFromToday(25)
     },
     {
       stato: 'in_manutenzione',
-      oreAttuali: oreAttuali + 12000,
+      kmAttuali: kmBase + 12000,
+      kmProssimaManutenzione: kmBase + 11500,
       prossimaManutenzione: addDaysFromToday(-3),
       prossimaRevisione: addDaysFromToday(-15),
       prossimaAssicurazione: addDaysFromToday(8)
     },
     {
       stato: 'disponibile',
-      oreAttuali: oreAttuali + 8000,
+      kmAttuali: kmBase + 8000,
+      kmProssimaManutenzione: kmBase + 15000,
       prossimaManutenzione: addDaysFromToday(60),
       prossimaRevisione: addDaysFromToday(200),
       prossimaAssicurazione: addDaysFromToday(-5)
     }
   ];
-  return { ...m, ...profiles[index % profiles.length] };
+  const profile = profiles[index % profiles.length];
+  return {
+    ...m,
+    ...profile,
+    kmIniziali,
+    oreIniziali: null,
+    oreAttuali: null,
+    oreProssimaManutenzione: null
+  };
 }
 
 /**
@@ -143,11 +155,17 @@ export async function ensureFlottaAndScadenzeMacchine(db, tenantId, userId, opti
 
   for (let i = 0; i < flotta.length; i++) {
     const m = flotta[i];
-    if (m.prossimaAssicurazione && m.prossimaRevisione && m.prossimaManutenzione) continue;
+    const needsKm = m.kmProssimaManutenzione == null || m.oreAttuali != null || m.oreProssimaManutenzione != null;
+    if (!needsKm && m.prossimaAssicurazione && m.prossimaRevisione && m.prossimaManutenzione) continue;
     const patch = enrichFlottaPayload(m, i);
     await m.ref.update(normalizeForAdmin({
       stato: patch.stato,
-      oreAttuali: patch.oreAttuali,
+      kmIniziali: patch.kmIniziali,
+      kmAttuali: patch.kmAttuali,
+      kmProssimaManutenzione: patch.kmProssimaManutenzione,
+      oreIniziali: null,
+      oreAttuali: null,
+      oreProssimaManutenzione: null,
       prossimaManutenzione: patch.prossimaManutenzione,
       prossimaRevisione: patch.prossimaRevisione,
       prossimaAssicurazione: patch.prossimaAssicurazione,

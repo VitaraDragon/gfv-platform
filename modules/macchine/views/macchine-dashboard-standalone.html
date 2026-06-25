@@ -400,10 +400,10 @@
 
                 // Flotta: solo automezzi/veicoli/furgoni (esclusi trattori e attrezzi). Ore totali solo per questi mezzi.
                 const flottaValue = flotta.length;
-                const oreTotaliFlotta = flotta.reduce((s, m) => s + (m.oreAttuali != null ? m.oreAttuali : m.oreIniziali || 0), 0);
+                const kmTotaliFlotta = flotta.reduce((s, m) => s + (m.kmAttuali != null ? m.kmAttuali : m.kmIniziali || 0), 0);
                 const flottaList = flotta.length === 0
                     ? '<span class="card-empty">Nessun automezzo aziendale registrato</span>'
-                    : '<div class="card-list">' + (oreTotaliFlotta > 0 ? '<div class="card-list-item">Ore totali flotta: ' + Math.round(oreTotaliFlotta * 10) / 10 + '</div>' : '') + flotta.slice(0, 5).map(m => '<div class="card-list-item">' + escapeHtml(m.nome || '-') + '</div>').join('') + (flotta.length > 5 ? '<div class="card-list-item">… +' + (flotta.length - 5) + '</div>' : '') + '</div>';
+                    : '<div class="card-list">' + (kmTotaliFlotta > 0 ? '<div class="card-list-item">Km totali flotta: ' + Math.round(kmTotaliFlotta).toLocaleString('it-IT') + '</div>' : '') + flotta.slice(0, 5).map(m => '<div class="card-list-item">' + escapeHtml(m.nome || '-') + '</div>').join('') + (flotta.length > 5 ? '<div class="card-list-item">… +' + (flotta.length - 5) + '</div>' : '') + '</div>';
                 renderCardValue('card-flotta-value', flottaValue);
                 renderCardList('card-flotta-list', flottaList);
 

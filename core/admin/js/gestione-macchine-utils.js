@@ -6,6 +6,7 @@
 
 import { formatDateLikeToItalianLongLocal } from '../../js/date-format-it.js';
 import { showStandaloneAlert } from '../../js/standalone-alert.js';
+import { isTipoFlotta } from '../../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 
 // ============================================
 // FUNZIONI UTILITY GENERICHE
@@ -60,7 +61,16 @@ export function formattaData(data) {
  * @returns {boolean} True se in scadenza
  */
 export function isManutenzioneInScadenza(macchina) {
-    if (!macchina.prossimaManutenzione && (!macchina.oreProssimaManutenzione || macchina.oreProssimaManutenzione === null)) {
+    const flotta = isTipoFlotta(macchina.tipoMacchina || macchina.tipo);
+
+    if (flotta) {
+        if (macchina.kmProssimaManutenzione != null && macchina.kmAttuali != null) {
+            const rimanenti = macchina.kmProssimaManutenzione - macchina.kmAttuali;
+            if (rimanenti <= 2000 && rimanenti >= 0) return true;
+        }
+    }
+
+    if (!macchina.prossimaManutenzione && (flotta ? macchina.kmProssimaManutenzione == null : (!macchina.oreProssimaManutenzione || macchina.oreProssimaManutenzione === null))) {
         return false;
     }
 
@@ -77,8 +87,8 @@ export function isManutenzioneInScadenza(macchina) {
         }
     }
 
-    // Verifica per ore
-    if (macchina.oreProssimaManutenzione !== null && macchina.oreAttuali !== null) {
+    // Verifica per ore (mezzi agricoli)
+    if (!flotta && macchina.oreProssimaManutenzione !== null && macchina.oreAttuali !== null) {
         const oreRimanenti = macchina.oreProssimaManutenzione - macchina.oreAttuali;
         if (oreRimanenti <= 50 && oreRimanenti >= 0) {
             return true;
@@ -97,7 +107,15 @@ export function isManutenzioneInScadenza(macchina) {
  * @returns {boolean} True se scaduta
  */
 export function isManutenzioneScaduta(macchina) {
-    if (!macchina.prossimaManutenzione && (!macchina.oreProssimaManutenzione || macchina.oreProssimaManutenzione === null)) {
+    const flotta = isTipoFlotta(macchina.tipoMacchina || macchina.tipo);
+
+    if (flotta) {
+        if (macchina.kmProssimaManutenzione != null && macchina.kmAttuali != null) {
+            if (macchina.kmAttuali >= macchina.kmProssimaManutenzione) return true;
+        }
+    }
+
+    if (!macchina.prossimaManutenzione && (flotta ? macchina.kmProssimaManutenzione == null : (!macchina.oreProssimaManutenzione || macchina.oreProssimaManutenzione === null))) {
         return false;
     }
 
@@ -113,8 +131,8 @@ export function isManutenzioneScaduta(macchina) {
         }
     }
 
-    // Verifica per ore
-    if (macchina.oreProssimaManutenzione !== null && macchina.oreAttuali !== null) {
+    // Verifica per ore (mezzi agricoli)
+    if (!flotta && macchina.oreProssimaManutenzione !== null && macchina.oreAttuali !== null) {
         if (macchina.oreAttuali >= macchina.oreProssimaManutenzione) {
             return true;
         }

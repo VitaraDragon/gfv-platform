@@ -169,7 +169,7 @@
                         nome: m.nome || '-',
                         tipo: tipoLabel(m.tipoMacchina || m.tipo),
                         targa: m.targa || '-',
-                        ore: m.oreAttuali != null ? m.oreAttuali : m.oreIniziali,
+                        km: m.kmAttuali != null ? m.kmAttuali : m.kmIniziali,
                         stato: m.stato || '-'
                     }))
                 };
@@ -181,10 +181,10 @@
                     container.innerHTML = '<div class="empty-state">Nessun automezzo aziendale registrato</div>';
                     return;
                 }
-                container.innerHTML = '<table class="mezzi-table"><thead><tr><th>Nome</th><th>Tipo</th><th>Targa</th><th>Ore</th><th>Stato</th></tr></thead><tbody>' +
+                container.innerHTML = '<table class="mezzi-table"><thead><tr><th>Nome</th><th>Tipo</th><th>Targa</th><th>Km</th><th>Stato</th></tr></thead><tbody>' +
                     filtered.map(m => {
-                        const ore = m.oreAttuali != null ? m.oreAttuali : m.oreIniziali;
-                        return '<tr><td>' + escapeHtml(m.nome || '-') + '</td><td>' + tipoLabel(m.tipoMacchina || m.tipo) + '</td><td>' + escapeHtml(m.targa || '-') + '</td><td>' + (ore != null ? Number(ore).toLocaleString('it-IT') : '-') + '</td><td>' + statoBadge(m.stato) + '</td></tr>';
+                        const km = m.kmAttuali != null ? m.kmAttuali : m.kmIniziali;
+                        return '<tr><td>' + escapeHtml(m.nome || '-') + '</td><td>' + tipoLabel(m.tipoMacchina || m.tipo) + '</td><td>' + escapeHtml(m.targa || '-') + '</td><td>' + (km != null ? Number(km).toLocaleString('it-IT') : '-') + '</td><td>' + statoBadge(m.stato) + '</td></tr>';
                     }).join('') + '</tbody></table>';
             }
 

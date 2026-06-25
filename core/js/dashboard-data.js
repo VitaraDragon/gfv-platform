@@ -5,6 +5,7 @@
  */
 
 import { query, where } from '../services/firebase-service.js';
+import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 import {
     confermeIncludesUser,
     isComunicazioneAttivaPerData,
@@ -2077,13 +2078,19 @@ export async function loadScadenzeUrgentiCount(tenantId, dependencies) {
         let count = 0;
         snapshot.forEach((d) => {
             const m = d.data();
+            const flotta = isTipoFlotta(m.tipoMacchina || m.tipo);
             if (m.prossimaManutenzione != null) {
                 const scadenza = m.prossimaManutenzione.toDate ? m.prossimaManutenzione.toDate() : new Date(m.prossimaManutenzione);
                 scadenza.setHours(0, 0, 0, 0);
                 const giorni = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
                 if (giorni < 0 || (giorni >= 0 && giorni <= 15)) count++;
             }
-            if (m.oreProssimaManutenzione != null) {
+            if (flotta && m.kmProssimaManutenzione != null) {
+                const km = m.kmAttuali != null ? parseFloat(m.kmAttuali) : (m.kmIniziali != null ? parseFloat(m.kmIniziali) : 0);
+                const soglia = parseFloat(m.kmProssimaManutenzione);
+                const kmRimanenti = soglia - km;
+                if (kmRimanenti <= 0 || kmRimanenti < 500) count++;
+            } else if (!flotta && m.oreProssimaManutenzione != null) {
                 const ore = m.oreAttuali != null ? parseFloat(m.oreAttuali) : 0;
                 const soglia = parseFloat(m.oreProssimaManutenzione);
                 const oreRimanenti = soglia - ore;

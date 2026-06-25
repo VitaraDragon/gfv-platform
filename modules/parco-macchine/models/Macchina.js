@@ -7,6 +7,7 @@
 
 import { Base } from '../../../core/models/Base.js';
 import { dateToTimestamp } from '../../../core/services/firebase-service.js';
+import { isTipoFlotta } from '../lib/macchine-tipo-utils.js';
 
 export class Macchina extends Base {
   /**
@@ -26,7 +27,12 @@ export class Macchina extends Base {
    * @param {string} data.operatoreAssegnatoId - ID utente assegnato (opzionale, solo se Manodopera attivo)
    * @param {string} data.note - Note opzionali
    * @param {Date|Timestamp} data.prossimaManutenzione - Data prossima manutenzione programmata - opzionale
-   * @param {number} data.oreProssimaManutenzione - Ore alla prossima manutenzione - opzionale
+   * @param {number} data.oreProssimaManutenzione - Ore alla prossima manutenzione (trattori/attrezzi) - opzionale
+   * @param {number} data.kmIniziali - Km al momento dell'inserimento (flotta) - opzionale
+   * @param {number} data.kmAttuali - Km attuali contatore (flotta) - opzionale
+   * @param {number} data.kmProssimaManutenzione - Km al prossimo tagliando (flotta) - opzionale
+   * @param {Date|Timestamp} data.prossimaRevisione - Data prossima revisione (trattori/flotta) - opzionale
+   * @param {Date|Timestamp} data.prossimaAssicurazione - Data scadenza assicurazione (trattori/flotta) - opzionale
    * @param {number} data.costoOra - Costo orario macchina in euro (opzionale, per calcolo costi nei compensi)
    * 
    * Campi specifici TRATTORE:
@@ -86,6 +92,32 @@ export class Macchina extends Base {
     this.oreProssimaManutenzione = data.oreProssimaManutenzione !== undefined 
       ? parseFloat(data.oreProssimaManutenzione) 
       : null;
+
+    this.kmIniziali = data.kmIniziali !== undefined && data.kmIniziali !== null
+      ? parseFloat(data.kmIniziali)
+      : null;
+    this.kmAttuali = data.kmAttuali !== undefined && data.kmAttuali !== null
+      ? parseFloat(data.kmAttuali)
+      : (this.kmIniziali != null ? this.kmIniziali : null);
+    this.kmProssimaManutenzione = data.kmProssimaManutenzione !== undefined && data.kmProssimaManutenzione !== null
+      ? parseFloat(data.kmProssimaManutenzione)
+      : null;
+    
+    if (data.prossimaRevisione) {
+      this.prossimaRevisione = data.prossimaRevisione instanceof Date
+        ? data.prossimaRevisione
+        : new Date(data.prossimaRevisione);
+    } else {
+      this.prossimaRevisione = null;
+    }
+
+    if (data.prossimaAssicurazione) {
+      this.prossimaAssicurazione = data.prossimaAssicurazione instanceof Date
+        ? data.prossimaAssicurazione
+        : new Date(data.prossimaAssicurazione);
+    } else {
+      this.prossimaAssicurazione = null;
+    }
     
     // Costo orario macchina (opzionale, per calcolo costi nei compensi)
     this.costoOra = data.costoOra !== undefined ? parseFloat(data.costoOra) : null;
@@ -181,6 +213,21 @@ export class Macchina extends Base {
     if (this.oreProssimaManutenzione !== null && this.oreProssimaManutenzione < 0) {
       errors.push('Ore prossima manutenzione non possono essere negative');
     }
+
+    if (this.isFlotta()) {
+      if (this.kmIniziali != null && this.kmIniziali < 0) {
+        errors.push('Km iniziali non possono essere negativi');
+      }
+      if (this.kmAttuali != null && this.kmAttuali < 0) {
+        errors.push('Km attuali non possono essere negativi');
+      }
+      if (this.kmAttuali != null && this.kmIniziali != null && this.kmAttuali < this.kmIniziali) {
+        errors.push('Km attuali non possono essere inferiori ai km iniziali');
+      }
+      if (this.kmProssimaManutenzione != null && this.kmProssimaManutenzione < 0) {
+        errors.push('Km prossima manutenzione non possono essere negativi');
+      }
+    }
     
     if (this.costoOra !== null && this.costoOra < 0) {
       errors.push('Costo orario non può essere negativo');
@@ -256,8 +303,17 @@ export class Macchina extends Base {
    * @returns {boolean} true se manutenzione in scadenza
    */
   isManutenzioneInScadenza() {
+    if (this.isFlotta()) {
+      if (this.kmProssimaManutenzione != null && this.kmAttuali != null) {
+        const rimanenti = this.kmProssimaManutenzione - this.kmAttuali;
+        if (rimanenti <= 2000 && rimanenti >= 0) return true;
+      }
+    }
+
     if (!this.prossimaManutenzione && this.oreProssimaManutenzione === null) {
-      return false;
+      if (!(this.isFlotta() && this.kmProssimaManutenzione != null)) {
+        return false;
+      }
     }
     
     // Verifica per data
@@ -273,8 +329,8 @@ export class Macchina extends Base {
       }
     }
     
-    // Verifica per ore
-    if (this.oreProssimaManutenzione !== null && this.oreAttuali !== null) {
+    // Verifica per ore (mezzi agricoli)
+    if (!this.isFlotta() && this.oreProssimaManutenzione !== null && this.oreAttuali !== null) {
       const oreRimanenti = this.oreProssimaManutenzione - this.oreAttuali;
       if (oreRimanenti <= 50 && oreRimanenti >= 0) {
         return true;
@@ -289,8 +345,16 @@ export class Macchina extends Base {
    * @returns {boolean} true se manutenzione scaduta
    */
   isManutenzioneScaduta() {
+    if (this.isFlotta()) {
+      if (this.kmProssimaManutenzione != null && this.kmAttuali != null) {
+        if (this.kmAttuali >= this.kmProssimaManutenzione) return true;
+      }
+    }
+
     if (!this.prossimaManutenzione && this.oreProssimaManutenzione === null) {
-      return false;
+      if (!(this.isFlotta() && this.kmProssimaManutenzione != null)) {
+        return false;
+      }
     }
     
     // Verifica per data
@@ -305,8 +369,8 @@ export class Macchina extends Base {
       }
     }
     
-    // Verifica per ore
-    if (this.oreProssimaManutenzione !== null && this.oreAttuali !== null) {
+    // Verifica per ore (mezzi agricoli)
+    if (!this.isFlotta() && this.oreProssimaManutenzione !== null && this.oreAttuali !== null) {
       if (this.oreAttuali >= this.oreProssimaManutenzione) {
         return true;
       }
@@ -337,7 +401,10 @@ export class Macchina extends Base {
   getTipoFormattato() {
     const tipiFormattati = {
       'trattore': '🚜 Trattore',
-      'attrezzo': '⚙️ Attrezzo'
+      'attrezzo': '⚙️ Attrezzo',
+      'furgone': '🚐 Furgone',
+      'automezzo': '🛻 Automezzo',
+      'veicolo': '🚗 Veicolo'
     };
     return tipiFormattati[this.tipoMacchina] || tipiFormattati[this.tipo] || this.tipoMacchina || this.tipo;
   }
@@ -356,6 +423,14 @@ export class Macchina extends Base {
    */
   isAttrezzo() {
     return this.tipoMacchina === 'attrezzo' || this.tipo === 'attrezzo';
+  }
+
+  /**
+   * Verifica se è un mezzo flotta aziendale (furgone, pickup, veicolo)
+   * @returns {boolean}
+   */
+  isFlotta() {
+    return isTipoFlotta(this.tipoMacchina || this.tipo);
   }
   
   /**
@@ -390,6 +465,12 @@ export class Macchina extends Base {
     // Converti prossimaManutenzione in Timestamp se è Date
     if (this.prossimaManutenzione instanceof Date) {
       data.prossimaManutenzione = dateToTimestamp(this.prossimaManutenzione);
+    }
+    if (this.prossimaRevisione instanceof Date) {
+      data.prossimaRevisione = dateToTimestamp(this.prossimaRevisione);
+    }
+    if (this.prossimaAssicurazione instanceof Date) {
+      data.prossimaAssicurazione = dateToTimestamp(this.prossimaAssicurazione);
     }
     
     return data;

@@ -61,7 +61,7 @@
         <div class="header">
             <div>
                 <h1>📅 Scadenze</h1>
-                <p style="opacity: 0.9; margin-top: 4px; font-size: 14px;">Manutenzioni e limiti ore</p>
+                <p style="opacity: 0.9; margin-top: 4px; font-size: 14px;">Manutenzioni, tagliandi km, revisioni e assicurazioni</p>
             </div>
             <a href="macchine-dashboard-standalone.html" class="btn btn-secondary">← Indietro</a>
         </div>
@@ -95,6 +95,7 @@
             <form id="form-rinnova">
                 <input type="hidden" id="rinnova-macchinaId">
                 <input type="hidden" id="rinnova-tipo" value="data">
+                <input type="hidden" id="rinnova-campo" value="prossimaManutenzione">
                 <div class="form-group" id="group-data">
                     <label for="rinnova-data">Nuova data scadenza</label>
                     <input type="date" id="rinnova-data">
@@ -102,6 +103,10 @@
                 <div class="form-group" id="group-ore" style="display: none;">
                     <label for="rinnova-ore">Nuove ore limite (prossima manutenzione)</label>
                     <input type="number" id="rinnova-ore" min="0" step="1" placeholder="es. 500">
+                </div>
+                <div class="form-group" id="group-km" style="display: none;">
+                    <label for="rinnova-km">Nuovo limite km (prossimo tagliando)</label>
+                    <input type="number" id="rinnova-km" min="0" step="1" placeholder="es. 60000">
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" id="btn-annulla">Annulla</button>
@@ -148,6 +153,11 @@
                 console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
             }
 
+            const TIPI_FLOTTA = ['automezzo', 'veicolo', 'furgone'];
+            function isTipoFlotta(tipo) {
+                return TIPI_FLOTTA.includes((tipo || '').toLowerCase());
+            }
+
             function toDate(val) {
                 if (!val) return null;
                 if (val.toDate) return val.toDate();
@@ -186,6 +196,17 @@
                     if (oreRimanenti < 50) return { dot: 'yellow', rowScaduto: false, statoTesto: '< 50 ore' };
                     return { dot: 'green', rowScaduto: false, statoTesto: 'Ok' };
                 }
+
+                if (tipo === 'km') {
+                    const km = oreAttuali != null ? parseFloat(oreAttuali) : 0;
+                    const soglia = sogliaOre != null ? parseFloat(sogliaOre) : null;
+                    if (soglia == null) return { dot: 'green', rowScaduto: false, statoTesto: '—' };
+                    const kmRimanenti = soglia - km;
+                    if (kmRimanenti <= 0) return { dot: 'black', rowScaduto: true, statoTesto: 'Superato' };
+                    if (kmRimanenti < 500) return { dot: 'red', rowScaduto: false, statoTesto: '< 500 km' };
+                    if (kmRimanenti < 2000) return { dot: 'yellow', rowScaduto: false, statoTesto: '< 2.000 km' };
+                    return { dot: 'green', rowScaduto: false, statoTesto: 'Ok' };
+                }
                 return { dot: 'green', rowScaduto: false, statoTesto: '—' };
             }
 
@@ -195,6 +216,8 @@
                 for (const m of list) {
                     const nome = m.nome || m.id || '—';
                     const id = m.id;
+                    const tipoMacchina = (m.tipoMacchina || m.tipo || '').toLowerCase();
+                    const flotta = isTipoFlotta(tipoMacchina);
                     if (m.prossimaManutenzione != null) {
                         const stato = calcolaStatoScadenza('data', m.prossimaManutenzione, null, null);
                         out.push({
@@ -203,14 +226,28 @@
                             tipoScadenza: 'Manutenzione',
                             valoreLimite: toDate(m.prossimaManutenzione),
                             tipoValore: 'data',
-                            oreAttuali: m.oreAttuali,
-                            sogliaOre: null,
+                            campo: 'prossimaManutenzione',
                             dot: stato.dot,
                             rowScaduto: stato.rowScaduto,
                             statoTesto: stato.statoTesto
                         });
                     }
-                    if (m.oreProssimaManutenzione != null) {
+                    if (flotta && m.kmProssimaManutenzione != null) {
+                        const kmAttuali = m.kmAttuali != null ? m.kmAttuali : m.kmIniziali;
+                        const stato = calcolaStatoScadenza('km', null, kmAttuali, m.kmProssimaManutenzione);
+                        out.push({
+                            macchinaId: id,
+                            mezzo: nome,
+                            tipoScadenza: 'Tagliando (km)',
+                            valoreLimite: m.kmProssimaManutenzione,
+                            tipoValore: 'km',
+                            campo: 'kmProssimaManutenzione',
+                            contatoreAttuale: kmAttuali,
+                            dot: stato.dot,
+                            rowScaduto: stato.rowScaduto,
+                            statoTesto: stato.statoTesto
+                        });
+                    } else if (!flotta && m.oreProssimaManutenzione != null) {
                         const stato = calcolaStatoScadenza('ore', null, m.oreAttuali, m.oreProssimaManutenzione);
                         out.push({
                             macchinaId: id,
@@ -218,8 +255,8 @@
                             tipoScadenza: 'Manutenzione (ore)',
                             valoreLimite: m.oreProssimaManutenzione,
                             tipoValore: 'ore',
-                            oreAttuali: m.oreAttuali,
-                            sogliaOre: m.oreProssimaManutenzione,
+                            campo: 'oreProssimaManutenzione',
+                            contatoreAttuale: m.oreAttuali,
                             dot: stato.dot,
                             rowScaduto: stato.rowScaduto,
                             statoTesto: stato.statoTesto
@@ -233,8 +270,7 @@
                             tipoScadenza: 'Revisione',
                             valoreLimite: toDate(m.prossimaRevisione),
                             tipoValore: 'data',
-                            oreAttuali: m.oreAttuali,
-                            sogliaOre: null,
+                            campo: 'prossimaRevisione',
                             dot: stato.dot,
                             rowScaduto: stato.rowScaduto,
                             statoTesto: stato.statoTesto
@@ -248,8 +284,7 @@
                             tipoScadenza: 'Assicurazione',
                             valoreLimite: toDate(m.prossimaAssicurazione),
                             tipoValore: 'data',
-                            oreAttuali: m.oreAttuali,
-                            sogliaOre: null,
+                            campo: 'prossimaAssicurazione',
                             dot: stato.dot,
                             rowScaduto: stato.rowScaduto,
                             statoTesto: stato.statoTesto
@@ -259,9 +294,10 @@
                 return out;
             }
 
-            function formatValore(s) {
+            function formatValore(s, tipoValore) {
                 if (s == null) return '—';
-                if (typeof s === 'number') return Number(s).toLocaleString('it-IT') + ' ore';
+                if (tipoValore === 'km') return Number(s).toLocaleString('it-IT') + ' km';
+                if (tipoValore === 'ore') return Number(s).toLocaleString('it-IT') + ' ore';
                 const d = toDate(s);
                 return d ? formatDateLikeToItalianLongLocal(d) : '—';
             }
@@ -305,7 +341,7 @@
                     items: filtered.map(s => ({
                         mezzo: s.mezzo,
                         tipoScadenza: s.tipoScadenza,
-                        valoreLimite: s.tipoValore === 'data' ? formatValore(s.valoreLimite) : formatValore(s.valoreLimite),
+                        valoreLimite: s.tipoValore === 'data' ? formatValore(s.valoreLimite, s.tipoValore) : formatValore(s.valoreLimite, s.tipoValore),
                         stato: s.statoTesto,
                         urgente: s.dot === 'black' || s.dot === 'red'
                     }))
@@ -328,33 +364,41 @@
                     return;
                 }
                 const rows = filtered.map(s => {
-                    const valoreStr = s.tipoValore === 'data' ? formatValore(s.valoreLimite) : formatValore(s.valoreLimite);
+                    const valoreStr = formatValore(s.valoreLimite, s.tipoValore);
                     const rowClass = s.rowScaduto ? ' class="row-scaduto"' : '';
-                    return '<tr' + rowClass + '><td><span class="cell-status"><span class="status-dot dot-' + s.dot + '" title="' + escapeHtml(s.statoTesto) + '"></span>' + escapeHtml(s.mezzo) + '</span></td><td>' + escapeHtml(s.tipoScadenza) + '</td><td>' + escapeHtml(valoreStr) + '</td><td><span class="cell-status"><span class="status-dot dot-' + s.dot + '"></span>' + escapeHtml(s.statoTesto) + '</span></td><td><button type="button" class="btn-rinnova" data-macchina-id="' + escapeHtml(s.macchinaId) + '" data-tipo="' + escapeHtml(s.tipoValore) + '" data-mezzo="' + escapeHtml(s.mezzo) + '" title="Aggiorna scadenza">🔄</button></td></tr>';
+                    return '<tr' + rowClass + '><td><span class="cell-status"><span class="status-dot dot-' + s.dot + '" title="' + escapeHtml(s.statoTesto) + '"></span>' + escapeHtml(s.mezzo) + '</span></td><td>' + escapeHtml(s.tipoScadenza) + '</td><td>' + escapeHtml(valoreStr) + '</td><td><span class="cell-status"><span class="status-dot dot-' + s.dot + '"></span>' + escapeHtml(s.statoTesto) + '</span></td><td><button type="button" class="btn-rinnova" data-macchina-id="' + escapeHtml(s.macchinaId) + '" data-tipo="' + escapeHtml(s.tipoValore) + '" data-campo="' + escapeHtml(s.campo || 'prossimaManutenzione') + '" data-mezzo="' + escapeHtml(s.mezzo) + '" title="Aggiorna scadenza">🔄</button></td></tr>';
                 }).join('');
                 container.innerHTML = '<table class="scadenze-table"><thead><tr><th>Mezzo</th><th>Tipo Scadenza</th><th>Valore Limite</th><th>Stato</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>';
 
                 container.querySelectorAll('.btn-rinnova').forEach(btn => {
-                    btn.onclick = () => openModalRinnova(btn.dataset.macchinaId, btn.dataset.tipo, btn.dataset.mezzo);
+                    btn.onclick = () => openModalRinnova(btn.dataset.macchinaId, btn.dataset.tipo, btn.dataset.mezzo, btn.dataset.campo);
                 });
             }
 
-            function openModalRinnova(macchinaId, tipo, mezzo) {
+            function openModalRinnova(macchinaId, tipo, mezzo, campo) {
                 document.getElementById('rinnova-macchinaId').value = macchinaId || '';
                 document.getElementById('rinnova-tipo').value = tipo || 'data';
+                document.getElementById('rinnova-campo').value = campo || 'prossimaManutenzione';
                 document.getElementById('modal-rinnova-title').textContent = 'Aggiorna scadenza – ' + (mezzo || '');
                 const groupData = document.getElementById('group-data');
                 const groupOre = document.getElementById('group-ore');
+                const groupKm = document.getElementById('group-km');
                 const inputData = document.getElementById('rinnova-data');
                 const inputOre = document.getElementById('rinnova-ore');
+                const inputKm = document.getElementById('rinnova-km');
+                groupData.style.display = 'none';
+                groupOre.style.display = 'none';
+                groupKm.style.display = 'none';
                 if (tipo === 'ore') {
-                    groupData.style.display = 'none';
                     groupOre.style.display = 'block';
                     inputOre.value = '';
                     inputOre.focus();
+                } else if (tipo === 'km') {
+                    groupKm.style.display = 'block';
+                    inputKm.value = '';
+                    inputKm.focus();
                 } else {
                     groupData.style.display = 'block';
-                    groupOre.style.display = 'none';
                     inputData.value = '';
                     inputData.focus();
                 }
@@ -396,16 +440,21 @@
                     e.preventDefault();
                     const macchinaId = document.getElementById('rinnova-macchinaId').value;
                     const tipo = document.getElementById('rinnova-tipo').value;
+                    const campo = document.getElementById('rinnova-campo').value || 'prossimaManutenzione';
                     if (!macchinaId) { showAlert('Macchina non specificata', 'error'); return; }
                     try {
                         if (tipo === 'ore') {
                             const ore = parseFloat(document.getElementById('rinnova-ore').value);
                             if (isNaN(ore) || ore < 0) { showAlert('Inserisci ore valide', 'error'); return; }
                             await updateMacchina(macchinaId, { oreProssimaManutenzione: ore });
+                        } else if (tipo === 'km') {
+                            const km = parseFloat(document.getElementById('rinnova-km').value);
+                            if (isNaN(km) || km < 0) { showAlert('Inserisci km validi', 'error'); return; }
+                            await updateMacchina(macchinaId, { kmProssimaManutenzione: km });
                         } else {
                             const dataStr = document.getElementById('rinnova-data').value;
                             if (!dataStr) { showAlert('Inserisci una data', 'error'); return; }
-                            await updateMacchina(macchinaId, { prossimaManutenzione: new Date(dataStr) });
+                            await updateMacchina(macchinaId, { [campo]: new Date(dataStr) });
                         }
                         showAlert('Scadenza aggiornata', 'success');
                         closeModal();

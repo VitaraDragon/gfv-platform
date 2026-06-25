@@ -401,6 +401,7 @@
                         <option value="tutti">Tutti</option>
                         <option value="trattore">🚜 Trattori</option>
                         <option value="attrezzo">⚙️ Attrezzi</option>
+                        <option value="flotta">🚐 Flotta aziendale</option>
                     </select>
                 </div>
                 <div class="filter-group" id="filter-categoria-group" style="display: none;">
@@ -444,7 +445,7 @@
                 
                 <div class="form-group">
                     <label>Tipo Macchina *</label>
-                    <div style="display: flex; gap: 20px; margin-top: 10px;">
+                    <div style="display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="radio" name="tipo-macchina" value="trattore" id="tipo-trattore" required>
                             <span style="font-size: 24px;">🚜</span>
@@ -455,7 +456,21 @@
                             <span style="font-size: 24px;">⚙️</span>
                             <span>Attrezzo</span>
                         </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="tipo-macchina" value="flotta" id="tipo-flotta" required>
+                            <span style="font-size: 24px;">🚐</span>
+                            <span>Mezzo aziendale</span>
+                        </label>
                     </div>
+                </div>
+
+                <div class="form-group" id="campo-flotta-sottotipo-group" style="display: none;">
+                    <label for="macchina-tipo-flotta">Tipo mezzo aziendale *</label>
+                    <select id="macchina-tipo-flotta">
+                        <option value="furgone">Furgone</option>
+                        <option value="automezzo">Automezzo / Pickup</option>
+                        <option value="veicolo">Veicolo</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
@@ -535,26 +550,37 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="macchina-data-acquisto">Data Acquisto</label>
-                        <input type="date" id="macchina-data-acquisto">
-                    </div>
+                <div class="form-group">
+                    <label for="macchina-data-acquisto">Data Acquisto</label>
+                    <input type="date" id="macchina-data-acquisto">
+                </div>
 
+                <div class="form-row" id="gruppo-contatore-ore">
                     <div class="form-group">
                         <label for="macchina-ore-iniziali">Ore Iniziali</label>
                         <input type="number" id="macchina-ore-iniziali" step="0.1" min="0" value="0">
-                        <small>Ore al momento dell'inserimento</small>
+                        <small>Contatore ore (trattori/attrezzi)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="macchina-ore-attuali">Ore Attuali</label>
+                        <input type="number" id="macchina-ore-attuali" step="0.1" min="0">
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="macchina-ore-attuali">Ore Attuali</label>
-                    <input type="number" id="macchina-ore-attuali" step="0.1" min="0">
-                    <small>Ore attuali (se non specificate, usa ore iniziali)</small>
+                <div class="form-row" id="gruppo-contatore-km" style="display: none;">
+                    <div class="form-group">
+                        <label for="macchina-km-iniziali">Km Iniziali</label>
+                        <input type="number" id="macchina-km-iniziali" step="1" min="0" value="0">
+                        <small>Chilometraggio al momento dell'inserimento</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="macchina-km-attuali">Km Attuali</label>
+                        <input type="number" id="macchina-km-attuali" step="1" min="0">
+                        <small>Chilometraggio attuale (contatore)</small>
+                    </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="gruppo-costo-ora">
                     <label for="macchina-costo-ora">Costo Orario (€/h)</label>
                     <input type="number" id="macchina-costo-ora" step="0.01" min="0" placeholder="es. 25.50">
                     <small>Costo orario macchina per calcolo costi nei compensi (opzionale)</small>
@@ -564,12 +590,33 @@
                     <div class="form-group">
                         <label for="macchina-prossima-manutenzione">Prossima Manutenzione (Data)</label>
                         <input type="date" id="macchina-prossima-manutenzione">
+                        <small>Scadenza a calendario (revisione officina, tagliando programmato)</small>
+                    </div>
+
+                    <div class="form-group" id="gruppo-manutenzione-ore">
+                        <label for="macchina-ore-prossima-manutenzione">Prossima Manutenzione (Ore)</label>
+                        <input type="number" id="macchina-ore-prossima-manutenzione" step="0.1" min="0" placeholder="es. 1000">
+                        <small>Soglia ore contatore — trattori e attrezzi</small>
+                    </div>
+
+                    <div class="form-group" id="gruppo-manutenzione-km" style="display: none;">
+                        <label for="macchina-km-prossima-manutenzione">Prossimo Tagliando (Km)</label>
+                        <input type="number" id="macchina-km-prossima-manutenzione" step="1" min="0" placeholder="es. 120000">
+                        <small>Soglia chilometri — furgoni, pickup e veicoli aziendali</small>
+                    </div>
+                </div>
+
+                <div class="form-row" id="scadenze-ammin-group" style="display: none;">
+                    <div class="form-group">
+                        <label for="macchina-prossima-revisione">Prossima Revisione</label>
+                        <input type="date" id="macchina-prossima-revisione">
+                        <small>Revisione periodica (trattori e mezzi aziendali)</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="macchina-ore-prossima-manutenzione">Prossima Manutenzione (Ore)</label>
-                        <input type="number" id="macchina-ore-prossima-manutenzione" step="0.1" min="0" placeholder="es. 1000">
-                        <small>Ore alla prossima manutenzione</small>
+                        <label for="macchina-prossima-assicurazione">Scadenza Assicurazione</label>
+                        <input type="date" id="macchina-prossima-assicurazione">
+                        <small>Polizza RC / assicurazione mezzo</small>
                     </div>
                 </div>
 

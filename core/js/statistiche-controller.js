@@ -619,9 +619,14 @@ export async function getManutenzioniInScadenza(hasParcoMacchineModule, macchine
         
         macchineList.forEach(macchina => {
             if (macchina.stato === 'dismesso') return;
+            const flotta = ['furgone', 'automezzo', 'veicolo'].includes((macchina.tipoMacchina || macchina.tipo || '').toLowerCase());
             
-            // Verifica per ore
-            if (macchina.oreProssimaManutenzione && macchina.oreAttuali) {
+            if (flotta && macchina.kmProssimaManutenzione != null && macchina.kmAttuali != null) {
+                const kmRimanenti = macchina.kmProssimaManutenzione - macchina.kmAttuali;
+                if (kmRimanenti <= 2000 && kmRimanenti > 0) {
+                    count++;
+                }
+            } else if (!flotta && macchina.oreProssimaManutenzione && macchina.oreAttuali) {
                 const oreRimanenti = macchina.oreProssimaManutenzione - macchina.oreAttuali;
                 if (oreRimanenti <= 50 && oreRimanenti > 0) {
                     count++;

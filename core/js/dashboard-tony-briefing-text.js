@@ -5,6 +5,11 @@
  */
 
 const GUASTI_CHIUSI = ['risolto', 'riparato', 'chiuso'];
+const TIPI_FLOTTA = ['automezzo', 'veicolo', 'furgone'];
+
+function isTipoFlottaBriefing(tipo) {
+    return TIPI_FLOTTA.includes((tipo || '').toLowerCase());
+}
 
 /**
  * @param {Array<{ id?: string, data?: () => object }|object>} prodottiDocsOrRows
@@ -140,7 +145,26 @@ export function buildScadenzeUrgentiBriefingFromMacchine(macchineDocsOrRows) {
             }
         }
 
-        if (m.oreProssimaManutenzione != null) {
+        const flotta = isTipoFlottaBriefing(m.tipoMacchina || m.tipo);
+
+        if (flotta && m.kmProssimaManutenzione != null) {
+            const km = m.kmAttuali != null ? parseFloat(m.kmAttuali) : (m.kmIniziali != null ? parseFloat(m.kmIniziali) : 0);
+            const soglia = parseFloat(m.kmProssimaManutenzione);
+            if (Number.isFinite(soglia)) {
+                const rim = soglia - km;
+                if (rim <= 0 || rim < 500) {
+                    const label =
+                        rim <= 0
+                            ? nome + ' (tagliando km superato)'
+                            : nome + ' (tagliando tra ' + Math.round(rim).toLocaleString('it-IT') + ' km)';
+                    const key = keyBase + ':km';
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        items.push(label);
+                    }
+                }
+            }
+        } else if (!flotta && m.oreProssimaManutenzione != null) {
             const ore = m.oreAttuali != null ? parseFloat(m.oreAttuali) : 0;
             const soglia = parseFloat(m.oreProssimaManutenzione);
             if (Number.isFinite(soglia)) {
