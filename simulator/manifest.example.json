@@ -1,0 +1,12 @@
+[
+  {
+    "runId": "00000000-0000-4000-8000-000000000001",
+    "templateId": "solo-titolare-viticola",
+    "tenantId": "sim_azienda_vitivinicola_gallo_EXAMPLE",
+    "userId": "EXAMPLE_USER_UID",
+    "email": "sim+gallo_example@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo (esempio)",
+    "seedVersion": 2,
+    "createdAt": "2026-06-24T12:00:00.000Z"
+  }
+]

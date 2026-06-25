@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.4  
+**Versione:** 1.6  
 **Data:** 2026-06-24  
-**Stato:** v1.4 — batch multi-azienda + backfill + auto-login UI + magazzino/tracciabilità verificati  
+**Stato:** v1.6 — parco macchine completo (flotta + scadenze/manutenzione/revisione/assicurazione) + vigneto operativo + spese allineate app + audit  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -47,7 +47,7 @@ Dettaglio misurabile:
 
 - Tenant + utente Auth creati
 - Moduli attivi: `vigneto`, `parcoMacchine`, `magazzino`
-- Almeno **N terreni**, **N trattori**, **N attrezzi**, **N vigneti**, **N prodotti** creati (numeri dal template, §6)
+- Almeno **N terreni**, **N trattori**, **N attrezzi**, **N mezzi flotta**, **N vigneti**, **N prodotti** creati (numeri dal template, §6)
 - Almeno **20 attività** create (4 settimane × ~5 giorni lavorativi × 1 attività/giorno), date **non future**, distribuite su terreni diversi
 - Ogni attività passa `Attivita.validate()` e `createAttivita()` senza errori
 - Report finale con conteggi e ID tenant/utente
@@ -62,7 +62,7 @@ Dettaglio misurabile:
 - Conto terzi, frutteto, report avanzati
 - Errori intenzionali / fuzzing
 - Run paralleli multi-scenario
-- CI obbligatoria (opzionale in v2)
+- CI obbligatoria su ogni push (v1: CI leggera su path simulator — v. §13.3)
 - Pulizia automatica dati (solo comando manuale `sim:cleanup` in v2)
 
 ---
@@ -143,7 +143,7 @@ Il simulatore v1 scrive dati via **Admin SDK**; la verifica manuale in browser u
 | `core/js/firebase-emulator-dev.js` | Connessione **sincrona** Auth/Firestore emulator (`?emulator=1` o `localStorage gfv_firebase_emulator=1`) |
 | `core/services/firebase-service.js` | `awaitFirebaseEmulatorConnect()` + `awaitAuthStateReady()` prima del controllo auth |
 | `core/js/simulator-browser-auth.js` | Auto-login cross-page da pagina dev (`storeSimPendingLogin` / `ensureSimulatorSession`) |
-| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, **Entra**, link Terreni / Attività / Movimenti |
+| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, **Entra**, link Terreni / Attività / Movimenti / Macchine / Vigneto |
 | `npm start` | `http-server` porta **8000** (richiesto per servire HTML + manifest) |
 
 **URL pagina dev:**
@@ -186,6 +186,10 @@ simulator/
     emulator-context.js              # init admin + auth + setCurrentTenantId
     firestore-write.js               # write Admin SDK + path tenant
     seed-reference-data.js           # categorie colture, colture, poderi (seed v2)
+    seed-parco-macchine-details.js   # flotta + scadenze/manutenzione/revisione/assicurazione
+    sim-economia-vigneto.js          # tariffe, costoOra, sync spese vigneto
+    seed-lavori-catalog.js           # categorie/tipi lavoro vigneto
+    link-scarichi-trattamento-vigneto.js  # origineTrattamento* su movimenti magazzino
     report.js                        # resoconto testuale
     manifest.js                      # append manifest + seedVersion
     tenant-inspect.js                # inspectTenantSeed (seed v2)
@@ -197,15 +201,20 @@ simulator/
     02-populate-assets.js            # ref data + terreni, macchine, vigneti, prodotti
     03-simulate-attivita.js          # 4 settimane diario attività
     04-simulate-magazzino.js         # scarichi magazzino su trattamenti/concimazioni
+    05-simulate-vigneto.js           # potature + trattamenti vigneto da attività diario
   orchestrator.js                    # entry point
   smoke-test.js                      # Fase 0
   inspect-tenant.js                  # ispezione terreni su emulator
+  audit-manifest.js                  # audit manifest vs emulator (sim:audit)
+  verify-spese.js                    # CLI verify spese vigneto (sim:verify-spese)
+  ci-run.js                          # emulators:exec + test (CI / sim:test:ci)
   integration-test.js                # test integrazione CLI (sim:test)
   run-batch.js                     # N aziende in sequenza (sim:run:batch)
   backfill-existing.js             # aggiorna manifest senza nuovo tenant
   cleanup.js                         # rimuove tenant sim_* da manifest/emulator
   refresh-dates.js                   # ricalcolo date attività/movimenti
-  manifest.json                      # elenco run/tenant creati (append)
+  manifest.json                      # elenco run/tenant creati (append, locale — git: [])
+  manifest.example.json              # struttura di esempio (commit in repo)
 
 core/dev/
   simulator-dev-standalone.html      # UI: elenco aziende + Entra (emulator)
@@ -228,12 +237,15 @@ Script npm (root `package.json`):
 "sim:run:verbose": "node simulator/orchestrator.js --verbose",
 "sim:setup": "node simulator/orchestrator.js --setup-only",
 "sim:backfill": "node simulator/backfill-existing.js",
+"sim:verify-spese": "node simulator/verify-spese.js [--tenant=...]",
 "sim:inspect": "node simulator/inspect-tenant.js [tenantId]",
+"sim:audit": "node simulator/audit-manifest.js",
 "sim:refresh-dates": "node simulator/refresh-dates.js [tenantId] | --all",
 "sim:migrate-terreni": "node simulator/migrate-terreni-seed.js",
 "sim:cleanup": "node simulator/cleanup.js [--keep N] [--dry-run]",
 "sim:test": "node simulator/integration-test.js",
-"sim:test:vitest": "vitest run tests/simulator/solo-titolare-viticola.test.js"
+"sim:test:vitest": "vitest run tests/simulator/solo-titolare-viticola.test.js",
+"sim:test:ci": "node simulator/ci-run.js"
 ```
 
 ---
@@ -262,6 +274,8 @@ File: `simulator/templates/solo-titolare-viticola.json`
 | Terreni aziendali               | 4                        |
 | Trattori                        | 1                        |
 | Attrezzi                        | 3                        |
+| **Flotta aziendale** (furgone/pickup/veicolo) | **2**        |
+| **Macchine totali**             | **6** (1+3+2)            |
 | Vigneti (1+ per terreno vitato) | 4                        |
 | Prodotti magazzino              | 5                        |
 | Attività (4 settimane)          | 20 (1/giorno lavorativo) |
@@ -273,6 +287,7 @@ File: `simulator/templates/solo-titolare-viticola.json`
 - **Azienda:** es. «Az. Agr. Bianchi», «Tenuta San Rocco»
 - **Terreni:** es. «Podere Le Coste», «Ronco del Sole»
 - **Trattori/attrezzi:** marche plausibili (Same, John Deere, Maschio, Kuhn…)
+- **Flotta:** furgone, pickup (`automezzo`), veicolo — marche Fiat Professional, Ford, Iveco…; targa sintetica `FG…`
 - **Vigneti:** varietà da catalogo app (es. Sangiovese, Glera, Merlot)
 - **Email sim:** `sim+{slug}@gfv.local` (dominio fittizio, Auth emulator)
 
@@ -345,16 +360,19 @@ Ordine consigliato (rispetta dipendenze):
   - `tipoCampo`: morfologia (`pianura` | `collina` | `montagna`)
   - `polygonCoords`: poligono semplice opzionale (badge «Mappa» in lista; Google Maps resta opzionale in locale)  
   - Riferimento: `core/services/terreni-service.js`, `core/models/Terreno.js`
-2. **Macchine** — trattori poi attrezzi
-  - `tipoMacchina`: `trattore` | `attrezzo`  
-  - Attrezzi: `categoriaId` / `cavalliMinimiRichiesti` se richiesti da validazione  
-  - Riferimento: `modules/parco-macchine/services/macchine-service.js`, `Macchina.js`
+2. **Macchine** — trattori, attrezzi, **flotta aziendale** (v1.6)
+  - `tipoMacchina`: `trattore` | `attrezzo` | `furgone` | `automezzo` | `veicolo`
+  - Attrezzi: `categoriaId` / `cavalliMinimiRichiesti` se richiesti da validazione
+  - **Scadenze (allineate dashboard app):** `prossimaManutenzione`, `oreProssimaManutenzione` (trattori), `prossimaRevisione`, `prossimaAssicurazione` (trattori + flotta); mix date scadute/imminenti/ok; almeno un attrezzo e un mezzo flotta in `stato: in_manutenzione`
+  - Helper: `lib/seed-parco-macchine-details.js` (`enrichTrattorePayload`, `enrichAttrezzoPayload`, `enrichFlottaPayload`, `ensureFlottaAndScadenzeMacchine` per backfill)
+  - Riferimento app: `core/js/dashboard-deadlines.js`, `modules/macchine/views/flotta-list-standalone.html`, `scadenze-list-standalone.html`
+  - Riferimento service: `modules/parco-macchine/services/macchine-service.js`, `Macchina.js`
 3. **Vigneti** — uno per terreno (o subset), `terrenoId` valorizzato
   - Riferimento: `modules/vigneto/services/vigneti-service.js`, `Vigneto.js`
 4. **Prodotti magazzino** — fitosanitari, concimi, materiali vigneto
   - Riferimento: `modules/magazzino/services/prodotti-service.js`, `Prodotto.js`
 
-**v1:** popolamento anagrafiche + **fase 4 magazzino** (12 uscite collegate alle attività fitosanitarie/concimazione). Potature/trattamenti vigneto modulo restano fuori scope v1.
+**v1.6+:** populate include **flotta + scadenze**; fase 4 magazzino; fase 5 vigneto; economia/spese sync (`sim-economia-vigneto.js`).
 
 ### Fase 3 — Simula 4 settimane (`03-simulate-attivita.js`)
 
@@ -389,7 +407,14 @@ Campi minimi (`core/models/Attivita.js`):
 - Aggiornamento `giacenza` su `prodotti` (campo canonico app, non `quantitaDisponibile`)
 - Obiettivo demo: almeno un prodotto **sotto scorta minima** dopo i run
 
-### Fase 5 — Report (`lib/report.js`)
+### Fase 5 — Vigneto operativo (`05-simulate-vigneto.js`)
+
+- Da attività Diario con tipo **Potatura** → documento in `vigneti/{id}/potature` (`attivitaId`, costi ore)
+- Da **Trattamento**, **Concimazione**, **Controllo fitosanitario** → `vigneti/{id}/trattamenti` con `tipoTrattamento`, prodotti da movimento magazzino collegato (`magazzinoMovimentoIds`)
+- Seed catalogo lavori in populate (`seed-lavori-catalog.js`) così le pagine Trattamenti/Potatura riconoscono i tipi lavoro
+- Conteggi attesi: **4 potature + 12 trattamenti** (su 20 attività, rotazione 5 tipi)
+
+### Report (`lib/report.js`)
 
 Output esempio:
 
@@ -408,9 +433,12 @@ Creati:
   terreni: 4
   trattori: 1
   attrezzi: 3
+  flotta: 2
+  macchine: 6
   vigneti: 4
   prodotti: 5
   attività: 20 (2026-05-26 → 2026-06-20)
+  scadenze macchine: 6 mezzi con almeno una scadenza
 
 Durata: 12.4s
 Manifest: simulator/manifest.json
@@ -495,11 +523,13 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 
 - [x] Pagina dev browser + connessione emulator (`simulator-dev-standalone.html`, connessione sync + `awaitAuthStateReady`)
 - [x] Auto-login cross-page (`simulator-browser-auth.js`) su dashboard, terreni, attività, movimenti, bootstrap
-- [x] `sim:inspect`, `sim:migrate-terreni`, `sim:cleanup`, `sim:test`, `sim:refresh-dates`, **`sim:backfill`**, **`sim:run:batch`**
+- [x] `sim:inspect`, **`sim:audit`**, `sim:migrate-terreni`, `sim:cleanup`, `sim:test`, **`sim:test:ci`**, `sim:refresh-dates`, **`sim:backfill`**, **`sim:run:batch`**
+- [x] GitHub Actions `.github/workflows/simulator-ci.yml` (path filter simulator)
 - [x] Fase magazzino (movimenti + giacenza + sotto scorta + tracciabilità attività)
 - [x] Test integrazione `tests/simulator/solo-titolare-viticola.test.js` (+ `npm run sim:test:vitest`)
 - [x] Verifica UI manuale: login dev → dashboard → terreni → attività → magazzino (anagrafica, uscite, tracciabilità)
 - [x] Batch **10 aziende** su emulator: 10/10 OK (4 terreni, 20 attività, 12 movimenti ciascuna)
+- [x] **v1.6** — flotta + scadenze parco macchine; `sim:backfill` aggiorna manifest legacy; `sim:audit` 6 macchine attese
 - [x] Voce in `docs-sviluppo/COSA_ABBIAMO_FATTO.md`
 
 ---
@@ -524,12 +554,14 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | -------- | ------------------------------------------------------------- |
 | **v1.1** | ~~Movimenti magazzino~~ (implementato v1.3); potature/trattamenti vigneto |
 | **v1.4** | ~~Batch multi-azienda (`sim:run:batch`)~~; ~~backfill manifest (`sim:backfill`)~~ |
+| **v1.5** | ~~CI leggera GitHub Actions (`sim:test:ci`)~~; vigneto operativo potature/trattamenti |
+| **v1.6** | ~~Flotta aziendale + scadenze parco macchine~~; spese vigneto allineate app (`sim:verify-spese`) |
 | **v2**   | Scenario «Mario Rossi» con operai/squadre (modulo manodopera) |
 | **v2**   | Template conto terzi, frutteto, mista, solo titolare oliveto… |
 | **v3**   | Errori battitura/concetto + recovery                          |
 | **v3**   | Run paralleli N tenant                                        |
 | **v4**   | E2E Playwright su 3 flussi critici                            |
-| **v4**   | CI notturna + `sim:cleanup` selettivo                         |
+| **v4**   | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
 
 
 ---
@@ -566,17 +598,22 @@ npm run sim:run            # nuova azienda completa (1)
 npm run sim:run:batch -- --count=10   # 10 aziende in sequenza
 npm run sim:backfill       # aggiorna tutte le entry del manifest (no nuovo tenant)
 npm run sim:inspect        # ultima azienda in manifest — verifica terreni
+npm run sim:audit          # tutte le entry manifest vs emulator (OK/WARN/FAIL)
 npm run sim:migrate-terreni  # patch terreni vecchi nel manifest (seed pre-v2)
 npm run sim:refresh-dates    # ricalcola date attività/movimenti (ultima azienda)
 npm run sim:refresh-dates -- --all
 npm run sim:cleanup        # rimuove tutte le aziende del manifest
 npm run sim:cleanup -- --keep 10  # mantiene le ultime 10
 npm run sim:cleanup -- --dry-run
+npm run sim:verify-spese -- --tenant=sim_...   # coerenza spese vigneto vs aggregaSpese
 npm run sim:test           # test integrazione (richiede emulator)
 npm run sim:test:vitest    # stesso test via vitest
+npm run sim:test:ci        # come CI — avvia emulator, esegue entrambi, termina
 ```
 
-**Audit rapido manifest (tutte le aziende):** loop `sim:inspect` su ogni `tenantId` in `manifest.json`, oppure ispezionare conteggi attesi — 4 terreni, 20 attività, 12 movimenti, seed terreni v2 OK.
+**Audit manifest:** `npm run sim:audit` — verifica Auth, seed terreni v2 (`inspectTenantSeed`) e conteggi attesi per ogni `tenantId` in `manifest.json`: **6 macchine** (1 trattore + 3 attrezzi + 2 flotta), flotta ≥2, scadenze ≥3, almeno 1 mezzo in manutenzione, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, 4 potature + 12 trattamenti vigneto. Exit 0 se OK/WARN; exit 1 se almeno un FAIL.
+
+**Manifest in git:** `simulator/manifest.json` resta **vuoto** (`[]`); i run locali (`sim:run`, batch) popolano manifest + emulator solo sulla macchina dev. Struttura di riferimento: `simulator/manifest.example.json`. Non committare manifest con molte entry batch.
 
 Verificare su Emulator UI (`http://127.0.0.1:4000`): Auth user, tenant `sim_*`, collections terreni/macchine/vigneti/prodotti/attivita/movimentiMagazzino.
 
@@ -596,9 +633,20 @@ Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 - **Terreni** → coltura, podere, morfologia valorizzati
 - **Attività** → ~20 record
 - **Movimenti** (link dev o modulo magazzino) → 12 uscite, tracciabilità prodotto↔attività; prodotti con eventuale sotto scorta
+- **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **6 macchine** (1 trattore + 3 attrezzi + 2 flotta); flotta con targa e stato; scadenze manutenzione/revisione/assicurazione visibili in lista Scadenze e widget dashboard; niente redirect login con `?emulator=1`
+- **Vigneto / Vigneti** → 4 vigneti collegati ai terreni; navigazione dashboard ok
+- **Trattamenti / Potatura** → righe da attività diario (4 potature + 12 trattamenti); trattamenti con prodotti da magazzino dove presente
 
 Password emulator: **`SimGFV2026!`**
 
+### 13.3 CI (GitHub Actions)
+
+Workflow: `.github/workflows/simulator-ci.yml`
+
+- **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
+- **Cosa esegue:** `npm run sim:test:ci` (Java 17 + `emulators:exec` + `sim:test` + `sim:test:vitest`).
+- **Locale (stesso comando CI):** `npm run sim:test:ci` — richiede Java su PATH.
+
 ---
 
-*Fine guida v1.4 — prossimo agente: nuovi template (§11) o CI opzionale.*
+*Fine guida v1.6 — prossimo agente: template manodopera (§11 v2).*

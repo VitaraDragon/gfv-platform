@@ -379,8 +379,15 @@
         }
 
         function showAlert(msg, type) {
-                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
-                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+        }
+
+        function pushTonyListContext(summary, items) {
+            window.currentTableData = {
+                pageType: 'concimazioni_vigneto',
+                summary: summary || '',
+                items: Array.isArray(items) ? items : []
             };
             const page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
             if (window.Tony && typeof window.Tony.setContext === 'function') {

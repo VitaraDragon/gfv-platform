@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anagrafica Vigneti - GFV Platform</title>
@@ -742,6 +743,7 @@
         
         const { getAllTerreni } = terreniServiceModule;
         const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc, collection, getDocs } = firebaseServiceModule;
+        const { afterFirebaseInit, resolveAuthUser, loginPageUrl } = await import('../../../core/js/simulator-standalone-page.js');
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
         const { initializeAuthService } = authServiceModule;
 
@@ -906,7 +908,7 @@
                 // 1. Carica e inizializza Firebase (config da loader centralizzato)
                 const firebaseConfig = await waitForConfig();
                 initializeFirebase(firebaseConfig);
-                const auth = getAuthInstance();
+                const auth = await afterFirebaseInit(firebaseServiceModule);
                 const db = getDb();
                 
                 // 2. Inizializza servizi
@@ -915,8 +917,9 @@
                 
                 // 3. Verifica autenticazione con onAuthStateChanged
                 onAuthStateChanged(auth, async (user) => {
+                    if (!user) user = await resolveAuthUser(auth);
                     if (!user) {
-                        window.location.href = '../../../core/auth/login-standalone.html';
+                        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                         return;
                     }
                     

@@ -1,6 +1,85 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-24 — GFV Farm Simulator v1.4.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-24 — simulatore parco macchine (flotta + scadenze) v1.6.**
+
+## GFV Farm Simulator v1.6 — parco macchine completo (flotta + scadenze) (2026-06-24)
+
+**Problema:** il seed creava solo 1 trattore + 3 attrezzi, senza mezzi aziendali (furgone/pickup) né campi scadenza — dashboard «Flotta» vuota e widget scadenze poveri.
+
+**Implementazione:**
+- `simulator/generators/nomi-italiani.js` — `generaFlotta()` (tipi `furgone`, `automezzo`, `veicolo`, targa, marca/modello)
+- `simulator/lib/seed-parco-macchine-details.js` — `prossimaManutenzione`, `oreProssimaManutenzione`, `prossimaRevisione`, `prossimaAssicurazione`; mix scaduto/imminente/ok; almeno 2 mezzi `in_manutenzione`
+- `simulator/phases/02-populate-assets.js` — fase 2 arricchita; template `flotta: 2` → **6 macchine** totali per tenant
+- `simulator/backfill-existing.js` — `ensureFlottaAndScadenzeMacchine` su manifest esistente
+- `simulator/audit-manifest.js` — attesi aggiornati (6 macchine, flotta ≥2, scadenze ≥3, in manutenzione ≥1)
+- `simulator/integration-test.js` — assert flotta/scadenze/manutenzione
+- `simulator/lib/tenant-inspect.js` — conteggi `flotta`, `macchineConScadenze`, `inManutenzione`
+
+**UI app:** `scadenze-list-standalone.html` — lista scadenze estesa con **Revisione** e **Assicurazione** (prima solo manutenzione data/ore), allineata a `core/js/dashboard-deadlines.js`.
+
+**Verifica:** `sim:test` OK; `sim:audit` **41/41 OK**; spot-check Firestore su tenant manifest (6 macchine, 2 flotta, scadenze popolate).
+
+**Comandi:** `npm run sim:backfill` (aziende già create); nuove aziende con `sim:run` / `sim:run:batch` includono flotta e scadenze di default.
+
+## GFV Farm Simulator — spese vigneto allineate all'app + verify (2026-06-24)
+
+**Obiettivo:** totali dashboard vigneto (`aggregaSpeseVignetoAnno`) coerenti con dati seed (manodopera + macchine + prodotti trattamenti).
+
+**Implementazione:** `simulator/lib/sim-economia-vigneto.js` — tariffa proprietario, `costoOra` macchine, sync campi spese su doc vigneto; fase 5 e `sim:backfill` chiamano `syncSpeseVignetoTenant`; movimenti magazzino con `prezzoUnitario` in fase 4.
+
+**Verifica:** `npm run sim:verify-spese -- --tenant=<tenantId>` — confronto aggregato vs doc Firestore (~5700 €/anno su template standard).
+
+**Emulator browser:** fix connessione Firestore offline su pagine vigneto (`firebase-emulator-dev.js`, `simulator-browser-auth.js` — `localStorage gfv_firebase_emulator=1`; URL dev con `?emulator=1`).
+
+## Simulatore — scarichi magazzino ↔ trattamenti vigneto (2026-06-24)
+
+**Obiettivo:** comportamento identico all’app quando si registra lo scarico da scheda trattamento (`syncScarichiMagazzinoTrattamento`).
+
+**Implementazione:** `simulator/lib/link-scarichi-trattamento-vigneto.js` — dopo fase 5 (e in `sim:backfill`) ogni movimento in `magazzinoMovimentoIds` riceve `origineTrattamentoModulo: vigneto`, `origineTrattamentoColturaId`, `origineTrattamentoId`, note e `prezzoUnitario` come in produzione.
+
+**Verifica:** `sim:test` controlla 12/12 movimenti con `origineTrattamento*`; Tracciabilità consumi raggruppa per trattamento coltura (non più solo “Altre uscite”).
+
+## Vigneto — fix Potatura e Trattamenti standalone (2026-06-24)
+
+**Problema:** dashboard vigneto mostrava lavori/simulazione OK, ma **Potatura** restava su “Caricamento…” e **Trattamenti** pagina vuota.
+
+**Causa:** refactor `showAlert` (shell toast) aveva corrotto lo `<script type="module">` in `potatura-standalone.html` e `trattamenti-standalone.html` (errore di sintassi JS → init mai eseguito). In potatura mancavano anche le dichiarazioni `let vigneti`, `let potature`, ecc. (ReferenceError in strict module).
+
+**Fix:** ripristinati `showAlert`, `findNearestVertexPotatura`, `populateTrattamentiPrecedentiSelect`; aggiunto blocco variabili di stato; init Firebase con `await waitForConfig()` + retry tenant come dashboard. Stesso pattern su `concimazioni-standalone.html` (`pushTonyListContext`).
+
+**Verifica:** tenant simulatore Rossi — 4 potature in elenco, 8 righe trattamenti fitosanitari (anno 2026).
+
+## GFV Farm Simulator — CI GitHub Actions (2026-06-24)
+
+**Workflow:** `.github/workflows/simulator-ci.yml` — su push/PR (path filter simulator) e `workflow_dispatch`.
+
+**Job:** Ubuntu + Node 20 + Java 17 → `npm run sim:test:ci` (`emulators:exec` Auth/Firestore + `sim:test` + `sim:test:vitest`).
+
+**Script locale equivalente CI:** `npm run sim:test:ci` (richiede Java su PATH).
+
+## GFV Farm Simulator v1.5 — vigneto operativo da attività diario (2026-06-24)
+
+**Fase 5:** `simulator/phases/05-simulate-vigneto.js` — da attività Diario crea **potature** (`vigneti/{id}/potature`) e **trattamenti** (`vigneti/{id}/trattamenti`) collegati via `attivitaId`; trattamenti arricchiti con prodotti da movimenti magazzino (`magazzinoMovimentoIds`).
+
+**Catalogo lavori:** `simulator/lib/seed-lavori-catalog.js` — categorie + tipi lavoro (Potatura, Trattamento, Concimazione, Controllo fitosanitario, Erpicatura) per far comparire le righe in UI Trattamenti/Potatura.
+
+**Conteggi attesi (template):** 4 potature + 12 trattamenti su 20 attività; verificati in `sim:test`, `sim:audit`, `sim:backfill`.
+
+**UI emulator:** link dev **Trattamenti** / **Potatura**; auto-login su `trattamenti-standalone.html` e `potatura-standalone.html`.
+
+**File:** `05-simulate-vigneto.js`, `seed-lavori-catalog.js`, `addTenantNestedDocument` in `firestore-write.js`.
+
+## GFV Farm Simulator v1.4.1 — audit manifest, manifest pulito, smoke UI macchine/vigneto (2026-06-24)
+
+**Audit:** `npm run sim:audit` — legge `simulator/manifest.json`, verifica Auth + seed v2 + conteggi attesi (4 terreni, **6 macchine** incl. 2 flotta, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, scadenze/manutenzione) per ogni tenant sull'emulator; tabella OK/WARN/FAIL, exit code 1 se FAIL.
+
+**Manifest in repo:** `simulator/manifest.json` vuoto `[]` (dati locali dopo `sim:run` / batch); struttura di esempio in `simulator/manifest.example.json`. Batch e run popolano solo l'emulator locale — non committare manifest pieno.
+
+**Smoke UI emulator:** pagine parco macchine (`macchine-dashboard`, `trattori-list`, `attrezzi-list`, `scadenze-list`) e vigneto (`vigneto-dashboard`, `vigneti`) collegate a `core/js/simulator-standalone-page.js` (`afterFirebaseInit` + `resolveAuthUser`). Pagina dev: link rapidi Macchine / Trattori / Vigneto / Vigneti.
+
+**File:** `simulator/audit-manifest.js`, `core/js/simulator-standalone-page.js`.
+
+**Comandi:** `sim:audit` (oltre a `sim:run`, `sim:test`, …).
 
 ## GFV Farm Simulator v1.4 — batch, backfill, auto-login UI (2026-06-24)
 

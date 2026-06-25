@@ -12,6 +12,9 @@ import { runFullSimulation } from './lib/run-simulation.js';
 import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { deleteSimulatedTenant } from './lib/cleanup-tenant.js';
+import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
+import { verifyScarichiTrattamentoVignetoTenant } from './lib/link-scarichi-trattamento-vigneto.js';
+import { verifySpeseVignetoTenant } from './lib/verify-spese-vigneto-tenant.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const template = JSON.parse(
@@ -41,10 +44,15 @@ async function main() {
     const { counts: assetCounts } = result.assets;
     const { counts: simCounts } = result.simulation;
     const { counts: magCounts, sottoScorta } = result.magazzino;
+    const { counts: vigCounts } = result.vigneto;
+    const vigExpected = expectedVignetoCountsFromTemplate(template);
 
     if (assetCounts.terreni !== q.terreni) throw new Error(`terreni: attesi ${q.terreni}, got ${assetCounts.terreni}`);
     if (assetCounts.trattori !== q.trattori) throw new Error(`trattori: attesi ${q.trattori}, got ${assetCounts.trattori}`);
     if (assetCounts.attrezzi !== q.attrezzi) throw new Error(`attrezzi: attesi ${q.attrezzi}, got ${assetCounts.attrezzi}`);
+    if (assetCounts.flotta !== (q.flotta ?? 2)) {
+      throw new Error(`flotta: attesi ${q.flotta ?? 2}, got ${assetCounts.flotta ?? 0}`);
+    }
     if (assetCounts.vigneti !== q.vigneti) throw new Error(`vigneti: attesi ${q.vigneti}, got ${assetCounts.vigneti}`);
     if (assetCounts.prodotti !== q.prodotti) throw new Error(`prodotti: attesi ${q.prodotti}, got ${assetCounts.prodotti}`);
     if (simCounts.attivita !== q.attivitaGiorniLavorativi) {
@@ -55,6 +63,12 @@ async function main() {
     }
     if (sottoScorta < 1) {
       throw new Error('prodotti sotto scorta: atteso almeno 1 dopo scarichi simulati');
+    }
+    if (vigCounts.potature !== vigExpected.potature) {
+      throw new Error(`potature vigneto: attese ${vigExpected.potature}, got ${vigCounts.potature}`);
+    }
+    if (vigCounts.trattamenti !== vigExpected.trattamenti) {
+      throw new Error(`trattamenti vigneto: attesi ${vigExpected.trattamenti}, got ${vigCounts.trattamenti}`);
     }
 
     const { db } = initEmulatorAdmin();
@@ -69,12 +83,55 @@ async function main() {
       throw new Error('refresh-dates: conteggio attività non allineato');
     }
 
+    const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, setup.tenantId);
+    if (scarichi.trattamentiConScarico < vigExpected.trattamenti) {
+      throw new Error(
+        `scarichi trattamento: attesi ${vigExpected.trattamenti} trattamenti con movimento, got ${scarichi.trattamentiConScarico}`
+      );
+    }
+    if (scarichi.origineMissing > 0) {
+      throw new Error(
+        `scarichi trattamento: ${scarichi.origineMissing} movimenti senza origineTrattamento* (attesi 0)`
+      );
+    }
+
+    const spese = await verifySpeseVignetoTenant(db, setup.tenantId);
+    if (!spese.ok) {
+      throw new Error(`spese vigneto: ${spese.errors.join('; ')}`);
+    }
+    if (spese.totals.costoTotaleAnno <= 0) {
+      throw new Error('spese vigneto: costoTotaleAnno atteso > 0');
+    }
+    if (spese.totals.speseMacchineAnno <= 0) {
+      throw new Error('spese vigneto: speseMacchineAnno atteso > 0 (costoOra macchine seed)');
+    }
+    if (inspect.counts.flotta < 1) {
+      throw new Error('parco macchine: attesa almeno 1 voce flotta (furgone/pickup)');
+    }
+    if (inspect.counts.macchineConScadenze < 3) {
+      throw new Error(
+        `parco macchine: attese scadenze su almeno 3 mezzi, got ${inspect.counts.macchineConScadenze}`
+      );
+    }
+    if (inspect.counts.inManutenzione < 1) {
+      throw new Error('parco macchine: atteso almeno 1 mezzo in_manutenzione');
+    }
+
     console.log('[sim:test] SUCCESS');
     console.log(`  tenant: ${setup.tenantId}`);
     console.log(`  terreni seed v2: OK (${inspect.counts.terreni})`);
     console.log(`  attività: ${simCounts.attivita}`);
     console.log(`  movimenti magazzino: ${magCounts.movimenti}, sotto scorta: ${sottoScorta}`);
-    console.log(`  refresh date: ${refreshed.dateRange.from} → ${refreshed.dateRange.to}`);
+    console.log(`  vigneto: ${vigCounts.potature} potature, ${vigCounts.trattamenti} trattamenti`);
+    console.log(
+      `  scarichi magazzino ↔ trattamenti: ${scarichi.origineOk}/${scarichi.movimentiCollegati} con origineTrattamento*`
+    );
+    console.log(
+      `  spese vigneto: ${spese.totals.costoTotaleAnno} € (M ${spese.totals.speseManodoperaAnno} + Mac ${spese.totals.speseMacchineAnno} + Prod ${spese.totals.speseProdottiAnno})`
+    );
+    console.log(
+      `  parco macchine: flotta ${inspect.counts.flotta}, scadenze ${inspect.counts.macchineConScadenze}, in manutenzione ${inspect.counts.inManutenzione}`
+    );
   } catch (err) {
     console.error('[sim:test] FAILED:', err.message);
     exitCode = 1;

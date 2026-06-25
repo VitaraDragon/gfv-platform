@@ -1,0 +1,60 @@
+name: GFV Farm Simulator CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'simulator/**'
+      - 'tests/simulator/**'
+      - 'core/config/trattamenti-lavoro-defaults.js'
+      - 'firebase.json'
+      - '.firebaserc'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/simulator-ci.yml'
+  pull_request:
+    paths:
+      - 'simulator/**'
+      - 'tests/simulator/**'
+      - 'core/config/trattamenti-lavoro-defaults.js'
+      - 'firebase.json'
+      - '.firebaserc'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/simulator-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: simulator-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator-emulator:
+    name: sim:test (Auth + Firestore emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Setup Java (Firestore Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run simulator integration tests
+        run: npm run sim:test:ci

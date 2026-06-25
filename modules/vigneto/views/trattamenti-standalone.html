@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trattamenti Vigneto - GFV Platform</title>
@@ -374,8 +375,24 @@
         }
 
         function showAlert(msg, type) {
-                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
-                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+        }
+
+        /**
+         * @param {string} vignetoId
+         * @param {string} currentTrattamentoId
+         * @param {{ filterLavoroId?: string|null }} [options]
+         */
+        async function populateTrattamentiPrecedentiSelect(vignetoId, currentTrattamentoId, options = {}) {
+            const sel = document.getElementById('trattamento-precedente-id');
+            if (!sel || !vignetoId) return;
+            const filterLavoroId = options.filterLavoroId || null;
+            const hintEl = document.querySelector('#trattamento-precedente-wrap small');
+            if (hintEl) {
+                hintEl.textContent = filterLavoroId
+                    ? 'Solo il trattamento collegato al lavoro sospeso. Scegli quello elencato: i prodotti si possono compilare automaticamente dal trattamento padre.'
+                    : 'Collega al documento lasciato aperto; utile per tracciabilità e magazzino.';
             }
             sel.innerHTML = '';
             const opt0 = document.createElement('option');
@@ -1793,25 +1810,35 @@
         }
 
         async function init() {
-            await waitForConfig();
-            const { initializeFirebase, getAuthInstance } = await import(resolvePath('../../../core/services/firebase-service.js'));
-            const { initializeTenantService, getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
-            await initializeFirebase(window.firebaseConfig);
+            const firebaseConfig = await waitForConfig();
+            const firebaseService = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { afterFirebaseInit, resolveAuthUser, loginPageUrl } = await import(resolvePath('../../../core/js/simulator-standalone-page.js'));
+            const { initializeTenantService, getCurrentTenantId, setCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+            await firebaseService.initializeFirebase(firebaseConfig);
+            const auth = await afterFirebaseInit(firebaseService);
             initializeTenantService();
-            const auth = getAuthInstance();
-            const { onAuthStateChanged } = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { onAuthStateChanged } = firebaseService;
             onAuthStateChanged(auth, async (user) => {
+                if (!user) user = await resolveAuthUser(auth);
                 if (!user) {
-                    window.location.href = resolvePath('../../../core/auth/login-standalone.html');
+                    window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
                     return;
                 }
-                if (!getCurrentTenantId()) {
+                let tenantId = getCurrentTenantId();
+                if (!tenantId) {
+                    for (let i = 0; i < 10; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        tenantId = getCurrentTenantId();
+                        if (tenantId) break;
+                    }
+                }
+                if (tenantId) setCurrentTenantId(tenantId);
+                if (!tenantId) {
                     showAlert('Nessun tenant selezionato.', 'error');
                     return;
                 }
                 let hasManodoperaModule = false;
                 try {
-                    const tenantId = getCurrentTenantId();
                     const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
                     const { getDoc, doc } = await import(resolvePath('../../../core/services/firebase-service.js'));
                     const db = getDb();

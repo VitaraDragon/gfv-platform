@@ -5,9 +5,21 @@
 
 const EXPECTED_COLTURA = 'Vite da Vino';
 
+const TIPI_FLOTTA = new Set(['automezzo', 'veicolo', 'furgone']);
+
 async function listCollection(db, tenantId, name) {
   const snap = await db.collection(`tenants/${tenantId}/${name}`).get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function countVignetoSubcollections(db, tenantId, subName) {
+  const vigneti = await listCollection(db, tenantId, 'vigneti');
+  let total = 0;
+  for (const v of vigneti) {
+    const snap = await db.collection(`tenants/${tenantId}/vigneti/${v.id}/${subName}`).get();
+    total += snap.size;
+  }
+  return total;
 }
 
 /**
@@ -26,9 +38,22 @@ export async function inspectTenantSeed(db, tenantId) {
   const vigneti = await listCollection(db, tenantId, 'vigneti');
   const prodotti = await listCollection(db, tenantId, 'prodotti');
   const movimenti = await listCollection(db, tenantId, 'movimentiMagazzino');
+  const potatureVigneto = await countVignetoSubcollections(db, tenantId, 'potature');
+  const trattamentiVigneto = await countVignetoSubcollections(db, tenantId, 'trattamenti');
 
   if (poderi.length < 1) errors.push('manca almeno un podere');
   if (colture.length < 1) errors.push('manca catalogo colture');
+
+  const flotta = macchine.filter((m) =>
+    TIPI_FLOTTA.has((m.tipoMacchina || m.tipo || '').toLowerCase())
+  );
+  const macchineConScadenze = macchine.filter(
+    (m) => m.prossimaManutenzione || m.prossimaAssicurazione || m.prossimaRevisione
+  );
+  if (flotta.length < 1) errors.push('manca flotta aziendale (furgone/pickup)');
+  if (macchineConScadenze.length < 3) {
+    errors.push(`poche scadenze macchine seed (${macchineConScadenze.length})`);
+  }
 
   for (const t of terreni) {
     if (t.coltura !== EXPECTED_COLTURA) {
@@ -53,9 +78,14 @@ export async function inspectTenantSeed(db, tenantId) {
       categorieColture: categorie.filter((c) => c.applicabileA === 'colture').length,
       attivita: attivita.length,
       macchine: macchine.length,
+      flotta: flotta.length,
+      macchineConScadenze: macchineConScadenze.length,
+      inManutenzione: macchine.filter((m) => m.stato === 'in_manutenzione').length,
       vigneti: vigneti.length,
       prodotti: prodotti.length,
       movimentiMagazzino: movimenti.length,
+      potatureVigneto,
+      trattamentiVigneto,
       prodottiSottoScorta: prodotti.filter((p) => {
         const min = p.scortaMinima ?? 0;
         const g = p.giacenza ?? 0;

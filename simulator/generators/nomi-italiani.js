@@ -108,6 +108,38 @@ export function generaAttrezzi(count, seed = 0) {
   });
 }
 
+const MARCHE_FLOTTA = ['Fiat Professional', 'Ford', 'Iveco', 'Volkswagen', 'Toyota'];
+const MODELLI_FURGONE = ['Ducato', 'Transit', 'Daily', 'Caddy'];
+const MODELLI_PICKUP = ['Ranger', 'Hilux', 'L200', 'Amarok'];
+
+export function generaFlotta(count, seed = 0) {
+  const tipi = ['furgone', 'automezzo', 'veicolo'];
+  const nomiFurgone = ['Furgone cantina', 'Furgone officina', 'Furgone uva'];
+  const nomiPickup = ['Pickup campo', 'Pickup aziendale'];
+
+  return Array.from({ length: count }, (_, i) => {
+    const tipo = tipi[i % tipi.length];
+    const marca = pick(MARCHE_FLOTTA, seed + i);
+    const targa = `FG${String(100 + i).padStart(3, '0')}${String.fromCharCode(65 + (i % 26))}${String.fromCharCode(65 + ((i + 3) % 26))}`;
+    const isFurgone = tipo === 'furgone';
+    const modello = isFurgone
+      ? pick(MODELLI_FURGONE, seed + i)
+      : pick(MODELLI_PICKUP, seed + i + 1);
+    const nomeBase = isFurgone ? pick(nomiFurgone, seed + i) : pick(nomiPickup, seed + i);
+    return {
+      nome: `${nomeBase} ${marca}`,
+      tipoMacchina: tipo,
+      marca,
+      modello,
+      targa,
+      stato: 'disponibile',
+      oreIniziali: 32000 + i * 8500,
+      oreAttuali: 32000 + i * 8500,
+      note: 'Mezzo aziendale simulato — flotta GFV Farm Simulator'
+    };
+  });
+}
+
 export function generaVigneti(terreni, seed = 0) {
   return terreni.map((t, i) => ({
     terrenoId: t.id,

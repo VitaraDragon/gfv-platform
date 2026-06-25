@@ -14,7 +14,16 @@ import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { setSimContext } from './lib/sim-context.js';
 import { refreshTenantDates } from './lib/refresh-dates.js';
 import { runSimulateMagazzino } from './phases/04-simulate-magazzino.js';
+import { runSimulateVigneto } from './phases/05-simulate-vigneto.js';
+import { seedLavoriCatalog } from './lib/seed-lavori-catalog.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
+import { linkScarichiMagazzinoTrattamentoVignetoTenant } from './lib/link-scarichi-trattamento-vigneto.js';
+import {
+  ensureTenantEconomia,
+  reconcileSchedeVignetoFromAttivita,
+  syncSpeseVignetoTenant
+} from './lib/sim-economia-vigneto.js';
+import { ensureFlottaAndScadenzeMacchine } from './lib/seed-parco-macchine-details.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const template = JSON.parse(
@@ -54,6 +63,25 @@ async function backfillTenant(db, entry) {
   const prodottiFixed = await normalizeProdotti(db, tenantId);
   if (prodottiFixed) console.log(`  prodotti normalizzati: ${prodottiFixed}`);
 
+  const economia = await ensureTenantEconomia(db, tenantId);
+  if (economia.macchineAggiornate) {
+    console.log(`  economia: tariffa ${economia.tariffaProprietarioOraria} €/h, costoOra su ${economia.macchineAggiornate} macchine`);
+  }
+
+  const tipiLavoro = template?.attivita?.tipiLavoro || [];
+  const { tipiSeed } = await seedLavoriCatalog(db, tenantId, userId, tipiLavoro);
+  if (tipiSeed) console.log(`  tipi lavoro seed: ${tipiSeed}`);
+
+  const parco = await ensureFlottaAndScadenzeMacchine(db, tenantId, userId, {
+    flottaCount: template?.quantities?.flotta ?? 2,
+    seed: Date.now()
+  });
+  if (parco.flottaAggiunta || parco.scadenzeAggiornate) {
+    console.log(
+      `  parco macchine: +${parco.flottaAggiunta} flotta, ${parco.scadenzeAggiornate} scadenze aggiornate (tot ${parco.counts.macchine}, flotta ${parco.counts.flotta}, in manutenzione ${parco.counts.inManutenzione})`
+    );
+  }
+
   const movSnap = await db.collection(`tenants/${tenantId}/movimentiMagazzino`).limit(1).get();
   let magazzino = { counts: { movimenti: 0 }, sottoScorta: 0 };
   if (movSnap.empty) {
@@ -65,6 +93,40 @@ async function backfillTenant(db, entry) {
     magazzino.counts.movimenti = all.size;
   }
 
+  const inspectBefore = await inspectTenantSeed(db, tenantId);
+  if (inspectBefore.counts.potatureVigneto === 0 && inspectBefore.counts.trattamentiVigneto === 0) {
+    const vigneto = await runSimulateVigneto();
+    console.log(
+      `  vigneto creato: ${vigneto.counts.potature} potature, ${vigneto.counts.trattamenti} trattamenti`
+    );
+  } else {
+    console.log(
+      `  vigneto già presente: ${inspectBefore.counts.potatureVigneto} potature, ${inspectBefore.counts.trattamentiVigneto} trattamenti (skip)`
+    );
+  }
+
+  const linkScarichi = await linkScarichiMagazzinoTrattamentoVignetoTenant(db, tenantId);
+  if (linkScarichi.patched) {
+    console.log(
+      `  scarichi magazzino ↔ trattamenti: ${linkScarichi.patched} movimenti allineati (${linkScarichi.trattamenti} trattamenti)`
+    );
+  }
+  if (linkScarichi.errors.length) {
+    console.warn(`  scarichi magazzino: ${linkScarichi.errors.length} errori (primo: ${linkScarichi.errors[0]})`);
+  }
+
+  const reconcile = await reconcileSchedeVignetoFromAttivita(db, tenantId);
+  if (reconcile.potatureAggiornate || reconcile.trattamentiAggiornati) {
+    console.log(
+      `  schede vigneto allineate: ${reconcile.potatureAggiornate} potature, ${reconcile.trattamentiAggiornati} trattamenti`
+    );
+  }
+
+  const spese = await syncSpeseVignetoTenant(db, tenantId);
+  console.log(
+    `  spese vigneto sync: totale ${spese.totals.costoTotaleAnno} € (manodopera ${spese.totals.speseManodoperaAnno}, macchine ${spese.totals.speseMacchineAnno}, prodotti ${spese.totals.speseProdottiAnno})`
+  );
+
   const refreshed = await refreshTenantDates(db, tenantId);
   console.log(
     `  date aggiornate: ${refreshed.attivita} attività, ${refreshed.movimenti} movimenti (${refreshed.dateRange.from} → ${refreshed.dateRange.to})`
@@ -72,10 +134,10 @@ async function backfillTenant(db, entry) {
 
   const inspect = await inspectTenantSeed(db, tenantId);
   console.log(
-    `  inspect: movimenti=${inspect.counts.movimentiMagazzino}, sotto scorta=${inspect.counts.prodottiSottoScorta}, terreni OK=${inspect.ok}`
+    `  inspect: movimenti=${inspect.counts.movimentiMagazzino}, potature=${inspect.counts.potatureVigneto}, trattamenti=${inspect.counts.trattamentiVigneto}, flotta=${inspect.counts.flotta}, scadenze=${inspect.counts.macchineConScadenze}, sotto scorta=${inspect.counts.prodottiSottoScorta}, terreni OK=${inspect.ok}`
   );
 
-  return { prodottiFixed, magazzino, refreshed, inspect };
+  return { prodottiFixed, magazzino, refreshed, inspect, spese, parco };
 }
 
 async function main() {

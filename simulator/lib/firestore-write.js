@@ -96,6 +96,26 @@ export async function addTenantDocument(db, tenantId, collectionPath, data) {
 }
 
 /**
+ * Aggiunge documento in subcollection annidata (es. vigneti/{id}/potature).
+ * @param {FirebaseFirestore.Firestore} db
+ * @param {string} tenantId
+ * @param {string[]} segments — coppie [collection, docId, …, collectionFinale] es. ['vigneti', vignetoId, 'potature']
+ */
+export async function addTenantNestedDocument(db, tenantId, segments, data) {
+  if (!segments.length || segments.length % 2 === 0) {
+    throw new Error('addTenantNestedDocument: segments deve terminare con nome collection');
+  }
+  const payload = withTimestamps(data, { isCreate: true });
+  let ref = db.collection('tenants').doc(tenantId);
+  for (let i = 0; i < segments.length - 1; i += 2) {
+    ref = ref.collection(segments[i]).doc(segments[i + 1]);
+  }
+  const lastCollection = segments[segments.length - 1];
+  const docRef = await ref.collection(lastCollection).add(payload);
+  return docRef.id;
+}
+
+/**
  * @param {FirebaseFirestore.Firestore} db
  */
 export async function setTenantDocument(db, tenantId, collectionPath, docId, data, { merge = false } = {}) {

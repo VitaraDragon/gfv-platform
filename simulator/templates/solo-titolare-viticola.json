@@ -1,0 +1,24 @@
+{
+  "templateId": "solo-titolare-viticola",
+  "descrizione": "Titolare unico, azienda viticola, moduli core + vigneto + parco macchine + magazzino",
+  "piano": "base",
+  "moduli": ["vigneto", "parcoMacchine", "magazzino"],
+  "quantities": {
+    "terreni": 4,
+    "trattori": 1,
+    "attrezzi": 3,
+    "flotta": 2,
+    "vigneti": 4,
+    "prodotti": 5,
+    "attivitaGiorniLavorativi": 20,
+    "potatureVigneto": 4,
+    "trattamentiVigneto": 12
+  },
+  "attivita": {
+    "orarioInizio": "08:00",
+    "orarioFine": "12:30",
+    "pauseMinuti": 30,
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"],
+    "coltura": "Vite"
+  }
+}

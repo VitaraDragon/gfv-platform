@@ -33,12 +33,14 @@
     "sim:run:verbose": "node simulator/orchestrator.js --verbose",
     "sim:setup": "node simulator/orchestrator.js --setup-only",
     "sim:inspect": "node simulator/inspect-tenant.js",
+    "sim:audit": "node simulator/audit-manifest.js",
     "sim:migrate-terreni": "node simulator/migrate-terreni-seed.js",
     "sim:cleanup": "node simulator/cleanup.js",
     "sim:refresh-dates": "node simulator/refresh-dates.js",
     "sim:backfill": "node simulator/backfill-existing.js",
-    "sim:test": "node simulator/integration-test.js",
-    "sim:test:vitest": "vitest run tests/simulator/solo-titolare-viticola.test.js"
+    "sim:verify-spese": "node simulator/verify-spese.js",
+    "sim:test:vitest": "vitest run tests/simulator/solo-titolare-viticola.test.js",
+    "sim:test:ci": "node simulator/ci-run.js"
   },
   "keywords": [
     "agriculture",

@@ -62,6 +62,9 @@ firebase-service-account.json
 !storage.rules
 !manifest.json
 !core/config/tony-routes.json
+!simulator/templates/*.json
+!simulator/config/*.json
+!simulator/manifest.example.json
 
 # Vecchia app - repository separato, non tracciare come submodule
 vecchia app/

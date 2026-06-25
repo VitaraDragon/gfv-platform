@@ -5,6 +5,7 @@
 
 import {
   generaAttrezzi,
+  generaFlotta,
   generaProdotti,
   generaTerreni,
   generaTrattori,
@@ -13,6 +14,13 @@ import {
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { seedTenantReferenceData } from '../lib/seed-reference-data.js';
+import { seedLavoriCatalog } from '../lib/seed-lavori-catalog.js';
+import { ensureTenantEconomia } from '../lib/sim-economia-vigneto.js';
+import {
+  enrichAttrezzoPayload,
+  enrichFlottaPayload,
+  enrichTrattorePayload
+} from '../lib/seed-parco-macchine-details.js';
 import { requireSimTenantId, requireSimUserId, getSimProfile } from '../lib/sim-context.js';
 
 const CATEGORIE_PREDEFINITE = [
@@ -54,6 +62,9 @@ export async function runPopulateAssets() {
     podereNome: profile?.aziendaNome || 'Podere principale'
   });
 
+  const tipiLavoro = template?.attivita?.tipiLavoro || [];
+  const { tipiSeed } = await seedLavoriCatalog(db, tenantId, userId, tipiLavoro);
+
   const terreniData = generaTerreni(q.terreni || 4, seed, { podereNome });
   const terreni = [];
   for (const t of terreniData) {
@@ -66,18 +77,20 @@ export async function runPopulateAssets() {
 
   const trattoriData = generaTrattori(q.trattori || 1, seed);
   const trattori = [];
-  for (const m of trattoriData) {
-    const id = await addTenantDocument(db, tenantId, 'macchine', {
-      ...m,
-      oreAttuali: m.oreIniziali,
-      creatoDa: userId
-    });
-    trattori.push({ id, ...m });
+  for (let i = 0; i < trattoriData.length; i++) {
+    const base = trattoriData[i];
+    const m = enrichTrattorePayload(
+      { ...base, oreAttuali: base.oreIniziali, creatoDa: userId },
+      i
+    );
+    const id = await addTenantDocument(db, tenantId, 'macchine', m);
+    trattori.push({ id, nome: m.nome });
   }
 
   const attrezziData = generaAttrezzi(q.attrezzi || 3, seed);
   const attrezzi = [];
-  for (const a of attrezziData) {
+  for (let i = 0; i < attrezziData.length; i++) {
+    const a = enrichAttrezzoPayload(attrezziData[i], i);
     const categoriaId = categorieMap[a.codiceCategoria] || categorieMap.lavorazione_terreno;
     const id = await addTenantDocument(db, tenantId, 'macchine', {
       nome: a.nome,
@@ -87,9 +100,18 @@ export async function runPopulateAssets() {
       categoriaId,
       categoriaFunzione: a.codiceCategoria,
       stato: a.stato,
+      prossimaManutenzione: a.prossimaManutenzione,
       creatoDa: userId
     });
     attrezzi.push({ id, nome: a.nome });
+  }
+
+  const flottaData = generaFlotta(q.flotta || 2, seed);
+  const flotta = [];
+  for (let i = 0; i < flottaData.length; i++) {
+    const m = enrichFlottaPayload({ ...flottaData[i], creatoDa: userId }, i);
+    const id = await addTenantDocument(db, tenantId, 'macchine', m);
+    flotta.push({ id, nome: m.nome, tipoMacchina: m.tipoMacchina });
   }
 
   const vignetiData = generaVigneti(terreni, seed);
@@ -121,16 +143,20 @@ export async function runPopulateAssets() {
     prodotti.push({ id, nome: p.nome });
   }
 
+  await ensureTenantEconomia(db, tenantId);
+
   return {
     terreni,
     trattori,
     attrezzi,
+    flotta,
     vigneti,
     prodotti,
     counts: {
       terreni: terreni.length,
       trattori: trattori.length,
       attrezzi: attrezzi.length,
+      flotta: flotta.length,
       vigneti: vigneti.length,
       prodotti: prodotti.length
     }

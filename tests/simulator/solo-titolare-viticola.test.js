@@ -36,7 +36,7 @@ describe('GFV Farm Simulator — solo-titolare-viticola (emulator)', () => {
   it('run completo + seed terreni v2', async ({ skip: skipTest }) => {
     if (!emulatorUp) skipTest();
 
-    const { setup, assets, simulation, magazzino } = await runFullSimulation({
+    const { setup, assets, simulation, magazzino, vigneto } = await runFullSimulation({
       templateId: 'solo-titolare-viticola',
       seed: 424242,
       appendManifest: false
@@ -52,12 +52,16 @@ describe('GFV Farm Simulator — solo-titolare-viticola (emulator)', () => {
     expect(simulation.counts.attivita).toBe(q.attivitaGiorniLavorativi);
     expect(magazzino.counts.movimenti).toBeGreaterThanOrEqual(8);
     expect(magazzino.sottoScorta).toBeGreaterThanOrEqual(1);
+    expect(vigneto.counts.potature).toBe(q.potatureVigneto);
+    expect(vigneto.counts.trattamenti).toBe(q.trattamentiVigneto);
 
     const { db } = initEmulatorAdmin();
     const inspect = await inspectTenantSeed(db, setup.tenantId);
     expect(inspect.ok, inspect.errors.join('; ')).toBe(true);
     expect(inspect.counts.poderi).toBeGreaterThanOrEqual(1);
     expect(inspect.counts.movimentiMagazzino).toBeGreaterThanOrEqual(8);
+    expect(inspect.counts.potatureVigneto).toBe(q.potatureVigneto);
+    expect(inspect.counts.trattamentiVigneto).toBe(q.trattamentiVigneto);
 
     const { refreshTenantDates } = await import('../../simulator/lib/refresh-dates.js');
     const refreshed = await refreshTenantDates(db, setup.tenantId);

@@ -66,11 +66,14 @@ export async function runSimulateMagazzino(options = {}) {
     scaricoIndex += 1;
 
     const quantita = QTY_SCARICO;
+    const prezzoUnitario =
+      prodotto.prezzoUnitario != null ? parseFloat(prodotto.prezzoUnitario) : null;
     const movimentoId = await addTenantDocument(db, tenantId, 'movimentiMagazzino', {
       prodottoId: prodotto.id,
       data: dateStringToTimestamp(att.data),
       tipo: 'uscita',
       quantita,
+      prezzoUnitario: Number.isFinite(prezzoUnitario) ? prezzoUnitario : null,
       attivitaId: att.id,
       note: `Scarico simulato — ${att.tipoLavoro}`,
       userId

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Vigneto - GFV Platform</title>
@@ -471,12 +472,14 @@
         const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
         const firebaseConfig = await waitForConfig();
         
-        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = await import('../../../core/services/firebase-service.js');
+        const firebaseService = await import('../../../core/services/firebase-service.js');
+        const { getDb, onAuthStateChanged, getDoc, doc } = firebaseService;
+        const { afterFirebaseInit, resolveAuthUser, loginPageUrl } = await import('../../../core/js/simulator-standalone-page.js');
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = await import('../../../core/services/tenant-service.js');
         
         // Inizializza Firebase PRIMA di tutto
-        initializeFirebase(firebaseConfig);
-        const auth = getAuthInstance();
+        firebaseService.initializeFirebase(firebaseConfig);
+        const auth = await afterFirebaseInit(firebaseService);
         const db = getDb();
         
         // Inizializza servizi tenant DOPO Firebase
@@ -489,6 +492,7 @@
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (user) {
                 currentUser = user;
                 try {
@@ -589,10 +593,14 @@
                     }
                 } catch (error) {
                     console.error('Errore:', error);
-                    showAlert('Errore caricamento dati: ' + error.message, 'error');
+                    const offline = /offline|Could not reach/i.test(String(error.message || error));
+                    const simHint = offline
+                        ? ' Firestore non raggiungibile: avvia npm run sim:emulators, apri core/dev/simulator-dev-standalone.html?emulator=1, Entra su un\'azienda, poi Vigneto.'
+                        : '';
+                    showAlert('Errore caricamento dati: ' + error.message + simHint, 'error');
                 }
             } else {
-                window.location.href = '../../../core/auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
             }
         });
 

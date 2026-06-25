@@ -38,14 +38,20 @@ npm run sim:setup
 # Log dettagliati (singolo run)
 npm run sim:run:verbose
 
-# Aggiorna aziende già nel manifest (prodotti, movimenti mancanti, date)
+# Aggiorna aziende già nel manifest (prodotti, flotta/scadenze, movimenti mancanti, spese vigneto, date)
 npm run sim:backfill
+
+# Verifica spese vigneto vs aggregaSpese app
+npm run sim:verify-spese -- --tenant=sim_cascina_colombo_671742
 
 # Ispeziona terreni ultima azienda in manifest
 npm run sim:inspect
 
 # Ispeziona tenant specifico
 npm run sim:inspect -- sim_cascina_colombo_671742
+
+# Audit integrità manifest vs emulator (tutte le entry)
+npm run sim:audit
 
 # Aggiorna terreni vecchi (manifest senza seedVersion 2)
 npm run sim:migrate-terreni
@@ -58,6 +64,9 @@ npm run sim:cleanup -- --dry-run
 # Test integrazione (emulator attivo)
 npm run sim:test
 npm run sim:test:vitest
+
+# Come in CI — avvia emulator, esegue entrambi i test, termina
+npm run sim:test:ci
 
 # Ricalcola date attività (e movimenti collegati) fino a oggi
 npm run sim:refresh-dates
@@ -79,15 +88,21 @@ Pagina dev aziende simulate:
 
 - Password: **`SimGFV2026!`**
 - **Entra (dashboard)** — auto-login emulator (non redirect al login)
-- Link rapidi: **Terreni**, **Attività**, **Movimenti**
+- Link rapidi: **Terreni**, **Attività**, **Movimenti**, **Macchine**, **Trattori**, **Flotta**, **Scadenze**, **Vigneto**, **Vigneti**, **Trattamenti**, **Potatura**
 - Preferire aziende con badge **Seed completo** (`seedVersion: 2` nel manifest)
 - Se vedi **Seed vecchio**: `npm run sim:migrate-terreni`, `npm run sim:backfill`, oppure `npm run sim:run`
+
+## Manifest e audit
+
+- In git: `simulator/manifest.json` è **vuoto** (`[]`); dopo `sim:run` o batch si popola **solo in locale**.
+- Struttura di esempio: `simulator/manifest.example.json`.
+- Verifica coerenza: `npm run sim:audit` (richiede emulator + entry manifest presenti sull'emulator).
 
 ## Credenziali emulator
 
 Password fissa per tutti gli utenti simulati: **`SimGFV2026!`**
 
-Email e tenant ID sono nel report a fine run e in `simulator/manifest.json` (campo `seedVersion: 2` = terreni completi).
+Email e tenant ID sono nel report a fine run e in `simulator/manifest.json` (locale, dopo run). Campo `seedVersion: 2` = terreni completi. Vedi `simulator/manifest.example.json` per la struttura.
 
 ## Cosa crea ogni azienda (template `solo-titolare-viticola`)
 
@@ -95,10 +110,16 @@ Email e tenant ID sono nel report a fine run e in `simulator/manifest.json` (cam
 |---------|----------|
 | Terreni | 4 |
 | Trattori + attrezzi | 1 + 3 |
+| Flotta aziendale (furgone/pickup) | 2 |
+| **Macchine totali** | **6** |
 | Vigneti | 4 |
 | Prodotti magazzino | 5 |
 | Attività (4 settimane) | 20 |
 | Movimenti magazzino (uscite) | 12 |
+| Potature vigneto (da attività Potatura) | 4 |
+| Trattamenti vigneto (Trattamento/Concimazione/Controllo fitosanitario) | 12 |
+
+Ogni macchina seed v1.6+ include scadenze demo (`prossimaManutenzione`, e per trattori/flotta anche revisione/assicurazione); almeno 2 mezzi in stato `in_manutenzione`. Aziende create prima di v1.6: `npm run sim:backfill`.
 
 ## Seed terreni (v2)
 
@@ -108,6 +129,16 @@ Ogni nuova azienda include:
 - Terreni con `coltura: "Vite da Vino"`, `podere`, `tipoCampo`, `polygonCoords`
 
 Le aziende create **prima** del seed v2 restano nell’emulator finché non si esegue `sim:migrate-terreni`, `sim:backfill` o un nuovo `sim:run`.
+
+## CI (GitHub Actions)
+
+Workflow **GFV Farm Simulator CI** (`.github/workflows/simulator-ci.yml`):
+
+- **Trigger:** push su `main` e pull request che toccano `simulator/`, `tests/simulator/`, `firebase.json`, dipendenze root; anche **Run workflow** manuale.
+- **Ambiente:** Ubuntu, Node 20, Java 17 (Firestore Emulator).
+- **Comando:** `npm run sim:test:ci` → `firebase emulators:exec --only auth,firestore` + `sim:test` + `sim:test:vitest`.
+
+In locale, stesso comando della CI (Java obbligatorio): `npm run sim:test:ci`.
 
 ## Sicurezza
 

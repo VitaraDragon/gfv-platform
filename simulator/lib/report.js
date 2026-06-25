@@ -26,6 +26,12 @@ export function formatSuccessReport(result) {
   if (result.counts.movimentiMagazzino != null) {
     lines.push(`  movimenti magazzino: ${result.counts.movimentiMagazzino}`);
   }
+  if (result.counts.potatureVigneto != null) {
+    lines.push(`  potature vigneto: ${result.counts.potatureVigneto}`);
+  }
+  if (result.counts.trattamentiVigneto != null) {
+    lines.push(`  trattamenti vigneto: ${result.counts.trattamentiVigneto}`);
+  }
   if (result.counts.prodottiSottoScorta != null) {
     lines.push(`  prodotti sotto scorta: ${result.counts.prodottiSottoScorta}`);
   }

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Potatura Vigneto - GFV Platform</title>
@@ -123,8 +124,8 @@
                     <tbody id="tbody-potature"></tbody>
                 </table>
             </div>
-            <div id="empty-state" class="empty-state">
-                <p>Caricamento elenco potature...</p>
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <p>Nessuna potatura in elenco per i filtri selezionati.</p>
             </div>
         </main>
     </div>
@@ -354,13 +355,39 @@
         }
 
         function showAlert(msg, type) {
-                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
-                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+        }
+
+        function findNearestVertexPotatura(point, boundaryCoords, maxDistance) {
+            let nearestVertex = null;
+            let minDistance = maxDistance;
+            boundaryCoords.forEach(vertex => {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, vertex);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestVertex = vertex;
+                }
             });
-            
             return nearestVertex;
         }
-        
+
+        let vigneti = [];
+        let potature = [];
+        let currentVignetoId = null;
+        let currentAnno = null;
+        let potaturaFromAttivitaOnly = false;
+        let poligonoCoords = [];
+        let mappaPotatura = null;
+        let poligonoPotaturaPoly = null;
+        let terrenoPolygonPotatura = null;
+        let terrenoBoundaryCoordsPotatura = [];
+        let firstPointPotatura = null;
+        let isDrawingPolygonPotatura = false;
+        const SNAP_DISTANCE_METERS = 5;
+        const VERTEX_SNAP_DISTANCE_METERS = 8;
+        let hasManodoperaModule = false;
+
         // Trova il punto più vicino sul confine del terreno (su un segmento di linea)
         function findNearestPointOnBoundaryPotatura(point, boundaryCoords, maxDistance) {
             let nearestPoint = null;
@@ -1764,21 +1791,32 @@
         };
 
         async function init() {
-            await waitForConfig();
-            const { initializeFirebase, getAuthInstance, onAuthStateChanged } = await import(resolvePath('../../../core/services/firebase-service.js'));
-            const { initializeTenantService, getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
-            await initializeFirebase(window.firebaseConfig);
+            const firebaseConfig = await waitForConfig();
+            const firebaseService = await import(resolvePath('../../../core/services/firebase-service.js'));
+            const { afterFirebaseInit, resolveAuthUser, loginPageUrl } = await import(resolvePath('../../../core/js/simulator-standalone-page.js'));
+            const { initializeTenantService, getCurrentTenantId, setCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+            await firebaseService.initializeFirebase(firebaseConfig);
+            const auth = await afterFirebaseInit(firebaseService);
             initializeTenantService();
-            const auth = getAuthInstance();
+            const { onAuthStateChanged } = firebaseService;
             onAuthStateChanged(auth, async (user) => {
                 const loadingEl = document.getElementById('loading');
                 const emptyEl = document.getElementById('empty-state');
                 const tableWrapEl = document.getElementById('table-wrap');
+                if (!user) user = await resolveAuthUser(auth);
                 if (!user) {
-                    window.location.href = resolvePath('../../../core/auth/login-standalone.html');
+                    window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
                     return;
                 }
-                const tenantId = getCurrentTenantId();
+                let tenantId = getCurrentTenantId();
+                if (!tenantId) {
+                    for (let i = 0; i < 10; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        tenantId = getCurrentTenantId();
+                        if (tenantId) break;
+                    }
+                }
+                if (tenantId) setCurrentTenantId(tenantId);
                 if (!tenantId) {
                     if (loadingEl) loadingEl.style.display = 'none';
                     if (tableWrapEl) tableWrapEl.style.display = 'none';

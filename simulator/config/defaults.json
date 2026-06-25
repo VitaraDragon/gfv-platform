@@ -1,0 +1,11 @@
+{
+  "tenantPrefix": "sim_",
+  "defaultPassword": "SimGFV2026!",
+  "emailDomain": "gfv.local",
+  "rngSeed": null,
+  "economia": {
+    "tariffaProprietarioOraria": 15,
+    "costoOraTrattore": 35,
+    "costoOraAttrezzo": 12
+  }
+}

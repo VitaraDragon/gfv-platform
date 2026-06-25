@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Parco Macchine - GFV Platform</title>
@@ -320,9 +321,12 @@
         (async function() {
             const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
             const firebaseConfig = await waitForConfig();
-            const { initializeFirebase, getAuthInstance, getDb, getDoc, doc } = await import('../../../core/services/firebase-service.js');
+            const firebaseService = await import('../../../core/services/firebase-service.js');
+            const { getDb, getDoc, doc } = firebaseService;
+            const { afterFirebaseInit, resolveAuthUser, loginPageUrl } = await import('../../../core/js/simulator-standalone-page.js');
             const { getCurrentTenantId, getCurrentTenant, setCurrentTenantId, initializeTenantService } = await import('../../../core/services/tenant-service.js');
-            initializeFirebase(firebaseConfig);
+            firebaseService.initializeFirebase(firebaseConfig);
+            const auth = await afterFirebaseInit(firebaseService);
             (function loadGfvStandaloneShell() {
                 var base = (function(){ var p = (window.location.pathname||'').replace(/\\/g,'/'); return p.indexOf('/gfv-platform/') >= 0 ? (window.location.origin + '/gfv-platform/core') : '../../../core'; })();
                 var sep = (base && !base.endsWith('/')) ? '/' : '';
@@ -330,7 +334,6 @@
                 s.src = base + sep + 'js/gfv-standalone-shell.js';
                 document.body.appendChild(s);
             })();
-            const auth = getAuthInstance();
             const db = getDb();
             initializeTenantService();
 
@@ -429,8 +432,9 @@
             }
 
             auth.onAuthStateChanged(async (user) => {
+                if (!user) user = await resolveAuthUser(auth);
                 if (!user) {
-                    window.location.href = '../../../core/auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     return;
                 }
                 let tenantId = getCurrentTenantId();

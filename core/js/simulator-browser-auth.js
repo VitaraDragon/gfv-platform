@@ -20,6 +20,7 @@ export function storeSimPendingLogin(entry, password = SIM_DEFAULT_PASSWORD) {
     }));
     if (entry.tenantId) sessionStorage.setItem('gfv_current_tenant_id', entry.tenantId);
     if (entry.userId) sessionStorage.setItem('gfv_expected_user_id', entry.userId);
+    localStorage.setItem('gfv_firebase_emulator', '1');
   } catch (_) { /* ignore */ }
 }
 
