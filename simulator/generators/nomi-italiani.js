@@ -52,6 +52,27 @@ export function generaProfilo(seed = Date.now()) {
   };
 }
 
+/**
+ * Profilo campo (capo/operaio) — nomi italiani distinti dal manager.
+ * @param {'caposquadra'|'operaio'} ruolo
+ * @param {number} index — 1-based
+ * @param {number} seed
+ * @param {string} slug — slug azienda sim
+ */
+export function generaPersonaCampo(ruolo, index, seed, slug) {
+  const offset = ruolo === 'caposquadra' ? 100 : 200;
+  const nome = pick(NOMI, seed + offset + index * 3);
+  const cognome = pick(COGNOMI, seed + offset + index * 5);
+  const roleToken = ruolo === 'caposquadra' ? 'capo' : 'op';
+  return {
+    nome,
+    cognome,
+    displayName: `${nome} ${cognome}`,
+    ruoli: [ruolo],
+    email: `sim+${slug}_${roleToken}${index}@gfv.local`
+  };
+}
+
 export function generaTerreni(count, seed = 0, options = {}) {
   const podere = options.podereNome || 'Podere principale';
   const morfologie = ['collina', 'pianura', 'collina', 'montagna'];

@@ -1,0 +1,23 @@
+{
+  "templateId": "regime-max-manodopera",
+  "descrizione": "Manodopera regime max — 2 capi, 10 operai, 30 giorni (ore, comunicazioni, assenze, vigneto)",
+  "extends": "viticola-manodopera",
+  "quantities": {
+    "terreni": 6,
+    "trattori": 2,
+    "attrezzi": 5,
+    "flotta": 3,
+    "vigneti": 6,
+    "prodotti": 8,
+    "attivitaGiorniLavorativi": 30,
+    "caposquadra": 2,
+    "operai": 10,
+    "squadre": 2,
+    "lavoriSquadra": 4,
+    "lavoriAutonomi": 2,
+    "giorniOreSimulate": 30
+  },
+  "manodopera": {
+    "regimeMax": true
+  }
+}

@@ -7,12 +7,22 @@ let _tenantId = null;
 let _userId = null;
 let _runId = null;
 let _profile = null;
+/** @type {object | null} Persona corrente in runAsPersona (shape users/{uid}). */
+let _personaUserData = null;
 
 export function setSimContext({ tenantId, userId, runId, profile } = {}) {
   if (tenantId !== undefined) _tenantId = tenantId;
   if (userId !== undefined) _userId = userId;
   if (runId !== undefined) _runId = runId;
   if (profile !== undefined) _profile = profile;
+}
+
+export function setSimPersonaUserData(userData) {
+  _personaUserData = userData;
+}
+
+export function getSimPersonaUserData() {
+  return _personaUserData;
 }
 
 export function getSimTenantId() {
@@ -52,4 +62,13 @@ export function getCurrentTenantId() {
 
 export function setCurrentTenantId(tenantId) {
   setSimContext({ tenantId });
+}
+
+/** Reset completo — usare tra test integrazione/emulator. */
+export function resetSimContext() {
+  _tenantId = null;
+  _userId = null;
+  _runId = null;
+  _profile = null;
+  _personaUserData = null;
 }

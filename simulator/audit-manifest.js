@@ -6,37 +6,59 @@
  * @module simulator/audit-manifest
  */
 
-import { readFileSync } from 'fs';
+
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { readManifest, SEED_VERSION } from './lib/manifest.js';
 import { assertSimulatorSafeToRun } from './lib/guard-production.js';
 import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
+import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
 import { isEmulatorAvailable } from './lib/emulator-available.js';
+import { loadTemplate } from './lib/load-template.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const template = JSON.parse(
-  readFileSync(join(__dirname, 'templates/solo-titolare-viticola.json'), 'utf-8')
-);
-const q = template.quantities;
-const vignetoExpected = expectedVignetoCountsFromTemplate(template);
+const v1Template = loadTemplate('solo-titolare-viticola');
+const v2Template = loadTemplate('viticola-manodopera');
 
-/** Conteggi attesi per template solo-titolare-viticola v1.5 */
-const EXPECTED = {
-  terreni: q.terreni,
-  macchine: q.trattori + q.attrezzi + (q.flotta ?? 2),
-  flotta: q.flotta ?? 2,
-  macchineConScadenzeMin: 3,
-  inManutenzioneMin: 1,
-  vigneti: q.vigneti,
-  prodotti: q.prodotti,
-  attivita: q.attivitaGiorniLavorativi,
-  movimentiMagazzino: 12,
-  potatureVigneto: vignetoExpected.potature,
-  trattamentiVigneto: vignetoExpected.trattamenti
-};
+function buildExpected(template) {
+  const q = template.quantities;
+  const vignetoExpected = expectedVignetoCountsFromTemplate(template);
+  return {
+    terreni: q.terreni,
+    macchine: q.trattori + q.attrezzi + (q.flotta ?? 2),
+    flotta: q.flotta ?? 2,
+    flottaKmOkMin: q.flotta ?? 2,
+    flottaTagliandoSuperatoMin: 1,
+    macchineConScadenzeMin: 3,
+    inManutenzioneMin: 1,
+    vigneti: q.vigneti,
+    prodotti: q.prodotti,
+    attivita: q.attivitaGiorniLavorativi,
+    movimentiMagazzino: 12,
+    potatureVigneto: vignetoExpected.potature,
+    trattamentiVigneto: vignetoExpected.trattamenti,
+    manodopera: template.moduli?.includes('manodopera')
+      ? {
+          squadre: Math.min(q.squadre ?? q.caposquadra ?? 1, q.caposquadra ?? 1),
+          lavoriSquadra: q.lavoriSquadra ?? 2,
+          lavoriAutonomi: q.lavoriAutonomi ?? 1,
+          personasMin: 1 + (q.caposquadra ?? 1) + (q.operai ?? 3),
+          minOreOperaioValidateDaCapo: 1,
+          minOreCapoValidateDaManager: 1,
+          minOreAutonomoValidateDaManager: 1,
+          minComunicazioniAttive: q.lavoriSquadra ?? 2,
+          requireConfermeDestinatari: true,
+          minAssenzeMalattiaConfermate: 1,
+          minLavoriStandbyAssenza: 1
+        }
+      : null
+  };
+}
+
+const EXPECTED_V1 = buildExpected(v1Template);
+const EXPECTED_V2 = buildExpected(v2Template);
 
 function pad(str, len) {
   const s = String(str ?? '');
@@ -78,11 +100,13 @@ async function tenantRootExists(db, tenantId) {
 /**
  * @param {object} entry
  * @param {object} inspect
- * @param {{ authOk: boolean, authDetail: string, tenantExists: boolean }} checks
+ * @param {{ authOk: boolean, authDetail: string, tenantExists: boolean, manodoperaInspect?: object, personasAuthOk?: boolean }} checks
  */
 function classifyEntry(entry, inspect, checks) {
   const issues = [];
   const warnings = [];
+  const isV2 = entry.templateId === 'viticola-manodopera' || Array.isArray(entry.personas);
+  const EXPECTED = isV2 ? EXPECTED_V2 : EXPECTED_V1;
 
   if ((entry.seedVersion || 0) < SEED_VERSION) {
     warnings.push(`seedVersion ${entry.seedVersion ?? 'assente'} (atteso ${SEED_VERSION})`);
@@ -94,9 +118,18 @@ function classifyEntry(entry, inspect, checks) {
   if (!checks.authOk) {
     issues.push(checks.authDetail);
   }
+  if (isV2 && checks.personasAuthOk === false) {
+    issues.push('personas Auth incomplete');
+  }
   if (checks.tenantExists && !inspect.ok) {
     issues.push(...inspect.errors.slice(0, 2));
     if (inspect.errors.length > 2) issues.push(`+${inspect.errors.length - 2} errori seed`);
+  }
+  if (checks.tenantExists && checks.manodoperaInspect && !checks.manodoperaInspect.ok) {
+    issues.push(...checks.manodoperaInspect.errors.slice(0, 3));
+    if (checks.manodoperaInspect.errors.length > 3) {
+      issues.push(`+${checks.manodoperaInspect.errors.length - 3} errori manodopera`);
+    }
   }
 
   const c = inspect.counts || {};
@@ -111,6 +144,14 @@ function classifyEntry(entry, inspect, checks) {
     if (c.macchine !== EXPECTED.macchine) issues.push(`macchine ${c.macchine}/${EXPECTED.macchine}`);
     if ((c.flotta ?? 0) < EXPECTED.flotta) {
       issues.push(`flotta ${c.flotta ?? 0}/${EXPECTED.flotta}`);
+    }
+    if ((c.flottaKmOk ?? 0) < EXPECTED.flottaKmOkMin) {
+      issues.push(`flotta km ok ${c.flottaKmOk ?? 0}/${EXPECTED.flottaKmOkMin}`);
+    }
+    if ((c.flottaTagliandoSuperato ?? 0) < EXPECTED.flottaTagliandoSuperatoMin) {
+      issues.push(
+        `tagliando km superato ${c.flottaTagliandoSuperato ?? 0}/≥${EXPECTED.flottaTagliandoSuperatoMin}`
+      );
     }
     if ((c.macchineConScadenze ?? 0) < EXPECTED.macchineConScadenzeMin) {
       issues.push(`scadenze macchine ${c.macchineConScadenze ?? 0}/≥${EXPECTED.macchineConScadenzeMin}`);
@@ -128,7 +169,17 @@ function classifyEntry(entry, inspect, checks) {
 
   if (issues.length) return { status: 'FAIL', detail: issues.join('; ') };
   if (warnings.length) return { status: 'WARN', detail: warnings.join('; ') };
-  return { status: 'OK', detail: 'completo' };
+  return { status: 'OK', detail: isV2 ? 'completo v2 manodopera' : 'completo' };
+}
+
+async function checkPersonasAuth(auth, entry) {
+  const personas = Array.isArray(entry.personas) ? entry.personas : [];
+  if (!personas.length) return { ok: true };
+  for (const p of personas) {
+    const check = await checkAuthUser(auth, p.email, p.userId);
+    if (!check.ok) return { ok: false, detail: `${p.email}: ${check.detail}` };
+  }
+  return { ok: true };
 }
 
 async function main() {
@@ -160,8 +211,17 @@ async function main() {
       : { ok: false, detail: 'tenantId mancante' };
 
     let inspect = { ok: false, counts: {}, errors: ['tenant non ispezionato'] };
+    let manodoperaInspect = null;
+    let personasAuthOk = true;
+    const isV2 = entry.templateId === 'viticola-manodopera' || Array.isArray(entry.personas);
+
     if (tenantExists && tenantId) {
       inspect = await inspectTenantSeed(db, tenantId);
+      if (isV2) {
+        const personasCheck = await checkPersonasAuth(auth, entry);
+        personasAuthOk = personasCheck.ok;
+        manodoperaInspect = await inspectManodoperaSeed(db, tenantId, EXPECTED_V2.manodopera);
+      }
     } else if (tenantId) {
       inspect = { ok: false, counts: {}, errors: ['tenant assente su emulator'] };
     }
@@ -169,7 +229,9 @@ async function main() {
     const result = classifyEntry(entry, inspect, {
       authOk: authCheck.ok,
       authDetail: authCheck.detail,
-      tenantExists
+      tenantExists,
+      manodoperaInspect,
+      personasAuthOk
     });
 
     if (result.status === 'FAIL') failCount += 1;
@@ -206,7 +268,9 @@ async function main() {
 
   console.log('\n---');
   console.log(`Entry: ${manifest.length} | OK: ${rows.filter((r) => r.status === 'OK').length} | WARN: ${warnCount} | FAIL: ${failCount}`);
-  console.log(`Attesi (template): ${EXPECTED.terreni} terreni, ${EXPECTED.macchine} macchine (${q.trattori} trattori + ${q.attrezzi} attrezzi + ${EXPECTED.flotta} flotta), ${EXPECTED.vigneti} vigneti, ${EXPECTED.prodotti} prodotti, ${EXPECTED.attivita} attività, ${EXPECTED.movimentiMagazzino} movimenti, ${EXPECTED.potatureVigneto} potature, ${EXPECTED.trattamentiVigneto} trattamenti vigneto`);
+  console.log(
+    `Attesi v1: ${EXPECTED_V1.terreni} terreni, ${EXPECTED_V1.macchine} macchine, ${EXPECTED_V1.attivita} attività | v2 manodopera: ${EXPECTED_V2.manodopera?.personasMin} personas, ${EXPECTED_V2.manodopera?.squadre} squadre, zero da_validare`
+  );
 
   if (failCount > 0) {
     console.log('\n[sim:audit] FAIL — correggi con sim:run, sim:backfill o sim:cleanup');

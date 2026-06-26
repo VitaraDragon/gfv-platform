@@ -31,6 +31,15 @@ export function appendManifestEntry(entry) {
   writeManifest(list);
 }
 
+/** Aggiorna l'ultima entry del manifest (es. personas[] dopo fase 06). */
+export function updateLastManifestEntry(updates) {
+  const list = readManifest();
+  if (!list.length) return null;
+  Object.assign(list[list.length - 1], updates);
+  writeManifest(list);
+  return list[list.length - 1];
+}
+
 export function writeManifest(list) {
   writeFileSync(MANIFEST_PATH, `${JSON.stringify(list, null, 2)}\n`, 'utf-8');
 }

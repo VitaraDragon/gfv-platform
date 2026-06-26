@@ -1,5 +1,5 @@
 /**
- * Esecuzione completa simulatore (setup + populate + attività).
+ * Esecuzione completa simulatore (setup + populate + attività + manodopera v2).
  * @module simulator/lib/run-simulation
  */
 
@@ -8,15 +8,26 @@ import { runPopulateAssets } from '../phases/02-populate-assets.js';
 import { runSimulateAttivita } from '../phases/03-simulate-attivita.js';
 import { runSimulateMagazzino } from '../phases/04-simulate-magazzino.js';
 import { runSimulateVigneto } from '../phases/05-simulate-vigneto.js';
+import { runSetupPersonas } from '../phases/06-setup-personas.js';
+import { runPopulateManodopera } from '../phases/07-populate-manodopera.js';
+import { runSimulateManodoperaOre } from '../phases/08-simulate-manodopera-ore.js';
+import { isManodoperaTemplate } from './load-template.js';
 
 /**
- * @param {{ templateId?: string, seed?: number, setupOnly?: boolean, appendManifest?: boolean }} [options]
+ * @param {{
+ *   templateId?: string,
+ *   seed?: number,
+ *   setupOnly?: boolean,
+ *   appendManifest?: boolean,
+ *   templateOverrides?: object
+ * }} [options]
  */
 export async function runFullSimulation(options = {}) {
   const setup = await runSetupTenant({
     templateId: options.templateId || 'solo-titolare-viticola',
     seed: options.seed,
-    appendManifest: options.appendManifest
+    appendManifest: options.appendManifest,
+    templateOverrides: options.templateOverrides
   });
 
   if (options.setupOnly) {
@@ -31,5 +42,24 @@ export async function runFullSimulation(options = {}) {
     vigneti: assets.vigneti
   });
 
-  return { setup, assets, simulation, magazzino, vigneto };
+  let personas = null;
+  let manodopera = null;
+  let manodoperaOre = null;
+
+  if (isManodoperaTemplate(setup.template)) {
+    personas = await runSetupPersonas();
+    manodopera = await runPopulateManodopera(assets);
+    manodoperaOre = await runSimulateManodoperaOre(manodopera);
+  }
+
+  return {
+    setup,
+    assets,
+    simulation,
+    magazzino,
+    vigneto,
+    personas,
+    manodopera,
+    manodoperaOre
+  };
 }

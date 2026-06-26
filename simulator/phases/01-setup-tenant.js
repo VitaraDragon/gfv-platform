@@ -7,11 +7,13 @@ import { randomUUID } from 'crypto';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { ensureAuthUser, getEmulatorDb } from '../lib/emulator-context.js';
+import { ensureAuthUser, initEmulatorAdmin } from '../lib/emulator-context.js';
 import { setRootDocument } from '../lib/firestore-write.js';
 import { appendManifestEntry } from '../lib/manifest.js';
+import { loadTemplate } from '../lib/load-template.js';
 import { generaProfilo, slugify } from '../generators/nomi-italiani.js';
-import { setSimContext } from '../lib/sim-context.js';
+import { setSimContext, resetSimContext } from '../lib/sim-context.js';
+import { ensureCleanSimTenant } from '../lib/cleanup-tenant.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -19,17 +21,13 @@ function loadDefaults() {
   return JSON.parse(readFileSync(join(__dirname, '../config/defaults.json'), 'utf-8'));
 }
 
-function loadTemplate(templateId) {
-  const path = join(__dirname, '../templates', `${templateId}.json`);
-  return JSON.parse(readFileSync(path, 'utf-8'));
-}
-
 /**
- * @param {{ templateId?: string, seed?: number, appendManifest?: boolean }} [options]
+ * @param {{ templateId?: string, seed?: number, appendManifest?: boolean, templateOverrides?: object }} [options]
  */
 export async function runSetupTenant(options = {}) {
+  resetSimContext();
   const templateId = options.templateId || 'solo-titolare-viticola';
-  const template = loadTemplate(templateId);
+  const template = loadTemplate(templateId, options.templateOverrides || {});
   const defaults = loadDefaults();
   const seed = options.seed ?? Date.now();
   const profile = generaProfilo(seed);
@@ -37,13 +35,15 @@ export async function runSetupTenant(options = {}) {
   const tenantId = `${defaults.tenantPrefix}${slugify(profile.aziendaNome)}_${String(seed).slice(-6)}`;
 
   const password = defaults.defaultPassword;
+  const { db, auth } = initEmulatorAdmin();
+  await ensureCleanSimTenant(db, auth, tenantId);
+
   const authUser = await ensureAuthUser({
     email: profile.email,
     password,
     displayName: profile.displayName
   });
 
-  const db = getEmulatorDb();
   const now = new Date();
 
   await setRootDocument(db, 'tenants', tenantId, {
@@ -82,7 +82,7 @@ export async function runSetupTenant(options = {}) {
     tenantId,
     userId: authUser.uid,
     runId,
-    profile: { ...profile, password, templateId, template }
+    profile: { ...profile, password, templateId, template, seed }
   });
 
   if (options.appendManifest !== false) {

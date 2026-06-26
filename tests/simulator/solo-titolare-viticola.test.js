@@ -11,6 +11,7 @@ import { runFullSimulation } from '../../simulator/lib/run-simulation.js';
 import { initEmulatorAdmin } from '../../simulator/lib/emulator-context.js';
 import { inspectTenantSeed } from '../../simulator/lib/tenant-inspect.js';
 import { deleteSimulatedTenant } from '../../simulator/lib/cleanup-tenant.js';
+import { resetSimContext } from '../../simulator/lib/sim-context.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const template = JSON.parse(
@@ -24,10 +25,12 @@ describe('GFV Farm Simulator — solo-titolare-viticola (emulator)', () => {
   let created = null;
 
   beforeAll(async () => {
+    resetSimContext();
     emulatorUp = await isEmulatorAvailable();
   }, 15000);
 
   afterAll(async () => {
+    resetSimContext();
     if (!created?.tenantId) return;
     const { db, auth } = initEmulatorAdmin();
     await deleteSimulatedTenant(db, auth, created);
@@ -62,6 +65,9 @@ describe('GFV Farm Simulator — solo-titolare-viticola (emulator)', () => {
     expect(inspect.counts.movimentiMagazzino).toBeGreaterThanOrEqual(8);
     expect(inspect.counts.potatureVigneto).toBe(q.potatureVigneto);
     expect(inspect.counts.trattamentiVigneto).toBe(q.trattamentiVigneto);
+    expect(inspect.counts.flotta).toBe(q.flotta ?? 2);
+    expect(inspect.counts.flottaKmOk).toBe(q.flotta ?? 2);
+    expect(inspect.counts.flottaTagliandoSuperato).toBeGreaterThanOrEqual(1);
 
     const { refreshTenantDates } = await import('../../simulator/lib/refresh-dates.js');
     const refreshed = await refreshTenantDates(db, setup.tenantId);

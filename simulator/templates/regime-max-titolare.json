@@ -1,0 +1,14 @@
+{
+  "templateId": "regime-max-titolare",
+  "descrizione": "Solo titolare — 30 giorni lavorativi, parco macchine e vigneto a regime",
+  "extends": "solo-titolare-viticola",
+  "quantities": {
+    "terreni": 6,
+    "trattori": 2,
+    "attrezzi": 5,
+    "flotta": 3,
+    "vigneti": 6,
+    "prodotti": 8,
+    "attivitaGiorniLavorativi": 30
+  }
+}

@@ -35,6 +35,25 @@ export function formatSuccessReport(result) {
   if (result.counts.prodottiSottoScorta != null) {
     lines.push(`  prodotti sotto scorta: ${result.counts.prodottiSottoScorta}`);
   }
+  if (result.counts.personas != null) {
+    lines.push(`  personas: ${result.counts.personas} (capo ${result.counts.caposquadra}, operai ${result.counts.operai})`);
+  }
+  if (result.counts.squadre != null) {
+    lines.push(`  squadre: ${result.counts.squadre}, lavori squadra: ${result.counts.lavoriSquadra}, autonomi: ${result.counts.lavoriAutonomi}`);
+  }
+  if (result.counts.oreValidate != null) {
+    lines.push(`  ore manodopera: ${result.counts.oreSegnate} segnate, ${result.counts.oreValidate} validate`);
+  }
+  if (result.counts.comunicazioniInviate != null) {
+    lines.push(
+      `  comunicazioni squadra: ${result.counts.comunicazioniInviate} inviate, ${result.counts.comunicazioniConfermate ?? 0} conferme operai`
+    );
+  }
+  if (result.counts.assenzeMalattiaConfermate != null) {
+    lines.push(
+      `  assenza malattia: ${result.counts.assenzeMalattiaSegnalate ?? 0} segnalate, ${result.counts.assenzeMalattiaConfermate} confermate, ${result.counts.lavoriStandbyAssenza ?? 0} lavori in standby`
+    );
+  }
   lines.push(
     '',
     `Durata: ${(result.durationMs / 1000).toFixed(1)}s`,

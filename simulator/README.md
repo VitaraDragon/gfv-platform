@@ -4,6 +4,8 @@ Generatore locale di aziende agricole di test su **Firebase Emulator** (Auth + F
 
 Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md)
 
+**v2 manodopera (in sviluppo):** spec §14 + **decisioni bloccate §14.0** — multi-account, `runAsPersona`, no inviti, numeri configurabili (`caposquadra`/`operai`), v3 errori posticipato.
+
 ## Prerequisiti
 
 - Node.js 18+
@@ -31,6 +33,9 @@ npm run sim:run
 npm run sim:run:batch
 npm run sim:run:batch -- --count=5
 npm run sim:run:batch -- --count=10 --verbose
+
+# Demo regime max — 2 aziende (manodopera 2 capi/10 op + solo titolare), 30 giorni
+npm run sim:run:demo-max
 
 # Solo creazione tenant/utente
 npm run sim:setup
@@ -97,6 +102,19 @@ Pagina dev aziende simulate:
 - In git: `simulator/manifest.json` è **vuoto** (`[]`); dopo `sim:run` o batch si popola **solo in locale**.
 - Struttura di esempio: `simulator/manifest.example.json`.
 - Verifica coerenza: `npm run sim:audit` (richiede emulator + entry manifest presenti sull'emulator).
+
+## Routine periodica (refresh, audit, perf)
+
+Guida completa: **`GFV_FARM_SIMULATOR.md` §13.4**.
+
+| Comando | Scopo |
+| ------- | ----- |
+| `sim:refresh-dates` | Ricalcola date attività + movimenti collegati (dati «recenti» in app) |
+| `sim:audit` | Controlli automatici seed vs emulator |
+| Verifica UI Movimenti / field workspace | Coerenza manuale come pre-simulatore (movimento in app ↔ Firestore) |
+| `?dashboardPerf=1` | Tempi caricamento dashboard ( **perf** = velocità, non audit dati) |
+
+**Demo pulita consigliata:** `npm run sim:cleanup -- --keep 2` → `npm run sim:run:demo-max` → `sim:refresh-dates -- --all` → `sim:audit`.
 
 ## Credenziali emulator
 

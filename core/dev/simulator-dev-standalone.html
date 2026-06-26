@@ -22,6 +22,8 @@
     button, a.btn { border: none; border-radius: 8px; padding: 10px 14px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
     .btn-primary { background: #2E8B57; color: #fff; }
     .btn-secondary { background: #e8f5ee; color: #2E8B57; }
+    .btn-persona { background: #eef2ff; color: #3730a3; font-size: 13px; padding: 8px 12px; }
+    .personas { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
     .status { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 14px; display: none; }
     .status.show { display: block; }
     .status.ok { background: #d4edda; color: #155724; }
@@ -35,7 +37,7 @@
   <div class="wrap">
     <h1>Aziende simulatore (emulator)</h1>
     <p class="hint">Richiede <code>npm run sim:emulators</code> attivo. Password: <strong>SimGFV2026!</strong><br>
-    Usa le aziende con badge <strong>Seed completo</strong>. Per aggiornare quelle vecchie: <code>npm run sim:migrate-terreni</code></p>
+    Usa le aziende con badge <strong>Seed completo</strong>. Operai e capi aprono la <strong>versione mobile</strong> (come in app). Per aggiornare quelle vecchie: <code>npm run sim:migrate-terreni</code></p>
     <div id="list" class="empty">Caricamento manifest…</div>
     <div id="status" class="status"></div>
   </div>
@@ -54,24 +56,47 @@
       return path + q;
     }
 
-    async function enterCompany(entry) {
+    async function enterCompany(entry, persona) {
       await window.GFVStandaloneReady;
       const firebaseService = await import('../services/firebase-service.js');
-      const { storeSimPendingLogin } = await import('../js/simulator-browser-auth.js');
+      const { storeSimPendingLogin, storeSimPersonaLogin } = await import('../js/simulator-browser-auth.js');
       const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
       const auth = firebaseService.getAuthInstance();
       const { setCurrentTenantId } = await import('../services/tenant-service.js');
 
-      storeSimPendingLogin(entry, PASSWORD);
+      const target = persona || entry;
+      if (persona) {
+        storeSimPersonaLogin(entry, persona, PASSWORD);
+      } else {
+        storeSimPendingLogin(entry, PASSWORD);
+      }
       showStatus('Accesso in corso…', true);
-      await signInWithEmailAndPassword(auth, entry.email, PASSWORD);
+      await signInWithEmailAndPassword(auth, target.email, PASSWORD);
       if (typeof auth.authStateReady === 'function') {
         await auth.authStateReady();
       }
       setCurrentTenantId(entry.tenantId);
       sessionStorage.setItem('gfv_current_tenant_id', entry.tenantId);
-      sessionStorage.setItem('gfv_expected_user_id', entry.userId);
-      showStatus('Accesso OK — ' + entry.aziendaNome, true);
+      sessionStorage.setItem('gfv_expected_user_id', target.userId || entry.userId);
+      const label = persona?.displayName || persona?.email || entry.aziendaNome;
+      showStatus('Accesso OK — ' + label, true);
+    }
+
+    function personaLabel(p) {
+      const role = (p.ruoli && p.ruoli[0]) || 'utente';
+      const name = p.displayName || p.email;
+      if (role === 'amministratore') return 'Manager — ' + name;
+      if (role === 'caposquadra') return 'Capo (mobile) — ' + name;
+      if (role === 'operaio') return 'Operaio (mobile) — ' + name;
+      return name;
+    }
+
+    /** Stesso ingresso dell'app reale: dashboard manager, workspace mobile per campo. */
+    function destinationForRole(role) {
+      if (role === 'operaio' || role === 'caposquadra') {
+        return '../mobile/field-workspace-standalone.html';
+      }
+      return '../dashboard-standalone.html';
     }
 
     async function loadManifest() {
@@ -110,8 +135,12 @@
         const badge = isNewSeed
           ? '<span class="badge badge-new">Seed completo</span>'
           : '<span class="badge badge-old">Seed vecchio — migra o rigenera</span>';
+        const isManodopera = entry.templateId === 'viticola-manodopera' || Array.isArray(entry.personas);
+        const badgeManodopera = isManodopera
+          ? '<span class="badge badge-new">Manodopera v2</span>'
+          : '';
         card.innerHTML = `
-          <h2>${entry.aziendaNome}${badge}</h2>
+          <h2>${entry.aziendaNome}${badge}${badgeManodopera}</h2>
           <div class="meta">${entry.email}<br>Tenant: ${entry.tenantId}<br>Creato: ${formatDate(entry.createdAt)}</div>
           <div class="actions"></div>
         `;
@@ -119,7 +148,7 @@
 
         const btnLogin = document.createElement('button');
         btnLogin.className = 'btn-primary';
-        btnLogin.textContent = 'Entra (dashboard)';
+        btnLogin.textContent = 'Entra come manager';
         btnLogin.onclick = async () => {
           try {
             await enterCompany(entry);
@@ -128,6 +157,31 @@
             showStatus(e.message || String(e), false);
           }
         };
+        actions.appendChild(btnLogin);
+
+        if (Array.isArray(entry.personas) && entry.personas.length > 1) {
+          const personasWrap = document.createElement('div');
+          personasWrap.className = 'personas';
+          entry.personas.forEach((persona) => {
+            const role = (persona.ruoli && persona.ruoli[0]) || '';
+            if (role === 'amministratore') return;
+            const btn = document.createElement('button');
+            btn.className = 'btn-persona';
+            btn.textContent = personaLabel(persona);
+            btn.onclick = async () => {
+              try {
+                await enterCompany(entry, persona);
+                window.location.href = page(destinationForRole(role));
+              } catch (e) {
+                showStatus(e.message || String(e), false);
+              }
+            };
+            personasWrap.appendChild(btn);
+          });
+          if (personasWrap.childNodes.length) {
+            actions.appendChild(personasWrap);
+          }
+        }
 
         const links = [
           ['Terreni', '../terreni-standalone.html'],
@@ -141,7 +195,6 @@
           ['Potatura', '../../modules/vigneto/views/potatura-standalone.html'],
           ['Login classico', '../auth/login-standalone.html']
         ];
-        actions.appendChild(btnLogin);
         links.forEach(([label, href]) => {
           const a = document.createElement('a');
           a.className = 'btn-secondary';

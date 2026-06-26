@@ -7,6 +7,48 @@ const EXPECTED_COLTURA = 'Vite da Vino';
 
 const TIPI_FLOTTA = new Set(['automezzo', 'veicolo', 'furgone']);
 
+function isTipoFlotta(m) {
+  return TIPI_FLOTTA.has((m.tipoMacchina || m.tipo || '').toLowerCase());
+}
+
+/**
+ * Seed flotta: contatore e tagliando in km (no ore agricole).
+ * @param {Array<object>} flotta
+ */
+export function validateFlottaKmSeed(flotta) {
+  const errors = [];
+  let kmOk = 0;
+  let tagliandoSuperato = 0;
+
+  for (const m of flotta) {
+    const label = m.nome || m.id || 'flotta';
+    const kmAttuali = m.kmAttuali;
+    const kmPross = m.kmProssimaManutenzione;
+
+    if (typeof kmAttuali !== 'number' || kmAttuali <= 0) {
+      errors.push(`flotta "${label}": kmAttuali mancante o non valido`);
+      continue;
+    }
+    if (typeof kmPross !== 'number' || kmPross <= 0) {
+      errors.push(`flotta "${label}": kmProssimaManutenzione mancante o non valido`);
+      continue;
+    }
+    if (m.oreAttuali != null && m.oreAttuali !== 0) {
+      errors.push(`flotta "${label}": oreAttuali presente (atteso solo km)`);
+      continue;
+    }
+    if (m.oreProssimaManutenzione != null && m.oreProssimaManutenzione !== 0) {
+      errors.push(`flotta "${label}": oreProssimaManutenzione presente (atteso tagliando km)`);
+      continue;
+    }
+
+    kmOk += 1;
+    if (kmAttuali >= kmPross) tagliandoSuperato += 1;
+  }
+
+  return { kmOk, tagliandoSuperato, errors };
+}
+
 async function listCollection(db, tenantId, name) {
   const snap = await db.collection(`tenants/${tenantId}/${name}`).get();
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -44,15 +86,23 @@ export async function inspectTenantSeed(db, tenantId) {
   if (poderi.length < 1) errors.push('manca almeno un podere');
   if (colture.length < 1) errors.push('manca catalogo colture');
 
-  const flotta = macchine.filter((m) =>
-    TIPI_FLOTTA.has((m.tipoMacchina || m.tipo || '').toLowerCase())
-  );
+  const flotta = macchine.filter(isTipoFlotta);
+  const flottaKm = validateFlottaKmSeed(flotta);
+  errors.push(...flottaKm.errors);
+
   const macchineConScadenze = macchine.filter(
-    (m) => m.prossimaManutenzione || m.prossimaAssicurazione || m.prossimaRevisione
+    (m) =>
+      m.prossimaManutenzione ||
+      m.prossimaAssicurazione ||
+      m.prossimaRevisione ||
+      (isTipoFlotta(m) && m.kmProssimaManutenzione)
   );
   if (flotta.length < 1) errors.push('manca flotta aziendale (furgone/pickup)');
   if (macchineConScadenze.length < 3) {
     errors.push(`poche scadenze macchine seed (${macchineConScadenze.length})`);
+  }
+  if (flotta.length >= 1 && flottaKm.tagliandoSuperato < 1) {
+    errors.push('flotta: atteso almeno 1 mezzo con tagliando km superato (demo scadenze)');
   }
 
   for (const t of terreni) {
@@ -79,6 +129,8 @@ export async function inspectTenantSeed(db, tenantId) {
       attivita: attivita.length,
       macchine: macchine.length,
       flotta: flotta.length,
+      flottaKmOk: flottaKm.kmOk,
+      flottaTagliandoSuperato: flottaKm.tagliandoSuperato,
       macchineConScadenze: macchineConScadenze.length,
       inManutenzione: macchine.filter((m) => m.stato === 'in_manutenzione').length,
       vigneti: vigneti.length,

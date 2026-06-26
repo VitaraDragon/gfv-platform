@@ -1,6 +1,113 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-24 — flotta parco macchine: manutenzione a km (tagliando).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-26 — doc routine refresh/audit/perf simulatore; fix performance workspace mobile campo.**
+
+## GFV Farm Simulator — documentazione routine dati vs perf + workspace mobile (2026-06-26)
+
+**Contesto:** chiariti in doc i termini spesso confusi (**refresh** date, **audit** coerenza Firestore, **perf** tempi UI, **prefisso** `sim_` tenant) e la routine operatore pre/post test manuale (movimenti, manodopera mobile).
+
+**Doc aggiornata:**
+- `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — §13.4 «Routine periodica e glossario» (refresh vs audit vs perf; dataset regime max per stress locale; checklist demo pulita)
+- `simulator/README.md` — demo-max, routine consigliata, link §13.4
+
+**Codice workspace mobile (performance + auth emulator):**
+- `core/mobile/js/field-workspace-controller.js` — retry `ensureSimulatorSession` prima redirect login; init una volta per uid; iframe statistiche/dettaglio lavoro lazy; comunicazioni operaio riusa `cachedWorks`
+- `core/mobile/field-workspace-standalone.html` — iframe statistiche senza `src` iniziale
+
+**Routine consigliata locale:** `sim:cleanup -- --keep 2` → `sim:run:demo-max` → `sim:refresh-dates -- --all` → `sim:audit` → verifica UI Movimenti + field workspace (capo/operaio). Per tempi pagina: `?dashboardPerf=1` su dashboard manager (non sostituisce audit dati).
+
+## GFV Farm Simulator — run demo regime max 2 aziende / 30 giorni (2026-06-26)
+
+**Comando:** `npm run sim:run:demo-max`
+
+**Aziende create:**
+- `regime-max-manodopera` — 2 caposquadra, 10 operai, 30 gg attività + ore/comunicazioni/assenze/standby/vigneto/magazzino/mezzi
+- `regime-max-titolare` — solo proprietario, 30 gg attività + potature/trattamenti/scarichi
+
+**Template:** `simulator/templates/regime-max-manodopera.json`, `regime-max-titolare.json` — fase 08 `manodopera.regimeMax` per ciclo denso 30 giorni.
+
+## GFV Farm Simulator — segnalazione malattia capo → manager (2026-06-26)
+
+**Contesto:** il simulatore copriva solo briefing squadra (`comunicazioni`); mancava il flusso assenza malattia (`assenzeOperai`) visibile in workspace mobile capo e Gestione lavori manager.
+
+**Codice:**
+- `simulator/lib/manodopera-sim-actions.js` — `segnalaAssenzaSim`, `confermaAssenzaSim`, `mettiLavoroStandbyAssenzaSim` (via `runAsPersona`)
+- `simulator/phases/08-simulate-manodopera-ore.js` — capo segnala malattia operai[1], manager conferma + lavoro `in_standby`
+- `simulator/lib/manodopera-inspect.js` — audit assenze malattia confermate e lavori standby
+- `simulator/templates/viticola-manodopera.json` — flag `assenzaMalattia` / `standbyAssenzaMalattia`
+
+**Verifica:** `npm run sim:run -- --template=viticola-manodopera` — capo vede form assenza; manager vede banner/segnalazione in Gestione lavori.
+
+## GFV Farm Simulator — comunicazioni capo→squadra in fase 08 (2026-06-25)
+
+**Contesto:** il workspace mobile campo mostra comunicazioni vuote dopo il seed manodopera; mancava la simulazione su `tenants/{tenantId}/comunicazioni`.
+
+**Codice:**
+- `simulator/lib/manodopera-sim-actions.js` — `inviaComunicazioneSim` (solo caposquadra via `runAsPersona`) e `confermaComunicazioneSim` (operai destinatari)
+- `simulator/phases/08-simulate-manodopera-ore.js` — briefing per ogni lavoro squadra, conferme operai, poi ciclo ore
+- `simulator/lib/manodopera-inspect.js` + `audit-manifest.js` — controlli `minComunicazioniAttive` e `minConfermePerComunicazione`
+- `simulator/templates/viticola-manodopera.json` — flag `comunicazioniSquadra` / `confermeOperai`
+
+**Verifica:** capo/operaio su field workspace mobile vedono comunicazioni attive con destinatari e conferme dopo `npm run sim:run -- --template=viticola-manodopera`.
+
+## GFV Farm Simulator — v2.1 manodopera implementata (2026-06-25)
+
+**Contesto:** implementazione fasi 06–08, orchestrator, audit v2, test CI, pagina dev «Entra come…» — v. **`GFV_FARM_SIMULATOR.md` §14.6–14.10**.
+
+**Codice:**
+- `simulator/phases/06-setup-personas.js` — Auth + `users/{uid}` capi/operai, manifest `personas[]`
+- `simulator/phases/07-populate-manodopera.js` — squadre + lavori (manager via `runAsPersona`)
+- `simulator/phases/08-simulate-manodopera-ore.js` — ciclo segna/valida multi-persona
+- `simulator/lib/load-template.js` — merge `extends`, override CLI `--caposquadra` / `--operai`
+- `simulator/lib/manodopera-inspect.js` — audit ore per ruolo, zero `da_validare`
+- `simulator/orchestrator.js` + `lib/run-simulation.js` — template `viticola-manodopera`
+- `simulator/audit-manifest.js` — controlli v2 personas/squadre/ore
+- `simulator/integration-test.js` + `tests/simulator/viticola-manodopera.test.js` — v1 + v2 su emulator
+- `core/dev/simulator-dev-standalone.html` + `core/js/simulator-browser-auth.js` — login manager/capo/operaio
+
+**Verifica:** `npm run sim:run -- --template=viticola-manodopera` exit 0; `sim:test` + `sim:test:vitest` verdi; zero ore `da_validare` a fine run.
+
+## GFV Farm Simulator — decisioni v2 manodopera consolidate (2026-06-24)
+
+**Contesto:** allineamento doc dopo design con product owner — v. **`GFV_FARM_SIMULATOR.md` §14.0** e §12 (punti 8–15).
+
+**Decisioni chiave:**
+- **Roadmap:** v1.6.1 chiusa → v2.1 manodopera → v3 errori utente **dopo** golden path → v4 Playwright
+- **No inviti/mail** nel sim — profili capo/operai **pre-creati** (Auth + Firestore); invito già coperto dall’app
+- **Ore e validazioni** solo con **`runAsPersona`** (account operaio/capo/manager reali); vietato popolare ore “come manager”
+- **Flusso:** squadra (operaio→capo→manager per ore capo) + autonomo (operaio→manager)
+- **Numeri configurabili:** `caposquadra`, `operai`, `squadre`, lavori — es. 3 capi + 16 operai; CI minimal, demo ricca
+- **Manager:** 1 per tenant; Tony/meteo esclusi sim v2
+
+**Doc aggiornata:** §14.0, §14.5, §12; template `viticola-manodopera.json`; `manifest.example.json`.
+
+## GFV Farm Simulator — spec v2 manodopera multi-persona (2026-06-24)
+
+**Obiettivo:** definire v2 manodopera con account reali manager/caposquadra/operaio sullo stesso tenant; ore e validazioni solo via `runAsPersona`, non numeri inventati dal manager.
+
+**Documentazione:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` **§14** — flusso operaio→capo→manager, assunto profili pre-creati (no inviti), manifest `personas[]`, criteri audit v2.
+
+**Scaffolding repo:**
+- `simulator/templates/viticola-manodopera.json`
+- `simulator/lib/run-as-persona.js` — `runAsPersona`, `getActingUserData`
+- `simulator/lib/manodopera-sim-actions.js` — `segnaOraSim`, `validaOraSim` (regole `manodopera-ore-validazione-scope.js`)
+- `simulator/manifest.example.json` — esempio entry con `personas`
+- `simulator/lib/sim-context.js` — cache persona corrente
+
+**Prossimo:** fasi `06-setup-personas.js`, `07-populate-manodopera.js`, `08-simulate-manodopera-ore.js`, pagina dev «Entra come…».
+
+## GFV Farm Simulator v1.6.1 — chiusura v1.6 (2026-06-24)
+
+**Obiettivo:** chiudere il cerchio flotta a km nel simulatore (assert automatici + doc + fallback Tony).
+
+**Implementazione:**
+- `simulator/lib/tenant-inspect.js` — `validateFlottaKmSeed`: kmAttuali/kmProssimaManutenzione, assenza ore su flotta, ≥1 tagliando km superato; conteggi `flottaKmOk`, `flottaTagliandoSuperato`
+- `simulator/audit-manifest.js` — FAIL se km flotta incompleti o nessun tagliando superato
+- `simulator/integration-test.js` + `tests/simulator/solo-titolare-viticola.test.js` — stessi assert
+- `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — v1.6.1, scadenze km, CI Java 21
+- `core/services/tony-service.js` — fallback `guida_sintesi_parco_macchine` con km/tagliando flotta
+
+**Verifica:** `npm run sim:test` / `sim:audit` su tenant con seed v1.6+.
 
 ## Parco Macchine — flotta: manutenzione a km (2026-06-24)
 

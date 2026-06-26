@@ -16,12 +16,31 @@ export function storeSimPendingLogin(entry, password = SIM_DEFAULT_PASSWORD) {
       email: entry.email,
       password,
       tenantId: entry.tenantId || '',
-      userId: entry.userId || ''
+      userId: entry.userId || entry.uid || ''
     }));
     if (entry.tenantId) sessionStorage.setItem('gfv_current_tenant_id', entry.tenantId);
-    if (entry.userId) sessionStorage.setItem('gfv_expected_user_id', entry.userId);
+    const uid = entry.userId || entry.uid;
+    if (uid) sessionStorage.setItem('gfv_expected_user_id', uid);
     localStorage.setItem('gfv_firebase_emulator', '1');
   } catch (_) { /* ignore */ }
+}
+
+/**
+ * Login come persona del manifest v2 (manager, capo, operaio).
+ * @param {object} entry — entry manifest con tenantId
+ * @param {object} persona — { email, userId, displayName?, ruoli? }
+ * @param {string} [password]
+ */
+export function storeSimPersonaLogin(entry, persona, password = SIM_DEFAULT_PASSWORD) {
+  if (!entry?.tenantId || !persona?.email) return;
+  storeSimPendingLogin(
+    {
+      email: persona.email,
+      userId: persona.userId,
+      tenantId: entry.tenantId
+    },
+    password
+  );
 }
 
 /**

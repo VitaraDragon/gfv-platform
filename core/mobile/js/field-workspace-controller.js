@@ -68,6 +68,7 @@ const oraEndEl = document.getElementById('ora-end');
 const oraBreakEl = document.getElementById('ora-break');
 const oraNoteEl = document.getElementById('ora-note');
 const lavoriDetailFrameEl = document.getElementById('lavori-detail-frame');
+const statsEmbedFrameEl = document.getElementById('stats-embed-frame');
 const lavoriFullDetailLinkEl = document.getElementById('lavori-full-detail-link');
 const squadListEl = document.getElementById('squad-members-list');
 const inlineTeamSectionEl = document.getElementById('inline-team-section');
@@ -103,6 +104,7 @@ let currentTenantId = null;
 let activeSlides = [];
 let currentSlideIndex = 0;
 let cachedWorks = [];
+let fieldWorkspaceInitializedForUid = null;
 let selectedWork = null;
 let userIsCaposquadra = false;
 let lastSquadMembers = [];
@@ -251,6 +253,22 @@ function updateNavButtons() {
     }
 }
 
+function ensureStatsEmbedLoaded() {
+    if (!statsEmbedFrameEl || statsEmbedFrameEl.dataset.loaded === '1') return;
+    statsEmbedFrameEl.src = 'statistiche-lavoratore-standalone.html';
+    statsEmbedFrameEl.dataset.loaded = '1';
+}
+
+function maybeLoadEmbedsForSlide(slideTitle) {
+    const title = String(slideTitle || '').trim();
+    if (title === 'Statistiche') {
+        ensureStatsEmbedLoaded();
+    }
+    if (title === 'Ore') {
+        updateLavoriDetailEmbed(true);
+    }
+}
+
 function goToSlide(index) {
     const bounded = Math.max(0, Math.min(index, activeSlides.length - 1));
     const slide = activeSlides[bounded];
@@ -259,6 +277,7 @@ function goToSlide(index) {
     swiperEl.scrollTo({ left: slide.offsetLeft, behavior: 'smooth' });
     renderDots();
     updateNavButtons();
+    maybeLoadEmbedsForSlide(slide.dataset.slideTitle);
 }
 
 function findSlideIndexByToken(token) {
@@ -302,6 +321,7 @@ function syncSlideFromScroll() {
         currentSlideIndex = bestIdx;
         renderDots();
         updateNavButtons();
+        maybeLoadEmbedsForSlide(activeSlides[bestIdx]?.dataset?.slideTitle);
     }
 }
 
@@ -530,18 +550,23 @@ async function loadWorksForSelection() {
     }
 }
 
-function updateLavoriDetailEmbed() {
+function updateLavoriDetailEmbed(loadIframe = false) {
     if (!lavoriDetailFrameEl || !lavoriFullDetailLinkEl) return;
     const base = '../admin/lavori-caposquadra-standalone.html?ws=classic';
     if (!selectedWork) {
         lavoriDetailFrameEl.removeAttribute('src');
+        lavoriDetailFrameEl.removeAttribute('data-embed-loaded');
         lavoriFullDetailLinkEl.href = base;
         return;
     }
     const fullUrl = `${base}&focusLavoroId=${encodeURIComponent(selectedWork.id)}`;
-    const compactUrl = `${fullUrl}&embed=mobile`;
-    lavoriDetailFrameEl.src = compactUrl;
     lavoriFullDetailLinkEl.href = fullUrl;
+    const activeTitle = activeSlides[currentSlideIndex]?.dataset?.slideTitle;
+    if (!loadIframe && activeTitle !== 'Ore') return;
+    const compactUrl = `${fullUrl}&embed=mobile`;
+    if (lavoriDetailFrameEl.dataset.embedLoaded === selectedWork.id) return;
+    lavoriDetailFrameEl.src = compactUrl;
+    lavoriDetailFrameEl.dataset.embedLoaded = selectedWork.id;
 }
 
 async function refreshLavoroSostitutoBanner() {
@@ -973,13 +998,14 @@ async function loadReceivedCommunications() {
     try {
         const operaioUserId = primaryManodoperaUserId(currentUser, currentUserData);
         const capoIdsOperaio = await resolveCaposquadraIdsForOperaio(getDb(), currentTenantId, operaioUserId);
-        const lavoriOperaio = await fetchLavoriDocumentsForFieldUser(
-            getDb(),
-            currentTenantId,
-            operaioUserId,
-            resolveSegnaturaOreRoleFlags(currentUserData || {})
-        );
-        const operaioLavoroIds = lavoriOperaio.map((l) => String(l.id));
+        const operaioLavoroIds = (Array.isArray(cachedWorks) && cachedWorks.length)
+            ? cachedWorks.map((w) => String(w.id))
+            : (await fetchLavoriDocumentsForFieldUser(
+                getDb(),
+                currentTenantId,
+                operaioUserId,
+                resolveSegnaturaOreRoleFlags(currentUserData || {})
+            )).map((l) => String(l.id));
         const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
         const snap = await getDocs(query(commRef, where('stato', '==', 'attiva')));
         const rows = [];
@@ -1472,14 +1498,27 @@ async function initFieldWorkspace() {
     try {
         const firebaseConfig = await window.GFVConfigLoader.waitForConfig();
         initializeFirebase(firebaseConfig);
+        const { awaitFirebaseEmulatorConnect, awaitAuthStateReady } = await import('../../services/firebase-service.js');
+        await awaitFirebaseEmulatorConnect();
+        await awaitAuthStateReady();
         const auth = getAuthInstance();
         const db = getDb();
+        try {
+            const { ensureSimulatorSession } = await import('../../js/simulator-browser-auth.js');
+            await ensureSimulatorSession(auth);
+        } catch (_) { /* ignore */ }
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
+                try {
+                    const { ensureSimulatorSession } = await import('../../js/simulator-browser-auth.js');
+                    const recovered = await ensureSimulatorSession(auth);
+                    if (recovered) return;
+                } catch (_) { /* ignore */ }
                 window.location.href = '../auth/login-standalone.html';
                 return;
             }
+            if (fieldWorkspaceInitializedForUid === user.uid) return;
 
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -1508,7 +1547,7 @@ async function initFieldWorkspace() {
                     roles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                 }
                 const normalizedRoles = normalizeRoles ? normalizeRoles(roles) : roles;
-                currentUserData = { ...userData, ruoli: normalizedRoles };
+                currentUserData = { ...userData, id: user.uid, uid: user.uid, ruoli: normalizedRoles };
                 currentUser = user;
                 currentTenantId = tenantId;
 
@@ -1613,6 +1652,7 @@ async function initFieldWorkspace() {
                 if (dateInput) dateInput.value = getTodayIsoDate();
                 if (oraDataEl) oraDataEl.value = getTodayIsoDate();
 
+                fieldWorkspaceInitializedForUid = user.uid;
                 setStatus('Workspace mobile attivo.');
             } catch (error) {
                 console.error('[FIELD-WORKSPACE] Errore inizializzazione utente:', error);

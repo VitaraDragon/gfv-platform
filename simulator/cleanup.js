@@ -55,7 +55,8 @@ async function main() {
     try {
       await deleteSimulatedTenant(db, auth, {
         tenantId: entry.tenantId,
-        userId: entry.userId
+        userId: entry.userId,
+        personas: entry.personas
       });
       console.log(`[sim:cleanup] OK ${entry.aziendaNome} (${entry.tenantId})`);
     } catch (err) {

@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6  
-**Data:** 2026-06-24  
-**Stato:** v1.6 — parco macchine completo (flotta + scadenze/manutenzione/revisione/assicurazione) + vigneto operativo + spese allineate app + audit  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14  
+**Data:** 2026-06-26  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera implementata** (fasi 06–08, audit, test, pagina dev); template **regime max** + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -178,6 +178,7 @@ simulator/
     defaults.json                    # seed RNG, prefissi ID
   templates/
     solo-titolare-viticola.json      # template v1
+    viticola-manodopera.json         # template v2 (spec §14)
   generators/
     nomi-italiani.js                 # persone, aziende, terreni, macchine
     date-calendario.js               # 4 settimane lavorative (no weekend opz.)
@@ -195,6 +196,8 @@ simulator/
     tenant-inspect.js                # inspectTenantSeed (seed v2)
     cleanup-tenant.js                # deleteSimulatedTenant
     run-simulation.js                # runFullSimulation
+    run-as-persona.js                # v2: contesto manager/capo/operaio
+    manodopera-sim-actions.js        # v2: segnaOraSim / validaOraSim (permessi ruolo)
     emulator-available.js            # isEmulatorAvailable
   phases/
     01-setup-tenant.js               # tenant, utente, moduli, piano
@@ -202,6 +205,9 @@ simulator/
     03-simulate-attivita.js          # 4 settimane diario attività
     04-simulate-magazzino.js         # scarichi magazzino su trattamenti/concimazioni
     05-simulate-vigneto.js           # potature + trattamenti vigneto da attività diario
+    06-setup-personas.js             # v2: Auth + users multi-ruolo (no inviti)
+    07-populate-manodopera.js        # v2: squadre + lavori (manager)
+    08-simulate-manodopera-ore.js    # v2: ore + validazioni per persona
   orchestrator.js                    # entry point
   smoke-test.js                      # Fase 0
   inspect-tenant.js                  # ispezione terreni su emulator
@@ -363,7 +369,7 @@ Ordine consigliato (rispetta dipendenze):
 2. **Macchine** — trattori, attrezzi, **flotta aziendale** (v1.6)
   - `tipoMacchina`: `trattore` | `attrezzo` | `furgone` | `automezzo` | `veicolo`
   - Attrezzi: `categoriaId` / `cavalliMinimiRichiesti` se richiesti da validazione
-  - **Scadenze (allineate dashboard app):** `prossimaManutenzione`, `oreProssimaManutenzione` (trattori), `prossimaRevisione`, `prossimaAssicurazione` (trattori + flotta); mix date scadute/imminenti/ok; almeno un attrezzo e un mezzo flotta in `stato: in_manutenzione`
+  - **Scadenze (allineate dashboard app):** trattori/attrezzi — `prossimaManutenzione`, `oreProssimaManutenzione`, `prossimaRevisione`, `prossimaAssicurazione`; **flotta** — `kmAttuali`, `kmProssimaManutenzione` (tagliando km), `prossimaRevisione`, `prossimaAssicurazione` (no ore agricole su furgone/pickup); mix date scadute/imminenti/ok; almeno un attrezzo e un mezzo flotta in `stato: in_manutenzione`; almeno un mezzo flotta con tagliando km **superato** (demo lista Scadenze)
   - Helper: `lib/seed-parco-macchine-details.js` (`enrichTrattorePayload`, `enrichAttrezzoPayload`, `enrichFlottaPayload`, `ensureFlottaAndScadenzeMacchine` per backfill)
   - Riferimento app: `core/js/dashboard-deadlines.js`, `modules/macchine/views/flotta-list-standalone.html`, `scadenze-list-standalone.html`
   - Riferimento service: `modules/parco-macchine/services/macchine-service.js`, `Macchina.js`
@@ -530,7 +536,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 - [x] Verifica UI manuale: login dev → dashboard → terreni → attività → magazzino (anagrafica, uscite, tracciabilità)
 - [x] Batch **10 aziende** su emulator: 10/10 OK (4 terreni, 20 attività, 12 movimenti ciascuna)
 - [x] **v1.6** — flotta + scadenze parco macchine; `sim:backfill` aggiorna manifest legacy; `sim:audit` 6 macchine attese
-- [x] Voce in `docs-sviluppo/COSA_ABBIAMO_FATTO.md`
+- [x] **v1.6.1** — assert km flotta (`validateFlottaKmSeed`); audit/test/Vitest; doc Java 21; fallback Tony km flotta
 
 ---
 
@@ -544,6 +550,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 6. **Documentazione:** aggiornare **solo** `docs-sviluppo/COSA_ABBIAMO_FATTO.md` quando una fase è completata e verificata — **non** duplicare spec altrove.
 7. **Commit:** solo se richiesto dall’utente.
 8. **Estensioni future** (v2+): nuovi file in `simulator/templates/`, mai `if (scenario === '…')` sparsi — un template = un JSON + eventuale handler modulare.
+9. **v2 manodopera — obbligatorio:** ore e validazioni solo via **`runAsPersona`** + `manodopera-sim-actions` (o service con stesso contratto). **Vietato** popolare `oreOperai` o cambiare `stato` con Admin write “al posto” di operaio/capo/manager. V. §14.
 
 ---
 
@@ -556,11 +563,13 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v1.4** | ~~Batch multi-azienda (`sim:run:batch`)~~; ~~backfill manifest (`sim:backfill`)~~ |
 | **v1.5** | ~~CI leggera GitHub Actions (`sim:test:ci`)~~; vigneto operativo potature/trattamenti |
 | **v1.6** | ~~Flotta aziendale + scadenze parco macchine~~; spese vigneto allineate app (`sim:verify-spese`) |
-| **v2**   | Scenario «Mario Rossi» con operai/squadre (modulo manodopera) |
+| **v1.6.1** | ~~Assert km flotta~~ in `tenant-inspect`, `sim:audit`, `sim:test`, Vitest; doc CI Java 21; fallback Tony parco macchine |
+| **v2.0** | **Spec manodopera** (§14): multi-persona, `runAsPersona`, template `viticola-manodopera.json`, manifest `personas[]` |
+| **v2.1** | ~~Implementazione fasi 06–08 + audit ore per ruolo + pagina dev «Entra come…»~~ |
 | **v2**   | Template conto terzi, frutteto, mista, solo titolare oliveto… |
-| **v3**   | Errori battitura/concetto + recovery                          |
+| **v3**   | Errori battitura/concetto + recovery — **solo dopo v2 manodopera** (golden path multi-ruolo stabile) |
 | **v3**   | Run paralleli N tenant                                        |
-| **v4**   | E2E Playwright su 3 flussi critici                            |
+| **v4**   | E2E Playwright su 3 flussi critici (anche flussi ruolo manodopera) |
 | **v4**   | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
 
 
@@ -569,18 +578,25 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 ## 12. Domande aperte / chiarimenti futuri
 
 
-| #   | Domanda                            | Default proposto                                                 |
+| #   | Domanda                            | Stato / decisione                                                |
 | --- | ---------------------------------- | ---------------------------------------------------------------- |
-| 1   | Password utenti sim in emulator    | Fissa `SimGFV2026!` documentata in README locale (solo emulator) |
-| 2   | Weekend nelle 4 settimane          | Esclusi — solo lun–ven                                           |
-| 3   | Movimenti magazzino in v1          | **Sì** — fase 4: 12 uscite + tracciabilità attività (v1.3+) |
-| 4   | Potature/trattamenti vigneto in v1 | No — solo attività diario core                                   |
-| 5   | Uso CI                             | Posticipato — run manuale locale                                 |
-| 6   | `sim:cleanup`                      | **Implementato** v1.2 — `--keep N`, `--dry-run`                  |
+| 1   | Password utenti sim in emulator    | **Deciso** — `SimGFV2026!` (README, solo emulator)               |
+| 2   | Weekend nelle 4 settimane          | **Deciso** — esclusi, solo lun–ven                                 |
+| 3   | Movimenti magazzino in v1          | **Implementato** v1.3+                                           |
+| 4   | Potature/trattamenti vigneto in v1 | **Implementato** v1.5+                                           |
+| 5   | Uso CI                             | **Implementato** v1.5 — `sim:test:ci`, Java 21                   |
+| 6   | `sim:cleanup`                      | **Implementato** v1.2                                            |
 | 7   | Run batch N aziende                | **Implementato** v1.4 — `sim:run:batch --count=N`                |
+| 8   | Uso test vs demo vs CI             | **Parziale** — CI = template minimal; demo locale = batch/`quantities` alti; manifest `[]` in git |
+| 9   | Persistenza tenant post-run        | **Deciso** — restano su emulator; manifest locale traccia run   |
+| 10  | Manodopera v2: inviti collaboratori | **Deciso — no** — profili pre-creati; invito/mail già validati in app (§14.2) |
+| 11  | Manodopera v2: chi agisce sulle ore | **Deciso** — solo `runAsPersona` (operaio/capo/manager); no Admin “al posto” (§14.4) |
+| 12  | Numero capi/operai configurabile   | **Deciso** — `quantities` template + override CLI `--caposquadra` / `--operai` (§14.5) |
+| 13  | Utenti simulati che sbagliano      | **Deciso — v3**, dopo v2; v2 = utente perfetto                   |
+| 14  | Ordine roadmap post-v1.6           | **Deciso** — v2.1 manodopera → altri template v2 → v3 errori → v4 Playwright |
+| 15  | Manager multipli per tenant sim    | **Deciso** — 1 manager (`amministratore`); capi/operai N configurabili |
 
-
-L’utente ha indicato che il punto 8 (uso test vs demo vs CI) non è ancora deciso; **persistenza per riuso** è confermata — il manifest traccia le aziende create.
+**Persistenza per riuso** confermata — il manifest traccia le aziende create (non committare manifest pieno in git).
 
 ---
 
@@ -596,6 +612,7 @@ npm run sim:emulators
 npm run sim:smoke          # opzionale — sanity check
 npm run sim:run            # nuova azienda completa (1)
 npm run sim:run:batch -- --count=10   # 10 aziende in sequenza
+npm run sim:run:demo-max   # 2 aziende regime max (manodopera 2 capi/10 op + solo titolare, 30 gg)
 npm run sim:backfill       # aggiorna tutte le entry del manifest (no nuovo tenant)
 npm run sim:inspect        # ultima azienda in manifest — verifica terreni
 npm run sim:audit          # tutte le entry manifest vs emulator (OK/WARN/FAIL)
@@ -611,7 +628,7 @@ npm run sim:test:vitest    # stesso test via vitest
 npm run sim:test:ci        # come CI — avvia emulator, esegue entrambi, termina
 ```
 
-**Audit manifest:** `npm run sim:audit` — verifica Auth, seed terreni v2 (`inspectTenantSeed`) e conteggi attesi per ogni `tenantId` in `manifest.json`: **6 macchine** (1 trattore + 3 attrezzi + 2 flotta), flotta ≥2, scadenze ≥3, almeno 1 mezzo in manutenzione, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, 4 potature + 12 trattamenti vigneto. Exit 0 se OK/WARN; exit 1 se almeno un FAIL.
+**Audit manifest:** `npm run sim:audit` — verifica Auth, seed terreni v2 (`inspectTenantSeed`) e conteggi attesi per ogni `tenantId` in `manifest.json`: **6 macchine** (1 trattore + 3 attrezzi + 2 flotta), flotta ≥2 con **kmAttuali/kmProssimaManutenzione** validi e ≥1 tagliando km superato, scadenze ≥3, almeno 1 mezzo in manutenzione, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, 4 potature + 12 trattamenti vigneto. Exit 0 se OK/WARN; exit 1 se almeno un FAIL.
 
 **Manifest in git:** `simulator/manifest.json` resta **vuoto** (`[]`); i run locali (`sim:run`, batch) popolano manifest + emulator solo sulla macchina dev. Struttura di riferimento: `simulator/manifest.example.json`. Non committare manifest con molte entry batch.
 
@@ -633,20 +650,309 @@ Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 - **Terreni** → coltura, podere, morfologia valorizzati
 - **Attività** → ~20 record
 - **Movimenti** (link dev o modulo magazzino) → 12 uscite, tracciabilità prodotto↔attività; prodotti con eventuale sotto scorta
-- **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **6 macchine** (1 trattore + 3 attrezzi + 2 flotta); flotta con targa e stato; scadenze manutenzione/revisione/assicurazione visibili in lista Scadenze e widget dashboard; niente redirect login con `?emulator=1`
+- **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **6 macchine** (1 trattore + 3 attrezzi + 2 flotta); flotta con **km**, targa e stato; almeno un **Tagliando (km)** in rosso in Scadenze; revisione/assicurazione visibili in lista Scadenze e widget dashboard; niente redirect login con `?emulator=1`
 - **Vigneto / Vigneti** → 4 vigneti collegati ai terreni; navigazione dashboard ok
 - **Trattamenti / Potatura** → righe da attività diario (4 potature + 12 trattamenti); trattamenti con prodotti da magazzino dove presente
 
 Password emulator: **`SimGFV2026!`**
 
-### 13.3 CI (GitHub Actions)
+**Manodopera mobile (v2):** dalla pagina dev, **Entra come capo** / **Entra come operaio** → `field-workspace-standalone.html`. Verificare comunicazioni, assenza capo→manager (se seed con flag assenza), segna ore. Con template **regime max** il caricamento è più lento (centinaia di ore/comunicazioni): preferire manifest snello (§13.4).
+
+### 13.4 Routine periodica, glossario e perf locale
+
+Pratica storica (pre-simulatore): test manuale in app → controllo documenti su **Firebase** (oggi **Emulator UI** o pagine standalone) — es. movimento creato in UI ↔ riga in `movimentiMagazzino`, giacenza prodotto, link `attivitaId` / tracciabilità.
+
+**Non confondere i termini:**
+
+| Termine | Cosa fa | Quando usarlo |
+| ------- | ------- | ------------- |
+| **`sim:refresh-dates`** | Ricalcola date **attività** e **movimenti** collegati (`attivitaId`) sulle ultime settimane lavorative fino a oggi | Periodicamente in dev, così filtri/dashboard mostrano dati «recenti» senza rigenerare il tenant |
+| **`sim:audit`** / **`sim:inspect`** | Verifica **coerenza dati** manifest ↔ emulator (conteggi, seed v2, manodopera v2) | Dopo run/batch o prima di una demo |
+| **Verifica UI manuale** | Stesso spirito del controllo Firestore: apri **Movimenti**, tracciabilità, field workspace | Dopo modifiche modulo o seed |
+| **Prefisso `sim_`** | Naming tenant (`sim_podere_romano_880001`) — cleanup riconosce `sim_*` | Automatico a ogni run; **non** è una routine |
+| **`prefetch`** | Precaricamento login dashboard / TTS Tony | Performance UX, non verifica dati |
+| **Perf (performance)** | Misura **tempi** di caricamento, non correttezza dati | Vedi sotto |
+
+**Routine consigliata (dev, ogni sessione lunga o prima demo):**
+
+```bash
+# 1. Emulator pulito o manifest snello (evita 20+ tenant accumulati)
+npm run sim:cleanup -- --keep 2    # oppure riavvia sim:emulators per DB vuoto
+
+# 2. Dataset ricco ma controllato
+npm run sim:run:demo-max
+
+# 3. Date allineate a oggi
+npm run sim:refresh-dates -- --all
+
+# 4. Coerenza automatica
+npm run sim:audit
+
+# 5. Browser: pagina dev → Movimenti + Entra come capo/operaio (field workspace)
+npm start   # terminale separato
+```
+
+**Perf locale con dati simulati:** il simulatore **non** sostituisce `npm run tony:perf-review` (log Cloud Functions produzione). In locale, un seed **regime max** (30 attività, molte ore/comunicazioni, 12+ movimenti) rende **realistici** i tempi di:
+
+- dashboard manager — strumentazione `core/js/dashboard-perf.js` (`[Dashboard Perf]`, `?dashboardPerf=1` o localhost)
+- liste manodopera / validazione ore / **field workspace mobile**
+
+Più dati in emulator ⇒ query Firestore più pesanti ⇒ numeri perf più utili per trovare colli di bottiglia. Per misure stabili: **2 tenant demo-max**, non manifest con decine di batch obsoleti.
+
+**Field workspace (2026-06-26):** lazy load iframe statistiche/dettaglio lavoro; retry auth emulator su `onAuthStateChanged`; meno query duplicate comunicazioni operaio — v. `COSA_ABBIAMO_FATTO.md` voce omonima.
+
+### 13.5 CI (GitHub Actions)
 
 Workflow: `.github/workflows/simulator-ci.yml`
 
 - **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
-- **Cosa esegue:** `npm run sim:test:ci` (Java 17 + `emulators:exec` + `sim:test` + `sim:test:vitest`).
+- **Cosa esegue:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`).
 - **Locale (stesso comando CI):** `npm run sim:test:ci` — richiede Java su PATH.
 
 ---
 
-*Fine guida v1.6 — prossimo agente: template manodopera (§11 v2).*
+## 14. Template v2 — `viticola-manodopera` (spec bloccata)
+
+**File template:** `simulator/templates/viticola-manodopera.json`  
+**Estende:** asset e flussi v1 (`solo-titolare-viticola`) + modulo **`manodopera`**.  
+**Codename storico roadmap:** «Mario Rossi» — azienda già organizzata con personale campo.
+
+### 14.0 Decisioni bloccate v2 (2026-06-24)
+
+Decisioni prese in design prodotto/simulatore — **non reinterpretare** senza aggiornare questo paragrafo.
+
+| # | Tema | Decisione |
+| - | ---- | --------- |
+| D1 | **Ordine di lavoro** | v1.6.1 **chiusa** → **v2.1 manodopera** (implementazione) → altri template v2 → **v3** errori/recovery → **v4** Playwright |
+| D2 | **Errori utente (typo/concetto)** | **Non** nel sim v2 — roadmap **v3**, dopo golden path multi-ruolo |
+| D3 | **Inviti / email / onboarding** | **Esclusi** dal simulatore — il flusso «Invita collaboratore» è già validato nell’app; il sim assume **azienda già organizzata** |
+| D4 | **Profili campo** | Auth + `users/{uid}` + `tenantMemberships` **pre-provisionati** in fase 06 (capo + operai reali, non anagrafiche fittizie) |
+| D5 | **Multi-account** | Stesso `tenantId`, **N login** distinti; dashboard/permessi diversi (manager desktop, capo/operaio mobile) |
+| D6 | **Attore delle ore** | **Obbligatorio** `runAsPersona` + `segnaOraSim` / `validaOraSim` — il sim **non** deve “inventare” ore o validazioni solo dal manager |
+| D7 | **Admin write consentito** | Solo **setup** (asset v1, squadre, lavori, assegnazioni) **come manager** — mai per `oreOperai.stato` al posto di capo/operaio |
+| D8 | **Flusso squadra** | Manager crea lavoro (`caposquadraId`, terreno, macchine) → operaio **segna** → capo **valida** → capo può **segnare proprie** ore → manager **valida** ore capo |
+| D9 | **Flusso autonomo** | Manager crea lavoro (`operaioId`) → operaio **segna** → manager **valida** (senza passaggio capo) |
+| D10 | **Numeri configurabili** | `quantities.caposquadra`, `operai`, `squadre`, `lavoriSquadra`, `lavoriAutonomi`, `giorniOreSimulate` nel template; es. 3 capi + 16 operai (§14.5) |
+| D11 | **Manager per tenant** | Sempre **1** (`amministratore`); capi e operai **N** |
+| D12 | **Comportamento sim** | Utente **perfetto** (v2); stesso criterio v1 |
+| D13 | **Tony / meteo / Stripe** | Esclusi sim v1 e v2 |
+| D14 | **CI vs demo** | CI: quantità **minimali** (1 capo, 3 operai); demo locale: quantità **ricche** (es. 3 capi, 16 operai) via template o CLI |
+| D15 | **Manifest git** | `manifest.json` resta **`[]`** in repo; entry con `personas[]` solo locale dopo `sim:run` |
+| D16 | **Allineamento app** | Regole ore = `manodopera-ore-validazione-scope.js` + pagine segnatura/validazione ore (non duplicare regole diverse nel sim) |
+
+### 14.1 Obiettivo
+
+Simulare un’azienda che usa **correttamente** manodopera end-to-end:
+
+- Manager crea **squadre**, **lavori** (terreno, macchine, assegnazioni)
+- **Operaio** segnala ore → validazione **caposquadra** (lavoro di squadra)
+- **Caposquadra** segnala **proprie** ore → validazione **manager**
+- **Operaio autonomo** (lavoro con `operaioId`) → validazione **manager** diretta
+
+Allineamento prodotto: `core/services/manodopera-ore-validazione-scope.js`, guide `GUIDA/MANODOPERA/utente/guida-*.md`, flusso verificato in app (2026-05-19).
+
+**Non obiettivo v2:** inviti email, onboarding collaboratori, Tony, errori utente (v3), E2E Playwright (v4).
+
+### 14.2 Assunti (decisioni prodotto)
+
+| Tema | Decisione |
+| ---- | --------- |
+| **Profili operai/capo** | **Già creati** al setup (Auth + `users/{uid}` + `tenantMemberships`) — **no** flusso invito/mail |
+| **Password** | Stessa v1: `SimGFV2026!` (solo emulator) |
+| **Comportamento** | Utente **perfetto** (v3 = errori) |
+| **Attore per azione** | Ogni scrittura ore/validazione passa dal **ruolo corretto** — v. §14.4 |
+| **Diario attività v1** | Resta opzionale / parallelo; v2 aggiunge **lavori manodopera** + ore strutturate |
+
+### 14.3 Personas (multi-account, stesso tenant)
+
+Per ogni run v2 il simulatore crea **N utenti Auth** sullo **stesso** `tenantId`:
+
+| Ruolo | Quantità default | Dashboard / uso |
+| ----- | ---------------- | --------------- |
+| `amministratore` (manager) | 1 | Desktop: lavori, squadre, validazione ore globale |
+| `caposquadra` | 1 | Mobile field workspace: valida operai, segna proprie ore |
+| `operaio` | 3 | Mobile: segna ore su lavori assegnati |
+
+**Email pattern:** `sim+{slug_azienda}_{role}@gfv.local` (es. `sim+marini_capo@gfv.local`, `sim+marini_op1@gfv.local`).
+
+**Shape `users/{uid}`** (esempio caposquadra):
+
+```javascript
+{
+  email: 'sim+marini_capo@gfv.local',
+  nome: 'Luca',
+  cognome: 'Rossi',
+  ruoli: ['caposquadra'],
+  tenantId: '<tenantId>',
+  tenantMemberships: {
+    '<tenantId>': { ruoli: ['caposquadra'], stato: 'attivo' }
+  },
+  stato: 'attivo'
+}
+```
+
+**Manifest** — oltre a `userId`/`email` del manager (retrocompat v1), array **`personas`**:
+
+```json
+"personas": [
+  { "userId": "…", "email": "sim+…_manager@gfv.local", "displayName": "…", "ruoli": ["amministratore"] },
+  { "userId": "…", "email": "sim+…_capo@gfv.local", "displayName": "…", "ruoli": ["caposquadra"] },
+  { "userId": "…", "email": "sim+…_op1@gfv.local", "displayName": "…", "ruoli": ["operaio"] }
+]
+```
+
+Vedi `simulator/manifest.example.json`.
+
+### 14.4 Regola architetturale — `runAsPersona` (obbligatoria)
+
+**Problema v1:** Admin SDK + un solo `userId` → valido per seed asset, **invalido** per manodopera (sembrerebbe che il manager “inventi” ore altrui).
+
+**Soluzione v2:** `simulator/lib/run-as-persona.js`
+
+```javascript
+await runAsPersona(operaioUserDoc, () =>
+  segnaOraSim(db, lavoroId, { operaioId: operaioUserDoc.id, data, orarioInizio, orarioFine })
+);
+await runAsPersona(capoUserDoc, () => validaOraSim(db, lavoroId, oraId));
+await runAsPersona(managerUserDoc, () => validaOraSim(db, lavoroId, oraIdCapo));
+```
+
+**Azioni:** `simulator/lib/manodopera-sim-actions.js`
+
+- `segnaOraSim` — solo **operaio o caposquadra**, solo **proprie** ore (`operaioId === user.id`); allineato a `segnatura-ore-standalone.html`
+- `validaOraSim` — caposquadra (ore operai squadra, non le proprie) o manager (`assertUtentePuoValidareOra`); allineato a `validazione-ore-standalone.html` + `manodopera-ore-validazione-scope.js`
+
+**Vietato in v2:**
+
+- Scrivere `oreOperai` con Admin “come manager” fingendo un `operaioId`
+- Impostare `stato: validate` senza `validatoDa` = uid del ruolo che ha validato
+- Contare solo totali finali senza traccia attori
+
+**Consentito con Admin (solo setup, attore manager):**
+
+- Creare `squadre`, `lavori`, assegnazioni `caposquadraId` / `operaioId`
+- Populate v1 (terreni, macchine, …) — stesso pattern v1.6
+
+```mermaid
+sequenceDiagram
+  participant Sim as orchestrator
+  participant M as Manager
+  participant O as Operaio
+  participant C as Caposquadra
+
+  Sim->>M: runAs(manager) crea squadra + lavoro squadra
+  Sim->>O: runAs(operaio) segnaOraSim
+  Note over O: stato da_validare
+  Sim->>C: runAs(capo) validaOraSim
+  Sim->>C: runAs(capo) segnaOraSim proprie ore
+  Sim->>M: runAs(manager) validaOraSim ore capo
+  Sim->>O: runAs(operaio autonomo) segnaOraSim
+  Sim->>M: runAs(manager) validaOraSim
+```
+
+### 14.5 Quantità default e configurabilità (template)
+
+Tutti i numeri sotto sono in **`quantities`** nel JSON template (`viticola-manodopera.json`) — **modificabili** come per terreni/macchine in v1 (es. 3 caposquadra, 16 operai). Non sono hardcoded nel codice.
+
+| Chiave `quantities` | Default | Note |
+| ------------------- | ------- | ---- |
+| `manager` | 1 | Sempre 1 (amministratore titolare sim) |
+| `caposquadra` | 1 | N account Auth + `users` con ruolo `caposquadra` |
+| `operai` | 3 | N account Auth + `users` con ruolo `operaio` |
+| `squadre` | 1 | Default = `caposquadra` (1 squadra per capo). Se `squadre` < `caposquadra`, fase 07 crea 1 squadra per capo fino a `squadre` |
+| `lavoriSquadra` | 2 | Lavori con `caposquadraId` |
+| `lavoriAutonomi` | 1 | Lavori con `operaioId` (validazione manager) |
+| `giorniOreSimulate` | 10 | Giorni lavorativi con ciclo segna/valida |
+| Asset v1 | (eredita) | terreni, macchine, … come `solo-titolare-viticola` |
+
+**Esempio azienda media:**
+
+```json
+"caposquadra": 3,
+"operai": 16,
+"squadre": 3,
+"lavoriSquadra": 6,
+"lavoriAutonomi": 2
+```
+
+**Regole di ripartizione (fase 07, generator):**
+
+- Operai distribuiti **round-robin** sulle squadre (es. 16 operai / 3 squadre → 6+5+5).
+- Ogni squadra: `caposquadraId` + array `operai[]` con uid reali creati in fase 06.
+- Email: `sim+{slug}_capo1@gfv.local` … `sim+{slug}_op16@gfv.local` (indice nel manifest `personas[]`).
+- Lavori squadra: assegnati a capi in rotazione; almeno un operaio della squadra simula ore in fase 08.
+
+**Override run (previsto v2.1):** oltre al template, opzionale CLI  
+`npm run sim:run -- --template=viticola-manodopera --caposquadra=3 --operai=16`  
+(merge su `quantities` prima del run — stesso pattern di `--count` per batch).
+
+**Limiti pratici:**
+
+| Contesto | Suggerimento |
+| -------- | ------------ |
+| CI / `sim:test` | Template **minimal** (1 capo, 3 operai) — veloce |
+| Demo locale | 3 capi, 10–20 operai — ok sull’emulator |
+| Batch N aziende | Ogni tenant = N utenti Auth; 16 operai × 10 aziende = molti account — accettabile in locale, più lento |
+
+Moduli tenant: `[vigneto, parcoMacchine, magazzino, manodopera]`.
+
+### 14.6 Fasi run v2 (implementazione)
+
+| Fase | File | Attore | Contenuto |
+| ---- | ---- | ------ | --------- |
+| 1–5 | (v1) | manager | setup tenant, populate, attività/magazzino/vigneto opz. |
+| **6** | `06-setup-personas.js` | — | Auth + `users` per capo + operai |
+| **7** | `07-populate-manodopera.js` | **manager** | squadre, lavori squadra/autonomo, collegamenti terreno/macchine |
+| **8** | `08-simulate-manodopera-ore.js` | **operaio / capo / manager** | segna + valida catena completa su N giorni |
+
+Comando previsto: `npm run sim:run -- --template=viticola-manodopera` (o template default v2 quando implementato).
+
+### 14.7 Criterio di successo v2
+
+Exit code 0 quando:
+
+1. Tutte le **personas** esistono su Auth + Firestore
+2. Squadre e lavori attesi creati
+3. Per ogni lavoro squadra simulato: almeno 1 ora operaio **validata da capo** (`validatoDa` = uid capo)
+4. Almeno 1 ora capo su lavoro squadra **validata da manager**
+5. Lavoro autonomo: ore **validate da manager**
+6. **Zero** ore in `da_validare` a fine run
+7. `sim:audit` v2: controlli conteggi + campione `simSegnatoDa` / `validatoDa` coerenti con ruoli
+
+### 14.8 Pagina dev (browser)
+
+Estendere `simulator-dev-standalone.html`:
+
+- Per entry con `personas[]`: pulsanti **Entra come manager / capo / operaio N**
+- Login Auth reale (`simulator-browser-auth.js`) con email persona
+- Verifica manuale: capo → field workspace; operaio → mobile; manager → validazione ore desktop
+
+### 14.9 Riferimenti codice app
+
+| Area | Path |
+| ---- | ---- |
+| Regole validazione | `core/services/manodopera-ore-validazione-scope.js` |
+| Ore (browser) | `core/services/ore-service.js` |
+| Segnatura | `core/segnatura-ore-standalone.html` |
+| Validazione manager/capo | `core/admin/validazione-ore-standalone.html` |
+| Lavori | `core/services/lavori-service.js`, `core/models/Lavoro.js` |
+| Squadre | `core/services/squadre-service.js` |
+| Test scope | `tests/services/manodopera-ore-validazione-scope.test.js` |
+
+### 14.10 Stato implementazione
+
+| Componente | Stato |
+| ---------- | ----- |
+| Spec §14 (questo documento) | ✅ |
+| Template JSON `viticola-manodopera.json` | ✅ |
+| `run-as-persona.js`, `manodopera-sim-actions.js` | ✅ |
+| `manifest.example.json` con `personas` | ✅ |
+| Fasi 06–08 (`06-setup-personas`, `07-populate-manodopera`, `08-simulate-manodopera-ore`) | ✅ |
+| Orchestrator / `run-simulation.js` template v2 + override CLI quantità | ✅ |
+| `sim:audit` v2 (personas, squadre, ore, `validatoDa`, zero `da_validare`) | ✅ |
+| `sim:test` + Vitest v2 minimal | ✅ |
+| Pagina dev «Entra come manager / capo / operaio» | ✅ |
+
+---
+
+*Fine guida v1.6.1 + v2.1 manodopera §14 — prossimo: v3 errori utente o altri template v2.*

@@ -5,8 +5,44 @@
     "tenantId": "sim_azienda_vitivinicola_gallo_EXAMPLE",
     "userId": "EXAMPLE_USER_UID",
     "email": "sim+gallo_example@gfv.local",
-    "aziendaNome": "Azienda Vitivinicola Gallo (esempio)",
+    "aziendaNome": "Azienda Vitivinicola Gallo (esempio v1)",
     "seedVersion": 2,
     "createdAt": "2026-06-24T12:00:00.000Z"
+  },
+  {
+    "runId": "00000000-0000-4000-8000-000000000002",
+    "templateId": "viticola-manodopera",
+    "tenantId": "sim_tenuta_marini_EXAMPLE",
+    "userId": "EXAMPLE_MANAGER_UID",
+    "email": "sim+marini_manager@gfv.local",
+    "aziendaNome": "Tenuta Marini (esempio v2 manodopera)",
+    "seedVersion": 2,
+    "createdAt": "2026-06-24T14:00:00.000Z",
+    "personas": [
+      {
+        "userId": "EXAMPLE_MANAGER_UID",
+        "email": "sim+marini_manager@gfv.local",
+        "displayName": "Marco Marini",
+        "ruoli": ["amministratore"]
+      },
+      {
+        "userId": "EXAMPLE_CAPO_UID",
+        "email": "sim+marini_capo@gfv.local",
+        "displayName": "Luca Rossi",
+        "ruoli": ["caposquadra"]
+      },
+      {
+        "userId": "EXAMPLE_OP1_UID",
+        "email": "sim+marini_op1@gfv.local",
+        "displayName": "Giuseppe Verdi",
+        "ruoli": ["operaio"]
+      },
+      {
+        "userId": "EXAMPLE_OP2_UID",
+        "email": "sim+marini_op2@gfv.local",
+        "displayName": "Anna Bianchi",
+        "ruoli": ["operaio"]
+      }
+    ]
   }
 ]
