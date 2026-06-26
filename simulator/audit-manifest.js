@@ -22,10 +22,27 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const v1Template = loadTemplate('solo-titolare-viticola');
 const v2Template = loadTemplate('viticola-manodopera');
 
+const TIPI_CON_SCARICO_MAGAZZINO = new Set(['Trattamento', 'Controllo fitosanitario', 'Concimazione']);
+
+/** Stesso criterio di `phases/04-simulate-magazzino.js` (scarichi per attività diario). */
+function expectedMovimentiFromTemplate(template) {
+  const tipi = template?.attivita?.tipiLavoro || [];
+  const n = template?.quantities?.attivitaGiorniLavorativi || 20;
+  let count = 0;
+  for (let i = 0; i < n; i++) {
+    const t = tipi[i % Math.max(tipi.length, 1)];
+    if (TIPI_CON_SCARICO_MAGAZZINO.has(t)) count += 1;
+  }
+  return count;
+}
+
 function buildExpected(template) {
   const q = template.quantities;
   const vignetoExpected = expectedVignetoCountsFromTemplate(template);
+  const mo = template.manodopera || {};
+  const hasManodopera = template.moduli?.includes('manodopera');
   return {
+    templateId: template.templateId,
     terreni: q.terreni,
     macchine: q.trattori + q.attrezzi + (q.flotta ?? 2),
     flotta: q.flotta ?? 2,
@@ -36,22 +53,22 @@ function buildExpected(template) {
     vigneti: q.vigneti,
     prodotti: q.prodotti,
     attivita: q.attivitaGiorniLavorativi,
-    movimentiMagazzino: 12,
+    movimentiMagazzino: expectedMovimentiFromTemplate(template),
     potatureVigneto: vignetoExpected.potature,
     trattamentiVigneto: vignetoExpected.trattamenti,
-    manodopera: template.moduli?.includes('manodopera')
+    manodopera: hasManodopera
       ? {
-          squadre: Math.min(q.squadre ?? q.caposquadra ?? 1, q.caposquadra ?? 1),
+          squadre: q.squadre ?? q.caposquadra ?? 1,
           lavoriSquadra: q.lavoriSquadra ?? 2,
           lavoriAutonomi: q.lavoriAutonomi ?? 1,
           personasMin: 1 + (q.caposquadra ?? 1) + (q.operai ?? 3),
           minOreOperaioValidateDaCapo: 1,
           minOreCapoValidateDaManager: 1,
           minOreAutonomoValidateDaManager: 1,
-          minComunicazioniAttive: q.lavoriSquadra ?? 2,
-          requireConfermeDestinatari: true,
-          minAssenzeMalattiaConfermate: 1,
-          minLavoriStandbyAssenza: 1
+          minComunicazioniAttive: mo.regimeMax ? (q.lavoriSquadra ?? 2) * 2 : (q.lavoriSquadra ?? 2),
+          requireConfermeDestinatari: mo.confermeOperai !== false,
+          minAssenzeMalattiaConfermate: mo.assenzaMalattia === false ? 0 : 1,
+          minLavoriStandbyAssenza: mo.standbyAssenzaMalattia === false ? 0 : 1
         }
       : null
   };
@@ -59,6 +76,28 @@ function buildExpected(template) {
 
 const EXPECTED_V1 = buildExpected(v1Template);
 const EXPECTED_V2 = buildExpected(v2Template);
+
+/** @param {{ templateId?: string, personas?: Array }} entry */
+function resolveExpectedForEntry(entry) {
+  const id = entry?.templateId;
+  if (id) {
+    try {
+      return buildExpected(loadTemplate(id));
+    } catch (_) { /* fallback sotto */ }
+  }
+  const isLegacyV2 = id === 'viticola-manodopera' || Array.isArray(entry.personas);
+  return isLegacyV2 ? EXPECTED_V2 : EXPECTED_V1;
+}
+
+/** @param {{ templateId?: string, personas?: Array }} entry */
+function isManodoperaManifestEntry(entry) {
+  if (entry.templateId === 'viticola-manodopera' || entry.templateId === 'regime-max-manodopera') {
+    return true;
+  }
+  return Array.isArray(entry.personas) && entry.personas.some(
+    (p) => Array.isArray(p.ruoli) && (p.ruoli.includes('caposquadra') || p.ruoli.includes('operaio'))
+  );
+}
 
 function pad(str, len) {
   const s = String(str ?? '');
@@ -105,8 +144,8 @@ async function tenantRootExists(db, tenantId) {
 function classifyEntry(entry, inspect, checks) {
   const issues = [];
   const warnings = [];
-  const isV2 = entry.templateId === 'viticola-manodopera' || Array.isArray(entry.personas);
-  const EXPECTED = isV2 ? EXPECTED_V2 : EXPECTED_V1;
+  const EXPECTED = resolveExpectedForEntry(entry);
+  const isManodopera = isManodoperaManifestEntry(entry);
 
   if ((entry.seedVersion || 0) < SEED_VERSION) {
     warnings.push(`seedVersion ${entry.seedVersion ?? 'assente'} (atteso ${SEED_VERSION})`);
@@ -118,7 +157,7 @@ function classifyEntry(entry, inspect, checks) {
   if (!checks.authOk) {
     issues.push(checks.authDetail);
   }
-  if (isV2 && checks.personasAuthOk === false) {
+  if (isManodopera && checks.personasAuthOk === false) {
     issues.push('personas Auth incomplete');
   }
   if (checks.tenantExists && !inspect.ok) {
@@ -169,7 +208,8 @@ function classifyEntry(entry, inspect, checks) {
 
   if (issues.length) return { status: 'FAIL', detail: issues.join('; ') };
   if (warnings.length) return { status: 'WARN', detail: warnings.join('; ') };
-  return { status: 'OK', detail: isV2 ? 'completo v2 manodopera' : 'completo' };
+  if (isManodopera) return { status: 'OK', detail: `completo ${EXPECTED.templateId || 'manodopera'}` };
+  return { status: 'OK', detail: `completo ${EXPECTED.templateId || 'v1'}` };
 }
 
 async function checkPersonasAuth(auth, entry) {
@@ -213,14 +253,15 @@ async function main() {
     let inspect = { ok: false, counts: {}, errors: ['tenant non ispezionato'] };
     let manodoperaInspect = null;
     let personasAuthOk = true;
-    const isV2 = entry.templateId === 'viticola-manodopera' || Array.isArray(entry.personas);
+    const expected = resolveExpectedForEntry(entry);
+    const isManodopera = isManodoperaManifestEntry(entry);
 
     if (tenantExists && tenantId) {
       inspect = await inspectTenantSeed(db, tenantId);
-      if (isV2) {
+      if (isManodopera && expected.manodopera) {
         const personasCheck = await checkPersonasAuth(auth, entry);
         personasAuthOk = personasCheck.ok;
-        manodoperaInspect = await inspectManodoperaSeed(db, tenantId, EXPECTED_V2.manodopera);
+        manodoperaInspect = await inspectManodoperaSeed(db, tenantId, expected.manodopera);
       }
     } else if (tenantId) {
       inspect = { ok: false, counts: {}, errors: ['tenant assente su emulator'] };
@@ -269,7 +310,7 @@ async function main() {
   console.log('\n---');
   console.log(`Entry: ${manifest.length} | OK: ${rows.filter((r) => r.status === 'OK').length} | WARN: ${warnCount} | FAIL: ${failCount}`);
   console.log(
-    `Attesi v1: ${EXPECTED_V1.terreni} terreni, ${EXPECTED_V1.macchine} macchine, ${EXPECTED_V1.attivita} attività | v2 manodopera: ${EXPECTED_V2.manodopera?.personasMin} personas, ${EXPECTED_V2.manodopera?.squadre} squadre, zero da_validare`
+    `Conteggi attesi per entry: templateId nel manifest (es. v1 ${EXPECTED_V1.attivita} att., regime-max 30 att. / 18 mov.)`
   );
 
   if (failCount > 0) {

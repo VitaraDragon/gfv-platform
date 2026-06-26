@@ -2,7 +2,7 @@
 
 **Versione:** 1.6.1 + **v2.1 manodopera** §14  
 **Data:** 2026-06-26  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera implementata** (fasi 06–08, audit, test, pagina dev); template **regime max** + routine §13.4  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa e validata in dev** (fasi 06–08, audit template-aware, test, pagina dev, regime max, routine §13.4)  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -565,7 +565,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v1.6** | ~~Flotta aziendale + scadenze parco macchine~~; spese vigneto allineate app (`sim:verify-spese`) |
 | **v1.6.1** | ~~Assert km flotta~~ in `tenant-inspect`, `sim:audit`, `sim:test`, Vitest; doc CI Java 21; fallback Tony parco macchine |
 | **v2.0** | **Spec manodopera** (§14): multi-persona, `runAsPersona`, template `viticola-manodopera.json`, manifest `personas[]` |
-| **v2.1** | ~~Implementazione fasi 06–08 + audit ore per ruolo + pagina dev «Entra come…»~~ |
+| **v2.1** | ~~Implementazione fasi 06–08 + audit ore per ruolo + pagina dev «Entra come…» + template regime max + audit template-aware~~ |
 | **v2**   | Template conto terzi, frutteto, mista, solo titolare oliveto… |
 | **v3**   | Errori battitura/concetto + recovery — **solo dopo v2 manodopera** (golden path multi-ruolo stabile) |
 | **v3**   | Run paralleli N tenant                                        |
@@ -949,7 +949,7 @@ Estendere `simulator-dev-standalone.html`:
 | `manifest.example.json` con `personas` | ✅ |
 | Fasi 06–08 (`06-setup-personas`, `07-populate-manodopera`, `08-simulate-manodopera-ore`) | ✅ |
 | Orchestrator / `run-simulation.js` template v2 + override CLI quantità | ✅ |
-| `sim:audit` v2 (personas, squadre, ore, `validatoDa`, zero `da_validare`) | ✅ |
+| `sim:audit` v2 (personas, squadre, ore, `validatoDa`, zero `da_validare`; conteggi da `entry.templateId`, regime-max) | ✅ |
 | `sim:test` + Vitest v2 minimal | ✅ |
 | Pagina dev «Entra come manager / capo / operaio» | ✅ |
 

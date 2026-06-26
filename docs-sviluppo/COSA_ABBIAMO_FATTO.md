@@ -1,6 +1,17 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-26 — doc routine refresh/audit/perf simulatore; fix performance workspace mobile campo.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-26 — chiusura v2.1 simulatore + fix audit regime-max.**
+
+## GFV Farm Simulator — chiusura v2.1 + fix audit template-aware (2026-06-26)
+
+**Contesto:** v2.1 manodopera validata manualmente in dev (manager, capo/operaio field workspace, standby assenza in Gestione lavori). Housekeeping finale: audit allineato ai template `regime-max-*` e conteggi derivati da `entry.templateId`.
+
+**Codice:**
+- `simulator/audit-manifest.js` — `resolveExpectedForEntry()` carica il template dal manifest; movimenti attesi calcolati per template; flag manodopera (`regimeMax`, assenze/comunicazioni) rispettano la config template; riconoscimento `regime-max-manodopera`
+
+**Verifica:** `npm run sim:run:demo-max` → `sim:refresh-dates -- --all` → `sim:audit` → **OK 2/2** (Podere Romano + Cascina Colombo). Manifest repo resta `[]`.
+
+**Doc:** `GFV_FARM_SIMULATOR.md` — header/stato v2.1 chiusa; §11 roadmap v2.1 barrata con regime max + audit.
 
 ## GFV Farm Simulator — documentazione routine dati vs perf + workspace mobile (2026-06-26)
 
