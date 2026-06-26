@@ -2,7 +2,7 @@
 
 **Versione:** 1.6.1 + **v2.1 manodopera** §14  
 **Data:** 2026-06-26  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa e validata in dev** (fasi 06–08, audit template-aware, test, pagina dev, regime max, routine §13.4)  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa e validata in dev**; **v3** ridimensionata → meccanismi a cascata + test (§11.1); regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -567,11 +567,27 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v2.0** | **Spec manodopera** (§14): multi-persona, `runAsPersona`, template `viticola-manodopera.json`, manifest `personas[]` |
 | **v2.1** | ~~Implementazione fasi 06–08 + audit ore per ruolo + pagina dev «Entra come…» + template regime max + audit template-aware~~ |
 | **v2**   | Template conto terzi, frutteto, mista, solo titolare oliveto… |
-| **v3**   | Errori battitura/concetto + recovery — **solo dopo v2 manodopera** (golden path multi-ruolo stabile) |
-| **v3**   | Run paralleli N tenant                                        |
-| **v4**   | E2E Playwright su 3 flussi critici (anche flussi ruolo manodopera) |
-| **v4**   | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
+| **v3**   | **Meccanismi a cascata** (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1; **non** typo/recovery utente nel sim |
+| **v3b**  | Run paralleli N tenant (infrastruttura, opzionale) |
+| **v4**   | E2E Playwright — flussi UI + widget scadenze/meteo; errori linguaggio naturale / recovery → **Tony** + test dedicati |
+| **v4b**  | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
 
+### 11.1 Direzione v3 — meccanismi a cascata (deciso 2026-06-26)
+
+Dopo v2.1 chiusa, la **v3 sim** non simula «utenti che sbagliano a digitare» (form a tendina + regole ruolo/ore già impediscono quasi tutti gli errori manuali; **recovery typo/conversazione → Tony**, non orchestrator Node).
+
+**Obiettivo v3:** verificare che **se succede X → l’app mostra/comporta Y** — dati seed → regole → widget/alert/filtri.
+
+| Area | Sim / seed | Test automatici | UI / Tony |
+| ---- | ----------- | ----------------- | --------- |
+| Scadenze parco, affitti, revisioni | Profili edge-case per bucket semaforo (scaduto, rosso, giallo, verde) — già parziale in `seed-parco-macchine-details.js` | Vitest `dashboard-deadlines`, `calcolaUrgenzaData` | Checklist post `sim:run` |
+| Filtri a cascata (CV trattore→attrezzi, colture, terreni) | Dataset con flotta 50/75/100 CV per demo | Vitest (es. compatibilità attrezzi) | Playwright v4 |
+| Alert meteo in italiano | — (meteo escluso dal sim) | Vitest `meteo-alert-i18n` + fixture OpenWeather | Deploy CF + verifica dashboard |
+| Errori battitura / voce / recovery | **Non** sim v3 | Test Tony client-side | Tony + CF |
+
+**Ordine consigliato:** altri template **v2** (se servono moduli) → ampliare **test a cascata** (v3) → **Playwright v4** → stress **Tony** su NL/recovery.
+
+**Primo incremento v3 già in repo (2026-06-26):** i18n alert meteo completo + test semafori widget scadenze (`tests/meteo-alert-i18n.test.js`, `tests/dashboard-deadlines.test.js`).
 
 ---
 
@@ -592,8 +608,8 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | 10  | Manodopera v2: inviti collaboratori | **Deciso — no** — profili pre-creati; invito/mail già validati in app (§14.2) |
 | 11  | Manodopera v2: chi agisce sulle ore | **Deciso** — solo `runAsPersona` (operaio/capo/manager); no Admin “al posto” (§14.4) |
 | 12  | Numero capi/operai configurabile   | **Deciso** — `quantities` template + override CLI `--caposquadra` / `--operai` (§14.5) |
-| 13  | Utenti simulati che sbagliano      | **Deciso — v3**, dopo v2; v2 = utente perfetto                   |
-| 14  | Ordine roadmap post-v1.6           | **Deciso** — v2.1 manodopera → altri template v2 → v3 errori → v4 Playwright |
+| 13  | Utenti simulati che sbagliano      | **Ridimensionato 2026-06-26** — typo/recovery **Tony** + v4 Playwright; sim v3 = **meccanismi a cascata** (§11.1) |
+| 14  | Ordine roadmap post-v1.6           | **Deciso** — v2.1 → altri template v2 → **v3 cascata/test** → v4 Playwright; Tony per NL/recovery |
 | 15  | Manager multipli per tenant sim    | **Deciso** — 1 manager (`amministratore`); capi/operai N configurabili |
 
 **Persistenza per riuso** confermata — il manifest traccia le aziende create (non committare manifest pieno in git).
@@ -723,8 +739,8 @@ Decisioni prese in design prodotto/simulatore — **non reinterpretare** senza a
 
 | # | Tema | Decisione |
 | - | ---- | --------- |
-| D1 | **Ordine di lavoro** | v1.6.1 **chiusa** → **v2.1 manodopera** (implementazione) → altri template v2 → **v3** errori/recovery → **v4** Playwright |
-| D2 | **Errori utente (typo/concetto)** | **Non** nel sim v2 — roadmap **v3**, dopo golden path multi-ruolo |
+| D1 | **Ordine di lavoro** | v1.6.1 **chiusa** → **v2.1** **chiusa** → altri template v2 → **v3 meccanismi a cascata** (§11.1) → **v4** Playwright; Tony per errori/recovery NL |
+| D2 | **Errori utente (typo/concetto)** | **Non** nel sim — **Tony** + test client; sim v3 = scadenze/filtri/alert/i18n (§11.1), non fuzzing form |
 | D3 | **Inviti / email / onboarding** | **Esclusi** dal simulatore — il flusso «Invita collaboratore» è già validato nell’app; il sim assume **azienda già organizzata** |
 | D4 | **Profili campo** | Auth + `users/{uid}` + `tenantMemberships` **pre-provisionati** in fase 06 (capo + operai reali, non anagrafiche fittizie) |
 | D5 | **Multi-account** | Stesso `tenantId`, **N login** distinti; dashboard/permessi diversi (manager desktop, capo/operaio mobile) |
@@ -955,4 +971,4 @@ Estendere `simulator-dev-standalone.html`:
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 — prossimo: v3 errori utente o altri template v2.*
+*Fine guida v1.6.1 + v2.1 manodopera §14 — prossimo: v3 meccanismi a cascata (test/seed) o altri template v2; Tony/Playwright per errori utente.*

@@ -65,6 +65,7 @@ firebase-service-account.json
 !simulator/templates/*.json
 !simulator/config/*.json
 !simulator/manifest.example.json
+!tests/fixtures/*.json
 
 # Vecchia app - repository separato, non tracciare come submodule
 vecchia app/

@@ -1,0 +1,121 @@
+[
+  {
+    "id": "thunderstorm-severe",
+    "event": "Severe Thunderstorm Warning",
+    "description": "Be aware of the possibility of severe thunderstorms accompanied by heavy rain and hail.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Thunderstorm"]
+  },
+  {
+    "id": "rain-heavy",
+    "event": "Heavy Rain Warning",
+    "description": "There is a risk of heavy rain. Local flooding is possible.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Rain"]
+  },
+  {
+    "id": "wind-extreme",
+    "event": "Extreme Wind Warning",
+    "description": "Strong wind and gusts are forecast.",
+    "sender": "Italian Air Force National Meteorological Service",
+    "tags": ["Wind"]
+  },
+  {
+    "id": "heat-extreme",
+    "event": "Extreme Heat Warning",
+    "description": "High temperatures are expected. Be prepared for extreme heat.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Heat"]
+  },
+  {
+    "id": "heat-moderate-yellow",
+    "event": "Yellow Moderate Heat Warning",
+    "description": "Moderate intensity weather phenomena expected TUSCAN APENNINES (DISCLAIMER: \"Information provided on METEOALARM for Italy regard only the intensity and recurrence of the phenomena.\")",
+    "sender": "Italian Air Force National Meteorological Service",
+    "tags": ["Heat"]
+  },
+  {
+    "id": "temperature-high",
+    "event": "High Temperature Warning",
+    "description": "High temperatures are expected during the afternoon.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Temperature"]
+  },
+  {
+    "id": "temperature-low",
+    "event": "Low Temperature Warning",
+    "description": "Low temperatures and frost are forecast overnight.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Cold"]
+  },
+  {
+    "id": "cold-extreme",
+    "event": "Extreme Cold Warning",
+    "description": "Extreme cold and freezing conditions are expected.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Cold"]
+  },
+  {
+    "id": "cold-moderate",
+    "event": "Moderate Cold Warning",
+    "description": "Cold spell with low temperatures are forecast.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Cold"]
+  },
+  {
+    "id": "flood",
+    "event": "Flood Warning",
+    "description": "There is a risk of flooding and flash flood in low-lying areas.",
+    "sender": "Protezione Civile",
+    "tags": ["Flood"]
+  },
+  {
+    "id": "snow-heavy",
+    "event": "Heavy Snow Warning",
+    "description": "Heavy snowfall is forecast at higher elevations.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Snow"]
+  },
+  {
+    "id": "fog",
+    "event": "Fog Warning",
+    "description": "Dense fog may reduce visibility.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Fog"]
+  },
+  {
+    "id": "ice",
+    "event": "Ice Warning",
+    "description": "Freezing rain and ice accumulation on roads are possible.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Ice"]
+  },
+  {
+    "id": "coastal",
+    "event": "Coastal Event Warning",
+    "description": "Storm surge and high waves along the coast are forecast.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Coastal"]
+  },
+  {
+    "id": "forest-fire",
+    "event": "Forest Fire Warning",
+    "description": "High fire danger due to dry conditions and strong wind.",
+    "sender": "Italian Meteorological Service",
+    "tags": ["Fire"]
+  },
+  {
+    "id": "avalanche",
+    "event": "Avalanche Warning",
+    "description": "Avalanche risk in mountain areas.",
+    "sender": "Italian Meteorological Service",
+    "tags": []
+  },
+  {
+    "id": "generic-weather",
+    "event": "Weather Alert",
+    "description": "This weather alert is in effect from 08:00 until 20:00.",
+    "sender": "MeteoAlarm",
+    "tags": []
+  }
+]

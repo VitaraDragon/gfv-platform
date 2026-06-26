@@ -1,6 +1,26 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-26 — chiusura v2.1 simulatore + fix audit regime-max.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-26 — direzione v3 sim (cascata/test) + i18n alert meteo + test semafori dashboard.**
+
+## GFV Farm Simulator — direzione v3 ridimensionata (2026-06-26)
+
+**Decisione:** la v3 sim **non** è «utenti che sbagliano / typo / recovery» (form a tendina + scope ore rendono quasi impossibili errori manuali; recovery NL → **Tony**). La v3 sim copre **meccanismi a cascata**: scadenze/semafori, filtri (es. CV attrezzi), alert meteo i18n, dataset edge-case per test.
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — §11.1, §12 punti 13–14, §14 D1–D2 aggiornati.
+
+**Primo incremento:** meteo alert IT + test widget scadenze (sotto).
+
+## Meteo — alert sempre in italiano + test semafori dashboard (2026-06-26)
+
+**Contesto:** estesa localizzazione alert OpenWeather/MeteoAlarm (temperature alte/basse, vento, alluvioni, neve, ghiaccio, caldo/freddo, costa, incendi, valanghe…) con fallback composito e fixture; test cascata semafori widget scadenze allineati ai profili seed sim parco macchine.
+
+**Codice:**
+- `core/config/meteo-alert-i18n.js` + mirror `functions/meteo-alert-i18n.js` — dizionario ampliato, `translateEventFallback`, tag su eventi generici (`Weather Alert`), descrizioni temperature/vento/alluvioni, `alertTextLooksEnglish`
+- `tests/fixtures/meteo-alerts-openweather.json` — fixture 17 tipi alert
+- `tests/meteo-alert-i18n.test.js` — copertura tipi + fixture integrata + banner dashboard
+- `tests/dashboard-deadlines.test.js` — `calcolaUrgenzaData` + `fetchInArrivoItems` / `fetchScadenzeAmministrazioneItems` (profili sim: tagliando superato, rosso, verde)
+
+**Verifica:** `npm run test:run -- tests/meteo-alert-i18n.test.js tests/dashboard-deadlines.test.js` — 17/17 OK.
 
 ## GFV Farm Simulator — chiusura v2.1 + fix audit template-aware (2026-06-26)
 
