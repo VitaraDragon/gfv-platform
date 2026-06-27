@@ -97,7 +97,7 @@ export async function runPopulateAssets() {
       marca: a.marca,
       cavalliMinimiRichiesti: a.cavalliMinimiRichiesti,
       categoriaId,
-      categoriaFunzione: a.codiceCategoria,
+      categoriaFunzione: categoriaId,
       stato: a.stato,
       prossimaManutenzione: a.prossimaManutenzione,
       creatoDa: userId

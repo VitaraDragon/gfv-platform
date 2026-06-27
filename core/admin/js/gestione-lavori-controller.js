@@ -786,11 +786,42 @@ export async function loadStatistics(currentTenantId, db, lavoriList) {
  * @param {Map} sottocategorieLavoriMap - Map sottocategorie lavori
  * @returns {string} Nome categoria
  */
+/** Nomi noti per codice (fallback se categorieAttrezzi non ancora caricate). */
+const CODICE_NOME_CATEGORIA_ATTREZZO = {
+  lavorazione_terreno: 'Lavorazione del Terreno',
+  gestione_verde: 'Gestione del Verde',
+  potatura_meccanica: 'Potatura Meccanica',
+  trattamenti: 'Trattamenti',
+  diserbo: 'Diserbo',
+  raccolta: 'Raccolta',
+  trasporto: 'Trasporto',
+  semina_piantagione: 'Semina e Piantagione',
+};
+
+function findCategoriaAttrezzo(categoriaId, categorieAttrezziList) {
+    if (!categoriaId) return null;
+    const key = String(categoriaId).toLowerCase();
+
+    if (Array.isArray(categorieAttrezziList) && categorieAttrezziList.length) {
+        const fromList =
+            categorieAttrezziList.find((c) => c.id === categoriaId) ||
+            categorieAttrezziList.find(
+                (c) => c.codice && String(c.codice).toLowerCase() === key
+            );
+        if (fromList) return fromList;
+    }
+
+    const nomeFallback = CODICE_NOME_CATEGORIA_ATTREZZO[key];
+    if (nomeFallback) return { id: categoriaId, nome: nomeFallback, codice: key };
+
+    return null;
+}
+
 export function getNomeCategoria(categoriaId, categorieAttrezziList, categorieLavoriPrincipali, sottocategorieLavoriMap) {
     if (!categoriaId) return 'Senza categoria';
     
-    // Cerca in categorie attrezzi
-    const categoriaAttrezzo = categorieAttrezziList.find(c => c.id === categoriaId);
+    // Cerca in categorie attrezzi (id Firestore o codice legacy / seed sim)
+    const categoriaAttrezzo = findCategoriaAttrezzo(categoriaId, categorieAttrezziList);
     if (categoriaAttrezzo) {
         // Se è una sottocategoria, mostra anche il parent
         if (categoriaAttrezzo.parentId) {
@@ -1053,17 +1084,34 @@ export async function loadAttrezzi(currentTenantId, db, app, auth, attrezziList)
 export async function loadCategorieAttrezzi(currentTenantId, db, categorieAttrezziList) {
     try {
         const { collection, query, getDocs, orderBy } = await import('../../services/firebase-service.js');
+        categorieAttrezziList.length = 0;
+
+        const pushUnique = (catData) => {
+            if (!catData?.id) return;
+            if (categorieAttrezziList.some((c) => c.id === catData.id)) return;
+            categorieAttrezziList.push(catData);
+        };
+
         const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-        const q = query(categorieRef, orderBy('ordine', 'asc'));
-        const snapshot = await getDocs(q);
-        
-        categorieAttrezziList.length = 0; // Pulisci array
-        snapshot.forEach(doc => {
-            const catData = { id: doc.id, ...doc.data() };
-            // Filtra solo categorie applicabili ad attrezzi
+        let unifiedSnap;
+        try {
+            unifiedSnap = await getDocs(query(categorieRef, orderBy('ordine', 'asc')));
+        } catch (_) {
+            unifiedSnap = await getDocs(categorieRef);
+        }
+        unifiedSnap.forEach((docSnap) => {
+            const catData = { id: docSnap.id, ...docSnap.data() };
             if (catData.applicabileA === 'attrezzi' || catData.applicabileA === 'entrambi') {
-                categorieAttrezziList.push(catData);
+                pushUnique(catData);
             }
+        });
+
+        // Merge categorieAttrezzi (sim / tenant legacy): gli id su macchine.attrezzo puntano spesso lì,
+        // non alle categorie lavori in `categorie` (applicabileA entrambi ≠ stessi documenti).
+        const legacyRef = collection(db, `tenants/${currentTenantId}/categorieAttrezzi`);
+        const legacySnap = await getDocs(legacyRef);
+        legacySnap.forEach((docSnap) => {
+            pushUnique({ id: docSnap.id, ...docSnap.data() });
         });
     } catch (error) {
         console.error('Errore caricamento categorie attrezzi:', error);
@@ -2096,7 +2144,8 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         const option = document.createElement('option');
         option.value = attrezzo.id;
         const nome = attrezzo.nome || 'Attrezzo senza nome';
-        const categoriaNome = getNomeCategoria ? getNomeCategoria(attrezzo.categoriaFunzione) : 'Senza categoria';
+        const categoriaRef = attrezzo.categoriaId || attrezzo.categoriaFunzione;
+        const categoriaNome = getNomeCategoria ? getNomeCategoria(categoriaRef) : 'Senza categoria';
         const cvMin = attrezzo.cavalliMinimiRichiesti ? ` (min ${attrezzo.cavalliMinimiRichiesti} CV)` : '';
         const stato = attrezzo.stato === 'disponibile' ? '✅' : attrezzo.stato === 'in_uso' ? '🔄' : '⚠️';
         option.textContent = `${stato} ${nome} - ${categoriaNome}${cvMin}`;

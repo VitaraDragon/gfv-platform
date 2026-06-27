@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — allineamento app↔sim catalogo + fix cascata UI/Tony.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — allineamento app↔sim catalogo + fix cascata UI/Tony + etichetta categoria attrezzo Gestione lavori.**
+
+## Gestione lavori — etichetta categoria attrezzo nel dropdown (2026-06-27)
+
+**Problema:** nel form lavoro, menu attrezzi compatibili mostrava «Categoria sconosciuta» (es. `⚠️ Irroratrice Forigo - Categoria sconosciuta`). Solo cosmesi: salvataggio e filtro CV restavano OK.
+
+**Causa:** `loadCategorieAttrezzi` leggeva solo `categorie` unificata (`applicabileA attrezzi|entrambi` — in pratica categorie **lavori**); tenant sim e legacy hanno le categorie attrezzo in **`categorieAttrezzi`** con id diversi da quelli su `macchine.categoriaId`.
+
+**Fix:**
+- `core/admin/js/gestione-lavori-controller.js` — `loadCategorieAttrezzi` **merge** sempre `categorieAttrezzi` + unificata; `getNomeCategoria` / `findCategoriaAttrezzo` risolvono per id, codice o nomi noti; dropdown usa `categoriaId || categoriaFunzione`
+- `core/admin/gestione-lavori-standalone.html` — dopo load categorie, refresh dropdown attrezzi se trattore già selezionato
+- `simulator/phases/02-populate-assets.js` — nuovi attrezzi sim: `categoriaFunzione` = id Firestore (come anagrafica macchine)
+
+**Simboli dropdown attrezzo (invariati):** ✅ disponibile · 🔄 in uso · ⚠️ altro stato (es. in manutenzione nel seed demo).
+
+**Test:** `tests/gestione-lavori-categoria-attrezzo.test.js` — **4/4** OK.
 
 ## Allineamento app ↔ simulatore — riepilogo (2026-06-27)
 

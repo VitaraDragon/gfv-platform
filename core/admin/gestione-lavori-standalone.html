@@ -1997,6 +1997,8 @@
                 lavoriState.categorieAttrezziList
             );
             updateState({ categorieAttrezziList: lavoriState.categorieAttrezziList });
+            const trattoreId = document.getElementById('lavoro-trattore')?.value;
+            if (trattoreId) populateAttrezziDropdownWrapper(trattoreId);
         }
 
         // Wrapper per loadStatistics
