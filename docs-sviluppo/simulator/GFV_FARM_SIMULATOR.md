@@ -143,7 +143,7 @@ Il simulatore v1 scrive dati via **Admin SDK**; la verifica manuale in browser u
 | `core/js/firebase-emulator-dev.js` | Connessione **sincrona** Auth/Firestore emulator (`?emulator=1` o `localStorage gfv_firebase_emulator=1`) |
 | `core/services/firebase-service.js` | `awaitFirebaseEmulatorConnect()` + `awaitAuthStateReady()` prima del controllo auth |
 | `core/js/simulator-browser-auth.js` | Auto-login cross-page da pagina dev (`storeSimPendingLogin` / `ensureSimulatorSession`) |
-| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, **Entra**, link Terreni / Attività / Movimenti / Macchine / Vigneto |
+| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, **Entra**, link Terreni / Attività / Movimenti / Macchine / Vigneto; Conto Terzi → URL moduli §13.2 |
 | `npm start` | `http-server` porta **8000** (richiesto per servire HTML + manifest) |
 
 **URL pagina dev:**
@@ -179,9 +179,12 @@ simulator/
   templates/
     solo-titolare-viticola.json      # template v1
     viticola-manodopera.json         # template v2 (spec §14)
+    viticola-conto-terzi.json        # v2 + modulo Conto Terzi
+    viticola-conto-terzi-manodopera.json
   generators/
     nomi-italiani.js                 # persone, aziende, terreni, macchine
     date-calendario.js               # 4 settimane lavorative (no weekend opz.)
+    conto-terzi-seed.js              # clienti, tariffe, preventivi demo
   lib/
     guard-production.js
     emulator-context.js              # init admin + auth + setCurrentTenantId
@@ -195,6 +198,7 @@ simulator/
     report.js                        # resoconto testuale
     manifest.js                      # append manifest + seedVersion
     tenant-inspect.js                # inspectTenantSeed (seed v2)
+    conto-terzi-inspect.js           # inspectContoTerziSeed (clienti, tariffe, preventivi)
     cleanup-tenant.js                # deleteSimulatedTenant
     run-simulation.js                # runFullSimulation
     run-as-persona.js                # v2: contesto manager/capo/operaio
@@ -209,6 +213,7 @@ simulator/
     06-setup-personas.js             # v2: Auth + users multi-ruolo (no inviti)
     07-populate-manodopera.js        # v2: squadre + lavori (manager)
     08-simulate-manodopera-ore.js    # v2: ore + validazioni per persona
+    09-populate-conto-terzi.js       # v2.2: clienti, poderi, terreni clienti, tariffe, preventivi
   orchestrator.js                    # entry point
   smoke-test.js                      # Fase 0
   inspect-tenant.js                  # ispezione terreni su emulator
@@ -541,6 +546,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 - [x] Batch **10 aziende** su emulator: 10/10 OK (4 terreni, 20 attività, 12 movimenti ciascuna)
 - [x] **v1.6** — flotta + scadenze parco macchine; `sim:backfill` aggiorna manifest legacy; `sim:audit` 6 macchine attese
 - [x] **v1.6.1** — assert km flotta (`validateFlottaKmSeed`); audit/test/Vitest; doc Java 21; fallback Tony km flotta
+- [x] **v2.2 Conto Terzi** — template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera`, fase 09, audit, Vitest, verifica UI browser (2026-06-27)
 
 ---
 
@@ -570,7 +576,8 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v1.6.1** | ~~Assert km flotta~~ in `tenant-inspect`, `sim:audit`, `sim:test`, Vitest; doc CI Java 21; fallback Tony parco macchine |
 | **v2.0** | **Spec manodopera** (§14): multi-persona, `runAsPersona`, template `viticola-manodopera.json`, manifest `personas[]` |
 | **v2.1** | ~~Implementazione fasi 06–08 + audit ore per ruolo + pagina dev «Entra come…» + template regime max + audit template-aware~~ |
-| **v2**   | Template conto terzi, frutteto, mista, solo titolare oliveto… |
+| **v2.2** | ~~Template Conto Terzi~~ (`viticola-conto-terzi`, fase `09-populate-conto-terzi`, audit + Vitest + verifica UI) ✅ |
+| **v2**   | Template frutteto, mista, solo titolare oliveto… |
 | **v3**   | **Meccanismi a cascata** (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1; **non** typo/recovery utente nel sim |
 | **v3b**  | Run paralleli N tenant (infrastruttura, opzionale) |
 | **v4**   | E2E Playwright — flussi UI + widget scadenze/meteo; errori linguaggio naturale / recovery → **Tony** + test dedicati |
@@ -651,7 +658,9 @@ npm run sim:emulators
 
 # Terminale 2
 npm run sim:smoke          # opzionale — sanity check
-npm run sim:run            # nuova azienda completa (1)
+npm run sim:run            # nuova azienda completa (1) — default solo-titolare-viticola
+npm run sim:run -- --template=viticola-conto-terzi --verbose
+npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose   # conto terzi + manodopera + diario/magazzino/vigneto
 npm run sim:run:batch -- --count=10   # 10 aziende in sequenza
 npm run sim:run:demo-max   # 2 aziende regime max (manodopera 2 capi/10 op + solo titolare, 30 gg)
 npm run sim:backfill       # aggiorna tutte le entry del manifest (no nuovo tenant)
@@ -669,7 +678,7 @@ npm run sim:test:vitest    # stesso test via vitest
 npm run sim:test:ci        # come CI — avvia emulator, esegue entrambi, termina
 ```
 
-**Audit manifest:** `npm run sim:audit` — verifica Auth, seed terreni v2 (`inspectTenantSeed`) e conteggi attesi per ogni `tenantId` in `manifest.json`: **6 macchine** (1 trattore + 3 attrezzi + 2 flotta), flotta ≥2 con **kmAttuali/kmProssimaManutenzione** validi e ≥1 tagliando km superato, scadenze ≥3, almeno 1 mezzo in manutenzione, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, 4 potature + 12 trattamenti vigneto. Exit 0 se OK/WARN; exit 1 se almeno un FAIL.
+**Audit manifest:** `npm run sim:audit` — verifica Auth, seed terreni v2 (`inspectTenantSeed`) e conteggi attesi per ogni `tenantId` in `manifest.json`: **6 macchine** (1 trattore + 3 attrezzi + 2 flotta), flotta ≥2 con **kmAttuali/kmProssimaManutenzione** validi e ≥1 tagliando km superato, scadenze ≥3, almeno 1 mezzo in manutenzione, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, 4 potature + 12 trattamenti vigneto. Template **conto terzi**: `inspectContoTerziSeed` (clienti, poderi, terreni clienti, tariffe, preventivi); terreni totali = `quantities.terreni` + `terreniClienti`. Template **manodopera**: personas Auth + `inspectManodoperaSeed`. Exit 0 se OK/WARN; exit 1 se almeno un FAIL.
 
 **Manifest in git:** `simulator/manifest.json` resta **vuoto** (`[]`); i run locali (`sim:run`, batch) popolano manifest + emulator solo sulla macchina dev. Struttura di riferimento: `simulator/manifest.example.json`. Non committare manifest con molte entry batch.
 
@@ -694,10 +703,17 @@ Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 - **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **6 macchine** (1 trattore + 3 attrezzi + 2 flotta); flotta con **km**, targa e stato; almeno un **Tagliando (km)** in rosso in Scadenze; revisione/assicurazione visibili in lista Scadenze e widget dashboard; niente redirect login con `?emulator=1`
 - **Vigneto / Vigneti** → 4 vigneti collegati ai terreni; navigazione dashboard ok
 - **Trattamenti / Potatura** → righe da attività diario (4 potature + 12 trattamenti); trattamenti con prodotti da magazzino dove presente
+- **Conto Terzi** (template `viticola-conto-terzi*` — entrare come **manager** dalla pagina dev):
+  - Home: `modules/conto-terzi/views/conto-terzi-home-standalone.html?emulator=1`
+  - Clienti: `.../clienti-standalone.html?emulator=1` — 3 anagrafiche demo
+  - Tariffe: `.../tariffe-standalone.html?emulator=1`
+  - Preventivi: `.../preventivi-standalone.html?emulator=1` — stati misti (bozza, inviato, accettato, rifiutato)
+  - Terreni clienti: `.../terreni-clienti-standalone.html?emulator=1` — terreni con `clienteId` (totale terreni in lista Terreni = azienda + clienti)
+- **Gestione lavori** (manodopera): `core/admin/gestione-lavori-standalone.html?emulator=1` — lavori squadra/autonomi seed
 
 Password emulator: **`SimGFV2026!`**
 
-**Manodopera mobile (v2):** dalla pagina dev, **Entra come capo** / **Entra come operaio** → `field-workspace-standalone.html`. Verificare comunicazioni, assenza capo→manager (se seed con flag assenza), segna ore. Con template **regime max** il caricamento è più lento (centinaia di ore/comunicazioni): preferire manifest snello (§13.4).
+**Manodopera mobile (v2):** dalla pagina dev, **Entra come capo** / **Entra come operaio** → `field-workspace-standalone.html`. Verificare comunicazioni, assenza capo→manager (se seed con flag assenza), segna ore. Template consigliato demo completa: **`viticola-conto-terzi-manodopera`**. Con template **regime max** il caricamento è più lento (centinaia di ore/comunicazioni): preferire manifest snello (§13.4).
 
 ### 13.4 Routine periodica, glossario e perf locale
 
@@ -996,4 +1012,34 @@ Estendere `simulator-dev-standalone.html`:
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 — prossimo: v3 meccanismi a cascata (test/seed) o altri template v2; Tony/Playwright per errori utente.*
+## 15. Template v2.2 — Conto Terzi (implementato ✅)
+
+**File template:** `simulator/templates/viticola-conto-terzi.json`, `viticola-conto-terzi-manodopera.json`
+
+**Modulo tenant:** `contoTerzi` in `modules` / `moduli`.
+
+**Fase orchestrator:** `09-populate-conto-terzi.js` — eseguita se `isContoTerziTemplate(template)` (dopo vigneto; prima di manodopera se presente).
+
+**Collections Firestore:** `clienti`, `poderi-clienti`, `terreni` (con `clienteId`), `tariffe`, `preventivi`.
+
+**Adapter sim (no import modelli app):** `simulator/lib/conto-terzi-write.js` — validazione + payload Admin SDK (i modelli in `modules/conto-terzi/models/` importano `firebase-service.js` CDN, incompatibile con Node orchestrator).
+
+**Inspect / audit:** `conto-terzi-inspect.js`; `sim:audit` + `sim:inspect` template-aware; terreni attesi = `quantities.terreni + terreniClienti`.
+
+**Test:** `tests/simulator/viticola-conto-terzi.test.js` (emulator).
+
+**Run demo completo (tutto il stack):**
+
+```bash
+npm run sim:emulators   # terminale 1
+npm start               # terminale 3
+npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
+```
+
+**Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
+
+**Non in scope v2.2:** preventivo accettato → creazione lavoro conto terzi automatica; link rapidi Conto Terzi in `simulator-dev-standalone.html` (aprire URL moduli dopo **Entra**).
+
+---
+
+*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 — prossimo: altri template v2 o v3 meccanismi a cascata; Tony/Playwright per errori utente.*

@@ -9,8 +9,9 @@ import { isEmulatorAvailable } from './lib/emulator-available.js';
 import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
+import { inspectContoTerziSeed } from './lib/conto-terzi-inspect.js';
 import { readManifest } from './lib/manifest.js';
-import { isManodoperaTemplate, loadTemplate } from './lib/load-template.js';
+import { isContoTerziTemplate, isManodoperaTemplate, loadTemplate } from './lib/load-template.js';
 
 const args = process.argv.slice(2);
 const countArg = args.find((a) => a.startsWith('--count='));
@@ -52,6 +53,7 @@ async function main() {
   }
 
   const withManodopera = isManodoperaTemplate(loadTemplate(templateId));
+  const withContoTerzi = isContoTerziTemplate(loadTemplate(templateId));
   if (withManodopera && (operaiMin == null || operaiMax == null)) {
     console.error('[sim:batch] Template manodopera richiede --operai-min e --operai-max');
     process.exit(1);
@@ -79,12 +81,32 @@ async function main() {
         seed,
         templateOverrides
       });
-      const { setup, assets, simulation, magazzino, personas, manodoperaOre } = result;
+      const { setup, assets, simulation, magazzino, personas, manodoperaOre, contoTerzi } = result;
       const { db } = initEmulatorAdmin();
       const inspect = await inspectTenantSeed(db, setup.tenantId);
       const movimenti = magazzino.counts.movimenti;
       let manodoperaOk = true;
       let manodoperaDetail = '';
+      let contoTerziOk = true;
+      let contoTerziDetail = '';
+
+      if (withContoTerzi && contoTerzi) {
+        const ctTemplate = loadTemplate(templateId);
+        const q = ctTemplate.quantities || {};
+        const ct = await inspectContoTerziSeed(db, setup.tenantId, {
+          clienti: q.clienti ?? 3,
+          poderiClienti: q.poderiClienti ?? q.clienti ?? 3,
+          terreniClienti: q.terreniClienti ?? 6,
+          tariffe: q.tariffe ?? 8,
+          preventivi: q.preventivi ?? 5,
+          minPreventiviInviati: 1,
+          minPreventiviAccettati: 1
+        });
+        contoTerziOk = ct.ok;
+        contoTerziDetail = contoTerziOk
+          ? `clienti ${ct.counts.clienti}, prev ${ct.counts.preventivi}`
+          : ct.errors.slice(0, 2).join('; ');
+      }
 
       if (withManodopera && personas) {
         const q = templateOverrides.quantities;
@@ -108,7 +130,8 @@ async function main() {
         inspect.ok &&
         movimenti >= 8 &&
         simulation.counts.attivita >= 20 &&
-        manodoperaOk;
+        manodoperaOk &&
+        contoTerziOk;
 
       rows.push({
         ok,
@@ -124,7 +147,10 @@ async function main() {
       });
 
       const mark = ok ? 'OK' : 'WARN';
-      const extra = withManodopera ? ` — ${manodoperaDetail}` : '';
+      const extraParts = [];
+      if (withManodopera) extraParts.push(manodoperaDetail);
+      if (withContoTerzi) extraParts.push(contoTerziDetail);
+      const extra = extraParts.length ? ` — ${extraParts.join(' | ')}` : '';
       console.log(
         `[sim:batch] ${i}/${count} ${mark} ${setup.aziendaNome} — attività ${simulation.counts.attivita}, movimenti ${movimenti}${extra} (${Date.now() - t0}ms)`
       );
@@ -133,6 +159,9 @@ async function main() {
       }
       if (verbose && withManodopera && !manodoperaOk) {
         console.warn(`  manodopera: ${manodoperaDetail}`);
+      }
+      if (verbose && withContoTerzi && !contoTerziOk) {
+        console.warn(`  conto terzi: ${contoTerziDetail}`);
       }
     } catch (err) {
       rows.push({ ok: false, error: err.message, ms: Date.now() - t0 });

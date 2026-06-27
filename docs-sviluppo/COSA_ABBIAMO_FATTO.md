@@ -1,6 +1,41 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — allineamento app↔sim catalogo + fix cascata UI/Tony + etichetta categoria attrezzo Gestione lavori.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — sim Conto Terzi v2.2 verificato (run + UI) + allineamento app↔sim catalogo + fix cascata UI/Tony + etichetta categoria attrezzo Gestione lavori.**
+
+## GFV Farm Simulator — template Conto Terzi v2.2 (2026-06-27) ✅ verificato
+
+**Obiettivo:** popolare il modulo **Conto Terzi** su tenant sim (clienti, poderi clienti, terreni con `clienteId`, tariffe, preventivi in stati misti), integrato con il resto del run (diario, magazzino, vigneto, manodopera).
+
+**Template:**
+- `simulator/templates/viticola-conto-terzi.json` — estende `solo-titolare-viticola`, modulo `contoTerzi`
+- `simulator/templates/viticola-conto-terzi-manodopera.json` — estende `viticola-manodopera` + conto terzi (**demo completa**)
+
+**Implementazione:**
+- Fase `simulator/phases/09-populate-conto-terzi.js`
+- Generator `simulator/generators/conto-terzi-seed.js`
+- Scrittura Admin SDK `simulator/lib/conto-terzi-write.js` (validazione locale — **no** modelli browser / CDN Firebase)
+- Inspect `simulator/lib/conto-terzi-inspect.js`
+- Orchestrazione: `run-simulation.js`, `orchestrator.js`, `sim:audit`, `sim:run:batch`, `sim:inspect`
+
+**Quantità default:** template base — 3 clienti, 3 poderi, 6 terreni clienti, 8 tariffe, 5 preventivi; template manodopera — 10 tariffe, 6 preventivi. Stati preventivo misti (bozza, inviato, accettato, rifiutato).
+
+**Comandi:**
+```bash
+npm run sim:run -- --template=viticola-conto-terzi --verbose
+npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose   # stack completo
+```
+
+**Verifica automatica (emulator):**
+- Run + inspect Node su tenant `viticola-conto-terzi-manodopera`: diario 20 att., 12 scarichi (tutti con `attivitaId`), 4 potature + 12 trattamenti vigneto, conto terzi OK, manodopera OK (ore validate, comunicazioni, assenza malattia)
+- `npm run sim:inspect` — terreni + blocco Conto Terzi se `templateId` nel manifest
+- `npm run sim:audit` — conteggi terreni = azienda + `terreniClienti`; inspect conto terzi per template con modulo
+- Vitest `tests/simulator/viticola-conto-terzi.test.js` — **1/1** OK
+
+**Verifica UI (browser):** pagina dev → **Entra come manager** su azienda con template conto terzi → moduli Conto Terzi (clienti, tariffe, preventivi, terreni clienti). Stack completo: stessa azienda + **Capo/Operaio (mobile)** per lavori/comunicazioni/ore. Ingresso: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1` — password `SimGFV2026!`. Dettaglio link: `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §13.2.
+
+**Limiti noti:** i preventivi sim sono anagrafica demo (`lavoroId` null); non simula il flusso end-to-end preventivo → lavoro pianificato conto terzi.
+
+**Manifest locale:** `simulator/manifest.json` non va committato (stato emulator dev).
 
 ## Gestione lavori — etichetta categoria attrezzo nel dropdown (2026-06-27)
 

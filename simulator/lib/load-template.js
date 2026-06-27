@@ -93,3 +93,8 @@ export function isManodoperaTemplate(template) {
   const moduli = template?.moduli || template?.modules || [];
   return moduli.includes('manodopera');
 }
+
+export function isContoTerziTemplate(template) {
+  const moduli = template?.moduli || template?.modules || [];
+  return moduli.includes('contoTerzi');
+}

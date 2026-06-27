@@ -11,7 +11,8 @@ import { runSimulateVigneto } from '../phases/05-simulate-vigneto.js';
 import { runSetupPersonas } from '../phases/06-setup-personas.js';
 import { runPopulateManodopera } from '../phases/07-populate-manodopera.js';
 import { runSimulateManodoperaOre } from '../phases/08-simulate-manodopera-ore.js';
-import { isManodoperaTemplate } from './load-template.js';
+import { runPopulateContoTerzi } from '../phases/09-populate-conto-terzi.js';
+import { isContoTerziTemplate, isManodoperaTemplate } from './load-template.js';
 
 /**
  * @param {{
@@ -45,6 +46,11 @@ export async function runFullSimulation(options = {}) {
   let personas = null;
   let manodopera = null;
   let manodoperaOre = null;
+  let contoTerzi = null;
+
+  if (isContoTerziTemplate(setup.template)) {
+    contoTerzi = await runPopulateContoTerzi();
+  }
 
   if (isManodoperaTemplate(setup.template)) {
     personas = await runSetupPersonas();
@@ -58,6 +64,7 @@ export async function runFullSimulation(options = {}) {
     simulation,
     magazzino,
     vigneto,
+    contoTerzi,
     personas,
     manodopera,
     manodoperaOre

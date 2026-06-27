@@ -54,6 +54,14 @@ export function formatSuccessReport(result) {
       `  assenza malattia: ${result.counts.assenzeMalattiaSegnalate ?? 0} segnalate, ${result.counts.assenzeMalattiaConfermate} confermate, ${result.counts.lavoriStandbyAssenza ?? 0} lavori in standby`
     );
   }
+  if (result.counts.clienti != null) {
+    lines.push(
+      `  conto terzi: ${result.counts.clienti} clienti, ${result.counts.poderiClienti} poderi, ${result.counts.terreniClienti} terreni clienti`
+    );
+    lines.push(
+      `  tariffe: ${result.counts.tariffe}, preventivi: ${result.counts.preventivi} (${result.counts.preventiviInviati ?? 0} inviati, ${result.counts.preventiviAccettati ?? 0} accettati)`
+    );
+  }
   lines.push(
     '',
     `Durata: ${(result.durationMs / 1000).toFixed(1)}s`,

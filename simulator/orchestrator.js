@@ -12,8 +12,9 @@ import { runSimulateVigneto } from './phases/05-simulate-vigneto.js';
 import { runSetupPersonas } from './phases/06-setup-personas.js';
 import { runPopulateManodopera } from './phases/07-populate-manodopera.js';
 import { runSimulateManodoperaOre } from './phases/08-simulate-manodopera-ore.js';
+import { runPopulateContoTerzi } from './phases/09-populate-conto-terzi.js';
 import { formatErrorReport, formatSuccessReport, printReport } from './lib/report.js';
-import { isManodoperaTemplate, parseQuantityOverrides } from './lib/load-template.js';
+import { isContoTerziTemplate, isManodoperaTemplate, parseQuantityOverrides } from './lib/load-template.js';
 import { resetSimContext } from './lib/sim-context.js';
 
 const args = process.argv.slice(2);
@@ -34,6 +35,7 @@ async function main() {
     phase = '01-setup-tenant';
     const setup = await runSetupTenant({ templateId, templateOverrides });
     const withManodopera = isManodoperaTemplate(setup.template);
+    const withContoTerzi = isContoTerziTemplate(setup.template);
     if (verbose) console.log(`[sim] Tenant creato: ${setup.tenantId}`);
 
     if (setupOnly) {
@@ -71,6 +73,13 @@ async function main() {
     let personas = null;
     let manodopera = null;
     let manodoperaOre = null;
+    let contoTerzi = null;
+
+    if (withContoTerzi) {
+      phase = '09-populate-conto-terzi';
+      contoTerzi = await runPopulateContoTerzi();
+      if (verbose) console.log('[sim] Conto Terzi:', contoTerzi.counts);
+    }
 
     if (withManodopera) {
       phase = '06-setup-personas';
@@ -113,6 +122,16 @@ async function main() {
       counts.assenzeMalattiaSegnalate = manodoperaOre.counts.assenzeMalattiaSegnalate;
       counts.assenzeMalattiaConfermate = manodoperaOre.counts.assenzeMalattiaConfermate;
       counts.lavoriStandbyAssenza = manodoperaOre.counts.lavoriStandbyAssenza;
+    }
+    if (contoTerzi) {
+      counts.clienti = contoTerzi.counts.clienti;
+      counts.poderiClienti = contoTerzi.counts.poderiClienti;
+      counts.terreniClienti = contoTerzi.counts.terreniClienti;
+      counts.tariffe = contoTerzi.counts.tariffe;
+      counts.preventivi = contoTerzi.counts.preventivi;
+      counts.preventiviInviati = contoTerzi.counts.preventiviInviati;
+      counts.preventiviAccettati = contoTerzi.counts.preventiviAccettati;
+      counts.terreni = (counts.terreni || 0) + contoTerzi.counts.terreniClienti;
     }
 
     printReport(formatSuccessReport({

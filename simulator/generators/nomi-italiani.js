@@ -23,6 +23,8 @@ function pick(list, index) {
   return list[index % list.length];
 }
 
+export { pick };
+
 function slugify(value) {
   return String(value)
     .toLowerCase()

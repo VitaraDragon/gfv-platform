@@ -1,0 +1,17 @@
+{
+  "templateId": "viticola-conto-terzi",
+  "descrizione": "Azienda viticola con modulo Conto Terzi: clienti, poderi, terreni clienti, tariffe e preventivi demo",
+  "extends": "solo-titolare-viticola",
+  "moduli": ["vigneto", "parcoMacchine", "magazzino", "contoTerzi"],
+  "quantities": {
+    "clienti": 3,
+    "poderiClienti": 3,
+    "terreniClienti": 6,
+    "tariffe": 8,
+    "preventivi": 5
+  },
+  "contoTerzi": {
+    "ivaPercentuale": 22,
+    "giorniScadenzaPreventivo": 30
+  }
+}

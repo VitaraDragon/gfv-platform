@@ -14,9 +14,10 @@ import { assertSimulatorSafeToRun } from './lib/guard-production.js';
 import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
+import { inspectContoTerziSeed } from './lib/conto-terzi-inspect.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
 import { isEmulatorAvailable } from './lib/emulator-available.js';
-import { loadTemplate } from './lib/load-template.js';
+import { isContoTerziTemplate, loadTemplate } from './lib/load-template.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const v1Template = loadTemplate('solo-titolare-viticola');
@@ -41,9 +42,11 @@ function buildExpected(template) {
   const vignetoExpected = expectedVignetoCountsFromTemplate(template);
   const mo = template.manodopera || {};
   const hasManodopera = template.moduli?.includes('manodopera');
+  const hasContoTerzi = isContoTerziTemplate(template);
+  const terreniClienti = q.terreniClienti ?? 0;
   return {
     templateId: template.templateId,
-    terreni: q.terreni,
+    terreni: q.terreni + (hasContoTerzi ? terreniClienti : 0),
     macchine: q.trattori + q.attrezzi + (q.flotta ?? 2),
     flotta: q.flotta ?? 2,
     flottaKmOkMin: q.flotta ?? 2,
@@ -70,6 +73,17 @@ function buildExpected(template) {
           minAssenzeMalattiaConfermate: mo.assenzaMalattia === false ? 0 : 1,
           minLavoriStandbyAssenza: mo.standbyAssenzaMalattia === false ? 0 : 1
         }
+      : null,
+    contoTerzi: hasContoTerzi
+      ? {
+          clienti: q.clienti ?? 3,
+          poderiClienti: q.poderiClienti ?? q.clienti ?? 3,
+          terreniClienti: terreniClienti || 6,
+          tariffe: q.tariffe ?? 8,
+          preventivi: q.preventivi ?? 5,
+          minPreventiviInviati: 1,
+          minPreventiviAccettati: 1
+        }
       : null
   };
 }
@@ -91,12 +105,31 @@ function resolveExpectedForEntry(entry) {
 
 /** @param {{ templateId?: string, personas?: Array }} entry */
 function isManodoperaManifestEntry(entry) {
-  if (entry.templateId === 'viticola-manodopera' || entry.templateId === 'regime-max-manodopera') {
+  if (
+    entry.templateId === 'viticola-manodopera' ||
+    entry.templateId === 'regime-max-manodopera' ||
+    entry.templateId === 'viticola-conto-terzi-manodopera'
+  ) {
     return true;
   }
   return Array.isArray(entry.personas) && entry.personas.some(
     (p) => Array.isArray(p.ruoli) && (p.ruoli.includes('caposquadra') || p.ruoli.includes('operaio'))
   );
+}
+
+function isContoTerziManifestEntry(entry) {
+  if (
+    entry.templateId === 'viticola-conto-terzi' ||
+    entry.templateId === 'viticola-conto-terzi-manodopera'
+  ) {
+    return true;
+  }
+  try {
+    const t = loadTemplate(entry.templateId);
+    return isContoTerziTemplate(t);
+  } catch (_) {
+    return false;
+  }
 }
 
 function pad(str, len) {
@@ -146,6 +179,7 @@ function classifyEntry(entry, inspect, checks) {
   const warnings = [];
   const EXPECTED = resolveExpectedForEntry(entry);
   const isManodopera = isManodoperaManifestEntry(entry);
+  const isContoTerzi = isContoTerziManifestEntry(entry);
 
   if ((entry.seedVersion || 0) < SEED_VERSION) {
     warnings.push(`seedVersion ${entry.seedVersion ?? 'assente'} (atteso ${SEED_VERSION})`);
@@ -168,6 +202,12 @@ function classifyEntry(entry, inspect, checks) {
     issues.push(...checks.manodoperaInspect.errors.slice(0, 3));
     if (checks.manodoperaInspect.errors.length > 3) {
       issues.push(`+${checks.manodoperaInspect.errors.length - 3} errori manodopera`);
+    }
+  }
+  if (checks.tenantExists && checks.contoTerziInspect && !checks.contoTerziInspect.ok) {
+    issues.push(...checks.contoTerziInspect.errors.slice(0, 3));
+    if (checks.contoTerziInspect.errors.length > 3) {
+      issues.push(`+${checks.contoTerziInspect.errors.length - 3} errori conto terzi`);
     }
   }
 
@@ -208,6 +248,10 @@ function classifyEntry(entry, inspect, checks) {
 
   if (issues.length) return { status: 'FAIL', detail: issues.join('; ') };
   if (warnings.length) return { status: 'WARN', detail: warnings.join('; ') };
+  if (isManodopera && isContoTerzi) {
+    return { status: 'OK', detail: `completo ${EXPECTED.templateId || 'manodopera+contoTerzi'}` };
+  }
+  if (isContoTerzi) return { status: 'OK', detail: `completo ${EXPECTED.templateId || 'contoTerzi'}` };
   if (isManodopera) return { status: 'OK', detail: `completo ${EXPECTED.templateId || 'manodopera'}` };
   return { status: 'OK', detail: `completo ${EXPECTED.templateId || 'v1'}` };
 }
@@ -252,9 +296,11 @@ async function main() {
 
     let inspect = { ok: false, counts: {}, errors: ['tenant non ispezionato'] };
     let manodoperaInspect = null;
+    let contoTerziInspect = null;
     let personasAuthOk = true;
     const expected = resolveExpectedForEntry(entry);
     const isManodopera = isManodoperaManifestEntry(entry);
+    const isContoTerzi = isContoTerziManifestEntry(entry);
 
     if (tenantExists && tenantId) {
       inspect = await inspectTenantSeed(db, tenantId);
@@ -262,6 +308,9 @@ async function main() {
         const personasCheck = await checkPersonasAuth(auth, entry);
         personasAuthOk = personasCheck.ok;
         manodoperaInspect = await inspectManodoperaSeed(db, tenantId, expected.manodopera);
+      }
+      if (isContoTerzi && expected.contoTerzi) {
+        contoTerziInspect = await inspectContoTerziSeed(db, tenantId, expected.contoTerzi);
       }
     } else if (tenantId) {
       inspect = { ok: false, counts: {}, errors: ['tenant assente su emulator'] };
@@ -272,6 +321,7 @@ async function main() {
       authDetail: authCheck.detail,
       tenantExists,
       manodoperaInspect,
+      contoTerziInspect,
       personasAuthOk
     });
 

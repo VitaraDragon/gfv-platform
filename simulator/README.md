@@ -4,7 +4,8 @@ Generatore locale di aziende agricole di test su **Firebase Emulator** (Auth + F
 
 Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md)
 
-**v2 manodopera (in sviluppo):** spec §14 + **decisioni bloccate §14.0** — multi-account, `runAsPersona`, no inviti, numeri configurabili (`caposquadra`/`operai`), v3 errori posticipato.
+**v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
+**v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`
 
 ## Prerequisiti
 
@@ -28,6 +29,12 @@ npm run sim:smoke
 
 # Run completo v1 — una azienda (setup + populate + attività + magazzino)
 npm run sim:run
+
+# Conto Terzi (solo viticola + clienti/tariffe/preventivi)
+npm run sim:run -- --template=viticola-conto-terzi --verbose
+
+# Stack completo: conto terzi + manodopera + diario/magazzino/vigneto
+npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 # Run batch — N aziende in sequenza (default 10)
 npm run sim:run:batch
@@ -94,6 +101,8 @@ Pagina dev aziende simulate:
 - Password: **`SimGFV2026!`**
 - **Entra (dashboard)** — auto-login emulator (non redirect al login)
 - Link rapidi: **Terreni**, **Attività**, **Movimenti**, **Macchine**, **Trattori**, **Flotta**, **Scadenze**, **Vigneto**, **Vigneti**, **Trattamenti**, **Potatura**
+- **Conto Terzi** (dopo **Entra** su azienda template `viticola-conto-terzi*`): clienti / tariffe / preventivi — path sotto `modules/conto-terzi/views/*-standalone.html?emulator=1` (dettaglio in guida §13.2)
+- **Manodopera mobile:** pulsanti Capo / Operaio sulla card azienda (template manodopera)
 - Preferire aziende con badge **Seed completo** (`seedVersion: 2` nel manifest)
 - Se vedi **Seed vecchio**: `npm run sim:migrate-terreni`, `npm run sim:backfill`, oppure `npm run sim:run`
 

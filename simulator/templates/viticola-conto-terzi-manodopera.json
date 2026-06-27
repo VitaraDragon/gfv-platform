@@ -1,0 +1,17 @@
+{
+  "templateId": "viticola-conto-terzi-manodopera",
+  "descrizione": "Viticola + manodopera v2 + Conto Terzi (clienti, tariffe, preventivi)",
+  "extends": "viticola-manodopera",
+  "moduli": ["vigneto", "parcoMacchine", "magazzino", "manodopera", "contoTerzi"],
+  "quantities": {
+    "clienti": 3,
+    "poderiClienti": 3,
+    "terreniClienti": 6,
+    "tariffe": 10,
+    "preventivi": 6
+  },
+  "contoTerzi": {
+    "ivaPercentuale": 22,
+    "giorniScadenzaPreventivo": 30
+  }
+}
