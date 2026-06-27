@@ -186,10 +186,11 @@ simulator/
     guard-production.js
     emulator-context.js              # init admin + auth + setCurrentTenantId
     firestore-write.js               # write Admin SDK + path tenant
-    seed-reference-data.js           # categorie colture, colture, poderi (seed v2)
+    seed-reference-data.js           # podere principale (catalogo → seed-app-catalog.js)
+    seed-app-catalog.js              # categorie/sottocat/tipi lavoro/colture (identico app)
     seed-parco-macchine-details.js   # flotta + scadenze/manutenzione/revisione/assicurazione
     sim-economia-vigneto.js          # tariffe, costoOra, sync spese vigneto
-    seed-lavori-catalog.js           # categorie/tipi lavoro vigneto
+    seed-lavori-catalog.js           # re-export seedAppCatalog (compat legacy)
     link-scarichi-trattamento-vigneto.js  # origineTrattamento* su movimenti magazzino
     report.js                        # resoconto testuale
     manifest.js                      # append manifest + seedVersion
@@ -356,11 +357,14 @@ Allineare a registrazione reale (`core/auth/registrazione-standalone.html`) **e*
 
 Ordine consigliato (rispetta dipendenze):
 
-0. **Dati di riferimento tenant** (`lib/seed-reference-data.js`) — **seed v2**
-  - Categorie colture (`tenants/.../categorie`, `applicabileA: 'colture'`)
-  - Colture catalogo viticola (`Vite`, `Vite da Tavola`, `Vite da Vino`, … — nomi **identici** a `terreni-controller.js`)
-  - Un podere (`tenants/.../poderi`, nome = `aziendaNome` del profilo simulato)
-1. **Terreni** — write Admin con shape allineata UI
+0. **Catalogo app completo** (`lib/seed-app-catalog.js` + `core/config/app-catalog-seed-data.js`)
+  - Categorie principali lavori (11) + categorie colture (9) in `tenants/.../categorie`
+  - Sottocategorie lavori (18, con `parentId`) — es. `lavorazione_terreno_generale`, `trattamenti_meccanico`, …
+  - Tipi lavoro predefiniti (~78 nomi unici + alias sim `Trattamento`, `Concimazione`, `Controllo fitosanitario`)
+  - Colture predefinite (99) con `categoriaId` — frutteto, seminativo, vite, ortive, …
+  - Idempotente: skip per `codice`/`nome` già presenti
+1. **Podere** (`lib/seed-reference-data.js`) — un record in `tenants/.../poderi` (nome = `aziendaNome`)
+2. **Terreni** — write Admin con shape allineata UI
   - `coltura`: coerente con catalogo GFV (es. «Vite da Vino» — maiuscole come in `terreni-controller.js`)
   - `podere`: nome podere in `tenants/.../poderi` (es. nome azienda)
   - `tipoCampo`: morfologia (`pianura` | `collina` | `montagna`)
@@ -417,7 +421,7 @@ Campi minimi (`core/models/Attivita.js`):
 
 - Da attività Diario con tipo **Potatura** → documento in `vigneti/{id}/potature` (`attivitaId`, costi ore)
 - Da **Trattamento**, **Concimazione**, **Controllo fitosanitario** → `vigneti/{id}/trattamenti` con `tipoTrattamento`, prodotti da movimento magazzino collegato (`magazzinoMovimentoIds`)
-- Seed catalogo lavori in populate (`seed-lavori-catalog.js`) così le pagine Trattamenti/Potatura riconoscono i tipi lavoro
+- Seed catalogo lavori/colture in populate (`seed-app-catalog.js`) — identico a `initializeCategoriePredefinite` / `initializeTipiLavoroPredefiniti` / `initializeColturePredefinite` dell’app
 - Conteggi attesi: **4 potature + 12 trattamenti** (su 20 attività, rotazione 5 tipi)
 
 ### Report (`lib/report.js`)
@@ -581,13 +585,34 @@ Dopo v2.1 chiusa, la **v3 sim** non simula «utenti che sbagliano a digitare» (
 | Area | Sim / seed | Test automatici | UI / Tony |
 | ---- | ----------- | ----------------- | --------- |
 | Scadenze parco, affitti, revisioni | Profili edge-case per bucket semaforo (scaduto, rosso, giallo, verde) — già parziale in `seed-parco-macchine-details.js` | Vitest `dashboard-deadlines`, `calcolaUrgenzaData` | Checklist post `sim:run` |
-| Filtri a cascata (CV trattore→attrezzi, colture, terreni) | Dataset con flotta 50/75/100 CV per demo | Vitest (es. compatibilità attrezzi) | Playwright v4 |
+| Filtri a cascata (CV trattore→attrezzi, colture, terreni, categoria→sottocat→tipo) | Catalogo app completo in seed (`seed-app-catalog.js`) + dataset CV demo | Vitest `cascade-*`, `scripts/cascade-v3-live-smoke.js` | Playwright v4 |
 | Alert meteo in italiano | — (meteo escluso dal sim) | Vitest `meteo-alert-i18n` + fixture OpenWeather | Deploy CF + verifica dashboard |
 | Errori battitura / voce / recovery | **Non** sim v3 | Test Tony client-side | Tony + CF |
 
 **Ordine consigliato:** altri template **v2** (se servono moduli) → ampliare **test a cascata** (v3) → **Playwright v4** → stress **Tony** su NL/recovery.
 
 **Primo incremento v3 già in repo (2026-06-26):** i18n alert meteo completo + test semafori widget scadenze (`tests/meteo-alert-i18n.test.js`, `tests/dashboard-deadlines.test.js`).
+
+**Secondo incremento v3 (2026-06-27):** test cascata CV trattore→attrezzi (`core/js/macchine-cv-compat.js`, `tests/cascade-attrezzi-cv.test.js`) + copertura bucket semafori completa in `tests/dashboard-deadlines.test.js` (km/ore in arrivo, affitti grey/red/yellow/green, revisione/assicurazione) + cascata colture/lavori (`core/js/lavoro-cascade-filters.js`, `tests/cascade-colture-lavori.test.js`).
+
+**Terzo incremento v3 (2026-06-27):** catalogo sim = app — `core/config/app-catalog-seed-data.js` condiviso; `seed-app-catalog.js` su populate/backfill/migrate; inspect con soglie sottocategorie/tipi/colture; live smoke senza WARN «Lavorazione del Terreno senza sottocategorie»; rimosso duplicato «Diserbo Manuale» (solo categoria Diserbo); `TIPI_LAVORO_CANONICAL_FIXES` su tenant legacy.
+
+**Quarto incremento v3 (2026-06-27):** fix cascata UI app — preserve padri su form attività/lavori/terreni + Tony (`lavoro-cascade-filters.js`, controller/events, `tony-form-injector.js`). Il sim **non** ha dropdown cascata; condivide solo le regole pure in `lavoro-cascade-filters.js` (Vitest + `scripts/cascade-v3-live-smoke.js`).
+
+#### 11.1.1 Allineamento app ↔ simulatore (2026-06-27)
+
+| Cosa | App | Sim | Condiviso |
+|------|-----|-----|-----------|
+| Categorie lavori | 11 | 11 | `CATEGORIE_PRINCIPALI_PREDEFINITE` |
+| Categorie colture | 9 | 9 | `CATEGORIE_COLTURE_PREDEFINITE` |
+| Sottocategorie lavori | 18 | 18 | `SOTTOCATEGORIE_PREDEFINITE` |
+| Tipi lavoro (nomi unici) | 78 | 78 (+3 alias template) | `TIPI_LAVORO_PREDEFINITI` |
+| Colture | 99 | 99 | `COLTURE_PREDEFINITE` |
+| Init catalogo | `initialize*Predefiniti()` su primo accesso | `seedAppCatalog()` su populate/backfill | stessa shape Firestore (`categorie`, `tipiLavoro`, `colture`) |
+| Filtri cascata (logica) | form + Tony | test Node | `lavoro-cascade-filters.js` |
+| Preserve selezione padre | form browser + injector | — | solo app |
+
+**Backfill tenant sim vecchi:** `npm run sim:backfill` · **Verifica:** `npm run sim:inspect` · **Test:** `npm run test:run -- tests/cascade-colture-lavori.test.js` (9 test).
 
 ---
 

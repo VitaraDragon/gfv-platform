@@ -1,1 +1,128 @@
-[]
+[
+  {
+    "runId": "9d91072e-d0e0-4734-a01f-a635d5898acd",
+    "templateId": "regime-max-manodopera",
+    "tenantId": "sim_podere_romano_880001",
+    "userId": "jnJwCLCVqkrVbN9iOiU6Yj9GyQeS",
+    "email": "sim+romano_880001@gfv.local",
+    "aziendaNome": "Podere Romano",
+    "seedVersion": 2,
+    "createdAt": "2026-06-27T04:29:44.145Z",
+    "personas": [
+      {
+        "userId": "jnJwCLCVqkrVbN9iOiU6Yj9GyQeS",
+        "email": "sim+romano_880001@gfv.local",
+        "displayName": "Lucia Romano",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "MkPuebflr8vlkWwBZFQOG06lFfLV",
+        "email": "sim+romano_880001_capo1@gfv.local",
+        "displayName": "Paolo Ricci",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "DyFGXWNXIJK7W6VUv8wZrsqI9Fcw",
+        "email": "sim+romano_880001_capo2@gfv.local",
+        "displayName": "Francesca Rossi",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "4Xw9vETGull5FGfyn8Fi39Z3v3Pd",
+        "email": "sim+romano_880001_op1@gfv.local",
+        "displayName": "Paolo Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "kyjsNcECwUjPNlmeY9vmrmFoqGOC",
+        "email": "sim+romano_880001_op2@gfv.local",
+        "displayName": "Francesca Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "T4V2E5FyxnUqpDqeykfM5HVDbvDg",
+        "email": "sim+romano_880001_op3@gfv.local",
+        "displayName": "Marco Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "Q3ZWjsjyY3BQSxre03SdnefAxuXK",
+        "email": "sim+romano_880001_op4@gfv.local",
+        "displayName": "Anna Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "enGFqB3H0XzGCCI1yHjbzvWzoLsu",
+        "email": "sim+romano_880001_op5@gfv.local",
+        "displayName": "Andrea Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "4VIaRUGWVaslqfaTxr3d42nZit6Q",
+        "email": "sim+romano_880001_op6@gfv.local",
+        "displayName": "Chiara Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "WeuakzAYZSeVrgygOL6Nmgp5Fraa",
+        "email": "sim+romano_880001_op7@gfv.local",
+        "displayName": "Giuseppe Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "FNRF5RKIm826QiFZTaPwemMNIh8Z",
+        "email": "sim+romano_880001_op8@gfv.local",
+        "displayName": "Elena Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "T2Hp1oeziMKJe0v6ET9u4BpIOdEH",
+        "email": "sim+romano_880001_op9@gfv.local",
+        "displayName": "Stefano Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "8KeASlHw4yU7vReAEQQL9GvCnjT5",
+        "email": "sim+romano_880001_op10@gfv.local",
+        "displayName": "Lucia Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "92d137e2-745b-45d5-8af0-e1daf82ab8e5",
+    "templateId": "regime-max-titolare",
+    "tenantId": "sim_cascina_colombo_880002",
+    "userId": "bXk637NMADQmTjLnlHKdqXFaqySC",
+    "email": "sim+colombo_880002@gfv.local",
+    "aziendaNome": "Cascina Colombo",
+    "seedVersion": 2,
+    "createdAt": "2026-06-27T04:29:53.179Z"
+  }
+]

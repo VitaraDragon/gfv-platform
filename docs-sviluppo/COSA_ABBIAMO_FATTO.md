@@ -1,6 +1,71 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-26 — direzione v3 sim (cascata/test) + i18n alert meteo + test semafori dashboard.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — allineamento app↔sim catalogo + fix cascata UI/Tony.**
+
+## Allineamento app ↔ simulatore — riepilogo (2026-06-27)
+
+| Area | App | Simulatore | Note |
+|------|-----|------------|------|
+| **Catalogo dati** | `categorie-service`, `tipi-lavoro-service`, `colture-service` | `seed-app-catalog.js` (populate, backfill, migrate) | Sorgente unica: `core/config/app-catalog-seed-data.js` |
+| **Conteggi attesi** | init tenant al primo accesso | `tenant-inspect` + backfill | 11 cat. lavori + 9 cat. colture, 18 sottocat., **78** tipi lavoro (nomi unici), **99** colture |
+| **Fix catalogo** | `TIPI_LAVORO_CANONICAL_FIXES` in `tipi-lavoro-service.js` | stesso array in `seed-app-catalog.js` | es. «Diserbo Manuale» solo sotto Diserbo |
+| **Alias sim** | — | `SIM_ALIASES_TIPI_LAVORO` (3 voci template vigneto) | Solo seed attività simulate, non duplicano catalogo app |
+| **Regole filtro cascata** | UI form + Tony | Vitest + live smoke | Condiviso: `core/js/lavoro-cascade-filters.js` |
+| **Cascata UI (preserve padri)** | attività, lavori, terreni, Tony injector | — | Solo browser; il sim scrive Firestore via Admin SDK |
+
+**Tenant sim pre-esistenti:** `npm run sim:backfill` poi `npm run sim:inspect`.
+
+## Cascata form attività/lavori — preservazione livelli superiori (2026-06-27)
+
+**Problema:** impostando la cascata fino in fondo (tipo lavoro / coltura), a volte si azzerava la sottocategoria o la categoria coltura; impatto su compilazione manuale e Tony.
+
+**Fix (app):**
+- `core/js/lavoro-cascade-filters.js` — `resolvePreserveCascadeSelection`, `resolveCascadeFilterCategoriaId`
+- `core/js/attivita-controller.js`, `core/admin/js/gestione-lavori-controller.js` — preserve su ripopola sottocat/tipi/colture
+- `core/js/attivita-events.js`, `core/admin/js/gestione-lavori-events.js` — handler cascata bind singolo (no listener duplicati ad ogni apertura modal); restore tipo dopo reload
+- `core/js/terreni-events.js` — preserve coltura su cambio categoria coltura
+- `core/js/tony-form-injector.js` — delay `attivita-coltura-*`, skip `change` se valore già corretto, refresh dropdown colture post-categoria
+
+**Test:** `tests/cascade-colture-lavori.test.js` — **9/9** OK (inclusi test preserve).
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.1.1; `docs-sviluppo/tony/STATO_ATTUALE.md` (Form Injector).
+
+## Catalogo tipi lavoro — rimosso duplicato «Diserbo Manuale» (2026-06-27)
+
+**Problema:** «Diserbo Manuale» compariva sia sotto **Gestione del Verde** sia sotto **Diserbo** (stesso nome, sottocategorie diverse).
+
+**Fix:** rimossa la voce in `gestione_verde_manuale` da `core/config/app-catalog-seed-data.js`; resta solo sotto `diserbo_manuale`. `TIPI_LAVORO_CANONICAL_FIXES` riallinea i tenant che avevano già il record sotto Gestione del Verde (`tipi-lavoro-service.js` + `seed-app-catalog.js`).
+
+## GFV Farm Simulator — catalogo allineato all’app (2026-06-27)
+
+**Richiesta:** il simulatore deve avere lo stesso catalogo dell’app reale — categorie, sottocategorie, tipi lavoro e colture (non seed flat minimale).
+
+**Codice:**
+- `core/config/app-catalog-seed-data.js` — unica sorgente dati per app (`categorie-service`, `tipi-lavoro-service`, `colture-service`) e sim
+- `simulator/lib/seed-app-catalog.js` — seed idempotente Admin SDK (11+9 categorie, 18 sottocategorie, 78 tipi lavoro unici + 3 alias sim, 99 colture)
+- `simulator/lib/seed-lavori-catalog.js` — re-export legacy → `seedAppCatalog`
+- `simulator/lib/seed-reference-data.js` — solo podere (catalogo spostato in `seed-app-catalog.js`)
+- `simulator/phases/02-populate-assets.js`, `backfill-existing.js`, `migrate-terreni-seed.js` — chiamano `seedAppCatalog`
+- `simulator/lib/tenant-inspect.js` — audit minimo sottocategorie/tipi/colture
+
+**Verifica:** `npm run sim:backfill` su tenant esistenti → `+8 cat, +18 sottocat, +73 tipi, +96 colture`; `npm run sim:inspect` OK; `node scripts/cascade-v3-live-smoke.js` OK (vendemmia, sottocategorie, CV).
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — §4 populate, §11.1 terzo incremento.
+
+## GFV Farm Simulator — secondo incremento v3 (test a cascata, 2026-06-27)
+
+**Scope:** Vitest puro Node — catene X→Y senza browser/Tony/sim orchestrator.
+
+**Codice:**
+- `core/js/macchine-cv-compat.js` — `attrezziCompatibiliConTrattoreCv`, `filterAttrezziDropdownCompatibili` (usato da `gestione-lavori-controller.js`)
+- `tests/cascade-attrezzi-cv.test.js` — trattore 50 CV esclude min 75; 100 CV include tutti; senza potenza → nessun filtro CV
+- `core/js/lavoro-cascade-filters.js` — filtri puri categoria→tipo, colture, vendemmia; wiring `gestione-lavori-controller.js` + `attivita-controller.js`
+- `tests/cascade-colture-lavori.test.js` — categoria→sottocategoria→tipo; colture da terreni/categoria; raccolta+vite→vendemmia
+- `tests/dashboard-deadlines.test.js` — bucket km/ore/affitti/revisioni per colore semaforo
+
+**Verifica:** `npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-attrezzi-cv.test.js tests/cascade-colture-lavori.test.js tests/meteo-alert-i18n.test.js` — 33/33 OK.
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.1 — riga secondo incremento.
 
 ## GFV Farm Simulator — direzione v3 ridimensionata (2026-06-26)
 

@@ -354,7 +354,38 @@ export function toggleFormRapido(lavoroId) {
  * @param {Function} populateSottocategorieLavoroCallback - Callback per popolare sottocategorie
  * @param {Function} loadTipiLavoroCallback - Callback per caricare tipi lavoro
  */
+let attivitaCascadeHandlersBound = false;
+
+function restoreTipoLavoroAfterReload(currentTipoLavoroValue, currentTipoLavoroText) {
+    if (!currentTipoLavoroValue && !currentTipoLavoroText) return;
+    setTimeout(() => {
+        const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
+        if (!tipoLavoroSelectAfter) return;
+        if (currentTipoLavoroValue) {
+            const optionByValue = Array.from(tipoLavoroSelectAfter.options).find(
+                (opt) => opt.value === currentTipoLavoroValue
+            );
+            if (optionByValue) {
+                tipoLavoroSelectAfter.value = currentTipoLavoroValue;
+                return;
+            }
+        }
+        if (currentTipoLavoroText) {
+            const search = currentTipoLavoroText.trim().toLowerCase();
+            const optionByText = Array.from(tipoLavoroSelectAfter.options).find(
+                (opt) => (opt.text || '').trim().toLowerCase() === search
+            );
+            if (optionByText) {
+                tipoLavoroSelectAfter.value = optionByText.value;
+            }
+        }
+    }, 100);
+}
+
 export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback, loadTipiLavoroCallback) {
+    if (attivitaCascadeHandlersBound) return;
+    attivitaCascadeHandlersBound = true;
+
     const categoriaPrincipaleSelect = document.getElementById('attivita-categoria-principale');
     const sottocategoriaSelect = document.getElementById('attivita-sottocategoria');
     
@@ -362,10 +393,14 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
         categoriaPrincipaleSelect.addEventListener('change', function() {
             const categoriaPrincipaleId = this.value;
             if (categoriaPrincipaleId) {
-                if (populateSottocategorieLavoroCallback) populateSottocategorieLavoroCallback(categoriaPrincipaleId);
+                const preserveSub = sottocategoriaSelect ? sottocategoriaSelect.value : null;
+                if (populateSottocategorieLavoroCallback) {
+                    populateSottocategorieLavoroCallback(categoriaPrincipaleId, preserveSub);
+                }
                 if (loadTipiLavoroCallback) {
                     console.log('[ATTIVITA-EVENTS] Categoria principale cambiata, ricarico tipi lavoro per applicare filtro vendemmia se necessario');
-                    loadTipiLavoroCallback(categoriaPrincipaleId);
+                    const filterId = (document.getElementById('attivita-sottocategoria')?.value) || categoriaPrincipaleId;
+                    loadTipiLavoroCallback(filterId);
                 }
             } else {
                 const sottocategoriaGroup = document.getElementById('attivita-sottocategoria-group');
@@ -398,55 +433,7 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
                 
                 // Chiama il callback per ricaricare i tipi lavoro
                 loadTipiLavoroCallback(categoriaId);
-                
-                // Dopo che il dropdown è stato ricaricato, prova a reimpostare il valore se è ancora disponibile
-                if (currentTipoLavoroValue || currentTipoLavoroText) {
-                    // Usa un setTimeout per aspettare che il dropdown sia stato popolato
-                    setTimeout(() => {
-                        const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
-                        if (tipoLavoroSelectAfter) {
-                            // Prova prima con il valore (se è un ID)
-                            if (currentTipoLavoroValue) {
-                                const optionByValue = Array.from(tipoLavoroSelectAfter.options).find(
-                                    opt => opt.value === currentTipoLavoroValue
-                                );
-                                if (optionByValue) {
-                                    tipoLavoroSelectAfter.value = currentTipoLavoroValue;
-                                    console.log('[ATTIVITA-EVENTS] Valore tipo lavoro ripristinato per valore:', currentTipoLavoroValue);
-                                    // Dispatch evento change per notificare altri listener
-                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
-                                    return;
-                                }
-                            }
-                            
-                            // Se non trovato per valore, prova per testo (per compatibilità con valori testuali)
-                            if (currentTipoLavoroText) {
-                                const search = currentTipoLavoroText.trim().toLowerCase();
-                                const optionByText = Array.from(tipoLavoroSelectAfter.options).find(
-                                    opt => (opt.text || '').trim().toLowerCase() === search
-                                );
-                                if (optionByText) {
-                                    tipoLavoroSelectAfter.value = optionByText.value;
-                                    console.log('[ATTIVITA-EVENTS] Valore tipo lavoro ripristinato per testo:', currentTipoLavoroText);
-                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
-                                    return;
-                                }
-                                // Fallback: match parziale (es. "Trinciatura" → "Trinciatura tra le file" quando si passa a Tra le File)
-                                const optionByPartial = Array.from(tipoLavoroSelectAfter.options).find(
-                                    opt => (opt.text || '').toLowerCase().includes(search) || search.includes((opt.text || '').toLowerCase())
-                                );
-                                if (optionByPartial) {
-                                    tipoLavoroSelectAfter.value = optionByPartial.value;
-                                    console.log('[ATTIVITA-EVENTS] Valore tipo lavoro ripristinato per match parziale:', currentTipoLavoroText, '→', optionByPartial.text);
-                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
-                                    return;
-                                }
-                            }
-                            
-                            console.log('[ATTIVITA-EVENTS] Valore tipo lavoro non più disponibile dopo cambio sottocategoria:', currentTipoLavoroValue || currentTipoLavoroText);
-                        }
-                    }, 100); // Delay di 100ms per permettere al dropdown di essere popolato
-                }
+                restoreTipoLavoroAfterReload(currentTipoLavoroValue, currentTipoLavoroText);
             }
         });
     }
@@ -714,22 +701,27 @@ export async function openAttivitaModal(params) {
             // Cerca il tipo lavoro nella struttura gerarchica
             const tipoLavoroObj = tipiLavoroList.find(t => t.nome === attivita.tipoLavoro);
             if (tipoLavoroObj && tipoLavoroObj.categoriaId) {
-                // Trova categoria principale
                 let categoriaPrincipaleId = tipoLavoroObj.categoriaId;
+                let sottocategoriaId = tipoLavoroObj.sottocategoriaId || null;
                 const categoriaTrovata = categorieLavoriPrincipali.find(c => c.id === categoriaPrincipaleId);
                 if (!categoriaTrovata) {
-                    // È una sottocategoria, trova la principale
                     for (const [parentId, sottocat] of sottocategorieLavoriMap.entries()) {
-                        if (sottocat.find(sc => sc.id === categoriaPrincipaleId)) {
+                        const sub = sottocat.find(sc => sc.id === categoriaPrincipaleId);
+                        if (sub) {
+                            sottocategoriaId = sub.id;
                             categoriaPrincipaleId = parentId;
                             break;
                         }
                     }
                 }
                 populateCategoriaLavoroDropdown(categoriaPrincipaleId);
-                populateSottocategorieLavoro(categoriaPrincipaleId);
-                await loadTipiLavoro(tipoLavoroObj.categoriaId);
-                document.getElementById('attivita-tipo-lavoro-gerarchico').value = attivita.tipoLavoro || '';
+                populateSottocategorieLavoro(categoriaPrincipaleId, sottocategoriaId);
+                const filterId = sottocategoriaId || categoriaPrincipaleId;
+                await loadTipiLavoro(filterId);
+                const tipoGerarchico = document.getElementById('attivita-tipo-lavoro-gerarchico');
+                if (tipoGerarchico) {
+                    tipoGerarchico.value = attivita.tipoLavoro || '';
+                }
             } else {
                 populateCategoriaLavoroDropdown();
             }

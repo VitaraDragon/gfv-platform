@@ -3,7 +3,19 @@
  * @module simulator/lib/tenant-inspect
  */
 
+import {
+  COLTURE_PREDEFINITE,
+  SOTTOCATEGORIE_PREDEFINITE,
+  TIPI_LAVORO_PREDEFINITI,
+  SIM_ALIASES_TIPI_LAVORO,
+} from '../../core/config/app-catalog-seed-data.js';
+
 const EXPECTED_COLTURA = 'Vite da Vino';
+const MIN_SOTTOCATEGORIE = SOTTOCATEGORIE_PREDEFINITE.length;
+const MIN_TIPI_LAVORO = new Set(
+  [...TIPI_LAVORO_PREDEFINITI, ...SIM_ALIASES_TIPI_LAVORO].map((t) => String(t.nome).toLowerCase())
+).size;
+const MIN_COLTURE = COLTURE_PREDEFINITE.length;
 
 const TIPI_FLOTTA = new Set(['automezzo', 'veicolo', 'furgone']);
 
@@ -75,6 +87,7 @@ export async function inspectTenantSeed(db, tenantId) {
   const poderi = await listCollection(db, tenantId, 'poderi');
   const colture = await listCollection(db, tenantId, 'colture');
   const categorie = await listCollection(db, tenantId, 'categorie');
+  const tipiLavoro = await listCollection(db, tenantId, 'tipiLavoro');
   const attivita = await listCollection(db, tenantId, 'attivita');
   const macchine = await listCollection(db, tenantId, 'macchine');
   const vigneti = await listCollection(db, tenantId, 'vigneti');
@@ -84,7 +97,17 @@ export async function inspectTenantSeed(db, tenantId) {
   const trattamentiVigneto = await countVignetoSubcollections(db, tenantId, 'trattamenti');
 
   if (poderi.length < 1) errors.push('manca almeno un podere');
-  if (colture.length < 1) errors.push('manca catalogo colture');
+  if (colture.length < MIN_COLTURE) {
+    errors.push(`catalogo colture incompleto (${colture.length}/${MIN_COLTURE})`);
+  }
+
+  const sottocategorie = categorie.filter((c) => c.parentId);
+  if (sottocategorie.length < MIN_SOTTOCATEGORIE) {
+    errors.push(`sottocategorie lavori incomplete (${sottocategorie.length}/${MIN_SOTTOCATEGORIE})`);
+  }
+  if (tipiLavoro.length < MIN_TIPI_LAVORO) {
+    errors.push(`tipi lavoro incompleti (${tipiLavoro.length}/${MIN_TIPI_LAVORO})`);
+  }
 
   const flotta = macchine.filter(isTipoFlotta);
   const flottaKm = validateFlottaKmSeed(flotta);
@@ -125,6 +148,8 @@ export async function inspectTenantSeed(db, tenantId) {
       terreni: terreni.length,
       poderi: poderi.length,
       colture: colture.length,
+      sottocategorie: sottocategorie.length,
+      tipiLavoro: tipiLavoro.length,
       categorieColture: categorie.filter((c) => c.applicabileA === 'colture').length,
       attivita: attivita.length,
       macchine: macchine.length,

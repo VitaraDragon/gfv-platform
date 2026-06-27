@@ -22,6 +22,13 @@ import {
     formatDateLikeToItalianLongLocal
 } from '../../js/date-format-it.js';
 
+import { filterAttrezziDropdownCompatibili } from '../../js/macchine-cv-compat.js';
+import {
+    filterTipiLavoroByCategoria,
+    getSottocategorieForParent,
+    resolvePreserveCascadeSelection,
+} from '../../js/lavoro-cascade-filters.js';
+
 // ============================================
 // FUNZIONI HELPER
 // ============================================
@@ -641,35 +648,14 @@ export async function loadTipiLavoro(
         }
         
         // Se è specificata una categoria, filtra per quella categoria o le sue sottocategorie
-        let tipiLavoroFiltrati = tipiLavoroList;
-        if (categoriaId) {
-            // Verifica se categoriaId è una sottocategoria o categoria principale
-            const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
-            
-            if (categoriaTrovata && categoriaTrovata.parentId) {
-                // È una sottocategoria: filtra per sottocategoriaId
-                const parentId = categoriaTrovata.parentId;
-                tipiLavoroFiltrati = tipiLavoroList.filter(tipo => {
-                    return tipo.sottocategoriaId === categoriaId || 
-                           tipo.categoriaId === categoriaId ||
-                           (tipo.categoriaId === parentId && !tipo.sottocategoriaId);
-                });
-            } else {
-                // È una categoria principale: include anche le sue sottocategorie
-                let allCategorieIds = [categoriaId];
-                const sottocat = sottocategorieLavoriMap.get(categoriaId);
-                if (sottocat) {
-                    sottocat.forEach(subcat => allCategorieIds.push(subcat.id));
-                }
-                
-                // Filtra i tipi per categoria principale O per sottocategorie
-                tipiLavoroFiltrati = tipiLavoroList.filter(tipo => {
-                    return tipo.categoriaId === categoriaId || 
-                           (tipo.sottocategoriaId && allCategorieIds.includes(tipo.sottocategoriaId)) ||
-                           (allCategorieIds.includes(tipo.categoriaId) && !tipo.sottocategoriaId);
-                });
-            }
-        }
+        const tipiLavoroFiltrati = categoriaId
+            ? filterTipiLavoroByCategoria(
+                categoriaId,
+                tipiLavoroList,
+                categorieLavoriPrincipali,
+                sottocategorieLavoriMap
+            )
+            : tipiLavoroList;
         
         // Passa i tipi filtrati alla funzione di popolamento
         if (populateTipoLavoroDropdownCallback) {
@@ -1351,6 +1337,11 @@ export function populateSottocategorieLavoro(parentId, sottocategorieLavoriMap, 
     const sottocategoriaGroup = document.getElementById('lavoro-sottocategoria-group');
     
     if (!sottocategoriaSelect || !sottocategoriaGroup) return;
+
+    const previousValue = sottocategoriaSelect.value || null;
+    const sottocat = getSottocategorieForParent(parentId, sottocategorieLavoriMap);
+    const preserveId = selectedValue
+        || resolvePreserveCascadeSelection(previousValue, sottocat);
     
     sottocategoriaSelect.innerHTML = '<option value="">-- Nessuna sottocategoria --</option>';
     
@@ -1359,14 +1350,13 @@ export function populateSottocategorieLavoro(parentId, sottocategorieLavoriMap, 
         return;
     }
     
-    const sottocat = sottocategorieLavoriMap.get(parentId);
-    if (sottocat && sottocat.length > 0) {
+    if (sottocat.length > 0) {
         sottocategoriaGroup.style.display = 'block';
         sottocat.forEach(subcat => {
             const option = document.createElement('option');
             option.value = subcat.id;
             option.textContent = subcat.nome;
-            if (selectedValue === subcat.id) {
+            if (preserveId === subcat.id) {
                 option.selected = true;
             }
             sottocategoriaSelect.appendChild(option);
@@ -1397,6 +1387,8 @@ export function populateTipoLavoroDropdown(
     const tipoLavoroGroup = document.getElementById('tipo-lavoro-group');
     
     if (!select || !tipoLavoroGroup) return;
+
+    const previousTipo = select.value || null;
     
     select.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option>';
     
@@ -1583,7 +1575,8 @@ export function populateTipoLavoroDropdown(
         return;
     }
 
-    let effectiveSelectedValue = selectedValue;
+    let effectiveSelectedValue = selectedValue
+        || (previousTipo && tipiFiltrati.some((t) => t.nome === previousTipo) ? previousTipo : null);
     if (!effectiveSelectedValue && isCategoriaTrattamentiFitosanitari(categoriaId, categorieLavoriPrincipali, sottocategorieLavoriMap)) {
         const matchDefault = tipiFiltrati.find(t => (t.nome || '') === DEFAULT_TIPO_LAVORO_TRATTAMENTO_GENERICO);
         if (matchDefault) {
@@ -2088,21 +2081,7 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         return;
     }
     
-    const cvTrattore = Number(trattore.cavalli);
-    const hasPotenzaTrattore = Number.isFinite(cvTrattore) && cvTrattore > 0;
-
-    // Come attività: CV minimo mancante → 0; senza potenza trattore non filtriamo per CV (mostriamo tutti gli attrezzi non dismessi).
-    const attrezziCompatibili = attrezziList.filter(attrezzo => {
-        if (!attrezzo || attrezzo.stato === 'dismesso') {
-            return false;
-        }
-        if (!hasPotenzaTrattore) {
-            return true;
-        }
-        const minRaw = attrezzo.cavalliMinimiRichiesti;
-        const minN = minRaw != null && minRaw !== '' && Number.isFinite(Number(minRaw)) ? Number(minRaw) : 0;
-        return cvTrattore >= minN;
-    });
+    const attrezziCompatibili = filterAttrezziDropdownCompatibili(trattore, attrezziList);
     
     if (attrezziCompatibili.length === 0) {
         const option = document.createElement('option');

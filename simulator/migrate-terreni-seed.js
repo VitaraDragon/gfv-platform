@@ -8,6 +8,7 @@ import { readManifest, SEED_VERSION } from './lib/manifest.js';
 import { assertSimulatorSafeToRun } from './lib/guard-production.js';
 import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { seedTenantReferenceData } from './lib/seed-reference-data.js';
+import { seedAppCatalog } from './lib/seed-app-catalog.js';
 
 const MORFOLOGIE = ['collina', 'pianura', 'collina', 'montagna'];
 
@@ -31,11 +32,19 @@ async function migrateTenant(db, entry) {
   const poderiSnap = await db.collection(`tenants/${tenantId}/poderi`).limit(1).get();
   if (poderiSnap.empty) {
     await seedTenantReferenceData(db, tenantId, userId || 'sim-migrate', { podereNome });
-  } else {
-    const coltureSnap = await db.collection(`tenants/${tenantId}/colture`).limit(1).get();
-    if (coltureSnap.empty) {
-      await seedTenantReferenceData(db, tenantId, userId || 'sim-migrate', { podereNome });
-    }
+  }
+
+  const colSnap = await db.collection(`tenants/${tenantId}/colture`).limit(1).get();
+  const subSnap = await db
+    .collection(`tenants/${tenantId}/categorie`)
+    .where('parentId', '!=', null)
+    .limit(1)
+    .get();
+  if (colSnap.empty || subSnap.empty) {
+    const stats = await seedAppCatalog(db, tenantId, userId || 'sim-migrate');
+    console.log(
+      `  catalogo app: +${stats.categoriePrincipali} cat, +${stats.sottocategorie} sottocat, +${stats.tipiLavoro} tipi, +${stats.colture} colture`
+    );
   }
 
   const terreniSnap = await db.collection(`tenants/${tenantId}/terreni`).get();

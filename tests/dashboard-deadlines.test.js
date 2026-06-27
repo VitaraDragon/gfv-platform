@@ -214,4 +214,211 @@ describe('dashboard-deadlines — semafori urgenza', () => {
     expect(assicurazione).toBeTruthy();
     expect(assicurazione.colore).toBe('green');
   });
+
+  it('fetchInArrivoItems — bucket km nero/rosso/giallo/verde (profili seed flotta)', async () => {
+    const kmBase = 45000;
+    const deps = makeMockDeps({
+      'tenants/sim_test/macchine': [
+        {
+          id: 'flotta-km-black',
+          data: {
+            nome: 'Furgone Km Superato',
+            tipoMacchina: 'furgone',
+            kmAttuali: kmBase + 12000,
+            kmProssimaManutenzione: kmBase + 11500,
+            prossimaManutenzione: daysFromToday(60),
+          },
+        },
+        {
+          id: 'flotta-km-red',
+          data: {
+            nome: 'Furgone Km Rosso',
+            tipoMacchina: 'furgone',
+            kmAttuali: kmBase + 100,
+            kmProssimaManutenzione: kmBase + 400,
+            prossimaManutenzione: daysFromToday(60),
+          },
+        },
+        {
+          id: 'flotta-km-yellow',
+          data: {
+            nome: 'Furgone Km Giallo',
+            tipoMacchina: 'furgone',
+            kmAttuali: kmBase,
+            kmProssimaManutenzione: kmBase + 800,
+            prossimaManutenzione: daysFromToday(60),
+          },
+        },
+        {
+          id: 'flotta-km-green',
+          data: {
+            nome: 'Furgone Km Ok',
+            tipoMacchina: 'furgone',
+            kmAttuali: kmBase + 8000,
+            kmProssimaManutenzione: kmBase + 15000,
+            prossimaManutenzione: daysFromToday(60),
+          },
+        },
+      ],
+    });
+
+    const items = await fetchInArrivoItems(
+      'sim_test',
+      { hasManodopera: false, hasContoTerzi: false, availableModules: ['parcoMacchine'] },
+      deps
+    );
+
+    const byTitle = (title) =>
+      items.find((it) => it.tipoLabel === 'Tagliando km' && it.titolo === title);
+
+    expect(byTitle('Furgone Km Superato').colore).toBe('black');
+    expect(byTitle('Furgone Km Superato').dettaglio).toMatch(/Superato/);
+
+    expect(byTitle('Furgone Km Rosso').colore).toBe('red');
+    expect(byTitle('Furgone Km Rosso').dettaglio).toMatch(/< 500 km/);
+
+    expect(byTitle('Furgone Km Giallo').colore).toBe('yellow');
+    expect(byTitle('Furgone Km Giallo').dettaglio).toMatch(/< 2\.000 km/);
+
+    expect(byTitle('Furgone Km Ok').colore).toBe('green');
+    expect(byTitle('Furgone Km Ok').dettaglio).toMatch(/Ok/);
+  });
+
+  it('fetchInArrivoItems — bucket ore nero/rosso/giallo/verde (profili seed trattori)', async () => {
+    const deps = makeMockDeps({
+      'tenants/sim_test/macchine': [
+        {
+          id: 'tr-ore-black',
+          data: {
+            nome: 'Trattore Ore Superate',
+            tipoMacchina: 'trattore',
+            oreAttuali: 1250,
+            oreProssimaManutenzione: 1240,
+            prossimaManutenzione: daysFromToday(90),
+          },
+        },
+        {
+          id: 'tr-ore-red',
+          data: {
+            nome: 'Trattore Ore Rosse',
+            tipoMacchina: 'trattore',
+            oreAttuali: 1220,
+            oreProssimaManutenzione: 1230,
+            prossimaManutenzione: daysFromToday(90),
+          },
+        },
+        {
+          id: 'tr-ore-yellow',
+          data: {
+            nome: 'Trattore Ore Gialle',
+            tipoMacchina: 'trattore',
+            oreAttuali: 1200,
+            oreProssimaManutenzione: 1235,
+            prossimaManutenzione: daysFromToday(18),
+          },
+        },
+        {
+          id: 'tr-ore-green',
+          data: {
+            nome: 'Trattore Ore Ok',
+            tipoMacchina: 'trattore',
+            oreAttuali: 1200,
+            oreProssimaManutenzione: 1320,
+            prossimaManutenzione: daysFromToday(90),
+          },
+        },
+      ],
+    });
+
+    const items = await fetchInArrivoItems(
+      'sim_test',
+      { hasManodopera: false, hasContoTerzi: false, availableModules: ['parcoMacchine'] },
+      deps
+    );
+
+    const byTitle = (title) =>
+      items.find((it) => it.tipoLabel === 'Manutenzione ore' && it.titolo === title);
+
+    expect(byTitle('Trattore Ore Superate').colore).toBe('black');
+    expect(byTitle('Trattore Ore Rosse').colore).toBe('red');
+    expect(byTitle('Trattore Ore Gialle').colore).toBe('yellow');
+    expect(byTitle('Trattore Ore Ok').colore).toBe('green');
+  });
+
+  it('fetchScadenzeAmministrazioneItems — affitti grey/red/yellow/green', async () => {
+    const deps = makeMockDeps({
+      'tenants/sim_test/terreni': [
+        {
+          id: 'aff-grey',
+          data: {
+            nome: 'Affitto Scaduto',
+            tipoPossesso: 'affitto',
+            dataScadenzaAffitto: daysFromToday(-5),
+          },
+        },
+        {
+          id: 'aff-red',
+          data: {
+            nome: 'Affitto Urgente',
+            tipoPossesso: 'affitto',
+            dataScadenzaAffitto: daysFromToday(10),
+          },
+        },
+        {
+          id: 'aff-yellow',
+          data: {
+            nome: 'Affitto Medio',
+            tipoPossesso: 'affitto',
+            dataScadenzaAffitto: daysFromToday(90),
+          },
+        },
+        {
+          id: 'aff-green',
+          data: {
+            nome: 'Affitto Lontano',
+            tipoPossesso: 'affitto',
+            dataScadenzaAffitto: daysFromToday(200),
+          },
+        },
+      ],
+      'tenants/sim_test/macchine': [],
+    });
+
+    const items = await fetchScadenzeAmministrazioneItems('sim_test', [], deps);
+
+    const byTitle = (title) => items.find((it) => it.tipoLabel === 'Affitto' && it.titolo === title);
+
+    expect(byTitle('Affitto Scaduto').colore).toBe('grey');
+    expect(byTitle('Affitto Urgente').colore).toBe('red');
+    expect(byTitle('Affitto Medio').colore).toBe('yellow');
+    expect(byTitle('Affitto Lontano').colore).toBe('green');
+  });
+
+  it('fetchScadenzeAmministrazioneItems — revisione gialla e assicurazione rossa', async () => {
+    const deps = makeMockDeps({
+      'tenants/sim_test/terreni': [],
+      'tenants/sim_test/macchine': [
+        {
+          id: 'm-rev-yellow',
+          data: {
+            nome: 'Mezzo Revisione Gialla',
+            prossimaRevisione: daysFromToday(20),
+            prossimaAssicurazione: daysFromToday(5),
+          },
+        },
+      ],
+    });
+
+    const items = await fetchScadenzeAmministrazioneItems(
+      'sim_test',
+      ['parcoMacchine'],
+      deps
+    );
+
+    const revisione = items.find((it) => it.tipoLabel === 'Revisione');
+    expect(revisione.colore).toBe('yellow');
+
+    const assicurazione = items.find((it) => it.tipoLabel === 'Assicurazione');
+    expect(assicurazione.colore).toBe('red');
+  });
 });

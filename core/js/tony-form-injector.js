@@ -35,6 +35,8 @@
   const DELAYS_ATTIVITA = {
     'attivita-categoria-principale': 250,
     'attivita-sottocategoria': 250,
+    'attivita-coltura-categoria': 280,
+    'attivita-coltura-gerarchica': 150,
     'attivita-terreno': 400,
     'attivita-macchina': 350,
     'attivita-tipo-lavoro-gerarchico': 150,
@@ -2760,6 +2762,10 @@
         }
       }
     }
+    if (String(el.value || '') === String(resolved || '')) {
+      log('Campo SELECT ' + fieldId + ' già impostato a "' + resolved + '" (skip change)');
+      return true;
+    }
     el.value = resolved;
     if ((fieldId === 'lavoro-trattore' || fieldId === 'lavoro-attrezzo') && String(el.value) !== String(resolved)) {
       var idxMac = Array.from(el.options).findIndex(function (o) { return String(o.value || '') === String(resolved); });
@@ -3256,6 +3262,20 @@
       if (fieldId === 'attivita-sottocategoria') {
         await waitForSelectOptions('attivita-sottocategoria', 2);
       }
+      if (fieldId === 'attivita-coltura-categoria') {
+        await waitForSelectOptions('attivita-coltura-categoria', 2);
+      }
+      if (fieldId === 'attivita-coltura-gerarchica') {
+        if (typeof window.updateColtureDropdownAttivita === 'function') {
+          window.updateColtureDropdownAttivita();
+        }
+        await waitForSelectOptions('attivita-coltura-gerarchica', 2);
+        var rawColAtt = formData[fieldId];
+        var rawColStrAtt = rawColAtt != null ? String(rawColAtt).trim() : '';
+        if (rawColStrAtt) {
+          await waitForSelectOptionTextOrValue('attivita-coltura-gerarchica', rawColStrAtt, 8000);
+        }
+      }
       if (formId === 'lavoro-form' && fieldId === 'lavoro-categoria-principale') {
         await waitForSelectOptions('lavoro-sottocategoria', 2, lw(8000));
       }
@@ -3421,6 +3441,12 @@
       }
       setFieldValue(fieldId, value, mapConfig, context);
 
+      if (formId === 'attivita-form' && fieldId === 'attivita-coltura-categoria') {
+        if (typeof window.updateColtureDropdownAttivita === 'function') {
+          window.updateColtureDropdownAttivita();
+        }
+        await delay(280);
+      }
       if (formId === 'preventivo-form' && fieldId === 'coltura-categoria') {
         if (typeof window.updateColtureDropdownPreventivo === 'function') {
           window.updateColtureDropdownPreventivo();

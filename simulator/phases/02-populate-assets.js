@@ -14,7 +14,7 @@ import {
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { seedTenantReferenceData } from '../lib/seed-reference-data.js';
-import { seedLavoriCatalog } from '../lib/seed-lavori-catalog.js';
+import { seedAppCatalog } from '../lib/seed-app-catalog.js';
 import { ensureTenantEconomia } from '../lib/sim-economia-vigneto.js';
 import {
   enrichAttrezzoPayload,
@@ -58,12 +58,11 @@ export async function runPopulateAssets() {
 
   const categorieMap = await seedCategorieAttrezzi(db, tenantId, userId);
 
+  const catalogStats = await seedAppCatalog(db, tenantId, userId);
+
   const { podereNome } = await seedTenantReferenceData(db, tenantId, userId, {
     podereNome: profile?.aziendaNome || 'Podere principale'
   });
-
-  const tipiLavoro = template?.attivita?.tipiLavoro || [];
-  const { tipiSeed } = await seedLavoriCatalog(db, tenantId, userId, tipiLavoro);
 
   const terreniData = generaTerreni(q.terreni || 4, seed, { podereNome });
   const terreni = [];

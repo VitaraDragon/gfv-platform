@@ -17,6 +17,16 @@ import {
     formatDateLikeToItalianLongWeekday
 } from './date-format-it.js';
 import { formatPosizioneRilevamentoCompactHtml } from './geo-capture.js';
+import {
+    coltureDisponibiliPerCategoria,
+    extractColtureUnicheFromTerreni,
+    filterTipiLavoroByCategoria,
+    filterTipiLavoroVendemmia,
+    getSottocategorieForParent,
+    isCategoriaRaccolta,
+    resolvePreserveCascadeSelection,
+    terrenoHaColturaVite,
+} from './lavoro-cascade-filters.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -971,44 +981,43 @@ export function populateClientiDropdown(clientiList = []) {
  * @param {string} categoriaId - ID categoria selezionata
  * @param {Object} colturePerCategoria - Oggetto con colture per categoria (window.colturePerCategoriaAttivita)
  */
-export function updateColtureDropdownAttivita(categoriaId, colturePerCategoria = {}) {
+export function updateColtureDropdownAttivita(categoriaId, colturePerCategoria = {}, preserveColtura = null) {
     const categoriaSelect = document.getElementById('attivita-coltura-categoria');
     const colturaSelect = document.getElementById('attivita-coltura-gerarchica');
     
     if (!categoriaSelect || !colturaSelect) {
         return;
     }
+
+    const effectiveCategoriaId = categoriaId || categoriaSelect.value || null;
+    const previousColtura = preserveColtura ?? colturaSelect.value ?? null;
     
     // Reset dropdown colture
     colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
     
-    if (!categoriaId) {
+    if (!effectiveCategoriaId) {
         colturaSelect.innerHTML = '<option value="">-- Seleziona prima la categoria --</option>';
         return;
     }
     
     // Popola con le colture della categoria selezionata
-    const coltureCategoria = colturePerCategoria[categoriaId] || [];
-    
-    if (coltureCategoria.length === 0) {
+    const nomiColture = coltureDisponibiliPerCategoria(effectiveCategoriaId, colturePerCategoria);
+
+    if (nomiColture.length === 0) {
         colturaSelect.innerHTML = '<option value="">-- Nessuna coltura disponibile per questa categoria --</option>';
         return;
     }
-    
-    // Ordina per nome
-    coltureCategoria.sort((a, b) => {
-        const nomeA = (a.nome || a || '').toLowerCase();
-        const nomeB = (b.nome || b || '').toLowerCase();
-        return nomeA.localeCompare(nomeB);
-    });
-    
-    coltureCategoria.forEach((coltura) => {
-        const nomeColtura = coltura.nome || coltura;
+
+    nomiColture.forEach((nomeColtura) => {
         const option = document.createElement('option');
         option.value = nomeColtura;
         option.textContent = nomeColtura;
         colturaSelect.appendChild(option);
     });
+
+    if (previousColtura && nomiColture.includes(previousColtura)) {
+        colturaSelect.value = previousColtura;
+    }
 }
 
 /**
@@ -1022,6 +1031,11 @@ export function populateSottocategorieLavoro(parentId, sottocategorieLavoriMap, 
     const sottocategoriaGroup = document.getElementById('attivita-sottocategoria-group');
     
     if (!sottocategoriaSelect || !sottocategoriaGroup) return;
+
+    const previousValue = sottocategoriaSelect.value || null;
+    const sottocat = getSottocategorieForParent(parentId, sottocategorieLavoriMap);
+    const preserveId = selectedValue
+        || resolvePreserveCascadeSelection(previousValue, sottocat);
     
     sottocategoriaSelect.innerHTML = '<option value="">-- Nessuna sottocategoria --</option>';
     
@@ -1030,14 +1044,13 @@ export function populateSottocategorieLavoro(parentId, sottocategorieLavoriMap, 
         return;
     }
     
-    const sottocat = sottocategorieLavoriMap.get(parentId);
-    if (sottocat && sottocat.length > 0) {
+    if (sottocat.length > 0) {
         sottocategoriaGroup.style.display = 'block';
         sottocat.forEach(subcat => {
             const option = document.createElement('option');
             option.value = subcat.id;
             option.textContent = subcat.nome;
-            if (selectedValue === subcat.id) {
+            if (preserveId === subcat.id) {
                 option.selected = true;
             }
             sottocategoriaSelect.appendChild(option);
@@ -1099,6 +1112,8 @@ export function populateTipoLavoroDropdown(
     const tipoLavoroGroup = document.getElementById('attivita-tipo-lavoro-gerarchico-group');
     
     if (!select || !tipoLavoroGroup) return;
+
+    const previousTipo = select.value || null;
     
     select.innerHTML = '<option value="">-- Seleziona tipo lavoro --</option>';
     
@@ -1119,7 +1134,7 @@ export function populateTipoLavoroDropdown(
         ? categorieLavoriPrincipali.find(c => c.id === categoriaTrovata.parentId)
         : null;
     const categoriaParentNome = categoriaParent ? (categoriaParent.nome || '').toLowerCase() : '';
-    const isRaccolta = categoriaNome.includes('raccolta') || categoriaParentNome.includes('raccolta');
+    const isRaccolta = isCategoriaRaccolta(categoriaId, categorieLavoriPrincipali, sottocategorieLavoriMap);
     
     console.log('[ATTIVITA-CONTROLLER] populateTipoLavoroDropdown - categoriaId:', categoriaId, 'categoriaNome:', categoriaNome, 'isRaccolta:', isRaccolta);
     
@@ -1141,9 +1156,7 @@ export function populateTipoLavoroDropdown(
         }
         
         if (terreno && terreno.coltura) {
-            const colturaLower = terreno.coltura.toLowerCase();
-            // Verifica se la coltura contiene "vite" (può essere "Vite", "Vite da Vino", "Vite da Tavola", etc.)
-            if (colturaLower.includes('vite')) {
+            if (terrenoHaColturaVite(terreno)) {
                 isTerrenoVite = true;
                 console.log('[ATTIVITA-CONTROLLER] ✓ Terreno VITE rilevato (coltura:', terreno.coltura, '), applico filtro tipi vendemmia');
             } else {
@@ -1174,14 +1187,9 @@ export function populateTipoLavoroDropdown(
     if (isTerrenoVite && isRaccolta && tipiFiltrati.length > 0) {
         console.log('[ATTIVITA-CONTROLLER] ✓✓✓ Applicando filtro vendemmia: mostro solo Vendemmia Manuale e Vendemmia Meccanica');
         console.log('[ATTIVITA-CONTROLLER] Tipi prima del filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
-        
-        tipiFiltrati = tipiFiltrati.filter(tipo => {
-            const nomeTipo = (tipo.nome || '').toLowerCase();
-            const includeVendemmia = nomeTipo.includes('vendemmia');
-            console.log('[ATTIVITA-CONTROLLER] Tipo:', tipo.nome, 'include vendemmia?', includeVendemmia);
-            return includeVendemmia;
-        });
-        
+
+        tipiFiltrati = filterTipiLavoroVendemmia(tipiFiltrati, { isRaccolta: true, isTerrenoVite: true });
+
         console.log('[ATTIVITA-CONTROLLER] Tipi dopo filtro vendemmia:', tipiFiltrati.length, tipiFiltrati.map(t => t.nome));
         
         // Se non ci sono tipi vendemmia nella lista, aggiungi i predefiniti
@@ -1220,11 +1228,14 @@ export function populateTipoLavoroDropdown(
         return;
     }
     
+    const preserveTipo = selectedValue
+        || (previousTipo && tipiFiltrati.some((t) => t.nome === previousTipo) ? previousTipo : null);
+
     tipiFiltrati.forEach(tipo => {
         const option = document.createElement('option');
         option.value = tipo.nome; // Usa nome per retrocompatibilità con attività esistenti
         option.textContent = tipo.nome;
-        if (selectedValue === tipo.nome) {
+        if (preserveTipo === tipo.nome) {
             option.selected = true;
         }
         select.appendChild(option);
@@ -1236,16 +1247,7 @@ export function populateTipoLavoroDropdown(
  * @param {Array} terreni - Array terreni disponibili
  */
 export function populateColtureFromTerreni(terreni = []) {
-    // Estrai colture uniche dai terreni
-    const coltureUniche = new Set();
-    terreni.forEach(terreno => {
-        if (terreno.coltura && terreno.coltura.trim()) {
-            coltureUniche.add(terreno.coltura.trim());
-        }
-    });
-    
-    // Ordina le colture
-    const coltureOrdinate = Array.from(coltureUniche).sort();
+    const coltureOrdinate = extractColtureUnicheFromTerreni(terreni);
     
     // Popola il campo coltura gerarchica
     const colturaGerarchicaSelect = document.getElementById('attivita-coltura-gerarchica');
@@ -2763,29 +2765,15 @@ export async function loadTipiLavoro(params) {
         // Se è specificata una categoria, filtra per quella categoria o le sue sottocategorie
         // NOTA: Non modificare tipiLavoroList direttamente, usa una variabile locale per il filtro
         let tipiLavoroFiltrati = tipiLavoroList;
-        
+
         console.log('[ATTIVITA-CONTROLLER] loadTipiLavoro - categoriaId:', categoriaId, 'tipi totali:', tipiLavoroList.length);
         if (categoriaId) {
-            // Verifica se categoriaId è una sottocategoria o categoria principale
-            const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
-            
-            if (categoriaTrovata && categoriaTrovata.parentId) {
-                // È una sottocategoria: filtra per sottocategoriaId
-                tipiLavoroFiltrati = tipiLavoroList.filter(tipo => tipo.sottocategoriaId === categoriaId);
-            } else {
-                // È una categoria principale: include anche le sue sottocategorie
-                let allCategorieIds = [categoriaId];
-                const sottocat = sottocategorieLavoriMap.get(categoriaId);
-                if (sottocat) {
-                    sottocat.forEach(subcat => allCategorieIds.push(subcat.id));
-                }
-                
-                // Filtra i tipi per categoria principale O per sottocategorie
-                tipiLavoroFiltrati = tipiLavoroList.filter(tipo => {
-                    return tipo.categoriaId === categoriaId || 
-                           (tipo.sottocategoriaId && allCategorieIds.includes(tipo.sottocategoriaId));
-                });
-            }
+            tipiLavoroFiltrati = filterTipiLavoroByCategoria(
+                categoriaId,
+                tipiLavoroList,
+                categorieLavoriPrincipali,
+                sottocategorieLavoriMap
+            );
         }
         
         // Passa i tipi filtrati alla funzione di popolamento

@@ -14,110 +14,11 @@ import {
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { TipoLavoro } from '../models/TipoLavoro.js';
+import { TIPI_LAVORO_PREDEFINITI, TIPI_LAVORO_CANONICAL_FIXES } from '../config/app-catalog-seed-data.js';
+
+export { TIPI_LAVORO_PREDEFINITI };
 
 const COLLECTION_NAME = 'tipiLavoro';
-
-// Tipi lavoro predefiniti organizzati per sottocategoria
-// Struttura: { nome, sottocategoriaCodice, descrizione }
-/** Nomi → sottocategoriaCodice per lookup batch skill (e seed). */
-export const TIPI_LAVORO_PREDEFINITI = [
-  // Lavorazione del Terreno - Generale
-  { nome: 'Aratura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione profonda del terreno' },
-  { nome: 'Erpicatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione superficiale del terreno' },
-  { nome: 'Fresatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Frantumazione e rimescolamento del terreno' },
-  { nome: 'Vangatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione manuale o meccanica del terreno' },
-  { nome: 'Ripuntatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione profonda senza rivoltamento' },
-  { nome: 'Estirpatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Lavorazione con estirpatore' },
-  { nome: 'Rullatura', sottocategoriaCodice: 'lavorazione_terreno_generale', descrizione: 'Compattazione del terreno' },
-  // Lavorazione del Terreno - Tra le File
-  { nome: 'Fresatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file', descrizione: 'Fresatura tra le file di frutteti/vigneti' },
-  { nome: 'Erpicatura Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file', descrizione: 'Erpicatura tra le file' },
-  { nome: 'Ripasso Tra le File', sottocategoriaCodice: 'lavorazione_terreno_tra_file', descrizione: 'Ripasso lavorazione tra le file' },
-  // Lavorazione del Terreno - Sulla Fila
-  { nome: 'Vangatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila', descrizione: 'Vangatura sulla fila di frutteti/vigneti' },
-  { nome: 'Zappatura Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila', descrizione: 'Zappatura sulla fila' },
-  { nome: 'Diserbo Meccanico Sulla Fila', sottocategoriaCodice: 'lavorazione_terreno_sulla_fila', descrizione: 'Diserbo meccanico sulla fila' },
-  // Trattamenti - Manuale
-  { nome: 'Trattamento Manuale', sottocategoriaCodice: 'trattamenti_manuale', descrizione: 'Trattamento eseguito manualmente' },
-  { nome: 'Trattamento Anticrittogamico Manuale', sottocategoriaCodice: 'trattamenti_manuale', descrizione: 'Trattamento contro malattie fungine eseguito manualmente' },
-  { nome: 'Trattamento Insetticida Manuale', sottocategoriaCodice: 'trattamenti_manuale', descrizione: 'Trattamento contro insetti eseguito manualmente' },
-  // Trattamenti - Meccanico
-  { nome: 'Trattamento Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento eseguito con macchine' },
-  { nome: 'Trattamento Anticrittogamico Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento contro malattie fungine con macchine' },
-  { nome: 'Trattamento Insetticida Meccanico', sottocategoriaCodice: 'trattamenti_meccanico', descrizione: 'Trattamento contro insetti con macchine' },
-  // Concimazione - Manuale
-  { nome: 'Concimazione manuale sulla fila', sottocategoriaCodice: 'concimazione_manuale', descrizione: 'Distribuzione manuale lungo la fila' },
-  { nome: 'Concimazione manuale a pieno campo', sottocategoriaCodice: 'concimazione_manuale', descrizione: 'Distribuzione manuale su tutta la superficie' },
-  // Concimazione - Meccanico
-  { nome: 'Concimazione meccanica sulla fila', sottocategoriaCodice: 'concimazione_meccanico', descrizione: 'Distribuzione meccanica lungo la fila' },
-  { nome: 'Concimazione meccanica a pieno campo', sottocategoriaCodice: 'concimazione_meccanico', descrizione: 'Distribuzione meccanica su tutta la superficie' },
-  // Potatura - Manuale
-  { nome: 'Potatura', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura eseguita manualmente' },
-  { nome: 'Potatura di Formazione', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura di formazione per giovani piante' },
-  { nome: 'Potatura di Produzione', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura di produzione per piante adulte' },
-  { nome: 'Potatura di Rinnovamento', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Potatura di rinnovamento per piante vecchie' },
-  { nome: 'Innesto', sottocategoriaCodice: 'potatura_manuale', descrizione: 'Innesto di piante' },
-  // Potatura - Meccanico
-  { nome: 'Pre-potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico', descrizione: 'Pre-potatura eseguita con macchine' },
-  { nome: 'Potatura Meccanica', sottocategoriaCodice: 'potatura_meccanico', descrizione: 'Potatura eseguita con macchine' },
-  // Raccolta - Manuale
-  { nome: 'Raccolta Manuale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta eseguita manualmente' },
-  { nome: 'Raccolta con Cestini', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta manuale con cestini' },
-  { nome: 'Raccolta con Scale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Raccolta manuale con scale' },
-  { nome: 'Vendemmia Manuale', sottocategoriaCodice: 'raccolta_manuale', descrizione: 'Vendemmia eseguita manualmente (specifico per vigneti)' },
-  // Raccolta - Meccanica
-  { nome: 'Raccolta Meccanica', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta eseguita con macchine' },
-  { nome: 'Raccolta con Scuotitore', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta meccanica con scuotitore' },
-  { nome: 'Raccolta con Raccoglitrici', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Raccolta con macchine raccoglitrici' },
-  { nome: 'Vendemmia Meccanica', sottocategoriaCodice: 'raccolta_meccanica', descrizione: 'Vendemmia eseguita con macchine (specifico per vigneti)' },
-  // Gestione del Verde - Manuale
-  { nome: 'Falciatura Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Taglio manuale dell\'erba' },
-  { nome: 'Diserbo Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Eliminazione manuale delle erbe infestanti' },
-  { nome: 'Taglio Siepi Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Taglio manuale delle siepi' },
-  { nome: 'Manutenzione Verde Manuale', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Manutenzione estetica del verde eseguita manualmente' },
-  { nome: 'Scacchiatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Rimozione manuale dei germogli superflui' },
-  { nome: 'Spollonatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Rimozione manuale dei polloni' },
-  { nome: 'Sfemminellatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Rimozione manuale dei germogli femminili' },
-  { nome: 'Pettinatura', sottocategoriaCodice: 'gestione_verde_manuale', descrizione: 'Pettinatura manuale del verde' },
-  // Gestione del Verde - Meccanico
-  { nome: 'Potatura a Verde Meccanica', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Potatura a verde eseguita con macchine' },
-  { nome: 'Legatura', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Legatura meccanica' },
-  { nome: 'Defogliatura', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Defogliatura meccanica' },
-  { nome: 'Taglio Siepi Meccanico', sottocategoriaCodice: 'gestione_verde_meccanico', descrizione: 'Taglio delle siepi con macchine' },
-  // Semina e Piantagione - Manuale
-  { nome: 'Semina Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Semina di semi eseguita manualmente' },
-  { nome: 'Semina Diretta Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Semina diretta in campo eseguita manualmente' },
-  { nome: 'Semina in Semenzaio', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Semina in semenzaio' },
-  { nome: 'Trapianto Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Trapianto di piantine eseguito manualmente' },
-  { nome: 'Trapianto Ortaggi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Trapianto di ortaggi eseguito manualmente' },
-  { nome: 'Piantagione Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Piantagione di piante eseguita manualmente' },
-  { nome: 'Piantagione Alberi Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Piantagione di alberi eseguita manualmente' },
-  { nome: 'Piantagione Viti Manuale', sottocategoriaCodice: 'semina_piantagione_manuale', descrizione: 'Piantagione di viti eseguita manualmente' },
-  // Semina e Piantagione - Meccanico
-  { nome: 'Semina Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Semina di semi eseguita con macchine' },
-  { nome: 'Semina Diretta Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Semina diretta in campo eseguita con macchine' },
-  { nome: 'Trapianto Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Trapianto di piantine eseguito con macchine' },
-  { nome: 'Trapianto Ortaggi Meccanico', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Trapianto di ortaggi eseguito con macchine' },
-  { nome: 'Piantagione Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di piante eseguita con macchine' },
-  { nome: 'Piantagione Alberi Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di alberi eseguita con macchine' },
-  { nome: 'Piantagione Viti Meccanica', sottocategoriaCodice: 'semina_piantagione_meccanico', descrizione: 'Piantagione di viti eseguita con macchine' },
-  // Semina e Piantagione - Impianto
-  { nome: 'Impianto Nuovo Vigneto', sottocategoriaCodice: 'semina_piantagione_impianto', descrizione: 'Impianto completo di nuovo vigneto con struttura di sostegno (pali, fili, piante)' },
-  { nome: 'Impianto Nuovo Frutteto', sottocategoriaCodice: 'semina_piantagione_impianto', descrizione: 'Impianto completo di nuovo frutteto con struttura di sostegno' },
-  { nome: 'Impianto Nuovo Oliveto', sottocategoriaCodice: 'semina_piantagione_impianto', descrizione: 'Impianto completo di nuovo oliveto con struttura di sostegno' },
-  // Diserbo - Manuale
-  { nome: 'Diserbo Manuale', sottocategoriaCodice: 'diserbo_manuale', descrizione: 'Diserbo eseguito manualmente' },
-  { nome: 'Diserbo Localizzato', sottocategoriaCodice: 'diserbo_manuale', descrizione: 'Diserbo localizzato manuale' },
-  // Diserbo - Meccanico
-  { nome: 'Diserbo a Pieno Campo', sottocategoriaCodice: 'diserbo_meccanico', descrizione: 'Diserbo meccanico a pieno campo' },
-  { nome: 'Diserbo sulla Fila', sottocategoriaCodice: 'diserbo_meccanico', descrizione: 'Diserbo meccanico sulla fila' },
-  { nome: 'Diserbo Meccanico', sottocategoriaCodice: 'diserbo_meccanico', descrizione: 'Diserbo eseguito con macchine' },
-  // Manutenzione
-  { nome: 'Riparazioni', categoriaCodice: 'manutenzione', descrizione: 'Riparazioni di attrezzature o impianti' },
-  { nome: 'Manutenzione Impianti', categoriaCodice: 'manutenzione', descrizione: 'Manutenzione di impianti irrigui o altri' },
-  // Altro
-  { nome: 'Altro', categoriaCodice: 'altro', descrizione: 'Altri tipi di lavoro' }
-];
 
 /**
  * Inizializza tipi lavoro predefiniti per il tenant corrente
@@ -199,6 +100,25 @@ export async function initializeTipiLavoroPredefiniti() {
         await createDocument(COLLECTION_NAME, tipo.toFirestore(), tenantId);
         nomiEsistenti.add(tipoData.nome.toLowerCase());
       }
+    }
+
+    const tipiAggiornati = await getAllTipiLavoro();
+    for (const fix of TIPI_LAVORO_CANONICAL_FIXES) {
+      const existing = tipiAggiornati.find((t) => t.nome.toLowerCase() === fix.nome.toLowerCase());
+      if (!existing) continue;
+      const targetSubId = sottocategorieMap.get(fix.sottocategoriaCodice.toLowerCase());
+      if (!targetSubId || existing.sottocategoriaId === targetSubId) continue;
+      const sub = tutteCategorie.find((c) => c.id === targetSubId);
+      await updateDocument(
+        COLLECTION_NAME,
+        existing.id,
+        {
+          sottocategoriaId: targetSubId,
+          categoriaId: sub?.parentId || existing.categoriaId,
+          descrizione: fix.descrizione || existing.descrizione,
+        },
+        tenantId
+      );
     }
   } catch (error) {
     console.error('Errore inizializzazione tipi lavoro predefiniti:', error);

@@ -97,7 +97,31 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
  * @param {Function} populateSottocategorieLavoroCallback - Callback per popolare sottocategorie
  * @param {Function} loadTipiLavoroCallback - Callback per caricare tipi lavoro
  */
+let lavoriCascadeHandlersBound = false;
+
+function restoreLavoroTipoAfterReload(currentTipoValue, currentTipoText) {
+    if (!currentTipoValue && !currentTipoText) return;
+    setTimeout(() => {
+        const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
+        if (!tipoSelect) return;
+        if (currentTipoValue && Array.from(tipoSelect.options).some((opt) => opt.value === currentTipoValue)) {
+            tipoSelect.value = currentTipoValue;
+            return;
+        }
+        if (currentTipoText) {
+            const search = currentTipoText.trim().toLowerCase();
+            const opt = Array.from(tipoSelect.options).find(
+                (o) => (o.text || '').trim().toLowerCase() === search
+            );
+            if (opt) tipoSelect.value = opt.value;
+        }
+    }, 100);
+}
+
 export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback, loadTipiLavoroCallback) {
+    if (lavoriCascadeHandlersBound) return;
+    lavoriCascadeHandlersBound = true;
+
     const categoriaPrincipaleSelect = document.getElementById('lavoro-categoria-principale');
     const sottocategoriaSelect = document.getElementById('lavoro-sottocategoria');
     const terrenoSelect = document.getElementById('lavoro-terreno');
@@ -106,8 +130,14 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
         categoriaPrincipaleSelect.addEventListener('change', function() {
             const categoriaPrincipaleId = this.value;
             if (categoriaPrincipaleId) {
-                if (populateSottocategorieLavoroCallback) populateSottocategorieLavoroCallback(categoriaPrincipaleId);
-                if (loadTipiLavoroCallback) loadTipiLavoroCallback(categoriaPrincipaleId);
+                const preserveSub = sottocategoriaSelect ? sottocategoriaSelect.value : null;
+                if (populateSottocategorieLavoroCallback) {
+                    populateSottocategorieLavoroCallback(categoriaPrincipaleId, preserveSub);
+                }
+                if (loadTipiLavoroCallback) {
+                    const filterId = (document.getElementById('lavoro-sottocategoria')?.value) || categoriaPrincipaleId;
+                    loadTipiLavoroCallback(filterId);
+                }
             } else {
                 const sottocategoriaGroup = document.getElementById('lavoro-sottocategoria-group');
                 const tipoLavoroGroup = document.getElementById('tipo-lavoro-group');
@@ -123,11 +153,16 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
         sottocategoriaSelect.addEventListener('change', function() {
             const sottocategoriaId = this.value;
             const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale')?.value;
+            const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
+            const currentTipoValue = tipoSelect ? tipoSelect.value : null;
+            const currentTipoText = tipoSelect && tipoSelect.selectedIndex >= 0
+                ? tipoSelect.options[tipoSelect.selectedIndex]?.text
+                : null;
             
-            // Usa sottocategoria se selezionata, altrimenti categoria principale
             const categoriaId = sottocategoriaId || categoriaPrincipaleId;
             if (categoriaId && loadTipiLavoroCallback) {
                 loadTipiLavoroCallback(categoriaId);
+                restoreLavoroTipoAfterReload(currentTipoValue, currentTipoText);
             }
         });
     }

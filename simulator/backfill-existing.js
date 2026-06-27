@@ -15,7 +15,7 @@ import { setSimContext } from './lib/sim-context.js';
 import { refreshTenantDates } from './lib/refresh-dates.js';
 import { runSimulateMagazzino } from './phases/04-simulate-magazzino.js';
 import { runSimulateVigneto } from './phases/05-simulate-vigneto.js';
-import { seedLavoriCatalog } from './lib/seed-lavori-catalog.js';
+import { seedAppCatalog } from './lib/seed-app-catalog.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { linkScarichiMagazzinoTrattamentoVignetoTenant } from './lib/link-scarichi-trattamento-vigneto.js';
 import {
@@ -68,9 +68,12 @@ async function backfillTenant(db, entry) {
     console.log(`  economia: tariffa ${economia.tariffaProprietarioOraria} €/h, costoOra su ${economia.macchineAggiornate} macchine`);
   }
 
-  const tipiLavoro = template?.attivita?.tipiLavoro || [];
-  const { tipiSeed } = await seedLavoriCatalog(db, tenantId, userId, tipiLavoro);
-  if (tipiSeed) console.log(`  tipi lavoro seed: ${tipiSeed}`);
+  const catalogStats = await seedAppCatalog(db, tenantId, userId);
+  if (catalogStats.tipiLavoro || catalogStats.sottocategorie || catalogStats.colture) {
+    console.log(
+      `  catalogo app: +${catalogStats.categoriePrincipali} cat, +${catalogStats.sottocategorie} sottocat, +${catalogStats.tipiLavoro} tipi, +${catalogStats.colture} colture`
+    );
+  }
 
   const parco = await ensureFlottaAndScadenzeMacchine(db, tenantId, userId, {
     flottaCount: template?.quantities?.flotta ?? 2,

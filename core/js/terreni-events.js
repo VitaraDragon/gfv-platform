@@ -555,6 +555,7 @@ export function updateColtureDropdownTerreni(state, updateState, getColturaColor
     }
     
     const categoriaId = categoriaSelect.value;
+    const previousColtura = colturaSelect.value || null;
     
     // Reset dropdown colture
     colturaSelect.innerHTML = '<option value="">-- Seleziona coltura --</option>';
@@ -586,6 +587,10 @@ export function updateColtureDropdownTerreni(state, updateState, getColturaColor
         option.textContent = nomeColtura;
         colturaSelect.appendChild(option);
     });
+
+    if (previousColtura && coltureCategoria.some((c) => (c.nome || c) === previousColtura)) {
+        colturaSelect.value = previousColtura;
+    }
 }
 
 /**
