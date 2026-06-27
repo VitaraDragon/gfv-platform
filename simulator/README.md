@@ -50,8 +50,11 @@ npm run sim:setup
 # Log dettagliati (singolo run)
 npm run sim:run:verbose
 
-# Aggiorna aziende già nel manifest (prodotti, flotta/scadenze, movimenti mancanti, spese vigneto, date)
+# Aggiorna aziende già nel manifest (prodotti, flotta/scadenze, affitti terreni, movimenti mancanti, spese vigneto, date)
 npm run sim:backfill
+
+# Smoke v3 — cascata + semafori dashboard su emulator (ultimo tenant manifest)
+node scripts/cascade-v3-live-smoke.js
 
 # Verifica spese vigneto vs aggregaSpese app
 npm run sim:verify-spese -- --tenant=sim_cascina_colombo_671742
@@ -110,7 +113,7 @@ Pagina dev aziende simulate:
 
 - In git: `simulator/manifest.json` è **vuoto** (`[]`); dopo `sim:run` o batch si popola **solo in locale**.
 - Struttura di esempio: `simulator/manifest.example.json`.
-- Verifica coerenza: `npm run sim:audit` (richiede emulator + entry manifest presenti sull'emulator).
+- Verifica coerenza: `npm run sim:audit` (richiede emulator + entry manifest). Su tenant **appena creati** con `sim:run`: attesi **8 macchine**, **4 affitti**, bucket semafori. Manifest con molte entry **legacy** pre-v3: fallimenti fino a `sim:backfill` o `sim:cleanup --keep N`.
 
 ## Routine periodica (refresh, audit, perf)
 
@@ -135,10 +138,10 @@ Email e tenant ID sono nel report a fine run e in `simulator/manifest.json` (loc
 
 | Risorsa | Quantità |
 |---------|----------|
-| Terreni | 4 |
+| Terreni | 4 (tutti in **affitto** demo con scadenze semaforo) |
 | Trattori + attrezzi | 1 + 3 |
-| Flotta aziendale (furgone/pickup) | 2 |
-| **Macchine totali** | **6** |
+| Flotta aziendale (furgone/pickup/automezzo) | 4 |
+| **Macchine totali** | **8** |
 | Vigneti | 4 |
 | Prodotti magazzino | 5 |
 | Attività (4 settimane) | 20 |
@@ -146,7 +149,15 @@ Email e tenant ID sono nel report a fine run e in `simulator/manifest.json` (loc
 | Potature vigneto (da attività Potatura) | 4 |
 | Trattamenti vigneto (Trattamento/Concimazione/Controllo fitosanitario) | 12 |
 
-Ogni macchina seed v1.6+ include scadenze demo (`prossimaManutenzione`, e per trattori/flotta anche revisione/assicurazione); almeno 2 mezzi in stato `in_manutenzione`. Aziende create prima di v1.6: `npm run sim:backfill`.
+Ogni macchina seed v1.6+ include scadenze demo (`prossimaManutenzione`, revisione/assicurazione su trattori/flotta, tagliando **km** su flotta, **ore** su trattori/attrezzi). Almeno un mezzo in `in_manutenzione`. **v3:** 4 terreni azienda in affitto con bucket grey/red/yellow/green (widget dashboard Scadenze).
+
+Aziende create prima di v1.6 o pre-v3 affitti: `npm run sim:backfill` (affitti + `forceSemaforoProfiles` parco macchine).
+
+**Smoke v3 (emulator + manifest non vuoto):**
+```bash
+node scripts/cascade-v3-live-smoke.js    # ultimo tenant manifest
+node scripts/cascade-v3-live-smoke.js sim_tenant_id
+```
 
 ## Seed terreni (v2)
 

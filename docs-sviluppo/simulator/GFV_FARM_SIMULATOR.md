@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14  
-**Data:** 2026-06-26  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa e validata in dev**; **v3** ridimensionata → meccanismi a cascata + test (§11.1); regime max + routine §13.4  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅  
+**Data:** 2026-06-27  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); prossimo = **v4 Playwright**; regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -191,7 +191,8 @@ simulator/
     firestore-write.js               # write Admin SDK + path tenant
     seed-reference-data.js           # podere principale (catalogo → seed-app-catalog.js)
     seed-app-catalog.js              # categorie/sottocat/tipi lavoro/colture (identico app)
-    seed-parco-macchine-details.js   # flotta + scadenze/manutenzione/revisione/assicurazione
+    seed-parco-macchine-details.js   # flotta + scadenze/manutenzione/revisione/assicurazione (km/ore)
+    seed-terreni-affitti.js          # profili affitto grey/red/yellow/green su terreni azienda
     sim-economia-vigneto.js          # tariffe, costoOra, sync spese vigneto
     seed-lavori-catalog.js           # re-export seedAppCatalog (compat legacy)
     link-scarichi-trattamento-vigneto.js  # origineTrattamento* su movimenti magazzino
@@ -448,12 +449,13 @@ Creati:
   terreni: 4
   trattori: 1
   attrezzi: 3
-  flotta: 2
-  macchine: 6
+  flotta: 4
+  macchine: 8
   vigneti: 4
   prodotti: 5
   attività: 20 (2026-05-26 → 2026-06-20)
-  scadenze macchine: 6 mezzi con almeno una scadenza
+  terreni in affitto: 4 (semafori grey/red/yellow/green)
+  scadenze macchine: 8 mezzi con bucket km/ore/date demo
 
 Durata: 12.4s
 Manifest: simulator/manifest.json
@@ -544,9 +546,10 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 - [x] Test integrazione `tests/simulator/solo-titolare-viticola.test.js` (+ `npm run sim:test:vitest`)
 - [x] Verifica UI manuale: login dev → dashboard → terreni → attività → magazzino (anagrafica, uscite, tracciabilità)
 - [x] Batch **10 aziende** su emulator: 10/10 OK (4 terreni, 20 attività, 12 movimenti ciascuna)
-- [x] **v1.6** — flotta + scadenze parco macchine; `sim:backfill` aggiorna manifest legacy; `sim:audit` 6 macchine attese
+- [x] **v1.6** — flotta + scadenze parco macchine; `sim:backfill` aggiorna manifest legacy
 - [x] **v1.6.1** — assert km flotta (`validateFlottaKmSeed`); audit/test/Vitest; doc Java 21; fallback Tony km flotta
 - [x] **v2.2 Conto Terzi** — template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera`, fase 09, audit, Vitest, verifica UI browser (2026-06-27)
+- [x] **v3 meccanismi a cascata** — affitti + semafori parco seed, inspect/smoke/Vitest, audit 8 macchine (2026-06-27) ✅
 
 ---
 
@@ -578,7 +581,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v2.1** | ~~Implementazione fasi 06–08 + audit ore per ruolo + pagina dev «Entra come…» + template regime max + audit template-aware~~ |
 | **v2.2** | ~~Template Conto Terzi~~ (`viticola-conto-terzi`, fase `09-populate-conto-terzi`, audit + Vitest + verifica UI) ✅ |
 | **v2**   | Template frutteto, mista, solo titolare oliveto… |
-| **v3**   | **Meccanismi a cascata** (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1; **non** typo/recovery utente nel sim |
+| **v3**   | ~~**Meccanismi a cascata**~~ (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1 ✅ |
 | **v3b**  | Run paralleli N tenant (infrastruttura, opzionale) |
 | **v4**   | E2E Playwright — flussi UI + widget scadenze/meteo; errori linguaggio naturale / recovery → **Tony** + test dedicati |
 | **v4b**  | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
@@ -591,12 +594,12 @@ Dopo v2.1 chiusa, la **v3 sim** non simula «utenti che sbagliano a digitare» (
 
 | Area | Sim / seed | Test automatici | UI / Tony |
 | ---- | ----------- | ----------------- | --------- |
-| Scadenze parco, affitti, revisioni | Profili edge-case per bucket semaforo (scaduto, rosso, giallo, verde) — già parziale in `seed-parco-macchine-details.js` | Vitest `dashboard-deadlines`, `calcolaUrgenzaData` | Checklist post `sim:run` |
+| Scadenze parco, affitti, revisioni | `seed-terreni-affitti.js` + `seed-parco-macchine-details.js` (bucket grey/black/red/yellow/green) | Vitest `dashboard-deadlines`, `calcolaUrgenzaData` | §13.2 post `sim:run` |
 | Filtri a cascata (CV trattore→attrezzi, colture, terreni, categoria→sottocat→tipo) | Catalogo app completo in seed (`seed-app-catalog.js`) + dataset CV demo | Vitest `cascade-*`, `scripts/cascade-v3-live-smoke.js` | Playwright v4 |
 | Alert meteo in italiano | — (meteo escluso dal sim) | Vitest `meteo-alert-i18n` + fixture OpenWeather | Deploy CF + verifica dashboard |
 | Errori battitura / voce / recovery | **Non** sim v3 | Test Tony client-side | Tony + CF |
 
-**Ordine consigliato:** altri template **v2** (se servono moduli) → ampliare **test a cascata** (v3) → **Playwright v4** → stress **Tony** su NL/recovery.
+**Ordine roadmap (2026-06-27):** ~~v3 cascata/test~~ ✅ → **v4 Playwright** → stress **Tony** su NL/recovery; altri template **v2** (frutteto/oliveto) solo se richiesti; **v3b** run paralleli opzionale.
 
 **Primo incremento v3 già in repo (2026-06-26):** i18n alert meteo completo + test semafori widget scadenze (`tests/meteo-alert-i18n.test.js`, `tests/dashboard-deadlines.test.js`).
 
@@ -605,6 +608,30 @@ Dopo v2.1 chiusa, la **v3 sim** non simula «utenti che sbagliano a digitare» (
 **Terzo incremento v3 (2026-06-27):** catalogo sim = app — `core/config/app-catalog-seed-data.js` condiviso; `seed-app-catalog.js` su populate/backfill/migrate; inspect con soglie sottocategorie/tipi/colture; live smoke senza WARN «Lavorazione del Terreno senza sottocategorie»; rimosso duplicato «Diserbo Manuale» (solo categoria Diserbo); `TIPI_LAVORO_CANONICAL_FIXES` su tenant legacy.
 
 **Quarto incremento v3 (2026-06-27):** fix cascata UI app — preserve padri su form attività/lavori/terreni + Tony (`lavoro-cascade-filters.js`, controller/events, `tony-form-injector.js`). Il sim **non** ha dropdown cascata; condivide solo le regole pure in `lavoro-cascade-filters.js` (Vitest + `scripts/cascade-v3-live-smoke.js`).
+
+**Quinto incremento v3 (2026-06-27) — chiusura v3 ✅:** seed **affitti** su terreni azienda (`simulator/lib/seed-terreni-affitti.js` — bucket grey/red/yellow/green); profili scadenze macchine raffinati (`seed-parco-macchine-details.js` — km/ore/date su flotta/trattori/attrezzi; template default **4 flotta** → **8 macchine**); inspect `validateAffittiSemaforoSeed` + `validateMacchineSemaforoSeed`; `sim:backfill` allinea affitti + `forceSemaforoProfiles` su parco; smoke `scripts/cascade-v3-live-smoke.js` verifica bucket su emulator (default: ultimo tenant manifest).
+
+**Verifica v3 (post `sim:run`):**
+
+```bash
+npm run sim:inspect                    # ultimo tenant — affitti + semafori km/ore OK
+node scripts/cascade-v3-live-smoke.js  # cascata + bucket dashboard su emulator
+npm run sim:audit                      # OK su tenant appena generato (manifest legacy: sim:backfill o sim:cleanup --keep N)
+npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
+```
+
+**Prossimo:** **v4 Playwright** (E2E UI + widget scadenze/meteo); typo/recovery NL → Tony + test client, **non** orchestrator sim.
+
+#### 11.1.2 Definition of Done v3 (2026-06-27)
+
+| Criterio | Stato |
+| -------- | ----- |
+| Ogni bucket semaforo §11.1 verificabile su emulator (`sim:inspect` + `cascade-v3-live-smoke.js`) | ✅ |
+| `sim:audit` OK su tenant **appena generato** (`sim:run` default) | ✅ |
+| Vitest v3 (`dashboard-deadlines`, `cascade-*`, opz. `meteo-alert-i18n`) | ✅ 21+ test |
+| §13.2 checklist scadenze/affitti documentata | ✅ |
+| Nessuna integrazione Tony/meteo nel sim | ✅ |
+| Manifest legacy multi-tenant | ⚠️ `sim:audit` fallisce finché restano entry pre-v3 — usare `sim:cleanup --keep N` o `sim:backfill` |
 
 #### 11.1.1 Allineamento app ↔ simulatore (2026-06-27)
 
@@ -641,7 +668,7 @@ Dopo v2.1 chiusa, la **v3 sim** non simula «utenti che sbagliano a digitare» (
 | 11  | Manodopera v2: chi agisce sulle ore | **Deciso** — solo `runAsPersona` (operaio/capo/manager); no Admin “al posto” (§14.4) |
 | 12  | Numero capi/operai configurabile   | **Deciso** — `quantities` template + override CLI `--caposquadra` / `--operai` (§14.5) |
 | 13  | Utenti simulati che sbagliano      | **Ridimensionato 2026-06-26** — typo/recovery **Tony** + v4 Playwright; sim v3 = **meccanismi a cascata** (§11.1) |
-| 14  | Ordine roadmap post-v1.6           | **Deciso** — v2.1 → altri template v2 → **v3 cascata/test** → v4 Playwright; Tony per NL/recovery |
+| 14  | Ordine roadmap post-v1.6           | **Deciso** — v2.1 → v2.2 conto terzi → ~~**v3 cascata/test**~~ ✅ → **v4 Playwright**; Tony per NL/recovery |
 | 15  | Manager multipli per tenant sim    | **Deciso** — 1 manager (`amministratore`); capi/operai N configurabili |
 
 **Persistenza per riuso** confermata — il manifest traccia le aziende create (non committare manifest pieno in git).
@@ -678,7 +705,7 @@ npm run sim:test:vitest    # stesso test via vitest
 npm run sim:test:ci        # come CI — avvia emulator, esegue entrambi, termina
 ```
 
-**Audit manifest:** `npm run sim:audit` — verifica Auth, seed terreni v2 (`inspectTenantSeed`) e conteggi attesi per ogni `tenantId` in `manifest.json`: **6 macchine** (1 trattore + 3 attrezzi + 2 flotta), flotta ≥2 con **kmAttuali/kmProssimaManutenzione** validi e ≥1 tagliando km superato, scadenze ≥3, almeno 1 mezzo in manutenzione, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, 4 potature + 12 trattamenti vigneto. Template **conto terzi**: `inspectContoTerziSeed` (clienti, poderi, terreni clienti, tariffe, preventivi); terreni totali = `quantities.terreni` + `terreniClienti`. Template **manodopera**: personas Auth + `inspectManodoperaSeed`. Exit 0 se OK/WARN; exit 1 se almeno un FAIL.
+**Audit manifest:** `npm run sim:audit` — verifica Auth, seed terreni v2 (`inspectTenantSeed`) e conteggi attesi per ogni `tenantId` in `manifest.json`: **8 macchine** (1 trattore + 3 attrezzi + 4 flotta), flotta ≥4 con **kmAttuali/kmProssimaManutenzione** validi e bucket km black/red/yellow/green, ore black/red/yellow/green su trattori/attrezzi, **4 terreni in affitto** con bucket grey/red/yellow/green, scadenze ≥3, almeno 1 mezzo in manutenzione, 4 vigneti, 5 prodotti, 20 attività, 12 movimenti, 4 potature + 12 trattamenti vigneto. Template **conto terzi**: `inspectContoTerziSeed` (clienti, poderi, terreni clienti, tariffe, preventivi); terreni totali = `quantities.terreni` + `terreniClienti`. Template **manodopera**: personas Auth + `inspectManodoperaSeed`. Exit 0 se OK/WARN; exit 1 se almeno un FAIL. Tenant legacy pre-v3: `npm run sim:backfill` (affitti + `forceSemaforoProfiles`) o `sim:cleanup --keep N` + nuovo `sim:run`.
 
 **Manifest in git:** `simulator/manifest.json` resta **vuoto** (`[]`); i run locali (`sim:run`, batch) popolano manifest + emulator solo sulla macchina dev. Struttura di riferimento: `simulator/manifest.example.json`. Non committare manifest con molte entry batch.
 
@@ -700,7 +727,8 @@ Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 - **Terreni** → coltura, podere, morfologia valorizzati
 - **Attività** → ~20 record
 - **Movimenti** (link dev o modulo magazzino) → 12 uscite, tracciabilità prodotto↔attività; prodotti con eventuale sotto scorta
-- **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **6 macchine** (1 trattore + 3 attrezzi + 2 flotta); flotta con **km**, targa e stato; almeno un **Tagliando (km)** in rosso in Scadenze; revisione/assicurazione visibili in lista Scadenze e widget dashboard; niente redirect login con `?emulator=1`
+- **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **8 macchine** (1 trattore + 3 attrezzi + 4 flotta); flotta con **km** e bucket tagliando visibili; attrezzi/trattore con **manutenzione ore**; widget dashboard **Scadenze amministrazione** (affitti grey/red/yellow/green + revisione/assicurazione urgenti) e **In arrivo** (manutenzioni km/ore/data); niente redirect login con `?emulator=1`
+- **Terreni** → 4 terreni azienda: tutti in **affitto** con scadenze demo (semafori in lista Terreni + widget scadenze)
 - **Vigneto / Vigneti** → 4 vigneti collegati ai terreni; navigazione dashboard ok
 - **Trattamenti / Potatura** → righe da attività diario (4 potature + 12 trattamenti); trattamenti con prodotti da magazzino dove presente
 - **Conto Terzi** (template `viticola-conto-terzi*` — entrare come **manager** dalla pagina dev):
@@ -745,7 +773,10 @@ npm run sim:refresh-dates -- --all
 # 4. Coerenza automatica
 npm run sim:audit
 
-# 5. Browser: pagina dev → Movimenti + Entra come capo/operaio (field workspace)
+# 4b. Smoke v3 (cascata + semafori su emulator)
+node scripts/cascade-v3-live-smoke.js
+
+# 5. Browser: pagina dev → dashboard widget scadenze + Scadenze mezzi + Terreni affitti
 npm start   # terminale separato
 ```
 
@@ -780,7 +811,7 @@ Decisioni prese in design prodotto/simulatore — **non reinterpretare** senza a
 
 | # | Tema | Decisione |
 | - | ---- | --------- |
-| D1 | **Ordine di lavoro** | v1.6.1 **chiusa** → **v2.1** **chiusa** → altri template v2 → **v3 meccanismi a cascata** (§11.1) → **v4** Playwright; Tony per errori/recovery NL |
+| D1 | **Ordine di lavoro** | v1.6.1 **chiusa** → **v2.1** **chiusa** → **v2.2 conto terzi** **chiusa** → ~~**v3 cascata**~~ ✅ → **v4 Playwright**; altri template v2 opzionali; Tony per errori/recovery NL |
 | D2 | **Errori utente (typo/concetto)** | **Non** nel sim — **Tony** + test client; sim v3 = scadenze/filtri/alert/i18n (§11.1), non fuzzing form |
 | D3 | **Inviti / email / onboarding** | **Esclusi** dal simulatore — il flusso «Invita collaboratore» è già validato nell’app; il sim assume **azienda già organizzata** |
 | D4 | **Profili campo** | Auth + `users/{uid}` + `tenantMemberships` **pre-provisionati** in fase 06 (capo + operai reali, non anagrafiche fittizie) |
@@ -1042,4 +1073,4 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 — prossimo: altri template v2 o v3 meccanismi a cascata; Tony/Playwright per errori utente.*
+*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 — prossimo: **v4 Playwright**; Tony per errori/recovery NL.*

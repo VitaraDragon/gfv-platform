@@ -20,21 +20,49 @@ export function addDaysFromToday(days) {
  */
 export function enrichTrattorePayload(m, index = 0) {
   const oreAttuali = m.oreAttuali ?? m.oreIniziali ?? 1200;
+  const trattoreProfiles = [
+    {
+      prossimaManutenzione: addDaysFromToday(90),
+      oreProssimaManutenzione: oreAttuali + 120,
+      prossimaRevisione: addDaysFromToday(20),
+      prossimaAssicurazione: addDaysFromToday(120)
+    },
+    {
+      prossimaManutenzione: addDaysFromToday(5),
+      oreProssimaManutenzione: oreAttuali + 10,
+      prossimaRevisione: addDaysFromToday(-10),
+      prossimaAssicurazione: addDaysFromToday(8)
+    }
+  ];
+  const p = trattoreProfiles[index % trattoreProfiles.length];
   return {
     ...m,
     oreAttuali,
-    prossimaManutenzione: addDaysFromToday(index === 0 ? 18 : 90),
-    oreProssimaManutenzione: oreAttuali + (index === 0 ? 35 : 120),
-    prossimaRevisione: addDaysFromToday(120),
-    prossimaAssicurazione: addDaysFromToday(45)
+    ...p
   };
 }
 
 export function enrichAttrezzoPayload(m, index = 0) {
+  const oreBase = m.oreAttuali ?? m.oreIniziali ?? 800;
   const profiles = [
-    { stato: 'disponibile', prossimaManutenzione: addDaysFromToday(-8) },
-    { stato: 'in_manutenzione', prossimaManutenzione: addDaysFromToday(5) },
-    { stato: 'disponibile', prossimaManutenzione: addDaysFromToday(22) }
+    {
+      stato: 'disponibile',
+      prossimaManutenzione: addDaysFromToday(-8),
+      oreAttuali: oreBase + 50,
+      oreProssimaManutenzione: oreBase + 40
+    },
+    {
+      stato: 'in_manutenzione',
+      prossimaManutenzione: addDaysFromToday(5),
+      oreAttuali: oreBase + 20,
+      oreProssimaManutenzione: oreBase + 30
+    },
+    {
+      stato: 'disponibile',
+      prossimaManutenzione: addDaysFromToday(22),
+      oreAttuali: oreBase,
+      oreProssimaManutenzione: oreBase + 35
+    }
   ];
   const p = profiles[index % profiles.length];
   return { ...m, ...p };
@@ -46,8 +74,8 @@ export function enrichFlottaPayload(m, index = 0) {
   const profiles = [
     {
       stato: 'disponibile',
-      kmAttuali: kmBase,
-      kmProssimaManutenzione: kmBase + 800,
+      kmAttuali: kmBase + 100,
+      kmProssimaManutenzione: kmBase + 400,
       prossimaManutenzione: addDaysFromToday(12),
       prossimaRevisione: addDaysFromToday(6),
       prossimaAssicurazione: addDaysFromToday(25)
@@ -59,6 +87,14 @@ export function enrichFlottaPayload(m, index = 0) {
       prossimaManutenzione: addDaysFromToday(-3),
       prossimaRevisione: addDaysFromToday(-15),
       prossimaAssicurazione: addDaysFromToday(8)
+    },
+    {
+      stato: 'disponibile',
+      kmAttuali: kmBase,
+      kmProssimaManutenzione: kmBase + 800,
+      prossimaManutenzione: addDaysFromToday(22),
+      prossimaRevisione: addDaysFromToday(20),
+      prossimaAssicurazione: addDaysFromToday(90)
     },
     {
       stato: 'disponibile',
@@ -84,11 +120,12 @@ export function enrichFlottaPayload(m, index = 0) {
  * @param {import('firebase-admin/firestore').Firestore} db
  * @param {string} tenantId
  * @param {string} userId
- * @param {{ flottaCount?: number, seed?: number }} [options]
+ * @param {{ flottaCount?: number, seed?: number, forceSemaforoProfiles?: boolean }} [options]
  */
 export async function ensureFlottaAndScadenzeMacchine(db, tenantId, userId, options = {}) {
   const flottaTarget = options.flottaCount ?? 2;
   const seed = options.seed ?? Date.now();
+  const force = options.forceSemaforoProfiles === true;
 
   const snap = await db.collection(`tenants/${tenantId}/macchine`).get();
   const macchine = snap.docs.map((d) => ({ id: d.id, ref: d.ref, ...d.data() }));
@@ -123,7 +160,12 @@ export async function ensureFlottaAndScadenzeMacchine(db, tenantId, userId, opti
 
   for (let i = 0; i < trattori.length; i++) {
     const m = trattori[i];
-    if (m.prossimaManutenzione && m.prossimaAssicurazione && m.oreProssimaManutenzione != null) {
+    if (
+      !force &&
+      m.prossimaManutenzione &&
+      m.prossimaAssicurazione &&
+      m.oreProssimaManutenzione != null
+    ) {
       continue;
     }
     const patch = enrichTrattorePayload(m, i);
@@ -142,12 +184,16 @@ export async function ensureFlottaAndScadenzeMacchine(db, tenantId, userId, opti
     const m = attrezzi[i];
     const patch = enrichAttrezzoPayload(m, i);
     const needsPatch =
+      force ||
       !m.prossimaManutenzione ||
+      m.oreProssimaManutenzione == null ||
       (i === 1 && m.stato !== 'in_manutenzione');
     if (!needsPatch) continue;
     await m.ref.update(normalizeForAdmin({
       stato: patch.stato,
       prossimaManutenzione: patch.prossimaManutenzione,
+      oreAttuali: patch.oreAttuali,
+      oreProssimaManutenzione: patch.oreProssimaManutenzione,
       updatedAt: new Date()
     }));
     scadenzeAggiornate += 1;
@@ -155,7 +201,11 @@ export async function ensureFlottaAndScadenzeMacchine(db, tenantId, userId, opti
 
   for (let i = 0; i < flotta.length; i++) {
     const m = flotta[i];
-    const needsKm = m.kmProssimaManutenzione == null || m.oreAttuali != null || m.oreProssimaManutenzione != null;
+    const needsKm =
+      force ||
+      m.kmProssimaManutenzione == null ||
+      m.oreAttuali != null ||
+      m.oreProssimaManutenzione != null;
     if (!needsKm && m.prossimaAssicurazione && m.prossimaRevisione && m.prossimaManutenzione) continue;
     const patch = enrichFlottaPayload(m, i);
     await m.ref.update(normalizeForAdmin({

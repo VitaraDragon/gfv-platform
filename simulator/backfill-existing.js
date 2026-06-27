@@ -24,6 +24,7 @@ import {
   syncSpeseVignetoTenant
 } from './lib/sim-economia-vigneto.js';
 import { ensureFlottaAndScadenzeMacchine } from './lib/seed-parco-macchine-details.js';
+import { ensureTerreniAffittiSeed } from './lib/seed-terreni-affitti.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const template = JSON.parse(
@@ -77,11 +78,19 @@ async function backfillTenant(db, entry) {
 
   const parco = await ensureFlottaAndScadenzeMacchine(db, tenantId, userId, {
     flottaCount: template?.quantities?.flotta ?? 2,
-    seed: Date.now()
+    seed: Date.now(),
+    forceSemaforoProfiles: true
   });
   if (parco.flottaAggiunta || parco.scadenzeAggiornate) {
     console.log(
       `  parco macchine: +${parco.flottaAggiunta} flotta, ${parco.scadenzeAggiornate} scadenze aggiornate (tot ${parco.counts.macchine}, flotta ${parco.counts.flotta}, in manutenzione ${parco.counts.inManutenzione})`
+    );
+  }
+
+  const affitti = await ensureTerreniAffittiSeed(db, tenantId);
+  if (affitti.patched) {
+    console.log(
+      `  affitti terreni: ${affitti.patched} aggiornati (${affitti.affitti} in affitto, colori ${affitti.colori.join(', ')})`
     );
   }
 

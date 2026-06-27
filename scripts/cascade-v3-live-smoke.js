@@ -16,7 +16,7 @@ import {
 } from '../core/js/lavoro-cascade-filters.js';
 import { filterAttrezziDropdownCompatibili } from '../core/js/macchine-cv-compat.js';
 
-const tenantId = process.argv[2] || (await readManifest())[0]?.tenantId;
+const tenantId = process.argv[2] || (await readManifest()).at(-1)?.tenantId;
 
 if (!(await isEmulatorAvailable())) {
   console.error('[live-smoke] Emulator non raggiungibile. Avvia: npm run sim:emulators');
@@ -214,6 +214,49 @@ if (!semMacchine.colori.some((c) => ['black', 'red', 'yellow'].includes(c))) {
 }
 if (semAffitti.n > 0 && semAffitti.colori.length === 0) {
   issues.push('Affitti presenti ma colori semaforo non calcolati');
+}
+const AFFITTI_ATTESI = ['grey', 'red', 'yellow', 'green'];
+if (semAffitti.n >= 4) {
+  for (const c of AFFITTI_ATTESI) {
+    if (!semAffitti.colori.includes(c)) {
+      issues.push(`Affitti: manca bucket "${c}" (presenti: ${semAffitti.colori.join(', ')})`);
+    }
+  }
+} else if (semAffitti.n === 0) {
+  issues.push('Nessun terreno in affitto seed — esegui sim:run o sim:backfill con seed v3 affitti');
+}
+
+function collectOreKmColors(macchine) {
+  const km = new Set();
+  const ore = new Set();
+  for (const m of macchine) {
+    const tipo = m.tipoMacchina || m.tipo || '';
+    if (isTipoFlotta(tipo) && m.kmProssimaManutenzione != null) {
+      const kmA = m.kmAttuali != null ? m.kmAttuali : m.kmIniziali;
+      km.add(calcolaUrgenzaKm(kmA, m.kmProssimaManutenzione).colore);
+    } else if (!isTipoFlotta(tipo) && m.oreProssimaManutenzione != null) {
+      const oreA = m.oreAttuali != null ? parseFloat(m.oreAttuali) : 0;
+      const rim = parseFloat(m.oreProssimaManutenzione) - oreA;
+      if (rim <= 0) ore.add('black');
+      else if (rim < 15) ore.add('red');
+      else if (rim < 50) ore.add('yellow');
+      else ore.add('green');
+    }
+  }
+  return { km: [...km], ore: [...ore] };
+}
+
+const bucketMacchine = collectOreKmColors(macchine);
+console.log(`  km buckets: [${bucketMacchine.km.join(', ')}]`);
+console.log(`  ore buckets: [${bucketMacchine.ore.join(', ')}]`);
+
+for (const c of ['black', 'red', 'yellow', 'green']) {
+  if (!bucketMacchine.km.includes(c)) {
+    issues.push(`Macchine km: manca bucket "${c}"`);
+  }
+  if (!bucketMacchine.ore.includes(c)) {
+    issues.push(`Macchine ore: manca bucket "${c}"`);
+  }
 }
 
 const macchineConDate = macchine.filter((m) => m.prossimaManutenzione || m.prossimaRevisione);

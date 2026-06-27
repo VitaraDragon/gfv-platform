@@ -21,6 +21,7 @@ import {
   enrichFlottaPayload,
   enrichTrattorePayload
 } from '../lib/seed-parco-macchine-details.js';
+import { applyAffittiProfilesToTerreni } from '../lib/seed-terreni-affitti.js';
 import { requireSimTenantId, requireSimUserId, getSimProfile } from '../lib/sim-context.js';
 
 const CATEGORIE_PREDEFINITE = [
@@ -64,7 +65,9 @@ export async function runPopulateAssets() {
     podereNome: profile?.aziendaNome || 'Podere principale'
   });
 
-  const terreniData = generaTerreni(q.terreni || 4, seed, { podereNome });
+  const terreniData = applyAffittiProfilesToTerreni(
+    generaTerreni(q.terreni || 4, seed, { podereNome })
+  );
   const terreni = [];
   for (const t of terreniData) {
     const id = await addTenantDocument(db, tenantId, 'terreni', {
@@ -100,6 +103,8 @@ export async function runPopulateAssets() {
       categoriaFunzione: categoriaId,
       stato: a.stato,
       prossimaManutenzione: a.prossimaManutenzione,
+      oreAttuali: a.oreAttuali,
+      oreProssimaManutenzione: a.oreProssimaManutenzione,
       creatoDa: userId
     });
     attrezzi.push({ id, nome: a.nome });

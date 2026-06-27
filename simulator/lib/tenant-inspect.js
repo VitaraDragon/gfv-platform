@@ -9,6 +9,7 @@ import {
   TIPI_LAVORO_PREDEFINITI,
   SIM_ALIASES_TIPI_LAVORO,
 } from '../../core/config/app-catalog-seed-data.js';
+import { validateAffittiSemaforoSeed } from './seed-terreni-affitti.js';
 
 const EXPECTED_COLTURA = 'Vite da Vino';
 const MIN_SOTTOCATEGORIE = SOTTOCATEGORIE_PREDEFINITE.length;
@@ -21,6 +22,96 @@ const TIPI_FLOTTA = new Set(['automezzo', 'veicolo', 'furgone']);
 
 function isTipoFlotta(m) {
   return TIPI_FLOTTA.has((m.tipoMacchina || m.tipo || '').toLowerCase());
+}
+
+function toDate(val) {
+  if (!val) return null;
+  if (val.toDate) return val.toDate();
+  if (val instanceof Date) return val;
+  const d = new Date(val);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function urgenzaDataColore(dataScadenza) {
+  const scadenza = toDate(dataScadenza);
+  if (!scadenza) return null;
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+  scadenza.setHours(0, 0, 0, 0);
+  const giorni = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+  if (giorni < 0) return 'black';
+  if (giorni <= 7) return 'red';
+  if (giorni <= 30) return 'yellow';
+  return 'green';
+}
+
+function urgenzaKmColore(kmAttuali, sogliaKm) {
+  const km = kmAttuali != null ? parseFloat(kmAttuali) : 0;
+  const soglia = sogliaKm != null ? parseFloat(sogliaKm) : null;
+  if (soglia == null || Number.isNaN(soglia)) return null;
+  const rim = soglia - km;
+  if (rim <= 0) return 'black';
+  if (rim < 500) return 'red';
+  if (rim < 2000) return 'yellow';
+  return 'green';
+}
+
+function urgenzaOreColore(oreAttuali, sogliaOre) {
+  const ore = oreAttuali != null ? parseFloat(oreAttuali) : 0;
+  const soglia = sogliaOre != null ? parseFloat(sogliaOre) : null;
+  if (soglia == null || Number.isNaN(soglia)) return null;
+  const rim = soglia - ore;
+  if (rim <= 0) return 'black';
+  if (rim < 15) return 'red';
+  if (rim < 50) return 'yellow';
+  return 'green';
+}
+
+/**
+ * Verifica bucket semaforo macchine (km, ore, date) — allineato widget dashboard.
+ * @param {Array<object>} macchine
+ */
+export function validateMacchineSemaforoSeed(macchine) {
+  const errors = [];
+  const kmColori = new Set();
+  const oreColori = new Set();
+  const dataColori = new Set();
+
+  for (const m of macchine) {
+    const tipo = (m.tipoMacchina || m.tipo || '').toLowerCase();
+    if (m.prossimaManutenzione) dataColori.add(urgenzaDataColore(m.prossimaManutenzione));
+    if (m.prossimaRevisione) dataColori.add(urgenzaDataColore(m.prossimaRevisione));
+    if (m.prossimaAssicurazione) dataColori.add(urgenzaDataColore(m.prossimaAssicurazione));
+
+    if (isTipoFlotta(m) && m.kmProssimaManutenzione != null) {
+      const km = m.kmAttuali != null ? m.kmAttuali : m.kmIniziali;
+      const c = urgenzaKmColore(km, m.kmProssimaManutenzione);
+      if (c) kmColori.add(c);
+    } else if (!isTipoFlotta(m) && m.oreProssimaManutenzione != null) {
+      const c = urgenzaOreColore(m.oreAttuali, m.oreProssimaManutenzione);
+      if (c) oreColori.add(c);
+    }
+  }
+
+  const attesi = ['black', 'red', 'yellow', 'green'];
+  for (const c of attesi) {
+    if (!kmColori.has(c)) {
+      errors.push(`macchine km: manca bucket "${c}" (presenti: ${[...kmColori].join(', ') || '—'})`);
+    }
+    if (!oreColori.has(c)) {
+      errors.push(`macchine ore: manca bucket "${c}" (presenti: ${[...oreColori].join(', ') || '—'})`);
+    }
+  }
+  if (!dataColori.has('black') && !dataColori.has('red')) {
+    errors.push('macchine date: atteso almeno un semaforo black o red su manutenzione/revisione/assicurazione');
+  }
+
+  return {
+    kmColori: [...kmColori],
+    oreColori: [...oreColori],
+    dataColori: [...dataColori],
+    errors
+  };
 }
 
 /**
@@ -128,6 +219,13 @@ export async function inspectTenantSeed(db, tenantId) {
     errors.push('flotta: atteso almeno 1 mezzo con tagliando km superato (demo scadenze)');
   }
 
+  const terreniAzienda = terreni.filter((t) => !t.clienteId);
+  const affittiCheck = validateAffittiSemaforoSeed(terreniAzienda);
+  errors.push(...affittiCheck.errors);
+
+  const semMacchine = validateMacchineSemaforoSeed(macchine);
+  errors.push(...semMacchine.errors);
+
   for (const t of terreni) {
     if (t.coltura !== EXPECTED_COLTURA) {
       errors.push(`terreno "${t.nome}": coltura "${t.coltura}" != "${EXPECTED_COLTURA}"`);
@@ -167,7 +265,11 @@ export async function inspectTenantSeed(db, tenantId) {
         const min = p.scortaMinima ?? 0;
         const g = p.giacenza ?? 0;
         return min > 0 && g < min;
-      }).length
+      }).length,
+      affitti: affittiCheck.affitti,
+      affittiColori: affittiCheck.colori,
+      semaforiKm: semMacchine.kmColori,
+      semaforiOre: semMacchine.oreColori
     },
     errors
   };

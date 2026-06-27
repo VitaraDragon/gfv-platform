@@ -1,6 +1,46 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — sim Conto Terzi v2.2 verificato (run + UI) + allineamento app↔sim catalogo + fix cascata UI/Tony + etichetta categoria attrezzo Gestione lavori.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — sim **v3 chiusa** (affitti + semafori parco, smoke/audit su tenant fresco); manifest legacy: cleanup/backfill.**
+
+## GFV Farm Simulator — v3 meccanismi a cascata chiusa (2026-06-27) ✅
+
+**Obiettivo:** chiudere v3 sim — seed → regole app → widget/filtri/semafori verificabili su emulator (senza Tony/meteo nel orchestrator).
+
+**Incrementi v3 (riepilogo):**
+1. i18n alert meteo + Vitest semafori widget
+2. cascata CV trattore→attrezzi + colture/lavori (`lavoro-cascade-filters.js`)
+3. catalogo sim = app (`app-catalog-seed-data.js`, `seed-app-catalog.js`)
+4. fix cascata UI app + Tony (preserve padri form)
+5. **chiusura:** affitti terreni + profili scadenze macchine + inspect/smoke
+
+**Quinto incremento — file principali:**
+- `simulator/lib/seed-terreni-affitti.js` — 4 terreni azienda in affitto (grey/red/yellow/green); `ensureTerreniAffittiSeed` per backfill
+- `simulator/lib/seed-parco-macchine-details.js` — profili km/ore/date su flotta (4 mezzi), trattori, attrezzi; `forceSemaforoProfiles` su backfill
+- `simulator/phases/02-populate-assets.js` — affitti in populate; ore attrezzi in Firestore
+- `simulator/lib/tenant-inspect.js` — `validateAffittiSemaforoSeed`, `validateMacchineSemaforoSeed`
+- `simulator/templates/solo-titolare-viticola.json` — `flotta: 4` → **8 macchine** totali
+- `scripts/cascade-v3-live-smoke.js` — bucket affitti/km/ore + cascata su emulator (default: **ultimo** tenant manifest)
+
+**Verifica automatica (tenant fresco — comando consigliato demo/CI leggera):**
+```bash
+npm run sim:emulators          # terminale 1
+npm run sim:cleanup -- --keep 0   # opzionale — manifest pulito
+npm run sim:run -- --template=solo-titolare-viticola
+npm run sim:inspect
+node scripts/cascade-v3-live-smoke.js
+npm run sim:audit
+npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
+```
+
+**Esito verificato (2026-06-27):** tenant `sim_podere_conti_556196` — inspect OK, live-smoke OK, audit **OK** su quella entry; Vitest v3 **21/21** OK.
+
+**Manifest con molte entry legacy:** `sim:audit` può fallire su tenant creati prima del quinto incremento (mancano affitti/bucket). Remediation: `npm run sim:backfill` (affitti + `forceSemaforoProfiles`) **oppure** `npm run sim:cleanup -- --keep 1` + nuovo `sim:run`.
+
+**Verifica UI (manuale, §13.2):** dashboard widget **Scadenze amministrazione** + **In arrivo**; `modules/macchine/views/scadenze-list-standalone.html?emulator=1`; Terreni (colonna affitti). Non automatizzata in v3 — coperta da **v4 Playwright**.
+
+**Prossimo sim:** **v4 Playwright**; v2 opzionale altri template; v3b run paralleli N tenant.
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — §11 (v3 barrata), §11.1.2 DoD, §13.2 checklist scadenze/affitti, `simulator/README.md` quick start.
 
 ## GFV Farm Simulator — template Conto Terzi v2.2 (2026-06-27) ✅ verificato
 
