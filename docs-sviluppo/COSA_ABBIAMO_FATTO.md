@@ -1,6 +1,36 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright** scenari **1–7** ✅ (`npm run sim:e2e` → 7/7); v3 chiusa.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright** scenari **1–8** ✅ (`npm run sim:e2e` → 8/8); **#9 CI** ⬜; v3 chiusa.**
+
+## GFV Farm Simulator — v4 Playwright stato e prossimi passi (2026-06-28)
+
+**Completato:** suite E2E browser **8/8** — dashboard, scadenze, terreni, attività, movimenti, vigneto, conto terzi, field workspace manodopera.
+
+**Tenant consigliato:** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` → `npm run sim:e2e`.
+
+**Catena pre-E2E manodopera:** `viticola-manodopera.test.js` + `sim:audit` su manifest snello (`sim:cleanup --keep 1` se legacy).
+
+**Prossimo incremento v4 (#9 — unico obbligatorio per chiudere v4):** estendere `.github/workflows/simulator-ci.yml` con `sim:e2e:install` + `sim:run` + `sim:e2e:pw` — dettaglio **`GFV_FARM_SIMULATOR.md` §13.5**.
+
+**Fuori scope v4.0:** E2E pagine admin manodopera (gestione lavori, validazione ore full screen); typo/recovery NL (Tony); CI notturna batch (v4b).
+
+**Copertura §13.2 vs E2E:** v. tabella **`GFV_FARM_SIMULATOR.md` §11.2.1**.
+
+## GFV Farm Simulator — v4 Playwright scenario 8 field workspace (2026-06-28)
+
+**Obiettivo:** E2E browser su manodopera mobile (operaio + caposquadra) — assert workspace, lavori assegnati, form ore, sezioni capo; login persona da pagina dev.
+
+**Ottavo incremento — file:**
+- `tests/e2e/sim/scenarios/field-workspace.mjs` — assert operaio e capo
+- `tests/e2e/sim/field-workspace.spec.js` — spec `@playwright/test`
+- `tests/e2e/sim/helpers/sim-login.js` — `loginAsCapoFromDevPage`, `loginAsOperaioFromDevPage`, `waitForFieldWorkspaceLoaded`, `pickManifestEntry` esteso
+- `scripts/sim-e2e-run.mjs` — scenario `field-workspace` registrato (8 scenari totali)
+
+**Strategia tenant:** suite 8/8 con `npm run sim:run -- --template=viticola-conto-terzi-manodopera`. Scenario 8 usa `templateIncludes: 'manodopera'` + `requirePersonas`; escluso `regime-max`.
+
+**Esito:** `npm run sim:e2e` → **8/8** scenari OK (tenant `viticola-conto-terzi-manodopera`).
+
+**Prossimo incremento v4:** CI §13.5 (`simulator-ci.yml` + Playwright headless).
 
 ## GFV Farm Simulator — v4 Playwright scenario 7 conto terzi (2026-06-28)
 
@@ -16,7 +46,7 @@
 
 **Esito:** `npm run sim:e2e` → **7/7** scenari OK (tenant `viticola-conto-terzi`).
 
-**Prossimo incremento v4:** manodopera mobile (`field-workspace.spec.js`) — §11.2.
+**Prossimo incremento v4:** completato scenario 8 — v. voce sopra.
 
 ## GFV Farm Simulator — v4 Playwright scenario 6 vigneto (2026-06-28)
 
@@ -70,7 +100,7 @@
 
 **Obiettivo:** test E2E browser su stack locale (emulator + `npm start` + tenant `sim_*`); il sim genera/valida dati (v3), Playwright assert solo DOM visibile.
 
-**Stato suite:** `npm run sim:e2e` → **7/7** scenari OK (verificato 2026-06-28).
+**Stato suite:** `npm run sim:e2e` → **8/8** scenari OK (verificato 2026-06-28). **Prossimo:** incremento #9 CI — v. sezione **v4 Playwright stato e prossimi passi** in testa.
 
 | # | Scenario | File assert | File spec |
 | - | -------- | ----------- | --------- |
@@ -81,24 +111,21 @@
 | 5 | Movimenti magazzino (12 uscite + tracciabilità) | `tests/e2e/sim/scenarios/movimenti.mjs` | `movimenti.spec.js` |
 | 6 | Vigneto potature + trattamenti + concimazioni | `tests/e2e/sim/scenarios/vigneto.mjs` | `vigneto.spec.js` |
 | 7 | Conto terzi (clienti, tariffe, preventivi, terreni clienti) | `tests/e2e/sim/scenarios/conto-terzi.mjs` | `conto-terzi.spec.js` |
+| 8 | Manodopera mobile (operaio + capo field workspace) | `tests/e2e/sim/scenarios/field-workspace.mjs` | `field-workspace.spec.js` |
 
-**Infrastruttura:** `playwright.config.js`, `scripts/sim-e2e-run.mjs` (array `SCENARIOS`: dashboard-deadlines … vigneto, conto-terzi), `tests/e2e/sim/helpers/sim-login.js` (`pickManifestEntry`, `loginAsManagerContoTerzi`).
+**Infrastruttura:** `playwright.config.js`, `scripts/sim-e2e-run.mjs` (8 voci `SCENARIOS`), `tests/e2e/sim/helpers/sim-login.js` (`pickManifestEntry`, login manager/conto terzi/capo/operaio).
 
 **Comandi:**
 ```bash
 npm run sim:emulators   # terminale 1
 npm start               # terminale 2
-npm run sim:run -- --template=viticola-conto-terzi   # suite 7/7 consigliata
-# pre-E2E (opzionale): sim:inspect, cascade-v3-live-smoke.js, sim:audit, Vitest v3
-npm run sim:e2e         # runner headless — Chrome locale (7 scenari)
+npm run sim:run -- --template=viticola-conto-terzi-manodopera   # suite 8/8 consigliata
+# pre-E2E: sim:inspect, cascade-v3-live-smoke.js, sim:audit, Vitest v3, viticola-manodopera.test.js
+npm run sim:e2e         # runner headless — Chrome locale (8 scenari)
 npm run sim:e2e:pw      # CLI Playwright nativa (Node 22 / CI + sim:e2e:install)
 ```
 
-**Prossimi incrementi v4 (§11.2):** manodopera mobile (`field-workspace.spec.js`) → CI §13.5.
-
-**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2, §13.2, `simulator/README.md`.
-
-**Nota Node 24:** la CLI `playwright test` può bloccarsi — usare `npm run sim:e2e` in dev; in CI Node 22 + `sim:e2e:pw`.
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2, §11.2.1, §13.2, §13.5, `simulator/README.md`.
 
 ---
 
@@ -151,7 +178,7 @@ npm run sim:e2e:pw      # CLI Playwright nativa (Node 22 / CI + sim:e2e:install)
 
 **Esito verificato (2026-06-27):** primo scenario dashboard — `npm run sim:e2e` → **1/1** OK; Vitest v3 **21/21**; `cascade-v3-live-smoke.js` OK su tenant fresco.
 
-**Nota:** scenari 2–6 aggiunti 2026-06-28; scenario 7 conto terzi stesso giorno — suite attuale **7/7** (v. sezione consolidata **v4 Playwright (stato 2026-06-28)** in testa).
+**Nota:** scenari 2–8 aggiunti 2026-06-28 — suite attuale **8/8** (v. sezione **v4 Playwright stato e prossimi passi** in testa).
 
 **Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2, §13.2, `simulator/README.md`.
 
@@ -178,23 +205,24 @@ npm run sim:e2e:pw      # CLI Playwright nativa (Node 22 / CI + sim:e2e:install)
 ```bash
 npm run sim:emulators          # terminale 1
 npm run sim:cleanup -- --keep 0   # opzionale — manifest pulito
-npm run sim:run -- --template=viticola-conto-terzi   # suite E2E 7/7 (consigliato)
+npm run sim:run -- --template=viticola-conto-terzi-manodopera   # suite E2E 8/8 (consigliato)
 # oppure solo base v3: npm run sim:run -- --template=solo-titolare-viticola
 npm run sim:inspect
 node scripts/cascade-v3-live-smoke.js
 npm run sim:audit
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
+npm run test:run -- tests/simulator/viticola-manodopera.test.js
 npm start                      # terminale 2 — per E2E browser
-npm run sim:e2e                # opzionale — 7/7 con tenant viticola-conto-terzi
+npm run sim:e2e                # opzionale — 8/8 con tenant viticola-conto-terzi-manodopera
 ```
 
 **Esito verificato (2026-06-27):** tenant `sim_podere_conti_556196` — inspect OK, live-smoke OK, audit **OK** su quella entry; Vitest v3 **21/21** OK.
 
 **Manifest con molte entry legacy:** `sim:audit` può fallire su tenant creati prima del quinto incremento (mancano affitti/bucket). Remediation: `npm run sim:backfill` (affitti + `forceSemaforoProfiles`) **oppure** `npm run sim:cleanup -- --keep 1` + nuovo `sim:run`.
 
-**Verifica UI (§13.2):** template `solo-titolare-viticola` — scenari **1–6 automatizzati**; template `viticola-conto-terzi*` aggiunge **scenario 7** conto terzi. Suite completa: `npm run sim:e2e` → **7/7** con `--template=viticola-conto-terzi`. Resto §13.2 (manodopera mobile) → incremento v4 #8.
+**Verifica UI (§13.2):** scenari **1–8 automatizzati** con `viticola-conto-terzi-manodopera`. Pagine admin manodopera (gestione lavori, validazione ore full screen): checklist manuale — v. **`GFV_FARM_SIMULATOR.md` §11.2.1**.
 
-**Prossimo sim:** incremento **v4 #8 manodopera mobile** (`field-workspace.spec.js`) §11.2; opzionale CI Playwright §13.5.
+**Prossimo sim:** incremento **v4 #9 CI Playwright** §13.5.
 
 **Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — §11 (v3 barrata), §11.1.2 DoD, §13.2 checklist scadenze/affitti, `simulator/README.md` quick start.
 

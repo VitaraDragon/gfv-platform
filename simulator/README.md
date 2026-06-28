@@ -7,7 +7,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
-**v4 Playwright:** scenari 1–7 ✅ — guida §11.2
+**v4 Playwright:** scenari 1–8 ✅ — guida §11.2
 
 ## Prerequisiti
 
@@ -115,7 +115,7 @@ Pagina dev aziende simulate:
 
 **Prerequisiti:** emulator + `npm start` + tenant **Seed completo** in manifest.
 
-**Suite 7/7 (consigliata):** `npm run sim:run -- --template=viticola-conto-terzi` — estende solo-titolare (scenari 1–6) + conto terzi (#7). Solo scenari 1–6: `--template=solo-titolare-viticola`. Scenario 7 richiede `templateId` con `conto-terzi` nel manifest.
+**Suite 8/8 (consigliata):** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` — stack completo (scenari 1–8). Suite 7/8: `viticola-conto-terzi` (scenario 8 richiede personas). Solo scenari 1–6: `--template=solo-titolare-viticola`.
 
 **Catena pre-E2E (riusa verifica v3):**
 
@@ -124,7 +124,8 @@ npm run sim:inspect
 node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # legacy nel manifest → sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
-npm run sim:e2e                      # 7/7 attesi su tenant viticola-conto-terzi
+npm run test:run -- tests/simulator/viticola-manodopera.test.js   # emulator attivo
+npm run sim:e2e                      # 8/8 attesi su tenant viticola-conto-terzi-manodopera
 ```
 
 **E2E browser:**
@@ -150,11 +151,13 @@ npm run sim:e2e:install      # CI / sim:e2e:pw — scarica Chromium Playwright
 
 **Scenario 7 (✅):** login dev su tenant `viticola-conto-terzi*` → clienti (≥3, attivi/sospesi) + tariffe (≥8) + preventivi (≥5, stati misti) + terreni clienti (≥1 card con Vite).
 
-Assert su DOM visibile — dati seed già validati da v3/v2.2.
+**Scenario 8 (✅):** login dev su tenant `*manodopera*` con personas → **Operaio (mobile)** e **Capo (mobile)** → `core/mobile/field-workspace-standalone.html?emulator=1` — workspace caricato, lavori assegnati, toolbar utente, form ore; capo: sezioni validazione ore, squadra, comunicazioni.
+
+Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
-**Esito attuale (2026-06-28):** `npm run sim:e2e` → **7/7** scenari OK (emulator + `npm start` + tenant `viticola-conto-terzi` consigliato).
+**Esito attuale (2026-06-28):** `npm run sim:e2e` → **8/8** scenari OK (emulator + `npm start` + tenant `viticola-conto-terzi-manodopera` consigliato).
 
 | # | Scenario | Spec | URL target |
 | - | -------- | ---- | ---------- |
@@ -165,11 +168,12 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2.
 | 5 | Movimenti magazzino | `movimenti.spec.js` | `modules/magazzino/views/movimenti-standalone.html?emulator=1` |
 | 6 | Vigneto potature/trattamenti | `vigneto.spec.js` | `potatura` + `trattamenti` + `concimazioni` standalone |
 | 7 | Conto terzi | `conto-terzi.spec.js` | clienti + tariffe + preventivi + terreni clienti standalone |
-| 8 | Manodopera mobile | `field-workspace.spec.js` | ⬜ prossimo |
+| 8 | Manodopera mobile | `field-workspace.spec.js` | `core/mobile/field-workspace-standalone.html?emulator=1` |
+| 9 | CI leggera | §13.5 | ⬜ prossimo |
 
 **File:** `scripts/sim-e2e-run.mjs`, `tests/e2e/sim/` — dettaglio assert e piano incrementi: **`GFV_FARM_SIMULATOR.md` §11.2**.
 
-**Prossimo incremento v4 #8:** `field-workspace.spec.js` (template `viticola-conto-terzi-manodopera` o `viticola-manodopera`).
+**Prossimo incremento v4 #9:** CI leggera Playwright in GitHub Actions — v. **`GFV_FARM_SIMULATOR.md` §13.5**.
 
 ## Manifest e audit
 
@@ -228,7 +232,7 @@ Estende `solo-titolare-viticola` (stessi dati base per scenari E2E 1–6) + modu
 | Preventivi | 5 (stati misti: bozza, inviato, accettato, rifiutato) |
 | **Terreni totali in Firestore** | **10** (4 azienda + 6 clienti) |
 
-**E2E v4:** un solo tenant `viticola-conto-terzi` copre la suite **7/7** (`npm run sim:e2e`). Scenario 7 usa login dedicato `loginAsManagerContoTerzi` (`templateIncludes: 'conto-terzi'` su manifest).
+**E2E v4:** tenant `viticola-conto-terzi-manodopera` copre la suite **8/8** (`npm run sim:e2e`). Solo conto terzi: `viticola-conto-terzi` → **7/8** (manca scenario 8 manodopera). Scenario 7: `loginAsManagerContoTerzi`; scenario 8: `loginAsCapoFromDevPage` / `loginAsOperaioFromDevPage`.
 
 **Smoke v3 (emulator + manifest non vuoto):**
 ```bash
@@ -251,7 +255,8 @@ Workflow **GFV Farm Simulator CI** (`.github/workflows/simulator-ci.yml`):
 
 - **Trigger:** push su `main` e pull request che toccano `simulator/`, `tests/simulator/`, `firebase.json`, dipendenze root; anche **Run workflow** manuale.
 - **Ambiente:** Ubuntu, Node 22, Java 21 (Firestore Emulator).
-- **Comando:** `npm run sim:test:ci` → `firebase emulators:exec --only auth,firestore` + `sim:test` + `sim:test:vitest`.
+- **Comando attuale:** `npm run sim:test:ci` → `firebase emulators:exec --only auth,firestore` + `sim:test` + `sim:test:vitest`.
+- **Pianificato (v4 #9):** stesso workflow + `sim:e2e:install` + `sim:run` + `sim:e2e:pw` — v. **`GFV_FARM_SIMULATOR.md` §13.5**.
 
 In locale, stesso comando della CI (Java obbligatorio): `npm run sim:test:ci`.
 

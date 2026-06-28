@@ -24,16 +24,28 @@ export const PREVENTIVI_LIST_PATH =
   '/modules/conto-terzi/views/preventivi-standalone.html?emulator=1';
 export const TERRENI_CLIENTI_PATH =
   '/modules/conto-terzi/views/terreni-clienti-standalone.html?emulator=1';
+export const FIELD_WORKSPACE_PATH =
+  '/core/mobile/field-workspace-standalone.html?emulator=1';
 
 const SEED_VERSION = 2;
 
 /**
  * Sceglie entry manifest per login E2E (ordinamento createdAt desc).
  * @param {import('@playwright/test').Page} page
- * @param {{ templateIncludes?: string, preferSeedComplete?: boolean }} [options]
+ * @param {{
+ *   templateIncludes?: string,
+ *   preferSeedComplete?: boolean,
+ *   requirePersonas?: boolean,
+ *   excludeRegimeMax?: boolean,
+ * }} [options]
  */
 export async function pickManifestEntry(page, options = {}) {
-  const { templateIncludes, preferSeedComplete = true } = options;
+  const {
+    templateIncludes,
+    preferSeedComplete = true,
+    requirePersonas = false,
+    excludeRegimeMax = false,
+  } = options;
 
   const entries = await page.evaluate(async () => {
     const res = await fetch('/simulator/manifest.json');
@@ -50,7 +62,23 @@ export async function pickManifestEntry(page, options = {}) {
     filtered = filtered.filter((e) => (e.templateId || '').includes(templateIncludes));
     if (!filtered.length) {
       throw new Error(
-        `Nessun tenant templateId matching "${templateIncludes}" — esegui npm run sim:run -- --template=viticola-conto-terzi`
+        `Nessun tenant templateId matching "${templateIncludes}" — esegui npm run sim:run -- --template=viticola-conto-terzi-manodopera`
+      );
+    }
+  }
+  if (requirePersonas) {
+    filtered = filtered.filter((e) => Array.isArray(e.personas) && e.personas.length > 1);
+    if (!filtered.length) {
+      throw new Error(
+        'Nessun tenant con personas[] — esegui npm run sim:run -- --template=viticola-conto-terzi-manodopera'
+      );
+    }
+  }
+  if (excludeRegimeMax) {
+    filtered = filtered.filter((e) => !(e.templateId || '').includes('regime-max'));
+    if (!filtered.length) {
+      throw new Error(
+        'Solo tenant regime-max in manifest — preferire viticola-conto-terzi-manodopera (npm run sim:run -- --template=viticola-conto-terzi-manodopera)'
       );
     }
   }
@@ -376,4 +404,81 @@ export async function loginAsManagerContoTerzi(page, options = {}) {
     ...options,
     templateIncludes: 'conto-terzi',
   });
+}
+
+/** Attende caricamento field workspace mobile (Firestore + lavori assegnati). */
+export async function waitForFieldWorkspaceLoaded(page) {
+  await page.waitForURL(/field-workspace-standalone\.html/, { timeout: 60_000 });
+  await page.locator('#field-swiper').waitFor({ state: 'visible', timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const status = document.getElementById('field-mobile-status');
+    if (!status) return false;
+    const text = (status.textContent || '').trim();
+    if (!text || /Inizializzazione/i.test(text) || /Caricamento workspace/i.test(text)) {
+      return false;
+    }
+    return !/login/i.test(text);
+  }, { timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const select = document.getElementById('selected-work');
+    if (!select) return false;
+    return Array.from(select.options).filter((o) => o.value).length >= 1;
+  }, { timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const toolbar = document.getElementById('field-toolbar-user');
+    const name = document.getElementById('field-toolbar-user-name');
+    if (!toolbar || toolbar.hidden) return false;
+    return !!(name && (name.textContent || '').trim());
+  }, { timeout: 60_000 });
+}
+
+/** Naviga al field workspace (sessione emulator già attiva). */
+export async function gotoFieldWorkspace(page) {
+  await page.goto(FIELD_WORKSPACE_PATH);
+  await waitForFieldWorkspaceLoaded(page);
+}
+
+async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {}) {
+  await page.goto(SIM_DEV_PATH);
+
+  const emptyMsg = page.getByText('Nessuna azienda in manifest');
+  const cardLocator = page.locator('.card');
+
+  await Promise.race([
+    cardLocator.first().waitFor({ state: 'visible', timeout: 45_000 }),
+    emptyMsg.waitFor({ state: 'visible', timeout: 45_000 }),
+  ]);
+
+  if (await emptyMsg.isVisible()) {
+    throw new Error('Nessuna azienda in manifest — esegui npm run sim:run (con emulator attivo).');
+  }
+
+  const entry = await pickManifestEntry(page, {
+    templateIncludes: 'manodopera',
+    preferSeedComplete: true,
+    requirePersonas: true,
+    excludeRegimeMax: true,
+    ...options,
+  });
+
+  const card = page.locator('.card').filter({ hasText: entry.tenantId });
+  if ((await card.count()) === 0) {
+    throw new Error(`Card non trovata per tenant ${entry.tenantId}`);
+  }
+
+  await card.getByRole('button', { name: personaButtonPattern }).first().click();
+  await waitForFieldWorkspaceLoaded(page);
+}
+
+/** Login caposquadra mobile su tenant manodopera (scenario v4 #8). */
+export async function loginAsCapoFromDevPage(page, options = {}) {
+  return loginAsPersonaFromDevPage(page, /Capo \(mobile\)/, options);
+}
+
+/** Login operaio mobile su tenant manodopera (scenario v4 #8). */
+export async function loginAsOperaioFromDevPage(page, options = {}) {
+  return loginAsPersonaFromDevPage(page, /Operaio \(mobile\)/, options);
 }

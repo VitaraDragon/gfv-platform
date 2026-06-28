@@ -19,8 +19,10 @@ import {
   gotoTerreniClientiList,
   gotoTerreniList,
   gotoTrattamentiList,
+  loginAsCapoFromDevPage,
   loginAsManagerContoTerzi,
   loginAsManagerFromDevPage,
+  loginAsOperaioFromDevPage,
 } from '../tests/e2e/sim/helpers/sim-login.js';
 import { runAttivitaListAssertions } from '../tests/e2e/sim/scenarios/attivita-list.mjs';
 import {
@@ -29,6 +31,10 @@ import {
   runTariffeListAssertions,
   runTerreniClientiAssertions,
 } from '../tests/e2e/sim/scenarios/conto-terzi.mjs';
+import {
+  runCapoFieldWorkspaceAssertions,
+  runOperaioFieldWorkspaceAssertions,
+} from '../tests/e2e/sim/scenarios/field-workspace.mjs';
 import { runMovimentiAssertions } from '../tests/e2e/sim/scenarios/movimenti.mjs';
 import { runDashboardDeadlinesAssertions } from '../tests/e2e/sim/scenarios/dashboard-deadlines.mjs';
 import { runScadenzeListAssertions } from '../tests/e2e/sim/scenarios/scadenze-list.mjs';
@@ -64,7 +70,11 @@ async function checkManifest() {
 }
 
 function launchOptions() {
-  const opts = { headless: true, timeout: 60_000 };
+  const headless = process.env.GFV_E2E_HEADED !== '1';
+  const opts = { headless, timeout: 60_000 };
+  if (!headless) {
+    opts.slowMo = Number(process.env.GFV_E2E_SLOWMO) || 400;
+  }
   if (process.env.GFV_E2E_BROWSER_CHANNEL) {
     opts.channel = process.env.GFV_E2E_BROWSER_CHANNEL;
   } else if (!process.env.CI) {
@@ -137,6 +147,15 @@ const SCENARIOS = [
       await runPreventiviListAssertions(page, expect);
       await gotoTerreniClientiList(page);
       await runTerreniClientiAssertions(page, expect);
+    },
+  },
+  {
+    name: 'field-workspace',
+    run: async (page) => {
+      await loginAsOperaioFromDevPage(page);
+      await runOperaioFieldWorkspaceAssertions(page, expect);
+      await loginAsCapoFromDevPage(page);
+      await runCapoFieldWorkspaceAssertions(page, expect);
     },
   },
 ];
