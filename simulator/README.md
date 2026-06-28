@@ -7,7 +7,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
-**v4 Playwright:** scenari 1–6 ✅ — guida §11.2
+**v4 Playwright:** scenari 1–7 ✅ — guida §11.2
 
 ## Prerequisiti
 
@@ -113,7 +113,9 @@ Pagina dev aziende simulate:
 
 ## E2E Playwright (v4)
 
-**Prerequisiti:** emulator + `npm start` + tenant **Seed completo** in manifest (`sim:run --template=solo-titolare-viticola` consigliato).
+**Prerequisiti:** emulator + `npm start` + tenant **Seed completo** in manifest.
+
+**Suite 7/7 (consigliata):** `npm run sim:run -- --template=viticola-conto-terzi` — estende solo-titolare (scenari 1–6) + conto terzi (#7). Solo scenari 1–6: `--template=solo-titolare-viticola`. Scenario 7 richiede `templateId` con `conto-terzi` nel manifest.
 
 **Catena pre-E2E (riusa verifica v3):**
 
@@ -122,7 +124,7 @@ npm run sim:inspect
 node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # legacy nel manifest → sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
-npm run sim:e2e                      # 6/6 attesi su tenant Seed completo
+npm run sim:e2e                      # 7/7 attesi su tenant viticola-conto-terzi
 ```
 
 **E2E browser:**
@@ -146,11 +148,13 @@ npm run sim:e2e:install      # CI / sim:e2e:pw — scarica Chromium Playwright
 
 **Scenario 6 (✅):** stesso login → potatura + trattamenti + concimazioni vigneto — **≥3 potature** (seed 4), **≥6 trattamenti fitosanitari** (seed 8), **≥3 concimazioni** (seed 4); link **Vedi Attività** su ogni lista.
 
-Assert su DOM visibile — dati seed già validati da v3.
+**Scenario 7 (✅):** login dev su tenant `viticola-conto-terzi*` → clienti (≥3, attivi/sospesi) + tariffe (≥8) + preventivi (≥5, stati misti) + terreni clienti (≥1 card con Vite).
+
+Assert su DOM visibile — dati seed già validati da v3/v2.2.
 
 **Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
-**Esito attuale (2026-06-28):** `npm run sim:e2e` → **6/6** scenari OK (emulator + `npm start` + manifest non vuoto, preferire **Seed completo**).
+**Esito attuale (2026-06-28):** `npm run sim:e2e` → **7/7** scenari OK (emulator + `npm start` + tenant `viticola-conto-terzi` consigliato).
 
 | # | Scenario | Spec | URL target |
 | - | -------- | ---- | ---------- |
@@ -160,11 +164,12 @@ Assert su DOM visibile — dati seed già validati da v3.
 | 4 | Diario attività | `attivita-list.spec.js` | `core/attivita-standalone.html?emulator=1` |
 | 5 | Movimenti magazzino | `movimenti.spec.js` | `modules/magazzino/views/movimenti-standalone.html?emulator=1` |
 | 6 | Vigneto potature/trattamenti | `vigneto.spec.js` | `potatura` + `trattamenti` + `concimazioni` standalone |
-| 7 | Conto terzi | `conto-terzi.spec.js` | ⬜ prossimo |
+| 7 | Conto terzi | `conto-terzi.spec.js` | clienti + tariffe + preventivi + terreni clienti standalone |
+| 8 | Manodopera mobile | `field-workspace.spec.js` | ⬜ prossimo |
 
 **File:** `scripts/sim-e2e-run.mjs`, `tests/e2e/sim/` — dettaglio assert e piano incrementi: **`GFV_FARM_SIMULATOR.md` §11.2**.
 
-**Prossimo incremento v4 #7:** `conto-terzi.spec.js` (template `viticola-conto-terzi*`).
+**Prossimo incremento v4 #8:** `field-workspace.spec.js` (template `viticola-conto-terzi-manodopera` o `viticola-manodopera`).
 
 ## Manifest e audit
 
@@ -209,6 +214,21 @@ Email e tenant ID sono nel report a fine run e in `simulator/manifest.json` (loc
 Ogni macchina seed v1.6+ include scadenze demo (`prossimaManutenzione`, revisione/assicurazione su trattori/flotta, tagliando **km** su flotta, **ore** su trattori/attrezzi). Almeno un mezzo in `in_manutenzione`. **v3:** 4 terreni azienda in affitto con bucket grey/red/yellow/green (widget dashboard Scadenze).
 
 Aziende create prima di v1.6 o pre-v3 affitti: `npm run sim:backfill` (affitti + `forceSemaforoProfiles` parco macchine).
+
+## Cosa aggiunge il template `viticola-conto-terzi`
+
+Estende `solo-titolare-viticola` (stessi dati base per scenari E2E 1–6) + modulo Conto Terzi:
+
+| Risorsa | Quantità |
+|---------|----------|
+| Clienti | 3 (2 attivi + 1 sospeso) |
+| Poderi clienti | 3 |
+| Terreni clienti | 6 |
+| Tariffe | 8 (7 attive + 1 disattivata) |
+| Preventivi | 5 (stati misti: bozza, inviato, accettato, rifiutato) |
+| **Terreni totali in Firestore** | **10** (4 azienda + 6 clienti) |
+
+**E2E v4:** un solo tenant `viticola-conto-terzi` copre la suite **7/7** (`npm run sim:e2e`). Scenario 7 usa login dedicato `loginAsManagerContoTerzi` (`templateIncludes: 'conto-terzi'` su manifest).
 
 **Smoke v3 (emulator + manifest non vuoto):**
 ```bash

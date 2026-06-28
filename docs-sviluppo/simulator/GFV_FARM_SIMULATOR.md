@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (scenari 1–6 ✅)  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (scenari 1–7 ✅)  
 **Data:** 2026-06-28  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); **v4 Playwright avviata** — scenari 1–6 ✅ (§11.2); regime max + routine §13.4  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); **v4 Playwright avviata** — scenari 1–7 ✅ (§11.2); regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -602,7 +602,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v2**   | Template frutteto, mista, solo titolare oliveto… |
 | **v3**   | ~~**Meccanismi a cascata**~~ (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1 ✅ |
 | **v3b**  | Run paralleli N tenant (infrastruttura, opzionale) |
-| **v4**   | **E2E Playwright** — flussi UI + widget scadenze (§11.2); meteo live mock/skip; typo/recovery NL → **Tony** + test client |
+| **v4**   | **E2E Playwright** — flussi UI §13.2 (7/7: dashboard → conto terzi); meteo live mock/skip; typo/recovery NL → **Tony** + test client |
 | **v4b**  | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
 
 ### 11.1 Direzione v3 — meccanismi a cascata (deciso 2026-06-26)
@@ -639,7 +639,7 @@ npm run sim:audit                      # OK su tenant appena generato (manifest 
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 ```
 
-**Prossimo v4:** incrementi §11.2 (scenario 7 conto terzi → manodopera mobile → CI §13.5); typo/recovery NL → Tony + test client, **non** orchestrator sim.
+**Prossimo v4:** incrementi §11.2 (scenario 8 manodopera mobile → CI §13.5); typo/recovery NL → Tony + test client, **non** orchestrator sim.
 
 #### 11.2 v4 Playwright — E2E browser (avviata 2026-06-27)
 
@@ -651,7 +651,7 @@ npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavo
 | -------- | ----- |
 | `playwright.config.js` | Config `@playwright/test` (base URL `http://127.0.0.1:8000`, project `sim-chromium`) |
 | `scripts/sim-e2e-run.mjs` | **Runner locale** — prerequisiti HTTP/emulator/manifest + Chrome di sistema; esegue scenari registrati |
-| `tests/e2e/sim/helpers/sim-login.js` | Pagina dev → **Entra come manager**; navigazione `gotoScadenzeList`, `gotoTerreniList`, `gotoAttivitaList`, `gotoMovimentiList`, `gotoPotaturaList`, `gotoTrattamentiList`, `gotoConcimazioniList` |
+| `tests/e2e/sim/helpers/sim-login.js` | Pagina dev → **Entra come manager**; `pickManifestEntry` + `loginAsManagerContoTerzi`; navigazione liste (scadenze, terreni, attività, movimenti, vigneto, conto terzi) |
 | `tests/e2e/sim/scenarios/*.mjs` | Assert DOM condivise (spec Playwright + runner) |
 | `tests/e2e/sim/*.spec.js` | Spec `@playwright/test` (CI con `npm run sim:e2e:pw`) |
 
@@ -661,7 +661,7 @@ Un scenario per file, niente `if (pagina === …)` sparsi. **No** Tony/meteo/Str
 
 ```
 tests/e2e/sim/
-  helpers/sim-login.js          # login dev + goto* / waitFor*Loaded
+  helpers/sim-login.js          # login dev + pickManifestEntry + goto* / waitFor*Loaded
   scenarios/
     dashboard-deadlines.mjs
     scadenze-list.mjs
@@ -669,20 +669,24 @@ tests/e2e/sim/
     attivita-list.mjs
     movimenti.mjs
     vigneto.mjs                 # potatura + trattamenti + concimazioni
+    conto-terzi.mjs               # clienti + tariffe + preventivi + terreni clienti
   dashboard-deadlines.spec.js
   scadenze-list.spec.js
   terreni-affitti.spec.js
   attivita-list.spec.js
   movimenti.spec.js
   vigneto.spec.js
-scripts/sim-e2e-run.mjs         # SCENARIOS: 6 voci (stesso ordine)
+  conto-terzi.spec.js
+scripts/sim-e2e-run.mjs         # SCENARIOS: 7 voci (stesso ordine)
 ```
 
 **Node / browser:** in locale **`npm run sim:e2e`** usa **Chrome installato** (`playwright-core` + `channel: chrome`). Su **Node 24** la CLI `playwright test` può restare bloccata — usare il runner. In **CI (Node 22)** preferire `npm run sim:e2e:pw` dopo `npm run sim:e2e:install` (Chromium bundled).
 
 **Assert scenario 1 (dashboard):** dati seed (4 affitti, bucket km/ore) verificati da v3 (`sim:inspect`, `cascade-v3-live-smoke`, Vitest). In E2E: ≥2 righe **Affitto** con testo semaforo (Scaduto/giorni/mesi), ≥3 voci **In arrivo** con tipi km/ore/manutenzione, footer scadenze mezzi. Il widget amministrazione mostra max **8 righe** (`MAX_RIGHE` in `dashboard-deadlines.js`) — non assert rigido `count === 4` affitti nel DOM.
 
-**Esito suite (2026-06-28):** `npm run sim:e2e` → **6/6** scenari OK (scenari 1–6 implementati; 7–9 pianificati sotto).
+**Esito suite (2026-06-28):** `npm run sim:e2e` → **7/7** scenari OK (scenari 1–7 implementati; 8–9 pianificati sotto).
+
+**Tenant E2E consigliato (suite 7/7):** `npm run sim:run -- --template=viticola-conto-terzi` — estende `solo-titolare-viticola` (scenari 1–6 OK) + seed conto terzi (scenario 7). Il login scenario 7 usa `templateIncludes: 'conto-terzi'` su `manifest.json` (helper `loginAsManagerContoTerzi`); scenari 1–6 usano l'entry **Seed completo** più recente (qualsiasi template base viticola). Se il manifest contiene **solo** `solo-titolare-viticola`, lo scenario 7 fallisce con messaggio esplicito — generare tenant conto terzi o usare `viticola-conto-terzi-manodopera` per stack completo (#8 manodopera).
 
 **Catena pre-E2E consigliata (tenant fresco):**
 
@@ -699,7 +703,8 @@ npm run sim:e2e
 ```bash
 npm run sim:emulators   # terminale 1
 npm start               # terminale 2 — http://127.0.0.1:8000
-npm run sim:run -- --template=solo-titolare-viticola   # tenant fresco con affitti + 8 macchine
+npm run sim:run -- --template=viticola-conto-terzi   # suite E2E 7/7 (consigliato)
+npm run sim:run -- --template=solo-titolare-viticola # solo scenari 1–6
 npm run sim:e2e           # terminale 4 (runner Node — Chrome di sistema)
 npm run sim:e2e:pw        # alternativa CI: CLI Playwright (Node 22 + sim:e2e:install)
 ```
@@ -715,7 +720,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | `npm run sim:e2e:install` | Scarica Chromium Playwright (CI / `sim:e2e:pw`) |
 | `npm run sim:e2e:ui` | Modalità UI debug Playwright |
 
-**Criterio v4 — scenari 1–6 ✅ (2026-06-28):**
+**Criterio v4 — scenari 1–7 ✅ (2026-06-28):**
 
 | Incremento | Stato | File / verifica |
 | ---------- | ----- | ----------------- |
@@ -739,6 +744,9 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | Assert condivise scenario vigneto | ✅ | `tests/e2e/sim/scenarios/vigneto.mjs` |
 | Helper navigazione vigneto | ✅ | `gotoPotaturaList`, `gotoTrattamentiList`, `gotoConcimazioniList` in `sim-login.js` |
 | Scenario 6: vigneto — potature + trattamenti + concimazioni | ✅ verificato | `vigneto.spec.js` + `npm run sim:e2e` |
+| Assert condivise scenario conto terzi | ✅ | `tests/e2e/sim/scenarios/conto-terzi.mjs` |
+| Helper navigazione conto terzi + login template | ✅ | `gotoClientiList`, `gotoTariffeList`, `gotoPreventiviList`, `gotoTerreniClientiList`, `loginAsManagerContoTerzi`, `pickManifestEntry` in `sim-login.js` |
+| Scenario 7: conto terzi — clienti, tariffe, preventivi, terreni clienti | ✅ verificato | `conto-terzi.spec.js` + `npm run sim:e2e` |
 
 **Assert scenario 2 (scadenze-list):** dati seed (profili km/ore/date su 8 macchine) verificati da v3. In E2E: tabella con ≥5 righe; almeno un dot **black**, **red**, **yellow**; testo stato urgente visibile; almeno una riga `row-scaduto`; tipi misti (Manutenzione/Tagliando/Revisione/Assicurazione).
 
@@ -750,6 +758,8 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **Assert scenario 6 (vigneto):** seed: **4 potature** + **12 trattamenti** Firestore (8 fitosanitari su `trattamenti-standalone.html` + 4 concimazioni su `concimazioni-standalone.html`) — validati da orchestrator + `sim:audit`. In E2E: **Potatura** — ≥3 righe, link **Vedi Attività**, tipo potatura visibile; **Trattamenti** — ≥6 righe, prodotti valorizzati, link attività; **Concimazioni** — ≥3 righe, link attività. Nessun ricalcolo spese/dosaggi nel test.
 
+**Assert scenario 7 (conto terzi):** seed template `viticola-conto-terzi*`: **3 clienti** (2 attivi + 1 sospeso), **8 tariffe** (7 attive + 1 disattivata), **5 preventivi** (stati misti bozza/inviato/accettato/rifiutato), **6 terreni clienti** — validati da `inspectContoTerziSeed` + `sim:audit`. In E2E: **Clienti** — tabella `.clienti-table` ≥3 righe, badge Attivo/Sospeso, P.IVA 11 cifre; **Tariffe** — `.tariffe-table` ≥8 righe, badge Attiva/Disattivata, tipi lavoro seed visibili; **Preventivi** — `.preventivi-table` ≥5 righe, numeri `PREV-YYYY-NNN`, ≥4 stati distinti, coltura Vite; **Terreni clienti** — selezione primo cliente, ≥1 `.terreno-card` con coltura Vite, superficie, podere, mappa. Login dedicato `loginAsManagerContoTerzi` (`templateIncludes: 'conto-terzi'`). Nessun ricalcolo tariffe/preventivi nel test.
+
 **Piano incrementi v4 (Definition of Done finale):**
 
 | # | Scenario §13.2 | Spec (target) | Stato |
@@ -760,7 +770,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | 4 | Diario / attività (~20) | `attivita-list.spec.js` | ✅ |
 | 5 | Magazzino movimenti tracciabilità | `movimenti.spec.js` | ✅ |
 | 6 | Vigneto trattamenti/potature | `vigneto.spec.js` | ✅ |
-| 7 | Conto terzi (template `viticola-conto-terzi*`) | `conto-terzi.spec.js` | ⬜ |
+| 7 | Conto terzi (template `viticola-conto-terzi*`) | `conto-terzi.spec.js` | ✅ |
 | 8 | Manodopera mobile capo/operaio | `field-workspace.spec.js` | ⬜ |
 | 9 | CI leggera emulator + sim:run + Playwright | §13.5 workflow | ⬜ |
 
@@ -872,11 +882,11 @@ Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 - **Attività** → ~20 record
 - **Movimenti** (link dev o modulo magazzino) → 12 uscite, tracciabilità prodotto↔attività; prodotti con eventuale sotto scorta
 - **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **8 macchine** (1 trattore + 3 attrezzi + 4 flotta); flotta con **km** e bucket tagliando visibili; attrezzi/trattore con **manutenzione ore**; widget dashboard **Scadenze amministrazione** (affitti grey/red/yellow/green + revisione/assicurazione urgenti) e **In arrivo** (manutenzioni km/ore/data); niente redirect login con `?emulator=1`
-- **E2E automatizzato (v4):** `npm run sim:e2e` — scenari 1–6 (dashboard, scadenze, terreni, attività, movimenti, vigneto) — v. §11.2
+- **E2E automatizzato (v4):** `npm run sim:e2e` — scenari **1–7** (dashboard, scadenze, terreni, attività, movimenti, vigneto, **conto terzi**) — v. §11.2. Tenant consigliato: `viticola-conto-terzi` (suite 7/7).
 - **Terreni** → 4 terreni azienda: tutti in **affitto** con scadenze demo (semafori in lista Terreni + widget scadenze)
 - **Vigneto / Vigneti** → 4 vigneti collegati ai terreni; navigazione dashboard ok
 - **Trattamenti / Potatura / Concimazioni** → righe da attività diario (4 potature + 12 trattamenti: 8 fitosanitari + 4 concimazioni); trattamenti con prodotti da magazzino dove presente
-- **Conto Terzi** (template `viticola-conto-terzi*` — entrare come **manager** dalla pagina dev):
+- **Conto Terzi** (template `viticola-conto-terzi*` — entrare come **manager** dalla pagina dev; **E2E scenario 7 ✅**):
   - Home: `modules/conto-terzi/views/conto-terzi-home-standalone.html?emulator=1`
   - Clienti: `.../clienti-standalone.html?emulator=1` — 3 anagrafiche demo
   - Tariffe: `.../tariffe-standalone.html?emulator=1`
@@ -924,8 +934,9 @@ node scripts/cascade-v3-live-smoke.js
 # 5. Browser: pagina dev → checklist §13.2 (o E2E sotto)
 npm start   # terminale separato
 
-# 5b. E2E scenari 1–6 (dopo sim:run su tenant Seed completo, template solo-titolare-viticola)
-npm run sim:e2e    # dashboard + scadenze + terreni + attività + movimenti + vigneto → 6/6 attesi
+# 5b. E2E scenari 1–7 (tenant consigliato: viticola-conto-terzi — suite 7/7)
+npm run sim:run -- --template=viticola-conto-terzi   # opzionale se manifest senza conto terzi
+npm run sim:e2e    # dashboard … vigneto + conto terzi → 7/7 attesi
 ```
 
 **Perf locale con dati simulati:** il simulatore **non** sostituisce `npm run tony:perf-review` (log Cloud Functions produzione). In locale, un seed **regime max** (30 attività, molte ore/comunicazioni, 12+ movimenti) rende **realistici** i tempi di:
@@ -944,7 +955,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 - **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
 - **Cosa esegue:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`).
 - **Locale (stesso comando CI):** `npm run sim:test:ci` — richiede Java su PATH.
-- **v4 (incremento #9 — pianificato):** job leggero `emulators:exec` + `sim:run` minimal + `npm run sim:e2e:pw` headless (Chromium via `sim:e2e:install`); fino ad allora E2E locale con `npm run sim:e2e` (**3 scenari** implementati al 2026-06-28).
+- **v4 (incremento #9 — pianificato):** job leggero `emulators:exec` + `sim:run` minimal + `npm run sim:e2e:pw` headless (Chromium via `sim:e2e:install`); fino ad allora E2E locale con `npm run sim:e2e` (**7 scenari** implementati al 2026-06-28).
 
 ---
 
@@ -1218,8 +1229,10 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
+**Verifica E2E (v4 #7 ✅):** `npm run sim:e2e` — scenario `conto-terzi` (clienti, tariffe, preventivi, terreni clienti); richiede tenant `viticola-conto-terzi*` in manifest — v. §11.2.
+
 **Non in scope v2.2:** preventivo accettato → creazione lavoro conto terzi automatica; link rapidi Conto Terzi in `simulator-dev-standalone.html` (aprire URL moduli dopo **Entra**).
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright avviata** §11.2 (scenari 1–6 ✅) — prossimo incremento v4: conto terzi §13.2; Tony per errori/recovery NL.*
+*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright avviata** §11.2 (scenari 1–7 ✅) — prossimo incremento v4: manodopera mobile §13.2; Tony per errori/recovery NL.*

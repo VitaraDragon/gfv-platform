@@ -16,6 +16,52 @@ export const TRATTAMENTI_LIST_PATH =
   '/modules/vigneto/views/trattamenti-standalone.html?emulator=1';
 export const CONCIMATIONS_LIST_PATH =
   '/modules/vigneto/views/concimazioni-standalone.html?emulator=1';
+export const CLIENTI_LIST_PATH =
+  '/modules/conto-terzi/views/clienti-standalone.html?emulator=1';
+export const TARIFFE_LIST_PATH =
+  '/modules/conto-terzi/views/tariffe-standalone.html?emulator=1';
+export const PREVENTIVI_LIST_PATH =
+  '/modules/conto-terzi/views/preventivi-standalone.html?emulator=1';
+export const TERRENI_CLIENTI_PATH =
+  '/modules/conto-terzi/views/terreni-clienti-standalone.html?emulator=1';
+
+const SEED_VERSION = 2;
+
+/**
+ * Sceglie entry manifest per login E2E (ordinamento createdAt desc).
+ * @param {import('@playwright/test').Page} page
+ * @param {{ templateIncludes?: string, preferSeedComplete?: boolean }} [options]
+ */
+export async function pickManifestEntry(page, options = {}) {
+  const { templateIncludes, preferSeedComplete = true } = options;
+
+  const entries = await page.evaluate(async () => {
+    const res = await fetch('/simulator/manifest.json');
+    if (!res.ok) throw new Error('manifest non trovato');
+    return res.json();
+  });
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    throw new Error('manifest vuoto — esegui npm run sim:run (con emulator attivo).');
+  }
+
+  let filtered = [...entries];
+  if (templateIncludes) {
+    filtered = filtered.filter((e) => (e.templateId || '').includes(templateIncludes));
+    if (!filtered.length) {
+      throw new Error(
+        `Nessun tenant templateId matching "${templateIncludes}" — esegui npm run sim:run -- --template=viticola-conto-terzi`
+      );
+    }
+  }
+  if (preferSeedComplete) {
+    const seeded = filtered.filter((e) => (e.seedVersion || 0) >= SEED_VERSION);
+    if (seeded.length) filtered = seeded;
+  }
+
+  filtered.sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0));
+  return filtered[0];
+}
 
 /** Attende caricamento tabella scadenze parco macchine (Firestore + render). */
 export async function waitForScadenzeListLoaded(page) {
@@ -171,6 +217,106 @@ export async function gotoConcimazioniList(page) {
   await waitForConcimazioniListLoaded(page);
 }
 
+/** Attende caricamento lista clienti conto terzi. */
+export async function waitForClientiListLoaded(page) {
+  await page.waitForURL(/clienti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Clienti' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const container = document.getElementById('clienti-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento clienti/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.clienti-table tbody tr').length >= 3;
+  }, { timeout: 60_000 });
+
+  await page.locator('#clienti-container .clienti-table tbody tr').first().waitFor({
+    timeout: 60_000,
+  });
+}
+
+export async function gotoClientiList(page) {
+  await page.goto(CLIENTI_LIST_PATH);
+  await waitForClientiListLoaded(page);
+}
+
+/** Attende caricamento lista tariffe conto terzi. */
+export async function waitForTariffeListLoaded(page) {
+  await page.waitForURL(/tariffe-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Tariffe' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const container = document.getElementById('tariffe-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento tariffe/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.tariffe-table tbody tr').length >= 8;
+  }, { timeout: 60_000 });
+
+  await page.locator('#tariffe-container .tariffe-table tbody tr').first().waitFor({
+    timeout: 60_000,
+  });
+}
+
+export async function gotoTariffeList(page) {
+  await page.goto(TARIFFE_LIST_PATH);
+  await waitForTariffeListLoaded(page);
+}
+
+/** Attende caricamento lista preventivi conto terzi. */
+export async function waitForPreventiviListLoaded(page) {
+  await page.waitForURL(/preventivi-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Preventivi' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const container = document.getElementById('preventivi-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento preventivi/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.preventivi-table tbody tr').length >= 5;
+  }, { timeout: 60_000 });
+
+  await page.locator('#preventivi-container .preventivi-table tbody tr').first().waitFor({
+    timeout: 60_000,
+  });
+}
+
+export async function gotoPreventiviList(page) {
+  await page.goto(PREVENTIVI_LIST_PATH);
+  await waitForPreventiviListLoaded(page);
+}
+
+/** Attende caricamento terreni clienti dopo selezione cliente nel filtro. */
+export async function waitForTerreniClientiLoaded(page, { minCards = 1 } = {}) {
+  await page.waitForURL(/terreni-clienti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Terreni Clienti' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(
+    (min) => document.querySelectorAll('#terreni-container .terreno-card').length >= min,
+    minCards,
+    { timeout: 60_000 }
+  );
+
+  await page.locator('#terreni-container .terreno-card').first().waitFor({ timeout: 60_000 });
+}
+
+/** Naviga a terreni clienti e seleziona il primo cliente nel filtro. */
+export async function gotoTerreniClientiList(page) {
+  await page.goto(TERRENI_CLIENTI_PATH);
+  await page.waitForURL(/terreni-clienti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Terreni Clienti' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const select = document.getElementById('filter-cliente');
+    return select && select.options.length > 1;
+  }, { timeout: 60_000 });
+
+  const select = page.locator('#filter-cliente');
+  const firstClienteValue = await select.locator('option').nth(1).getAttribute('value');
+  await select.selectOption(firstClienteValue || { index: 1 });
+  await waitForTerreniClientiLoaded(page);
+}
+
 /** Attende che i widget scadenze dashboard abbiano finito il caricamento Firestore. */
 export async function waitForDashboardDeadlinesLoaded(page) {
   await page.locator('.dashboard-deadlines-row').waitFor({ state: 'visible', timeout: 60_000 });
@@ -191,12 +337,13 @@ export async function waitForDashboardDeadlinesLoaded(page) {
 }
 
 /**
- * Apre la pagina dev, sceglie la prima azienda con seed completo (se presente), Entra come manager.
+ * Apre la pagina dev, sceglie tenant da manifest, Entra come manager.
  * @param {import('@playwright/test').Page} page
- * @param {{ preferSeedComplete?: boolean }} [options]
+ * @param {{ preferSeedComplete?: boolean, templateIncludes?: string }} [options]
+ *   templateIncludes — es. `conto-terzi` per scenario #7; manodopera in #8
  */
 export async function loginAsManagerFromDevPage(page, options = {}) {
-  const { preferSeedComplete = true } = options;
+  const { preferSeedComplete = true, templateIncludes } = options;
 
   await page.goto(SIM_DEV_PATH);
 
@@ -212,15 +359,21 @@ export async function loginAsManagerFromDevPage(page, options = {}) {
     throw new Error('Nessuna azienda in manifest — esegui npm run sim:run (con emulator attivo).');
   }
 
-  let card = cardLocator.first();
-  if (preferSeedComplete) {
-    const seeded = page.locator('.card-new').first();
-    if ((await seeded.count()) > 0) {
-      card = seeded;
-    }
+  const entry = await pickManifestEntry(page, { templateIncludes, preferSeedComplete });
+  const card = page.locator('.card').filter({ hasText: entry.tenantId });
+  if ((await card.count()) === 0) {
+    throw new Error(`Card non trovata per tenant ${entry.tenantId}`);
   }
 
   await card.getByRole('button', { name: 'Entra come manager' }).click();
   await page.waitForURL(/dashboard-standalone\.html/, { timeout: 60_000 });
   await waitForDashboardDeadlinesLoaded(page);
+}
+
+/** Login manager su tenant template viticola-conto-terzi* (scenario v4 #7). */
+export async function loginAsManagerContoTerzi(page, options = {}) {
+  return loginAsManagerFromDevPage(page, {
+    ...options,
+    templateIncludes: 'conto-terzi',
+  });
 }

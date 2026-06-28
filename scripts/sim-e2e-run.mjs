@@ -9,15 +9,26 @@ import { chromium } from 'playwright-core';
 import { expect } from '@playwright/test';
 import {
   gotoAttivitaList,
+  gotoClientiList,
   gotoConcimazioniList,
   gotoMovimentiList,
   gotoPotaturaList,
+  gotoPreventiviList,
   gotoScadenzeList,
+  gotoTariffeList,
+  gotoTerreniClientiList,
   gotoTerreniList,
   gotoTrattamentiList,
+  loginAsManagerContoTerzi,
   loginAsManagerFromDevPage,
 } from '../tests/e2e/sim/helpers/sim-login.js';
 import { runAttivitaListAssertions } from '../tests/e2e/sim/scenarios/attivita-list.mjs';
+import {
+  runClientiListAssertions,
+  runPreventiviListAssertions,
+  runTariffeListAssertions,
+  runTerreniClientiAssertions,
+} from '../tests/e2e/sim/scenarios/conto-terzi.mjs';
 import { runMovimentiAssertions } from '../tests/e2e/sim/scenarios/movimenti.mjs';
 import { runDashboardDeadlinesAssertions } from '../tests/e2e/sim/scenarios/dashboard-deadlines.mjs';
 import { runScadenzeListAssertions } from '../tests/e2e/sim/scenarios/scadenze-list.mjs';
@@ -112,6 +123,20 @@ const SCENARIOS = [
       await runTrattamentiListAssertions(page, expect);
       await gotoConcimazioniList(page);
       await runConcimazioniListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'conto-terzi',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoClientiList(page);
+      await runClientiListAssertions(page, expect);
+      await gotoTariffeList(page);
+      await runTariffeListAssertions(page, expect);
+      await gotoPreventiviList(page);
+      await runPreventiviListAssertions(page, expect);
+      await gotoTerreniClientiList(page);
+      await runTerreniClientiAssertions(page, expect);
     },
   },
 ];
