@@ -2,7 +2,7 @@
  * GFV Farm Simulator v4 — scenario 6: vigneto potature + trattamenti/concimazioni.
  * Dati seed validati da orchestrator v3; assert DOM visibile.
  */
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   gotoConcimazioniList,
   gotoPotaturaList,
@@ -16,10 +16,7 @@ import {
 } from './scenarios/vigneto.mjs';
 
 test.describe('GFV Farm Simulator v4 — vigneto potature e trattamenti', () => {
-  test('pagina dev → potature (4) + trattamenti (8) + concimazioni (4) seed', async ({
-    page,
-    expect,
-  }) => {
+  test('pagina dev → potature (4) + trattamenti (8) + concimazioni (4) seed', async ({ page }) => {
     await loginAsManagerFromDevPage(page);
     await gotoPotaturaList(page);
     await runPotaturaListAssertions(page, expect);

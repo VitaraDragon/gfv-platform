@@ -3,7 +3,7 @@
  * Richiede tenant template viticola-conto-terzi* in manifest.
  * Dati seed validati da orchestrator v2.2 + sim:audit; assert DOM visibile.
  */
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   gotoClientiList,
   gotoPreventiviList,
@@ -19,10 +19,7 @@ import {
 } from './scenarios/conto-terzi.mjs';
 
 test.describe('GFV Farm Simulator v4 — conto terzi', () => {
-  test('pagina dev (template conto terzi) → clienti, tariffe, preventivi, terreni clienti', async ({
-    page,
-    expect,
-  }) => {
+  test('pagina dev (template conto terzi) → clienti, tariffe, preventivi, terreni clienti', async ({ page }) => {
     await loginAsManagerContoTerzi(page);
     await gotoClientiList(page);
     await runClientiListAssertions(page, expect);

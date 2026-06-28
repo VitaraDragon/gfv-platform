@@ -3,7 +3,7 @@
  * Richiede tenant template *manodopera* con personas[] in manifest.
  * Dati seed validati da inspectManodoperaSeed + sim:audit; assert DOM visibile.
  */
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
   loginAsCapoFromDevPage,
   loginAsOperaioFromDevPage,
@@ -14,7 +14,7 @@ import {
 } from './scenarios/field-workspace.mjs';
 
 test.describe('GFV Farm Simulator v4 — field workspace manodopera', () => {
-  test('pagina dev (template manodopera) → operaio e capo mobile', async ({ page, expect }) => {
+  test('pagina dev (template manodopera) → operaio e capo mobile', async ({ page }) => {
     await loginAsOperaioFromDevPage(page);
     await runOperaioFieldWorkspaceAssertions(page, expect);
 
