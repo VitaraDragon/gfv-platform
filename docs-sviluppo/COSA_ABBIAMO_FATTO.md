@@ -14,6 +14,14 @@
 
 **Tenant fresco:** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` → `npm run sim:e2e`.
 
+## GFV Farm Simulator — E2E 18/18 stabilizzazione suite (2026-06-28)
+
+**Problema:** dopo seed v5 Fase 1, `npm run sim:e2e` falliva su scenari 8, 12, 15, 17, 19.
+
+**Fix:** assert vigneti (varietà uva, non «Vite»); magazzino-hub link `.first()`; conto-terzi-hub 2 clienti attivi (seed); login persona + `preferTemplateId`; manifest personas per `tenantId`; bug `lavori-caposquadra` (`user.uid` su `currentUserData`).
+
+**Verifica:** `npm run sim:e2e` → **18/18 OK**.
+
 ## GFV Farm Simulator — v5 roadmap copertura app completa (2026-06-28)
 
 **Obiettivo prodotto:** avvicinarsi a *«ciò che passa nel sim passa nell’app»* — tre assi (**seed**, E2E **read**, E2E **write**) su ~66 pagine standalone; form in modali coperti dagli scenari write.
