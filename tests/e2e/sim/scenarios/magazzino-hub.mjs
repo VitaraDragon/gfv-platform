@@ -17,8 +17,8 @@ export async function runMagazzinoHomeAssertions(page, expect) {
   await expect(movimentiStat).not.toHaveText('-');
   expect(parseInt(await movimentiStat.textContent(), 10)).toBeGreaterThanOrEqual(1);
 
-  await expect(page.getByRole('link', { name: /Anagrafica Prodotti/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Tracciabilità consumi/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Anagrafica Prodotti/i }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Tracciabilità consumi/i }).first()).toBeVisible();
 }
 
 export async function runTracciabilitaConsumiAssertions(page, expect) {

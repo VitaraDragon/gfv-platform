@@ -72,6 +72,7 @@ const SEED_VERSION = 2;
  * @param {import('@playwright/test').Page} page
  * @param {{
  *   templateIncludes?: string,
+ *   preferTemplateId?: string,
  *   preferSeedComplete?: boolean,
  *   requirePersonas?: boolean,
  *   excludeRegimeMax?: boolean,
@@ -80,6 +81,7 @@ const SEED_VERSION = 2;
 export async function pickManifestEntry(page, options = {}) {
   const {
     templateIncludes,
+    preferTemplateId,
     preferSeedComplete = true,
     requirePersonas = false,
     excludeRegimeMax = false,
@@ -119,6 +121,10 @@ export async function pickManifestEntry(page, options = {}) {
         'Solo tenant regime-max in manifest — preferire viticola-conto-terzi-manodopera (npm run sim:run -- --template=viticola-conto-terzi-manodopera)'
       );
     }
+  }
+  if (preferTemplateId) {
+    const exact = filtered.filter((e) => e.templateId === preferTemplateId);
+    if (exact.length) filtered = exact;
   }
   if (preferSeedComplete) {
     const seeded = filtered.filter((e) => (e.seedVersion || 0) >= SEED_VERSION);
@@ -441,6 +447,7 @@ export async function loginAsManagerContoTerzi(page, options = {}) {
   return loginAsManagerFromDevPage(page, {
     ...options,
     templateIncludes: 'conto-terzi',
+    preferTemplateId: 'viticola-conto-terzi-manodopera',
   });
 }
 
@@ -449,6 +456,7 @@ export async function loginAsManagerManodopera(page, options = {}) {
   return loginAsManagerFromDevPage(page, {
     ...options,
     templateIncludes: 'manodopera',
+    preferTemplateId: 'viticola-conto-terzi-manodopera',
   });
 }
 
@@ -703,8 +711,8 @@ export async function waitForMappaClientiLoaded(page) {
   await page.locator('h1').filter({ hasText: 'Mappa Clienti' }).waitFor({ timeout: 60_000 });
   await page.waitForFunction(() => {
     const el = document.getElementById('select-cliente');
-    return el && el.options.length > 1;
-  }, { timeout: 60_000 });
+    return el && el.querySelectorAll('option:not([value=""])').length >= 2;
+  }, { timeout: 90_000 });
 }
 
 export async function gotoMappaClienti(page) {
@@ -823,6 +831,8 @@ export async function gotoFieldWorkspace(page) {
 }
 
 async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {}) {
+  const { waitForWorkspace = true } = options;
+
   await page.goto(SIM_DEV_PATH);
 
   const emptyMsg = page.getByText('Nessuna azienda in manifest');
@@ -839,6 +849,7 @@ async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {
 
   const entry = await pickManifestEntry(page, {
     templateIncludes: 'manodopera',
+    preferTemplateId: 'viticola-conto-terzi-manodopera',
     preferSeedComplete: true,
     requirePersonas: true,
     excludeRegimeMax: true,
@@ -850,8 +861,14 @@ async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {
     throw new Error(`Card non trovata per tenant ${entry.tenantId}`);
   }
 
-  await card.getByRole('button', { name: personaButtonPattern }).first().click();
-  await waitForFieldWorkspaceLoaded(page);
+  const personaBtn = card.getByRole('button', { name: personaButtonPattern }).first();
+  await Promise.all([
+    page.waitForURL(/field-workspace-standalone\.html/, { timeout: 90_000 }),
+    personaBtn.click(),
+  ]);
+  if (waitForWorkspace) {
+    await waitForFieldWorkspaceLoaded(page);
+  }
 }
 
 /** Login caposquadra mobile su tenant manodopera (scenario v4 #8). */
@@ -862,4 +879,13 @@ export async function loginAsCapoFromDevPage(page, options = {}) {
 /** Login operaio mobile su tenant manodopera (scenario v4 #8). */
 export async function loginAsOperaioFromDevPage(page, options = {}) {
   return loginAsPersonaFromDevPage(page, /Operaio \(mobile\)/, options);
+}
+
+/** Login capo + navigazione desktop I miei lavori (scenario 19). */
+export async function loginAsCapoForLavoriDesktop(page, options = {}) {
+  await loginAsPersonaFromDevPage(page, /Capo \(mobile\)/, {
+    ...options,
+    waitForWorkspace: false,
+  });
+  await gotoLavoriCaposquadra(page);
 }

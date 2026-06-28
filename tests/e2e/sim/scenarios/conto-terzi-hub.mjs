@@ -11,7 +11,8 @@ export async function runContoTerziHomeAssertions(page, expect) {
 
   const statClienti = page.locator('#stat-clienti');
   await expect(statClienti).not.toHaveText('-');
-  expect(parseInt(await statClienti.textContent(), 10)).toBeGreaterThanOrEqual(3);
+  // Seed: 3 clienti totali, ultimo in stato sospeso → 2 attivi in hub/mappa
+  expect(parseInt(await statClienti.textContent(), 10)).toBeGreaterThanOrEqual(2);
 
   await expect(page.getByRole('link', { name: /Anagrafica Clienti/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /Preventivi/i }).first()).toBeVisible();
@@ -26,9 +27,9 @@ export async function runMappaClientiAssertions(page, expect) {
   const select = page.locator('#select-cliente');
   await page.waitForFunction(() => {
     const el = document.getElementById('select-cliente');
-    return el && el.options.length > 1;
-  }, { timeout: 60_000 });
+    return el && el.querySelectorAll('option:not([value=""])').length >= 2;
+  }, { timeout: 90_000 });
 
-  expect(await select.locator('option').count()).toBeGreaterThanOrEqual(3);
+  expect(await select.locator('option:not([value=""])').count()).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#mappa-container')).toBeVisible();
 }

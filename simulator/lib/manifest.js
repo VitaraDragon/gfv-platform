@@ -32,12 +32,17 @@ export function appendManifestEntry(entry) {
 }
 
 /** Aggiorna l'ultima entry del manifest (es. personas[] dopo fase 06). */
-export function updateLastManifestEntry(updates) {
+export function updateLastManifestEntry(updates, tenantId) {
   const list = readManifest();
   if (!list.length) return null;
-  Object.assign(list[list.length - 1], updates);
+  let idx = list.length - 1;
+  if (tenantId) {
+    const found = list.findIndex((e) => e.tenantId === tenantId);
+    if (found >= 0) idx = found;
+  }
+  Object.assign(list[idx], updates);
   writeManifest(list);
-  return list[list.length - 1];
+  return list[idx];
 }
 
 export function writeManifest(list) {

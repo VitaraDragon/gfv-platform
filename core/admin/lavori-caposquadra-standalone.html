@@ -1000,8 +1000,8 @@
                 // Carica dati utente
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    currentUserData = userDoc.data();
-                    currentTenantId = currentUserData.tenantId;
+                    currentUserData = { ...userDoc.data(), id: user.uid, uid: user.uid };
+                    currentTenantId = sessionStorage.getItem('gfv_current_tenant_id') || currentUserData.tenantId;
 
                     // Verifica permessi (caposquadra O operaio)
                     const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');

@@ -165,7 +165,7 @@ export async function runSetupPersonas() {
     }
   });
 
-  updateLastManifestEntry({ personas: manifestPersonas });
+  updateLastManifestEntry({ personas: manifestPersonas }, tenantId);
 
   return {
     personas: manifestPersonas,

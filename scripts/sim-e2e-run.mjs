@@ -38,6 +38,7 @@ import {
   gotoValidazioneOre,
   gotoVignetiList,
   gotoVignetoDashboard,
+  loginAsCapoForLavoriDesktop,
   loginAsCapoFromDevPage,
   loginAsManagerContoTerzi,
   loginAsManagerFromDevPage,
@@ -302,8 +303,7 @@ const SCENARIOS = [
   {
     name: 'capo-lavori',
     run: async (page) => {
-      await loginAsCapoFromDevPage(page);
-      await gotoLavoriCaposquadra(page);
+      await loginAsCapoForLavoriDesktop(page);
       await runLavoriCaposquadraAssertions(page, expect);
     },
   },

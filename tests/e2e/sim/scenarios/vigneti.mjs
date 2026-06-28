@@ -16,5 +16,6 @@ export async function runVignetiListAssertions(page, expect) {
   expect(await rows.count()).toBeGreaterThanOrEqual(4);
 
   const rowTexts = await rows.allTextContents();
-  expect(rowTexts.some((t) => /Vite/i.test(t))).toBe(true);
+  const varietaSeed = /Sangiovese|Merlot|Glera|Pinot Grigio|Barbera|Trebbiano/i;
+  expect(rowTexts.some((t) => varietaSeed.test(t))).toBe(true);
 }
