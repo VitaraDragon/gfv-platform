@@ -17,17 +17,7 @@ function ensureToastLayer() {
     return layer;
 }
 
-/**
- * Mostra alert temporaneo sopra modali e overlay.
- * @param {string} message
- * @param {string} type - success | error | warning | info
- * @param {number} durationMs
- */
-export function showStandaloneAlert(message, type = 'success', durationMs = 5000) {
-    if (typeof window !== 'undefined' && typeof window.gfvShowAlert === 'function') {
-        window.gfvShowAlert(message, type, durationMs);
-        return;
-    }
+function renderStandaloneAlert(message, type = 'success', durationMs = 5000) {
     const container = ensureToastLayer();
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
@@ -39,6 +29,27 @@ export function showStandaloneAlert(message, type = 'success', durationMs = 5000
     }, durationMs);
 }
 
-if (typeof window !== 'undefined') {
+/**
+ * Mostra alert temporaneo sopra modali e overlay.
+ * @param {string} message
+ * @param {string} type - success | error | warning | info
+ * @param {number} durationMs
+ */
+export function showStandaloneAlert(message, type = 'success', durationMs = 5000) {
+    const globalAlert =
+        typeof window !== 'undefined' && typeof window.gfvShowAlert === 'function'
+            ? window.gfvShowAlert
+            : null;
+
+    // Evita ricorsione: standalone-alert-global.js espone già gfvShowAlert prima degli import ES.
+    if (globalAlert && globalAlert !== showStandaloneAlert) {
+        globalAlert(message, type, durationMs);
+        return;
+    }
+
+    renderStandaloneAlert(message, type, durationMs);
+}
+
+if (typeof window !== 'undefined' && typeof window.gfvShowAlert !== 'function') {
     window.gfvShowAlert = showStandaloneAlert;
 }

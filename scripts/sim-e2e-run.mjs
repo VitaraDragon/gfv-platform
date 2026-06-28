@@ -46,6 +46,7 @@ import {
   loginAsOperaioFromDevPage,
 } from '../tests/e2e/sim/helpers/sim-login.js';
 import { runAttivitaListAssertions } from '../tests/e2e/sim/scenarios/attivita-list.mjs';
+import { runAttivitaWriteAssertions } from '../tests/e2e/sim/scenarios/attivita-write.mjs';
 import { runLavoriCaposquadraAssertions } from '../tests/e2e/sim/scenarios/capo-lavori.mjs';
 import {
   runContoTerziHomeAssertions,
@@ -61,11 +62,14 @@ import {
   runCapoFieldWorkspaceAssertions,
   runOperaioFieldWorkspaceAssertions,
 } from '../tests/e2e/sim/scenarios/field-workspace.mjs';
+import { runFieldWorkspaceOreWriteAssertions } from '../tests/e2e/sim/scenarios/field-workspace-write.mjs';
+import { runGestioneLavoriWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-lavori-write.mjs';
 import {
   runGestioneLavoriAssertions,
   runValidazioneOreAssertions,
 } from '../tests/e2e/sim/scenarios/manodopera-admin.mjs';
 import { runMovimentiAssertions } from '../tests/e2e/sim/scenarios/movimenti.mjs';
+import { runMovimentiWriteAssertions } from '../tests/e2e/sim/scenarios/movimenti-write.mjs';
 import {
   runGuastiListAssertions,
   runMacchineDashboardAssertions,
@@ -305,6 +309,36 @@ const SCENARIOS = [
     run: async (page) => {
       await loginAsCapoForLavoriDesktop(page);
       await runLavoriCaposquadraAssertions(page, expect);
+    },
+  },
+  {
+    name: 'attivita-write',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoAttivitaList(page);
+      await runAttivitaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'movimenti-write',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoMovimentiList(page);
+      await runMovimentiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'field-workspace-write',
+    run: async (page) => {
+      await runFieldWorkspaceOreWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'gestione-lavori-write',
+    run: async (page) => {
+      await loginAsManagerManodopera(page);
+      await gotoGestioneLavori(page);
+      await runGestioneLavoriWriteAssertions(page, expect);
     },
   },
 ];

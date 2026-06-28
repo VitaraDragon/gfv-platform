@@ -1739,6 +1739,7 @@
         // VARIABILI GLOBALI (per compatibilità)
         // ============================================
         let currentUserData = null;
+        let currentAuthUid = null;
         let currentTenantId = null;
         let currentLavoroId = null;
         let terreniList = [];
@@ -2939,13 +2940,16 @@
 
         // Wrapper per handleSalvaLavoro
         window.handleSalvaLavoro = async function(event) {
+            const udata = currentUserData
+                ? { ...currentUserData, id: currentUserData.id || currentUserData.uid || currentAuthUid }
+                : null;
             await handleSalvaLavoroModule(
                 event,
                 lavoriState,
                 updateState,
                 currentTenantId || lavoriState.currentTenantId,
                 db,
-                currentUserData,
+                udata,
                 closeLavoroModalWrapper,
                 loadLavoriWrapper,
                 loadStatisticsWrapper,
@@ -3115,6 +3119,7 @@
             }
 
             try {
+                currentAuthUid = user.uid;
                 // Carica dati utente
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {

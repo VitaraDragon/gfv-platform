@@ -1,6 +1,59 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 Fase 1** seed guasti + ore coda validazione; E2E scen. 13–14 assert rafforzati.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 Fase 1** suite **22/22 OK** (~27s); write gestione lavori (scen. 23) + fix `creatoDa`.**
+
+## GFV Farm Simulator — v5 Fase 1 E2E write gestione lavori (2026-06-28)
+
+**Obiettivo:** quarto flusso write asse C — manager crea lavoro manodopera da modale gestione lavori.
+
+**Scenario 23 `gestione-lavori-write`:**
+- Login manager manodopera → gestione lavori → **Crea Nuovo Lavoro** → cascade categoria/tipo, terreno, caposquadra, 3 giorni, marker nome `GFV SIM E2E WRITE LAVORO`
+- Assert: riga in tabella con badge assegnato, durata 3 giorni (idempotente)
+
+**Fix app (provato in E2E):** `gestione-lavori-standalone.html` — `handleSalvaLavoro` passa `creatoDa` con fallback `currentUserData.id || uid || currentAuthUid` (prima `undefined` → Firestore rifiutava il documento).
+
+**File:** `tests/e2e/sim/scenarios/gestione-lavori-write.mjs`, `gestione-lavori-write.spec.js`, `scripts/sim-e2e-run.mjs` (22 scenari).
+
+**Verifica:** `npm run sim:e2e` → **22/22 OK** (~27s, verificato 2026-06-28).
+
+## GFV Farm Simulator — v5 Fase 1 E2E write ore mobile (2026-06-28)
+
+**Obiettivo:** terzo flusso write asse C — operaio segna ore da field workspace; verifica manager su validazione ore.
+
+**Scenario 22 `field-workspace-write`:**
+- Manager → validazione ore: se assente marker `GFV_SIM_E2E_WRITE_ORE`, login **Operaio (mobile)** → slide Segna ore → 14:00–16:00 (2h) → Salva
+- Assert operaio: «Ore salvate»; manager: riga in coda con note, orari, **2h**, pulsante Valida (idempotente)
+
+**File:** `tests/e2e/sim/scenarios/field-workspace-write.mjs`, `field-workspace-write.spec.js`, `scripts/sim-e2e-run.mjs` (21 scenari).
+
+**Verifica:** `npm run sim:e2e` → **21/21 OK**.
+
+## GFV Farm Simulator — v5 Fase 1 E2E write movimento magazzino (2026-06-28)
+
+**Obiettivo:** secondo flusso write asse C — entrata magazzino via modale lista movimenti.
+
+**Scenario 21 `movimenti-write`:**
+- Login manager → movimenti → **Nuovo Movimento** → prodotto seed, tipo **entrata**, qty 1, note `GFV_SIM_E2E_WRITE_MOVIMENTO`
+- Assert: toast «Movimento registrato.», badge entrata, riga in tabella con note/prodotto/qty (idempotente)
+
+**File:** `tests/e2e/sim/scenarios/movimenti-write.mjs`, `movimenti-write.spec.js`, `scripts/sim-e2e-run.mjs` (20 scenari).
+
+**Verifica:** `npm run sim:e2e` → **20/20 OK**.
+
+## GFV Farm Simulator — v5 Fase 1 primo E2E write attività (2026-06-28)
+
+**Obiettivo:** aprire l’asse **C — E2E write** con flusso reale modale diario (stesso HTML/JS/service dell’app).
+
+**Scenario 20 `attivita-write`:**
+- Login manager → lista attività → modale **Aggiungi Attività** → compilazione cascade (terreno, tipo lavoro, orari 15:00–17:00) → **Salva Attività**
+- Assert: toast successo, modal chiuso, **1 riga** in lista filtrata per note `GFV_SIM_E2E_WRITE_ATTIVITA` (idempotente su tenant già scritto)
+- Nessuna duplicazione business logic nei test
+
+**File:** `tests/e2e/sim/scenarios/attivita-write.mjs`, `attivita-write.spec.js`, `scripts/sim-e2e-run.mjs` (19 scenari).
+
+**Bug app (E2E):** `core/js/standalone-alert.js` — ricorsione infinita su `showStandaloneAlert` quando la pagina non carica `standalone-alert-global.js` (es. diario attività); bloccava toast post-save.
+
+**Verifica:** `npm run sim:e2e` → **19/19 OK** (tenant `viticola-conto-terzi-manodopera`).
 
 ## GFV Farm Simulator — v5 Fase 1 seed guasti + ore coda validazione (2026-06-28)
 
