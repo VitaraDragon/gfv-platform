@@ -602,7 +602,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v2**   | Template frutteto, mista, solo titolare oliveto… |
 | **v3**   | ~~**Meccanismi a cascata**~~ (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1 ✅ |
 | **v3b**  | Run paralleli N tenant (infrastruttura, opzionale) |
-| **v4**   | **E2E Playwright** — flussi UI §13.2 (**8/8** ✅: dashboard → field workspace); **#9 CI** ⬜; meteo live mock/skip; typo/recovery NL → **Tony** + test client |
+| **v4**   | **E2E Playwright** — flussi UI §13.2 (**8/8** ✅ + **#9 CI** ✅); meteo live mock/skip; typo/recovery NL → **Tony** + test client |
 | **v4b**  | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
 
 ### 11.1 Direzione v3 — meccanismi a cascata (deciso 2026-06-26)
@@ -639,9 +639,9 @@ npm run sim:audit                      # OK su tenant appena generato (manifest 
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 ```
 
-**Prossimo v4:** incremento §13.5 CI leggera emulator + sim:run + Playwright; typo/recovery NL → Tony + test client, **non** orchestrator sim.
+**v4 chiusa (2026-06-28).** Prossimo: typo/recovery NL → Tony + test client; v4b CI notturna batch.
 
-#### 11.2 v4 Playwright — E2E browser (avviata 2026-06-27)
+#### 11.2 v4 Playwright — E2E browser (chiusa 2026-06-28)
 
 **Obiettivo:** test browser su stack locale reale (emulator + `npm start` + tenant `sim_*` dal sim). Il sim **continua** a generare/validare dati (v3); Playwright **assert su DOM** visibile — niente duplicazione logica business nei test.
 
@@ -651,6 +651,7 @@ npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavo
 | -------- | ----- |
 | `playwright.config.js` | Config `@playwright/test` (base URL `http://127.0.0.1:8000`, project `sim-chromium`) |
 | `scripts/sim-e2e-run.mjs` | **Runner locale** — prerequisiti HTTP/emulator/manifest + Chrome di sistema; esegue scenari registrati |
+| `simulator/ci-e2e-run.js` + `scripts/sim-ci-e2e-inner.sh` | **CI E2E** — `emulators:exec` + http-server + seed + `sim:e2e:pw` (`npm run sim:e2e:ci`) |
 | `tests/e2e/sim/helpers/sim-login.js` | Pagina dev → **Entra come manager**; `pickManifestEntry` + `loginAsManagerContoTerzi`; navigazione liste (scadenze, terreni, attività, movimenti, vigneto, conto terzi) |
 | `tests/e2e/sim/scenarios/*.mjs` | Assert DOM condivise (spec Playwright + runner) |
 | `tests/e2e/sim/*.spec.js` | Spec `@playwright/test` (CI con `npm run sim:e2e:pw`) |
@@ -686,7 +687,7 @@ scripts/sim-e2e-run.mjs         # SCENARIOS: 8 voci (stesso ordine)
 
 **Assert scenario 1 (dashboard):** dati seed (4 affitti, bucket km/ore) verificati da v3 (`sim:inspect`, `cascade-v3-live-smoke`, Vitest). In E2E: ≥2 righe **Affitto** con testo semaforo (Scaduto/giorni/mesi), ≥3 voci **In arrivo** con tipi km/ore/manutenzione, footer scadenze mezzi. Il widget amministrazione mostra max **8 righe** (`MAX_RIGHE` in `dashboard-deadlines.js`) — non assert rigido `count === 4` affitti nel DOM.
 
-**Esito suite (2026-06-28):** `npm run sim:e2e` → **8/8** scenari OK (scenari 1–8 implementati; #9 CI pianificato sotto).
+**Esito suite (2026-06-28):** `npm run sim:e2e` → **8/8** scenari OK locale; `npm run sim:e2e:ci` → stessa suite in CI (job `simulator-e2e`).
 
 **Tenant E2E consigliato (suite 8/8):** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` — estende `solo-titolare-viticola` (scenari 1–6) + conto terzi (#7) + manodopera mobile (#8). Il login scenario 7 usa `templateIncludes: 'conto-terzi'`; scenario 8 usa `loginAsCapoFromDevPage` / `loginAsOperaioFromDevPage` (`templateIncludes: 'manodopera'`, `requirePersonas`, escluso `regime-max`). Scenari 1–6 usano l'entry **Seed completo** più recente. Alternativa solo manodopera: `viticola-manodopera` (scenario 7 fallisce senza conto terzi).
 
@@ -780,20 +781,15 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | 6 | Vigneto trattamenti/potature | `vigneto.spec.js` | ✅ |
 | 7 | Conto terzi (template `viticola-conto-terzi*`) | `conto-terzi.spec.js` | ✅ |
 | 8 | Manodopera mobile capo/operaio | `field-workspace.spec.js` | ✅ |
-| 9 | CI leggera emulator + sim:run + Playwright | §13.5 workflow | ⬜ |
+| 9 | CI leggera emulator + sim:run + Playwright | §13.5 workflow | ✅ |
 
 #### 11.2.1 Stato v4 e prossimi passi (2026-06-28)
 
-**Completato:** scenari Playwright **1–8** (`npm run sim:e2e` → **8/8** su tenant `viticola-conto-terzi-manodopera`).
+**Completato:** scenari Playwright **1–9** — suite locale **8/8** (`npm run sim:e2e`) + **CI GitHub Actions** (`npm run sim:e2e:ci` → job `simulator-e2e`).
 
-**Prossimo obbligatorio (incremento #9):** estendere `.github/workflows/simulator-ci.yml` — oggi solo `sim:test:ci` (Vitest + test integrazione Node). Target:
+**v4 chiusa (Definition of Done):** tutti gli incrementi §11.2 tabella ✅; fallimenti CI distinguibili (Node vs browser); nessuna duplicazione business logic nei test E2E.
 
-1. `npm run sim:e2e:install` (Chromium Playwright)
-2. `firebase emulators:exec` + `sim:run -- --template=viticola-conto-terzi-manodopera` (o template CI minimal)
-3. `npm start` in background + `npm run sim:e2e:pw` headless (Node 22)
-4. Trigger workflow anche su `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `playwright.config.js`
-
-**Fuori scope v4.0 (pianificato altrove):**
+**Prossimo (v4b / fuori v4.0):**
 
 | Voce | Dove |
 | ---- | ---- |
@@ -1004,33 +1000,22 @@ Più dati in emulator ⇒ query Firestore più pesanti ⇒ numeri perf più util
 
 Workflow: `.github/workflows/simulator-ci.yml`
 
-- **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
-- **Cosa esegue oggi:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`).
-- **Locale (stesso comando CI attuale):** `npm run sim:test:ci` — richiede Java su PATH.
+- **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
+- **Job `simulator-emulator`:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
+- **Job `simulator-e2e` (v4 #9 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, seed `viticola-conto-terzi-manodopera`, `sim:e2e:pw` (8 scenari headless, Chromium bundled). Timeout 25 min. I due job girano in parallelo.
+- **Locale (stesso comando CI Node):** `npm run sim:test:ci` — richiede Java su PATH.
+- **Locale (stesso comando CI E2E, bash + Java):** `npm run sim:e2e:install && npm run sim:e2e:ci`.
 
-**Incremento v4 #9 (pianificato — unico obbligatorio per chiudere v4):**
+| Step CI E2E | Comando | Note |
+| ----------- | ------- | ---- |
+| Browser | `sim:e2e:install` | Chromium Playwright + deps OS (`--with-deps`) |
+| Orchestrazione | `sim:e2e:ci` | `simulator/ci-e2e-run.js` → `scripts/sim-ci-e2e-inner.sh` |
+| Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | copre scenari 1–8 |
+| Assert browser | `sim:e2e:pw` | Node 22; base URL `http://127.0.0.1:8000` |
 
-Estendere il workflow con un job (o step aggiuntivo) E2E browser:
+Su Node 24 locale preferire `npm run sim:e2e` (runner Node + Chrome di sistema); in CI usare `sim:e2e:pw`.
 
-```yaml
-# Target indicativo (da implementare)
-- npm ci
-- npm run sim:e2e:install
-- firebase emulators:exec --only auth,firestore -- \
-    "npm run sim:run -- --template=viticola-conto-terzi-manodopera && npm run sim:e2e:pw"
-# oppure: avvio http-server in background + sim:e2e:pw (v. scripts/sim-e2e-run.mjs)
-```
-
-| Step CI #9 | Comando | Note |
-| ---------- | ------- | ---- |
-| Browser | `sim:e2e:install` | Chromium Playwright (non Chrome di sistema) |
-| Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | copre scenari 1–8; quantità già minimali in template |
-| E2E | `sim:e2e:pw` | Node 22; base URL `http://127.0.0.1:8000` |
-| Trigger path | aggiungere | `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `playwright.config.js` |
-
-**Fino a #9:** E2E solo in locale con `npm run sim:e2e` (**8 scenari** implementati, 2026-06-28). Su Node 24 preferire il runner Node; in CI usare `sim:e2e:pw`.
-
-**Roadmap oltre v4 (#9):** v4b — CI notturna batch + `sim:cleanup` selettivo (§11 roadmap).
+**Roadmap oltre v4:** v4b — CI notturna batch + `sim:cleanup` selettivo (§11 roadmap).
 
 ---
 
@@ -1310,4 +1295,4 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright avviata** §11.2 (scenari 1–8 ✅) — prossimo incremento v4: CI §13.5; Tony per errori/recovery NL.*
+*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright chiusa** §11.2 (scenari 1–9 ✅); Tony per errori/recovery NL.*

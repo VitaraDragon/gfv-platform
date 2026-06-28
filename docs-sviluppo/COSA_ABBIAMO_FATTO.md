@@ -1,18 +1,30 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright** scenari **1–8** ✅ (`npm run sim:e2e` → 8/8); **#9 CI** ⬜; v3 chiusa.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright chiusa** scenari **1–9** ✅ (8/8 locale + CI GitHub Actions); v3 chiusa.**
+
+## GFV Farm Simulator — v4 Playwright CI incremento #9 (2026-06-28)
+
+**Obiettivo:** CI leggera GitHub Actions — emulator + seed + http-server + Playwright headless (8 scenari), in parallelo al job Node esistente.
+
+**Nono incremento — file:**
+- `.github/workflows/simulator-ci.yml` — job `simulator-e2e` (timeout 25 min); trigger path E2E
+- `simulator/ci-e2e-run.js` — wrapper `firebase emulators:exec`
+- `scripts/sim-ci-e2e-inner.sh` — http-server background + `sim:run` + `sim:e2e:pw`
+- `package.json` — `sim:e2e:ci`, `sim:e2e:install` con `--with-deps`
+
+**Template CI:** `viticola-conto-terzi-manodopera` (suite 8/8). Comando locale equivalente: `npm run sim:e2e:install && npm run sim:e2e:ci` (bash + Java).
+
+**Esito atteso CI:** job `simulator-e2e` verde su push/PR path sim/E2E.
 
 ## GFV Farm Simulator — v4 Playwright stato e prossimi passi (2026-06-28)
 
-**Completato:** suite E2E browser **8/8** — dashboard, scadenze, terreni, attività, movimenti, vigneto, conto terzi, field workspace manodopera.
+**Completato:** suite E2E browser **8/8** locale + **#9 CI** — dashboard, scadenze, terreni, attività, movimenti, vigneto, conto terzi, field workspace manodopera.
 
 **Tenant consigliato:** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` → `npm run sim:e2e`.
 
-**Catena pre-E2E manodopera:** `viticola-manodopera.test.js` + `sim:audit` su manifest snello (`sim:cleanup --keep 1` se legacy).
+**v4 chiusa.** Prossimo (v4b): CI notturna batch + `sim:cleanup` selettivo.
 
-**Prossimo incremento v4 (#9 — unico obbligatorio per chiudere v4):** estendere `.github/workflows/simulator-ci.yml` con `sim:e2e:install` + `sim:run` + `sim:e2e:pw` — dettaglio **`GFV_FARM_SIMULATOR.md` §13.5**.
-
-**Fuori scope v4.0:** E2E pagine admin manodopera (gestione lavori, validazione ore full screen); typo/recovery NL (Tony); CI notturna batch (v4b).
+**Fuori scope v4.0:** E2E pagine admin manodopera (gestione lavori, validazione ore full screen); typo/recovery NL (Tony).
 
 **Copertura §13.2 vs E2E:** v. tabella **`GFV_FARM_SIMULATOR.md` §11.2.1**.
 
@@ -30,7 +42,7 @@
 
 **Esito:** `npm run sim:e2e` → **8/8** scenari OK (tenant `viticola-conto-terzi-manodopera`).
 
-**Prossimo incremento v4:** CI §13.5 (`simulator-ci.yml` + Playwright headless).
+**Prossimo incremento v4:** v4b CI notturna batch — v. **`GFV_FARM_SIMULATOR.md` §13.5**.
 
 ## GFV Farm Simulator — v4 Playwright scenario 7 conto terzi (2026-06-28)
 

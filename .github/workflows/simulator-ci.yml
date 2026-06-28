@@ -6,6 +6,10 @@ on:
     paths:
       - 'simulator/**'
       - 'tests/simulator/**'
+      - 'tests/e2e/sim/**'
+      - 'scripts/sim-e2e-run.mjs'
+      - 'scripts/sim-ci-e2e-inner.sh'
+      - 'playwright.config.js'
       - 'core/config/trattamenti-lavoro-defaults.js'
       - 'firebase.json'
       - '.firebaserc'
@@ -16,6 +20,10 @@ on:
     paths:
       - 'simulator/**'
       - 'tests/simulator/**'
+      - 'tests/e2e/sim/**'
+      - 'scripts/sim-e2e-run.mjs'
+      - 'scripts/sim-ci-e2e-inner.sh'
+      - 'playwright.config.js'
       - 'core/config/trattamenti-lavoro-defaults.js'
       - 'firebase.json'
       - '.firebaserc'
@@ -58,3 +66,35 @@ jobs:
 
       - name: Run simulator integration tests
         run: npm run sim:test:ci
+
+  simulator-e2e:
+    name: sim:e2e (Playwright browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Java (Firestore Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npm run sim:e2e:install
+
+      - name: Run Playwright E2E (emulator + seed + 8 scenari)
+        run: npm run sim:e2e:ci
+        env:
+          CI: true

@@ -7,7 +7,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
-**v4 Playwright:** scenari 1–8 ✅ — guida §11.2
+**v4 Playwright:** scenari 1–9 ✅ — guida §11.2 (v4 chiusa)
 
 ## Prerequisiti
 
@@ -84,6 +84,10 @@ npm run sim:test:vitest
 
 # Come in CI — avvia emulator, esegue entrambi i test, termina
 npm run sim:test:ci
+
+# Come in CI E2E — emulator + seed + Playwright (bash + Java; replica job simulator-e2e)
+npm run sim:e2e:install
+npm run sim:e2e:ci
 
 # Ricalcola date attività (e movimenti collegati) fino a oggi
 npm run sim:refresh-dates
@@ -169,11 +173,11 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 | 6 | Vigneto potature/trattamenti | `vigneto.spec.js` | `potatura` + `trattamenti` + `concimazioni` standalone |
 | 7 | Conto terzi | `conto-terzi.spec.js` | clienti + tariffe + preventivi + terreni clienti standalone |
 | 8 | Manodopera mobile | `field-workspace.spec.js` | `core/mobile/field-workspace-standalone.html?emulator=1` |
-| 9 | CI leggera | §13.5 | ⬜ prossimo |
+| 9 | CI leggera | §13.5 | ✅ job `simulator-e2e` |
 
-**File:** `scripts/sim-e2e-run.mjs`, `tests/e2e/sim/` — dettaglio assert e piano incrementi: **`GFV_FARM_SIMULATOR.md` §11.2**.
+**File:** `scripts/sim-e2e-run.mjs`, `simulator/ci-e2e-run.js`, `scripts/sim-ci-e2e-inner.sh`, `tests/e2e/sim/` — dettaglio assert e piano incrementi: **`GFV_FARM_SIMULATOR.md` §11.2**.
 
-**Prossimo incremento v4 #9:** CI leggera Playwright in GitHub Actions — v. **`GFV_FARM_SIMULATOR.md` §13.5**.
+**CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica locale del job GitHub Actions (richiede bash + Java).
 
 ## Manifest e audit
 
@@ -253,12 +257,11 @@ Le aziende create **prima** del seed v2 restano nell’emulator finché non si e
 
 Workflow **GFV Farm Simulator CI** (`.github/workflows/simulator-ci.yml`):
 
-- **Trigger:** push su `main` e pull request che toccano `simulator/`, `tests/simulator/`, `firebase.json`, dipendenze root; anche **Run workflow** manuale.
-- **Ambiente:** Ubuntu, Node 22, Java 21 (Firestore Emulator).
-- **Comando attuale:** `npm run sim:test:ci` → `firebase emulators:exec --only auth,firestore` + `sim:test` + `sim:test:vitest`.
-- **Pianificato (v4 #9):** stesso workflow + `sim:e2e:install` + `sim:run` + `sim:e2e:pw` — v. **`GFV_FARM_SIMULATOR.md` §13.5**.
-
-In locale, stesso comando della CI (Java obbligatorio): `npm run sim:test:ci`.
+- **Trigger:** push su `main` e pull request che toccano `simulator/`, `tests/simulator/`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, dipendenze root; anche **Run workflow** manuale.
+- **Job `simulator-emulator`:** Ubuntu, Node 22, Java 21 → `npm run sim:test:ci` (`emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
+- **Job `simulator-e2e`:** stesso ambiente → `npm run sim:e2e:install` + `npm run sim:e2e:ci` (seed `viticola-conto-terzi-manodopera` + 8 scenari Playwright headless). Timeout 25 min. Job in parallelo con il precedente.
+- **Locale Node (CI):** `npm run sim:test:ci` — richiede Java su PATH.
+- **Locale E2E (CI):** `npm run sim:e2e:install && npm run sim:e2e:ci` — richiede bash + Java (Git Bash/WSL su Windows).
 
 ## Sicurezza
 
