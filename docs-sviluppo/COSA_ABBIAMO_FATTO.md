@@ -1,20 +1,71 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright** scenari **1–3** ✅ (`npm run sim:e2e` → 3/3); v3 chiusa.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright** scenari **1–6** ✅ (`npm run sim:e2e` → 6/6); v3 chiusa.**
+
+## GFV Farm Simulator — v4 Playwright scenario 6 vigneto (2026-06-28)
+
+**Obiettivo:** E2E browser su **Potatura**, **Trattamenti** e **Concimazioni** vigneto — assert seed 4+8+4 righe con link attività; niente ricalcolo spese nel test.
+
+**Sesto incremento — file:**
+- `tests/e2e/sim/scenarios/vigneto.mjs` — assert potature, trattamenti fitosanitari, concimazioni
+- `tests/e2e/sim/vigneto.spec.js` — spec `@playwright/test`
+- `tests/e2e/sim/helpers/sim-login.js` — `gotoPotaturaList`, `gotoTrattamentiList`, `gotoConcimazioniList`
+- `scripts/sim-e2e-run.mjs` — scenario `vigneto` registrato (6 scenari totali)
+
+**Esito:** `npm run sim:e2e` → **6/6** scenari OK.
+
+**Prossimo incremento v4:** conto terzi (`conto-terzi.spec.js`) — §11.2.
+
+---
+
+## GFV Farm Simulator — v4 Playwright scenario 5 movimenti magazzino (2026-06-28)
+
+**Obiettivo:** E2E browser su **Movimenti Magazzino** — assert 12 uscite seed con tracciabilità attività (colonna Attività + note scarico visibili); niente ricalcolo giacenza nel test.
+
+**Quinto incremento — file:**
+- `tests/e2e/sim/scenarios/movimenti.mjs` — assert ≥10 righe, badge uscita, colonna Attività collegata, note seed
+- `tests/e2e/sim/movimenti.spec.js` — spec `@playwright/test`
+- `tests/e2e/sim/helpers/sim-login.js` — `gotoMovimentiList`, `waitForMovimentiListLoaded`, `MOVIMENTI_LIST_PATH`
+- `scripts/sim-e2e-run.mjs` — scenario `movimenti` registrato (5 scenari totali)
+
+**Esito:** `npm run sim:e2e` → **5/5** scenari OK (emulator + `npm start` + tenant Seed completo).
+
+**Prossimo incremento v4:** vigneto trattamenti/potature (`vigneto.spec.js`) — §11.2.
+
+---
+
+## GFV Farm Simulator — v4 Playwright scenario 4 attività diario (2026-06-28)
+
+**Obiettivo:** E2E browser su **Diario Attività** — assert lista con ~20 record seed, colonne visibili, tipi lavoro e coltura Vite (dati orchestrator v3, niente `Attivita.validate()` nel test).
+
+**Quarto incremento — file:**
+- `tests/e2e/sim/scenarios/attivita-list.mjs` — assert ≥15 righe, header tabella, tipi lavoro seed, coltura Vite
+- `tests/e2e/sim/attivita-list.spec.js` — spec `@playwright/test`
+- `tests/e2e/sim/helpers/sim-login.js` — `gotoAttivitaList`, `waitForAttivitaListLoaded`, `ATTIVITA_LIST_PATH`
+- `scripts/sim-e2e-run.mjs` — scenario `attivita-list` registrato (4 scenari totali)
+
+**Esito:** `npm run sim:e2e` → **4/4** scenari OK (emulator + `npm start` + tenant Seed completo).
+
+**Prossimo incremento v4:** movimenti magazzino (`movimenti.spec.js`) — §11.2.
+
+---
 
 ## GFV Farm Simulator — v4 Playwright (stato 2026-06-28)
 
 **Obiettivo:** test E2E browser su stack locale (emulator + `npm start` + tenant `sim_*`); il sim genera/valida dati (v3), Playwright assert solo DOM visibile.
 
-**Stato suite:** `npm run sim:e2e` → **3/3** scenari OK (verificato 2026-06-28).
+**Stato suite:** `npm run sim:e2e` → **6/6** scenari OK (verificato 2026-06-28).
 
 | # | Scenario | File assert | File spec |
 | - | -------- | ----------- | --------- |
 | 1 | Dashboard widget scadenze + in arrivo | `tests/e2e/sim/scenarios/dashboard-deadlines.mjs` | `dashboard-deadlines.spec.js` |
 | 2 | Parco — lista scadenze (black/red/yellow) | `tests/e2e/sim/scenarios/scadenze-list.mjs` | `scadenze-list.spec.js` |
 | 3 | Terreni — colonna affitti (grey/red/yellow/green) | `tests/e2e/sim/scenarios/terreni-affitti.mjs` | `terreni-affitti.spec.js` |
+| 4 | Diario attività (~20 seed) | `tests/e2e/sim/scenarios/attivita-list.mjs` | `attivita-list.spec.js` |
+| 5 | Movimenti magazzino (12 uscite + tracciabilità) | `tests/e2e/sim/scenarios/movimenti.mjs` | `movimenti.spec.js` |
+| 6 | Vigneto potature + trattamenti + concimazioni | `tests/e2e/sim/scenarios/vigneto.mjs` | `vigneto.spec.js` |
 
-**Infrastruttura comune:** `playwright.config.js`, `scripts/sim-e2e-run.mjs`, `tests/e2e/sim/helpers/sim-login.js` (`loginAsManagerFromDevPage`, `gotoScadenzeList`, `gotoTerreniList`).
+**Infrastruttura:** `playwright.config.js`, `scripts/sim-e2e-run.mjs` (array `SCENARIOS`: dashboard-deadlines, scadenze-list, terreni-affitti, attivita-list, movimenti, vigneto), `tests/e2e/sim/helpers/sim-login.js`.
 
 **Comandi:**
 ```bash
@@ -22,11 +73,11 @@ npm run sim:emulators   # terminale 1
 npm start               # terminale 2
 npm run sim:run -- --template=solo-titolare-viticola   # tenant fresco consigliato
 # pre-E2E (opzionale): sim:inspect, cascade-v3-live-smoke.js, sim:audit, Vitest v3
-npm run sim:e2e         # runner headless — Chrome locale (3 scenari)
+npm run sim:e2e         # runner headless — Chrome locale (6 scenari)
 npm run sim:e2e:pw      # CLI Playwright nativa (Node 22 / CI + sim:e2e:install)
 ```
 
-**Prossimi incrementi v4 (§11.2):** attività diario → movimenti → vigneto → conto terzi → manodopera mobile → CI §13.5.
+**Prossimi incrementi v4 (§11.2):** conto terzi (`conto-terzi.spec.js`) → manodopera mobile (`field-workspace.spec.js`) → CI §13.5.
 
 **Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2, §13.2, `simulator/README.md`.
 
@@ -83,7 +134,7 @@ npm run sim:e2e:pw      # CLI Playwright nativa (Node 22 / CI + sim:e2e:install)
 
 **Esito verificato (2026-06-27):** primo scenario dashboard — `npm run sim:e2e` → **1/1** OK; Vitest v3 **21/21**; `cascade-v3-live-smoke.js` OK su tenant fresco.
 
-**Nota:** scenari 2–3 aggiunti 2026-06-28 — suite attuale **3/3** (v. sezione consolidata in testa).
+**Nota:** scenari 2–6 aggiunti 2026-06-28 — suite attuale **6/6** (v. sezione consolidata **v4 Playwright (stato 2026-06-28)** in testa).
 
 **Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2, §13.2, `simulator/README.md`.
 
@@ -121,9 +172,9 @@ npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavo
 
 **Manifest con molte entry legacy:** `sim:audit` può fallire su tenant creati prima del quinto incremento (mancano affitti/bucket). Remediation: `npm run sim:backfill` (affitti + `forceSemaforoProfiles`) **oppure** `npm run sim:cleanup -- --keep 1` + nuovo `sim:run`.
 
-**Verifica UI (§13.2):** dashboard + scadenze-list + **terreni affitti** — scenari **1–3 automatizzati** (`npm run sim:e2e`); attività diario e resto §13.2 → incrementi v4.
+**Verifica UI (§13.2):** template `solo-titolare-viticola` — scenari **1–6 automatizzati** (`npm run sim:e2e` → 6/6): dashboard, scadenze-list, terreni, attività, movimenti, vigneto (potatura + trattamenti + concimazioni). Resto §13.2 (conto terzi, manodopera mobile) → incrementi v4 #7–8.
 
-**Prossimo sim:** incrementi **v4** §11.2; v2 opzionale altri template; v3b run paralleli N tenant.
+**Prossimo sim:** incremento **v4 #7 conto terzi** §11.2; opzionale CI Playwright §13.5.
 
 **Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — §11 (v3 barrata), §11.1.2 DoD, §13.2 checklist scadenze/affitti, `simulator/README.md` quick start.
 

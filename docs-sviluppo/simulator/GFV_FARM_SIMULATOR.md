@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright avviata** §11.2  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (scenari 1–6 ✅)  
 **Data:** 2026-06-28  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); **v4 Playwright avviata** — scenari 1–3 dashboard + scadenze-list + terreni affitti ✅ (§11.2); regime max + routine §13.4  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); **v4 Playwright avviata** — scenari 1–6 ✅ (§11.2); regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -639,7 +639,7 @@ npm run sim:audit                      # OK su tenant appena generato (manifest 
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 ```
 
-**Prossimo v4:** incrementi §11.2 (scenario 4 attività → …); typo/recovery NL → Tony + test client, **non** orchestrator sim.
+**Prossimo v4:** incrementi §11.2 (scenario 7 conto terzi → manodopera mobile → CI §13.5); typo/recovery NL → Tony + test client, **non** orchestrator sim.
 
 #### 11.2 v4 Playwright — E2E browser (avviata 2026-06-27)
 
@@ -651,17 +651,38 @@ npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavo
 | -------- | ----- |
 | `playwright.config.js` | Config `@playwright/test` (base URL `http://127.0.0.1:8000`, project `sim-chromium`) |
 | `scripts/sim-e2e-run.mjs` | **Runner locale** — prerequisiti HTTP/emulator/manifest + Chrome di sistema; esegue scenari registrati |
-| `tests/e2e/sim/helpers/sim-login.js` | Pagina dev → **Entra come manager**; navigazione `gotoScadenzeList`, `gotoTerreniList` |
+| `tests/e2e/sim/helpers/sim-login.js` | Pagina dev → **Entra come manager**; navigazione `gotoScadenzeList`, `gotoTerreniList`, `gotoAttivitaList`, `gotoMovimentiList`, `gotoPotaturaList`, `gotoTrattamentiList`, `gotoConcimazioniList` |
 | `tests/e2e/sim/scenarios/*.mjs` | Assert DOM condivise (spec Playwright + runner) |
 | `tests/e2e/sim/*.spec.js` | Spec `@playwright/test` (CI con `npm run sim:e2e:pw`) |
 
 Un scenario per file, niente `if (pagina === …)` sparsi. **No** Tony/meteo/Stripe nell’orchestrator sim.
 
+**Struttura `tests/e2e/sim/` (2026-06-28):**
+
+```
+tests/e2e/sim/
+  helpers/sim-login.js          # login dev + goto* / waitFor*Loaded
+  scenarios/
+    dashboard-deadlines.mjs
+    scadenze-list.mjs
+    terreni-affitti.mjs
+    attivita-list.mjs
+    movimenti.mjs
+    vigneto.mjs                 # potatura + trattamenti + concimazioni
+  dashboard-deadlines.spec.js
+  scadenze-list.spec.js
+  terreni-affitti.spec.js
+  attivita-list.spec.js
+  movimenti.spec.js
+  vigneto.spec.js
+scripts/sim-e2e-run.mjs         # SCENARIOS: 6 voci (stesso ordine)
+```
+
 **Node / browser:** in locale **`npm run sim:e2e`** usa **Chrome installato** (`playwright-core` + `channel: chrome`). Su **Node 24** la CLI `playwright test` può restare bloccata — usare il runner. In **CI (Node 22)** preferire `npm run sim:e2e:pw` dopo `npm run sim:e2e:install` (Chromium bundled).
 
 **Assert scenario 1 (dashboard):** dati seed (4 affitti, bucket km/ore) verificati da v3 (`sim:inspect`, `cascade-v3-live-smoke`, Vitest). In E2E: ≥2 righe **Affitto** con testo semaforo (Scaduto/giorni/mesi), ≥3 voci **In arrivo** con tipi km/ore/manutenzione, footer scadenze mezzi. Il widget amministrazione mostra max **8 righe** (`MAX_RIGHE` in `dashboard-deadlines.js`) — non assert rigido `count === 4` affitti nel DOM.
 
-**Esito suite (2026-06-28):** `npm run sim:e2e` → **3/3** scenari OK (scenari 1–3 implementati; 4–9 pianificati sotto).
+**Esito suite (2026-06-28):** `npm run sim:e2e` → **6/6** scenari OK (scenari 1–6 implementati; 7–9 pianificati sotto).
 
 **Catena pre-E2E consigliata (tenant fresco):**
 
@@ -694,7 +715,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | `npm run sim:e2e:install` | Scarica Chromium Playwright (CI / `sim:e2e:pw`) |
 | `npm run sim:e2e:ui` | Modalità UI debug Playwright |
 
-**Criterio v4 started ✅ (2026-06-27):**
+**Criterio v4 — scenari 1–6 ✅ (2026-06-28):**
 
 | Incremento | Stato | File / verifica |
 | ---------- | ----- | ----------------- |
@@ -709,10 +730,25 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | Assert condivise scenario terreni affitti | ✅ | `tests/e2e/sim/scenarios/terreni-affitti.mjs` |
 | Helper navigazione terreni | ✅ | `gotoTerreniList` in `sim-login.js` |
 | Scenario 3: terreni — colonna affitti semafori grey/red/yellow/green | ✅ verificato | `terreni-affitti.spec.js` + `npm run sim:e2e` |
+| Assert condivise scenario attività diario | ✅ | `tests/e2e/sim/scenarios/attivita-list.mjs` |
+| Helper navigazione attività | ✅ | `gotoAttivitaList` in `sim-login.js` |
+| Scenario 4: diario — `attivita-standalone.html` (~20 righe seed) | ✅ verificato | `attivita-list.spec.js` + `npm run sim:e2e` |
+| Assert condivise scenario movimenti magazzino | ✅ | `tests/e2e/sim/scenarios/movimenti.mjs` |
+| Helper navigazione movimenti | ✅ | `gotoMovimentiList` in `sim-login.js` |
+| Scenario 5: magazzino — `movimenti-standalone.html` (12 uscite + tracciabilità) | ✅ verificato | `movimenti.spec.js` + `npm run sim:e2e` |
+| Assert condivise scenario vigneto | ✅ | `tests/e2e/sim/scenarios/vigneto.mjs` |
+| Helper navigazione vigneto | ✅ | `gotoPotaturaList`, `gotoTrattamentiList`, `gotoConcimazioniList` in `sim-login.js` |
+| Scenario 6: vigneto — potature + trattamenti + concimazioni | ✅ verificato | `vigneto.spec.js` + `npm run sim:e2e` |
 
 **Assert scenario 2 (scadenze-list):** dati seed (profili km/ore/date su 8 macchine) verificati da v3. In E2E: tabella con ≥5 righe; almeno un dot **black**, **red**, **yellow**; testo stato urgente visibile; almeno una riga `row-scaduto`; tipi misti (Manutenzione/Tagliando/Revisione/Assicurazione).
 
 **Assert scenario 3 (terreni affitti):** dati seed (4 terreni azienda in affitto, bucket grey/red/yellow/green) verificati da v3. In E2E: ≥4 righe con badge **Affitto**; almeno un dot **grey**, **red**, **yellow**, **green** (classi `.alert-dot-*`); tooltip possesso con testo scadenza visibile. Nessun ricalcolo `calcolaAlertAffitto` nel test.
+
+**Assert scenario 4 (attività diario):** seed template `solo-titolare-viticola`: **20 attività** (4 settimane × 1/giorno lavorativo), tipi ciclici Potatura/Trattamento/Erpicatura/Concimazione/Controllo fitosanitario, coltura Vite — validati da orchestrator + Vitest v3. In E2E: tabella `.attivita-table` con header Data/Terreno/Tipo Lavoro/Coltura/Ore Nette; **≥15 righe** (soglia minima, atteso 20 su tenant fresco); almeno 3 tipi lavoro seed visibili; coltura Vite in almeno una riga; date non vuote. Nessuna chiamata a `Attivita.validate()` nel test.
+
+**Assert scenario 5 (movimenti magazzino):** seed: **12 uscite** collegate ad attività Trattamento/Concimazione/Controllo fitosanitario (`attivitaId`; note «Scarico…») — validati da orchestrator + `sim:audit`. In E2E: tabella `.movimenti-table` con header Data/Prodotto/Tipo/Attività; **≥10 righe** (atteso 12); badge `.badge-uscita`; colonna **Attività** con label collegata (tipo lavoro + terreno visibili); almeno 2 tipi lavoro seed in colonna Attività; note scarico visibili. Nessun ricalcolo giacenza nel test.
+
+**Assert scenario 6 (vigneto):** seed: **4 potature** + **12 trattamenti** Firestore (8 fitosanitari su `trattamenti-standalone.html` + 4 concimazioni su `concimazioni-standalone.html`) — validati da orchestrator + `sim:audit`. In E2E: **Potatura** — ≥3 righe, link **Vedi Attività**, tipo potatura visibile; **Trattamenti** — ≥6 righe, prodotti valorizzati, link attività; **Concimazioni** — ≥3 righe, link attività. Nessun ricalcolo spese/dosaggi nel test.
 
 **Piano incrementi v4 (Definition of Done finale):**
 
@@ -721,9 +757,9 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | 1 | Login dev → dashboard scadenze | `dashboard-deadlines.spec.js` | ✅ |
 | 2 | Parco — `scadenze-list-standalone.html` (black/red/yellow) | `scadenze-list.spec.js` | ✅ |
 | 3 | Terreni — colonna affitti semafori | `terreni-affitti.spec.js` | ✅ |
-| 4 | Diario / attività (~20) | `attivita-list.spec.js` | ⬜ |
-| 5 | Magazzino movimenti tracciabilità | `movimenti.spec.js` | ⬜ |
-| 6 | Vigneto trattamenti/potature | `vigneto.spec.js` | ⬜ |
+| 4 | Diario / attività (~20) | `attivita-list.spec.js` | ✅ |
+| 5 | Magazzino movimenti tracciabilità | `movimenti.spec.js` | ✅ |
+| 6 | Vigneto trattamenti/potature | `vigneto.spec.js` | ✅ |
 | 7 | Conto terzi (template `viticola-conto-terzi*`) | `conto-terzi.spec.js` | ⬜ |
 | 8 | Manodopera mobile capo/operaio | `field-workspace.spec.js` | ⬜ |
 | 9 | CI leggera emulator + sim:run + Playwright | §13.5 workflow | ⬜ |
@@ -836,10 +872,10 @@ Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 - **Attività** → ~20 record
 - **Movimenti** (link dev o modulo magazzino) → 12 uscite, tracciabilità prodotto↔attività; prodotti con eventuale sotto scorta
 - **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **8 macchine** (1 trattore + 3 attrezzi + 4 flotta); flotta con **km** e bucket tagliando visibili; attrezzi/trattore con **manutenzione ore**; widget dashboard **Scadenze amministrazione** (affitti grey/red/yellow/green + revisione/assicurazione urgenti) e **In arrivo** (manutenzioni km/ore/data); niente redirect login con `?emulator=1`
-- **E2E automatizzato (v4):** `npm run sim:e2e` — scenario 1 dashboard; scenario 2 scadenze-list; scenario 3 terreni affitti (semafori grey/red/yellow/green) — v. §11.2
+- **E2E automatizzato (v4):** `npm run sim:e2e` — scenari 1–6 (dashboard, scadenze, terreni, attività, movimenti, vigneto) — v. §11.2
 - **Terreni** → 4 terreni azienda: tutti in **affitto** con scadenze demo (semafori in lista Terreni + widget scadenze)
 - **Vigneto / Vigneti** → 4 vigneti collegati ai terreni; navigazione dashboard ok
-- **Trattamenti / Potatura** → righe da attività diario (4 potature + 12 trattamenti); trattamenti con prodotti da magazzino dove presente
+- **Trattamenti / Potatura / Concimazioni** → righe da attività diario (4 potature + 12 trattamenti: 8 fitosanitari + 4 concimazioni); trattamenti con prodotti da magazzino dove presente
 - **Conto Terzi** (template `viticola-conto-terzi*` — entrare come **manager** dalla pagina dev):
   - Home: `modules/conto-terzi/views/conto-terzi-home-standalone.html?emulator=1`
   - Clienti: `.../clienti-standalone.html?emulator=1` — 3 anagrafiche demo
@@ -885,11 +921,11 @@ npm run sim:audit
 # 4b. Smoke v3 (cascata + semafori su emulator)
 node scripts/cascade-v3-live-smoke.js
 
-# 5. Browser: pagina dev → dashboard widget scadenze + Scadenze mezzi + Terreni affitti
+# 5. Browser: pagina dev → checklist §13.2 (o E2E sotto)
 npm start   # terminale separato
 
-# 5b. E2E scenari 1–3 (opzionale, dopo sim:run su tenant Seed completo)
-npm run sim:e2e    # dashboard + scadenze-list + terreni affitti → 3/3 attesi
+# 5b. E2E scenari 1–6 (dopo sim:run su tenant Seed completo, template solo-titolare-viticola)
+npm run sim:e2e    # dashboard + scadenze + terreni + attività + movimenti + vigneto → 6/6 attesi
 ```
 
 **Perf locale con dati simulati:** il simulatore **non** sostituisce `npm run tony:perf-review` (log Cloud Functions produzione). In locale, un seed **regime max** (30 attività, molte ore/comunicazioni, 12+ movimenti) rende **realistici** i tempi di:
@@ -1186,4 +1222,4 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright avviata** §11.2 (scenari 1–3 ✅) — prossimo incremento v4: attività diario §13.2; Tony per errori/recovery NL.*
+*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright avviata** §11.2 (scenari 1–6 ✅) — prossimo incremento v4: conto terzi §13.2; Tony per errori/recovery NL.*

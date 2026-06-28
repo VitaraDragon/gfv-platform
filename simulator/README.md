@@ -7,7 +7,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
-**v4 Playwright:** scenari 1–3 dashboard + scadenze-list + terreni affitti ✅ — guida §11.2
+**v4 Playwright:** scenari 1–6 ✅ — guida §11.2
 
 ## Prerequisiti
 
@@ -122,6 +122,7 @@ npm run sim:inspect
 node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # legacy nel manifest → sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
+npm run sim:e2e                      # 6/6 attesi su tenant Seed completo
 ```
 
 **E2E browser:**
@@ -139,19 +140,31 @@ npm run sim:e2e:install      # CI / sim:e2e:pw — scarica Chromium Playwright
 
 **Scenario 3 (✅):** stesso login → `core/terreni-standalone.html?emulator=1` — colonna **Possesso** con badge Affitto e semafori **grey/red/yellow/green**.
 
+**Scenario 4 (✅):** stesso login → `core/attivita-standalone.html?emulator=1` — diario con **≥15 righe** (seed 20), colonne Data/Terreno/Tipo Lavoro/Coltura, tipi lavoro seed visibili.
+
+**Scenario 5 (✅):** stesso login → `modules/magazzino/views/movimenti-standalone.html?emulator=1` — **≥10 uscite** (seed 12), badge Uscita, colonna Attività con tracciabilità e note scarico visibili.
+
+**Scenario 6 (✅):** stesso login → potatura + trattamenti + concimazioni vigneto — **≥3 potature** (seed 4), **≥6 trattamenti fitosanitari** (seed 8), **≥3 concimazioni** (seed 4); link **Vedi Attività** su ogni lista.
+
 Assert su DOM visibile — dati seed già validati da v3.
 
 **Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
-**Esito attuale (2026-06-28):** `npm run sim:e2e` → **3/3** scenari OK (emulator + `npm start` + manifest non vuoto, preferire **Seed completo**).
+**Esito attuale (2026-06-28):** `npm run sim:e2e` → **6/6** scenari OK (emulator + `npm start` + manifest non vuoto, preferire **Seed completo**).
 
 | # | Scenario | Spec | URL target |
 | - | -------- | ---- | ---------- |
 | 1 | Dashboard scadenze | `dashboard-deadlines.spec.js` | dashboard dopo login dev |
 | 2 | Parco scadenze | `scadenze-list.spec.js` | `modules/macchine/views/scadenze-list-standalone.html?emulator=1` |
 | 3 | Terreni affitti | `terreni-affitti.spec.js` | `core/terreni-standalone.html?emulator=1` |
+| 4 | Diario attività | `attivita-list.spec.js` | `core/attivita-standalone.html?emulator=1` |
+| 5 | Movimenti magazzino | `movimenti.spec.js` | `modules/magazzino/views/movimenti-standalone.html?emulator=1` |
+| 6 | Vigneto potature/trattamenti | `vigneto.spec.js` | `potatura` + `trattamenti` + `concimazioni` standalone |
+| 7 | Conto terzi | `conto-terzi.spec.js` | ⬜ prossimo |
 
 **File:** `scripts/sim-e2e-run.mjs`, `tests/e2e/sim/` — dettaglio assert e piano incrementi: **`GFV_FARM_SIMULATOR.md` §11.2**.
+
+**Prossimo incremento v4 #7:** `conto-terzi.spec.js` (template `viticola-conto-terzi*`).
 
 ## Manifest e audit
 

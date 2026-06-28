@@ -8,13 +8,25 @@ import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
 import { expect } from '@playwright/test';
 import {
+  gotoAttivitaList,
+  gotoConcimazioniList,
+  gotoMovimentiList,
+  gotoPotaturaList,
   gotoScadenzeList,
   gotoTerreniList,
+  gotoTrattamentiList,
   loginAsManagerFromDevPage,
 } from '../tests/e2e/sim/helpers/sim-login.js';
+import { runAttivitaListAssertions } from '../tests/e2e/sim/scenarios/attivita-list.mjs';
+import { runMovimentiAssertions } from '../tests/e2e/sim/scenarios/movimenti.mjs';
 import { runDashboardDeadlinesAssertions } from '../tests/e2e/sim/scenarios/dashboard-deadlines.mjs';
 import { runScadenzeListAssertions } from '../tests/e2e/sim/scenarios/scadenze-list.mjs';
 import { runTerreniAffittiAssertions } from '../tests/e2e/sim/scenarios/terreni-affitti.mjs';
+import {
+  runConcimazioniListAssertions,
+  runPotaturaListAssertions,
+  runTrattamentiListAssertions,
+} from '../tests/e2e/sim/scenarios/vigneto.mjs';
 
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -72,6 +84,34 @@ const SCENARIOS = [
       await loginAsManagerFromDevPage(page);
       await gotoTerreniList(page);
       await runTerreniAffittiAssertions(page, expect);
+    },
+  },
+  {
+    name: 'attivita-list',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoAttivitaList(page);
+      await runAttivitaListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'movimenti',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoMovimentiList(page);
+      await runMovimentiAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vigneto',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoPotaturaList(page);
+      await runPotaturaListAssertions(page, expect);
+      await gotoTrattamentiList(page);
+      await runTrattamentiListAssertions(page, expect);
+      await gotoConcimazioniList(page);
+      await runConcimazioniListAssertions(page, expect);
     },
   },
 ];
