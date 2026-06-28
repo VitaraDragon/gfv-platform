@@ -20,7 +20,8 @@
     "squadre": 1,
     "lavoriSquadra": 2,
     "lavoriAutonomi": 1,
-    "giorniOreSimulate": 10
+    "giorniOreSimulate": 10,
+    "guasti": 3
   },
   "personas": {
     "provision": "pre_created",
@@ -39,6 +40,7 @@
     "comunicazioniSquadra": true,
     "confermeOperai": true,
     "assenzaMalattia": true,
-    "standbyAssenzaMalattia": true
+    "standbyAssenzaMalattia": true,
+    "oreDaValidarePending": 2
   }
 }

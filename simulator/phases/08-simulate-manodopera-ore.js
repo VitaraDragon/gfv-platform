@@ -27,6 +27,7 @@ function buildCounts(state) {
     counts: {
       oreSegnate: state.oreSegnate,
       oreValidate: state.oreValidate,
+      oreDaValidare: state.oreDaValidare,
       comunicazioniInviate: state.comunicazioniInviate,
       comunicazioniConfermate: state.comunicazioniConfermate,
       assenzeMalattiaSegnalate: state.assenzeMalattiaSegnalate,
@@ -34,6 +35,31 @@ function buildCounts(state) {
       lavoriStandbyAssenza: state.lavoriStandbyAssenza
     }
   };
+}
+
+/**
+ * Ore lasciate in coda per validazione manager (autonomo + capo su squadra).
+ */
+async function seedOreDaValidarePending(ctx, manodoperaCfg, lavoriSquadra, lavoriAutonomi) {
+  const pending = manodoperaCfg.oreDaValidarePending ?? 0;
+  if (pending <= 0) return 0;
+
+  const data = toDateAtMorning(ctx.giorni[ctx.giorni.length - 1]);
+  let created = 0;
+
+  if (lavoriAutonomi[0]?.operaio && created < pending) {
+    await ctx.segna(lavoriAutonomi[0].operaio, lavoriAutonomi[0].id, data);
+    created += 1;
+  }
+
+  const lavoro = lavoriSquadra.find((l) => l.id !== ctx.lavoroStandbyId) || lavoriSquadra[0];
+  if (lavoro?.squadra?.capo && created < pending) {
+    await ctx.segna(lavoro.squadra.capo, lavoro.id, data);
+    created += 1;
+  }
+
+  ctx.oreDaValidare = created;
+  return created;
 }
 
 /**
@@ -106,6 +132,8 @@ async function runRegimeMax(manodopera, q, manodoperaCfg) {
     }
   }
 
+  await seedOreDaValidarePending(ctx, manodoperaCfg, lavoriSquadra, lavoriAutonomi);
+
   return buildCounts(ctx);
 }
 
@@ -155,6 +183,8 @@ async function runStandard(manodopera, q, manodoperaCfg) {
     await ctx.completeAutonomoChain(lavoriAutonomi[i], toDateAtMorning(giorni[i]));
   }
 
+  await seedOreDaValidarePending(ctx, manodoperaCfg, lavoriSquadra, lavoriAutonomi);
+
   return buildCounts(ctx);
 }
 
@@ -189,6 +219,7 @@ function createSimContext(db, personasFull, manodoperaCfg, giorni) {
     lavoroStandbyId: null,
     oreSegnate: 0,
     oreValidate: 0,
+    oreDaValidare: 0,
     comunicazioniInviate: 0,
     comunicazioniConfermate: 0,
     assenzeMalattiaSegnalate: 0,

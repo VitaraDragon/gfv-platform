@@ -587,9 +587,9 @@ export async function waitForValidazioneOreLoaded(page) {
     if (!container) return false;
     if (container.querySelector('.loading')) return false;
     if (/Caricamento ore/i.test(container.textContent || '')) return false;
-    if (container.querySelector('.ore-table tbody tr')) return true;
-    const empty = container.querySelector('.empty-state');
-    return empty && !/Caricamento/i.test(empty.textContent || '');
+    const stat = document.getElementById('stat-da-validare');
+    const pending = stat ? parseInt(stat.textContent, 10) : 0;
+    return pending >= 2 && container.querySelectorAll('.ore-table tbody tr').length >= 2;
   }, { timeout: 90_000 });
 }
 
@@ -621,8 +621,11 @@ export async function waitForGuastiListLoaded(page) {
     if (!container) return false;
     if (container.querySelector('.loading')) return false;
     if (/Caricamento/i.test(container.textContent || '')) return false;
-    return container.querySelector('.guasti-table tbody tr') || container.querySelector('.empty-state');
+    return container.querySelectorAll('.guasti-table tbody tr').length >= 2;
   }, { timeout: 60_000 });
+  await page.locator('#table-container .guasti-table tbody tr').first().waitFor({
+    timeout: 60_000,
+  });
 }
 
 export async function gotoGuastiList(page) {

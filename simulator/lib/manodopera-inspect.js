@@ -136,7 +136,20 @@ export async function inspectManodoperaSeed(db, tenantId, expected = {}) {
     errors.push(`lavori autonomi ${lavoriAutonomi}/${expected.lavoriAutonomi}`);
   }
   if (oreDaValidare > 0) {
-    errors.push(`ore da_validare residue: ${oreDaValidare}`);
+    const expectedPending = expected.oreDaValidarePending ?? expected.minOreDaValidare;
+    if (expectedPending != null) {
+      if (oreDaValidare !== expectedPending) {
+        errors.push(`ore da_validare ${oreDaValidare}/${expectedPending}`);
+      }
+    } else {
+      errors.push(`ore da_validare residue: ${oreDaValidare}`);
+    }
+  } else if (
+    (expected.oreDaValidarePending != null && expected.oreDaValidarePending > 0) ||
+    (expected.minOreDaValidare != null && expected.minOreDaValidare > 0)
+  ) {
+    const need = expected.oreDaValidarePending ?? expected.minOreDaValidare;
+    errors.push(`ore da_validare ${oreDaValidare}/≥${need}`);
   }
   if (oreSenzaValidatoDa > 0) {
     errors.push(`ore validate senza validatoDa: ${oreSenzaValidatoDa}`);

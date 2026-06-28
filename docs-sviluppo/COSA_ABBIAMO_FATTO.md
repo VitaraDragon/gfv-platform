@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 roadmap** copertura app §11.3; E2E **18 scenari**; pagina dev link rapidi.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 Fase 1** seed guasti + ore coda validazione; E2E scen. 13–14 assert rafforzati.**
+
+## GFV Farm Simulator — v5 Fase 1 seed guasti + ore coda validazione (2026-06-28)
+
+**Obiettivo:** sbloccare assert E2E utili su scenari 13–14 (non più «pagina vuota OK»).
+
+**Seed (`viticola-manodopera*` / `viticola-conto-terzi-manodopera`):**
+- **3 guasti** in `tenants/{id}/guasti` — grave/in-attesa, non-grave/in-attesa, risolto; stati macchina allineati app (`simulator/lib/seed-guasti.js`, fase `02b-seed-guasti`).
+- **2 ore `da_validare`** visibili al manager — 1 autonomo + 1 capo su lavoro squadra (`manodopera.oreDaValidarePending: 2` in template).
+
+**Verifica:** `inspectManodoperaSeed` + `sim:audit` (conteggi guasti/ore); E2E scen. 13 `#stat-da-validare` ≥2 righe; scen. 14 tabella 3 guasti + badge grave/aperto/risolto.
+
+**Tenant fresco:** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` → `npm run sim:e2e`.
 
 ## GFV Farm Simulator — v5 roadmap copertura app completa (2026-06-28)
 

@@ -5,6 +5,7 @@
 
 import { runSetupTenant } from '../phases/01-setup-tenant.js';
 import { runPopulateAssets } from '../phases/02-populate-assets.js';
+import { runSeedGuasti } from '../phases/02b-seed-guasti.js';
 import { runSimulateAttivita } from '../phases/03-simulate-attivita.js';
 import { runSimulateMagazzino } from '../phases/04-simulate-magazzino.js';
 import { runSimulateVigneto } from '../phases/05-simulate-vigneto.js';
@@ -36,6 +37,7 @@ export async function runFullSimulation(options = {}) {
   }
 
   const assets = await runPopulateAssets();
+  const guastiSeed = await runSeedGuasti(assets);
   const simulation = await runSimulateAttivita(assets);
   const magazzino = await runSimulateMagazzino({ attivitaIds: simulation.attivitaIds });
   const vigneto = await runSimulateVigneto({
@@ -61,6 +63,7 @@ export async function runFullSimulation(options = {}) {
   return {
     setup,
     assets,
+    guastiSeed,
     simulation,
     magazzino,
     vigneto,

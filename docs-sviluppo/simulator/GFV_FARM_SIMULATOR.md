@@ -800,7 +800,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **v4 chiusa (Definition of Done):** incrementi §11.2 tabella ✅; fallimenti CI distinguibili (Node vs browser); nessuna duplicazione business logic nei test E2E read.
 
-**Prossimo — v5 copertura app (§11.3):** seed gap (guasti, ore in coda validazione, vendemmia…), E2E read sulle ~34 pagine ancora scoperte, primi scenari E2E **write** (attività, movimento, ore, lavoro, preventivo).
+**Prossimo — v5 copertura app (§11.3):** ~~seed guasti + ore coda~~ ✅ Fase 1; E2E read P1 mancanti, primi scenari E2E **write** (attività, movimento, ore, lavoro, preventivo); gap seed: vendemmia, frutteto.
 
 **Parallelo (v4b / fuori sim):**
 
@@ -855,7 +855,7 @@ npm run sim:e2e                      # 8/8 attesi
 
 | Asse | Descrizione | Stato (2026-06-28) |
 | ---- | ----------- | ------------------- |
-| **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; gap: guasti, ore in coda validazione, vendemmia, frutteto… |
+| **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; **guasti (3) + ore coda validazione (2)** ✅ v5 Fase 1; gap: vendemmia, frutteto… |
 | **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~32 / ~66** pagine standalone (~**48%**) — 18 scenari |
 | **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **~0** scenari — priorità v5 |
 
@@ -892,7 +892,7 @@ npm run sim:e2e                      # 8/8 attesi
 | Dashboard macchine | ✅ | ✅ scen. 14 | ❌ | 1 |
 | Scadenze | ✅ | ✅ scen. 2 | ❌ | 2 |
 | Trattori / Attrezzi / Flotta | ✅ | ✅ scen. 10 | ❌ | 2 |
-| Guasti (lista) | ⚠️ 0 record | ✅ scen. 14 (pagina vuota OK) | ❌ | **1** (seed guasti) |
+| Guasti (lista) | ✅ 3 record | ✅ scen. 14 (tabella + badge) | ❌ | **1** (seed guasti) |
 | Admin gestione macchine / guasti | parziale | ❌ | ❌ | 2 |
 
 ##### 11.3.4 Vigneto
@@ -922,7 +922,7 @@ npm run sim:e2e                      # 8/8 attesi
 | ------ | ---- | -------- | --------- | - |
 | Home manodopera | ✅ | ✅ scen. 18 | ❌ | 1 |
 | Gestione lavori | ✅ | ✅ scen. 13 | ❌ | **1** (write: lavoro) |
-| Validazione ore | ✅ coda vuota | ✅ scen. 13 | ❌ | **1** (seed + assert coda) |
+| Validazione ore | ✅ coda 2 ore manager | ✅ scen. 13 (stat + righe) | ❌ | **1** (seed + assert coda) |
 | Operai / Squadre / Statistiche | ✅ | ✅ scen. 18 | ❌ | 2 |
 | Lavori capo desktop | ✅ | ✅ scen. 19 | ❌ | 2 |
 | Field workspace mobile | ✅ | ✅ scen. 8 | ❌ | **1** (write: registra ore) |
@@ -959,7 +959,7 @@ npm run sim:e2e                      # 8/8 attesi
 
 **Fase 1 — Chiudere template attuale (P1)** — ~4–8 incrementi
 
-- Seed: **guasti**, **ore in coda validazione**
+- Seed: ~~**guasti**, **ore in coda validazione**~~ ✅ (2026-06-28)
 - E2E read: mappa aziendale, statistiche core/vigneto, admin macchine/guasti, apertura nuovo preventivo
 - Primi E2E write: **attività**, **movimento magazzino**, **ore mobile**, **lavoro manodopera**, **preventivo**
 

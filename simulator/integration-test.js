@@ -153,6 +153,7 @@ async function runV2Test() {
     minOreOperaioValidateDaCapo: 1,
     minOreCapoValidateDaManager: 1,
     minOreAutonomoValidateDaManager: 1,
+    oreDaValidarePending: v2Template.manodopera?.oreDaValidarePending ?? 0,
     minComunicazioniAttive: qV2.lavoriSquadra,
     requireConfermeDestinatari: true,
     minAssenzeMalattiaConfermate: 1,

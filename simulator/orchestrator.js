@@ -6,6 +6,7 @@
 
 import { runSetupTenant } from './phases/01-setup-tenant.js';
 import { runPopulateAssets } from './phases/02-populate-assets.js';
+import { runSeedGuasti } from './phases/02b-seed-guasti.js';
 import { runSimulateAttivita } from './phases/03-simulate-attivita.js';
 import { runSimulateMagazzino } from './phases/04-simulate-magazzino.js';
 import { runSimulateVigneto } from './phases/05-simulate-vigneto.js';
@@ -50,6 +51,12 @@ async function main() {
     phase = '02-populate-assets';
     const assets = await runPopulateAssets();
     if (verbose) console.log('[sim] Asset popolati:', assets.counts);
+
+    phase = '02b-seed-guasti';
+    const guastiSeed = await runSeedGuasti(assets);
+    if (verbose && guastiSeed.counts.guasti) {
+      console.log('[sim] Guasti seed:', guastiSeed.counts);
+    }
 
     phase = '03-simulate-attivita';
     const simulation = await runSimulateAttivita(assets);
@@ -97,6 +104,8 @@ async function main() {
 
     const counts = {
       ...assets.counts,
+      guasti: guastiSeed.counts.guasti,
+      guastiAperti: guastiSeed.counts.guastiAperti,
       attivita: simulation.counts.attivita,
       movimentiMagazzino: magazzino.counts.movimenti,
       prodottiSottoScorta: magazzino.sottoScorta,
@@ -117,6 +126,7 @@ async function main() {
     if (manodoperaOre) {
       counts.oreSegnate = manodoperaOre.counts.oreSegnate;
       counts.oreValidate = manodoperaOre.counts.oreValidate;
+      counts.oreDaValidare = manodoperaOre.counts.oreDaValidare;
       counts.comunicazioniInviate = manodoperaOre.counts.comunicazioniInviate;
       counts.comunicazioniConfermate = manodoperaOre.counts.comunicazioniConfermate;
       counts.assenzeMalattiaSegnalate = manodoperaOre.counts.assenzeMalattiaSegnalate;

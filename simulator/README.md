@@ -200,14 +200,14 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 | Stato oggi | Target v5 |
 | ---------- | --------- |
 | ~**48%** pagine standalone con E2E read (18 scenari) | Read su template completo + write su flussi critici |
-| Seed forte su `viticola-conto-terzi-manodopera` | Gap: guasti, ore da validare, vendemmia, template frutteto |
+| Seed forte su `viticola-conto-terzi-manodopera` | **guasti (3) + ore coda (2)** ✅; gap: vendemmia, template frutteto |
 | E2E write ~0 | Attività, movimento, ore, lavoro, preventivo… |
 
 **Milestone:** M1 ✅ (18/18) → M2 read 100% template → M3 write critici → M4 frutteto → M5 ruoli + CI notturna.
 
 **Dettaglio modulo per modulo, fasi e anti-pattern:** [`GFV_FARM_SIMULATOR.md` §11.3](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md).
 
-**Prossimo incremento consigliato:** seed guasti + ore in validazione → pagine read P1 mancanti → primo E2E write (nuova attività).
+**Prossimo incremento consigliato:** E2E read P1 mancanti → primo E2E write (nuova attività).
 
 **CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica locale del job GitHub Actions (richiede bash + Java).
 

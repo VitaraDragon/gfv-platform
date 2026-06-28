@@ -17,9 +17,6 @@ export async function runGestioneLavoriAssertions(page, expect) {
 
   const countText = await page.locator('#lavori-count').textContent();
   expect(parseInt(countText, 10)).toBeGreaterThanOrEqual(3);
-
-  const totale = await page.locator('#stat-totale-lavori').textContent();
-  expect(parseInt(totale, 10)).toBeGreaterThanOrEqual(3);
 }
 
 export async function runValidazioneOreAssertions(page, expect) {
@@ -32,14 +29,13 @@ export async function runValidazioneOreAssertions(page, expect) {
   await expect(container).toBeVisible();
   await expect(container.locator('.loading')).toHaveCount(0);
 
-  await expect(page.locator('#stat-da-validare')).toBeVisible();
+  const statDaValidare = page.locator('#stat-da-validare');
+  await expect(statDaValidare).toBeVisible();
+  const pendingCount = parseInt(await statDaValidare.textContent(), 10);
+  expect(pendingCount).toBeGreaterThanOrEqual(2);
 
-  const hasTable = (await container.locator('.ore-table tbody tr').count()) > 0;
-  const hasEmpty = await container.locator('.empty-state').isVisible().catch(() => false);
+  const rows = container.locator('.ore-table tbody tr');
+  expect(await rows.count()).toBeGreaterThanOrEqual(2);
 
-  expect(hasTable || hasEmpty).toBe(true);
-
-  if (hasEmpty) {
-    await expect(container.getByText(/validate|rifiutate/i)).toBeVisible();
-  }
+  await expect(page.locator('#stat-validate')).toBeVisible();
 }

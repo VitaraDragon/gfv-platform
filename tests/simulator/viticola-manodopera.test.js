@@ -66,13 +66,14 @@ describe('GFV Farm Simulator — viticola-manodopera v2 (emulator)', () => {
       minOreOperaioValidateDaCapo: 1,
       minOreCapoValidateDaManager: 1,
       minOreAutonomoValidateDaManager: 1,
+      oreDaValidarePending: template.manodopera?.oreDaValidarePending ?? 0,
       minComunicazioniAttive: q.lavoriSquadra,
       requireConfermeDestinatari: true,
       minAssenzeMalattiaConfermate: 1,
       minLavoriStandbyAssenza: 1
     });
     expect(inspect.ok, inspect.errors.join('; ')).toBe(true);
-    expect(inspect.counts.oreDaValidare).toBe(0);
+    expect(inspect.counts.oreDaValidare).toBe(template.manodopera?.oreDaValidarePending ?? 0);
     expect(manodoperaOre.counts.assenzeMalattiaConfermate).toBeGreaterThanOrEqual(1);
     expect(manodoperaOre.counts.lavoriStandbyAssenza).toBeGreaterThanOrEqual(1);
   }, 120000);

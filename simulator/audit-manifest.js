@@ -59,6 +59,7 @@ function buildExpected(template) {
     movimentiMagazzino: expectedMovimentiFromTemplate(template),
     potatureVigneto: vignetoExpected.potature,
     trattamentiVigneto: vignetoExpected.trattamenti,
+    guasti: q.guasti ?? 0,
     manodopera: hasManodopera
       ? {
           squadre: q.squadre ?? q.caposquadra ?? 1,
@@ -68,6 +69,7 @@ function buildExpected(template) {
           minOreOperaioValidateDaCapo: 1,
           minOreCapoValidateDaManager: 1,
           minOreAutonomoValidateDaManager: 1,
+          oreDaValidarePending: mo.oreDaValidarePending ?? 0,
           minComunicazioniAttive: mo.regimeMax ? (q.lavoriSquadra ?? 2) * 2 : (q.lavoriSquadra ?? 2),
           requireConfermeDestinatari: mo.confermeOperai !== false,
           minAssenzeMalattiaConfermate: mo.assenzaMalattia === false ? 0 : 1,
@@ -243,6 +245,9 @@ function classifyEntry(entry, inspect, checks) {
     }
     if (c.trattamentiVigneto !== EXPECTED.trattamentiVigneto) {
       issues.push(`trattamenti vigneto ${c.trattamentiVigneto}/${EXPECTED.trattamentiVigneto}`);
+    }
+    if (EXPECTED.guasti > 0 && (c.guasti ?? 0) !== EXPECTED.guasti) {
+      issues.push(`guasti ${c.guasti ?? 0}/${EXPECTED.guasti}`);
     }
   }
 

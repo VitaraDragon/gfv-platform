@@ -184,6 +184,7 @@ export async function inspectTenantSeed(db, tenantId) {
   const vigneti = await listCollection(db, tenantId, 'vigneti');
   const prodotti = await listCollection(db, tenantId, 'prodotti');
   const movimenti = await listCollection(db, tenantId, 'movimentiMagazzino');
+  const guasti = await listCollection(db, tenantId, 'guasti');
   const potatureVigneto = await countVignetoSubcollections(db, tenantId, 'potature');
   const trattamentiVigneto = await countVignetoSubcollections(db, tenantId, 'trattamenti');
 
@@ -259,6 +260,11 @@ export async function inspectTenantSeed(db, tenantId) {
       vigneti: vigneti.length,
       prodotti: prodotti.length,
       movimentiMagazzino: movimenti.length,
+      guasti: guasti.length,
+      guastiAperti: guasti.filter((g) => {
+        const s = (g.stato || '').toLowerCase();
+        return s !== 'risolto' && s !== 'riparato' && s !== 'chiuso';
+      }).length,
       potatureVigneto,
       trattamentiVigneto,
       prodottiSottoScorta: prodotti.filter((p) => {
