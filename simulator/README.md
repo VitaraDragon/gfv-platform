@@ -5,7 +5,9 @@ Generatore locale di aziende agricole di test su **Firebase Emulator** (Auth + F
 Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md)
 
 **v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
-**v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`
+**v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
+**v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
+**v4 Playwright:** scenari 1–3 dashboard + scadenze-list + terreni affitti ✅ — guida §11.2
 
 ## Prerequisiti
 
@@ -108,6 +110,48 @@ Pagina dev aziende simulate:
 - **Manodopera mobile:** pulsanti Capo / Operaio sulla card azienda (template manodopera)
 - Preferire aziende con badge **Seed completo** (`seedVersion: 2` nel manifest)
 - Se vedi **Seed vecchio**: `npm run sim:migrate-terreni`, `npm run sim:backfill`, oppure `npm run sim:run`
+
+## E2E Playwright (v4)
+
+**Prerequisiti:** emulator + `npm start` + tenant **Seed completo** in manifest (`sim:run --template=solo-titolare-viticola` consigliato).
+
+**Catena pre-E2E (riusa verifica v3):**
+
+```bash
+npm run sim:inspect
+node scripts/cascade-v3-live-smoke.js
+npm run sim:audit                    # legacy nel manifest → sim:cleanup --keep 1
+npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
+```
+
+**E2E browser:**
+
+```bash
+npm run sim:e2e              # headless — runner Node + Chrome di sistema (consigliato in dev)
+npm run sim:e2e:pw           # suite Playwright nativa (Node 22 / CI)
+npm run sim:e2e:ui           # debug Playwright UI
+npm run sim:e2e:install      # CI / sim:e2e:pw — scarica Chromium Playwright
+```
+
+**Scenario 1 (✅):** pagina dev → **Entra come manager** → dashboard widget **Scadenze amministrazione** (affitti con semaforo) + **In arrivo** (km/ore/manutenzioni).
+
+**Scenario 2 (✅):** stesso login → `modules/macchine/views/scadenze-list-standalone.html?emulator=1` — tabella scadenze con semafori **black/red/yellow** e righe scadute visibili.
+
+**Scenario 3 (✅):** stesso login → `core/terreni-standalone.html?emulator=1` — colonna **Possesso** con badge Affitto e semafori **grey/red/yellow/green**.
+
+Assert su DOM visibile — dati seed già validati da v3.
+
+**Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
+
+**Esito attuale (2026-06-28):** `npm run sim:e2e` → **3/3** scenari OK (emulator + `npm start` + manifest non vuoto, preferire **Seed completo**).
+
+| # | Scenario | Spec | URL target |
+| - | -------- | ---- | ---------- |
+| 1 | Dashboard scadenze | `dashboard-deadlines.spec.js` | dashboard dopo login dev |
+| 2 | Parco scadenze | `scadenze-list.spec.js` | `modules/macchine/views/scadenze-list-standalone.html?emulator=1` |
+| 3 | Terreni affitti | `terreni-affitti.spec.js` | `core/terreni-standalone.html?emulator=1` |
+
+**File:** `scripts/sim-e2e-run.mjs`, `tests/e2e/sim/` — dettaglio assert e piano incrementi: **`GFV_FARM_SIMULATOR.md` §11.2**.
 
 ## Manifest e audit
 

@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅  
-**Data:** 2026-06-27  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); prossimo = **v4 Playwright**; regime max + routine §13.4  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright avviata** §11.2  
+**Data:** 2026-06-28  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); **v4 Playwright avviata** — scenari 1–3 dashboard + scadenze-list + terreni affitti ✅ (§11.2); regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -17,7 +17,7 @@ Obiettivo prodotto:
 - Produrre **tenant riutilizzabili** in locale per demo e debug
 - Base scalabile per scenari futuri (multi-utente, errori, concorrenza, altri moduli)
 
-**Non è:** un test E2E browser (Playwright) né un load test di produzione.
+**Non è (v1 orchestrator):** load test di produzione. **v4 (2026-06-27):** suite E2E browser Playwright su stack locale — v. §11.2 (`npm run sim:e2e`); i dati restano generati dal sim Node, i test assert solo DOM visibile.
 
 ---
 
@@ -238,6 +238,21 @@ core/js/
 
 docs-sviluppo/simulator/
   GFV_FARM_SIMULATOR.md              # questo file
+
+playwright.config.js                 # v4 E2E — base URL emulator, project sim-chromium
+scripts/
+  sim-e2e-run.mjs                    # v4 runner locale (npm run sim:e2e)
+  cascade-v3-live-smoke.js           # smoke v3 bucket semafori su emulator
+
+tests/e2e/sim/
+  helpers/sim-login.js               # login dev + gotoScadenzeList / gotoTerreniList
+  scenarios/
+    dashboard-deadlines.mjs            # assert widget dashboard (scenario 1)
+    scadenze-list.mjs                  # assert parco scadenze (scenario 2)
+    terreni-affitti.mjs                # assert colonna affitti (scenario 3)
+  dashboard-deadlines.spec.js        # spec Playwright scenario 1
+  scadenze-list.spec.js              # spec Playwright scenario 2
+  terreni-affitti.spec.js            # spec Playwright scenario 3
 ```
 
 Script npm (root `package.json`):
@@ -258,7 +273,11 @@ Script npm (root `package.json`):
 "sim:cleanup": "node simulator/cleanup.js [--keep N] [--dry-run]",
 "sim:test": "node simulator/integration-test.js",
 "sim:test:vitest": "vitest run tests/simulator/solo-titolare-viticola.test.js",
-"sim:test:ci": "node simulator/ci-run.js"
+"sim:test:ci": "node simulator/ci-run.js",
+"sim:e2e": "node scripts/sim-e2e-run.mjs",
+"sim:e2e:pw": "playwright test",
+"sim:e2e:ui": "playwright test --ui",
+"sim:e2e:install": "playwright install chromium"
 ```
 
 ---
@@ -583,7 +602,7 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v2**   | Template frutteto, mista, solo titolare oliveto… |
 | **v3**   | ~~**Meccanismi a cascata**~~ (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1 ✅ |
 | **v3b**  | Run paralleli N tenant (infrastruttura, opzionale) |
-| **v4**   | E2E Playwright — flussi UI + widget scadenze/meteo; errori linguaggio naturale / recovery → **Tony** + test dedicati |
+| **v4**   | **E2E Playwright** — flussi UI + widget scadenze (§11.2); meteo live mock/skip; typo/recovery NL → **Tony** + test client |
 | **v4b**  | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
 
 ### 11.1 Direzione v3 — meccanismi a cascata (deciso 2026-06-26)
@@ -620,7 +639,96 @@ npm run sim:audit                      # OK su tenant appena generato (manifest 
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 ```
 
-**Prossimo:** **v4 Playwright** (E2E UI + widget scadenze/meteo); typo/recovery NL → Tony + test client, **non** orchestrator sim.
+**Prossimo v4:** incrementi §11.2 (scenario 4 attività → …); typo/recovery NL → Tony + test client, **non** orchestrator sim.
+
+#### 11.2 v4 Playwright — E2E browser (avviata 2026-06-27)
+
+**Obiettivo:** test browser su stack locale reale (emulator + `npm start` + tenant `sim_*` dal sim). Il sim **continua** a generare/validare dati (v3); Playwright **assert su DOM** visibile — niente duplicazione logica business nei test.
+
+**Architettura:**
+
+| Componente | Ruolo |
+| -------- | ----- |
+| `playwright.config.js` | Config `@playwright/test` (base URL `http://127.0.0.1:8000`, project `sim-chromium`) |
+| `scripts/sim-e2e-run.mjs` | **Runner locale** — prerequisiti HTTP/emulator/manifest + Chrome di sistema; esegue scenari registrati |
+| `tests/e2e/sim/helpers/sim-login.js` | Pagina dev → **Entra come manager**; navigazione `gotoScadenzeList`, `gotoTerreniList` |
+| `tests/e2e/sim/scenarios/*.mjs` | Assert DOM condivise (spec Playwright + runner) |
+| `tests/e2e/sim/*.spec.js` | Spec `@playwright/test` (CI con `npm run sim:e2e:pw`) |
+
+Un scenario per file, niente `if (pagina === …)` sparsi. **No** Tony/meteo/Stripe nell’orchestrator sim.
+
+**Node / browser:** in locale **`npm run sim:e2e`** usa **Chrome installato** (`playwright-core` + `channel: chrome`). Su **Node 24** la CLI `playwright test` può restare bloccata — usare il runner. In **CI (Node 22)** preferire `npm run sim:e2e:pw` dopo `npm run sim:e2e:install` (Chromium bundled).
+
+**Assert scenario 1 (dashboard):** dati seed (4 affitti, bucket km/ore) verificati da v3 (`sim:inspect`, `cascade-v3-live-smoke`, Vitest). In E2E: ≥2 righe **Affitto** con testo semaforo (Scaduto/giorni/mesi), ≥3 voci **In arrivo** con tipi km/ore/manutenzione, footer scadenze mezzi. Il widget amministrazione mostra max **8 righe** (`MAX_RIGHE` in `dashboard-deadlines.js`) — non assert rigido `count === 4` affitti nel DOM.
+
+**Esito suite (2026-06-28):** `npm run sim:e2e` → **3/3** scenari OK (scenari 1–3 implementati; 4–9 pianificati sotto).
+
+**Catena pre-E2E consigliata (tenant fresco):**
+
+```bash
+npm run sim:inspect
+node scripts/cascade-v3-live-smoke.js
+npm run sim:audit          # OK su tenant appena generato; legacy → sim:cleanup --keep 1
+npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
+npm run sim:e2e
+```
+
+**Prerequisiti (3 terminali + E2E):**
+
+```bash
+npm run sim:emulators   # terminale 1
+npm start               # terminale 2 — http://127.0.0.1:8000
+npm run sim:run -- --template=solo-titolare-viticola   # tenant fresco con affitti + 8 macchine
+npm run sim:e2e           # terminale 4 (runner Node — Chrome di sistema)
+npm run sim:e2e:pw        # alternativa CI: CLI Playwright (Node 22 + sim:e2e:install)
+```
+
+Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Seed completo** (`seedVersion >= 2`); legacy → `sim:backfill` o `sim:cleanup --keep 1` + nuovo `sim:run`.
+
+**Comandi npm:**
+
+| Comando | Scopo |
+| ------- | ----- |
+| `npm run sim:e2e` | Runner E2E headless (`scripts/sim-e2e-run.mjs`; Chrome locale, prerequisiti automatici) |
+| `npm run sim:e2e:pw` | Suite `@playwright/test` nativa (`playwright test`; CI Node 22) |
+| `npm run sim:e2e:install` | Scarica Chromium Playwright (CI / `sim:e2e:pw`) |
+| `npm run sim:e2e:ui` | Modalità UI debug Playwright |
+
+**Criterio v4 started ✅ (2026-06-27):**
+
+| Incremento | Stato | File / verifica |
+| ---------- | ----- | ----------------- |
+| Config Playwright + base URL emulator | ✅ | `playwright.config.js` |
+| Runner E2E locale + prerequisiti | ✅ | `scripts/sim-e2e-run.mjs` |
+| Helper login pagina dev → manager | ✅ | `tests/e2e/sim/helpers/sim-login.js` |
+| Assert condivise scenario dashboard | ✅ | `tests/e2e/sim/scenarios/dashboard-deadlines.mjs` |
+| Scenario 1: dashboard widget **Scadenze amministrazione** + **In arrivo** | ✅ verificato | `dashboard-deadlines.spec.js` + `npm run sim:e2e` |
+| Assert condivise scenario scadenze-list | ✅ | `tests/e2e/sim/scenarios/scadenze-list.mjs` |
+| Helper navigazione scadenze-list | ✅ | `gotoScadenzeList` in `sim-login.js` |
+| Scenario 2: parco — `scadenze-list-standalone.html` (black/red/yellow) | ✅ verificato | `scadenze-list.spec.js` + `npm run sim:e2e` |
+| Assert condivise scenario terreni affitti | ✅ | `tests/e2e/sim/scenarios/terreni-affitti.mjs` |
+| Helper navigazione terreni | ✅ | `gotoTerreniList` in `sim-login.js` |
+| Scenario 3: terreni — colonna affitti semafori grey/red/yellow/green | ✅ verificato | `terreni-affitti.spec.js` + `npm run sim:e2e` |
+
+**Assert scenario 2 (scadenze-list):** dati seed (profili km/ore/date su 8 macchine) verificati da v3. In E2E: tabella con ≥5 righe; almeno un dot **black**, **red**, **yellow**; testo stato urgente visibile; almeno una riga `row-scaduto`; tipi misti (Manutenzione/Tagliando/Revisione/Assicurazione).
+
+**Assert scenario 3 (terreni affitti):** dati seed (4 terreni azienda in affitto, bucket grey/red/yellow/green) verificati da v3. In E2E: ≥4 righe con badge **Affitto**; almeno un dot **grey**, **red**, **yellow**, **green** (classi `.alert-dot-*`); tooltip possesso con testo scadenza visibile. Nessun ricalcolo `calcolaAlertAffitto` nel test.
+
+**Piano incrementi v4 (Definition of Done finale):**
+
+| # | Scenario §13.2 | Spec (target) | Stato |
+| - | -------------- | ------------- | ----- |
+| 1 | Login dev → dashboard scadenze | `dashboard-deadlines.spec.js` | ✅ |
+| 2 | Parco — `scadenze-list-standalone.html` (black/red/yellow) | `scadenze-list.spec.js` | ✅ |
+| 3 | Terreni — colonna affitti semafori | `terreni-affitti.spec.js` | ✅ |
+| 4 | Diario / attività (~20) | `attivita-list.spec.js` | ⬜ |
+| 5 | Magazzino movimenti tracciabilità | `movimenti.spec.js` | ⬜ |
+| 6 | Vigneto trattamenti/potature | `vigneto.spec.js` | ⬜ |
+| 7 | Conto terzi (template `viticola-conto-terzi*`) | `conto-terzi.spec.js` | ⬜ |
+| 8 | Manodopera mobile capo/operaio | `field-workspace.spec.js` | ⬜ |
+| 9 | CI leggera emulator + sim:run + Playwright | §13.5 workflow | ⬜ |
+
+**Anti-pattern v4:** assert triviali; reimplementare `calcolaAlertAffitto` / `calcolaUrgenzaKm` nei test (già coperti da Vitest v3); patch app in `core/` salvo bug reali scoperti in E2E.
 
 #### 11.1.2 Definition of Done v3 (2026-06-27)
 
@@ -728,6 +836,7 @@ Apri: `http://127.0.0.1:8000/core/dev/simulator-dev-standalone.html?emulator=1`
 - **Attività** → ~20 record
 - **Movimenti** (link dev o modulo magazzino) → 12 uscite, tracciabilità prodotto↔attività; prodotti con eventuale sotto scorta
 - **Macchine / Trattori / Attrezzi / Flotta / Scadenze** → **8 macchine** (1 trattore + 3 attrezzi + 4 flotta); flotta con **km** e bucket tagliando visibili; attrezzi/trattore con **manutenzione ore**; widget dashboard **Scadenze amministrazione** (affitti grey/red/yellow/green + revisione/assicurazione urgenti) e **In arrivo** (manutenzioni km/ore/data); niente redirect login con `?emulator=1`
+- **E2E automatizzato (v4):** `npm run sim:e2e` — scenario 1 dashboard; scenario 2 scadenze-list; scenario 3 terreni affitti (semafori grey/red/yellow/green) — v. §11.2
 - **Terreni** → 4 terreni azienda: tutti in **affitto** con scadenze demo (semafori in lista Terreni + widget scadenze)
 - **Vigneto / Vigneti** → 4 vigneti collegati ai terreni; navigazione dashboard ok
 - **Trattamenti / Potatura** → righe da attività diario (4 potature + 12 trattamenti); trattamenti con prodotti da magazzino dove presente
@@ -778,6 +887,9 @@ node scripts/cascade-v3-live-smoke.js
 
 # 5. Browser: pagina dev → dashboard widget scadenze + Scadenze mezzi + Terreni affitti
 npm start   # terminale separato
+
+# 5b. E2E scenari 1–3 (opzionale, dopo sim:run su tenant Seed completo)
+npm run sim:e2e    # dashboard + scadenze-list + terreni affitti → 3/3 attesi
 ```
 
 **Perf locale con dati simulati:** il simulatore **non** sostituisce `npm run tony:perf-review` (log Cloud Functions produzione). In locale, un seed **regime max** (30 attività, molte ore/comunicazioni, 12+ movimenti) rende **realistici** i tempi di:
@@ -796,6 +908,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 - **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
 - **Cosa esegue:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`).
 - **Locale (stesso comando CI):** `npm run sim:test:ci` — richiede Java su PATH.
+- **v4 (incremento #9 — pianificato):** job leggero `emulators:exec` + `sim:run` minimal + `npm run sim:e2e:pw` headless (Chromium via `sim:e2e:install`); fino ad allora E2E locale con `npm run sim:e2e` (**3 scenari** implementati al 2026-06-28).
 
 ---
 
@@ -1073,4 +1186,4 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 — prossimo: **v4 Playwright**; Tony per errori/recovery NL.*
+*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright avviata** §11.2 (scenari 1–3 ✅) — prossimo incremento v4: attività diario §13.2; Tony per errori/recovery NL.*

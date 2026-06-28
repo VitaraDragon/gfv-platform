@@ -1,6 +1,91 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-27 — sim **v3 chiusa** (affitti + semafori parco, smoke/audit su tenant fresco); manifest legacy: cleanup/backfill.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright** scenari **1–3** ✅ (`npm run sim:e2e` → 3/3); v3 chiusa.**
+
+## GFV Farm Simulator — v4 Playwright (stato 2026-06-28)
+
+**Obiettivo:** test E2E browser su stack locale (emulator + `npm start` + tenant `sim_*`); il sim genera/valida dati (v3), Playwright assert solo DOM visibile.
+
+**Stato suite:** `npm run sim:e2e` → **3/3** scenari OK (verificato 2026-06-28).
+
+| # | Scenario | File assert | File spec |
+| - | -------- | ----------- | --------- |
+| 1 | Dashboard widget scadenze + in arrivo | `tests/e2e/sim/scenarios/dashboard-deadlines.mjs` | `dashboard-deadlines.spec.js` |
+| 2 | Parco — lista scadenze (black/red/yellow) | `tests/e2e/sim/scenarios/scadenze-list.mjs` | `scadenze-list.spec.js` |
+| 3 | Terreni — colonna affitti (grey/red/yellow/green) | `tests/e2e/sim/scenarios/terreni-affitti.mjs` | `terreni-affitti.spec.js` |
+
+**Infrastruttura comune:** `playwright.config.js`, `scripts/sim-e2e-run.mjs`, `tests/e2e/sim/helpers/sim-login.js` (`loginAsManagerFromDevPage`, `gotoScadenzeList`, `gotoTerreniList`).
+
+**Comandi:**
+```bash
+npm run sim:emulators   # terminale 1
+npm start               # terminale 2
+npm run sim:run -- --template=solo-titolare-viticola   # tenant fresco consigliato
+# pre-E2E (opzionale): sim:inspect, cascade-v3-live-smoke.js, sim:audit, Vitest v3
+npm run sim:e2e         # runner headless — Chrome locale (3 scenari)
+npm run sim:e2e:pw      # CLI Playwright nativa (Node 22 / CI + sim:e2e:install)
+```
+
+**Prossimi incrementi v4 (§11.2):** attività diario → movimenti → vigneto → conto terzi → manodopera mobile → CI §13.5.
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2, §13.2, `simulator/README.md`.
+
+**Nota Node 24:** la CLI `playwright test` può bloccarsi — usare `npm run sim:e2e` in dev; in CI Node 22 + `sim:e2e:pw`.
+
+---
+
+## GFV Farm Simulator — v4 Playwright scenario 3 terreni affitti (2026-06-28)
+
+**Obiettivo:** E2E browser su lista **Terreni** — assert colonna possesso con badge Affitto e semafori grey/red/yellow/green (dati v3, niente ricalcolo nel test).
+
+**Terzo incremento — file:**
+- `tests/e2e/sim/scenarios/terreni-affitti.mjs` — assert ≥4 affitti, dot grey/red/yellow/green, tooltip scadenza
+- `tests/e2e/sim/terreni-affitti.spec.js` — spec `@playwright/test`
+- `tests/e2e/sim/helpers/sim-login.js` — `gotoTerreniList`, `waitForTerreniListLoaded`, `TERRENI_LIST_PATH`
+- `scripts/sim-e2e-run.mjs` — scenario `terreni-affitti` registrato (3 scenari totali)
+
+**Esito:** `npm run sim:e2e` → **3/3** scenari OK (emulator + `npm start` + tenant Seed completo).
+
+**Prossimo incremento v4:** attività diario (`attivita-list.spec.js`) — §11.2.
+
+## GFV Farm Simulator — v4 Playwright scenario 2 scadenze-list (2026-06-28)
+
+**Obiettivo:** E2E browser sulla pagina parco macchine **Scadenze** — assert semafori black/red/yellow visibili nel DOM (dati già validati da v3, niente ricalcolo urgenza nel test).
+
+**Secondo incremento — file:**
+- `tests/e2e/sim/scenarios/scadenze-list.mjs` — assert tabella, dot black/red/yellow, testo stato urgente, `row-scaduto`, tipi scadenza misti
+- `tests/e2e/sim/scadenze-list.spec.js` — spec `@playwright/test`
+- `tests/e2e/sim/helpers/sim-login.js` — `gotoScadenzeList`, `waitForScadenzeListLoaded`, `SCADENZE_LIST_PATH`
+- `scripts/sim-e2e-run.mjs` — scenario `scadenze-list` registrato (2 scenari totali)
+
+**Esito:** `npm run sim:e2e` → **2/2** scenari OK (richiede emulator + `npm start` + tenant Seed completo in manifest).
+
+**Prossimo incremento v4:** terreni affitti (`terreni-affitti.spec.js`) — §11.2.
+
+## GFV Farm Simulator — v4 Playwright avviata (2026-06-27) — scenario 1
+
+**Primo incremento** (storico — v. riepilogo consolidato **v4 Playwright (stato 2026-06-28)** sopra).
+- `playwright.config.js` — base URL `http://127.0.0.1:8000`; project `sim-chromium`
+- `scripts/sim-e2e-run.mjs` — runner locale (`npm run sim:e2e`): prerequisiti HTTP/emulator/manifest + Chrome di sistema
+- `tests/e2e/sim/helpers/sim-login.js` — pagina dev → **Entra come manager** → attesa widget scadenze
+- `tests/e2e/sim/scenarios/dashboard-deadlines.mjs` — assert DOM condivise (widget max 8 righe; ≥2 affitti semaforo + in arrivo km/ore)
+- `tests/e2e/sim/dashboard-deadlines.spec.js` — spec `@playwright/test` (CI: `npm run sim:e2e:pw` su Node 22)
+
+**Comandi:**
+```bash
+npm run sim:emulators   # terminale 1
+npm start               # terminale 2
+npm run sim:run -- --template=solo-titolare-viticola   # tenant fresco
+# pre-E2E (opzionale): sim:inspect, cascade-v3-live-smoke.js, sim:audit, Vitest v3
+npm run sim:e2e         # runner headless — Chrome locale
+npm run sim:e2e:pw      # CLI Playwright nativa (Node 22 / CI + sim:e2e:install)
+```
+
+**Esito verificato (2026-06-27):** primo scenario dashboard — `npm run sim:e2e` → **1/1** OK; Vitest v3 **21/21**; `cascade-v3-live-smoke.js` OK su tenant fresco.
+
+**Nota:** scenari 2–3 aggiunti 2026-06-28 — suite attuale **3/3** (v. sezione consolidata in testa).
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2, §13.2, `simulator/README.md`.
 
 ## GFV Farm Simulator — v3 meccanismi a cascata chiusa (2026-06-27) ✅
 
@@ -36,9 +121,9 @@ npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavo
 
 **Manifest con molte entry legacy:** `sim:audit` può fallire su tenant creati prima del quinto incremento (mancano affitti/bucket). Remediation: `npm run sim:backfill` (affitti + `forceSemaforoProfiles`) **oppure** `npm run sim:cleanup -- --keep 1` + nuovo `sim:run`.
 
-**Verifica UI (manuale, §13.2):** dashboard widget **Scadenze amministrazione** + **In arrivo**; `modules/macchine/views/scadenze-list-standalone.html?emulator=1`; Terreni (colonna affitti). Non automatizzata in v3 — coperta da **v4 Playwright**.
+**Verifica UI (§13.2):** dashboard + scadenze-list + **terreni affitti** — scenari **1–3 automatizzati** (`npm run sim:e2e`); attività diario e resto §13.2 → incrementi v4.
 
-**Prossimo sim:** **v4 Playwright**; v2 opzionale altri template; v3b run paralleli N tenant.
+**Prossimo sim:** incrementi **v4** §11.2; v2 opzionale altri template; v3b run paralleli N tenant.
 
 **Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` — §11 (v3 barrata), §11.1.2 DoD, §13.2 checklist scadenze/affitti, `simulator/README.md` quick start.
 

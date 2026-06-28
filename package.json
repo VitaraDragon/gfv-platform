@@ -42,7 +42,11 @@
     "sim:verify-spese": "node simulator/verify-spese.js",
     "sim:test": "node simulator/integration-test.js",
     "sim:test:vitest": "vitest run tests/simulator/ --no-file-parallelism",
-    "sim:test:ci": "node simulator/ci-run.js"
+    "sim:test:ci": "node simulator/ci-run.js",
+    "sim:e2e": "node scripts/sim-e2e-run.mjs",
+    "sim:e2e:pw": "playwright test",
+    "sim:e2e:ui": "playwright test --ui",
+    "sim:e2e:install": "playwright install chromium"
   },
   "keywords": [
     "agriculture",
@@ -53,6 +57,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@vitest/ui": "^1.0.0",
     "firebase-tools": "^15.19.1",
     "http-server": "^14.1.1",
