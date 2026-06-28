@@ -19,6 +19,16 @@
     .card h2 { margin: 0 0 4px; font-size: 18px; }
     .meta { font-size: 13px; color: #555; margin-bottom: 12px; word-break: break-all; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .link-group-label {
+      flex: 0 0 100%;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #888;
+      margin: 10px 0 2px;
+    }
+    .link-group-label:first-of-type { margin-top: 4px; }
     button, a.btn { border: none; border-radius: 8px; padding: 10px 14px; font-size: 14px; cursor: pointer; text-decoration: none; display: inline-block; }
     .btn-primary { background: #2E8B57; color: #fff; }
     .btn-secondary { background: #e8f5ee; color: #2E8B57; }
@@ -37,7 +47,7 @@
   <div class="wrap">
     <h1>Aziende simulatore (emulator)</h1>
     <p class="hint">Richiede <code>npm run sim:emulators</code> attivo. Password: <strong>SimGFV2026!</strong><br>
-    Usa le aziende con badge <strong>Seed completo</strong>. Operai e capi aprono la <strong>versione mobile</strong> (come in app). Per aggiornare quelle vecchie: <code>npm run sim:migrate-terreni</code></p>
+    Usa le aziende con badge <strong>Seed completo</strong>. Operai e capi aprono la <strong>versione mobile</strong> (come in app). Link rapidi per modulo (magazzino, macchine, vigneto, conto terzi, manodopera) dopo <strong>Entra</strong>. Per aggiornare seed vecchi: <code>npm run sim:migrate-terreni</code></p>
     <div id="list" class="empty">Caricamento manifest…</div>
     <div id="status" class="status"></div>
   </div>
@@ -117,6 +127,119 @@
       }
     }
 
+    function templateHasContoTerzi(entry) {
+      return String(entry.templateId || '').includes('conto-terzi');
+    }
+
+    function templateHasManodopera(entry) {
+      return String(entry.templateId || '').includes('manodopera')
+        || (Array.isArray(entry.personas) && entry.personas.length > 1);
+    }
+
+    /** Link rapidi allineati ai moduli seed (hub E2E + navigazione reale). */
+    function buildQuickLinkGroups(entry) {
+      const groups = [
+        {
+          label: 'Core',
+          links: [
+            ['Terreni', '../terreni-standalone.html'],
+            ['Attività', '../attivita-standalone.html'],
+          ],
+        },
+        {
+          label: 'Magazzino',
+          links: [
+            ['Home magazzino', '../../modules/magazzino/views/magazzino-home-standalone.html'],
+            ['Prodotti', '../../modules/magazzino/views/prodotti-standalone.html'],
+            ['Movimenti', '../../modules/magazzino/views/movimenti-standalone.html'],
+            ['Tracciabilità', '../../modules/magazzino/views/tracciabilita-consumi-standalone.html'],
+          ],
+        },
+        {
+          label: 'Parco macchine',
+          links: [
+            ['Dashboard macchine', '../../modules/macchine/views/macchine-dashboard-standalone.html'],
+            ['Scadenze', '../../modules/macchine/views/scadenze-list-standalone.html'],
+            ['Trattori', '../../modules/macchine/views/trattori-list-standalone.html'],
+            ['Attrezzi', '../../modules/macchine/views/attrezzi-list-standalone.html'],
+            ['Flotta', '../../modules/macchine/views/flotta-list-standalone.html'],
+            ['Guasti', '../../modules/macchine/views/guasti-list-standalone.html'],
+          ],
+        },
+        {
+          label: 'Vigneto',
+          links: [
+            ['Dashboard vigneto', '../../modules/vigneto/views/vigneto-dashboard-standalone.html'],
+            ['Vigneti', '../../modules/vigneto/views/vigneti-standalone.html'],
+            ['Potatura', '../../modules/vigneto/views/potatura-standalone.html'],
+            ['Trattamenti', '../../modules/vigneto/views/trattamenti-standalone.html'],
+            ['Concimazioni', '../../modules/vigneto/views/concimazioni-standalone.html'],
+          ],
+        },
+      ];
+
+      if (templateHasContoTerzi(entry)) {
+        groups.push({
+          label: 'Conto terzi',
+          links: [
+            ['Home conto terzi', '../../modules/conto-terzi/views/conto-terzi-home-standalone.html'],
+            ['Clienti', '../../modules/conto-terzi/views/clienti-standalone.html'],
+            ['Tariffe', '../../modules/conto-terzi/views/tariffe-standalone.html'],
+            ['Preventivi', '../../modules/conto-terzi/views/preventivi-standalone.html'],
+            ['Terreni clienti', '../../modules/conto-terzi/views/terreni-clienti-standalone.html'],
+            ['Mappa clienti', '../../modules/conto-terzi/views/mappa-clienti-standalone.html'],
+          ],
+        });
+      }
+
+      if (templateHasManodopera(entry)) {
+        groups.push({
+          label: 'Manodopera',
+          links: [
+            ['Home manodopera', '../../modules/manodopera/views/manodopera-home-standalone.html'],
+            ['Gestione lavori', '../admin/gestione-lavori-standalone.html'],
+            ['Validazione ore', '../admin/validazione-ore-standalone.html'],
+            ['Operai', '../admin/gestione-operai-standalone.html'],
+            ['Squadre', '../admin/gestione-squadre-standalone.html'],
+            ['Statistiche', '../admin/statistiche-manodopera-standalone.html'],
+            ['Lavori capo', '../admin/lavori-caposquadra-standalone.html'],
+          ],
+        });
+      }
+
+      groups.push({
+        label: 'Dev',
+        links: [['Login classico', '../auth/login-standalone.html']],
+      });
+
+      return groups;
+    }
+
+    function appendQuickLinks(actions, entry) {
+      buildQuickLinkGroups(entry).forEach((group) => {
+        const label = document.createElement('div');
+        label.className = 'link-group-label';
+        label.textContent = group.label;
+        actions.appendChild(label);
+        group.links.forEach(([text, href]) => {
+          const a = document.createElement('a');
+          a.className = 'btn-secondary';
+          a.textContent = text;
+          a.href = '#';
+          a.onclick = async (ev) => {
+            ev.preventDefault();
+            try {
+              await enterCompany(entry);
+              window.location.href = page(href);
+            } catch (e) {
+              showStatus(e.message || String(e), false);
+            }
+          };
+          actions.appendChild(a);
+        });
+      });
+    }
+
     function render(entries) {
       if (!entries.length) {
         listEl.innerHTML = '<p class="empty">Nessuna azienda in manifest. Esegui <code>npm run sim:run</code>.</p>';
@@ -183,34 +306,7 @@
           }
         }
 
-        const links = [
-          ['Terreni', '../terreni-standalone.html'],
-          ['Attività', '../attivita-standalone.html'],
-          ['Movimenti', '../../modules/magazzino/views/movimenti-standalone.html'],
-          ['Macchine', '../../modules/macchine/views/macchine-dashboard-standalone.html'],
-          ['Trattori', '../../modules/macchine/views/trattori-list-standalone.html'],
-          ['Vigneto', '../../modules/vigneto/views/vigneto-dashboard-standalone.html'],
-          ['Vigneti', '../../modules/vigneto/views/vigneti-standalone.html'],
-          ['Trattamenti', '../../modules/vigneto/views/trattamenti-standalone.html'],
-          ['Potatura', '../../modules/vigneto/views/potatura-standalone.html'],
-          ['Login classico', '../auth/login-standalone.html']
-        ];
-        links.forEach(([label, href]) => {
-          const a = document.createElement('a');
-          a.className = 'btn-secondary';
-          a.textContent = label;
-          a.href = '#';
-          a.onclick = async (ev) => {
-            ev.preventDefault();
-            try {
-              await enterCompany(entry);
-              window.location.href = page(href);
-            } catch (e) {
-              showStatus(e.message || String(e), false);
-            }
-          };
-          actions.appendChild(a);
-        });
+        appendQuickLinks(actions, entry);
         listEl.appendChild(card);
       });
     }

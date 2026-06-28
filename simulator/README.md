@@ -7,7 +7,8 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
-**v4 Playwright:** scenari 1–9 ✅ — guida §11.2 (v4 chiusa)
+**v4 Playwright:** scenari 1–19 ✅ — guida §11.2 (18/18 E2E read)  
+**v5 roadmap:** copertura app completa (seed + read + write) — guida §11.3
 
 ## Prerequisiti
 
@@ -109,8 +110,13 @@ Pagina dev aziende simulate:
 
 - Password: **`SimGFV2026!`**
 - **Entra (dashboard)** — auto-login emulator (non redirect al login)
-- Link rapidi: **Terreni**, **Attività**, **Movimenti**, **Macchine**, **Trattori**, **Flotta**, **Scadenze**, **Vigneto**, **Vigneti**, **Trattamenti**, **Potatura**
-- **Conto Terzi** (dopo **Entra** su azienda template `viticola-conto-terzi*`): clienti / tariffe / preventivi — path sotto `modules/conto-terzi/views/*-standalone.html?emulator=1` (dettaglio in guida §13.2)
+- Link rapidi raggruppati per modulo (dopo **Entra** su ogni card):
+  - **Core:** Terreni, Attività
+  - **Magazzino:** home, Prodotti, Movimenti, Tracciabilità
+  - **Parco macchine:** dashboard, Scadenze, Trattori, Attrezzi, Flotta, Guasti
+  - **Vigneto:** dashboard, Vigneti, Potatura, Trattamenti, Concimazioni
+  - **Conto terzi** (solo template `*conto-terzi*`): home, Clienti, Tariffe, Preventivi, Terreni clienti, Mappa clienti
+  - **Manodopera** (template `*manodopera*` o personas): home, Gestione lavori, Validazione ore, Operai, Squadre, Statistiche, Lavori capo
 - **Manodopera mobile:** pulsanti Capo / Operaio sulla card azienda (template manodopera)
 - Preferire aziende con badge **Seed completo** (`seedVersion: 2` nel manifest)
 - Se vedi **Seed vecchio**: `npm run sim:migrate-terreni`, `npm run sim:backfill`, oppure `npm run sim:run`
@@ -129,7 +135,7 @@ node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # legacy nel manifest → sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 npm run test:run -- tests/simulator/viticola-manodopera.test.js   # emulator attivo
-npm run sim:e2e                      # 8/8 attesi su tenant viticola-conto-terzi-manodopera
+npm run sim:e2e                      # 18/18 attesi su tenant viticola-conto-terzi-manodopera
 ```
 
 **E2E browser:**
@@ -161,7 +167,7 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
-**Esito attuale (2026-06-28):** `npm run sim:e2e` → **8/8** scenari OK (emulator + `npm start` + tenant `viticola-conto-terzi-manodopera` consigliato).
+**Esito attuale (2026-06-28):** `npm run sim:e2e` → **18/18** scenari OK (emulator + `npm start` + tenant `viticola-conto-terzi-manodopera` consigliato).
 
 | # | Scenario | Spec | URL target |
 | - | -------- | ---- | ---------- |
@@ -174,8 +180,34 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 | 7 | Conto terzi | `conto-terzi.spec.js` | clienti + tariffe + preventivi + terreni clienti standalone |
 | 8 | Manodopera mobile | `field-workspace.spec.js` | `core/mobile/field-workspace-standalone.html?emulator=1` |
 | 9 | CI leggera | §13.5 | ✅ job `simulator-e2e` |
+| 10 | Parco macchine | `parco-macchine.spec.js` | trattori + attrezzi + flotta |
+| 11 | Prodotti magazzino | `prodotti.spec.js` | `prodotti-standalone.html?emulator=1` |
+| 12 | Anagrafica vigneti | `vigneti.spec.js` | `vigneti-standalone.html?emulator=1` |
+| 13 | Manodopera admin | `manodopera-admin.spec.js` | gestione lavori + validazione ore |
+| 14 | Hub parco macchine | `macchine-hub.spec.js` | dashboard macchine + guasti |
+| 15 | Hub magazzino | `magazzino-hub.spec.js` | home + tracciabilità consumi |
+| 16 | Hub vigneto | `vigneto-hub.spec.js` | dashboard vigneto |
+| 17 | Hub conto terzi | `conto-terzi-hub.spec.js` | home + mappa clienti |
+| 18 | Team manodopera | `manodopera-team.spec.js` | home + operai + squadre + statistiche |
+| 19 | Capo lavori desktop | `capo-lavori.spec.js` | lavori-caposquadra |
 
-**File:** `scripts/sim-e2e-run.mjs`, `simulator/ci-e2e-run.js`, `scripts/sim-ci-e2e-inner.sh`, `tests/e2e/sim/` — dettaglio assert e piano incrementi: **`GFV_FARM_SIMULATOR.md` §11.2**.
+**File:** `scripts/sim-e2e-run.mjs`, `simulator/ci-e2e-run.js`, `scripts/sim-ci-e2e-inner.sh`, `tests/e2e/sim/` — dettaglio assert: **`GFV_FARM_SIMULATOR.md` §11.2**.
+
+## Roadmap v5 — copertura app completa
+
+**Obiettivo:** estendere sim + E2E fino a coprire (per gradi) pagine, form e moduli dell’app reale — **stesso codice**, dati seed, test read poi write.
+
+| Stato oggi | Target v5 |
+| ---------- | --------- |
+| ~**48%** pagine standalone con E2E read (18 scenari) | Read su template completo + write su flussi critici |
+| Seed forte su `viticola-conto-terzi-manodopera` | Gap: guasti, ore da validare, vendemmia, template frutteto |
+| E2E write ~0 | Attività, movimento, ore, lavoro, preventivo… |
+
+**Milestone:** M1 ✅ (18/18) → M2 read 100% template → M3 write critici → M4 frutteto → M5 ruoli + CI notturna.
+
+**Dettaglio modulo per modulo, fasi e anti-pattern:** [`GFV_FARM_SIMULATOR.md` §11.3](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md).
+
+**Prossimo incremento consigliato:** seed guasti + ore in validazione → pagine read P1 mancanti → primo E2E write (nuova attività).
 
 **CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica locale del job GitHub Actions (richiede bash + Java).
 

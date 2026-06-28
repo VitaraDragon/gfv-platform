@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (scenari 1–8 ✅)  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari ✅) + **v5 roadmap copertura app** §11.3  
 **Data:** 2026-06-28  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 meccanismi a cascata chiusa e verificata** (§11.1); **v4 Playwright avviata** — scenari 1–8 ✅ (§11.2); regime max + routine §13.4  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — **18/18** scenari E2E read (§11.2); **v5** — piano copertura totale app (seed + read + write) §11.3; regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -143,7 +143,7 @@ Il simulatore v1 scrive dati via **Admin SDK**; la verifica manuale in browser u
 | `core/js/firebase-emulator-dev.js` | Connessione **sincrona** Auth/Firestore emulator (`?emulator=1` o `localStorage gfv_firebase_emulator=1`) |
 | `core/services/firebase-service.js` | `awaitFirebaseEmulatorConnect()` + `awaitAuthStateReady()` prima del controllo auth |
 | `core/js/simulator-browser-auth.js` | Auto-login cross-page da pagina dev (`storeSimPendingLogin` / `ensureSimulatorSession`) |
-| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, **Entra**, link Terreni / Attività / Movimenti / Macchine / Vigneto; Conto Terzi → URL moduli §13.2 |
+| `core/dev/simulator-dev-standalone.html` | Lista `manifest.json`, **Entra**, link rapidi per modulo (Core / Magazzino / Parco / Vigneto; Conto terzi e Manodopera se template); v. §13.2 |
 | `npm start` | `http-server` porta **8000** (richiesto per servire HTML + manifest) |
 
 **URL pagina dev:**
@@ -602,8 +602,9 @@ Ogni agente che lavora sul simulatore **legge questo file per intero** prima di 
 | **v2**   | Template frutteto, mista, solo titolare oliveto… |
 | **v3**   | ~~**Meccanismi a cascata**~~ (scadenze/semafori, filtri UI, alert meteo i18n, compatibilità CV…) — v. §11.1 ✅ |
 | **v3b**  | Run paralleli N tenant (infrastruttura, opzionale) |
-| **v4**   | **E2E Playwright** — flussi UI §13.2 (**8/8** ✅ + **#9 CI** ✅); meteo live mock/skip; typo/recovery NL → **Tony** + test client |
+| **v4**   | **E2E Playwright read** — **18 scenari** ✅ + **#9 CI** ✅ (§11.2); assert DOM, no duplicazione business logic |
 | **v4b**  | CI notturna batch + `sim:cleanup` selettivo (oltre PR CI v1.5) |
+| **v5**   | **Copertura app completa** — inventario ~66 pagine standalone; estensione **seed** + E2E **read** residue + E2E **write** su flussi critici; template frutteto; v. §11.3 |
 
 ### 11.1 Direzione v3 — meccanismi a cascata (deciso 2026-06-26)
 
@@ -618,7 +619,7 @@ Dopo v2.1 chiusa, la **v3 sim** non simula «utenti che sbagliano a digitare» (
 | Alert meteo in italiano | — (meteo escluso dal sim) | Vitest `meteo-alert-i18n` + fixture OpenWeather | Deploy CF + verifica dashboard |
 | Errori battitura / voce / recovery | **Non** sim v3 | Test Tony client-side | Tony + CF |
 
-**Ordine roadmap (2026-06-27):** ~~v3 cascata/test~~ ✅ → **v4 Playwright** → stress **Tony** su NL/recovery; altri template **v2** (frutteto/oliveto) solo se richiesti; **v3b** run paralleli opzionale.
+**Ordine roadmap (2026-06-28):** ~~v3 cascata/test~~ ✅ → ~~v4 Playwright read 18 scenari~~ ✅ → **v5 copertura app** §11.3 → v4b CI notturna; stress **Tony** NL/recovery; template **frutteto** in Fase 3 v5; **v3b** run paralleli opzionale.
 
 **Primo incremento v3 già in repo (2026-06-26):** i18n alert meteo completo + test semafori widget scadenze (`tests/meteo-alert-i18n.test.js`, `tests/dashboard-deadlines.test.js`).
 
@@ -639,7 +640,7 @@ npm run sim:audit                      # OK su tenant appena generato (manifest 
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 ```
 
-**v4 chiusa (2026-06-28).** Prossimo: typo/recovery NL → Tony + test client; v4b CI notturna batch.
+**v4 chiusa (2026-06-28).** Prossimo: **v5 copertura app** §11.3; v4b CI notturna; typo/recovery NL → Tony + test client.
 
 #### 11.2 v4 Playwright — E2E browser (chiusa 2026-06-28)
 
@@ -782,21 +783,32 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | 7 | Conto terzi (template `viticola-conto-terzi*`) | `conto-terzi.spec.js` | ✅ |
 | 8 | Manodopera mobile capo/operaio | `field-workspace.spec.js` | ✅ |
 | 9 | CI leggera emulator + sim:run + Playwright | §13.5 workflow | ✅ |
+| 10 | Parco macchine — trattori / attrezzi / flotta | `parco-macchine.spec.js` | ✅ |
+| 11 | Magazzino — anagrafica prodotti | `prodotti.spec.js` | ✅ |
+| 12 | Vigneto — anagrafica vigneti | `vigneti.spec.js` | ✅ |
+| 13 | Manodopera admin — gestione lavori + validazione ore | `manodopera-admin.spec.js` | ✅ |
+| 14 | Hub parco macchine + guasti (lista) | `macchine-hub.spec.js` | ✅ |
+| 15 | Hub magazzino + tracciabilità consumi | `magazzino-hub.spec.js` | ✅ |
+| 16 | Hub vigneto (dashboard KPI) | `vigneto-hub.spec.js` | ✅ |
+| 17 | Hub conto terzi + mappa clienti (select) | `conto-terzi-hub.spec.js` | ✅ |
+| 18 | Team manodopera (home, operai, squadre, statistiche) | `manodopera-team.spec.js` | ✅ |
+| 19 | Capo — lavori desktop | `capo-lavori.spec.js` | ✅ |
 
 #### 11.2.1 Stato v4 e prossimi passi (2026-06-28)
 
-**Completato:** scenari Playwright **1–9** — suite locale **8/8** (`npm run sim:e2e`) + **CI GitHub Actions** (`npm run sim:e2e:ci` → job `simulator-e2e`).
+**Completato:** scenari Playwright **1–19** — suite locale **18/18** (`npm run sim:e2e`) + **CI** (`sim:e2e:ci`, 18 spec).
 
-**v4 chiusa (Definition of Done):** tutti gli incrementi §11.2 tabella ✅; fallimenti CI distinguibili (Node vs browser); nessuna duplicazione business logic nei test E2E.
+**v4 chiusa (Definition of Done):** incrementi §11.2 tabella ✅; fallimenti CI distinguibili (Node vs browser); nessuna duplicazione business logic nei test E2E read.
 
-**Prossimo (v4b / fuori v4.0):**
+**Prossimo — v5 copertura app (§11.3):** seed gap (guasti, ore in coda validazione, vendemmia…), E2E read sulle ~34 pagine ancora scoperte, primi scenari E2E **write** (attività, movimento, ore, lavoro, preventivo).
+
+**Parallelo (v4b / fuori sim):**
 
 | Voce | Dove |
 | ---- | ---- |
 | Typo / recovery NL | Tony + test client (non orchestrator sim) |
 | E2E meteo live | mock/skip — meteo escluso dal sim |
 | CI notturna batch + cleanup selettivo | v4b roadmap |
-| Copertura E2E di tutte le pagine admin manodopera | opzionale — v. tabella sotto |
 
 **Checklist §13.2 — copertura E2E vs manuale:**
 
@@ -805,9 +817,13 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | Dashboard scadenze, parco, terreni, diario, magazzino, vigneto | ✅ 1–6 | |
 | Conto terzi (clienti, tariffe, preventivi, terreni clienti) | ✅ 7 | |
 | Field workspace operaio + capo | ✅ 8 | assert DOM; seed ore/comunicazioni validato da Node |
-| Gestione lavori (`gestione-lavori-standalone`) | ❌ | verifica manuale |
-| Validazione ore full screen | ❌ | verifica manuale |
+| Gestione lavori (`gestione-lavori-standalone`) | ✅ 13 | E2E scenario `manodopera-admin` |
+| Validazione ore full screen | ✅ 13 | coda vuota attesa post-seed; pagina caricata — v5: seed ore da validare |
+| Hub moduli (macchine, magazzino, vigneto, conto terzi, manodopera team) | ✅ 14–18 | |
+| Capo lavori desktop | ✅ 19 | |
+| Guasti in lista | ⚠️ 14 | pagina OK; **0 guasti** in seed — v5 |
 | Banner assenza malattia / contenuto comunicazioni | ⚠️ smoke | conteggi in `sim:audit` + `viticola-manodopera.test.js` |
+| Copertura totale pagine / form write | ❌ v5 | v. §11.3 |
 
 **Catena pre-E2E consigliata (tenant manodopera):**
 
@@ -823,6 +839,151 @@ npm run sim:e2e                      # 8/8 attesi
 **Nota audit:** `sim:audit` su manifest con molte entry legacy o tenant `regime-max` può fallire anche con E2E verde — usare `sim:cleanup --keep 1` + nuovo `sim:run` prima dell’audit.
 
 **Anti-pattern v4:** assert triviali; reimplementare `calcolaAlertAffitto` / `calcolaUrgenzaKm` / `manodopera-ore-validazione-scope` nei test (già coperti da Vitest v3 + `sim:audit`); patch app in `core/` salvo bug reali scoperti in E2E.
+
+#### 11.3 v5 — Roadmap copertura app completa (pianificato 2026-06-28)
+
+**Obiettivo prodotto:** avvicinarsi al principio *«ciò che passa nel sim passa nell’app reale»* — **stesso codice** (HTML, JS, service), **dati seed realistici**, **test che ripercorrono i flussi utente**. Non sostituisce test in produzione (Firebase live, Stripe, Tony cloud, Maps tile).
+
+**Due ruoli (non due simulatori):**
+
+| Ruolo | Cosa fa | Comandi |
+| ----- | ------- | ------- |
+| **Generatore (sim Node)** | Scrive tenant su emulator via service layer | `sim:run`, template in `simulator/templates/` |
+| **Verifica** | Usa dati esistenti — read DOM, poi write su form | `sim:e2e`, Vitest, `sim:audit`, pagina dev |
+
+**Tre assi da coprire:**
+
+| Asse | Descrizione | Stato (2026-06-28) |
+| ---- | ----------- | ------------------- |
+| **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; gap: guasti, ore in coda validazione, vendemmia, frutteto… |
+| **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~32 / ~66** pagine standalone (~**48%**) — 18 scenari |
+| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **~0** scenari — priorità v5 |
+
+**Inventario pagine:** ~**66** file `*-standalone.html` (esclusa `simulator-dev-standalone.html`). Molti **form** non sono pagine standalone (modali nelle liste) — copertura form = scenari write per modulo.
+
+**Tenant di riferimento v5 fase 1:** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` → `npm run sim:e2e`.
+
+**Legenda tabelle sotto:** Seed ✅/⚠️/❌ · E2E read ✅/❌ · E2E write ✅/❌ · **P** = priorità (1 alta, 3 bassa / fuori sim).
+
+##### 11.3.1 Core
+
+| Pagina / area | Seed | E2E read | E2E write | P |
+| ------------- | ---- | -------- | --------- | - |
+| Dashboard | ✅ | ✅ scen. 1 | ❌ | 1 |
+| Terreni | ✅ | ✅ scen. 3 | ❌ | 1 |
+| Attività (lista + form modale) | ✅ | ✅ scen. 4 | ❌ | **1** (write: nuova attività) |
+| Mappa aziendale | ✅ parziale | ❌ | ❌ | 2 |
+| Statistiche core | ✅ parziale | ❌ | ❌ | 2 |
+| Segnatura ore | ❌ | ❌ | ❌ | 2 |
+
+##### 11.3.2 Magazzino
+
+| Pagina | Seed | E2E read | E2E write | P |
+| ------ | ---- | -------- | --------- | - |
+| Home magazzino | ✅ | ✅ scen. 15 | ❌ | 1 |
+| Movimenti | ✅ | ✅ scen. 5 | ❌ | **1** (write: movimento) |
+| Prodotti | ✅ | ✅ scen. 11 | ❌ | **1** (write: prodotto) |
+| Tracciabilità consumi | ✅ | ✅ scen. 15 | ❌ | 2 |
+
+##### 11.3.3 Parco macchine
+
+| Pagina | Seed | E2E read | E2E write | P |
+| ------ | ---- | -------- | --------- | - |
+| Dashboard macchine | ✅ | ✅ scen. 14 | ❌ | 1 |
+| Scadenze | ✅ | ✅ scen. 2 | ❌ | 2 |
+| Trattori / Attrezzi / Flotta | ✅ | ✅ scen. 10 | ❌ | 2 |
+| Guasti (lista) | ⚠️ 0 record | ✅ scen. 14 (pagina vuota OK) | ❌ | **1** (seed guasti) |
+| Admin gestione macchine / guasti | parziale | ❌ | ❌ | 2 |
+
+##### 11.3.4 Vigneto
+
+| Pagina | Seed | E2E read | E2E write | P |
+| ------ | ---- | -------- | --------- | - |
+| Dashboard vigneto | ✅ | ✅ scen. 16 | ❌ | 1 |
+| Vigneti anagrafica | ✅ | ✅ scen. 12 | ❌ | 2 |
+| Potatura / Trattamenti / Concimazioni | ✅ | ✅ scen. 6 | ❌ | 2 |
+| Statistiche vigneto | parziale | ❌ | ❌ | 2 |
+| Vendemmia | ❌ | ❌ | ❌ | 2 |
+| Pianifica impianto / Calcolo materiali | ❌ / indiretto | ❌ | ❌ | 3 |
+
+##### 11.3.5 Conto terzi
+
+| Pagina | Seed | E2E read | E2E write | P |
+| ------ | ---- | -------- | --------- | - |
+| Home conto terzi | ✅ | ✅ scen. 17 | ❌ | 1 |
+| Clienti / Tariffe / Preventivi / Terreni clienti | ✅ | ✅ scen. 7 | ❌ | 2 |
+| Mappa clienti | ✅ select | ✅ scen. 17 (no tile Google) | ❌ | 2 |
+| Nuovo preventivo | ✅ base | ❌ | ❌ | **1** |
+| Accetta preventivo | ✅ stati misti | ❌ | ❌ | **1** |
+
+##### 11.3.6 Manodopera
+
+| Pagina | Seed | E2E read | E2E write | P |
+| ------ | ---- | -------- | --------- | - |
+| Home manodopera | ✅ | ✅ scen. 18 | ❌ | 1 |
+| Gestione lavori | ✅ | ✅ scen. 13 | ❌ | **1** (write: lavoro) |
+| Validazione ore | ✅ coda vuota | ✅ scen. 13 | ❌ | **1** (seed + assert coda) |
+| Operai / Squadre / Statistiche | ✅ | ✅ scen. 18 | ❌ | 2 |
+| Lavori capo desktop | ✅ | ✅ scen. 19 | ❌ | 2 |
+| Field workspace mobile | ✅ | ✅ scen. 8 | ❌ | **1** (write: registra ore) |
+| Compensi operai | ❌ | ❌ | ❌ | 2 |
+| Statistiche lavoratore (mobile) | parziale | ❌ | ❌ | 2 |
+
+##### 11.3.7 Frutteto *(modulo non seedato — ~7 pagine standalone)*
+
+| Pagina | Seed | E2E | P |
+| ------ | ---- | --- | - |
+| Dashboard, frutteti, potatura, trattamenti, concimazioni, raccolta, statistiche | ❌ | ❌ | **2** (nuovo template `frutteto-*`) |
+
+##### 11.3.8 Report, meteo, auth, admin piattaforma, Tony
+
+| Area | Seed sim | E2E sim | P |
+| ---- | -------- | ------- | - |
+| Report (dashboard / terreni / admin) | ❌ minimo | ❌ | 3 |
+| Meteo dashboard | ❌ escluso | mock/skip | 3 |
+| Login / registrazione / reset password | N/A emulator | test auth separati | 3 |
+| Impostazioni, abbonamento, gestisci utenti, amministrazione | ❌ | ❌ | 3 |
+| **Tony** (widget, form injection) | ❌ escluso sim | track **Tony test client** | parallelo |
+
+##### 11.3.9 Milestone misurabili
+
+| Milestone | Criterio |
+| --------- | -------- |
+| **M1** | ✅ v4 — **18/18** E2E read + link rapidi pagina dev |
+| **M2** | E2E read su **tutte le pagine** del template `viticola-conto-terzi-manodopera` (~40 URL) |
+| **M3** | **10–15 flussi E2E write** su path business critici (attività, movimento, prodotto, ore, lavoro, preventivo…) |
+| **M4** | Template **frutteto** + parity read/write |
+| **M5** | Matrice **ruolo × modulo** (manager / capo / operaio) + CI notturna suite piena (v4b) |
+
+##### 11.3.10 Fasi di implementazione (ordine consigliato)
+
+**Fase 1 — Chiudere template attuale (P1)** — ~4–8 incrementi
+
+- Seed: **guasti**, **ore in coda validazione**
+- E2E read: mappa aziendale, statistiche core/vigneto, admin macchine/guasti, apertura nuovo preventivo
+- Primi E2E write: **attività**, **movimento magazzino**, **ore mobile**, **lavoro manodopera**, **preventivo**
+
+**Fase 2 — Conto terzi + manodopera profondi**
+
+- Accetta preventivo end-to-end; compensi operai; gestione guasti con dati seedati
+
+**Fase 3 — Template frutteto**
+
+- `simulator/templates/frutteto-*.json` + ~7 pagine + E2E analoghi vigneto
+
+**Fase 4 — Report, meteo, auth, billing**
+
+- Mock/skip dove il sim non ha senso; test fuori orchestrator
+
+**Fase 5 — CI a strati**
+
+- PR: smoke veloce (~20 scenari core); notturno: suite completa + matrix template (v4b)
+
+**Incremento v5 consigliato subito dopo v4:** (1) seed guasti + ore da validare → (2) ~10 pagine read P1 mancanti → (3) primo write **nuova attività**.
+
+**Anti-pattern v5:** duplicare validazione business nei test E2E; assert su Maps/Stripe/Tony cloud nel job sim; patch `core/` senza bug dimostrato.
+
+**Cosa garantisce verde v5 (onesto):** alta confidenza su **codice + flussi coperti** in emulator — non zero bug in produzione (regole Firestore live, latenza, API esterne).
 
 #### 11.1.2 Definition of Done v3 (2026-06-27)
 
@@ -1002,7 +1163,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 
 - **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
 - **Job `simulator-emulator`:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
-- **Job `simulator-e2e` (v4 #9 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, seed `viticola-conto-terzi-manodopera`, `sim:e2e:pw` (8 scenari headless, Chromium bundled). Timeout 25 min. I due job girano in parallelo.
+- **Job `simulator-e2e` (v4 #9 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, seed `viticola-conto-terzi-manodopera`, `sim:e2e:pw` (**12 scenari** headless, Chromium bundled). Timeout 25 min. I due job girano in parallelo.
 - **Locale (stesso comando CI Node):** `npm run sim:test:ci` — richiede Java su PATH.
 - **Locale (stesso comando CI E2E, bash + Java):** `npm run sim:e2e:install && npm run sim:e2e:ci`.
 
@@ -1010,8 +1171,8 @@ Workflow: `.github/workflows/simulator-ci.yml`
 | ----------- | ------- | ---- |
 | Browser | `sim:e2e:install` | Chromium Playwright + deps OS (`--with-deps`) |
 | Orchestrazione | `sim:e2e:ci` | `simulator/ci-e2e-run.js` → `scripts/sim-ci-e2e-inner.sh` |
-| Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | copre scenari 1–8 |
-| Assert browser | `sim:e2e:pw` | Node 22; base URL `http://127.0.0.1:8000` |
+| Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | copre scenari 1–13 |
+| Assert browser | `sim:e2e:pw` | Node 22; **12 spec** headless |
 
 Su Node 24 locale preferire `npm run sim:e2e` (runner Node + Chrome di sistema); in CI usare `sim:e2e:pw`.
 
@@ -1289,10 +1450,10 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
-**Verifica E2E (v4):** `npm run sim:e2e` — scenari **conto-terzi** (#7) e **field-workspace** (#8) inclusi nella suite **8/8** con tenant `viticola-conto-terzi-manodopera` — v. §11.2.
+**Verifica E2E (v4):** `npm run sim:e2e` — suite **18/18** con tenant `viticola-conto-terzi-manodopera` — v. §11.2. **Roadmap copertura totale app (v5):** §11.3.
 
-**Non in scope v2.2:** preventivo accettato → creazione lavoro conto terzi automatica; link rapidi Conto Terzi in `simulator-dev-standalone.html` (aprire URL moduli dopo **Entra**).
+**Non in scope v2.2 (aggiornato):** preventivo accettato → creazione lavoro conto terzi automatica. ~~Link rapidi Conto Terzi in pagina dev~~ → **implementato 2026-06-28** (gruppi modulo condizionati al template).
 
 ---
 
-*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright chiusa** §11.2 (scenari 1–9 ✅); Tony per errori/recovery NL.*
+*Fine guida v1.6.1 + v2.1 manodopera §14 + v2.2 conto terzi §15 + **v3 cascata chiusa** §11.1 + **v4 Playwright chiusa** §11.2 (18 scenari ✅) + **v5 roadmap** §11.3; Tony per errori/recovery NL.*

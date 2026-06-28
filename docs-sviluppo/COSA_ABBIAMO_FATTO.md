@@ -1,6 +1,53 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v4 Playwright chiusa** scenari **1–9** ✅ (8/8 locale + CI GitHub Actions); v3 chiusa.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 roadmap** copertura app §11.3; E2E **18 scenari**; pagina dev link rapidi.**
+
+## GFV Farm Simulator — v5 roadmap copertura app completa (2026-06-28)
+
+**Obiettivo prodotto:** avvicinarsi a *«ciò che passa nel sim passa nell’app»* — tre assi (**seed**, E2E **read**, E2E **write**) su ~66 pagine standalone; form in modali coperti dagli scenari write.
+
+**Stato attuale:** ~32 pagine con E2E read (**48%**); 18 scenari ✅; write ~0. Tenant riferimento: `viticola-conto-terzi-manodopera`.
+
+**Milestone:** M1 ✅ → M2 read template completo → M3 10–15 write critici → M4 frutteto → M5 ruoli + CI notturna.
+
+**Fasi:** (1) seed gap + read P1 + primi write attività/movimento/ore/lavoro/preventivo → (2) conto terzi/manodopera profondi → (3) template frutteto → (4) report/meteo/auth → (5) CI a strati.
+
+**Doc:** `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` **§11.3** (tabelle per modulo Core, Magazzino, Macchine, Vigneto, Conto terzi, Manodopera, Frutteto, fuori scope Tony/Stripe).
+
+## GFV Farm Simulator — link rapidi pagina dev (2026-06-28)
+
+**Obiettivo:** navigazione manuale §13.2 allineata alla suite E2E — hub e liste per magazzino, macchine, vigneto; conto terzi e manodopera admin condizionati al `templateId` / personas.
+
+**File:** `core/dev/simulator-dev-standalone.html` — gruppi Core, Magazzino, Parco macchine, Vigneto; + Conto terzi se `*conto-terzi*`; + Manodopera se `*manodopera*` o personas; ogni link fa **Entra** + redirect con `?emulator=1`.
+
+## GFV Farm Simulator — E2E hub moduli scenari 14–19 (2026-06-28)
+
+**Obiettivo:** rispecchiare flussi reali manager/capo — entry hub moduli, non solo liste.
+
+| # | Scenario | Pagine |
+|---|----------|--------|
+| 14 | `macchine-hub` | dashboard parco macchine + guasti |
+| 15 | `magazzino-hub` | home magazzino + tracciabilità consumi |
+| 16 | `vigneto-hub` | dashboard vigneto (KPI ≥4 vigneti) |
+| 17 | `conto-terzi-hub` | home conto terzi + mappa clienti (select) |
+| 18 | `manodopera-team` | home manodopera + operai + squadre + statistiche |
+| 19 | `capo-lavori` | capo → I miei lavori desktop |
+
+**Suite totale:** **18 scenari** Playwright (`npm run sim:e2e` / CI `sim:e2e:pw`).
+
+## GFV Farm Simulator — E2E estensione moduli scenari 10–13 (2026-06-28)
+
+**Obiettivo:** copertura Playwright su pagine modulo già seedate, assert DOM (no duplicazione business logic).
+
+**Scenari aggiunti:**
+- **10** `parco-macchine` — trattori (≥1), attrezzi (≥3), flotta (≥4, colonna Km)
+- **11** `prodotti` — anagrafica magazzino (≥5 prodotti)
+- **12** `vigneti` — anagrafica vigneti (≥4 righe)
+- **13** `manodopera-admin` — gestione lavori (≥3 lavori) + validazione ore (pagina caricata, coda vuota attesa)
+
+**File:** `tests/e2e/sim/scenarios/{parco-macchine,prodotti,vigneti,manodopera-admin}.mjs`, spec omonime, helper `sim-login.js`, `scripts/sim-e2e-run.mjs`.
+
+**Tenant:** `viticola-conto-terzi-manodopera` → suite **18/18** con `npm run sim:e2e`.
 
 ## GFV Farm Simulator — v4 Playwright CI incremento #9 (2026-06-28)
 
@@ -12,21 +59,21 @@
 - `scripts/sim-ci-e2e-inner.sh` — http-server background + `sim:run` + `sim:e2e:pw`
 - `package.json` — `sim:e2e:ci`, `sim:e2e:install` con `--with-deps`
 
-**Template CI:** `viticola-conto-terzi-manodopera` (suite 8/8). Comando locale equivalente: `npm run sim:e2e:install && npm run sim:e2e:ci` (bash + Java).
+**Template CI:** `viticola-conto-terzi-manodopera` (suite **18/18**). Comando locale equivalente: `npm run sim:e2e:install && npm run sim:e2e:ci` (bash + Java).
 
 **Esito atteso CI:** job `simulator-e2e` verde su push/PR path sim/E2E.
 
 ## GFV Farm Simulator — v4 Playwright stato e prossimi passi (2026-06-28)
 
-**Completato:** suite E2E browser **8/8** locale + **#9 CI** — dashboard, scadenze, terreni, attività, movimenti, vigneto, conto terzi, field workspace manodopera.
+**Completato:** suite E2E browser **18/18** locale + **#9 CI** — scenari 1–19 (read DOM): core, magazzino, vigneto, conto terzi, manodopera mobile/admin/hub.
 
 **Tenant consigliato:** `npm run sim:run -- --template=viticola-conto-terzi-manodopera` → `npm run sim:e2e`.
 
-**v4 chiusa.** Prossimo (v4b): CI notturna batch + `sim:cleanup` selettivo.
+**v4 chiusa (read).** Prossimo: **v5 copertura app** — seed gap + E2E read residue + E2E write — v. **`GFV_FARM_SIMULATOR.md` §11.3** e voce in testa. Parallelo: v4b CI notturna.
 
-**Fuori scope v4.0:** E2E pagine admin manodopera (gestione lavori, validazione ore full screen); typo/recovery NL (Tony).
+**Fuori scope sim (invariato):** Tony/meteo/Stripe nell’orchestrator; typo/recovery NL → Tony test client.
 
-**Copertura §13.2 vs E2E:** v. tabella **`GFV_FARM_SIMULATOR.md` §11.2.1**.
+**Copertura §13.2 vs E2E:** v. **`GFV_FARM_SIMULATOR.md` §11.2.1** e matrice modulo **§11.3**.
 
 ## GFV Farm Simulator — v4 Playwright scenario 8 field workspace (2026-06-28)
 

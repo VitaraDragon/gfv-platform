@@ -11,20 +11,45 @@ import {
   gotoAttivitaList,
   gotoClientiList,
   gotoConcimazioniList,
+  gotoGestioneLavori,
   gotoMovimentiList,
   gotoPotaturaList,
   gotoPreventiviList,
+  gotoProdottiList,
   gotoScadenzeList,
   gotoTariffeList,
   gotoTerreniClientiList,
   gotoTerreniList,
   gotoTrattamentiList,
+  gotoTrattoriList,
+  gotoAttrezziList,
+  gotoContoTerziHome,
+  gotoFlottaList,
+  gotoGestioneOperai,
+  gotoGestioneSquadre,
+  gotoGuastiList,
+  gotoLavoriCaposquadra,
+  gotoMacchineDashboard,
+  gotoMagazzinoHome,
+  gotoManodoperaHome,
+  gotoMappaClienti,
+  gotoStatisticheManodopera,
+  gotoTracciabilitaConsumi,
+  gotoValidazioneOre,
+  gotoVignetiList,
+  gotoVignetoDashboard,
   loginAsCapoFromDevPage,
   loginAsManagerContoTerzi,
   loginAsManagerFromDevPage,
+  loginAsManagerManodopera,
   loginAsOperaioFromDevPage,
 } from '../tests/e2e/sim/helpers/sim-login.js';
 import { runAttivitaListAssertions } from '../tests/e2e/sim/scenarios/attivita-list.mjs';
+import { runLavoriCaposquadraAssertions } from '../tests/e2e/sim/scenarios/capo-lavori.mjs';
+import {
+  runContoTerziHomeAssertions,
+  runMappaClientiAssertions,
+} from '../tests/e2e/sim/scenarios/conto-terzi-hub.mjs';
 import {
   runClientiListAssertions,
   runPreventiviListAssertions,
@@ -35,10 +60,36 @@ import {
   runCapoFieldWorkspaceAssertions,
   runOperaioFieldWorkspaceAssertions,
 } from '../tests/e2e/sim/scenarios/field-workspace.mjs';
+import {
+  runGestioneLavoriAssertions,
+  runValidazioneOreAssertions,
+} from '../tests/e2e/sim/scenarios/manodopera-admin.mjs';
 import { runMovimentiAssertions } from '../tests/e2e/sim/scenarios/movimenti.mjs';
+import {
+  runGuastiListAssertions,
+  runMacchineDashboardAssertions,
+} from '../tests/e2e/sim/scenarios/macchine-hub.mjs';
+import {
+  runMagazzinoHomeAssertions,
+  runTracciabilitaConsumiAssertions,
+} from '../tests/e2e/sim/scenarios/magazzino-hub.mjs';
+import {
+  runGestioneOperaiAssertions,
+  runGestioneSquadreAssertions,
+  runManodoperaHomeAssertions,
+  runStatisticheManodoperaAssertions,
+} from '../tests/e2e/sim/scenarios/manodopera-team.mjs';
+import { runVignetoDashboardAssertions } from '../tests/e2e/sim/scenarios/vigneto-hub.mjs';
+import {
+  runAttrezziListAssertions,
+  runFlottaListAssertions,
+  runTrattoriListAssertions,
+} from '../tests/e2e/sim/scenarios/parco-macchine.mjs';
+import { runProdottiListAssertions } from '../tests/e2e/sim/scenarios/prodotti.mjs';
 import { runDashboardDeadlinesAssertions } from '../tests/e2e/sim/scenarios/dashboard-deadlines.mjs';
 import { runScadenzeListAssertions } from '../tests/e2e/sim/scenarios/scadenze-list.mjs';
 import { runTerreniAffittiAssertions } from '../tests/e2e/sim/scenarios/terreni-affitti.mjs';
+import { runVignetiListAssertions } from '../tests/e2e/sim/scenarios/vigneti.mjs';
 import {
   runConcimazioniListAssertions,
   runPotaturaListAssertions,
@@ -156,6 +207,104 @@ const SCENARIOS = [
       await runOperaioFieldWorkspaceAssertions(page, expect);
       await loginAsCapoFromDevPage(page);
       await runCapoFieldWorkspaceAssertions(page, expect);
+    },
+  },
+  {
+    name: 'parco-macchine',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoTrattoriList(page);
+      await runTrattoriListAssertions(page, expect);
+      await gotoAttrezziList(page);
+      await runAttrezziListAssertions(page, expect);
+      await gotoFlottaList(page);
+      await runFlottaListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'prodotti',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoProdottiList(page);
+      await runProdottiListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vigneti',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoVignetiList(page);
+      await runVignetiListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'manodopera-admin',
+    run: async (page) => {
+      await loginAsManagerManodopera(page);
+      await gotoGestioneLavori(page);
+      await runGestioneLavoriAssertions(page, expect);
+      await gotoValidazioneOre(page);
+      await runValidazioneOreAssertions(page, expect);
+    },
+  },
+  {
+    name: 'macchine-hub',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoMacchineDashboard(page);
+      await runMacchineDashboardAssertions(page, expect);
+      await gotoGuastiList(page);
+      await runGuastiListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'magazzino-hub',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoMagazzinoHome(page);
+      await runMagazzinoHomeAssertions(page, expect);
+      await gotoTracciabilitaConsumi(page);
+      await runTracciabilitaConsumiAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vigneto-hub',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoVignetoDashboard(page);
+      await runVignetoDashboardAssertions(page, expect);
+    },
+  },
+  {
+    name: 'conto-terzi-hub',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoContoTerziHome(page);
+      await runContoTerziHomeAssertions(page, expect);
+      await gotoMappaClienti(page);
+      await runMappaClientiAssertions(page, expect);
+    },
+  },
+  {
+    name: 'manodopera-team',
+    run: async (page) => {
+      await loginAsManagerManodopera(page);
+      await gotoManodoperaHome(page);
+      await runManodoperaHomeAssertions(page, expect);
+      await gotoGestioneOperai(page);
+      await runGestioneOperaiAssertions(page, expect);
+      await gotoGestioneSquadre(page);
+      await runGestioneSquadreAssertions(page, expect);
+      await gotoStatisticheManodopera(page);
+      await runStatisticheManodoperaAssertions(page, expect);
+    },
+  },
+  {
+    name: 'capo-lavori',
+    run: async (page) => {
+      await loginAsCapoFromDevPage(page);
+      await gotoLavoriCaposquadra(page);
+      await runLavoriCaposquadraAssertions(page, expect);
     },
   },
 ];

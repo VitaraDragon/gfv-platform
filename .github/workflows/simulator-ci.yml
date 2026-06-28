@@ -70,7 +70,7 @@ jobs:
   simulator-e2e:
     name: sim:e2e (Playwright browser)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     steps:
       - name: Checkout

@@ -26,6 +26,44 @@ export const TERRENI_CLIENTI_PATH =
   '/modules/conto-terzi/views/terreni-clienti-standalone.html?emulator=1';
 export const FIELD_WORKSPACE_PATH =
   '/core/mobile/field-workspace-standalone.html?emulator=1';
+export const TRATTORI_LIST_PATH =
+  '/modules/macchine/views/trattori-list-standalone.html?emulator=1';
+export const ATTREZZI_LIST_PATH =
+  '/modules/macchine/views/attrezzi-list-standalone.html?emulator=1';
+export const FLOTTA_LIST_PATH =
+  '/modules/macchine/views/flotta-list-standalone.html?emulator=1';
+export const PRODOTTI_LIST_PATH =
+  '/modules/magazzino/views/prodotti-standalone.html?emulator=1';
+export const VIGNETI_LIST_PATH =
+  '/modules/vigneto/views/vigneti-standalone.html?emulator=1';
+export const GESTIONE_LAVORI_PATH =
+  '/core/admin/gestione-lavori-standalone.html?emulator=1';
+export const VALIDAZIONE_ORE_PATH =
+  '/core/admin/validazione-ore-standalone.html?emulator=1';
+export const MACCHINE_DASHBOARD_PATH =
+  '/modules/macchine/views/macchine-dashboard-standalone.html?emulator=1';
+export const GUASTI_LIST_PATH =
+  '/modules/macchine/views/guasti-list-standalone.html?emulator=1';
+export const MAGAZZINO_HOME_PATH =
+  '/modules/magazzino/views/magazzino-home-standalone.html?emulator=1';
+export const TRACCIABILITA_CONSUMI_PATH =
+  '/modules/magazzino/views/tracciabilita-consumi-standalone.html?emulator=1';
+export const VIGNETO_DASHBOARD_PATH =
+  '/modules/vigneto/views/vigneto-dashboard-standalone.html?emulator=1';
+export const CONTO_TERZI_HOME_PATH =
+  '/modules/conto-terzi/views/conto-terzi-home-standalone.html?emulator=1';
+export const MAPPA_CLIENTI_PATH =
+  '/modules/conto-terzi/views/mappa-clienti-standalone.html?emulator=1';
+export const MANODOPERA_HOME_PATH =
+  '/modules/manodopera/views/manodopera-home-standalone.html?emulator=1';
+export const GESTIONE_OPERAI_PATH =
+  '/core/admin/gestione-operai-standalone.html?emulator=1';
+export const GESTIONE_SQUADRE_PATH =
+  '/core/admin/gestione-squadre-standalone.html?emulator=1';
+export const STATISTICHE_MANODOPERA_PATH =
+  '/core/admin/statistiche-manodopera-standalone.html?emulator=1';
+export const LAVORI_CAPOSQUADRA_PATH =
+  '/core/admin/lavori-caposquadra-standalone.html?emulator=1';
 
 const SEED_VERSION = 2;
 
@@ -404,6 +442,346 @@ export async function loginAsManagerContoTerzi(page, options = {}) {
     ...options,
     templateIncludes: 'conto-terzi',
   });
+}
+
+/** Login manager su tenant con manodopera (gestione lavori / validazione ore). */
+export async function loginAsManagerManodopera(page, options = {}) {
+  return loginAsManagerFromDevPage(page, {
+    ...options,
+    templateIncludes: 'manodopera',
+  });
+}
+
+async function waitForMezziTableLoaded(page, { urlPattern, h1Fragment, minRows }) {
+  await page.waitForURL(urlPattern, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: h1Fragment }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(
+    (min) => {
+      const container = document.getElementById('table-container');
+      if (!container) return false;
+      if (container.querySelector('.loading')) return false;
+      if (/Caricamento/i.test(container.textContent || '')) return false;
+      return container.querySelectorAll('.mezzi-table tbody tr').length >= min;
+    },
+    minRows,
+    { timeout: 60_000 }
+  );
+
+  await page.locator('#table-container .mezzi-table tbody tr').first().waitFor({
+    timeout: 60_000,
+  });
+}
+
+export async function waitForTrattoriListLoaded(page) {
+  await waitForMezziTableLoaded(page, {
+    urlPattern: /trattori-list-standalone\.html/,
+    h1Fragment: 'Trattori',
+    minRows: 1,
+  });
+}
+
+export async function gotoTrattoriList(page) {
+  await page.goto(TRATTORI_LIST_PATH);
+  await waitForTrattoriListLoaded(page);
+}
+
+export async function waitForAttrezziListLoaded(page) {
+  await waitForMezziTableLoaded(page, {
+    urlPattern: /attrezzi-list-standalone\.html/,
+    h1Fragment: 'Attrezzature',
+    minRows: 3,
+  });
+}
+
+export async function gotoAttrezziList(page) {
+  await page.goto(ATTREZZI_LIST_PATH);
+  await waitForAttrezziListLoaded(page);
+}
+
+export async function waitForFlottaListLoaded(page) {
+  await waitForMezziTableLoaded(page, {
+    urlPattern: /flotta-list-standalone\.html/,
+    h1Fragment: 'Flotta Aziendale',
+    minRows: 4,
+  });
+}
+
+export async function gotoFlottaList(page) {
+  await page.goto(FLOTTA_LIST_PATH);
+  await waitForFlottaListLoaded(page);
+}
+
+export async function waitForProdottiListLoaded(page) {
+  await page.waitForURL(/prodotti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Prodotti' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const container = document.getElementById('prodotti-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento prodotti/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.prodotti-table tbody tr').length >= 5;
+  }, { timeout: 60_000 });
+
+  await page.locator('#prodotti-container .prodotti-table tbody tr').first().waitFor({
+    timeout: 60_000,
+  });
+}
+
+export async function gotoProdottiList(page) {
+  await page.goto(PRODOTTI_LIST_PATH);
+  await waitForProdottiListLoaded(page);
+}
+
+export async function waitForVignetiListLoaded(page) {
+  await page.waitForURL(/vigneti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Vigneti' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const loading = document.getElementById('loading');
+    if (loading && loading.style.display !== 'none' && /Caricamento vigneti/i.test(loading.textContent || '')) {
+      return false;
+    }
+    const table = document.getElementById('vigneti-table');
+    if (!table || table.style.display === 'none') return false;
+    return document.querySelectorAll('#vigneti-tbody tr').length >= 4;
+  }, { timeout: 60_000 });
+
+  await page.locator('#vigneti-tbody tr').first().waitFor({ timeout: 60_000 });
+}
+
+export async function gotoVignetiList(page) {
+  await page.goto(VIGNETI_LIST_PATH);
+  await waitForVignetiListLoaded(page);
+}
+
+export async function waitForGestioneLavoriLoaded(page) {
+  await page.waitForURL(/gestione-lavori-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Lavori' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const container = document.getElementById('lavori-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento lavori/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.lavori-table tbody tr').length >= 3;
+  }, { timeout: 90_000 });
+
+  await page.locator('#lavori-container .lavori-table tbody tr').first().waitFor({
+    timeout: 60_000,
+  });
+}
+
+export async function gotoGestioneLavori(page) {
+  await page.goto(GESTIONE_LAVORI_PATH);
+  await waitForGestioneLavoriLoaded(page);
+}
+
+export async function waitForValidazioneOreLoaded(page) {
+  await page.waitForURL(/validazione-ore-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Validazione Ore' }).waitFor({ timeout: 60_000 });
+
+  await page.waitForFunction(() => {
+    const container = document.getElementById('ore-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento ore/i.test(container.textContent || '')) return false;
+    if (container.querySelector('.ore-table tbody tr')) return true;
+    const empty = container.querySelector('.empty-state');
+    return empty && !/Caricamento/i.test(empty.textContent || '');
+  }, { timeout: 90_000 });
+}
+
+export async function gotoValidazioneOre(page) {
+  await page.goto(VALIDAZIONE_ORE_PATH);
+  await waitForValidazioneOreLoaded(page);
+}
+
+export async function waitForMacchineDashboardLoaded(page) {
+  await page.waitForURL(/macchine-dashboard-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Parco Macchine' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('card-trattori-value');
+    const t = el && (el.textContent || '').trim();
+    return t && t !== '—' && t !== '-';
+  }, { timeout: 60_000 });
+}
+
+export async function gotoMacchineDashboard(page) {
+  await page.goto(MACCHINE_DASHBOARD_PATH);
+  await waitForMacchineDashboardLoaded(page);
+}
+
+export async function waitForGuastiListLoaded(page) {
+  await page.waitForURL(/guasti-list-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Officina' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('table-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento/i.test(container.textContent || '')) return false;
+    return container.querySelector('.guasti-table tbody tr') || container.querySelector('.empty-state');
+  }, { timeout: 60_000 });
+}
+
+export async function gotoGuastiList(page) {
+  await page.goto(GUASTI_LIST_PATH);
+  await waitForGuastiListLoaded(page);
+}
+
+export async function waitForMagazzinoHomeLoaded(page) {
+  await page.waitForURL(/magazzino-home-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Prodotti e Magazzino' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('stat-prodotti');
+    const t = el && (el.textContent || '').trim();
+    return t && t !== '-';
+  }, { timeout: 60_000 });
+}
+
+export async function gotoMagazzinoHome(page) {
+  await page.goto(MAGAZZINO_HOME_PATH);
+  await waitForMagazzinoHomeLoaded(page);
+}
+
+export async function waitForTracciabilitaConsumiLoaded(page) {
+  await page.waitForURL(/tracciabilita-consumi-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Tracciabilità consumi' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('tabella-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento/i.test(container.textContent || '')) return false;
+    if (container.querySelector('.empty-state')) return false;
+    const countEl = document.getElementById('righe-count');
+    const n = countEl ? parseInt(countEl.textContent, 10) : 0;
+    return n >= 8;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoTracciabilitaConsumi(page) {
+  await page.goto(TRACCIABILITA_CONSUMI_PATH);
+  await waitForTracciabilitaConsumiLoaded(page);
+}
+
+export async function waitForVignetoDashboardLoaded(page) {
+  await page.waitForURL(/vigneto-dashboard-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'VIGNETO' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('stat-numero-vigneti');
+    const t = el && (el.textContent || '').trim();
+    return t && t !== '-';
+  }, { timeout: 90_000 });
+}
+
+export async function gotoVignetoDashboard(page) {
+  await page.goto(VIGNETO_DASHBOARD_PATH);
+  await waitForVignetoDashboardLoaded(page);
+}
+
+export async function waitForContoTerziHomeLoaded(page) {
+  await page.waitForURL(/conto-terzi-home-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'CONTO TERZI' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('stat-clienti');
+    const t = el && (el.textContent || '').trim();
+    return t && t !== '-';
+  }, { timeout: 60_000 });
+}
+
+export async function gotoContoTerziHome(page) {
+  await page.goto(CONTO_TERZI_HOME_PATH);
+  await waitForContoTerziHomeLoaded(page);
+}
+
+export async function waitForMappaClientiLoaded(page) {
+  await page.waitForURL(/mappa-clienti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Mappa Clienti' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('select-cliente');
+    return el && el.options.length > 1;
+  }, { timeout: 60_000 });
+}
+
+export async function gotoMappaClienti(page) {
+  await page.goto(MAPPA_CLIENTI_PATH);
+  await waitForMappaClientiLoaded(page);
+}
+
+export async function waitForManodoperaHomeLoaded(page) {
+  await page.waitForURL(/manodopera-home-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Manodopera' }).waitFor({ timeout: 60_000 });
+  await page.getByRole('link', { name: /Gestione Lavori/i }).first().waitFor({ timeout: 60_000 });
+}
+
+export async function gotoManodoperaHome(page) {
+  await page.goto(MANODOPERA_HOME_PATH);
+  await waitForManodoperaHomeLoaded(page);
+}
+
+export async function waitForGestioneOperaiLoaded(page) {
+  await page.waitForURL(/gestione-operai-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Operai' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('operai-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    return container.querySelectorAll('.operai-table tbody tr').length >= 3;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoGestioneOperai(page) {
+  await page.goto(GESTIONE_OPERAI_PATH);
+  await waitForGestioneOperaiLoaded(page);
+}
+
+export async function waitForGestioneSquadreLoaded(page) {
+  await page.waitForURL(/gestione-squadre-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Squadre' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('squadre-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    return container.querySelectorAll('.squadre-table tbody tr').length >= 1;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoGestioneSquadre(page) {
+  await page.goto(GESTIONE_SQUADRE_PATH);
+  await waitForGestioneSquadreLoaded(page);
+}
+
+export async function waitForStatisticheManodoperaLoaded(page) {
+  await page.waitForURL(/statistiche-manodopera-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Statistiche Manodopera' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('stat-lavori-totali');
+    const t = el && (el.textContent || '').trim();
+    return t && t !== '-';
+  }, { timeout: 90_000 });
+}
+
+export async function gotoStatisticheManodopera(page) {
+  await page.goto(STATISTICHE_MANODOPERA_PATH);
+  await waitForStatisticheManodoperaLoaded(page);
+}
+
+export async function waitForLavoriCaposquadraLoaded(page) {
+  await page.waitForURL(/lavori-caposquadra-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'I Miei Lavori' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('lavori-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento lavori/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.lavoro-card').length >= 1;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoLavoriCaposquadra(page) {
+  await page.goto(LAVORI_CAPOSQUADRA_PATH);
+  await waitForLavoriCaposquadraLoaded(page);
 }
 
 /** Attende caricamento field workspace mobile (Firestore + lavori assegnati). */
