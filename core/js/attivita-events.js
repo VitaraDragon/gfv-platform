@@ -1170,6 +1170,9 @@ export async function handleSaveAttivita(params) {
             attivitaData.createdAt = serverTimestamp();
             const attivitaDocRef = await addDoc(attivitaCollection, attivitaData);
             const attivitaId = attivitaDocRef.id;
+
+            showAlert('Attività creata con successo!', 'success');
+            closeAttivitaModal();
             
             // Rilevamento automatico vendemmia: crea vendemmia se attività è di tipo vendemmia su terreno VITE
             // Funziona sia per attività con lavoroId che per attività dirette (senza lavoroId)
@@ -1293,8 +1296,6 @@ export async function handleSaveAttivita(params) {
                     console.warn('[ATTIVITA-EVENTS] Errore rilevamento potatura/trattamenti:', error);
                 }
             }
-            
-            showAlert('Attività creata con successo!', 'success');
         }
         
         // Gestisci stato macchine e aggiorna ore (solo se modulo attivo)

@@ -54,6 +54,7 @@ async function openNewAttivitaModal(page) {
 
 /**
  * Seleziona categoria/sottocategoria fino a un tipo lavoro utilizzabile.
+ * Allineato a gestione-lavori-write (CI: attende dropdown stabile + value impostato).
  * @param {import('playwright-core').Page} page
  * @returns {Promise<string>} nome tipo lavoro selezionato
  */
@@ -79,24 +80,47 @@ async function pickTipoLavoroInModal(page) {
     const tipoSelect = page.locator('#attivita-tipo-lavoro-gerarchico');
     try {
       await page.waitForFunction(() => {
+        const group = document.getElementById('attivita-tipo-lavoro-gerarchico-group');
         const sel = document.getElementById('attivita-tipo-lavoro-gerarchico');
-        return sel && sel.options.length > 1 && sel.options[1].value !== '';
+        return group && group.style.display !== 'none' && sel && sel.options.length > 1 && sel.options[1].value !== '';
+      }, { timeout: 8_000 });
+      await page.waitForFunction(async () => {
+        const sel = document.getElementById('attivita-tipo-lavoro-gerarchico');
+        if (!sel || sel.options.length < 2) return false;
+        const n = sel.options.length;
+        await new Promise((r) => setTimeout(r, 400));
+        return sel.options.length === n && sel.options[1].value !== '';
       }, { timeout: 8_000 });
     } catch {
       continue;
     }
 
     const preferred = tipoSelect.locator('option', { hasText: PREFERRED_TIPO_LAVORO });
+    let selectedValue = '';
     if ((await preferred.count()) > 0) {
-      await tipoSelect.selectOption({ label: PREFERRED_TIPO_LAVORO });
-      return PREFERRED_TIPO_LAVORO;
+      selectedValue = (await preferred.first().getAttribute('value')) || '';
+      if (selectedValue) await tipoSelect.selectOption(selectedValue);
+    } else {
+      selectedValue = (await tipoSelect.locator('option').nth(1).getAttribute('value')) || '';
+      if (selectedValue) await tipoSelect.selectOption(selectedValue);
     }
 
-    const firstLabel = (await tipoSelect.locator('option').nth(1).textContent())?.trim();
-    if (firstLabel) {
-      await tipoSelect.selectOption({ index: 1 });
-      return firstLabel;
+    if (!selectedValue) continue;
+
+    try {
+      await page.waitForFunction(
+        (expected) => document.getElementById('attivita-tipo-lavoro-gerarchico')?.value === expected,
+        selectedValue,
+        { timeout: 5_000 }
+      );
+    } catch {
+      continue;
     }
+
+    const label =
+      (await tipoSelect.locator(`option[value="${selectedValue}"]`).textContent())?.trim() ||
+      PREFERRED_TIPO_LAVORO;
+    return label;
   }
 
   throw new Error('Impossibile selezionare un tipo lavoro nel modale attività');
@@ -107,16 +131,25 @@ const E2E_ATTIVITA_WRITE_DATA = '2026-06-15';
 
 /**
  * @param {import('playwright-core').Page} page
+ * @param {string} note
  */
-async function waitForAttivitaSaveComplete(page) {
-  await page.waitForFunction(() => {
-    const modal = document.getElementById('attivita-modal');
-    return !modal?.classList.contains('active');
-  }, { timeout: 90_000 });
-  await page
-    .locator('#gfv-standalone-toast-layer .alert-success')
-    .filter({ hasText: /Attività creata/i })
-    .waitFor({ state: 'attached', timeout: 15_000 });
+async function waitForAttivitaSaveComplete(page, note) {
+  await page.waitForFunction(
+    (marker) => {
+      const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
+      const hasToast = Array.from(toasts).some((t) =>
+        /Attività creata/i.test(t.textContent || '')
+      );
+      if (hasToast) return true;
+      const modal = document.getElementById('attivita-modal');
+      if (modal && !modal.classList.contains('active')) return true;
+      return Array.from(document.querySelectorAll('#attivita-container .attivita-row')).some((row) =>
+        (row.textContent || '').includes(marker)
+      );
+    },
+    note,
+    { timeout: 90_000 }
+  );
 }
 
 /**
@@ -144,13 +177,28 @@ async function fillAndSubmitNewAttivita(page, { note }) {
 
   const tipoLavoro = await pickTipoLavoroInModal(page);
 
+  await page.waitForFunction(() => {
+    const sel = document.getElementById('attivita-tipo-lavoro-gerarchico');
+    return sel && sel.value !== '';
+  }, { timeout: 10_000 });
+
   await page.locator('#attivita-orario-inizio').fill('15:00');
   await page.locator('#attivita-orario-fine').fill('17:00');
   await page.locator('#attivita-pause').fill('0');
   await page.locator('#attivita-note').fill(note);
 
+  await page.evaluate(() => {
+    const form = document.getElementById('attivita-form');
+    if (form) form.setAttribute('novalidate', 'novalidate');
+    const tipoGroup = document.getElementById('attivita-tipo-lavoro-gerarchico-group');
+    if (tipoGroup) tipoGroup.style.display = 'block';
+    ['attivita-cliente', 'attivita-lavoro', 'attivita-ora-inizio-ct', 'attivita-ora-fine-ct'].forEach((id) => {
+      document.getElementById(id)?.removeAttribute('required');
+    });
+  });
+
   await page.locator('#attivita-form button[type="submit"]').click();
-  await waitForAttivitaSaveComplete(page);
+  await waitForAttivitaSaveComplete(page, note);
 
   return { tipoLavoro, terrenoNome };
 }

@@ -10,7 +10,9 @@
 
 **Fix:** `attivita-events.js` — dopo reset, allineare `required` sui campi CT a `isContoTerziMode` (come già fa l’init in `attivita-standalone.html`). Passato `isContoTerziMode` dal wrapper.
 
-**File:** `core/js/attivita-events.js`, `core/attivita-standalone.html`, semplificato wait in `tests/e2e/sim/scenarios/attivita-write.mjs`.
+**Fix aggiuntivo (run 28383564597 ancora fallita):** allineamento a `gestione-lavori-write` (pattern CI provato): `novalidate` sul form, tipo lavoro stabilizzato nel test E2E, toast/chiusura modale subito dopo `addDoc` (prima dei hook vendemmia/potatura che potevano bloccare la UI in CI).
+
+**File:** `core/js/attivita-events.js`, `core/attivita-standalone.html`, `tests/e2e/sim/scenarios/attivita-write.mjs`.
 
 ## GFV Farm Simulator — v5 Fase 1 M3 chiusa: ultimi 4 write E2E (2026-06-29)
 
