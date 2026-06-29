@@ -128,13 +128,30 @@ async function pickTipoLavoroInForm(page) {
  */
 async function fillAndSubmitNewPreventivo(page, { note }) {
   const clienteSelect = page.locator('#cliente-id');
+  const clienteValue = (await clienteSelect.locator('option').nth(1).getAttribute('value')) || '';
   const clienteNome = ((await clienteSelect.locator('option').nth(1).textContent()) || '').trim();
-  await clienteSelect.selectOption({ index: 1 });
+  if (!clienteValue) {
+    throw new Error('Nessun cliente disponibile nel form nuovo preventivo');
+  }
+  await clienteSelect.selectOption(clienteValue);
+
+  await page.evaluate(async (selectedClienteId) => {
+    const sel = document.getElementById('cliente-id');
+    if (sel && sel.value !== selectedClienteId) {
+      sel.value = selectedClienteId;
+    }
+    if (typeof window.onClienteChange === 'function') {
+      window.onClienteChange();
+    }
+    if (typeof window.__preventivoAwaitTerreniClienteReady === 'function') {
+      await window.__preventivoAwaitTerreniClienteReady(90_000);
+    }
+  }, clienteValue);
 
   await page.waitForFunction(() => {
     const terreno = document.getElementById('terreno-id');
     return terreno && terreno.options.length > 1;
-  }, { timeout: 20_000 });
+  }, { timeout: 90_000 });
 
   const terrenoSelect = page.locator('#terreno-id');
   await terrenoSelect.selectOption({ index: 1 });

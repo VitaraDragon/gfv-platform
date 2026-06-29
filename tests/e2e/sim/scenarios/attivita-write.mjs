@@ -10,25 +10,29 @@ export const E2E_ATTIVITA_WRITE_NOTE = 'GFV_SIM_E2E_WRITE_ATTIVITA';
 const PREFERRED_TIPO_LAVORO = 'Erpicatura';
 
 /**
+ * Applica filtro note e attende che il render tabella sia coerente (non solo empty-state).
  * @param {import('playwright-core').Page} page
+ * @param {string} note
+ * @param {{ requireRows?: boolean, timeout?: number }} [opts]
  */
-async function filterAttivitaByNote(page, note) {
+async function filterAttivitaByNote(page, note, opts = {}) {
+  const { requireRows = false, timeout = 30_000 } = opts;
   const input = page.locator('#filter-ricerca');
   await input.fill('');
   await input.fill(note);
   await page.waitForFunction(
-    (marker) => {
+    ({ marker, mustHaveRows }) => {
       const container = document.getElementById('attivita-container');
       if (!container || container.style.display === 'none') return false;
+      if (/Caricamento/i.test(container.textContent || '')) return false;
       const rows = container.querySelectorAll('.attivita-row');
-      if (rows.length === 0) {
-        const empty = container.querySelector('.empty-state');
-        return empty && !/Caricamento/i.test(empty.textContent || '');
-      }
-      return true;
+      if (mustHaveRows) return rows.length >= 1;
+      if (rows.length > 0) return true;
+      const empty = container.querySelector('.empty-state');
+      return empty && !/Caricamento/i.test(empty.textContent || '');
     },
-    note,
-    { timeout: 30_000 }
+    { marker: note, mustHaveRows: requireRows },
+    { timeout }
   );
 }
 
@@ -239,10 +243,10 @@ export async function runAttivitaWriteAssertions(page, expect) {
     await page.waitForFunction(
       (before) => document.querySelectorAll('#attivita-container .attivita-row').length > before,
       totalBefore,
-      { timeout: 30_000 }
+      { timeout: 60_000 }
     );
 
-    await filterAttivitaByNote(page, E2E_ATTIVITA_WRITE_NOTE);
+    await filterAttivitaByNote(page, E2E_ATTIVITA_WRITE_NOTE, { requireRows: true, timeout: 60_000 });
     rowCount = await countVisibleAttivitaRows(page);
   } else {
     const firstRow = page.locator('#attivita-container .attivita-row').first();

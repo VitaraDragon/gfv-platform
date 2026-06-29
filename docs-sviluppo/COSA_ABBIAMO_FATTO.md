@@ -12,7 +12,9 @@
 
 **Fix aggiuntivo (run 28383564597 ancora fallita):** allineamento a `gestione-lavori-write` (pattern CI provato): `novalidate` sul form, tipo lavoro stabilizzato nel test E2E, toast/chiusura modale subito dopo `addDoc` (prima dei hook vendemmia/potatura che potevano bloccare la UI in CI).
 
-**File:** `core/js/attivita-events.js`, `core/attivita-standalone.html`, `tests/e2e/sim/scenarios/attivita-write.mjs`.
+**Fix run 28387012119:** `attivita-write` flaky — filtro note attendeva empty-state con 0 righe; `preventivi-write` — dopo cliente usa `onClienteChange` + `__preventivoAwaitTerreniClienteReady` (90s) prima di `#terreno-id`.
+
+**File:** `core/js/attivita-events.js`, `core/attivita-standalone.html`, `tests/e2e/sim/scenarios/attivita-write.mjs`, `tests/e2e/sim/scenarios/preventivi-write.mjs`.
 
 ## GFV Farm Simulator — v5 Fase 1 M3 chiusa: ultimi 4 write E2E (2026-06-29)
 
