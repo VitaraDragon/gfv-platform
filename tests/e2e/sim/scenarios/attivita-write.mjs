@@ -106,32 +106,17 @@ async function pickTipoLavoroInModal(page) {
 const E2E_ATTIVITA_WRITE_DATA = '2026-06-15';
 
 /**
- * Attende esito salvataggio: chiusura modale o toast (non richiede visibilità toast).
  * @param {import('playwright-core').Page} page
  */
 async function waitForAttivitaSaveComplete(page) {
-  const deadline = Date.now() + 120_000;
-  while (Date.now() < deadline) {
-    const state = await page.evaluate(() => {
-      const err = document.querySelector(
-        '#gfv-standalone-toast-layer .alert-error, #gfv-standalone-toast-layer .alert-danger'
-      );
-      const errText = err?.textContent?.trim() || '';
-      const modal = document.getElementById('attivita-modal');
-      const modalOpen = modal?.classList.contains('active') ?? false;
-      const success = document.querySelector('#gfv-standalone-toast-layer .alert-success');
-      const okText = success?.textContent?.trim() || '';
-      return { errText, modalOpen, okText };
-    });
-    if (state.errText) {
-      throw new Error(`Salvataggio attività E2E: ${state.errText}`);
-    }
-    if (!state.modalOpen || /Attività creata/i.test(state.okText)) {
-      return;
-    }
-    await page.waitForTimeout(400);
-  }
-  throw new Error('Salvataggio attività E2E: timeout (modale ancora aperta)');
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('attivita-modal');
+    return !modal?.classList.contains('active');
+  }, { timeout: 90_000 });
+  await page
+    .locator('#gfv-standalone-toast-layer .alert-success')
+    .filter({ hasText: /Attività creata/i })
+    .waitFor({ state: 'attached', timeout: 15_000 });
 }
 
 /**

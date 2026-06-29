@@ -470,6 +470,7 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
  * @param {Function} params.setupCategoriaLavoroHandler - Funzione setup handler categoria lavoro
  * @param {Function} params.updateOreNette - Funzione aggiornamento ore nette
  * @param {Function} params.updateOreMacchinaDisplay - Funzione aggiornamento display ore macchina
+ * @param {boolean} params.isContoTerziMode - Se è modalità Conto Terzi
  */
 export async function openAttivitaModal(params) {
     const {
@@ -496,7 +497,8 @@ export async function openAttivitaModal(params) {
         populateAttrezziDropdown,
         setupCategoriaLavoroHandler,
         updateOreNette,
-        updateOreMacchinaDisplay
+        updateOreMacchinaDisplay,
+        isContoTerziMode = false
     } = params;
 
     setCurrentAttivitaId(attivitaId);
@@ -646,6 +648,23 @@ export async function openAttivitaModal(params) {
     
     if (colturaGerarchicaSelect) {
         colturaGerarchicaSelect.setAttribute('required', 'required');
+    }
+
+    // form.reset() ripristina required HTML sui campi Conto Terzi nascosti (blocca submit nativo)
+    const clienteSelect = document.getElementById('attivita-cliente');
+    const lavoroSelect = document.getElementById('attivita-lavoro');
+    const oraInizioCT = document.getElementById('attivita-ora-inizio-ct');
+    const oraFineCT = document.getElementById('attivita-ora-fine-ct');
+    if (isContoTerziMode) {
+        if (clienteSelect) clienteSelect.setAttribute('required', 'required');
+        if (lavoroSelect) lavoroSelect.setAttribute('required', 'required');
+        if (oraInizioCT) oraInizioCT.setAttribute('required', 'required');
+        if (oraFineCT) oraFineCT.setAttribute('required', 'required');
+    } else {
+        if (clienteSelect) clienteSelect.removeAttribute('required');
+        if (lavoroSelect) lavoroSelect.removeAttribute('required');
+        if (oraInizioCT) oraInizioCT.removeAttribute('required');
+        if (oraFineCT) oraFineCT.removeAttribute('required');
     }
     
     if (attivitaId) {

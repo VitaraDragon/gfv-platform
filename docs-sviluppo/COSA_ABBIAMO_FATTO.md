@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-29 — sim **v5 Fase 1 / M3 chiusa** suite **33/33 OK** (~2 min); write scen. 31–34 (validazione ore, terreni, guasti, terreni clienti).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-29 — fix CI `attivita-write` (validazione HTML5 campi CT nascosti dopo `form.reset()`); sim **v5 Fase 1 / M3** suite **33/33 OK**.
+
+## Fix CI attivita-write — validazione form modale (2026-06-29)
+
+**Problema CI:** scenario 20 `attivita-write` — modale resta aperta 120s, submit non parte (nessun toast, nessun errore JS).
+
+**Causa:** in `openAttivitaModal`, `form.reset()` ripristina `required` sui campi Conto Terzi (`#attivita-conto-terzi-section`, nascosta in diario normale). Chromium blocca il submit nativo prima di `handleSaveAttivita`. In locale spesso passava perché il marker esisteva già (run idempotente senza aprire modale); in CI tenant fresco → sempre creazione → sempre fallimento.
+
+**Fix:** `attivita-events.js` — dopo reset, allineare `required` sui campi CT a `isContoTerziMode` (come già fa l’init in `attivita-standalone.html`). Passato `isContoTerziMode` dal wrapper.
+
+**File:** `core/js/attivita-events.js`, `core/attivita-standalone.html`, semplificato wait in `tests/e2e/sim/scenarios/attivita-write.mjs`.
 
 ## GFV Farm Simulator — v5 Fase 1 M3 chiusa: ultimi 4 write E2E (2026-06-29)
 
