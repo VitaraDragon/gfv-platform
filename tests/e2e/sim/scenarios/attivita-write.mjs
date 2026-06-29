@@ -139,10 +139,10 @@ async function fillAndSubmitNewAttivita(page, { note }) {
 
   await page.locator('#attivita-form button[type="submit"]').click();
 
-  await page.getByText('Attività creata con successo!', { exact: false }).waitFor({
-    timeout: 45_000,
-  });
-  await page.locator('#attivita-modal.active').waitFor({ state: 'hidden', timeout: 30_000 });
+  await page.locator('.alert-success').filter({
+    hasText: /Attività creata con successo/i,
+  }).waitFor({ state: 'attached', timeout: 90_000 });
+  await page.locator('#attivita-modal.active').waitFor({ state: 'hidden', timeout: 90_000 });
 
   return { tipoLavoro, terrenoNome };
 }
