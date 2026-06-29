@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (22 scenari: 18 read + 4 write ✅)  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (29 scenari: 18 read + 11 write ✅)  
 **Data:** 2026-06-28  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1** — seed guasti + ore coda ✅; write attività + movimento + ore mobile + **lavoro manodopera** ✅ (scen. 20–23); suite **22/22 OK** (verificato 2026-06-28, ~27s); regime max + routine §13.4  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1** — write scen. 20–30 ✅; suite **29/29 OK** (verificato 2026-06-28, ~48s); regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -669,10 +669,17 @@ tests/e2e/sim/
     parco-macchine.mjs, magazzino-hub.mjs, manodopera-admin.mjs, …
     attivita-write.mjs            # v5 write
     movimenti-write.mjs
+    movimenti-uscita-write.mjs
     field-workspace-write.mjs
     gestione-lavori-write.mjs
-  *.spec.js                     # 22 spec (18 read + 4 write)
-scripts/sim-e2e-run.mjs         # SCENARIOS: 22 voci (stesso ordine)
+    preventivi-write.mjs
+    prodotti-write.mjs
+    preventivi-accetta-write.mjs
+    clienti-write.mjs
+    preventivi-pianifica-write.mjs
+    tariffe-write.mjs
+  *.spec.js                     # 29 spec (18 read + 11 write)
+scripts/sim-e2e-run.mjs         # SCENARIOS: 27 voci (stesso ordine)
 ```
 
 **Node / browser:** in locale **`npm run sim:e2e`** usa **Chrome installato** (`playwright-core` + `channel: chrome`). Su **Node 24** la CLI `playwright test` può restare bloccata — usare il runner. In **CI (Node 22)** preferire `npm run sim:e2e:pw` dopo `npm run sim:e2e:install` (Chromium bundled).
@@ -753,7 +760,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **Assert scenario 4 (attività diario):** seed template `solo-titolare-viticola`: **20 attività** (4 settimane × 1/giorno lavorativo), tipi ciclici Potatura/Trattamento/Erpicatura/Concimazione/Controllo fitosanitario, coltura Vite — validati da orchestrator + Vitest v3. In E2E: tabella `.attivita-table` con header Data/Terreno/Tipo Lavoro/Coltura/Ore Nette; **≥15 righe** (soglia minima, atteso 20 su tenant fresco); almeno 3 tipi lavoro seed visibili; coltura Vite in almeno una riga; date non vuote. Nessuna chiamata a `Attivita.validate()` nel test.
 
-**Assert scenario 5 (movimenti magazzino):** seed: **12 uscite** collegate ad attività Trattamento/Concimazione/Controllo fitosanitario (`attivitaId`; note «Scarico…») — validati da orchestrator + `sim:audit`. In E2E: tabella `.movimenti-table` con header Data/Prodotto/Tipo/Attività; **≥10 righe** (atteso 12); badge `.badge-uscita`; colonna **Attività** con label collegata (tipo lavoro + terreno visibili); almeno 2 tipi lavoro seed in colonna Attività; note scarico visibili. Nessun ricalcolo giacenza nel test.
+**Assert scenario 5 (movimenti magazzino):** seed: **12 uscite** collegate ad attività Trattamento/Concimazione/Controllo fitosanitario (`attivitaId`; note «Scarico…») — validati da orchestrator + `sim:audit`. In E2E: tabella `.movimenti-table` con header Data/Prodotto/Tipo/Attività; **≥10 righe** (atteso 12; cap **≤18** con write entrata/uscita E2E); badge `.badge-uscita`; colonna **Attività** con label collegata (tipo lavoro + terreno visibili); almeno 2 tipi lavoro seed in colonna Attività; note scarico visibili. Nessun ricalcolo giacenza nel test.
 
 **Assert scenario 6 (vigneto):** seed: **4 potature** + **12 trattamenti** Firestore (8 fitosanitari su `trattamenti-standalone.html` + 4 concimazioni su `concimazioni-standalone.html`) — validati da orchestrator + `sim:audit`. In E2E: **Potatura** — ≥3 righe, link **Vedi Attività**, tipo potatura visibile; **Trattamenti** — ≥6 righe, prodotti valorizzati, link attività; **Concimazioni** — ≥3 righe, link attività. Nessun ricalcolo spese/dosaggi nel test.
 
@@ -786,18 +793,39 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | 19 | Capo — lavori desktop | `capo-lavori.spec.js` | ✅ |
 | 20 | Write — nuova attività (modale diario) | `attivita-write.spec.js` | ✅ |
 | 21 | Write — movimento magazzino (entrata) | `movimenti-write.spec.js` | ✅ |
+| 30 | Write — movimento magazzino (uscita) | `movimenti-uscita-write.spec.js` | ✅ |
 | 22 | Write — ore mobile (field workspace → validazione) | `field-workspace-write.spec.js` | ✅ |
 | 23 | Write — nuovo lavoro manodopera (gestione lavori) | `gestione-lavori-write.spec.js` | ✅ |
+| 24 | Write — nuovo preventivo conto terzi | `preventivi-write.spec.js` | ✅ |
+| 25 | Write — nuovo prodotto magazzino | `prodotti-write.spec.js` | ✅ |
+| 26 | Write — accetta preventivo (manager) | `preventivi-accetta-write.spec.js` | ✅ |
+| 27 | Write — nuovo cliente conto terzi | `clienti-write.spec.js` | ✅ |
+| 28 | Write — pianifica preventivo (crea lavoro) | `preventivi-pianifica-write.spec.js` | ✅ |
+| 29 | Write — nuova tariffa conto terzi | `tariffe-write.spec.js` | ✅ |
 
 **Assert scenario 23 (gestione lavori write):** template `viticola-conto-terzi-manodopera`. Login manager manodopera → `gestione-lavori-standalone.html` → modale **Crea Nuovo Lavoro** → cascade categoria/tipo (preferenza Erpicatura), terreno seed, caposquadra, durata 3 giorni, nome marker `GFV SIM E2E WRITE LAVORO`. Assert: toast o riga in `#lavori-container .lavori-table` con badge `.badge-assegnato` e «3 giorni» (idempotente). **Fix app collegato:** `creatoDa` con fallback `id || uid || currentAuthUid` in wrapper `handleSalvaLavoro` (prima Firestore rifiutava `undefined`).
 
+**Assert scenario 24 (preventivi write):** template `viticola-conto-terzi*`. Login `loginAsManagerContoTerzi` → `preventivi-standalone.html` → link **Nuovo Preventivo** → form con cliente + terreno seed (precompila coltura/tipo campo), cascade tipo lavoro Erpicatura, superficie marker **9.99 ha**, note `GFV_SIM_E2E_WRITE_PREVENTIVO`. Assert: toast «Preventivo creato con successo!», redirect elenco, riga con superficie 9.99 ha, badge Bozza, totale € (idempotente via superficie distintiva in tabella).
+
+**Assert scenario 25 (prodotti write):** template seed completo. Login manager → `prodotti-standalone.html` → modale **Nuovo Prodotto** → codice/nome marker `GFV_SIM_E2E_WRITE_PRODOTTO` / `GFV SIM E2E WRITE PRODOTTO`, categoria **ricambi** (no dosaggio obbligatorio), um pezzi, scorta min 5. Assert: toast «Prodotto creato.», riga filtrata con giacenza 0 e badge Attivo (idempotente via codice in `#filter-search`).
+
+**Assert scenario 26 (preventivi accetta write):** template `viticola-conto-terzi*`. Login `loginAsManagerContoTerzi` → lista preventivi → riga marker **9.99 ha** (scen. 24) → pulsante **Accetta** se bozza. Assert: toast «Preventivo accettato con successo», badge **Accettato (Manager)**, pulsante **Pianifica** (idempotente se già accettato). Scen. 24 aggiornato: badge Bozza richiesto solo alla creazione.
+
+**Assert scenario 27 (clienti write):** template `viticola-conto-terzi*`. Login conto terzi → `clienti-standalone.html` → modale **Nuovo Cliente** → ragione `GFV SIM E2E WRITE CLIENTE`, P.IVA `99988877701`, email marker, stato attivo. Assert: toast «Cliente creato con successo», riga filtrata con badge Attivo e 0 lavori (idempotente via `#filter-search`).
+
+**Assert scenario 28 (preventivi pianifica write):** template `viticola-conto-terzi*`. Login conto terzi → riga marker **9.99 ha** accettata (scen. 24–26) → **Pianifica** + conferma dialog → assert toast «Lavoro creato con successo!», badge **Pianificato**, testo «Lavoro creato» (idempotente). Scen. 26 aggiornato: tollera già pianificato.
+
+**Assert scenario 29 (tariffe write):** template `viticola-conto-terzi*`. Login conto terzi → `tariffe-standalone.html` → modale **Nuova Tariffa** → cascade tipo lavoro (preferenza Erpicatura) + coltura Vite, tipo campo **montagna**, tariffa base **777 €/ha**, coefficiente 1, attiva, note marker. Assert: toast «Tariffa creata con successo», riga con Montagna, 777.00 €/ha, badge Attiva (idempotente via marker in tabella). Read scen. 7: tariffe ≥8 e ≤12 — con +1 ancora OK.
+
+**Assert scenario 30 (movimenti uscita write):** template seed completo. Login manager → `movimenti-standalone.html` → modale **Nuovo Movimento** → prodotto con giacenza ≥1 (`window.__gfvMagazzinoProdotti`), tipo **uscita**, qty 1, note `GFV_SIM_E2E_SCARICO`. Assert: toast «Movimento registrato.», riga badge **Uscita** (idempotente). Marker corto per colonna Note (max 30 char visibili).
+
 #### 11.2.1 Stato v4 e prossimi passi (2026-06-28)
 
-**Completato:** scenari Playwright **1–23** — suite locale **22/22 OK** (`npm run sim:e2e`: 18 read + 4 write; ~27s, verificato 2026-06-28) + **CI** (`sim:e2e:ci`, 18 spec read — aggiornare in v5b).
+**Completato:** scenari Playwright **1–30** — suite locale **29/29 OK** (`npm run sim:e2e`: 18 read + 11 write; ~48s, verificato 2026-06-28) + **CI** (`sim:e2e:ci`, 18 spec read — aggiornare in v5b).
 
 **v4 chiusa (Definition of Done):** incrementi §11.2 tabella ✅; fallimenti CI distinguibili (Node vs browser); nessuna duplicazione business logic nei test E2E read.
 
-**Prossimo — v5 copertura app (§11.3):** ~~write attività/movimento/ore/lavoro~~ ✅; E2E read P1 mancanti; write: preventivo; gap seed: vendemmia, frutteto.
+**Prossimo — v5 copertura app (§11.3):** ~~write attività…uscita magazzino~~ ✅; E2E read P1 mancanti; gap seed: vendemmia, frutteto.
 
 **Parallelo (v4b / fuori sim):**
 
@@ -820,7 +848,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | Capo lavori desktop | ✅ 19 | |
 | Guasti in lista | ⚠️ 14 | pagina OK; **0 guasti** in seed — v5 |
 | Banner assenza malattia / contenuto comunicazioni | ⚠️ smoke | conteggi in `sim:audit` + `viticola-manodopera.test.js` |
-| Copertura totale pagine / form write | ⚠️ v5 | 4 write ✅ (scen. 20–23); v. §11.3 |
+| Copertura totale pagine / form write | ⚠️ v5 | 9 write ✅ (scen. 20–28); v. §11.3 |
 
 **Catena pre-E2E consigliata (tenant manodopera):**
 
@@ -830,7 +858,7 @@ node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # manifest snello: sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 npm run test:run -- tests/simulator/viticola-manodopera.test.js   # emulator attivo
-npm run sim:e2e                      # 22/22 attesi (~30s)
+npm run sim:e2e                      # 27/27 attesi (~43s)
 ```
 
 **Nota audit:** `sim:audit` su manifest con molte entry legacy o tenant `regime-max` può fallire anche con E2E verde — usare `sim:cleanup --keep 1` + nuovo `sim:run` prima dell’audit.
@@ -854,7 +882,7 @@ npm run sim:e2e                      # 22/22 attesi (~30s)
 | ---- | ----------- | ------------------- |
 | **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; **guasti (3) + ore coda validazione (2)** ✅ v5 Fase 1; gap: vendemmia, frutteto… |
 | **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~32 / ~66** pagine standalone (~**48%**) — 18 scenari read |
-| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **4** scenari — attività ✅ scen. 20, movimento ✅ scen. 21, ore mobile ✅ scen. 22, **gestione lavori** ✅ scen. 23; prossimo: preventivo |
+| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **11** scenari — attività ✅ 20 … uscita magazzino ✅ 30; prossimo: batch read P1 / altri write M3 |
 
 **Inventario pagine:** ~**66** file `*-standalone.html` (esclusa `simulator-dev-standalone.html`). Molti **form** non sono pagine standalone (modali nelle liste) — copertura form = scenari write per modulo.
 
@@ -879,7 +907,7 @@ npm run sim:e2e                      # 22/22 attesi (~30s)
 | ------ | ---- | -------- | --------- | - |
 | Home magazzino | ✅ | ✅ scen. 15 | ❌ | 1 |
 | Movimenti | ✅ | ✅ scen. 5 | ✅ scen. 21 (entrata) | **1** |
-| Prodotti | ✅ | ✅ scen. 11 | ❌ | **1** (write: prodotto) |
+| Prodotti | ✅ | ✅ scen. 11 | ✅ scen. 25 (anagrafica) | **1** |
 | Tracciabilità consumi | ✅ | ✅ scen. 15 | ❌ | 2 |
 
 ##### 11.3.3 Parco macchine
@@ -908,10 +936,11 @@ npm run sim:e2e                      # 22/22 attesi (~30s)
 | Pagina | Seed | E2E read | E2E write | P |
 | ------ | ---- | -------- | --------- | - |
 | Home conto terzi | ✅ | ✅ scen. 17 | ❌ | 1 |
-| Clienti / Tariffe / Preventivi / Terreni clienti | ✅ | ✅ scen. 7 | ❌ | 2 |
+| Clienti / Tariffe / Preventivi / Terreni clienti | ✅ | ✅ scen. 7 | ✅ scen. 27 (cliente) | 2 |
 | Mappa clienti | ✅ select | ✅ scen. 17 (no tile Google) | ❌ | 2 |
-| Nuovo preventivo | ✅ base | ❌ | ❌ | **1** |
-| Accetta preventivo | ✅ stati misti | ❌ | ❌ | **1** |
+| Nuovo preventivo | ✅ base | ❌ | ✅ scen. 24 (bozza) | **1** |
+| Accetta preventivo | ✅ stati misti | ❌ | ✅ scen. 26 (manager, marker 9.99 ha) | **1** |
+| Pianifica preventivo | ✅ base | ❌ | ✅ scen. 28 (lavoro da marker) | **1** |
 
 ##### 11.3.6 Manodopera
 
@@ -948,7 +977,7 @@ npm run sim:e2e                      # 22/22 attesi (~30s)
 | --------- | -------- |
 | **M1** | ✅ v4 — **18/18** E2E read + link rapidi pagina dev |
 | **M2** | E2E read su **tutte le pagine** del template `viticola-conto-terzi-manodopera` (~40 URL) |
-| **M3** | **10–15 flussi E2E write** su path business critici — **4/15** ✅ (attività, movimento, ore, lavoro); prossimi: preventivo, prodotto… |
+| **M3** | **10–15 flussi E2E write** su path business critici — **11/15** ✅; prossimo: batch read P1… |
 | **M4** | Template **frutteto** + parity read/write |
 | **M5** | Matrice **ruolo × modulo** (manager / capo / operaio) + CI notturna suite piena (v4b) |
 
@@ -958,7 +987,7 @@ npm run sim:e2e                      # 22/22 attesi (~30s)
 
 - Seed: ~~**guasti**, **ore in coda validazione**~~ ✅ (2026-06-28)
 - E2E read: mappa aziendale, statistiche core/vigneto, admin macchine/guasti, apertura nuovo preventivo
-- E2E write: ~~attività~~ ✅ scen. 20; ~~movimento~~ ✅ scen. 21; ~~ore mobile~~ ✅ scen. 22; ~~lavoro manodopera~~ ✅ scen. 23; prossimo: **preventivo**
+- E2E write: ~~attività~~ ✅ scen. 20; ~~movimento entrata~~ ✅ scen. 21; ~~movimento uscita~~ ✅ scen. 30; ~~ore~~ ✅ scen. 22; ~~lavoro~~ ✅ scen. 23; ~~preventivo~~ ✅ scen. 24; ~~accetta~~ ✅ scen. 26; ~~pianifica~~ ✅ scen. 28; ~~prodotto~~ ✅ scen. 25; ~~cliente~~ ✅ scen. 27; ~~tariffa~~ ✅ scen. 29; prossimo: **batch read P1** o altro write M3
 
 **Fase 2 — Conto terzi + manodopera profondi**
 
@@ -1447,7 +1476,7 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
-**Verifica E2E (v4 + v5 Fase 1):** `npm run sim:e2e` — suite **22/22 OK** (18 read + 4 write, ~27s) con tenant `viticola-conto-terzi-manodopera` — verificato 2026-06-28; v. §11.2–§11.3.
+**Verifica E2E (v4 + v5 Fase 1):** `npm run sim:e2e` — suite **27/27 OK** (18 read + 9 write, ~43s) con tenant `viticola-conto-terzi-manodopera` — verificato 2026-06-28; v. §11.2–§11.3.
 
 **Non in scope v2.2 (aggiornato):** preventivo accettato → creazione lavoro conto terzi automatica. ~~Link rapidi Conto Terzi in pagina dev~~ → **implementato 2026-06-28** (gruppi modulo condizionati al template).
 

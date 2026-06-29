@@ -64,12 +64,19 @@ import {
 } from '../tests/e2e/sim/scenarios/field-workspace.mjs';
 import { runFieldWorkspaceOreWriteAssertions } from '../tests/e2e/sim/scenarios/field-workspace-write.mjs';
 import { runGestioneLavoriWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-lavori-write.mjs';
+import { runPreventiviWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-write.mjs';
+import { runPreventiviAccettaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-accetta-write.mjs';
+import { runClientiWriteAssertions } from '../tests/e2e/sim/scenarios/clienti-write.mjs';
+import { runPreventiviPianificaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-pianifica-write.mjs';
+import { runTariffeWriteAssertions } from '../tests/e2e/sim/scenarios/tariffe-write.mjs';
+import { runProdottiWriteAssertions } from '../tests/e2e/sim/scenarios/prodotti-write.mjs';
 import {
   runGestioneLavoriAssertions,
   runValidazioneOreAssertions,
 } from '../tests/e2e/sim/scenarios/manodopera-admin.mjs';
 import { runMovimentiAssertions } from '../tests/e2e/sim/scenarios/movimenti.mjs';
 import { runMovimentiWriteAssertions } from '../tests/e2e/sim/scenarios/movimenti-write.mjs';
+import { runMovimentiUscitaWriteAssertions } from '../tests/e2e/sim/scenarios/movimenti-uscita-write.mjs';
 import {
   runGuastiListAssertions,
   runMacchineDashboardAssertions,
@@ -328,6 +335,14 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'movimenti-uscita-write',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoMovimentiList(page);
+      await runMovimentiUscitaWriteAssertions(page, expect);
+    },
+  },
+  {
     name: 'field-workspace-write',
     run: async (page) => {
       await runFieldWorkspaceOreWriteAssertions(page, expect);
@@ -339,6 +354,54 @@ const SCENARIOS = [
       await loginAsManagerManodopera(page);
       await gotoGestioneLavori(page);
       await runGestioneLavoriWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'preventivi-write',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoPreventiviList(page);
+      await runPreventiviWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'preventivi-accetta-write',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoPreventiviList(page);
+      await runPreventiviAccettaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'preventivi-pianifica-write',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoPreventiviList(page);
+      await runPreventiviPianificaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'prodotti-write',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoProdottiList(page);
+      await runProdottiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'clienti-write',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoClientiList(page);
+      await runClientiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'tariffe-write',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoTariffeList(page);
+      await runTariffeWriteAssertions(page, expect);
     },
   },
 ];

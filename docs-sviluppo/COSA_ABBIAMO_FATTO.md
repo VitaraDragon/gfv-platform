@@ -1,6 +1,95 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 Fase 1** suite **22/22 OK** (~27s); write gestione lavori (scen. 23) + fix `creatoDa`.**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 Fase 1** suite **29/29 OK** (~48s); write uscita magazzino (scen. 30).**
+
+## GFV Farm Simulator — v5 Fase 1 E2E write uscita magazzino (2026-06-28)
+
+**Obiettivo:** undicesimo flusso write asse C — manager registra uscita da modale movimenti (prodotto con giacenza ≥ 1).
+
+**Scenario 30 `movimenti-uscita-write`:**
+- Login manager → `movimenti-standalone.html` → modale **Nuovo Movimento** → prodotto con giacenza seed, tipo **uscita**, qty 1, note marker `GFV_SIM_E2E_SCARICO`
+- Assert: toast «Movimento registrato.», riga con badge **Uscita** e marker (idempotente)
+- Fix coupling: marker corto (colonna Note tronca a 30 char); `movimenti-write` filtra solo righe `.badge-entrata`; read scen. 5 cap righe ≤18 (seed 12 + write entrata/uscita)
+
+**File:** `tests/e2e/sim/scenarios/movimenti-uscita-write.mjs`, `movimenti-uscita-write.spec.js`, `scripts/sim-e2e-run.mjs` (29 scenari); aggiornati `movimenti-write.mjs`, `movimenti.mjs`.
+
+**Verifica:** `npm run sim:e2e` → **29/29 OK** (~48s, 2 run consecutivi idempotenti).
+
+## GFV Farm Simulator — v5 Fase 1 E2E write tariffa conto terzi (2026-06-28)
+
+**Obiettivo:** decimo flusso write asse C — manager crea tariffa singola da modale gestione tariffe.
+
+**Scenario 29 `tariffe-write`:**
+- Login conto terzi → `tariffe-standalone.html` → modale **Nuova Tariffa** → cascade categoria/tipo lavoro (preferenza Erpicatura) + coltura (Vite da Vino), tipo campo **montagna**, tariffa base **777 €/ha**, coefficiente 1, attiva
+- Assert: toast «Tariffa creata con successo», riga con Montagna, 777.00 €/ha, badge Attiva (idempotente via marker base + tipo lavoro)
+
+**File:** `tests/e2e/sim/scenarios/tariffe-write.mjs`, `tariffe-write.spec.js`, `scripts/sim-e2e-run.mjs` (28 scenari).
+
+**Verifica:** `npm run sim:e2e` → **28/28 OK** (~45s, 2 run consecutivi idempotenti).
+
+## GFV Farm Simulator — v5 Fase 1 E2E write pianifica preventivo (2026-06-28)
+
+**Obiettivo:** nono flusso write asse C — manager pianifica preventivo accettato (marker 9.99 ha) → crea lavoro conto terzi.
+
+**Scenario 28 `preventivi-pianifica-write`:**
+- Login conto terzi → riga marker accettata → **Pianifica** (accept `confirm`) → lavoro in `tenants/.../lavori`
+- Assert: toast «Lavoro creato con successo!», badge **Pianificato**, testo «Lavoro creato» in azioni (idempotente)
+
+**Coupling scen. 26:** `preventivi-accetta-write` tollera stato già **Pianificato** (no assert Pianifica).
+
+**File:** `tests/e2e/sim/scenarios/preventivi-pianifica-write.mjs`, `preventivi-pianifica-write.spec.js`, `scripts/sim-e2e-run.mjs` (27 scenari).
+
+**Verifica:** `npm run sim:e2e` → **27/27 OK** (~43s, 2 run consecutivi idempotenti).
+
+## GFV Farm Simulator — v5 Fase 1 E2E write cliente conto terzi (2026-06-28)
+
+**Obiettivo:** ottavo flusso write asse C — manager crea cliente da modale anagrafica clienti.
+
+**Scenario 27 `clienti-write`:**
+- Login conto terzi → clienti → **Nuovo Cliente** → ragione `GFV SIM E2E WRITE CLIENTE`, P.IVA `99988877701`, email marker, stato attivo
+- Assert: toast «Cliente creato con successo», riga filtrata con P.IVA, email, badge Attivo, 0 lavori (idempotente)
+
+**File:** `tests/e2e/sim/scenarios/clienti-write.mjs`, `clienti-write.spec.js`, `scripts/sim-e2e-run.mjs` (26 scenari).
+
+**Verifica:** `npm run sim:e2e` → **26/26 OK** (~32s, 2 run consecutivi idempotenti).
+
+## GFV Farm Simulator — v5 Fase 1 E2E write accetta preventivo (2026-06-28)
+
+**Obiettivo:** settimo flusso write asse C — manager accetta bozza preventivo marker (9.99 ha da scen. 24).
+
+**Scenario 26 `preventivi-accetta-write`:**
+- Login conto terzi → lista preventivi → riga marker 9.99 ha → **Accetta** (se bozza)
+- Assert: toast «Preventivo accettato con successo», badge **Accettato (Manager)**, pulsante **Pianifica** (idempotente)
+
+**Fix coupling scen. 24:** `preventivi-write` non richiede più badge Bozza se il preventivo marker esiste già accettato.
+
+**File:** `tests/e2e/sim/scenarios/preventivi-accetta-write.mjs`, `preventivi-accetta-write.spec.js`, `scripts/sim-e2e-run.mjs` (25 scenari).
+
+**Verifica:** `npm run sim:e2e` → **25/25 OK** (~33s, 2 run consecutivi idempotenti).
+
+## GFV Farm Simulator — v5 Fase 1 E2E write prodotto magazzino (2026-06-28)
+
+**Obiettivo:** sesto flusso write asse C — manager crea prodotto da modale anagrafica prodotti.
+
+**Scenario 25 `prodotti-write`:**
+- Login manager → prodotti → **Nuovo Prodotto** → codice/nome marker `GFV_SIM_E2E_WRITE_PRODOTTO` / `GFV SIM E2E WRITE PRODOTTO`, categoria ricambi, um pezzi, scorta min 5
+- Assert: toast «Prodotto creato.», riga filtrata con codice, categoria, giacenza 0, badge Attivo (idempotente)
+
+**File:** `tests/e2e/sim/scenarios/prodotti-write.mjs`, `prodotti-write.spec.js`, `scripts/sim-e2e-run.mjs` (24 scenari).
+
+**Verifica:** `npm run sim:e2e` → **24/24 OK** (~40s, verificato 2026-06-28).
+
+## GFV Farm Simulator — v5 Fase 1 E2E write preventivo conto terzi (2026-06-28)
+
+**Obiettivo:** quinto flusso write asse C — manager crea preventivo da pagina `nuovo-preventivo-standalone.html`.
+
+**Scenario 24 `preventivi-write`:**
+- Login manager conto terzi → lista preventivi → **Nuovo Preventivo** → cliente + terreno seed, cascade tipo lavoro (Erpicatura), superficie marker **9.99 ha**, note `GFV_SIM_E2E_WRITE_PREVENTIVO`
+- Assert: redirect elenco, riga con superficie 9.99 ha, tipo lavoro, coltura, badge **Bozza**, totale € (idempotente via superficie distintiva)
+
+**File:** `tests/e2e/sim/scenarios/preventivi-write.mjs`, `preventivi-write.spec.js`, `scripts/sim-e2e-run.mjs` (23 scenari).
+
+**Verifica:** `npm run sim:e2e` → **23/23 OK** (~33s, verificato 2026-06-28).
 
 ## GFV Farm Simulator — v5 Fase 1 E2E write gestione lavori (2026-06-28)
 
