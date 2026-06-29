@@ -44,6 +44,8 @@ export const MACCHINE_DASHBOARD_PATH =
   '/modules/macchine/views/macchine-dashboard-standalone.html?emulator=1';
 export const GUASTI_LIST_PATH =
   '/modules/macchine/views/guasti-list-standalone.html?emulator=1';
+export const SEGNALAZIONE_GUASTI_PATH =
+  '/core/admin/segnalazione-guasti-standalone.html?emulator=1';
 export const MAGAZZINO_HOME_PATH =
   '/modules/magazzino/views/magazzino-home-standalone.html?emulator=1';
 export const TRACCIABILITA_CONSUMI_PATH =
@@ -392,8 +394,8 @@ export async function gotoTerreniClientiList(page) {
 /** Attende che i widget scadenze dashboard abbiano finito il caricamento Firestore. */
 export async function waitForDashboardDeadlinesLoaded(page) {
   await page.locator('.dashboard-deadlines-row').waitFor({ state: 'visible', timeout: 60_000 });
-  await page.getByRole('heading', { name: /Scadenze amministrazione/i }).waitFor();
-  await page.getByRole('heading', { name: /In arrivo/i }).waitFor();
+  await page.getByRole('heading', { name: /Scadenze amministrazione/i }).waitFor({ timeout: 60_000 });
+  await page.getByRole('heading', { name: /In arrivo/i }).waitFor({ timeout: 60_000 });
 
   await page.waitForFunction(() => {
     const empty = document.getElementById('scadenze-amministrazione-empty');
@@ -639,6 +641,21 @@ export async function waitForGuastiListLoaded(page) {
 export async function gotoGuastiList(page) {
   await page.goto(GUASTI_LIST_PATH);
   await waitForGuastiListLoaded(page);
+}
+
+export async function waitForSegnalazioneGuastiLoaded(page) {
+  await page.waitForURL(/segnalazione-guasti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Segnalazione Guasti' }).waitFor({ timeout: 60_000 });
+  await page.locator('#segnala-guasto-form #tipo-generico').waitFor({ state: 'visible', timeout: 90_000 });
+  await page.waitForFunction(() => {
+    const alertText = (document.getElementById('alert-container')?.textContent || '').trim();
+    return !/solo per operai|solo con il modulo Parco Macchine attivo/i.test(alertText);
+  }, { timeout: 90_000 });
+}
+
+export async function gotoSegnalazioneGuasti(page) {
+  await page.goto(SEGNALAZIONE_GUASTI_PATH);
+  await waitForSegnalazioneGuastiLoaded(page);
 }
 
 export async function waitForMagazzinoHomeLoaded(page) {

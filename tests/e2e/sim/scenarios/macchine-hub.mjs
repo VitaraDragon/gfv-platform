@@ -38,13 +38,21 @@ export async function runGuastiListAssertions(page, expect) {
   expect(await tableRows.count()).toBeGreaterThanOrEqual(2);
 
   const countLabel = await page.locator('#count-label').textContent();
-  expect(countLabel).toMatch(/2 guasti/i);
-  expect(countLabel).toMatch(/apert/i);
+  const countMatch = (countLabel || '').match(/(\d+) guasti \((\d+) aperti\)/);
+  expect(countMatch).not.toBeNull();
+  const totalGuasti = parseInt(countMatch[1], 10);
+  const guastiAperti = parseInt(countMatch[2], 10);
+  expect(totalGuasti).toBeGreaterThanOrEqual(2);
+  expect(totalGuasti).toBeLessThanOrEqual(6);
+  expect(guastiAperti).toBeGreaterThanOrEqual(2);
+  expect(guastiAperti).toBeLessThanOrEqual(6);
 
   await expect(container.locator('.badge-grave').first()).toBeVisible();
   await expect(container.locator('.badge-in-attesa').first()).toBeVisible();
 
   await page.locator('#filter-stato').selectOption('tutti');
-  await expect(container.locator('.guasti-table tbody tr')).toHaveCount(3);
+  const tuttiRows = container.locator('.guasti-table tbody tr');
+  expect(await tuttiRows.count()).toBeGreaterThanOrEqual(3);
+  expect(await tuttiRows.count()).toBeLessThanOrEqual(7);
   await expect(container.locator('.badge-risolto').first()).toBeVisible();
 }

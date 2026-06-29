@@ -580,9 +580,20 @@
 
         async function initApp() {
             initializeFirebase(firebaseConfig);
+            const { awaitFirebaseEmulatorConnect, awaitAuthStateReady } = await import('../services/firebase-service.js');
+            await awaitFirebaseEmulatorConnect();
+
             const app = getAppInstance();
             const auth = getAuthInstance();
             const db = getDb();
+
+            try {
+                const { ensureSimulatorSession } = await import('../js/simulator-browser-auth.js');
+                await ensureSimulatorSession(auth);
+            } catch (simErr) {
+                console.warn('[Segnalazione Guasti] ensureSimulatorSession:', simErr);
+            }
+            await awaitAuthStateReady();
 
             let currentUser = null;
             let currentTenantId = null;
@@ -674,16 +685,19 @@
                             }
                         }
 
-                        // Carica prima le macchine, poi i terreni, poi i lavori (per assicurarsi che i dropdown siano popolati)
-                        await loadMacchine();
-                        await loadTerreni(); // Carica terreni prima dei lavori
-                        // Piccolo delay per assicurarsi che i dropdown siano completamente popolati
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        await loadLavori();
+                        // Form interattivo subito (E2E / rete lenta: non bloccare toggle su loadMacchine)
                         setupTipoGuastoToggle();
                         setupLavoroChangeHandler();
                         setupMapsButton();
                         setupGpsCaptureButton();
+
+                        // Carica macchine, terreni e lavori in parallelo dove possibile
+                        await Promise.all([
+                            loadMacchine(),
+                            loadTerreni(),
+                        ]);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await loadLavori();
                         await setupGuastiRealtime();
                     }
                 } else {
@@ -2045,8 +2059,12 @@
 
             // Funzione showAlert
             function showAlert(message, type) {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type || 'info'); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
+                if (typeof window.gfvShowAlert === 'function') {
+                    window.gfvShowAlert(message, type || 'info');
+                    return;
+                }
+                console.warn('[showAlert] gfvShowAlert non disponibile:', message);
+            }
         }
     </script>
     <!-- GFV standalone shell: alert toast + Tony gated -->

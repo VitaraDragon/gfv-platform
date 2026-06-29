@@ -125,7 +125,7 @@ export async function runTerreniClientiAssertions(page, expect) {
   const container = page.locator('#terreni-container');
   const cards = container.locator('.terreno-card');
   expect(await cards.count()).toBeGreaterThanOrEqual(1);
-  expect(await cards.count()).toBeLessThanOrEqual(4);
+  expect(await cards.count()).toBeLessThanOrEqual(6);
 
   const countText = await page.locator('#terreni-count').textContent();
   expect(parseInt(countText, 10)).toBeGreaterThanOrEqual(1);

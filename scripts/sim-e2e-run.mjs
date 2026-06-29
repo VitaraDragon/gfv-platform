@@ -63,6 +63,10 @@ import {
   runOperaioFieldWorkspaceAssertions,
 } from '../tests/e2e/sim/scenarios/field-workspace.mjs';
 import { runFieldWorkspaceOreWriteAssertions } from '../tests/e2e/sim/scenarios/field-workspace-write.mjs';
+import { runValidazioneOreWriteAssertions } from '../tests/e2e/sim/scenarios/validazione-ore-write.mjs';
+import { runTerreniWriteAssertions } from '../tests/e2e/sim/scenarios/terreni-write.mjs';
+import { runGuastiWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-write.mjs';
+import { runTerreniClientiWriteAssertions } from '../tests/e2e/sim/scenarios/terreni-clienti-write.mjs';
 import { runGestioneLavoriWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-lavori-write.mjs';
 import { runPreventiviWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-write.mjs';
 import { runPreventiviAccettaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-accetta-write.mjs';
@@ -349,6 +353,12 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'validazione-ore-write',
+    run: async (page) => {
+      await runValidazioneOreWriteAssertions(page, expect);
+    },
+  },
+  {
     name: 'gestione-lavori-write',
     run: async (page) => {
       await loginAsManagerManodopera(page);
@@ -402,6 +412,28 @@ const SCENARIOS = [
       await loginAsManagerContoTerzi(page);
       await gotoTariffeList(page);
       await runTariffeWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'terreni-write',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoTerreniList(page);
+      await runTerreniWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'guasti-write',
+    run: async (page) => {
+      await runGuastiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'terreni-clienti-write',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoTerreniClientiList(page);
+      await runTerreniClientiWriteAssertions(page, expect);
     },
   },
 ];

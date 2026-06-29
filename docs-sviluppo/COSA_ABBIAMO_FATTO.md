@@ -1,6 +1,27 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-28 — sim **v5 Fase 1** suite **29/29 OK** (~48s); write uscita magazzino (scen. 30).**
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-29 — sim **v5 Fase 1 / M3 chiusa** suite **33/33 OK** (~2 min); write scen. 31–34 (validazione ore, terreni, guasti, terreni clienti).**
+
+## GFV Farm Simulator — v5 Fase 1 M3 chiusa: ultimi 4 write E2E (2026-06-29)
+
+**Obiettivo:** milestone **M3** — 15/15 flussi write → suite **33/33** (18 read + 15 write).
+
+**Scenari 31–34:**
+
+| Scen. | Runner | Flusso |
+| ----- | ------ | ------ |
+| 31 | `validazione-ore-write` | Manager valida ore marker `GFV_SIM_E2E_WRITE_ORE` (catena scen. 22); idempotente |
+| 32 | `terreni-write` | Nuovo terreno azienda — nome `GFV SIM E2E WRITE TERRENO`, 6.66 ha |
+| 33 | `guasti-write` | Operaio segnalazione generica → manager vede in `guasti-list` — dettagli `GFV_SIM_E2E_WRITE_GUASTO` |
+| 34 | `terreni-clienti-write` | Nuovo terreno cliente CT — nome `GFV SIM E2E WRITE TERRENO CT`, 8.88 ha |
+
+**Fix app (bug E2E provato):** `segnalazione-guasti-standalone.html` — parentesi mancante su `initApp()` (script non parsava); `setupTipoGuastoToggle()` prima di `loadMacchine`; helper E2E `waitForSegnalazioneGuastiLoaded` non matcha testo errore negli script inline.
+
+**Coupling read:** `macchine-hub.mjs` cap guasti flessibile; `conto-terzi.mjs` terreni clienti ≤6.
+
+**File:** 4 coppie scenario/spec + `scripts/sim-e2e-run.mjs` (33 scenari); aggiornati `sim-login.js`, `segnalazione-guasti-standalone.html`.
+
+**Verifica:** `npm run sim:e2e` → **33/33 OK** (~2 min, 2 run consecutivi idempotenti; `field-workspace-write` flaky noto — OK al retry).
 
 ## GFV Farm Simulator — v5 Fase 1 E2E write uscita magazzino (2026-06-28)
 
