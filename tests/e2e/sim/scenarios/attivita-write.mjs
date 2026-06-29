@@ -102,18 +102,45 @@ async function pickTipoLavoroInModal(page) {
   throw new Error('Impossibile selezionare un tipo lavoro nel modale attività');
 }
 
+/** Data nel mese seed sim (evita edge fuso/ora CI vs validazione «non futura»). */
+const E2E_ATTIVITA_WRITE_DATA = '2026-06-15';
+
+/**
+ * Attende esito salvataggio: chiusura modale o toast (non richiede visibilità toast).
+ * @param {import('playwright-core').Page} page
+ */
+async function waitForAttivitaSaveComplete(page) {
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    const state = await page.evaluate(() => {
+      const err = document.querySelector(
+        '#gfv-standalone-toast-layer .alert-error, #gfv-standalone-toast-layer .alert-danger'
+      );
+      const errText = err?.textContent?.trim() || '';
+      const modal = document.getElementById('attivita-modal');
+      const modalOpen = modal?.classList.contains('active') ?? false;
+      const success = document.querySelector('#gfv-standalone-toast-layer .alert-success');
+      const okText = success?.textContent?.trim() || '';
+      return { errText, modalOpen, okText };
+    });
+    if (state.errText) {
+      throw new Error(`Salvataggio attività E2E: ${state.errText}`);
+    }
+    if (!state.modalOpen || /Attività creata/i.test(state.okText)) {
+      return;
+    }
+    await page.waitForTimeout(400);
+  }
+  throw new Error('Salvataggio attività E2E: timeout (modale ancora aperta)');
+}
+
 /**
  * @param {import('playwright-core').Page} page
  * @param {{ note: string }} opts
  * @returns {Promise<{ tipoLavoro: string, terrenoNome: string }>}
  */
 async function fillAndSubmitNewAttivita(page, { note }) {
-  const today = await page.evaluate(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-
-  await page.locator('#attivita-data').fill(today);
+  await page.locator('#attivita-data').fill(E2E_ATTIVITA_WRITE_DATA);
 
   const terrenoSelect = page.locator('#attivita-terreno');
   const terrenoNome = ((await terrenoSelect.locator('option').nth(1).textContent()) || '').trim();
@@ -138,11 +165,7 @@ async function fillAndSubmitNewAttivita(page, { note }) {
   await page.locator('#attivita-note').fill(note);
 
   await page.locator('#attivita-form button[type="submit"]').click();
-
-  await page.locator('.alert-success').filter({
-    hasText: /Attività creata con successo/i,
-  }).waitFor({ state: 'attached', timeout: 90_000 });
-  await page.locator('#attivita-modal.active').waitFor({ state: 'hidden', timeout: 90_000 });
+  await waitForAttivitaSaveComplete(page);
 
   return { tipoLavoro, terrenoNome };
 }
