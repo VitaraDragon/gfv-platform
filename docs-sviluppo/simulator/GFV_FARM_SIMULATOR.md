@@ -2,7 +2,7 @@
 
 **Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**33 scenari: 18 read + 15 write ✅**, M3 chiusa)  
 **Data:** 2026-06-29  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1 / M3 chiusa** — write scen. 20–34 ✅; suite **33/33 OK** (verificato 2026-06-29, ~2 min); regime max + routine §13.4  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1 chiusa** ✅ — write scen. 20–34 + CI **33/33** (18 read + 15 write; verificato 2026-06-30, ~1 min CI); regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -829,9 +829,9 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 #### 11.2.1 Stato v4 e prossimi passi (2026-06-29)
 
-**Completato:** scenari Playwright **1–34** — suite locale **33/33 OK** (`npm run sim:e2e`: 18 read + 15 write; ~2 min, verificato 2026-06-29) + **CI** (`sim:e2e:ci`, 18 spec read — aggiornare in v5b).
+**Completato:** scenari Playwright **1–34** — suite locale **33/33 OK** (`npm run sim:e2e`: 18 read + 15 write; ~2 min) + **CI** (`sim:e2e:ci` → `sim:e2e:pw`, **33 spec** — 18 read + 15 write; verificato 2026-06-30, job `sim:e2e` ~56s).
 
-**v5 Fase 1 / M3 chiusa:** 15 flussi write su path business critici (scen. 20–34, numerazione doc 31–34 = ultimi 4 write M3).
+**v5 Fase 1 chiusa ✅** (M3 inclusa): 15 flussi write su path business critici (scen. 20–34, numerazione doc 31–34 = ultimi 4 write M3).
 
 **Prossimo — v5 Fase 2 (§11.3):** batch read P1 pagine mancanti; gap seed: vendemmia, frutteto.
 
@@ -1198,7 +1198,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 
 - **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
 - **Job `simulator-emulator`:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
-- **Job `simulator-e2e` (v4 #9 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, seed `viticola-conto-terzi-manodopera`, `sim:e2e:pw` (**12 scenari** headless, Chromium bundled). Timeout 25 min. I due job girano in parallelo.
+- **Job `simulator-e2e` (v4 #9 ✅, v5 Fase 1 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, seed `viticola-conto-terzi-manodopera`, `sim:e2e:pw` (**33 spec** — 18 read + 15 write, headless Chromium). Timeout 25 min. I due job girano in parallelo.
 - **Locale (stesso comando CI Node):** `npm run sim:test:ci` — richiede Java su PATH.
 - **Locale (stesso comando CI E2E, bash + Java):** `npm run sim:e2e:install && npm run sim:e2e:ci`.
 
@@ -1206,8 +1206,8 @@ Workflow: `.github/workflows/simulator-ci.yml`
 | ----------- | ------- | ---- |
 | Browser | `sim:e2e:install` | Chromium Playwright + deps OS (`--with-deps`) |
 | Orchestrazione | `sim:e2e:ci` | `simulator/ci-e2e-run.js` → `scripts/sim-ci-e2e-inner.sh` |
-| Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | copre scenari 1–13 |
-| Assert browser | `sim:e2e:pw` | Node 22; **12 spec** headless |
+| Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | template completo manodopera + CT |
+| Assert browser | `sim:e2e:pw` | Node 22; **33 spec** headless (18 read + 15 write) |
 
 Su Node 24 locale preferire `npm run sim:e2e` (runner Node + Chrome di sistema); in CI usare `sim:e2e:pw`.
 

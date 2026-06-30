@@ -1,6 +1,10 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-29 — fix CI `attivita-write` (validazione HTML5 campi CT nascosti dopo `form.reset()`); sim **v5 Fase 1 / M3** suite **33/33 OK**.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-30 — sim **v5 Fase 1 chiusa** ✅; suite **33/33** locale + CI (run 28424016472).
+
+## GFV Farm Simulator — v5 Fase 1 chiusa (2026-06-30)
+
+**Chiusura ufficiale Fase 1 sim:** suite E2E **33/33** (18 read + 15 write) in locale (`npm run sim:e2e`) e in CI (`npm run sim:e2e:ci` → `sim:e2e:pw`). Job GitHub Actions `sim:e2e`: **33 passed**, zero flaky (run [28424016472](https://github.com/VitaraDragon/gfv-platform/actions/runs/28424016472), ~56s). Template CI: `viticola-conto-terzi-manodopera`. Prossimo: v5 Fase 2 / M2 read P1 (§11.3 `GFV_FARM_SIMULATOR.md`).
 
 ## Fix CI attivita-write — validazione form modale (2026-06-29)
 
@@ -258,7 +262,7 @@
 - `scripts/sim-ci-e2e-inner.sh` — http-server background + `sim:run` + `sim:e2e:pw`
 - `package.json` — `sim:e2e:ci`, `sim:e2e:install` con `--with-deps`
 
-**Template CI:** `viticola-conto-terzi-manodopera` (suite **18/18**). Comando locale equivalente: `npm run sim:e2e:install && npm run sim:e2e:ci` (bash + Java).
+**Template CI:** `viticola-conto-terzi-manodopera` (suite **33/33** — 18 read + 15 write). Comando locale equivalente: `npm run sim:e2e:install && npm run sim:e2e:ci` (bash + Java).
 
 **Esito atteso CI:** job `simulator-e2e` verde su push/PR path sim/E2E.
 
