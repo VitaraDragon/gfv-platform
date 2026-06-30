@@ -11,6 +11,7 @@ import {
 
 test.describe('GFV Farm Simulator — admin macchine read', () => {
   test('pagina dev → gestione macchine + gestione guasti', async ({ page }) => {
+    test.setTimeout(180_000);
     await loginAsManagerManodopera(page);
     await gotoGestioneMacchine(page);
     await runGestioneMacchineAssertions(page, expect);

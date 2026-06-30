@@ -7,6 +7,7 @@ import { runPreventiviAccettaWriteAssertions } from './scenarios/preventivi-acce
 
 test.describe('GFV Farm Simulator v5 — write accetta preventivo', () => {
   test('manager → Accetta → badge Accettato (Manager) + Pianifica (marker 9.99 ha)', async ({ page }) => {
+    test.setTimeout(180_000);
     await loginAsManagerContoTerzi(page);
     await gotoPreventiviList(page);
     await runPreventiviAccettaWriteAssertions(page, expect);

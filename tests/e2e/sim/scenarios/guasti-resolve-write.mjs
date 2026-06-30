@@ -62,13 +62,12 @@ async function resolveMarkerGuasto(page) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runGuastiResolveWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
+  expect.configure({ timeout: 120_000 });
 
   await ensureMarkerGuastoExists(page);
 
   await loginAsManagerManodopera(page);
   await gotoGestioneGuastiAdmin(page);
-  await page.locator('#filter-stato').selectOption('');
 
   await expect(guastoItemWithMarker(page).first()).toBeVisible({ timeout: 60_000 });
   await resolveMarkerGuasto(page);

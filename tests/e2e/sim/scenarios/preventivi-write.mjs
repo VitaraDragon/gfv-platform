@@ -151,7 +151,7 @@ async function fillAndSubmitNewPreventivo(page, { note }) {
   await page.waitForFunction(() => {
     const terreno = document.getElementById('terreno-id');
     return terreno && terreno.options.length > 1;
-  }, { timeout: 90_000 });
+  }, { timeout: 15_000 });
 
   const terrenoSelect = page.locator('#terreno-id');
   await terrenoSelect.selectOption({ index: 1 });

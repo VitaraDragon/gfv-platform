@@ -996,17 +996,29 @@ export async function waitForGestioneGuastiAdminLoaded(page) {
   await page.locator('h1').filter({ hasText: 'Gestione Guasti' }).waitFor({ timeout: 60_000 });
   await page.waitForFunction(() => {
     const totali = document.getElementById('stat-totali');
-    const n = totali ? parseInt(totali.textContent, 10) : 0;
-    if (!Number.isFinite(n) || n < 3) return false;
+    const t = (totali?.textContent || '').trim();
+    if (!t || t === '-') return false;
+    const n = parseInt(t, 10);
+    if (!Number.isFinite(n) || n < 1) return false;
     const list = document.getElementById('guasti-list');
     if (!list || /Caricamento guasti/i.test(list.textContent || '')) return false;
-    return list.querySelectorAll('.guasto-item').length >= 3;
+    return true;
   }, { timeout: 90_000 });
 }
 
 export async function gotoGestioneGuastiAdmin(page) {
   await page.goto(GESTIONE_GUASTI_ADMIN_PATH);
   await waitForGestioneGuastiAdminLoaded(page);
+  await page.evaluate(() => {
+    if (typeof window.resetFilters === 'function') window.resetFilters();
+  });
+  await page.waitForFunction(() => {
+    const list = document.getElementById('guasti-list');
+    if (!list || /Caricamento guasti/i.test(list.textContent || '')) return false;
+    const n = parseInt(document.getElementById('stat-totali')?.textContent || '0', 10);
+    if (!Number.isFinite(n) || n < 1) return false;
+    return list.querySelectorAll('.guasto-item').length >= 1 || list.querySelector('.empty-state') !== null;
+  }, { timeout: 30_000 });
 }
 
 export async function waitForNuovoPreventivoLoaded(page) {

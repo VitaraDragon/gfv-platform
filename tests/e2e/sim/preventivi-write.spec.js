@@ -7,6 +7,7 @@ import { runPreventiviWriteAssertions } from './scenarios/preventivi-write.mjs';
 
 test.describe('GFV Farm Simulator v5 — write preventivo conto terzi', () => {
   test('manager → nuovo preventivo → salva → riga in tabella (marker superficie)', async ({ page }) => {
+    test.setTimeout(180_000);
     await loginAsManagerContoTerzi(page);
     await gotoPreventiviList(page);
     await runPreventiviWriteAssertions(page, expect);

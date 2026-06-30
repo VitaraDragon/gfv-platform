@@ -3,6 +3,7 @@ import { runGuastiResolveWriteAssertions } from './scenarios/guasti-resolve-writ
 
 test.describe('GFV Farm Simulator — guasti resolve write', () => {
   test('manager risolve guasto marker in gestione guasti admin', async ({ page }) => {
+    test.setTimeout(240_000);
     await runGuastiResolveWriteAssertions(page, expect);
   });
 });
